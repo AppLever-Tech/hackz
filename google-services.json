@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "439535394674",
+    "project_id": "hackz-a17b6",
+    "storage_bucket": "hackz-a17b6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:439535394674:android:db0aa1591b7427b6d947eb",
+        "android_client_info": {
+          "package_name": "com.alt.hackz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgyqYLei_lpMcWQSaHBfhraDwjZg4t2Rk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

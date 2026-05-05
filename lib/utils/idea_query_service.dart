@@ -1,0 +1,231 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../models/department_model.dart';
+import '../models/enums/user_role.dart';
+import '../models/idea_list_config.dart';
+import '../models/idea_model.dart';
+import '../models/payment_model.dart';
+import '../models/score_model.dart';
+import '../models/team_model.dart';
+import '../models/user_model.dart';
+import 'firestore_utils.dart';
+
+class IdeaQueryParams {
+  const IdeaQueryParams({
+    required this.config,
+    required this.search,
+    required this.sortType,
+    required this.statusFilters,
+    required this.problemFilters,
+    required this.departmentFilters,
+    this.viewer,
+    this.limit = 400,
+  });
+
+  final IdeaListConfig config;
+  final String search;
+  final IdeaSortType sortType;
+  final Set<IdeaStatus> statusFilters;
+  final Set<String> problemFilters;
+  final Set<String> departmentFilters;
+  final UserModel? viewer;
+  final int limit;
+}
+
+class IdeaListItem {
+  const IdeaListItem({
+    required this.idea,
+    required this.teamName,
+    required this.canUploadPayment,
+    this.team,
+    this.payment,
+    this.score,
+  });
+
+  final IdeaModel idea;
+  final String teamName;
+  final TeamModel? team;
+  final PaymentModel? payment;
+  final ScoreModel? score;
+  final bool canUploadPayment;
+}
+
+class IdeaQueryService {
+  IdeaQueryService._();
+
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  static Future<List<IdeaListItem>> fetchIdeas(IdeaQueryParams params) async {
+    final ideasSnap = await _db
+        .collection(FirestoreUtils.hkzIdeas)
+        .where('orgId', isEqualTo: params.config.orgId)
+        .limit(params.limit)
+        .get();
+    var ideas = ideasSnap.docs
+        .map((doc) => IdeaModel.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
+
+    ideas = _applyIdeaFilters(ideas, params);
+    final teamsById = await _fetchTeamsById(
+      orgId: params.config.orgId,
+      teamIds: ideas.map((e) => e.teamId),
+    );
+    final paymentByIdeaId = await _fetchPaymentByIdea(
+      orgId: params.config.orgId,
+      ideaIds: ideas.map((e) => e.ideaId),
+    );
+    final scoreByIdeaId = await _fetchLatestScoreByIdea(
+      orgId: params.config.orgId,
+      ideaIds: ideas.map((e) => e.ideaId),
+    );
+    final viewer = params.viewer;
+    var items = ideas
+        .map(
+          (idea) {
+            final team = teamsById[idea.teamId];
+            final teamName = team?.name.trim().isNotEmpty == true ? team!.name.trim() : idea.teamId;
+            final payment = paymentByIdeaId[idea.ideaId];
+            final canPay = _viewerCanUploadPayment(
+              viewer: viewer,
+              idea: idea,
+              team: team,
+              payment: payment,
+            );
+            return IdeaListItem(
+              idea: idea,
+              teamName: teamName,
+              team: team,
+              payment: payment,
+              score: scoreByIdeaId[idea.ideaId],
+              canUploadPayment: canPay,
+            );
+          },
+        )
+        .toList(growable: false);
+    items = _applySort(items, params.sortType);
+    return items;
+  }
+
+  static List<IdeaModel> _applyIdeaFilters(List<IdeaModel> ideas, IdeaQueryParams params) {
+    final search = params.search.trim().toLowerCase();
+    final restrictedDepartment = DepartmentModel.resolveCode(params.config.departmentCode);
+    final selectedProblems = params.problemFilters
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final selectedDepartments = params.departmentFilters
+        .map((e) => e.trim().toUpperCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+
+    return ideas.where((idea) {
+      if (params.config.restrictToDepartment && restrictedDepartment.isNotEmpty) {
+        if (DepartmentModel.resolveCode(idea.departmentCode) != restrictedDepartment) return false;
+      }
+      if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(idea.status)) {
+        return false;
+      }
+      if (selectedProblems.isNotEmpty && !selectedProblems.contains(idea.problemId)) {
+        return false;
+      }
+      if (selectedDepartments.isNotEmpty &&
+          !selectedDepartments.contains(idea.departmentCode.trim().toUpperCase())) {
+        return false;
+      }
+      if (search.isEmpty) return true;
+      final inProblemNumber = idea.problemNumber.toLowerCase().contains(search);
+      final inProblemTitle = idea.problemTitle.toLowerCase().contains(search);
+      final inDescription = idea.description.toLowerCase().contains(search);
+      return inProblemNumber || inProblemTitle || inDescription;
+    }).toList(growable: false);
+  }
+
+  static Future<Map<String, ScoreModel>> _fetchLatestScoreByIdea({
+    required String orgId,
+    required Iterable<String> ideaIds,
+  }) async {
+    final idSet = ideaIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (idSet.isEmpty) return <String, ScoreModel>{};
+    final scoreSnap = await _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: orgId).get();
+    final mapped = <String, ScoreModel>{};
+    for (final doc in scoreSnap.docs) {
+      final score = ScoreModel.fromMap(doc.id, doc.data());
+      if (!idSet.contains(score.ideaId)) continue;
+      final existing = mapped[score.ideaId];
+      if (existing == null || score.createdAt.isAfter(existing.createdAt)) {
+        mapped[score.ideaId] = score;
+      }
+    }
+    return mapped;
+  }
+
+  static Future<Map<String, TeamModel>> _fetchTeamsById({
+    required String orgId,
+    required Iterable<String> teamIds,
+  }) async {
+    final idSet = teamIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (idSet.isEmpty) return <String, TeamModel>{};
+    final teamSnap = await _db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: orgId).get();
+    final mapped = <String, TeamModel>{};
+    for (final doc in teamSnap.docs) {
+      final data = doc.data();
+      final id = ((data['teamId'] as String?) ?? '').trim().isNotEmpty
+          ? ((data['teamId'] as String?) ?? '').trim()
+          : doc.id;
+      if (!idSet.contains(id)) continue;
+      mapped[id] = TeamModel.fromMap(doc.id, data);
+    }
+    return mapped;
+  }
+
+  static Future<Map<String, PaymentModel>> _fetchPaymentByIdea({
+    required String orgId,
+    required Iterable<String> ideaIds,
+  }) async {
+    final idSet = ideaIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (idSet.isEmpty) return <String, PaymentModel>{};
+    final snap = await _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: orgId).get();
+    final mapped = <String, PaymentModel>{};
+    for (final doc in snap.docs) {
+      final p = PaymentModel.fromMap(doc.id, doc.data());
+      if (!idSet.contains(p.ideaId)) continue;
+      mapped[p.ideaId] = p;
+    }
+    return mapped;
+  }
+
+  static bool _viewerCanUploadPayment({
+    required UserModel? viewer,
+    required IdeaModel idea,
+    required TeamModel? team,
+    required PaymentModel? payment,
+  }) {
+    if (viewer == null) return false;
+    if (idea.status != IdeaStatus.pendingSubmission) return false;
+    if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
+    if (team == null) return false;
+    final role = UserRole.fromCode(viewer.role);
+    if (role == UserRole.student) {
+      return team.studentIds.contains(viewer.userId);
+    }
+    if (role == UserRole.faculty) {
+      return team.facultyId == viewer.userId;
+    }
+    return false;
+  }
+
+  static List<IdeaListItem> _applySort(List<IdeaListItem> items, IdeaSortType sortType) {
+    final sorted = List<IdeaListItem>.from(items);
+    switch (sortType) {
+      case IdeaSortType.newest:
+        sorted.sort((a, b) => b.idea.createdAt.compareTo(a.idea.createdAt));
+      case IdeaSortType.oldest:
+        sorted.sort((a, b) => a.idea.createdAt.compareTo(b.idea.createdAt));
+      case IdeaSortType.status:
+        sorted.sort((a, b) => a.idea.status.value.compareTo(b.idea.status.value));
+      case IdeaSortType.score:
+        sorted.sort((a, b) => (b.score?.score ?? -1).compareTo(a.score?.score ?? -1));
+    }
+    return sorted;
+  }
+}
