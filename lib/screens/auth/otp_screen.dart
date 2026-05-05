@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../common/auth_page_layout.dart';
+import 'auth_gate.dart';
 import '../../utils/auth_utils.dart';
-import '../../utils/firestore_utils.dart';
-import '../../utils/role_utils.dart';
 
 class OtpScreen extends StatefulWidget {
-  const OtpScreen({super.key, required this.phone});
+  const OtpScreen({
+    super.key,
+    required this.phone,
+    this.onVerified,
+  });
 
   final String phone;
+  final Future<void> Function()? onVerified;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -59,12 +63,12 @@ class _OtpScreenState extends State<OtpScreen> {
     setState(() => _isLoading = true);
     try {
       await AuthUtils.verifyOtp(_otpValue);
-      final user = await FirestoreUtils.fetchUserByPhone(widget.phone);
-
-      if (!mounted || user == null) return;
-
+      if (widget.onVerified != null) {
+        await widget.onVerified!();
+      }
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => RoleUtils.routeForRole(user)),
+        MaterialPageRoute(builder: (_) => const AuthGate()),
         (_) => false,
       );
     } catch (e) {

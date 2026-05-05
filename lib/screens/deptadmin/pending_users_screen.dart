@@ -11,10 +11,51 @@ class PendingUsersScreen extends StatelessWidget {
 
   final UserModel currentUser;
 
+  Future<String?> _selectRoleForApproval(BuildContext context) async {
+    String selected = 'STU';
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Select Role'),
+          content: DropdownButtonFormField<String>(
+            value: selected,
+            decoration: const InputDecoration(
+              labelText: 'Role',
+              border: OutlineInputBorder(),
+            ),
+            items: const <DropdownMenuItem<String>>[
+              DropdownMenuItem<String>(value: 'FAC', child: Text('Faculty')),
+              DropdownMenuItem<String>(value: 'STU', child: Text('Student')),
+              DropdownMenuItem<String>(value: 'COO', child: Text('Coordinator')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => selected = value);
+            },
+          ),
+          actions: <Widget>[
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(selected),
+              child: const Text('Approve'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _approveUser(BuildContext context, UserModel user) async {
+    final role = await _selectRoleForApproval(context);
+    if (role == null) return;
     await FirestoreUtils.updateUser(
       user.userId,
       <String, dynamic>{
+        'role': role,
         'status': UserStatus.active.value,
         'approvedBy': currentUser.userId,
         'approvedAt': Timestamp.fromDate(DateTime.now()),
@@ -87,7 +128,7 @@ class PendingUsersScreen extends StatelessWidget {
             final user = users[index];
             return ListTile(
               title: Text('${user.firstName} ${user.lastName}'),
-              subtitle: Text('${user.phone} | ${user.role}'),
+              subtitle: Text(user.phone),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/enums/user_status.dart';
 import '../../models/user_model.dart';
+import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/role_utils.dart';
@@ -17,7 +18,20 @@ class AuthGate extends StatelessWidget {
 
     final phone = firebaseUser.phoneNumber;
     if (phone == null || phone.trim().isEmpty) return null;
-    return FirestoreUtils.fetchUserByPhone(normalizePhoneE164(phone));
+    final normalized = normalizePhoneE164(phone);
+    final byPhone = await FirestoreUtils.fetchUserByPhone(normalized);
+    if (byPhone != null) return byPhone;
+
+    // For first sign-in whitelisted sysadmins, create profile post-auth then resolve.
+    final whitelist = await AuthUtils.checkWhitelist(normalized);
+    if (whitelist != null) {
+      await AuthUtils.ensureSysAdminUserFromWhitelist(
+        phone: normalized,
+        whitelist: whitelist,
+      );
+      return FirestoreUtils.fetchUserByPhone(normalized);
+    }
+    return null;
   }
 
   @override

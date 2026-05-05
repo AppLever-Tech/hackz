@@ -44,7 +44,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
         name: '',
-        code: '',
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
         createdAt: DateTime.now(),
@@ -122,7 +121,38 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Future<void> _approve(UserModel user) async {
+    String selectedRole = 'STU';
+    final role = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Select Role'),
+          content: DropdownButtonFormField<String>(
+            value: selectedRole,
+            decoration: const InputDecoration(
+              labelText: 'Role',
+              border: OutlineInputBorder(),
+            ),
+            items: const <DropdownMenuItem<String>>[
+              DropdownMenuItem<String>(value: 'FAC', child: Text('Faculty')),
+              DropdownMenuItem<String>(value: 'STU', child: Text('Student')),
+              DropdownMenuItem<String>(value: 'COO', child: Text('Coordinator')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => selectedRole = value);
+            },
+          ),
+          actions: <Widget>[
+            OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.of(ctx).pop(selectedRole), child: const Text('Approve')),
+          ],
+        ),
+      ),
+    );
+    if (role == null) return;
     await FirestoreUtils.updateUser(user.userId, <String, dynamic>{
+      'role': role,
       'status': UserStatus.active.value,
       'approvedBy': widget.user.userId,
       'approvedAt': Timestamp.fromDate(DateTime.now()),
@@ -192,7 +222,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       'orgId': widget.user.orgId,
       'departmentCode': depCode,
       'department': widget.user.department,
-      'role': 'STU',
       'isActive': true,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -389,11 +418,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
             ),
           ),
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
-            child: Text(_roleLabel(u.role), style: const TextStyle(fontSize: 12)),
-          ),
+          if (!isPending)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
+              child: Text(_roleLabel(u.role), style: const TextStyle(fontSize: 12)),
+            ),
           if (u.status != UserStatus.active) ...<Widget>[
             const SizedBox(width: 6),
             Container(

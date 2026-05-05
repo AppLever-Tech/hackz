@@ -5,7 +5,6 @@ import '../../models/enums/organization_type.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
-import '../common/read_only_field.dart';
 
 class EditOrgScreen extends StatefulWidget {
   const EditOrgScreen({super.key, required this.organization});
@@ -18,7 +17,6 @@ class EditOrgScreen extends StatefulWidget {
 
 class _EditOrgScreenState extends State<EditOrgScreen> {
   late final TextEditingController _nameController;
-  late final TextEditingController _codeController;
   late final TextEditingController _addressController;
   bool _isSaving = false;
   bool _isDeleting = false;
@@ -27,14 +25,12 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.organization.name);
-    _codeController = TextEditingController(text: widget.organization.code);
     _addressController = TextEditingController(text: widget.organization.address);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _codeController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -174,14 +170,6 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
                   TextField(
                     controller: _nameController,
                     decoration: _fieldDecoration('Enter ${type.displayName} name'),
-                  ),
-                  const SizedBox(height: 12),
-                  Text('${type.displayName} Code', style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  ReadOnlyField(
-                    value: _codeController.text,
-                    hintText: 'Organization code',
-                    helperText: 'Organization code cannot be changed after creation.',
                   ),
                   const SizedBox(height: 12),
                   const Text('Address', style: TextStyle(fontWeight: FontWeight.w600)),

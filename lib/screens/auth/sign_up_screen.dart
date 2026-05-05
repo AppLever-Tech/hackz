@@ -4,9 +4,12 @@ import '../../models/enums/organization_type.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/department_model.dart';
 import '../../models/user_model.dart';
+import '../../constants/app_icons.dart';
 import '../common/auth_page_layout.dart';
 import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
+import 'otp_screen.dart';
+import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 
@@ -24,7 +27,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _accessCodeController = TextEditingController();
+  late final List<TextEditingController> _accessCodeControllers;
+  late final List<FocusNode> _accessCodeFocusNodes;
   bool _isSubmitting = false;
 
   @override
@@ -32,6 +36,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.initState();
     _phoneController.text =
         widget.phone.replaceFirst('+91', '').replaceAll(RegExp(r'\D'), '');
+    _accessCodeControllers = List<TextEditingController>.generate(
+      6,
+      (_) => TextEditingController(),
+    );
+    _accessCodeFocusNodes = List<FocusNode>.generate(
+      6,
+      (_) => FocusNode(),
+    );
   }
 
   @override
@@ -40,8 +52,60 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _accessCodeController.dispose();
+    for (final c in _accessCodeControllers) {
+      c.dispose();
+    }
+    for (final n in _accessCodeFocusNodes) {
+      n.dispose();
+    }
     super.dispose();
+  }
+
+  String get _accessCodeRaw => _accessCodeControllers.map((c) => c.text).join();
+
+  void _onAccessCodeChanged(int index, String value) {
+    if (value.isNotEmpty && index < _accessCodeControllers.length - 1) {
+      _accessCodeFocusNodes[index + 1].requestFocus();
+    }
+    if (value.isEmpty && index > 0) {
+      _accessCodeFocusNodes[index - 1].requestFocus();
+    }
+  }
+
+  Widget _buildAccessCodeFields() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List<Widget>.generate(_accessCodeControllers.length + 1, (int uiIndex) {
+        if (uiIndex == 3) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text('-', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          );
+        }
+        final int fieldIndex = uiIndex > 3 ? uiIndex - 1 : uiIndex;
+        return SizedBox(
+          width: 42,
+          child: TextField(
+            controller: _accessCodeControllers[fieldIndex],
+            focusNode: _accessCodeFocusNodes[fieldIndex],
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            decoration: InputDecoration(
+              counterText: '',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
+              ),
+            ),
+            onChanged: (value) => _onAccessCodeChanged(fieldIndex, value),
+          ),
+        );
+      }),
+    );
   }
 
   Future<void> _submit() async {
@@ -49,7 +113,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _lastNameController.text.trim().isEmpty ||
         !isValidEmailInput(_emailController.text) ||
         !isValidPhoneInput(_phoneController.text) ||
-        _accessCodeController.text.trim().isEmpty) {
+        _accessCodeRaw.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields correctly')),
       );
@@ -59,16 +123,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isSubmitting = true);
     try {
       final String phone = normalizePhoneE164(_phoneController.text);
-      final existingUser = await FirestoreUtils.fetchUserByPhone(phone);
-      if (existingUser != null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User already registered for this phone.')),
-        );
-        return;
-      }
-
-      final rawCode = _accessCodeController.text.trim();
+      final rawCode = _accessCodeRaw.trim();
       if (!RegExp(r'^\d{6}$').hasMatch(rawCode)) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,41 +131,50 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         return;
       }
-      final codeData = await FirestoreUtils.fetchInviteCode(rawCode);
-      if (codeData == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid Access Code')),
-        );
-        return;
-      }
-
-      final user = UserModel(
-        userId: '',
+      await AuthUtils.sendOtp(
         phone: phone,
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        email: _emailController.text.trim(),
-        role: (codeData['role'] as String?) ?? 'STU',
-        orgType: OrganizationType.fromFirestoreValue(codeData['orgType']),
-        orgId: (codeData['orgId'] as String?) ?? '',
-        department: (codeData['department'] as String?) ?? '',
-        departmentCode: DepartmentModel.resolveCode((codeData['departmentCode'] as String?)?.trim().isNotEmpty == true
-            ? (codeData['departmentCode'] as String)
-            : ((codeData['department'] as String?) ?? '')),
-        status: UserStatus.pending,
-        createdAt: DateTime.now(),
-      );
+        onCodeSent: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => OtpScreen(
+                phone: phone,
+                onVerified: () async {
+                  final existingUser = await FirestoreUtils.fetchUserByPhone(phone);
+                  if (existingUser != null) {
+                    throw StateError('User already registered for this phone.');
+                  }
 
-      await FirestoreUtils.createUser(user);
+                  final codeData = await FirestoreUtils.fetchInviteCode(rawCode);
+                  if (codeData == null) {
+                    throw StateError('Invalid Access Code');
+                  }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration submitted. Await admin approval.'),
-        ),
+                  final user = UserModel(
+                    userId: '',
+                    phone: phone,
+                    firstName: _firstNameController.text.trim(),
+                    lastName: _lastNameController.text.trim(),
+                    email: _emailController.text.trim(),
+                    role: '',
+                    orgType: OrganizationType.fromFirestoreValue(codeData['orgType']),
+                    orgId: (codeData['orgId'] as String?) ?? '',
+                    department: (codeData['department'] as String?) ?? '',
+                    departmentCode: DepartmentModel.resolveCode(
+                      (codeData['departmentCode'] as String?)?.trim().isNotEmpty == true
+                          ? (codeData['departmentCode'] as String)
+                          : ((codeData['department'] as String?) ?? ''),
+                    ),
+                    status: UserStatus.pending,
+                    createdAt: DateTime.now(),
+                  );
+
+                  await FirestoreUtils.createUser(user);
+                },
+              ),
+            ),
+          );
+        },
       );
-      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,14 +227,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _accessCodeController,
-            decoration: const InputDecoration(
-              hintText: 'Access Code',
-              prefixIcon: Icon(Icons.key_outlined),
-              border: OutlineInputBorder(),
-            ),
+          const Row(
+            children: <Widget>[
+              Icon(AppIcons.key, size: 18, color: Color(0xFF5F6684)),
+              SizedBox(width: 8),
+              Text(
+                'Access Code',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
+          const SizedBox(height: 8),
+          _buildAccessCodeFields(),
         ],
       ),
       nextLabel: 'Next',

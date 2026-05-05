@@ -83,14 +83,35 @@ class FirestoreUtils {
   }
 
   static Future<Map<String, dynamic>?> fetchInviteCode(String code) async {
-    final query = await _db
-        .collection(hkzInviteCodes)
-        .where('code', isEqualTo: code)
-        .where('isActive', isEqualTo: true)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) return null;
-    return query.docs.first.data();
+    final raw = code.trim();
+    if (raw.isEmpty) return null;
+
+    Future<Map<String, dynamic>?> runLookup(String value) async {
+      final query = await _db
+          .collection(hkzInviteCodes)
+          .where('code', isEqualTo: value)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+      if (query.docs.isEmpty) return null;
+      return query.docs.first.data();
+    }
+
+    final direct = await runLookup(raw);
+    if (direct != null) return direct;
+
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length == 6) {
+      final formatted = '${digits.substring(0, 3)}-${digits.substring(3)}';
+      final formattedHit = await runLookup(formatted);
+      if (formattedHit != null) return formattedHit;
+
+      if (digits != raw) {
+        final digitHit = await runLookup(digits);
+        if (digitHit != null) return digitHit;
+      }
+    }
+    return null;
   }
 
   static Future<Map<String, dynamic>?> fetchWhitelistEntry(String phone) async {

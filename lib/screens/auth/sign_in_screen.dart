@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../models/enums/user_status.dart';
-import '../../models/user_model.dart';
 import '../common/auth_page_layout.dart';
 import '../common/phone_number_field.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import 'otp_screen.dart';
-import 'sign_up_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -26,6 +23,19 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  Future<void> _sendOtpAndOpen(String phone) async {
+    await AuthUtils.sendOtp(
+      phone: phone,
+      onCodeSent: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OtpScreen(phone: phone),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _onSignIn() async {
     if (!isValidPhoneInput(_phoneController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -37,64 +47,7 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = true);
     try {
       final phone = normalizePhoneE164(_phoneController.text);
-      final UserModel? existingUser = await AuthUtils.checkUserExists(phone);
-
-      if (!mounted) return;
-
-      if (existingUser != null) {
-        if (existingUser.status == UserStatus.pending) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account pending approval')),
-          );
-          return;
-        }
-        if (existingUser.status == UserStatus.rejected) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account rejected')),
-          );
-          return;
-        }
-
-        await AuthUtils.sendOtp(
-          phone: phone,
-          onCodeSent: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => OtpScreen(phone: phone),
-              ),
-            );
-          },
-        );
-        return;
-      }
-
-      final whitelist = await AuthUtils.checkWhitelist(phone);
-      if (whitelist != null) {
-        await AuthUtils.ensureSysAdminUserFromWhitelist(
-          phone: phone,
-          whitelist: whitelist,
-        );
-
-        if (!mounted) return;
-        await AuthUtils.sendOtp(
-          phone: phone,
-          onCodeSent: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => OtpScreen(phone: phone),
-              ),
-            );
-          },
-        );
-        return;
-      }
-
-      if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SignUpScreen(phone: phone),
-        ),
-      );
+      await _sendOtpAndOpen(phone);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

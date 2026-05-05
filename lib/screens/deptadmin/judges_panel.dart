@@ -21,7 +21,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
         name: '',
-        code: '',
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
         createdAt: DateTime.now(),
