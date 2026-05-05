@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../models/problem_list_config.dart';
 import '../../models/problem_model.dart';
 import '../../models/enums/user_role.dart';
@@ -40,6 +41,9 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   Set<String> _departmentFilters = <String>{};
   Set<String> _tagFilters = <String>{};
   ProblemSortType _sort = ProblemSortType.newest;
+  ProblemModel? _selectedProblem;
+  ProblemModel? _editingProblem;
+  bool _showCreateProblem = false;
 
   @override
   void initState() {
@@ -80,28 +84,19 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Future<void> _openCreateProblem() async {
-    final created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ProblemCreateScreen(currentUser: widget.currentUser),
-      ),
-    );
-    if (created == true && mounted) {
-      _loadProblems();
-    }
+    setState(() {
+      _showCreateProblem = true;
+      _editingProblem = null;
+      _selectedProblem = null;
+    });
   }
 
   Future<void> _openEditProblem(ProblemModel problem) async {
-    final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ProblemCreateScreen(
-          currentUser: widget.currentUser,
-          initialProblem: problem,
-        ),
-      ),
-    );
-    if (updated == true && mounted) {
-      _loadProblems();
-    }
+    setState(() {
+      _editingProblem = problem;
+      _showCreateProblem = false;
+      _selectedProblem = null;
+    });
   }
 
   bool _canEditProblem(ProblemModel problem) {
@@ -150,14 +145,27 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Future<void> _openProblemDetails(ProblemModel problem) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => ProblemDetailScreen(
-          problem: problem,
-          currentUser: widget.currentUser,
-        ),
-      ),
-    );
+    setState(() {
+      _selectedProblem = problem;
+      _showCreateProblem = false;
+      _editingProblem = null;
+    });
+  }
+
+  void _closeProblemDetails() {
+    setState(() => _selectedProblem = null);
+  }
+
+  void _closeProblemForm() {
+    setState(() {
+      _showCreateProblem = false;
+      _editingProblem = null;
+    });
+  }
+
+  Future<void> _onProblemFormSaved() async {
+    _closeProblemForm();
+    _loadProblems();
   }
 
   void _clearAllFilters() {
@@ -172,6 +180,36 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showCreateProblem || _editingProblem != null) {
+      return ProblemCreateScreen(
+        currentUser: widget.currentUser,
+        initialProblem: _editingProblem,
+        embedded: true,
+        onBack: _closeProblemForm,
+        onSaved: _onProblemFormSaved,
+      );
+    }
+    if (_selectedProblem != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          OutlinedButton.icon(
+            onPressed: _closeProblemDetails,
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back to Problems'),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ProblemDetailScreen(
+              problem: _selectedProblem!,
+              currentUser: widget.currentUser,
+              embedded: true,
+              onBack: _closeProblemDetails,
+            ),
+          ),
+        ],
+      );
+    }
     return FutureBuilder<List<ProblemModel>>(
       future: _problemsFuture,
       builder: (context, snapshot) {
@@ -224,13 +262,14 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
             return SectionContainer(
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  _buildHeader(),
-                  const SizedBox(height: 12),
-                  _buildSearchAndFilterRow(),
-                  const SizedBox(height: 12),
+                  _buildHeader(count: problems.length),
+                  const SizedBox(height: 6),
+                  _buildSearchRow(),
+                  const SizedBox(height: 8),
                   AnimatedCrossFade(
                     firstChild: const SizedBox.shrink(),
                     secondChild: _buildFiltersPanel(allDepartments: allDepartments, allTags: allTags),
@@ -238,12 +277,10 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                     duration: const Duration(milliseconds: 220),
                   ),
                   if (_hasAnyActiveFilter) ...<Widget>[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _buildActiveFiltersRow(),
                   ],
-                  const SizedBox(height: 12),
-                  _buildSortAndCountBar(problems.length),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   if (hasBoundedHeight)
                     Expanded(child: listWidget)
                   else
@@ -257,26 +294,59 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({required int count}) {
     return Row(
       children: <Widget>[
-        const Expanded(
-          child: Text(
-            'Problems',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-        ),
         if (widget.config.canCreate)
           FilledButton.icon(
             onPressed: _openCreateProblem,
-            icon: const Icon(Icons.add),
+            icon: const Icon(AppIcons.add),
             label: const Text('Add Problem'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 38),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
           ),
+        const Spacer(),
+        const SizedBox(width: 8),
+        const Text('Sort', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(width: 8),
+        Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<ProblemSortType>(
+              value: _sort,
+              isDense: true,
+              borderRadius: BorderRadius.circular(14),
+              items: _availableSorts
+                  .map(
+                    (sort) => DropdownMenuItem<ProblemSortType>(
+                      value: sort,
+                      child: Text(_sortLabel(sort)),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _sort = value);
+                _loadProblems();
+              },
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text('Showing $count Problems', style: const TextStyle(fontWeight: FontWeight.w600)),
       ],
     );
   }
 
-  Widget _buildSearchAndFilterRow() {
+  Widget _buildSearchRow() {
     return Row(
       children: <Widget>[
         Expanded(
@@ -284,7 +354,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search by title, tags, problem number',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(AppIcons.search),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               border: OutlineInputBorder(
@@ -304,8 +374,8 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
           icon: const Icon(Icons.tune),
           label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size(0, 40),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ],
@@ -534,5 +604,15 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         _tagFilters.isNotEmpty ||
         _statusFilter != null ||
         _hasAttachments != null;
+  }
+
+  List<ProblemSortType> get _availableSorts {
+    const order = <ProblemSortType>[
+      ProblemSortType.newest,
+      ProblemSortType.oldest,
+      ProblemSortType.titleAZ,
+      ProblemSortType.department,
+    ];
+    return order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
   }
 }

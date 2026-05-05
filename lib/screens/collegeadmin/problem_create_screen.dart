@@ -13,10 +13,16 @@ class ProblemCreateScreen extends StatefulWidget {
     super.key,
     required this.currentUser,
     this.initialProblem,
+    this.embedded = false,
+    this.onBack,
+    this.onSaved,
   });
 
   final UserModel currentUser;
   final ProblemModel? initialProblem;
+  final bool embedded;
+  final VoidCallback? onBack;
+  final VoidCallback? onSaved;
 
   @override
   State<ProblemCreateScreen> createState() => _ProblemCreateScreenState();
@@ -232,11 +238,15 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
         await FirestoreUtils.createProblem(problem);
       }
       if (!mounted) return;
-      final navigator = Navigator.of(context);
-      if (navigator.canPop()) {
-        navigator.pop(true);
+      if (widget.embedded) {
+        widget.onSaved?.call();
       } else {
-        Navigator.of(context, rootNavigator: true).pop(true);
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop(true);
+        } else {
+          Navigator.of(context, rootNavigator: true).pop(true);
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -250,10 +260,7 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Edit Problem' : 'Create Problem')),
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: Form(
+    final body = Form(
         key: _formKey,
         autovalidateMode: _showValidationErrors
             ? AutovalidateMode.onUserInteraction
@@ -458,8 +465,8 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
+      );
+    final bottomBar = SafeArea(
         top: false,
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -478,7 +485,15 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
               OutlinedButton(
-                onPressed: _isSubmitting ? null : () => Navigator.of(context).maybePop(),
+                onPressed: _isSubmitting
+                    ? null
+                    : () {
+                        if (widget.embedded) {
+                          widget.onBack?.call();
+                        } else {
+                          Navigator.of(context).maybePop();
+                        }
+                      },
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(128, 46),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -499,7 +514,37 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
             ],
           ),
         ),
-      ),
+      );
+    if (widget.embedded) {
+      return Container(
+        color: const Color(0xFFF5F7FB),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  OutlinedButton.icon(
+                    onPressed: widget.onBack,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Problems'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: body),
+            bottomBar,
+          ],
+        ),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(title: Text(_isEdit ? 'Edit Problem' : 'Create Problem')),
+      backgroundColor: const Color(0xFFF5F7FB),
+      body: body,
+      bottomNavigationBar: bottomBar,
     );
   }
 }

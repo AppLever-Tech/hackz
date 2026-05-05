@@ -23,10 +23,14 @@ class ProblemDetailScreen extends StatefulWidget {
     super.key,
     required this.problem,
     required this.currentUser,
+    this.embedded = false,
+    this.onBack,
   });
 
   final ProblemModel problem;
   final UserModel currentUser;
+  final bool embedded;
+  final VoidCallback? onBack;
 
   @override
   State<ProblemDetailScreen> createState() => _ProblemDetailScreenState();
@@ -87,6 +91,38 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final problem = widget.problem;
+    final content = SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, widget.embedded ? 0 : 4, 16, 16),
+        child: SectionContainer(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _buildHeader(problem),
+              const SizedBox(height: 10),
+              _buildMetaRow(problem),
+              const SizedBox(height: 10),
+              _buildTabPills(),
+              const SizedBox(height: 10),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  child: _selectedTab == _ProblemDetailTab.details
+                      ? _buildDetailsTab()
+                      : _buildIdeasTab(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (widget.embedded) {
+      return content;
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
@@ -94,40 +130,18 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: theme.colorScheme.onSurface,
         titleSpacing: 0,
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              ),
         title: Text(
           'Problem Details',
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: SectionContainer(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildHeader(problem),
-                const SizedBox(height: 10),
-                _buildMetaRow(problem),
-                const SizedBox(height: 10),
-                _buildTabPills(),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: _selectedTab == _ProblemDetailTab.details
-                        ? _buildDetailsTab()
-                        : _buildIdeasTab(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      body: content,
     );
   }
 

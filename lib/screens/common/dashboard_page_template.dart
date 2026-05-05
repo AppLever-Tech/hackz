@@ -97,6 +97,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     final String longDate = _formatLongDate(DateTime.now());
     final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
+    final IconData selectedMenuIcon = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].icon;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5FB),
@@ -135,6 +136,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
                           children: <Widget>[
                             TopHeaderWidget(
                               title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
+                              titleIcon: selectedMenuIcon,
                               subtitle: isDashboardTab ? roleName : '',
                               dateText: longDate,
                               onRefresh: () => setState(() => _refreshToken++),

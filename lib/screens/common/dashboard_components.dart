@@ -65,6 +65,7 @@ class TopHeaderWidget extends StatelessWidget {
   const TopHeaderWidget({
     super.key,
     required this.title,
+    this.titleIcon,
     required this.subtitle,
     required this.dateText,
     required this.onRefresh,
@@ -72,6 +73,7 @@ class TopHeaderWidget extends StatelessWidget {
   });
 
   final String title;
+  final IconData? titleIcon;
   final String subtitle;
   final String dateText;
   final VoidCallback onRefresh;
@@ -85,9 +87,17 @@ class TopHeaderWidget extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              title,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+            Row(
+              children: <Widget>[
+                if (titleIcon != null) ...<Widget>[
+                  Icon(titleIcon, size: 24, color: const Color(0xFF334155)),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
             const SizedBox(height: 4),
             Text(
