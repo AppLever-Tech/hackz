@@ -11,6 +11,7 @@ class ProblemCard extends StatefulWidget {
     this.onEdit,
     this.onToggleActive,
     this.onViewAttachments,
+    this.onViewDetails,
     this.initiallyExpanded = false,
   });
 
@@ -20,6 +21,7 @@ class ProblemCard extends StatefulWidget {
   final ValueChanged<ProblemModel>? onEdit;
   final ValueChanged<ProblemModel>? onToggleActive;
   final ValueChanged<ProblemModel>? onViewAttachments;
+  final ValueChanged<ProblemModel>? onViewDetails;
   final bool initiallyExpanded;
 
   @override
@@ -77,12 +79,32 @@ class _ProblemCardState extends State<ProblemCard> {
               ],
             ),
             const SizedBox(height: 10),
-            Text(
-              widget.problem.title.trim().isEmpty ? 'Untitled Problem' : widget.problem.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: widget.onViewDetails == null
+                    ? null
+                    : () => widget.onViewDetails!(widget.problem),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          widget.problem.title.trim().isEmpty ? 'Untitled Problem' : widget.problem.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF64748B)),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 6),
@@ -155,6 +177,21 @@ class _ProblemCardState extends State<ProblemCard> {
                           : () => widget.onViewAttachments!(widget.problem),
                       icon: const Icon(Icons.open_in_new, size: 16),
                       label: const Text('View Attachments'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        minimumSize: const Size(0, 36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: widget.onViewDetails == null
+                          ? null
+                          : () => widget.onViewDetails!(widget.problem),
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      label: const Text('View Details'),
                       style: OutlinedButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         minimumSize: const Size(0, 36),

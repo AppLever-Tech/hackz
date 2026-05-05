@@ -23,6 +23,8 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         name: '',
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
+        website: '',
+        contact: '',
         createdAt: DateTime.now(),
       );
 

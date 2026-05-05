@@ -46,6 +46,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         name: '',
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
+        website: '',
+        contact: '',
         createdAt: DateTime.now(),
       );
 

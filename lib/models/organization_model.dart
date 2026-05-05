@@ -8,6 +8,8 @@ class OrganizationModel {
     required this.name,
     required this.type,
     required this.address,
+    required this.website,
+    required this.contact,
     required this.createdAt,
   });
 
@@ -15,6 +17,8 @@ class OrganizationModel {
   final String name;
   final OrganizationType type;
   final String address;
+  final String website;
+  final String contact;
   final DateTime createdAt;
 
   Map<String, dynamic> toMap() {
@@ -23,6 +27,8 @@ class OrganizationModel {
       'name': name,
       'type': type.value,
       'address': address,
+      'website': website,
+      'contact': contact,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -33,6 +39,8 @@ class OrganizationModel {
       name: (map['name'] as String?) ?? '',
       type: OrganizationType.fromFirestoreValue(map['type']) ?? OrganizationType.college,
       address: (map['address'] as String?) ?? '',
+      website: (map['website'] as String?) ?? '',
+      contact: (map['contact'] as String?) ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -42,6 +50,8 @@ class OrganizationModel {
     String? name,
     OrganizationType? type,
     String? address,
+    String? website,
+    String? contact,
     DateTime? createdAt,
   }) {
     return OrganizationModel(
@@ -49,6 +59,8 @@ class OrganizationModel {
       name: name ?? this.name,
       type: type ?? this.type,
       address: address ?? this.address,
+      website: website ?? this.website,
+      contact: contact ?? this.contact,
       createdAt: createdAt ?? this.createdAt,
     );
   }

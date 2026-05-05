@@ -24,6 +24,8 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         name: '',
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
+        website: '',
+        contact: '',
         createdAt: DateTime.now(),
       );
 

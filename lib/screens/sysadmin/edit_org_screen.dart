@@ -18,6 +18,8 @@ class EditOrgScreen extends StatefulWidget {
 class _EditOrgScreenState extends State<EditOrgScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _addressController;
+  late final TextEditingController _websiteController;
+  late final TextEditingController _contactController;
   bool _isSaving = false;
   bool _isDeleting = false;
 
@@ -26,12 +28,16 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.organization.name);
     _addressController = TextEditingController(text: widget.organization.address);
+    _websiteController = TextEditingController(text: widget.organization.website);
+    _contactController = TextEditingController(text: widget.organization.contact);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
+    _websiteController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
@@ -54,7 +60,10 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
   }
 
   Future<void> _saveOrganization() async {
-    if (_nameController.text.trim().isEmpty || _addressController.text.trim().isEmpty) {
+    if (_nameController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty ||
+        _websiteController.text.trim().isEmpty ||
+        _contactController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill organization details')),
       );
@@ -66,6 +75,8 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
         widget.organization.copyWith(
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
+          website: _websiteController.text.trim(),
+          contact: _contactController.text.trim(),
         ),
       );
       if (!mounted) return;
@@ -179,6 +190,20 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
                     maxLines: 3,
                     minLines: 3,
                     decoration: _fieldDecoration('Street, city, state, PIN...'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Website', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _websiteController,
+                    decoration: _fieldDecoration('https://example.com'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Contact', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _contactController,
+                    decoration: _fieldDecoration('Phone or contact person'),
                   ),
                   const SizedBox(height: 14),
                   Row(

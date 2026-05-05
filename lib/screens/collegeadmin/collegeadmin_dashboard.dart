@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../models/organization_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
@@ -20,10 +22,19 @@ class CollegeAdminDashboard extends StatelessWidget {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
       FirestoreUtils.getCollegeStats(user.orgId),
       FirestoreUtils.getDepartmentsByCollege(user.orgId),
+      FirestoreUtils.getProblemStatementsByCollege(user.orgId),
+      FirestoreUtils.getOrganizations(),
     ]);
+    final organizations = results[3] as List<OrganizationModel>;
+    final org = organizations.where((o) => o.id == user.orgId).cast<OrganizationModel?>().firstWhere(
+          (o) => o != null,
+          orElse: () => null,
+        );
     return <String, dynamic>{
       'stats': results[0] as Map<String, dynamic>,
       'departments': results[1] as List<Map<String, dynamic>>,
+      'problems': results[2] as List<Map<String, dynamic>>,
+      'org': org,
     };
   }
 
@@ -78,6 +89,8 @@ class CollegeAdminDashboard extends StatelessWidget {
             final stats = data['stats'] as Map<String, dynamic>? ?? <String, dynamic>{};
             final departments =
                 data['departments'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
+            final problems = data['problems'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
+            final org = data['org'] as OrganizationModel?;
 
             final int totalDepartments = stats['totalDepartments'] as int? ?? 0;
             final int totalUsers = stats['totalUsers'] as int? ?? 0;
@@ -87,6 +100,22 @@ class CollegeAdminDashboard extends StatelessWidget {
             final int totalIdeas = stats['totalIdeas'] as int? ?? 0;
             final double activePct = totalUsers == 0 ? 0 : (activeUsers / totalUsers);
             final int activationPercent = (activePct * 100).round();
+            final ideasByDept = <String, int>{};
+            for (final d in departments) {
+              final key = ((d['code'] as String?) ?? (d['name'] as String?) ?? '').trim();
+              if (key.isEmpty) continue;
+              ideasByDept[key] = (d['totalIdeas'] as int?) ?? 0;
+            }
+            final problemsByDept = <String, int>{};
+            for (final p in problems) {
+              final key = ((p['departmentCode'] as String?) ?? (p['department'] as String?) ?? '').trim();
+              if (key.isEmpty) continue;
+              problemsByDept[key] = (problemsByDept[key] ?? 0) + 1;
+            }
+            final deptKeys = <String>{...ideasByDept.keys, ...problemsByDept.keys}.toList(growable: false)..sort();
+            final plotKeys = deptKeys.take(6).toList(growable: false);
+            final ideaSeries = plotKeys.map((k) => ideasByDept[k] ?? 0).toList(growable: false);
+            final problemSeries = plotKeys.map((k) => problemsByDept[k] ?? 0).toList(growable: false);
 
             return SingleChildScrollView(
               child: Column(
@@ -137,16 +166,44 @@ class CollegeAdminDashboard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Expanded(
-                      flex: 2,
                       child: ChartCard(
-                        title: 'Idea Activity',
-                        child: const SizedBox(
+                        title: 'College Details',
+                        child: SizedBox(
                           height: 220,
-                          child: _IdeaActivityChart(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
+                              _CollegeDetailItem(icon: AppIcons.orgType, label: 'Type', value: org?.type.displayName ?? 'College'),
+                              _CollegeDetailItem(icon: AppIcons.address, label: 'Address', value: org?.address.isNotEmpty == true ? org!.address : '-'),
+                              _CollegeDetailItem(icon: AppIcons.website, label: 'Website', value: org?.website.isNotEmpty == true ? org!.website : '-'),
+                              _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ChartCard(
+                        title: 'Department-wise Problems vs Ideas',
+                        child: SizedBox(
+                          height: 220,
+                          child: _DepartmentTrendChart(
+                            labels: plotKeys,
+                            ideas: ideaSeries,
+                            problems: problemSeries,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
                     Expanded(
                       child: ChartCard(
                         title: 'User Activation',
@@ -174,6 +231,17 @@ class CollegeAdminDashboard extends StatelessWidget {
                               ],
                             ),
                           ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ChartCard(
+                        title: 'Idea Activity',
+                        child: const SizedBox(
+                          height: 220,
+                          child: _IdeaActivityChart(),
                         ),
                       ),
                     ),
@@ -246,6 +314,81 @@ class CollegeAdminDashboard extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _CollegeDetailItem extends StatelessWidget {
+  const _CollegeDetailItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, size: 16, color: const Color(0xFF5A5F87)),
+          const SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF4A4F73),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF4A4F73)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DepartmentTrendChart extends StatelessWidget {
+  const _DepartmentTrendChart({
+    required this.labels,
+    required this.ideas,
+    required this.problems,
+  });
+
+  final List<String> labels;
+  final List<int> ideas;
+  final List<int> problems;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        const Row(
+          children: <Widget>[
+            _LegendDot(color: Color(0xFF6A38FF), label: 'Ideas'),
+            SizedBox(width: 12),
+            _LegendDot(color: Color(0xFFFF8C2B), label: 'Problems'),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: CustomPaint(
+            painter: _DepartmentTrendPainter(labels: labels, ideas: ideas, problems: problems),
+            child: Container(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -391,4 +534,86 @@ class _IdeaLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DepartmentTrendPainter extends CustomPainter {
+  _DepartmentTrendPainter({
+    required this.labels,
+    required this.ideas,
+    required this.problems,
+  });
+
+  final List<String> labels;
+  final List<int> ideas;
+  final List<int> problems;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const leftPad = 12.0;
+    const rightPad = 8.0;
+    const topPad = 10.0;
+    const bottomPad = 28.0;
+    final rect = Rect.fromLTWH(leftPad, topPad, size.width - leftPad - rightPad, size.height - topPad - bottomPad);
+    final count = labels.isEmpty ? 1 : labels.length;
+    final maxValue = <int>[...ideas, ...problems].fold<int>(1, (a, b) => a > b ? a : b).toDouble();
+
+    final grid = Paint()
+      ..color = const Color(0xFFE8ECF6)
+      ..strokeWidth = 1;
+    for (int i = 0; i < 4; i++) {
+      final y = rect.top + (rect.height * i / 3);
+      canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), grid);
+    }
+
+    Offset pointAt(int i, int value) {
+      final x = rect.left + (rect.width * (count == 1 ? 0.5 : i / (count - 1)));
+      final y = rect.bottom - ((value / maxValue) * rect.height);
+      return Offset(x, y);
+    }
+
+    final ideaPath = Path();
+    final problemPath = Path();
+    for (int i = 0; i < count; i++) {
+      final p1 = pointAt(i, i < ideas.length ? ideas[i] : 0);
+      final p2 = pointAt(i, i < problems.length ? problems[i] : 0);
+      if (i == 0) {
+        ideaPath.moveTo(p1.dx, p1.dy);
+        problemPath.moveTo(p2.dx, p2.dy);
+      } else {
+        ideaPath.lineTo(p1.dx, p1.dy);
+        problemPath.lineTo(p2.dx, p2.dy);
+      }
+    }
+
+    canvas.drawPath(
+      ideaPath,
+      Paint()
+        ..color = const Color(0xFF6A38FF)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke,
+    );
+    canvas.drawPath(
+      problemPath,
+      Paint()
+        ..color = const Color(0xFFFF8C2B)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke,
+    );
+
+    final labelStyle = TextStyle(color: Colors.grey.shade700, fontSize: 10);
+    for (int i = 0; i < count; i++) {
+      final x = rect.left + (rect.width * (count == 1 ? 0.5 : i / (count - 1)));
+      final txt = labels.isEmpty ? '-' : labels[i];
+      final tp = TextPainter(
+        text: TextSpan(text: txt, style: labelStyle),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+      )..layout(maxWidth: 46);
+      tp.paint(canvas, Offset(x - (tp.width / 2), rect.bottom + 6));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DepartmentTrendPainter oldDelegate) =>
+      oldDelegate.labels != labels || oldDelegate.ideas != ideas || oldDelegate.problems != problems;
 }

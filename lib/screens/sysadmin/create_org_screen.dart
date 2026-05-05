@@ -23,6 +23,8 @@ class CreateOrganizationDialogForm extends StatefulWidget {
 class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogForm> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
+  final _websiteController = TextEditingController();
+  final _contactController = TextEditingController();
   bool _busy = false;
   late OrganizationType _selectedType;
 
@@ -42,13 +44,17 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
+    _websiteController.dispose();
+    _contactController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     final address = _addressController.text.trim();
-    if (name.isEmpty || address.isEmpty) {
+    final website = _websiteController.text.trim();
+    final contact = _contactController.text.trim();
+    if (name.isEmpty || address.isEmpty || website.isEmpty || contact.isEmpty) {
       _toast(_unifiedDialog ? 'Please fill all organization details' : 'Please fill all $_legacyDisplayType details');
       return;
     }
@@ -60,6 +66,8 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
           name: name,
           type: _effectiveType,
           address: address,
+          website: website,
+          contact: contact,
           createdAt: DateTime.now(),
         ),
       );
@@ -217,6 +225,20 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
           maxLines: 3,
           minLines: 3,
           decoration: _fieldDecoration('Street, city, state, PIN...'),
+        ),
+        const SizedBox(height: 16),
+        const Text('Website', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _websiteController,
+          decoration: _fieldDecoration('https://example.com'),
+        ),
+        const SizedBox(height: 16),
+        const Text('Contact', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _contactController,
+          decoration: _fieldDecoration('Phone or contact person'),
         ),
         const SizedBox(height: 18),
         Row(

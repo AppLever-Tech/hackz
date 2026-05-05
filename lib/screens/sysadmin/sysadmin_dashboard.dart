@@ -409,8 +409,8 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      '${org.name}\n${org.address}',
-                                      style: const TextStyle(height: 1.4),
+                                      '${org.name}\n${org.address}\n${org.website}\n${org.contact}',
+                                      style: const TextStyle(height: 1.35),
                                     ),
                                   ),
                                   Padding(

@@ -11,6 +11,7 @@ import '../../utils/problem_query_service.dart';
 import '../../widgets/problem_card.dart';
 import '../collegeadmin/problem_create_screen.dart';
 import 'dashboard_components.dart';
+import 'problem_detail_screen.dart';
 
 class ProblemsListScreen extends StatefulWidget {
   const ProblemsListScreen({
@@ -148,6 +149,17 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
     );
   }
 
+  Future<void> _openProblemDetails(ProblemModel problem) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ProblemDetailScreen(
+          problem: problem,
+          currentUser: widget.currentUser,
+        ),
+      ),
+    );
+  }
+
   void _clearAllFilters() {
     setState(() {
       _statusFilter = null;
@@ -203,6 +215,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                       onToggleActive: widget.config.canToggleActive ? _toggleProblemActive : null,
                       onEdit: canEditProblem ? _openEditProblem : null,
                       onViewAttachments: _showAttachments,
+                      onViewDetails: _openProblemDetails,
                     ),
                   );
                 },

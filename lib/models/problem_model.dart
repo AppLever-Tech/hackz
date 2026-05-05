@@ -12,6 +12,8 @@ class ProblemModel {
     required this.orgType,
     required this.departmentCode,
     required this.createdBy,
+    required this.category,
+    required this.theme,
     required this.tags,
     required this.attachments,
     required this.isActive,
@@ -27,6 +29,8 @@ class ProblemModel {
   final String orgType;
   final String departmentCode;
   final String createdBy;
+  final String category;
+  final String theme;
   final List<String> tags;
   final List<String> attachments;
   final bool isActive;
@@ -43,6 +47,8 @@ class ProblemModel {
       'orgType': orgType,
       'departmentCode': departmentCode,
       'createdBy': createdBy,
+      'category': category,
+      'theme': theme,
       'tags': tags,
       'attachments': attachments,
       'isActive': isActive,
@@ -63,6 +69,8 @@ class ProblemModel {
       orgType: (map['orgType'] as String?) ?? '',
       departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
       createdBy: (map['createdBy'] as String?) ?? '',
+      category: (map['category'] as String?) ?? '',
+      theme: (map['theme'] as String?) ?? '',
       tags: (map['tags'] as List<dynamic>? ?? const <dynamic>[])
           .map((e) => e.toString())
           .where((e) => e.trim().isNotEmpty)

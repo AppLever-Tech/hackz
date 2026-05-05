@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../constants/problem_constants.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/problem_model.dart';
 import '../../models/user_model.dart';
@@ -25,10 +26,12 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _themeController = TextEditingController();
   final _tagController = TextEditingController();
   final List<String> _tags = <String>[];
   final List<PlatformFile> _attachments = <PlatformFile>[];
   String _selectedDepartment = '';
+  String _selectedCategory = '';
   List<Map<String, String>> _departmentOptions = <Map<String, String>>[];
   bool _isActive = true;
   bool _isLoadingDepartments = true;
@@ -45,6 +48,8 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
       final initial = widget.initialProblem!;
       _titleController.text = initial.title;
       _descriptionController.text = initial.description;
+      _themeController.text = initial.theme;
+      _selectedCategory = initial.category;
       _tags.addAll(initial.tags);
       _selectedDepartment = initial.departmentCode;
       _isActive = initial.isActive;
@@ -56,6 +61,7 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _themeController.dispose();
     _tagController.dispose();
     super.dispose();
   }
@@ -114,6 +120,8 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
     return _titleController.text.trim().isNotEmpty &&
         _descriptionController.text.trim().isNotEmpty &&
         _selectedDepartment.trim().isNotEmpty &&
+        _selectedCategory.trim().isNotEmpty &&
+        _themeController.text.trim().isNotEmpty &&
         !_isLoadingDepartments &&
         !_isSubmitting;
   }
@@ -198,6 +206,8 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
         orgType: orgTypeName,
         departmentCode: _selectedDepartment,
         createdBy: widget.currentUser.userId,
+        category: _selectedCategory,
+        theme: _themeController.text.trim(),
         tags: _tags,
         attachments: attachments,
         isActive: _isActive,
@@ -211,6 +221,8 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
             'title': problem.title,
             'description': problem.description,
             'departmentCode': problem.departmentCode,
+            'category': problem.category,
+            'theme': problem.theme,
             'tags': problem.tags,
             'isActive': problem.isActive,
             'attachments': problem.attachments,
@@ -299,6 +311,41 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
                           return null;
                         },
                       ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedCategory.isEmpty ? null : _selectedCategory,
+                            decoration: _fieldDecoration('Category *'),
+                            items: ProblemConstants.categories
+                                .map(
+                                  (c) => DropdownMenuItem<String>(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) => setState(() => _selectedCategory = value ?? ''),
+                            validator: (value) {
+                              if ((value ?? '').trim().isEmpty) return 'Category is required';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _themeController,
+                            decoration: _fieldDecoration('Theme *', hint: 'e.g. AI for Social Good'),
+                            validator: (value) {
+                              if ((value ?? '').trim().isEmpty) return 'Theme is required';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: <Widget>[

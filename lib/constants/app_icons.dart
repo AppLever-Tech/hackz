@@ -38,6 +38,9 @@ class AppIcons {
   static const IconData phone = Icons.phone_outlined;
   static const IconData email = Icons.email_outlined;
   static const IconData adminProfile = Icons.badge_outlined;
+  static const IconData orgType = Icons.category_outlined;
+  static const IconData address = Icons.location_on_outlined;
+  static const IconData website = Icons.language_outlined;
 
   static IconData forOrganizationType(OrganizationType? type) {
     switch (type) {
