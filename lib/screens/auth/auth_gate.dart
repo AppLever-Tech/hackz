@@ -26,10 +26,12 @@ class AuthGate extends StatelessWidget {
     final whitelist = await AuthUtils.checkWhitelist(normalized);
     if (whitelist != null) {
       await AuthUtils.ensureSysAdminUserFromWhitelist(
+        firebaseAuthUid: firebaseUser.uid,
         phone: normalized,
         whitelist: whitelist,
       );
-      return FirestoreUtils.fetchUserByPhone(normalized);
+      return FirestoreUtils.fetchUser(firebaseUser.uid) ??
+          FirestoreUtils.fetchUserByPhone(normalized);
     }
     return null;
   }

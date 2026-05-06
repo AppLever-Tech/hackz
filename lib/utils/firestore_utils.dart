@@ -75,6 +75,30 @@ class FirestoreUtils {
     return userId;
   }
 
+  /// First-time whitelisted sysadmin: writes exactly one `hkzUsers/{firebaseAuthUid}` row.
+  /// Using the Auth UID as document id matches `fetchUser(uid)` in AuthGate and avoids
+  /// duplicate profiles when the resolver runs more than once before the first write commits.
+  static Future<void> ensureWhitelistedSysAdminProfile({
+    required String firebaseAuthUid,
+    required UserModel profile,
+  }) async {
+    final uid = firebaseAuthUid.trim();
+    if (uid.isEmpty) return;
+
+    final normalizedPhone = normalizePhoneE164(profile.phone);
+    if (normalizedPhone.isEmpty) return;
+
+    if ((await fetchUserByPhone(normalizedPhone)) != null) return;
+
+    await _db.runTransaction((Transaction txn) async {
+      final userRef = _db.collection(hkzUsers).doc(uid);
+      final byUid = await txn.get(userRef);
+      if (byUid.exists) return;
+
+      txn.set(userRef, profile.copyWith(userId: uid).toMap());
+    });
+  }
+
   static Future<void> updateUser(
     String userId,
     Map<String, dynamic> updates,

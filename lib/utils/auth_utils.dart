@@ -26,14 +26,15 @@ class AuthUtils {
   }
 
   static Future<void> ensureSysAdminUserFromWhitelist({
+    required String firebaseAuthUid,
     required String phone,
     required Map<String, dynamic> whitelist,
   }) async {
-    final existing = await checkUserExists(phone);
-    if (existing != null) return;
+    final uid = firebaseAuthUid.trim();
+    if (uid.isEmpty) return;
 
     final user = UserModel(
-      userId: '',
+      userId: uid,
       phone: phone,
       firstName: (whitelist['firstName'] as String?) ?? '',
       lastName: (whitelist['lastName'] as String?) ?? '',
@@ -47,7 +48,10 @@ class AuthUtils {
       createdAt: DateTime.now(),
       approvedAt: DateTime.now(),
     );
-    await FirestoreUtils.createUser(user);
+    await FirestoreUtils.ensureWhitelistedSysAdminProfile(
+      firebaseAuthUid: uid,
+      profile: user,
+    );
   }
 
   static Future<void> sendOtp({

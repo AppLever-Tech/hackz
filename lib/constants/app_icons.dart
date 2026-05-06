@@ -19,6 +19,7 @@ class AppIcons {
   static const IconData dashboard = Icons.grid_view_rounded;
   static const IconData organizations = Icons.apartment_outlined;
   static const IconData users = Icons.groups_outlined;
+  static const IconData teams = Icons.groups_3_outlined;
   static const IconData departments = Icons.groups_2_outlined;
   static const IconData problems = Icons.assignment_outlined;
   static const IconData ideas = Icons.lightbulb_outline;
@@ -41,6 +42,12 @@ class AppIcons {
   static const IconData orgType = Icons.category_outlined;
   static const IconData address = Icons.location_on_outlined;
   static const IconData website = Icons.language_outlined;
+  static const IconData openInNew = Icons.open_in_new_rounded;
+  static const IconData statusSubmitted = Icons.radio_button_unchecked_rounded;
+  static const IconData statusUnderReview = Icons.pending_actions_outlined;
+  static const IconData statusEvaluated = Icons.fact_check_outlined;
+  static const IconData statusApproved = Icons.check_circle_outline_rounded;
+  static const IconData statusRejected = Icons.cancel_outlined;
 
   static IconData forOrganizationType(OrganizationType? type) {
     switch (type) {

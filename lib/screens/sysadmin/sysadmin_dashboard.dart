@@ -231,6 +231,7 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
   OrganizationType? _typeFilter;
 
   List<OrganizationModel> _allOrgs = <OrganizationModel>[];
+  OrganizationModel? _editingOrg;
   bool _loading = true;
   String? _fetchError;
 
@@ -290,6 +291,16 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
     }
     if (_fetchError != null) {
       return Text('Unable to load organizations: $_fetchError');
+    }
+
+    if (_editingOrg != null) {
+      return EditOrgScreen(
+        key: ValueKey<String>(_editingOrg!.id),
+        organization: _editingOrg!,
+        embedded: true,
+        onBack: () => setState(() => _editingOrg = null),
+        onOrganizationsChanged: _refreshList,
+      );
     }
 
     final organizations = _allOrgs;
@@ -427,16 +438,7 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
                                   ),
                                   IconButton(
                                     tooltip: 'Edit',
-                                    onPressed: () async {
-                                      final updated = await Navigator.of(context).push<bool>(
-                                        MaterialPageRoute(
-                                          builder: (_) => EditOrgScreen(organization: org),
-                                        ),
-                                      );
-                                      if (updated == true && mounted) {
-                                        _refreshList();
-                                      }
-                                    },
+                                    onPressed: () => setState(() => _editingOrg = org),
                                     icon: const Icon(Icons.edit_outlined),
                                   ),
                                 ],

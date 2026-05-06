@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/link.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/organization_model.dart';
@@ -36,6 +37,15 @@ class CollegeAdminDashboard extends StatelessWidget {
       'problems': results[2] as List<Map<String, dynamic>>,
       'org': org,
     };
+  }
+
+  Uri? _parseWebsiteUri(String website) {
+    final normalized = website.trim();
+    if (normalized.isEmpty || normalized == '-') return null;
+    final withScheme = normalized.startsWith(RegExp(r'https?://'))
+        ? normalized
+        : 'https://$normalized';
+    return Uri.tryParse(withScheme);
   }
 
   @override
@@ -128,7 +138,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: SummaryCard(
                         value: '$totalDepartments',
                         label: 'Total Departments',
-                        icon: Icons.account_tree_outlined,
+                        icon: AppIcons.departments,
                         iconBgColor: const Color(0xFFEAF2FF),
                       ),
                     ),
@@ -137,7 +147,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: SummaryCard(
                         value: '$totalUsers',
                         label: 'Total Users',
-                        icon: Icons.groups_outlined,
+                        icon: AppIcons.users,
                         iconBgColor: const Color(0xFFFFF4E8),
                       ),
                     ),
@@ -146,7 +156,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: SummaryCard(
                         value: '$totalProblems',
                         label: 'Problem Statements',
-                        icon: Icons.assignment_outlined,
+                        icon: AppIcons.problems,
                         iconBgColor: const Color(0xFFE8FAF1),
                       ),
                     ),
@@ -155,7 +165,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: SummaryCard(
                         value: '$totalIdeas',
                         label: 'Ideas (College)',
-                        icon: Icons.lightbulb_outline,
+                        icon: AppIcons.ideas,
                         iconBgColor: const Color(0xFFF2EDFF),
                       ),
                     ),
@@ -169,14 +179,47 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: ChartCard(
                         title: 'College Details',
                         child: SizedBox(
-                          height: 220,
+                          height: 190,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
                               _CollegeDetailItem(icon: AppIcons.orgType, label: 'Type', value: org?.type.displayName ?? 'College'),
-                              _CollegeDetailItem(icon: AppIcons.address, label: 'Address', value: org?.address.isNotEmpty == true ? org!.address : '-'),
-                              _CollegeDetailItem(icon: AppIcons.website, label: 'Website', value: org?.website.isNotEmpty == true ? org!.website : '-'),
+                              _CollegeDetailItem(
+                                icon: AppIcons.address,
+                                label: 'Address',
+                                value: org?.address.isNotEmpty == true ? org!.address : '-',
+                                wrapValue: true,
+                              ),
+                              _CollegeDetailItem(
+                                icon: AppIcons.website,
+                                label: 'Website',
+                                value: org?.website.isNotEmpty == true ? org!.website : '-',
+                                trailing: Builder(
+                                  builder: (BuildContext context) {
+                                    final uri = _parseWebsiteUri(org?.website ?? '');
+                                    if (uri == null) return const SizedBox.shrink();
+                                    return Link(
+                                      uri: uri,
+                                      target: LinkTarget.blank,
+                                      builder: (BuildContext context, Future<void> Function()? followLink) {
+                                        return IconButton(
+                                          onPressed: followLink,
+                                          icon: const Icon(
+                                            AppIcons.openInNew,
+                                            size: 18,
+                                            color: Color(0xFF5A5F87),
+                                          ),
+                                          tooltip: 'Open website',
+                                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                          padding: EdgeInsets.zero,
+                                          splashRadius: 18,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
                               _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
                             ],
                           ),
@@ -189,7 +232,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                       child: ChartCard(
                         title: 'Department-wise Problems vs Ideas',
                         child: SizedBox(
-                          height: 220,
+                          height: 200,
                           child: _DepartmentTrendChart(
                             labels: plotKeys,
                             ideas: ideaSeries,
@@ -323,36 +366,50 @@ class _CollegeDetailItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.wrapValue = false,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final bool wrapValue;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: wrapValue ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: <Widget>[
-          Icon(icon, size: 16, color: const Color(0xFF5A5F87)),
-          const SizedBox(width: 6),
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF4A4F73),
-              fontWeight: FontWeight.w600,
+          SizedBox(
+            width: 18,
+            child: Icon(icon, size: 16, color: const Color(0xFF5A5F87)),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 68,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF4A4F73),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              maxLines: wrapValue ? 3 : 1,
+              overflow: wrapValue ? TextOverflow.visible : TextOverflow.ellipsis,
+              softWrap: wrapValue,
               style: const TextStyle(fontSize: 13, color: Color(0xFF4A4F73)),
             ),
           ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

@@ -131,9 +131,10 @@ class DeptAdminDashboard extends StatelessWidget {
               _StatusSlice('Evaluated', evaluatedIdeas, const Color(0xFF26A69A)),
             ];
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+            return SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -303,7 +304,8 @@ class DeptAdminDashboard extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
+                ],
+              ),
             );
           },
         );
