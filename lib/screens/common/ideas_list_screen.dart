@@ -782,10 +782,7 @@ class _SubmitIdeaDialogState extends State<_SubmitIdeaDialog> {
   Future<void> _loadTeams() async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
       TeamService.getFacultyTeams(widget.currentUser.userId),
-      TeamService.getDepartmentProblems(
-        orgId: widget.currentUser.orgId,
-        departmentCode: widget.currentUser.departmentCode,
-      ),
+      FirestoreUtils.getProblemModelsByCollege(widget.currentUser.orgId),
     ]);
     final teams = results[0] as List<TeamModel>;
     final problems = results[1] as List<ProblemModel>;

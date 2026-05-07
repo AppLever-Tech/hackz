@@ -102,6 +102,7 @@ class IdeaQueryService {
           },
         )
         .toList(growable: false);
+    items = _applyViewerScope(items, viewer);
     items = _applySort(items, params.sortType);
     return items;
   }
@@ -212,6 +213,20 @@ class IdeaQueryService {
       return team.mentorId == viewer.userId;
     }
     return false;
+  }
+
+  static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {
+    if (viewer == null) return items;
+    final role = UserRole.fromCode(viewer.role);
+    if (role != UserRole.faculty) return items;
+    final facultyId = viewer.userId.trim();
+    if (facultyId.isEmpty) return items;
+    return items.where((item) {
+      if (item.idea.createdBy.trim() == facultyId) return true;
+      final team = item.team;
+      if (team == null) return false;
+      return team.mentorId.trim() == facultyId;
+    }).toList(growable: false);
   }
 
   static List<IdeaListItem> _applySort(List<IdeaListItem> items, IdeaSortType sortType) {

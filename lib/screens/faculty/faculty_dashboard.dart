@@ -106,74 +106,56 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildSummaryCards(_FacultyDashboardVm vm) {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: <Widget>[
-        _MetricComboCard(
-          icon: AppIcons.users,
-          title: 'Teams & Students',
-          stats: <_MetricStat>[
-            _MetricStat(
-              icon: AppIcons.teams,
-              count: vm.teamCount,
-              tooltip: 'Teams',
-              color: const Color(0xFF1E88E5),
+    const spacing = 16.0;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final maxWidth = constraints.maxWidth;
+        final columns = (maxWidth / 260).floor().clamp(1, 4);
+        final cardWidth = (maxWidth - (spacing * (columns - 1))) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: <Widget>[
+            SizedBox(
+              width: cardWidth,
+              child: DashboardCountCard(
+                value: '${vm.teamCount}',
+                label: 'Teams',
+                icon: AppIcons.teams,
+                iconBgColor: const Color(0xFFEAF2FF),
+              ),
             ),
-            _MetricStat(
-              icon: AppIcons.student,
-              count: vm.studentCount,
-              tooltip: 'Students',
-              color: const Color(0xFF2E7D32),
+            SizedBox(
+              width: cardWidth,
+              child: DashboardCountCard(
+                value: '${vm.studentCount}',
+                label: 'Students',
+                icon: AppIcons.student,
+                iconBgColor: const Color(0xFFE9FAF0),
+              ),
             ),
-          ],
-          iconBgColor: const Color(0xFFEAF2FF),
-        ),
-        _MetricComboCard(
-          icon: AppIcons.ideas,
-          title: 'Ideas',
-          stats: <_MetricStat>[
-            _MetricStat(
-              icon: AppIcons.statusSubmitted,
-              count: vm.submittedIdeas,
-              tooltip: 'Submitted',
-              color: StatusStyles.submitted,
+            SizedBox(
+              width: cardWidth,
+              child: DashboardCountCard(
+                value: '${vm.departmentProblemCount}',
+                label: 'Problems',
+                icon: AppIcons.problems,
+                iconBgColor: const Color(0xFFE8FAF1),
+              ),
             ),
-            _MetricStat(
-              icon: AppIcons.statusUnderReview,
-              count: vm.underReviewIdeas,
-              tooltip: 'Under Review',
-              color: StatusStyles.underReview,
-            ),
-            _MetricStat(
-              icon: AppIcons.statusEvaluated,
-              count: vm.evaluatedIdeas,
-              tooltip: 'Evaluated',
-              color: StatusStyles.evaluated,
-            ),
-          ],
-          iconBgColor: const Color(0xFFF2EDFF),
-        ),
-        _MetricComboCard(
-          icon: AppIcons.problems,
-          title: 'Problems',
-          stats: <_MetricStat>[
-            _MetricStat(
-              icon: AppIcons.problems,
-              count: vm.departmentProblemCount,
-              tooltip: 'Dept Problems',
-              color: const Color(0xFFC62828),
-            ),
-            _MetricStat(
-              icon: AppIcons.ideas,
-              count: vm.ideaCount,
-              tooltip: 'Ideas Count',
-              color: StatusStyles.evaluated,
+            SizedBox(
+              width: cardWidth,
+              child: DashboardCountCard(
+                value: '${vm.submittedIdeas}',
+                secondaryValue: '${vm.evaluatedIdeas}',
+                label: 'Ideas (Submitted / Evaluated)',
+                icon: AppIcons.ideas,
+                iconBgColor: const Color(0xFFF2EDFF),
+              ),
             ),
           ],
-          iconBgColor: const Color(0xFFE8FAF1),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -308,9 +290,9 @@ class _FacultyDashboardService {
     final ideas = ideaDocs
         .where((d) {
           final m = d.data();
-          final dept = ((m['departmentCode'] as String?) ?? '').trim().toUpperCase();
           final teamId = ((m['teamId'] as String?) ?? '').trim();
-          return dept == departmentCode && teamIds.contains(teamId);
+          final createdBy = ((m['createdBy'] as String?) ?? '').trim();
+          return teamIds.contains(teamId) || createdBy == user.userId;
         })
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
         .toList(growable: false);
@@ -456,94 +438,6 @@ class _FacultyDashboardVm {
   final List<String> ideaPreview;
   final List<_ActivityItem> activities;
   final Map<String, Map<String, dynamic>> usersById;
-}
-
-class _MetricComboCard extends StatelessWidget {
-  static const double _kIconSize = 18;
-
-  const _MetricComboCard({
-    required this.icon,
-    required this.title,
-    required this.stats,
-    required this.iconBgColor,
-  });
-
-  final IconData icon;
-  final String title;
-  final List<_MetricStat> stats;
-  final Color iconBgColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 300,
-      child: SectionContainer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-                  child: Icon(icon, size: _kIconSize),
-                ),
-                const SizedBox(width: 8),
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 56,
-              child: Row(
-                children: stats
-                    .map(
-                      (stat) => Expanded(
-                        child: Tooltip(
-                          message: stat.tooltip,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(stat.icon, size: _kIconSize, color: stat.color),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${stat.count}',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w700,
-                                  color: stat.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricStat {
-  const _MetricStat({
-    required this.icon,
-    required this.count,
-    required this.tooltip,
-    required this.color,
-  });
-
-  final IconData icon;
-  final int count;
-  final String tooltip;
-  final Color color;
 }
 
 class _KeyDataCard extends StatelessWidget {

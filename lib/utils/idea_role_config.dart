@@ -13,7 +13,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: true,
-          restrictToDepartment: true,
+          restrictToDepartment: false,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
