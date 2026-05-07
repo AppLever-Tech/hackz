@@ -83,7 +83,7 @@ class IdeaQueryService {
         .map(
           (idea) {
             final team = teamsById[idea.teamId];
-            final teamName = team?.name.trim().isNotEmpty == true ? team!.name.trim() : idea.teamId;
+            final teamName = team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : idea.teamId;
             final payment = paymentByIdeaId[idea.ideaId];
             final canPay = _viewerCanUploadPayment(
               viewer: viewer,
@@ -209,7 +209,7 @@ class IdeaQueryService {
       return team.studentIds.contains(viewer.userId);
     }
     if (role == UserRole.faculty) {
-      return team.facultyId == viewer.userId;
+      return team.mentorId == viewer.userId;
     }
     return false;
   }

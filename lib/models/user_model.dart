@@ -17,6 +17,7 @@ class UserModel {
     required this.departmentCode,
     required this.status,
     required this.createdAt,
+    this.teamId,
     this.approvedBy,
     this.approvedAt,
     this.rejectionReason,
@@ -34,6 +35,7 @@ class UserModel {
   final String departmentCode; // normalized code
   final UserStatus status;
   final DateTime createdAt;
+  final String? teamId;
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? rejectionReason;
@@ -52,6 +54,7 @@ class UserModel {
       'departmentCode': departmentCode,
       'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
+      'teamId': teamId,
       'approvedBy': approvedBy,
       'approvedAt': approvedAt == null ? null : Timestamp.fromDate(approvedAt!),
       'rejectionReason': rejectionReason,
@@ -72,6 +75,7 @@ class UserModel {
       departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
       status: UserStatus.fromRaw((map['status'] as String?) ?? ''),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      teamId: (map['teamId'] as String?)?.trim().isEmpty == true ? null : (map['teamId'] as String?)?.trim(),
       approvedBy: (map['approvedBy'] as String?)?.trim(),
       approvedAt: (map['approvedAt'] as Timestamp?)?.toDate(),
       rejectionReason: (map['rejectionReason'] as String?)?.trim(),
@@ -91,6 +95,7 @@ class UserModel {
     String? departmentCode,
     UserStatus? status,
     DateTime? createdAt,
+    String? teamId,
     String? approvedBy,
     DateTime? approvedAt,
     String? rejectionReason,
@@ -108,6 +113,7 @@ class UserModel {
       departmentCode: departmentCode ?? this.departmentCode,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      teamId: teamId ?? this.teamId,
       approvedBy: approvedBy ?? this.approvedBy,
       approvedAt: approvedAt ?? this.approvedAt,
       rejectionReason: rejectionReason ?? this.rejectionReason,

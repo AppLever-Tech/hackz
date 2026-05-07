@@ -619,7 +619,7 @@ class FirestoreUtils {
       final id = ((data['teamId'] as String?) ?? '').trim().isNotEmpty
           ? ((data['teamId'] as String?) ?? '').trim()
           : doc.id;
-      final name = ((data['name'] as String?) ?? '').trim();
+      final name = ((data['teamName'] as String?) ?? '').trim();
       mapped[id] = name.isEmpty ? id : name;
     }
     return mapped;
@@ -628,7 +628,7 @@ class FirestoreUtils {
   static Future<List<TeamModel>> getFacultyTeams(String facultyId) async {
     final snapshot = await _db
         .collection(hkzTeams)
-        .where('facultyId', isEqualTo: facultyId)
+        .where('mentorId', isEqualTo: facultyId)
         .get();
     final teams = snapshot.docs
         .map((d) => TeamModel.fromMap(d.id, d.data()))

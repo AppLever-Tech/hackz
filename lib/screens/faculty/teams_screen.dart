@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
+import '../../utils/team_service.dart';
 import '../../widgets/team_dialog.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_components.dart';
@@ -20,12 +20,10 @@ class TeamsScreen extends StatefulWidget {
 class _TeamsScreenState extends State<TeamsScreen> {
   Future<_TeamsViewData> _loadTeamsData() async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      FirestoreUtils.getFacultyTeams(widget.user.userId),
-      FirestoreUtils.getDepartmentUsers(
+      TeamService.getFacultyTeams(widget.user.userId),
+      TeamService.getDepartmentStudents(
         orgId: widget.user.orgId,
-        department: widget.user.departmentCode,
-        roleCodes: const <String>['STU'],
-        limit: 500,
+        departmentCode: widget.user.departmentCode,
       ),
     ]);
     final teams = results[0] as List<TeamModel>;
@@ -184,17 +182,17 @@ class _TeamCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: Text(team.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                child: Text(team.teamName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               ),
               OutlinedButton.icon(
-                onPressed: onEdit,
+                onPressed: team.status.name == 'locked' ? null : onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 16),
                 label: const Text('Edit'),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text('Problem: ${team.problemNumber.isEmpty ? '-' : team.problemNumber} - ${team.problemTitle.isEmpty ? '-' : team.problemTitle}'),
+          Text('Status: ${team.status.value.toUpperCase()}'),
           const SizedBox(height: 4),
           Text('Mentor: ${mentorName.isEmpty ? '-' : mentorName}'),
           const SizedBox(height: 10),

@@ -301,10 +301,8 @@ class _FacultyDashboardService {
 
     final teamIds = teams.map((t) => t.teamId).where((id) => id.isNotEmpty).toSet();
     final studentIds = <String>{};
-    final problemIds = <String>{};
     for (final team in teams) {
       studentIds.addAll(team.studentIds.where((id) => id.isNotEmpty));
-      if (team.problemId.isNotEmpty) problemIds.add(team.problemId);
     }
 
     final ideas = ideaDocs
@@ -353,7 +351,9 @@ class _FacultyDashboardService {
     final sortedDays = byDay.keys.toList(growable: false)..sort();
     final submissionsByDay = <String, int>{for (final day in sortedDays.take(7)) day.substring(5): byDay[day] ?? 0};
 
-    final teamNameById = <String, String>{for (final t in teams) t.teamId: (t.name.isEmpty ? t.teamId : t.name)};
+    final teamNameById = <String, String>{
+      for (final t in teams) t.teamId: (t.teamName.isEmpty ? t.teamId : t.teamName)
+    };
 
     final activities = <_ActivityItem>[
       ...ideas.map((i) {
@@ -370,7 +370,7 @@ class _FacultyDashboardService {
         (t) => _ActivityItem(
           icon: AppIcons.users,
           color: const Color(0xFF6E7394),
-          text: 'Team created: ${t.name.isEmpty ? t.teamId : t.name}',
+          text: 'Team created: ${t.teamName.isEmpty ? t.teamId : t.teamName}',
           time: t.createdAt,
         ),
       ),
@@ -406,7 +406,6 @@ class _FacultyDashboardService {
           .toList(growable: false),
       activities: activities.take(40).toList(growable: false),
       usersById: usersById,
-      linkedProblemCount: problemIds.length,
     );
   }
 }
@@ -426,7 +425,6 @@ class _FacultyDashboardVm {
     required this.ideaPreview,
     required this.activities,
     required this.usersById,
-    required this.linkedProblemCount,
   });
 
   static const empty = _FacultyDashboardVm(
@@ -443,7 +441,6 @@ class _FacultyDashboardVm {
     ideaPreview: <String>[],
     activities: <_ActivityItem>[],
     usersById: <String, Map<String, dynamic>>{},
-    linkedProblemCount: 0,
   );
 
   final List<TeamModel> teams;
@@ -459,7 +456,6 @@ class _FacultyDashboardVm {
   final List<String> ideaPreview;
   final List<_ActivityItem> activities;
   final Map<String, Map<String, dynamic>> usersById;
-  final int linkedProblemCount;
 }
 
 class _MetricComboCard extends StatelessWidget {
@@ -579,7 +575,7 @@ class _KeyDataCard extends StatelessWidget {
                   children: <Widget>[
                     Expanded(
                       child: Text(
-                        team.name.isEmpty ? team.teamId : team.name,
+                        team.teamName.isEmpty ? team.teamId : team.teamName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

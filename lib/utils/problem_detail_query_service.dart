@@ -105,7 +105,7 @@ class ProblemDetailQueryService {
       );
       final item = IdeaListItem(
         idea: idea,
-        teamName: (team?.name ?? '').trim().isEmpty ? idea.teamId : team!.name.trim(),
+        teamName: (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName.trim(),
         team: team,
         payment: paymentByIdeaId[idea.ideaId],
         score: latestScore,
@@ -117,7 +117,7 @@ class ProblemDetailQueryService {
           avgScore: avgScore,
           scoreCount: scoreSet.length,
           studentCount: team?.studentIds.length ?? 0,
-          mentorId: team?.facultyId ?? '',
+          mentorId: team?.mentorId ?? '',
         ),
       );
     }
@@ -143,7 +143,7 @@ class ProblemDetailQueryService {
       final team = teamsById[idea.teamId];
       switch (config.ideaScope) {
         case ProblemIdeaScope.facultyOwn:
-          return idea.createdBy.trim() == userId || (team?.facultyId.trim() ?? '') == userId;
+          return idea.createdBy.trim() == userId || (team?.mentorId.trim() ?? '') == userId;
         case ProblemIdeaScope.teamOwn:
           return team?.studentIds.contains(userId) ?? false;
         case ProblemIdeaScope.department:
@@ -210,7 +210,7 @@ class ProblemDetailQueryService {
     if (team == null) return false;
     final role = UserRole.fromCode(currentUser.role);
     if (role == UserRole.student) return team.studentIds.contains(currentUser.userId);
-    if (role == UserRole.faculty) return team.facultyId == currentUser.userId;
+    if (role == UserRole.faculty) return team.mentorId == currentUser.userId;
     return false;
   }
 }

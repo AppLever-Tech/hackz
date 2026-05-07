@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../models/enums/team_status.dart';
 import '../models/enums/user_status.dart';
-import '../models/problem_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
-import '../utils/firestore_utils.dart';
+import '../utils/team_service.dart';
 import '../screens/common/app_dialog_template.dart';
-import '../screens/common/read_only_field.dart';
 import 'multi_select_dropdown.dart';
 
 enum TeamDialogAction { none, saved, deleted }
@@ -34,16 +33,17 @@ class _TeamDialogState extends State<TeamDialog> {
   final Set<String> _selectedStudentIds = <String>{};
   bool _isSaving = false;
 
-  List<ProblemModel> _problems = <ProblemModel>[];
   List<UserModel> _students = <UserModel>[];
-  ProblemModel? _selectedProblem;
+  List<TeamModel> _facultyTeams = <TeamModel>[];
 
   bool get _isEdit => widget.isEdit;
+  TeamModel? get _editingTeam => widget.initialTeam;
+  bool get _isLocked => _editingTeam?.status == TeamStatus.locked;
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.initialTeam?.name ?? '';
+    _nameController.text = widget.initialTeam?.teamName ?? '';
     _selectedStudentIds.addAll(widget.initialTeam?.studentIds ?? const <String>[]);
     _loadLookups();
   }
@@ -56,83 +56,61 @@ class _TeamDialogState extends State<TeamDialog> {
 
   Future<void> _loadLookups() async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      FirestoreUtils.getActiveProblemsByDepartment(
+      TeamService.getDepartmentStudents(
         orgId: widget.currentUser.orgId,
         departmentCode: widget.currentUser.departmentCode,
       ),
-      FirestoreUtils.getDepartmentUsers(
-        orgId: widget.currentUser.orgId,
-        department: widget.currentUser.departmentCode,
-        roleCodes: const <String>['STU'],
-        limit: 500,
-      ),
+      TeamService.getFacultyTeams(widget.currentUser.userId),
     ]);
 
     if (!mounted) return;
-    final problems = results[0] as List<ProblemModel>;
-    final students = results[1] as List<UserModel>;
+    final students = results[0] as List<UserModel>;
+    final teams = results[1] as List<TeamModel>;
+    final editableTeamId = _editingTeam?.teamId ?? '';
+    final eligibleStudents = students.where((s) {
+      final assignedTeamId = (s.teamId ?? '').trim();
+      return assignedTeamId.isEmpty ||
+          assignedTeamId == editableTeamId ||
+          _selectedStudentIds.contains(s.userId);
+    }).toList(growable: false);
     setState(() {
-      _problems = problems;
-      _students = students;
-      if (_isEdit) {
-        final initial = widget.initialTeam!;
-        _selectedProblem = problems.where((p) => p.problemId == initial.problemId).cast<ProblemModel?>().firstWhere(
-              (p) => p != null,
-              orElse: () => null,
-            );
-      }
+      _students = eligibleStudents;
+      _facultyTeams = teams;
     });
   }
 
   Future<void> _save() async {
     final name = _nameController.text.trim();
-    final selectedProblem = _selectedProblem;
-    if (name.isEmpty || selectedProblem == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Problem and team name are required.')),
-      );
-      return;
-    }
-    if (_selectedStudentIds.length > 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 4 students are allowed in a team.')),
-      );
-      return;
-    }
-    if (!_isEdit && widget.existingTeamCount >= 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum 3 teams per faculty reached.')),
-      );
-      return;
-    }
+    if (_isLocked) return;
 
     setState(() => _isSaving = true);
     try {
+      await TeamService.validateTeamUpsert(
+        faculty: widget.currentUser,
+        teamName: name,
+        selectedStudentIds: _selectedStudentIds,
+        existingTeams: _facultyTeams,
+        departmentStudents: _students,
+        editingTeam: _editingTeam,
+      );
       if (_isEdit) {
-        await FirestoreUtils.updateTeam(
-          widget.initialTeam!.teamId,
-          <String, dynamic>{
-            'name': name,
-            'studentIds': _selectedStudentIds.toList(growable: false),
-          },
+        await TeamService.updateTeam(
+          team: _editingTeam!,
+          teamName: name,
+          studentIds: _selectedStudentIds,
         );
       } else {
-        final team = TeamModel(
-          teamId: '',
-          name: name,
-          facultyId: widget.currentUser.userId,
-          studentIds: _selectedStudentIds.toList(growable: false),
-          problemId: selectedProblem.problemId,
-          problemNumber: selectedProblem.problemNumber,
-          problemTitle: selectedProblem.title,
-          orgId: widget.currentUser.orgId,
-          departmentCode: widget.currentUser.departmentCode,
-          createdAt: DateTime.now(),
+        await TeamService.createTeam(
+          faculty: widget.currentUser,
+          teamName: name,
+          studentIds: _selectedStudentIds,
         );
-        await FirestoreUtils.createTeam(team);
       }
       if (!mounted) return;
       Navigator.of(context).pop(TeamDialogAction.saved);
+    } on TeamRuleException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -152,7 +130,7 @@ class _TeamDialogState extends State<TeamDialog> {
       ),
     );
     if (ok != true) return;
-    await FirestoreUtils.deleteTeam(widget.initialTeam!.teamId);
+    await TeamService.deleteTeam(widget.initialTeam!);
     if (!mounted) return;
     Navigator.of(context).pop(TeamDialogAction.deleted);
   }
@@ -180,6 +158,22 @@ class _TeamDialogState extends State<TeamDialog> {
             ],
           ),
           const SizedBox(height: 10),
+          if (_isLocked)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Team is locked after idea submission. No student changes allowed.',
+                style: TextStyle(color: Color(0xFFC62828), fontWeight: FontWeight.w600),
+              ),
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Team will be locked after idea submission.',
+                style: TextStyle(color: Color(0xFF5A5F87)),
+              ),
+            ),
           const _SectionHeader(
             icon: Icons.format_list_bulleted_rounded,
             title: 'Team details',
@@ -193,46 +187,13 @@ class _TeamDialogState extends State<TeamDialog> {
                   label: 'Team name',
                   child: TextField(
                     controller: _nameController,
+                    enabled: !_isLocked,
                     decoration: const InputDecoration(
                       isDense: true,
                       border: OutlineInputBorder(),
                       hintText: 'e.g. Team Phoenix',
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                _InlineField(
-                  label: 'Problem',
-                  child: _isEdit
-                      ? ReadOnlyField(
-                          value: '${widget.initialTeam!.problemNumber} - ${widget.initialTeam!.problemTitle}',
-                          hintText: 'Problem',
-                        )
-                      : DropdownButtonFormField<String>(
-                          value: _selectedProblem?.problemId,
-                          items: _problems
-                              .map(
-                                (p) => DropdownMenuItem<String>(
-                                  value: p.problemId,
-                                  child: Text(
-                                    '${p.problemNumber} - ${p.title}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setState(() => _selectedProblem = _problems.firstWhere((p) => p.problemId == value));
-                          },
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                            hintText: 'Select problem',
-                          ),
-                        ),
                 ),
               ],
             ),
@@ -261,6 +222,7 @@ class _TeamDialogState extends State<TeamDialog> {
                   departmentCode: widget.currentUser.departmentCode,
                   maxSelection: 4,
                   placeholder: 'Select student',
+                  enabled: !_isLocked,
                   onChanged: (next) {
                     setState(() {
                       _selectedStudentIds
@@ -299,7 +261,7 @@ class _TeamDialogState extends State<TeamDialog> {
                               padding: const EdgeInsets.only(right: 8),
                               child: Chip(
                                 label: Text('${student.firstName} ${student.lastName}'.trim()),
-                                onDeleted: () => setState(() => _selectedStudentIds.remove(student.userId)),
+                                onDeleted: _isLocked ? null : () => setState(() => _selectedStudentIds.remove(student.userId)),
                               ),
                             ),
                           )
@@ -315,13 +277,13 @@ class _TeamDialogState extends State<TeamDialog> {
             children: <Widget>[
               if (_isEdit)
                 OutlinedButton.icon(
-                  onPressed: _isSaving ? null : _delete,
+                  onPressed: _isSaving || _isLocked ? null : _delete,
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Delete Team'),
                 ),
               const Spacer(),
               FilledButton(
-                onPressed: _isSaving ? null : _save,
+                onPressed: _isSaving || _isLocked ? null : _save,
                 child: Text(_isSaving ? 'Saving...' : (_isEdit ? 'Save Changes' : 'Create Team')),
               ),
               const SizedBox(width: 8),

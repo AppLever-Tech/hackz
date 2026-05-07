@@ -1,41 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'enums/team_status.dart';
 
 class TeamModel {
   const TeamModel({
     required this.teamId,
-    required this.name,
-    required this.facultyId,
+    required this.teamName,
+    required this.mentorId,
     required this.studentIds,
-    required this.problemId,
-    required this.problemNumber,
-    required this.problemTitle,
     required this.orgId,
     required this.departmentCode,
+    required this.status,
     required this.createdAt,
   });
 
   final String teamId;
-  final String name;
-  final String facultyId;
+  final String teamName;
+  final String mentorId;
   final List<String> studentIds;
-  final String problemId;
-  final String problemNumber;
-  final String problemTitle;
   final String orgId;
   final String departmentCode;
+  final TeamStatus status;
   final DateTime createdAt;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'teamId': teamId,
-      'name': name,
-      'facultyId': facultyId,
+      'teamName': teamName,
+      'mentorId': mentorId,
       'studentIds': studentIds,
-      'problemId': problemId,
-      'problemNumber': problemNumber,
-      'problemTitle': problemTitle,
       'orgId': orgId,
       'departmentCode': departmentCode,
+      'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -43,40 +38,34 @@ class TeamModel {
   factory TeamModel.fromMap(String teamId, Map<String, dynamic> map) {
     return TeamModel(
       teamId: ((map['teamId'] as String?) ?? '').trim().isEmpty ? teamId : ((map['teamId'] as String?) ?? '').trim(),
-      name: ((map['name'] as String?) ?? '').trim(),
-      facultyId: ((map['facultyId'] as String?) ?? '').trim(),
+      teamName: ((map['teamName'] as String?) ?? '').trim(),
+      mentorId: ((map['mentorId'] as String?) ?? '').trim(),
       studentIds: (map['studentIds'] as List<dynamic>? ?? const <dynamic>[]).map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList(growable: false),
-      problemId: ((map['problemId'] as String?) ?? '').trim(),
-      problemNumber: ((map['problemNumber'] as String?) ?? '').trim(),
-      problemTitle: ((map['problemTitle'] as String?) ?? '').trim(),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
       departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
+      status: TeamStatus.fromRaw((map['status'] as String?) ?? 'active'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   TeamModel copyWith({
     String? teamId,
-    String? name,
-    String? facultyId,
+    String? teamName,
+    String? mentorId,
     List<String>? studentIds,
-    String? problemId,
-    String? problemNumber,
-    String? problemTitle,
     String? orgId,
     String? departmentCode,
+    TeamStatus? status,
     DateTime? createdAt,
   }) {
     return TeamModel(
       teamId: teamId ?? this.teamId,
-      name: name ?? this.name,
-      facultyId: facultyId ?? this.facultyId,
+      teamName: teamName ?? this.teamName,
+      mentorId: mentorId ?? this.mentorId,
       studentIds: studentIds ?? this.studentIds,
-      problemId: problemId ?? this.problemId,
-      problemNumber: problemNumber ?? this.problemNumber,
-      problemTitle: problemTitle ?? this.problemTitle,
       orgId: orgId ?? this.orgId,
       departmentCode: departmentCode ?? this.departmentCode,
+      status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
     );
   }

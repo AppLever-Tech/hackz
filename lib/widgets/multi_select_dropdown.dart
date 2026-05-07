@@ -13,6 +13,7 @@ class MultiSelectDropdown extends StatefulWidget {
     required this.departmentCode,
     this.maxSelection = 4,
     this.placeholder = 'Select Students',
+    this.enabled = true,
   });
 
   final List<UserModel> students;
@@ -22,6 +23,7 @@ class MultiSelectDropdown extends StatefulWidget {
   final String departmentCode;
   final int maxSelection;
   final String placeholder;
+  final bool enabled;
 
   @override
   State<MultiSelectDropdown> createState() => _MultiSelectDropdownState();
@@ -182,14 +184,14 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
       link: _layerLink,
       child: InkWell(
         key: _fieldKey,
-        onTap: _toggleOverlay,
+        onTap: widget.enabled ? _toggleOverlay : null,
         borderRadius: BorderRadius.circular(12),
         child: InputDecorator(
           decoration: InputDecoration(
             isDense: true,
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            suffixIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
+            suffixIcon: Icon(widget.enabled ? (_isOpen ? Icons.expand_less : Icons.expand_more) : Icons.lock_outline),
           ),
           child: Text(selectedCount == 0 ? widget.placeholder : '$selectedCount selected'),
         ),
