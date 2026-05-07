@@ -1,12 +1,16 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/problem_list_config.dart';
+import '../../models/idea_model.dart';
 import '../../models/problem_model.dart';
+import '../../models/attachment_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
+import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/problem_query_service.dart';
 import '../../widgets/problem_card.dart';
@@ -42,6 +46,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   Set<String> _tagFilters = <String>{};
   ProblemSortType _sort = ProblemSortType.newest;
   ProblemModel? _selectedProblem;
+  Map<String, _ProblemStats> _statsByProblemId = <String, _ProblemStats>{};
   ProblemModel? _editingProblem;
   bool _showCreateProblem = false;
 
@@ -81,6 +86,52 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         ),
       );
     });
+    _loadProblemStats();
+  }
+
+  Future<void> _loadProblemStats() async {
+    final results = await Future.wait<QuerySnapshot<Map<String, dynamic>>>(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzIdeas)
+          .where('orgId', isEqualTo: widget.config.orgId)
+          .get(),
+      FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzAttachments)
+          .where('orgId', isEqualTo: widget.config.orgId)
+          .where('entityType', isEqualTo: AttachmentEntityType.problem.value)
+          .where('isActive', isEqualTo: true)
+          .get(),
+    ]);
+    final snapshot = results[0];
+    final attachmentSnapshot = results[1];
+    final map = <String, _ProblemStats>{};
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final problemId = ((data['problemId'] as String?) ?? '').trim();
+      if (problemId.isEmpty) continue;
+      final status = IdeaStatus.fromRaw((data['status'] as String?) ?? '');
+      final current = map[problemId] ?? const _ProblemStats();
+      map[problemId] = _ProblemStats(
+        totalIdeas: current.totalIdeas + 1,
+        evaluated: current.evaluated + (status == IdeaStatus.evaluated ? 1 : 0),
+        approved: current.approved + (status == IdeaStatus.approved ? 1 : 0),
+        attachments: current.attachments,
+      );
+    }
+    for (final doc in attachmentSnapshot.docs) {
+      final data = doc.data();
+      final problemId = ((data['entityId'] as String?) ?? '').trim();
+      if (problemId.isEmpty) continue;
+      final current = map[problemId] ?? const _ProblemStats();
+      map[problemId] = _ProblemStats(
+        totalIdeas: current.totalIdeas,
+        evaluated: current.evaluated,
+        approved: current.approved,
+        attachments: current.attachments + 1,
+      );
+    }
+    if (!mounted) return;
+    setState(() => _statsByProblemId = map);
   }
 
   Future<void> _openCreateProblem() async {
@@ -108,17 +159,34 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
     return true;
   }
 
-  Future<void> _toggleProblemActive(ProblemModel problem) async {
-    await FirestoreUtils.updateProblem(
-      problem.problemId,
-      <String, dynamic>{'isActive': !problem.isActive},
+  Future<void> _deleteProblem(ProblemModel problem) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Problem'),
+        content: const Text('Delete this problem permanently?'),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
+        ],
+      ),
     );
+    if (shouldDelete != true) return;
+    await AttachmentService.deactivateEntityAttachments(
+      entityType: AttachmentEntityType.problem,
+      entityId: problem.problemId,
+    );
+    await FirestoreUtils.deleteProblem(problem.problemId);
     if (!mounted) return;
     _loadProblems();
   }
 
   Future<void> _showAttachments(ProblemModel problem) async {
-    if (problem.attachments.isEmpty) {
+    final attachments = await AttachmentService.fetchActiveAttachments(
+      entityType: AttachmentEntityType.problem,
+      entityId: problem.problemId,
+    );
+    if (attachments.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No attachments available for this problem.')),
       );
@@ -130,13 +198,14 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
       builder: (context) {
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: problem.attachments.length,
+          itemCount: attachments.length,
           itemBuilder: (context, index) {
-            final url = problem.attachments[index];
+            final attachment = attachments[index];
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.link),
-              title: Text(url, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Text(attachment.fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text(attachment.downloadUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
             );
           },
         );
@@ -243,17 +312,22 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                 itemBuilder: (context, index) {
                   final problem = problems[index];
                   final canEditProblem = _canEditProblem(problem);
+                  final stats = _statsByProblemId[problem.problemId] ?? const _ProblemStats();
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: ProblemCard(
                       key: ValueKey(problem.problemId),
                       problem: problem,
                       canEdit: canEditProblem,
-                      canToggleActive: widget.config.canToggleActive,
-                      onToggleActive: widget.config.canToggleActive ? _toggleProblemActive : null,
+                      canDelete: widget.config.canToggleActive,
+                      onDelete: widget.config.canToggleActive ? _deleteProblem : null,
                       onEdit: canEditProblem ? _openEditProblem : null,
                       onViewAttachments: _showAttachments,
                       onViewDetails: _openProblemDetails,
+                      totalIdeas: stats.totalIdeas,
+                      evaluatedCount: stats.evaluated,
+                      approvedCount: stats.approved,
+                      attachmentCount: stats.attachments,
                     ),
                   );
                 },
@@ -615,4 +689,18 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
     ];
     return order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
   }
+}
+
+class _ProblemStats {
+  const _ProblemStats({
+    this.totalIdeas = 0,
+    this.evaluated = 0,
+    this.approved = 0,
+    this.attachments = 0,
+  });
+
+  final int totalIdeas;
+  final int evaluated;
+  final int approved;
+  final int attachments;
 }

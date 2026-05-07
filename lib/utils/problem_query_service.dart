@@ -42,6 +42,11 @@ class ProblemQueryService {
         .toList(growable: false);
 
     items = _applyFilters(items, params);
+    items = await _applyAttachmentFilter(
+      items: items,
+      orgId: params.config.orgId,
+      hasAttachments: params.hasAttachments,
+    );
     items = _applySort(items, params.sortType);
     return items;
   }
@@ -72,12 +77,6 @@ class ProblemQueryService {
         final hasAll = params.tagFilters.every((filterTag) => tags.contains(filterTag.toLowerCase()));
         if (!hasAll) return false;
       }
-      if (params.hasAttachments != null) {
-        final hasAny = problem.attachments.isNotEmpty;
-        if (hasAny != params.hasAttachments) {
-          return false;
-        }
-      }
       if (search.isNotEmpty) {
         final inTitle = problem.title.toLowerCase().contains(search);
         final inNumber = problem.problemNumber.toLowerCase().contains(search);
@@ -87,6 +86,28 @@ class ProblemQueryService {
         }
       }
       return true;
+    }).toList(growable: false);
+  }
+
+  static Future<List<ProblemModel>> _applyAttachmentFilter({
+    required List<ProblemModel> items,
+    required String orgId,
+    required bool? hasAttachments,
+  }) async {
+    if (hasAttachments == null) return items;
+    final snap = await _db
+        .collection(FirestoreUtils.hkzAttachments)
+        .where('orgId', isEqualTo: orgId)
+        .where('entityType', isEqualTo: 'problem')
+        .where('isActive', isEqualTo: true)
+        .get();
+    final attachedProblemIds = snap.docs
+        .map((d) => ((d.data()['entityId'] as String?) ?? '').trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    return items.where((p) {
+      final hasAny = attachedProblemIds.contains(p.problemId);
+      return hasAny == hasAttachments;
     }).toList(growable: false);
   }
 

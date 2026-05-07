@@ -36,24 +36,41 @@ class ProblemUtils {
   }) async {
     if (files.isEmpty) return const <String>[];
     final urls = <String>[];
+    final failedFiles = <String>[];
     for (final file in files) {
-      final filename = file.name.trim().isEmpty ? 'attachment_${DateTime.now().millisecondsSinceEpoch}' : file.name;
+      final filename = file.name.trim().isEmpty
+          ? 'attachment_${DateTime.now().millisecondsSinceEpoch}'
+          : file.name;
       final ref = _storage.ref('problems/$problemNumber/$filename');
 
-      UploadTask task;
-      if (kIsWeb) {
-        final bytes = file.bytes;
-        if (bytes == null) continue;
-        task = ref.putData(bytes);
-      } else {
-        final path = file.path;
-        if (path == null || path.trim().isEmpty) continue;
-        task = ref.putFile(File(path));
-      }
+      try {
+        UploadTask task;
+        if (kIsWeb) {
+          final bytes = file.bytes;
+          if (bytes == null || bytes.isEmpty) {
+            failedFiles.add(filename);
+            continue;
+          }
+          task = ref.putData(bytes);
+        } else {
+          final path = file.path;
+          if (path == null || path.trim().isEmpty) {
+            failedFiles.add(filename);
+            continue;
+          }
+          task = ref.putFile(File(path));
+        }
 
-      await task;
-      final url = await ref.getDownloadURL();
-      urls.add(url);
+        await task;
+        final url = await ref.getDownloadURL();
+        urls.add(url);
+      } catch (_) {
+        failedFiles.add(filename);
+      }
+    }
+
+    if (failedFiles.isNotEmpty) {
+      throw StateError('Failed to upload attachment(s): ${failedFiles.join(', ')}');
     }
     return urls;
   }

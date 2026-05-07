@@ -140,9 +140,39 @@ class SummaryCard extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.iconBgColor,
+    this.secondaryValue,
   });
 
   final String value;
+  final String label;
+  final IconData icon;
+  final Color iconBgColor;
+  final String? secondaryValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCountCard(
+      value: value,
+      secondaryValue: secondaryValue,
+      label: label,
+      icon: icon,
+      iconBgColor: iconBgColor,
+    );
+  }
+}
+
+class DashboardCountCard extends StatelessWidget {
+  const DashboardCountCard({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.iconBgColor,
+    this.secondaryValue,
+  });
+
+  final String value;
+  final String? secondaryValue;
   final String label;
   final IconData icon;
   final Color iconBgColor;
@@ -164,10 +194,31 @@ class SummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
-                ),
+                if (secondaryValue == null)
+                  Text(
+                    value,
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
+                  )
+                else
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        value,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '/',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                        ),
+                      ),
+                      Text(
+                        secondaryValue!,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 6),
                 Text(
                   label,

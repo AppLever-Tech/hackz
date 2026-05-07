@@ -89,7 +89,7 @@ class SysAdminDashboard extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalOrganizations',
                         label: 'Total Organizations',
                         icon: Icons.apartment_outlined,
@@ -98,7 +98,7 @@ class SysAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalUsers',
                         label: 'Total Users',
                         icon: Icons.groups_outlined,
@@ -107,7 +107,7 @@ class SysAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalProblems',
                         label: 'Total Problems',
                         icon: Icons.warning_amber_rounded,
@@ -116,7 +116,7 @@ class SysAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalIdeas',
                         label: 'Total Ideas',
                         icon: Icons.lightbulb_outline,

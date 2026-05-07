@@ -12,7 +12,6 @@ import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import 'judges_panel.dart';
 import 'manage_users_screen.dart';
-import 'pending_users_screen.dart';
 import 'payments_screen.dart';
 
 String _deptRoleLabel(String role) {
@@ -88,18 +87,12 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 5) {
-          return PendingUsersScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-          );
-        }
-        if (selectedMenuIndex == 6) {
           return PaymentsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 7) {
+        if (selectedMenuIndex == 6) {
           return const SectionContainer(child: Text('Settings module placeholder'));
         }
 
@@ -138,7 +131,7 @@ class DeptAdminDashboard extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalStudents',
                         label: 'Total Students',
                         icon: Icons.school_outlined,
@@ -147,7 +140,7 @@ class DeptAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalFaculty',
                         label: 'Total Faculty',
                         icon: Icons.person_outline,
@@ -156,7 +149,7 @@ class DeptAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalIdeas',
                         label: 'Total Ideas',
                         icon: Icons.lightbulb_outline,
@@ -165,7 +158,7 @@ class DeptAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$activeIdeas',
                         label: 'Active Ideas',
                         icon: Icons.autorenew_rounded,
@@ -174,7 +167,7 @@ class DeptAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalJudges',
                         label: 'Total Judges',
                         icon: Icons.gavel_outlined,

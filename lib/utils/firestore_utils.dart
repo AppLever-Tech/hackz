@@ -29,6 +29,7 @@ class FirestoreUtils {
   /// Links Firebase Auth UID → `hkzUsers` document id (for rules + coordinator checks).
   static const String hkzUserAuthMirror = 'hkzUserAuthMirror';
   static const String hkzTeams = 'hkzTeams';
+  static const String hkzAttachments = 'hkzAttachments';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);
@@ -575,12 +576,21 @@ class FirestoreUtils {
   }
 
   static Future<String> createProblem(ProblemModel problem) async {
+    return createProblemWithId(problem: problem);
+  }
+
+  static Future<String> createProblemWithId({
+    required ProblemModel problem,
+    String? problemId,
+  }) async {
     final doc = _db.collection(hkzProblems).doc();
+    final targetId = (problemId ?? '').trim().isEmpty ? doc.id : problemId!.trim();
+    final ref = _db.collection(hkzProblems).doc(targetId);
     final payload = problem.toMap()
-      ..['problemId'] = doc.id
+      ..['problemId'] = targetId
       ..['updatedAt'] = problem.updatedAt == null ? null : Timestamp.fromDate(problem.updatedAt!);
-    await doc.set(payload, SetOptions(merge: true));
-    return doc.id;
+    await ref.set(payload, SetOptions(merge: true));
+    return targetId;
   }
 
   static Future<void> updateProblem(String problemId, Map<String, dynamic> updates) async {
@@ -589,6 +599,10 @@ class FirestoreUtils {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     await _db.collection(hkzProblems).doc(problemId).set(payload, SetOptions(merge: true));
+  }
+
+  static Future<void> deleteProblem(String problemId) async {
+    await _db.collection(hkzProblems).doc(problemId).delete();
   }
 
   static Future<String> createTeam(TeamModel team) async {

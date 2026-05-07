@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 import '../models/idea_model.dart';
+import '../models/attachment_model.dart';
 import '../models/payment_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
+import '../utils/attachment_service.dart';
 import '../utils/firestore_utils.dart';
 
 /// Compact student payment submission (amount + screenshot required).
@@ -98,21 +99,23 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       var ext = (_picked!.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
       if (ext.isEmpty) ext = 'jpg';
       if (ext == 'jpg') ext = 'jpeg';
-      final path = 'hkzPaymentProofs/${widget.idea.ideaId}/${DateTime.now().millisecondsSinceEpoch}.$ext';
-      final ref = FirebaseStorage.instance.ref(path);
-      await ref
-          .putData(
-            _picked!.bytes!,
-            SettableMetadata(contentType: 'image/$ext'),
-          )
-          .timeout(_uploadTimeout);
-      final url = await ref.getDownloadURL().timeout(const Duration(seconds: 30));
       final authUid = FirebaseAuth.instance.currentUser?.uid;
       if (authUid == null || authUid.isEmpty) {
         throw StateError('Not signed in.');
       }
+      final paymentId = widget.idea.ideaId;
+      final uploaded = await AttachmentService.uploadAttachments(
+        entityType: AttachmentEntityType.payment,
+        entityId: paymentId,
+        orgId: widget.idea.orgId,
+        departmentCode: widget.idea.departmentCode,
+        uploadedBy: widget.currentUser.userId,
+        files: <PlatformFile>[_picked!],
+        fileType: 'payment',
+      ).timeout(_uploadTimeout);
+      final url = uploaded.first.downloadUrl;
       final payment = PaymentModel(
-        paymentId: '',
+        paymentId: paymentId,
         ideaId: widget.idea.ideaId,
         teamId: widget.team.teamId,
         problemId: widget.idea.problemId,

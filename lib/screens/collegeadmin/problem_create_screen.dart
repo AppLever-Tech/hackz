@@ -1,12 +1,16 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/problem_constants.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/problem_model.dart';
 import '../../models/user_model.dart';
+import '../../models/attachment_model.dart';
 import '../../utils/firestore_utils.dart';
+import '../../utils/attachment_service.dart';
 import '../../utils/problem_utils.dart';
+import '../../widgets/attachment_upload_preview.dart';
 
 class ProblemCreateScreen extends StatefulWidget {
   const ProblemCreateScreen({
@@ -194,17 +198,24 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final problemNumber = await ProblemUtils.generateProblemNumber();
-      final uploadedAttachments = await ProblemUtils.uploadAttachments(
-        files: _attachments,
-        problemNumber: problemNumber,
-      );
-      final attachments = _isEdit
-          ? <String>{...widget.initialProblem!.attachments, ...uploadedAttachments}.toList(growable: false)
-          : uploadedAttachments;
+      final problemNumber = _isEdit ? widget.initialProblem!.problemNumber : await ProblemUtils.generateProblemNumber();
       final orgTypeName = widget.currentUser.orgType?.name ?? 'college';
+      final createProblemId = _isEdit
+          ? widget.initialProblem!.problemId
+          : FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
+      if (_attachments.isNotEmpty) {
+        await AttachmentService.uploadAttachments(
+          entityType: AttachmentEntityType.problem,
+          entityId: createProblemId,
+          orgId: widget.currentUser.orgId,
+          departmentCode: _selectedDepartment,
+          uploadedBy: widget.currentUser.userId,
+          files: _attachments,
+          fileType: 'problem',
+        );
+      }
       final problem = ProblemModel(
-        problemId: widget.initialProblem?.problemId ?? '',
+        problemId: createProblemId,
         problemNumber: problemNumber,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
@@ -215,11 +226,12 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
         category: _selectedCategory,
         theme: _themeController.text.trim(),
         tags: _tags,
-        attachments: attachments,
+        attachments: const <String>[],
         isActive: _isActive,
         createdAt: widget.initialProblem?.createdAt ?? DateTime.now(),
         updatedAt: _isEdit ? DateTime.now() : null,
       );
+      String problemId = problem.problemId;
       if (_isEdit) {
         await FirestoreUtils.updateProblem(
           problem.problemId,
@@ -231,11 +243,13 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
             'theme': problem.theme,
             'tags': problem.tags,
             'isActive': problem.isActive,
-            'attachments': problem.attachments,
           },
         );
       } else {
-        await FirestoreUtils.createProblem(problem);
+        problemId = await FirestoreUtils.createProblemWithId(
+          problem: problem,
+          problemId: createProblemId,
+        );
       }
       if (!mounted) return;
       if (widget.embedded) {
@@ -420,46 +434,12 @@ class _ProblemCreateScreenState extends State<ProblemCreateScreen> {
               const SizedBox(height: 12),
               _buildCard(
                 title: 'Attachments',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    OutlinedButton.icon(
-                      onPressed: _pickAttachments,
-                      icon: const Icon(Icons.upload_file_outlined),
-                      label: const Text('Upload files'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeInOut,
-                      child: _attachments.isEmpty
-                          ? Text(
-                              'No files uploaded yet.',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            )
-                          : Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _attachments
-                                  .map(
-                                    (file) => Chip(
-                                      avatar: const Icon(Icons.insert_drive_file_outlined, size: 16),
-                                      label: Text(
-                                        file.name,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      deleteIcon: const Icon(Icons.close, size: 18),
-                                      onDeleted: () => setState(() => _attachments.remove(file)),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                            ),
-                    ),
-                  ],
+                child: AttachmentUploadPreview(
+                  files: _attachments,
+                  onPickFiles: _pickAttachments,
+                  onRemoveFile: (file) => setState(() => _attachments.remove(file)),
+                  enabled: !_isSubmitting,
+                  uploadButtonLabel: 'Upload files',
                 ),
               ),
             ],

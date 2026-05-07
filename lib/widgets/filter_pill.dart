@@ -9,6 +9,7 @@ class FilterPill extends StatelessWidget {
     required this.label,
     required this.count,
     required this.onTap,
+    this.foregroundColor,
   });
 
   final bool selected;
@@ -16,10 +17,11 @@ class FilterPill extends StatelessWidget {
   final String label;
   final int count;
   final VoidCallback onTap;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = selected ? const Color(0xFF2E43C6) : const Color(0xFF475569);
+    final Color fg = foregroundColor ?? (selected ? const Color(0xFF2E43C6) : const Color(0xFF475569));
     final Color bg = selected ? const Color(0xFFE8ECFF) : const Color(0xFFF1F5F9);
     final Color border = selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0);
     return Material(

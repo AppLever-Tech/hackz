@@ -8,21 +8,29 @@ class ProblemCard extends StatelessWidget {
     super.key,
     required this.problem,
     this.canEdit = false,
-    this.canToggleActive = false,
+    this.canDelete = false,
     this.onEdit,
-    this.onToggleActive,
+    this.onDelete,
     this.onViewAttachments,
     this.onViewDetails,
+    this.totalIdeas = 0,
+    this.evaluatedCount = 0,
+    this.approvedCount = 0,
+    this.attachmentCount = 0,
     this.initiallyExpanded = false,
   });
 
   final ProblemModel problem;
   final bool canEdit;
-  final bool canToggleActive;
+  final bool canDelete;
   final ValueChanged<ProblemModel>? onEdit;
-  final ValueChanged<ProblemModel>? onToggleActive;
+  final ValueChanged<ProblemModel>? onDelete;
   final ValueChanged<ProblemModel>? onViewAttachments;
   final ValueChanged<ProblemModel>? onViewDetails;
+  final int totalIdeas;
+  final int evaluatedCount;
+  final int approvedCount;
+  final int attachmentCount;
   final bool initiallyExpanded;
 
   @override
@@ -68,15 +76,12 @@ class ProblemCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (canEdit && canToggleActive) const SizedBox(width: 8),
-                if (canToggleActive)
+                if (canEdit && canDelete) const SizedBox(width: 8),
+                if (canDelete)
                   OutlinedButton.icon(
-                    onPressed: onToggleActive == null ? null : () => onToggleActive!(problem),
-                    icon: Icon(
-                      problem.isActive ? Icons.toggle_on_outlined : Icons.toggle_off_outlined,
-                      size: 16,
-                    ),
-                    label: Text(problem.isActive ? 'Set Inactive' : 'Set Active'),
+                    onPressed: onDelete == null ? null : () => onDelete!(problem),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Delete'),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       minimumSize: const Size(0, 34),
@@ -89,36 +94,91 @@ class ProblemCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(AppIcons.problems, size: 16, color: Colors.grey.shade700),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  flex: 3,
+                  child: Row(
+                    children: <Widget>[
+                      Icon(AppIcons.problems, size: 16, color: Colors.grey.shade700),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: problem.isActive ? 'Active' : 'Inactive',
+                        child: Icon(
+                          problem.isActive ? AppIcons.statusActive : AppIcons.statusInactive,
+                          size: 12,
+                          color: problem.isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 1,
+                  child: _buildCompactProgress(theme),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: <Widget>[
-                Icon(AppIcons.departments, size: 15, color: Colors.grey.shade600),
-                const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    problem.departmentDisplayName.trim().isEmpty ? '-' : problem.departmentDisplayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(AppIcons.departments, size: 15, color: Colors.grey.shade600),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          problem.departmentDisplayName.trim().isEmpty ? '-' : problem.departmentDisplayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      _inlineAttachmentCount(
+                        icon: AppIcons.attachments,
+                        tooltip: 'Attachments',
+                        count: attachmentCount,
+                        color: const Color(0xFF334155),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                _buildStatusIndicator(theme),
+                const SizedBox(width: 12),
+                _inlineStat(
+                  icon: AppIcons.ideas,
+                  tooltip: 'Total Ideas',
+                  count: totalIdeas,
+                  color: const Color(0xFF4A67FF),
+                ),
+                const SizedBox(width: 12),
+                _inlineStat(
+                  icon: AppIcons.statusEvaluated,
+                  tooltip: 'Evaluated',
+                  count: evaluatedCount,
+                  color: const Color(0xFF7B1FA2),
+                ),
+                const SizedBox(width: 12),
+                _inlineStat(
+                  icon: AppIcons.statusApproved,
+                  tooltip: 'Approved',
+                  count: approvedCount,
+                  color: const Color(0xFF2E7D32),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -132,6 +192,32 @@ class ProblemCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _inlineAttachmentCount({
+    required IconData icon,
+    required String tooltip,
+    required int count,
+    required Color color,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 3),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -153,26 +239,53 @@ class ProblemCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusIndicator(ThemeData theme) {
-    final isActive = problem.isActive;
-    final dotColor = isActive ? const Color(0xFF1AAE60) : const Color(0xFFD34A4A);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+  Widget _inlineStat({
+    required IconData icon,
+    required String tooltip,
+    required int count,
+    required Color color,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 3),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactProgress(ThemeData theme) {
+    final safeTotal = totalIdeas <= 0 ? 1 : totalIdeas;
+    final progress = (evaluatedCount / safeTotal).clamp(0, 1).toDouble();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: dotColor,
-            borderRadius: BorderRadius.circular(8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: LinearProgressIndicator(
+            minHeight: 5,
+            value: progress,
+            color: const Color(0xFF7B1FA2),
+            backgroundColor: const Color(0xFFE2E8F0),
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(height: 4),
         Text(
-          isActive ? 'Active' : 'Inactive',
+          'Evaluated $evaluatedCount/$totalIdeas',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.grey.shade800,
-            fontWeight: FontWeight.w600,
+            color: const Color(0xFF6B7280),
+            fontSize: 10,
           ),
         ),
       ],

@@ -43,11 +43,14 @@ class AppIcons {
   static const IconData address = Icons.location_on_outlined;
   static const IconData website = Icons.language_outlined;
   static const IconData openInNew = Icons.open_in_new_rounded;
+  static const IconData attachments = Icons.attach_file_rounded;
   static const IconData statusSubmitted = Icons.radio_button_unchecked_rounded;
   static const IconData statusUnderReview = Icons.pending_actions_outlined;
   static const IconData statusEvaluated = Icons.fact_check_outlined;
   static const IconData statusApproved = Icons.check_circle_outline_rounded;
   static const IconData statusRejected = Icons.cancel_outlined;
+  static const IconData statusActive = Icons.circle;
+  static const IconData statusInactive = Icons.circle_outlined;
 
   static IconData forOrganizationType(OrganizationType? type) {
     switch (type) {

@@ -4,12 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../constants/status_styles.dart';
+import '../../models/attachment_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/idea_model.dart';
 import '../../models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
+import '../../utils/attachment_service.dart';
 import '../../utils/problem_detail_config.dart';
 import '../../utils/problem_detail_query_service.dart';
 import '../../widgets/filter_pill.dart';
@@ -47,6 +50,7 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
 
   late final ProblemDetailConfig _config;
   Future<List<ProblemIdeaAggregate>>? _ideasFuture;
+  Future<List<AttachmentModel>>? _attachmentsFuture;
   List<ProblemIdeaAggregate> _loadedIdeas = <ProblemIdeaAggregate>[];
 
   @override
@@ -54,6 +58,10 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
     super.initState();
     _config = ProblemDetailRoleConfig.configFor(widget.currentUser);
     _ideasFuture = _loadIdeas();
+    _attachmentsFuture = AttachmentService.fetchActiveAttachments(
+      entityType: AttachmentEntityType.problem,
+      entityId: widget.problem.problemId,
+    );
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -304,33 +312,40 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
-                  if (widget.problem.attachments.isEmpty)
-                    const Text('No attachments available.')
-                  else
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: widget.problem.attachments
-                            .map(
-                              (attachment) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ActionChip(
-                                  avatar: const Icon(Icons.attach_file, size: 16),
-                                  label: SizedBox(
-                                    width: 180,
-                                    child: Text(
-                                      attachment,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                  FutureBuilder<List<AttachmentModel>>(
+                    future: _attachmentsFuture,
+                    builder: (BuildContext context, AsyncSnapshot<List<AttachmentModel>> snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const LinearProgressIndicator(minHeight: 2);
+                      }
+                      final attachments = snapshot.data ?? const <AttachmentModel>[];
+                      if (attachments.isEmpty) return const Text('No attachments available.');
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: attachments
+                              .map(
+                                (attachment) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ActionChip(
+                                    avatar: const Icon(Icons.attach_file, size: 16),
+                                    label: SizedBox(
+                                      width: 180,
+                                      child: Text(
+                                        attachment.fileName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                    onPressed: () => _showAttachmentPreview(attachment.downloadUrl),
                                   ),
-                                  onPressed: () => _showAttachmentPreview(attachment),
                                 ),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
-                    ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -466,8 +481,9 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                   padding: const EdgeInsets.only(right: 8),
                   child: FilterPill(
                     selected: _statusFilter == status,
-                    icon: AppIcons.verification,
+                    icon: _statusIcon(status),
                     label: _statusLabel(status),
+                    foregroundColor: StatusStyles.colorForIdeaStatus(status),
                     count: _loadedIdeas.where((e) => e.item.idea.status == status).length,
                     onTap: () => setState(() => _statusFilter = status),
                   ),
@@ -706,6 +722,22 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
         return 'Approved';
       case IdeaStatus.rejected:
         return 'Rejected';
+    }
+  }
+
+  IconData _statusIcon(IdeaStatus status) {
+    switch (status) {
+      case IdeaStatus.pendingSubmission:
+      case IdeaStatus.submitted:
+        return AppIcons.statusSubmitted;
+      case IdeaStatus.underReview:
+        return AppIcons.statusUnderReview;
+      case IdeaStatus.evaluated:
+        return AppIcons.statusEvaluated;
+      case IdeaStatus.approved:
+        return AppIcons.statusApproved;
+      case IdeaStatus.rejected:
+        return AppIcons.statusRejected;
     }
   }
 }

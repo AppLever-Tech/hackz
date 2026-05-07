@@ -135,7 +135,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalDepartments',
                         label: 'Total Departments',
                         icon: AppIcons.departments,
@@ -144,7 +144,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalUsers',
                         label: 'Total Users',
                         icon: AppIcons.users,
@@ -153,7 +153,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalProblems',
                         label: 'Problem Statements',
                         icon: AppIcons.problems,
@@ -162,7 +162,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: SummaryCard(
+                      child: DashboardCountCard(
                         value: '$totalIdeas',
                         label: 'Ideas (College)',
                         icon: AppIcons.ideas,

@@ -50,7 +50,6 @@ class ProblemModel {
       'category': category,
       'theme': theme,
       'tags': tags,
-      'attachments': attachments,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
