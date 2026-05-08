@@ -20,6 +20,7 @@ import '../../utils/team_service.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
 import '../../widgets/attachment_viewer.dart';
+import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
 
 class IdeasListScreen extends StatefulWidget {
@@ -48,6 +49,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Set<String> _problemFilters = <String>{};
   Set<String> _departmentFilters = <String>{};
   IdeaSortType _sort = IdeaSortType.newest;
+  String? _selectedIdeaId;
 
   @override
   void initState() {
@@ -107,142 +109,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   }
 
   Future<void> _showIdeaDetails(IdeaListItem item) async {
-    final showPay = widget.config.canUploadPayment && item.canUploadPayment;
-    final isCoordinator = UserRole.fromCode(widget.currentUser.role) == UserRole.coordinator;
-    final canVerifyPayment = isCoordinator &&
-        item.payment != null &&
-        item.payment!.status == PaymentRecordStatus.pending;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(item.idea.problemTitle.isEmpty ? 'Idea Details' : item.idea.problemTitle),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text('Problem Number: ${item.idea.problemNumber.isEmpty ? '-' : item.idea.problemNumber}'),
-                const SizedBox(height: 8),
-                Text('Status: ${_statusLabel(item.idea.status)}'),
-                const SizedBox(height: 8),
-                Text('Team: ${item.teamName.isEmpty ? '-' : item.teamName}'),
-                const SizedBox(height: 8),
-                if (item.score != null) Text('Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
-                if (item.score != null && item.score!.feedback.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 8),
-                  Text('Feedback: ${item.score!.feedback}'),
-                ],
-                const SizedBox(height: 12),
-                const Text('Payment', style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                if (item.payment == null)
-                  const Text('No payment uploaded yet.')
-                else ...<Widget>[
-                  Text('Amount: ${item.payment!.amount.toStringAsFixed(2)}'),
-                  Text('Status: ${_paymentStatusLabel(item.payment!.status)}'),
-                  if ((item.payment!.transactionId ?? '').trim().isNotEmpty)
-                    Text('Transaction ID: ${item.payment!.transactionId}'),
-                  if (item.payment!.paymentProofUrl.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        item.payment!.paymentProofUrl,
-                        height: 170,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  AttachmentPreviewRow(
-                    entityType: AttachmentEntityType.payment,
-                    entityId: item.payment!.paymentId,
-                    title: 'Payment Attachments',
-                  ),
-                ],
-                const SizedBox(height: 12),
-                const Text('Description', style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Text(item.idea.description.isEmpty ? '-' : item.idea.description),
-                const SizedBox(height: 12),
-                AttachmentPreviewRow(
-                  entityType: AttachmentEntityType.idea,
-                  entityId: item.idea.ideaId,
-                  title: 'Idea Attachments',
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: <Widget>[
-          if (showPay && item.team != null)
-            FilledButton.icon(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _openUploadPayment(item);
-              },
-              icon: const Icon(Icons.payment_outlined, size: 16),
-              label: const Text('Upload Payment'),
-            ),
-          if (canVerifyPayment) ...<Widget>[
-            FilledButton(
-              onPressed: () async {
-                await FirestoreUtils.verifyIdeaPayment(
-                  paymentId: item.payment!.paymentId,
-                  coordinatorId: widget.currentUser.userId,
-                );
-                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-                if (mounted) _loadIdeas();
-              },
-              child: const Text('Approve payment'),
-            ),
-            OutlinedButton(
-              onPressed: () async {
-                final remarks = await showDialog<String>(
-                  context: dialogContext,
-                  builder: (rejCtx) {
-                    final c = TextEditingController();
-                    return AlertDialog(
-                      title: const Text('Reject payment'),
-                      content: TextField(
-                        controller: c,
-                        decoration: const InputDecoration(
-                          labelText: 'Remarks (optional)',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      actions: <Widget>[
-                        TextButton(onPressed: () => Navigator.of(rejCtx).pop(), child: const Text('Cancel')),
-                        FilledButton(
-                          onPressed: () => Navigator.of(rejCtx).pop(c.text.trim()),
-                          child: const Text('Reject'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-                if (remarks == null) return;
-                await FirestoreUtils.rejectIdeaPayment(
-                  paymentId: item.payment!.paymentId,
-                  coordinatorId: widget.currentUser.userId,
-                  remarks: remarks.isEmpty ? null : remarks,
-                );
-                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-                if (mounted) _loadIdeas();
-              },
-              child: const Text('Reject payment'),
-            ),
-          ],
-          OutlinedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+    setState(() => _selectedIdeaId = item.idea.ideaId);
   }
 
   Future<void> _openUploadPayment(IdeaListItem item) async {
@@ -279,6 +146,28 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_selectedIdeaId != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          TextButton.icon(
+            onPressed: () => setState(() => _selectedIdeaId = null),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Back to Ideas'),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: IdeaDetailScreen(
+              key: ValueKey<String>(_selectedIdeaId!),
+              ideaId: _selectedIdeaId!,
+              currentUser: widget.currentUser,
+              embedded: true,
+              onBack: () => setState(() => _selectedIdeaId = null),
+            ),
+          ),
+        ],
+      );
+    }
     return FutureBuilder<List<IdeaListItem>>(
       future: _ideasFuture,
       builder: (context, snapshot) {
@@ -317,15 +206,20 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   final canEval = widget.config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: IdeaCard(
-                      key: ValueKey(item.idea.ideaId),
-                      item: item,
-                      canEvaluate: canEval,
-                      canViewStatus: widget.config.canViewStatus,
-                      onViewDetails: () => _showIdeaDetails(item),
-                      onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
-                      showUploadPayment: showPay,
-                      onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => _showIdeaDetails(item),
+                      child: IdeaCard(
+                        key: ValueKey(item.idea.ideaId),
+                        item: item,
+                        canEvaluate: canEval,
+                        canViewStatus: widget.config.canViewStatus,
+                        onViewDetails: () => _showIdeaDetails(item),
+                        showViewDetails: false,
+                        onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
+                        showUploadPayment: showPay,
+                        onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
+                      ),
                     ),
                   );
                 },

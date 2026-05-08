@@ -11,6 +11,7 @@ class IdeaCard extends StatelessWidget {
     required this.canViewStatus,
     required this.canEvaluate,
     required this.onViewDetails,
+    this.showViewDetails = true,
     this.onEvaluate,
     required this.showUploadPayment,
     this.onUploadPayment,
@@ -20,6 +21,7 @@ class IdeaCard extends StatelessWidget {
   final bool canViewStatus;
   final bool canEvaluate;
   final VoidCallback onViewDetails;
+  final bool showViewDetails;
   final VoidCallback? onEvaluate;
   final bool showUploadPayment;
   final VoidCallback? onUploadPayment;
@@ -108,13 +110,14 @@ class IdeaCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
-              OutlinedButton.icon(
-                onPressed: onViewDetails,
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: const Text('View Details'),
-              ),
+              if (showViewDetails)
+                OutlinedButton.icon(
+                  onPressed: onViewDetails,
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('View Details'),
+                ),
               if (showUploadPayment) ...<Widget>[
-                const SizedBox(width: 8),
+                SizedBox(width: showViewDetails ? 8 : 0),
                 FilledButton.icon(
                   onPressed: onUploadPayment,
                   icon: const Icon(Icons.payment_outlined, size: 16),

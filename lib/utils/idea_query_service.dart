@@ -218,15 +218,29 @@ class IdeaQueryService {
   static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {
     if (viewer == null) return items;
     final role = UserRole.fromCode(viewer.role);
-    if (role != UserRole.faculty) return items;
-    final facultyId = viewer.userId.trim();
-    if (facultyId.isEmpty) return items;
-    return items.where((item) {
-      if (item.idea.createdBy.trim() == facultyId) return true;
-      final team = item.team;
-      if (team == null) return false;
-      return team.mentorId.trim() == facultyId;
-    }).toList(growable: false);
+    if (role == UserRole.faculty) {
+      final facultyId = viewer.userId.trim();
+      if (facultyId.isEmpty) return items;
+      return items.where((item) {
+        if (item.idea.createdBy.trim() == facultyId) return true;
+        final team = item.team;
+        if (team == null) return false;
+        return team.mentorId.trim() == facultyId;
+      }).toList(growable: false);
+    }
+    if (role == UserRole.student) {
+      final studentId = viewer.userId.trim();
+      final studentTeamId = (viewer.teamId ?? '').trim();
+      if (studentId.isEmpty && studentTeamId.isEmpty) return items;
+      return items.where((item) {
+        if (item.idea.createdBy.trim() == studentId) return true;
+        final team = item.team;
+        if (team != null && team.studentIds.contains(studentId)) return true;
+        if (studentTeamId.isNotEmpty && item.idea.teamId.trim() == studentTeamId) return true;
+        return false;
+      }).toList(growable: false);
+    }
+    return items;
   }
 
   static List<IdeaListItem> _applySort(List<IdeaListItem> items, IdeaSortType sortType) {

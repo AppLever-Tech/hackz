@@ -176,64 +176,171 @@ class DashboardCountCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconBgColor;
+  static const double _kMetricCardHeight = 105;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                if (secondaryValue == null)
-                  Text(
-                    value,
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
-                  )
-                else
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        value,
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          '/',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+    return SizedBox(
+      height: _kMetricCardHeight,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  if (secondaryValue == null)
+                    Text(
+                      value,
+                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
+                    )
+                  else
+                    Row(
+                      children: <Widget>[
+                        Text(
+                          value,
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                         ),
-                      ),
-                      Text(
-                        secondaryValue!,
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-                      ),
-                    ],
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            '/',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                          ),
+                        ),
+                        Text(
+                          secondaryValue!,
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-            child: Icon(icon, size: 20),
-          ),
-        ],
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+              child: Icon(icon, size: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DashboardIconMetric {
+  const DashboardIconMetric({
+    required this.icon,
+    required this.tooltip,
+    required this.count,
+    this.color,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final String count;
+  final Color? color;
+}
+
+class DashboardIconMetricCard extends StatelessWidget {
+  const DashboardIconMetricCard({
+    super.key,
+    required this.metrics,
+    required this.label,
+    required this.icon,
+    required this.iconBgColor,
+  }) : assert(metrics.length >= 1 && metrics.length <= 3, 'metrics length must be 1 to 3');
+
+  final List<DashboardIconMetric> metrics;
+  final String label;
+  final IconData icon;
+  final Color iconBgColor;
+  static const double _kMetricCardHeight = 105;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _kMetricCardHeight,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: metrics
+                        .map(
+                          (metric) => Expanded(
+                            child: Tooltip(
+                              message: metric.tooltip,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: <Widget>[
+                                  Icon(metric.icon, size: 18, color: metric.color ?? const Color(0xFF475069)),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      metric.count,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: metric.color ?? const Color(0xFF111827),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(growable: false),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+              child: Icon(icon, size: 20),
+            ),
+          ],
+        ),
       ),
     );
   }

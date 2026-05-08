@@ -17,6 +17,7 @@ import '../../utils/problem_detail_query_service.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/idea_card.dart';
+import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
 
 enum _ProblemDetailTab { details, ideas }
@@ -482,45 +483,15 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
   }
 
   Future<void> _showIdeaDetails(ProblemIdeaAggregate entry) async {
-    final item = entry.item;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(item.idea.problemTitle.isEmpty ? 'Idea Details' : item.idea.problemTitle),
-        content: SizedBox(
-          width: 520,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text('Problem Number: ${item.idea.problemNumber.isEmpty ? '-' : item.idea.problemNumber}'),
-                const SizedBox(height: 8),
-                Text('Status: ${_statusLabel(item.idea.status)}'),
-                const SizedBox(height: 8),
-                Text('Team: ${item.teamName.isEmpty ? '-' : item.teamName}'),
-                const SizedBox(height: 8),
-                Text('Average score: ${entry.avgScore?.toStringAsFixed(1) ?? '-'}'),
-                const SizedBox(height: 8),
-                Text('Description: ${item.idea.description.isEmpty ? '-' : item.idea.description}'),
-                if (item.idea.files.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 10),
-                  const Text('Files', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  ...item.idea.files.map((file) => Text('• $file')),
-                ],
-              ],
-            ),
-          ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => IdeaDetailScreen(
+          ideaId: entry.item.idea.ideaId,
+          currentUser: widget.currentUser,
         ),
-        actions: <Widget>[
-          OutlinedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
+    await _refreshIdeas();
   }
 
   Future<void> _openEvaluateDialog(ProblemIdeaAggregate entry) async {

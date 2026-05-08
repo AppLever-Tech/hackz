@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../models/enums/user_role.dart';
+import '../../models/attachment_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
+import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import 'coordinator_payment_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/ideas_list_screen.dart';
+import '../../widgets/attachment_viewer.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -168,19 +171,40 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
     return all.where((p) => p.departmentCode.trim().toUpperCase() == dep).toList(growable: false);
   }
 
-  Future<void> _viewShot(String url) async {
-    if (url.isEmpty) return;
+  Future<void> _viewShot(PaymentModel payment) async {
     await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Payment screenshot'),
-        content: SizedBox(
-          width: 480,
-          child: Image.network(url, fit: BoxFit.contain),
+      builder: (ctx) => FutureBuilder<List<AttachmentModel>>(
+        future: AttachmentService.fetchActiveAttachments(
+          entityType: AttachmentEntityType.payment,
+          entityId: payment.paymentId,
         ),
-        actions: <Widget>[
-          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
-        ],
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
+              title: Text('Payment attachments'),
+              content: SizedBox(width: 520, height: 160, child: Center(child: CircularProgressIndicator())),
+            );
+          }
+          final attachments = snapshot.data ?? const <AttachmentModel>[];
+          if (attachments.isNotEmpty) {
+            return AttachmentViewerDialog(
+              title: 'Payment attachments',
+              attachments: attachments,
+            );
+          }
+          final url = payment.paymentProofUrl.trim();
+          return AlertDialog(
+            title: const Text('Payment screenshot'),
+            content: SizedBox(
+              width: 520,
+              child: url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
+            ),
+            actions: <Widget>[
+              OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+            ],
+          );
+        },
       ),
     );
   }
@@ -284,7 +308,7 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
             problemNumber: p.problemNumber,
             teamName: teamName,
             studentName: student,
-            onViewScreenshot: () => _viewShot(p.paymentProofUrl),
+            onViewScreenshot: () => _viewShot(p),
             onApprove: () => _approve(p),
             onReject: () => _reject(p),
           ),
