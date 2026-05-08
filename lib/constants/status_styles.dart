@@ -7,6 +7,7 @@ class StatusStyles {
   StatusStyles._();
 
   static const Color submitted = Color(0xFF9E9E9E); // grey
+  static const Color submittedChart = Color(0xFF5C6BC0); // indigo (chart segment)
   static const Color underReview = Color(0xFF1E88E5); // blue
   static const Color evaluated = Color(0xFF7B1FA2); // purple
   static const Color approved = Color(0xFF2E7D32); // green

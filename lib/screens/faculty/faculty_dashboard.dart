@@ -146,10 +146,28 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
             ),
             SizedBox(
               width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.submittedIdeas}',
-                secondaryValue: '${vm.evaluatedIdeas}',
-                label: 'Ideas (Submitted / Evaluated)',
+              child: DashboardIconMetricCard(
+                metrics: <DashboardIconMetric>[
+                  DashboardIconMetric(
+                    icon: AppIcons.statusSubmitted,
+                    tooltip: 'Submitted',
+                    count: '${vm.submittedIdeas}',
+                    color: StatusStyles.submitted,
+                  ),
+                  DashboardIconMetric(
+                    icon: AppIcons.statusApproved,
+                    tooltip: 'Approved',
+                    count: '${vm.approvedIdeas}',
+                    color: StatusStyles.approved,
+                  ),
+                  DashboardIconMetric(
+                    icon: AppIcons.statusRejected,
+                    tooltip: 'Rejected',
+                    count: '${vm.rejectedIdeas}',
+                    color: StatusStyles.rejected,
+                  ),
+                ],
+                label: 'Ideas',
                 icon: AppIcons.ideas,
                 iconBgColor: const Color(0xFFF2EDFF),
               ),
@@ -310,10 +328,22 @@ class _FacultyDashboardService {
     int submitted = 0;
     int underReview = 0;
     int evaluated = 0;
+    int pending = 0;
+    int approved = 0;
+    int rejected = 0;
     for (final idea in ideas) {
       switch (idea.status) {
+        case IdeaStatus.pendingSubmission:
+          pending++;
+          break;
         case IdeaStatus.evaluated:
           evaluated++;
+          break;
+        case IdeaStatus.approved:
+          approved++;
+          break;
+        case IdeaStatus.rejected:
+          rejected++;
           break;
         case IdeaStatus.underReview:
           underReview++;
@@ -375,6 +405,9 @@ class _FacultyDashboardService {
       submittedIdeas: submitted,
       underReviewIdeas: underReview,
       evaluatedIdeas: evaluated,
+      pendingIdeas: pending,
+      approvedIdeas: approved,
+      rejectedIdeas: rejected,
       departmentProblemCount: departmentProblems.length,
       submissionsByDay: submissionsByDay,
       problemPreview: departmentProblems
@@ -400,6 +433,9 @@ class _FacultyDashboardVm {
     required this.submittedIdeas,
     required this.underReviewIdeas,
     required this.evaluatedIdeas,
+    required this.pendingIdeas,
+    required this.approvedIdeas,
+    required this.rejectedIdeas,
     required this.departmentProblemCount,
     required this.submissionsByDay,
     required this.problemPreview,
@@ -416,6 +452,9 @@ class _FacultyDashboardVm {
     submittedIdeas: 0,
     underReviewIdeas: 0,
     evaluatedIdeas: 0,
+    pendingIdeas: 0,
+    approvedIdeas: 0,
+    rejectedIdeas: 0,
     departmentProblemCount: 0,
     submissionsByDay: <String, int>{},
     problemPreview: <String>[],
@@ -431,6 +470,9 @@ class _FacultyDashboardVm {
   final int submittedIdeas;
   final int underReviewIdeas;
   final int evaluatedIdeas;
+  final int pendingIdeas;
+  final int approvedIdeas;
+  final int rejectedIdeas;
   final int departmentProblemCount;
   final Map<String, int> submissionsByDay;
   final List<String> problemPreview;
@@ -514,56 +556,65 @@ class _IdeaStatusDonut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = (vm.submittedIdeas + vm.underReviewIdeas + vm.evaluatedIdeas).clamp(1, 1 << 20);
-    final submittedPct = vm.submittedIdeas / total;
-    final reviewPct = vm.underReviewIdeas / total;
-    final evaluatedPct = vm.evaluatedIdeas / total;
+    final total =
+        (vm.pendingIdeas + vm.submittedIdeas + vm.underReviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas)
+            .clamp(1, 1 << 20);
     return Row(
       children: <Widget>[
-        SizedBox(
-          width: 140,
-          height: 140,
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              CircularProgressIndicator(
-                value: 1,
-                strokeWidth: 14,
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE8ECF8)),
+        Expanded(
+          child: AspectRatio(
+            aspectRatio: 0.78,
+            child: CustomPaint(
+              painter: _DonutPainter(
+                pendingPct: vm.pendingIdeas / total,
+                submittedPct: vm.submittedIdeas / total,
+                reviewPct: vm.underReviewIdeas / total,
+                evaluatedPct: vm.evaluatedIdeas / total,
+                approvedPct: vm.approvedIdeas / total,
+                rejectedPct: vm.rejectedIdeas / total,
               ),
-              SizedBox(
-                width: 140,
-                height: 140,
-                child: CustomPaint(
-                  painter: _DonutPainter(submittedPct: submittedPct, reviewPct: reviewPct, evaluatedPct: evaluatedPct),
+              child: Center(
+                child: Text(
+                  '${vm.pendingIdeas + vm.submittedIdeas + vm.underReviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas}',
                 ),
               ),
-              Text('${vm.ideaCount}', style: const TextStyle(fontWeight: FontWeight.w700)),
-            ],
+            ),
           ),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _LegendItem(
-                icon: AppIcons.statusSubmitted,
+              _IdeaLegendRow(
                 color: StatusStyles.submitted,
-                label: 'Submitted',
+                label: 'Pending ${vm.pendingIdeas}',
               ),
-              SizedBox(height: 6),
-              _LegendItem(
-                icon: AppIcons.statusUnderReview,
+              const SizedBox(height: 6),
+              _IdeaLegendRow(
+                color: StatusStyles.submittedChart,
+                label: 'Submitted ${vm.submittedIdeas}',
+              ),
+              const SizedBox(height: 6),
+              _IdeaLegendRow(
                 color: StatusStyles.underReview,
-                label: 'Under Review',
+                label: 'Under Review ${vm.underReviewIdeas}',
               ),
-              SizedBox(height: 6),
-              _LegendItem(
-                icon: AppIcons.statusEvaluated,
+              const SizedBox(height: 6),
+              _IdeaLegendRow(
                 color: StatusStyles.evaluated,
-                label: 'Evaluated',
+                label: 'Evaluated ${vm.evaluatedIdeas}',
+              ),
+              const SizedBox(height: 6),
+              _IdeaLegendRow(
+                color: StatusStyles.approved,
+                label: 'Approved ${vm.approvedIdeas}',
+              ),
+              const SizedBox(height: 6),
+              _IdeaLegendRow(
+                color: StatusStyles.rejected,
+                label: 'Rejected ${vm.rejectedIdeas}',
               ),
             ],
           ),
@@ -575,43 +626,81 @@ class _IdeaStatusDonut extends StatelessWidget {
 
 class _DonutPainter extends CustomPainter {
   const _DonutPainter({
+    required this.pendingPct,
     required this.submittedPct,
     required this.reviewPct,
     required this.evaluatedPct,
+    required this.approvedPct,
+    required this.rejectedPct,
   });
 
+  final double pendingPct;
   final double submittedPct;
   final double reviewPct;
   final double evaluatedPct;
+  final double approvedPct;
+  final double rejectedPct;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final rect = Rect.fromCircle(center: center, radius: size.width / 2 - 10);
-    const stroke = 14.0;
-    double start = -1.5708;
+    final center = size.center(Offset.zero);
+    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.31);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 13
+      ..strokeCap = StrokeCap.round;
+    double start = -1.57;
+
     void arc(double pct, Color color) {
       if (pct <= 0) return;
-      final p = Paint()
-        ..color = color
-        ..strokeWidth = stroke
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round;
-      final sweep = pct * 6.28318;
-      canvas.drawArc(rect, start, sweep, false, p);
+      final sweep = 6.28318530718 * pct;
+      paint.color = color;
+      canvas.drawArc(rect, start, sweep, false, paint);
       start += sweep;
     }
 
-    arc(submittedPct, StatusStyles.submitted);
+    arc(pendingPct, StatusStyles.submitted);
+    arc(submittedPct, StatusStyles.submittedChart);
     arc(reviewPct, StatusStyles.underReview);
     arc(evaluatedPct, StatusStyles.evaluated);
+    arc(approvedPct, StatusStyles.approved);
+    arc(rejectedPct, StatusStyles.rejected);
   }
 
   @override
   bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
+      oldDelegate.pendingPct != pendingPct ||
       oldDelegate.submittedPct != submittedPct ||
       oldDelegate.reviewPct != reviewPct ||
-      oldDelegate.evaluatedPct != evaluatedPct;
+      oldDelegate.evaluatedPct != evaluatedPct ||
+      oldDelegate.approvedPct != approvedPct ||
+      oldDelegate.rejectedPct != rejectedPct;
+}
+
+class _IdeaLegendRow extends StatelessWidget {
+  const _IdeaLegendRow({
+    required this.color,
+    required this.label,
+  });
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
 }
 
 class _SubmissionTrendChart extends StatelessWidget {

@@ -370,7 +370,7 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
             children: <Widget>[
               _LegendRow(color: StatusStyles.submitted, text: 'Pending ${vm.pendingIdeas}'),
               const SizedBox(height: 6),
-              _LegendRow(color: const Color(0xFF5C6BC0), text: 'Submitted ${vm.submittedIdeas}'),
+              _LegendRow(color: StatusStyles.submittedChart, text: 'Submitted ${vm.submittedIdeas}'),
               const SizedBox(height: 6),
               _LegendRow(color: StatusStyles.underReview, text: 'Under Review ${vm.reviewIdeas}'),
               const SizedBox(height: 6),
@@ -443,7 +443,7 @@ class _StudentDonutPainter extends CustomPainter {
     }
 
     arc(pendingPct, StatusStyles.submitted);
-    arc(submittedPct, const Color(0xFF5C6BC0));
+    arc(submittedPct, StatusStyles.submittedChart);
     arc(reviewPct, StatusStyles.underReview);
     arc(evaluatedPct, StatusStyles.evaluated);
     arc(approvedPct, StatusStyles.approved);
