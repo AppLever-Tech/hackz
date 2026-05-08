@@ -12,9 +12,9 @@ import '../../models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
-import '../../utils/attachment_service.dart';
 import '../../utils/problem_detail_config.dart';
 import '../../utils/problem_detail_query_service.dart';
+import '../../widgets/attachment_viewer.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/idea_card.dart';
 import 'dashboard_components.dart';
@@ -50,7 +50,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
 
   late final ProblemDetailConfig _config;
   Future<List<ProblemIdeaAggregate>>? _ideasFuture;
-  Future<List<AttachmentModel>>? _attachmentsFuture;
   List<ProblemIdeaAggregate> _loadedIdeas = <ProblemIdeaAggregate>[];
 
   @override
@@ -58,10 +57,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
     super.initState();
     _config = ProblemDetailRoleConfig.configFor(widget.currentUser);
     _ideasFuture = _loadIdeas();
-    _attachmentsFuture = AttachmentService.fetchActiveAttachments(
-      entityType: AttachmentEntityType.problem,
-      entityId: widget.problem.problemId,
-    );
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -312,39 +307,10 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
-                  FutureBuilder<List<AttachmentModel>>(
-                    future: _attachmentsFuture,
-                    builder: (BuildContext context, AsyncSnapshot<List<AttachmentModel>> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const LinearProgressIndicator(minHeight: 2);
-                      }
-                      final attachments = snapshot.data ?? const <AttachmentModel>[];
-                      if (attachments.isEmpty) return const Text('No attachments available.');
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: attachments
-                              .map(
-                                (attachment) => Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: ActionChip(
-                                    avatar: const Icon(Icons.attach_file, size: 16),
-                                    label: SizedBox(
-                                      width: 180,
-                                      child: Text(
-                                        attachment.fileName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    onPressed: () => _showAttachmentPreview(attachment.downloadUrl),
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      );
-                    },
+                  AttachmentPreviewRow(
+                    entityType: AttachmentEntityType.problem,
+                    entityId: widget.problem.problemId,
+                    title: 'Problem Attachments',
                   ),
                 ],
               ),
@@ -513,30 +479,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
       final inDesc = entry.item.idea.description.toLowerCase().contains(search);
       return inTeam || inDesc;
     }).toList(growable: false);
-  }
-
-  Future<void> _showAttachmentPreview(String url) async {
-    final lower = url.toLowerCase();
-    final isImage = lower.endsWith('.png') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.gif') ||
-        lower.endsWith('.webp');
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Attachment'),
-        content: SizedBox(
-          width: 480,
-          child: isImage
-              ? Image.network(url, fit: BoxFit.contain)
-              : SelectableText(url),
-        ),
-        actions: <Widget>[
-          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
-        ],
-      ),
-    );
   }
 
   Future<void> _showIdeaDetails(ProblemIdeaAggregate entry) async {

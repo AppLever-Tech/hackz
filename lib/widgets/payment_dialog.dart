@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../constants/app_icons.dart';
 import '../models/idea_model.dart';
 import '../models/attachment_model.dart';
 import '../models/payment_model.dart';
@@ -183,16 +185,26 @@ class _PaymentDialogState extends State<_PaymentDialog> {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: _saving ? null : _pickScreenshot,
-              icon: const Icon(Icons.image_outlined, size: 18),
+              icon: const Icon(AppIcons.attachmentImage, size: 18),
               label: Text(_picked == null ? 'Upload screenshot' : 'Change screenshot'),
             ),
             if (_picked != null)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  _picked!.name,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: _pickedImagePreview(_picked!),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _picked!.name,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             if (_errorMessage != null) ...<Widget>[
@@ -215,6 +227,23 @@ class _PaymentDialogState extends State<_PaymentDialog> {
           child: Text(_saving ? 'Submitting...' : 'Submit'),
         ),
       ],
+    );
+  }
+
+  Widget _pickedImagePreview(PlatformFile file) {
+    if (file.bytes != null && file.bytes!.isNotEmpty) {
+      return Image.memory(
+        Uint8List.fromList(file.bytes!),
+        height: 170,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+    return Container(
+      height: 170,
+      color: const Color(0xFFF1F4FA),
+      alignment: Alignment.center,
+      child: const Icon(AppIcons.attachmentImage),
     );
   }
 }

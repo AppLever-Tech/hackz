@@ -44,6 +44,13 @@ class AppIcons {
   static const IconData website = Icons.language_outlined;
   static const IconData openInNew = Icons.open_in_new_rounded;
   static const IconData attachments = Icons.attach_file_rounded;
+  static const IconData attachmentImage = Icons.image_outlined;
+  static const IconData attachmentVideo = Icons.videocam_outlined;
+  static const IconData attachmentDocument = Icons.description_outlined;
+  static const IconData attachmentPdf = Icons.picture_as_pdf_outlined;
+  static const IconData attachmentPpt = Icons.slideshow_outlined;
+  static const IconData download = Icons.download_rounded;
+  static const IconData preview = Icons.visibility_outlined;
   static const IconData statusSubmitted = Icons.radio_button_unchecked_rounded;
   static const IconData statusUnderReview = Icons.pending_actions_outlined;
   static const IconData statusEvaluated = Icons.fact_check_outlined;

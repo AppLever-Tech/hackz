@@ -25,6 +25,17 @@ enum AttachmentEntityType {
   }
 }
 
+enum AttachmentType {
+  image('image'),
+  video('video'),
+  pdf('pdf'),
+  ppt('ppt'),
+  document('document');
+
+  const AttachmentType(this.value);
+  final String value;
+}
+
 class AttachmentModel {
   const AttachmentModel({
     required this.attachmentId,
@@ -59,6 +70,39 @@ class AttachmentModel {
   final String uploadedBy;
   final DateTime createdAt;
   final bool isActive;
+
+  AttachmentType get attachmentType {
+    final normalizedMime = mimeType.trim().toLowerCase();
+    final normalizedType = fileType.trim().toLowerCase();
+    final normalizedName = fileName.trim().toLowerCase();
+    if (normalizedMime.startsWith('image/') ||
+        normalizedType == 'image' ||
+        normalizedName.endsWith('.png') ||
+        normalizedName.endsWith('.jpg') ||
+        normalizedName.endsWith('.jpeg') ||
+        normalizedName.endsWith('.gif') ||
+        normalizedName.endsWith('.webp')) {
+      return AttachmentType.image;
+    }
+    if (normalizedMime.startsWith('video/') ||
+        normalizedType == 'video' ||
+        normalizedName.endsWith('.mp4') ||
+        normalizedName.endsWith('.mov') ||
+        normalizedName.endsWith('.webm') ||
+        normalizedName.endsWith('.mkv')) {
+      return AttachmentType.video;
+    }
+    if (normalizedMime.contains('pdf') || normalizedType == 'pdf' || normalizedName.endsWith('.pdf')) {
+      return AttachmentType.pdf;
+    }
+    if (normalizedMime.contains('presentation') ||
+        normalizedType == 'ppt' ||
+        normalizedName.endsWith('.ppt') ||
+        normalizedName.endsWith('.pptx')) {
+      return AttachmentType.ppt;
+    }
+    return AttachmentType.document;
+  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{

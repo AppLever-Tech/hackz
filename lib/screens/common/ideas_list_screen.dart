@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../models/attachment_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/enums/team_status.dart';
 import '../../models/idea_list_config.dart';
@@ -17,6 +19,7 @@ import '../../utils/idea_query_service.dart';
 import '../../utils/team_service.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
+import '../../widgets/attachment_viewer.dart';
 import 'dashboard_components.dart';
 
 class IdeasListScreen extends StatefulWidget {
@@ -143,37 +146,33 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                     Text('Transaction ID: ${item.payment!.transactionId}'),
                   if (item.payment!.paymentProofUrl.isNotEmpty) ...<Widget>[
                     const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        showDialog<void>(
-                          context: dialogContext,
-                          builder: (imgCtx) => AlertDialog(
-                            title: const Text('Payment screenshot'),
-                            content: SizedBox(
-                              width: 420,
-                              child: Image.network(item.payment!.paymentProofUrl, fit: BoxFit.contain),
-                            ),
-                            actions: <Widget>[
-                              OutlinedButton(onPressed: () => Navigator.of(imgCtx).pop(), child: const Text('Close')),
-                            ],
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.image_outlined, size: 16),
-                      label: const Text('View screenshot'),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        item.payment!.paymentProofUrl,
+                        height: 170,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ],
+                  const SizedBox(height: 8),
+                  AttachmentPreviewRow(
+                    entityType: AttachmentEntityType.payment,
+                    entityId: item.payment!.paymentId,
+                    title: 'Payment Attachments',
+                  ),
                 ],
                 const SizedBox(height: 12),
                 const Text('Description', style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Text(item.idea.description.isEmpty ? '-' : item.idea.description),
-                if (item.idea.files.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 12),
-                  const Text('Files', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6),
-                  ...item.idea.files.map((f) => Text('• $f')),
-                ],
+                const SizedBox(height: 12),
+                AttachmentPreviewRow(
+                  entityType: AttachmentEntityType.idea,
+                  entityId: item.idea.ideaId,
+                  title: 'Idea Attachments',
+                ),
               ],
             ),
           ),
@@ -386,7 +385,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         if (widget.config.canCreateIdea)
           FilledButton.icon(
             onPressed: _openSubmitIdeaDialog,
-            icon: const Icon(Icons.add),
+            icon: const Icon(AppIcons.add),
             label: const Text('Submit Idea'),
           ),
       ],
@@ -401,7 +400,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search by problem number, title, description',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(AppIcons.search),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               border: OutlineInputBorder(

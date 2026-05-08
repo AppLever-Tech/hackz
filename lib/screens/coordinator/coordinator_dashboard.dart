@@ -5,7 +5,7 @@ import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
-import '../../widgets/coordinator_payment_card.dart';
+import 'coordinator_payment_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/ideas_list_screen.dart';
