@@ -176,7 +176,7 @@ class DashboardCountCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconBgColor;
-  static const double _kMetricCardHeight = 105;
+  static const double _kMetricCardHeight = 107;
 
   @override
   Widget build(BuildContext context) {
@@ -185,10 +185,11 @@ class DashboardCountCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFCFDFF),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
           boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
           ],
         ),
         child: Row(
@@ -272,7 +273,7 @@ class DashboardIconMetricCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconBgColor;
-  static const double _kMetricCardHeight = 105;
+  static const double _kMetricCardHeight = 107;
 
   @override
   Widget build(BuildContext context) {
@@ -281,10 +282,11 @@ class DashboardIconMetricCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFCFDFF),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
           boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+            BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
           ],
         ),
         child: Row(
@@ -361,10 +363,11 @@ class ChartCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -394,10 +397,11 @@ class SectionContainer extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
         ],
       ),
       child: child,
