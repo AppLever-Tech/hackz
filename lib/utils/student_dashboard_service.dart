@@ -131,6 +131,7 @@ class StudentDashboardService {
     final pendingIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.pendingSubmission).length;
     final submittedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.submitted).length;
     final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.underReview).length;
+    final evaluatedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.evaluated).length;
     final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.approved).length;
     final rejectedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.rejected).length;
     final approvedOrRejectedIdeas = approvedIdeas + rejectedIdeas;
@@ -219,6 +220,7 @@ class StudentDashboardService {
       pendingIdeas: pendingIdeas,
       submittedIdeas: submittedIdeas,
       reviewIdeas: reviewIdeas,
+      evaluatedIdeas: evaluatedIdeas,
       approvedIdeas: approvedIdeas,
       rejectedIdeas: rejectedIdeas,
       approvedOrRejectedIdeas: approvedOrRejectedIdeas,
@@ -273,6 +275,7 @@ class StudentDashboardVm {
     required this.pendingIdeas,
     required this.submittedIdeas,
     required this.reviewIdeas,
+    required this.evaluatedIdeas,
     required this.approvedIdeas,
     required this.rejectedIdeas,
     required this.approvedOrRejectedIdeas,
@@ -298,6 +301,7 @@ class StudentDashboardVm {
   final int pendingIdeas;
   final int submittedIdeas;
   final int reviewIdeas;
+  final int evaluatedIdeas;
   final int approvedIdeas;
   final int rejectedIdeas;
   final int approvedOrRejectedIdeas;

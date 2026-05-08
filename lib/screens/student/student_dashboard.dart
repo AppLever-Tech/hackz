@@ -39,13 +39,6 @@ class StudentDashboard extends StatelessWidget {
             config: ProblemRoleConfig.configFor(UserRole.student, user),
           );
         }
-        if (selectedMenuIndex == 3) {
-          return IdeasListScreen(
-            key: ValueKey<String>('results_$refreshToken'),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.student, user),
-          );
-        }
         return _StudentDashboardHome(
           key: ValueKey<int>(refreshToken),
           user: user,
@@ -107,6 +100,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   Widget _buildSummaryCards(StudentDashboardVm vm) {
     const spacing = 16.0;
+    final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas;
     return LayoutBuilder(
       builder: (_, constraints) {
         final maxWidth = constraints.maxWidth;
@@ -131,8 +125,8 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
                 metrics: <DashboardIconMetric>[
                   DashboardIconMetric(
                     icon: AppIcons.statusSubmitted,
-                    tooltip: 'Submitted',
-                    count: '${vm.submittedIdeas}',
+                    tooltip: 'In Progress (Pending + Submitted + Under Review)',
+                    count: '$inProgressIdeas',
                     color: StatusStyles.submitted,
                   ),
                   DashboardIconMetric(
@@ -338,7 +332,14 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = (vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas + vm.approvedOrRejectedIdeas).clamp(1, 1 << 20);
+    final total =
+        (vm.pendingIdeas +
+                vm.submittedIdeas +
+                vm.reviewIdeas +
+                vm.evaluatedIdeas +
+                vm.approvedIdeas +
+                vm.rejectedIdeas)
+            .clamp(1, 1 << 20);
     return Row(
       children: <Widget>[
         Expanded(
@@ -349,10 +350,14 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
                 pendingPct: vm.pendingIdeas / total,
                 submittedPct: vm.submittedIdeas / total,
                 reviewPct: vm.reviewIdeas / total,
-                donePct: vm.approvedOrRejectedIdeas / total,
+                evaluatedPct: vm.evaluatedIdeas / total,
+                approvedPct: vm.approvedIdeas / total,
+                rejectedPct: vm.rejectedIdeas / total,
               ),
               child: Center(
-                child: Text('${vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas + vm.approvedOrRejectedIdeas}'),
+                child: Text(
+                  '${vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas}',
+                ),
               ),
             ),
           ),
@@ -369,7 +374,11 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
               const SizedBox(height: 6),
               _LegendRow(color: StatusStyles.underReview, text: 'Under Review ${vm.reviewIdeas}'),
               const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.approved, text: 'Approved/Rejected ${vm.approvedOrRejectedIdeas}'),
+              _LegendRow(color: StatusStyles.evaluated, text: 'Evaluated ${vm.evaluatedIdeas}'),
+              const SizedBox(height: 6),
+              _LegendRow(color: StatusStyles.approved, text: 'Approved ${vm.approvedIdeas}'),
+              const SizedBox(height: 6),
+              _LegendRow(color: StatusStyles.rejected, text: 'Rejected ${vm.rejectedIdeas}'),
             ],
           ),
         ),
@@ -403,13 +412,17 @@ class _StudentDonutPainter extends CustomPainter {
     required this.pendingPct,
     required this.submittedPct,
     required this.reviewPct,
-    required this.donePct,
+    required this.evaluatedPct,
+    required this.approvedPct,
+    required this.rejectedPct,
   });
 
   final double pendingPct;
   final double submittedPct;
   final double reviewPct;
-  final double donePct;
+  final double evaluatedPct;
+  final double approvedPct;
+  final double rejectedPct;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -432,7 +445,9 @@ class _StudentDonutPainter extends CustomPainter {
     arc(pendingPct, StatusStyles.submitted);
     arc(submittedPct, const Color(0xFF5C6BC0));
     arc(reviewPct, StatusStyles.underReview);
-    arc(donePct, StatusStyles.approved);
+    arc(evaluatedPct, StatusStyles.evaluated);
+    arc(approvedPct, StatusStyles.approved);
+    arc(rejectedPct, StatusStyles.rejected);
   }
 
   @override
@@ -440,7 +455,9 @@ class _StudentDonutPainter extends CustomPainter {
     return oldDelegate.pendingPct != pendingPct ||
         oldDelegate.submittedPct != submittedPct ||
         oldDelegate.reviewPct != reviewPct ||
-        oldDelegate.donePct != donePct;
+        oldDelegate.evaluatedPct != evaluatedPct ||
+        oldDelegate.approvedPct != approvedPct ||
+        oldDelegate.rejectedPct != rejectedPct;
   }
 }
 
