@@ -10,6 +10,7 @@ import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
+import '../../utils/common_helpers.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/ideas_list_screen.dart';
@@ -259,9 +260,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   String _formatDate(DateTime date) {
-    final dd = date.day.toString().padLeft(2, '0');
-    final mm = date.month.toString().padLeft(2, '0');
-    return '$dd/$mm ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return formatDateTime(date);
   }
 }
 

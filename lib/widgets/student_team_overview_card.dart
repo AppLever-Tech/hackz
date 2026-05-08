@@ -6,6 +6,7 @@ import '../models/enums/team_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/user_model.dart';
+import '../utils/common_helpers.dart';
 import '../utils/student_dashboard_service.dart';
 import '../screens/common/dashboard_components.dart';
 
@@ -316,8 +317,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
   }
 
   String _fmt(DateTime d) {
-    final dd = d.day.toString().padLeft(2, '0');
-    final mm = d.month.toString().padLeft(2, '0');
-    return '$dd/$mm';
+    return formatDateTime(d);
   }
 }

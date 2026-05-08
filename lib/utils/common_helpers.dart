@@ -61,3 +61,13 @@ List<String> sortUserIdsByDisplayName(Iterable<String> userIds, Map<String, Stri
   });
   return sorted;
 }
+
+/// Standard dashboard date-time format: dd/mm/yyyy hh:mm
+String formatDateTime(DateTime date) {
+  final dd = date.day.toString().padLeft(2, '0');
+  final mm = date.month.toString().padLeft(2, '0');
+  final yyyy = date.year.toString();
+  final hh = date.hour.toString().padLeft(2, '0');
+  final min = date.minute.toString().padLeft(2, '0');
+  return '$dd/$mm/$yyyy $hh:$min';
+}
