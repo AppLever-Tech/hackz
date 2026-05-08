@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 
+const double _kMetricCardHeight = 108;
+const double _kMetricCardPadding = 16;
+const double _kMetricPrimaryCountFontSize = 32;
+const double _kMetricSecondaryCountFontSize = 32;
+const double _kMetricSlashFontSize = 20;
+const double _kMetricIconMetricCountFontSize = 32;
+const double _kMetricLabelFontSize = 13;
+const double _kMetricIconBubbleSize = 42;
+const double _kMetricIconBubbleIconSize = 20;
+const double _kMetricInlineIconSize = 18;
+const double _kMetricLabelBottomGap = 8;
+
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({
     super.key,
@@ -176,14 +188,13 @@ class DashboardCountCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconBgColor;
-  static const double _kMetricCardHeight = 107;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: _kMetricCardHeight,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(_kMetricCardPadding),
         decoration: BoxDecoration(
           color: const Color(0xFFFCFDFF),
           borderRadius: BorderRadius.circular(16),
@@ -201,43 +212,50 @@ class DashboardCountCard extends StatelessWidget {
                   if (secondaryValue == null)
                     Text(
                       value,
-                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
+                    style: const TextStyle(fontSize: _kMetricPrimaryCountFontSize, fontWeight: FontWeight.w700),
                     )
                   else
                     Row(
                       children: <Widget>[
                         Text(
                           value,
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                        style:
+                            const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
                           child: Text(
                             '/',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Color(0xFF6B7280)),
+                          style: TextStyle(
+                            fontSize: _kMetricSlashFontSize,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6B7280),
+                          ),
                           ),
                         ),
                         Text(
                           secondaryValue!,
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                        style:
+                            const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
-                  const SizedBox(height: 6),
+                const Spacer(),
+                const SizedBox(height: _kMetricLabelBottomGap),
                   Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: _kMetricLabelFontSize),
                   ),
                 ],
               ),
             ),
             Container(
-              width: 42,
-              height: 42,
+            width: _kMetricIconBubbleSize,
+            height: _kMetricIconBubbleSize,
               decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-              child: Icon(icon, size: 20),
+            child: Icon(icon, size: _kMetricIconBubbleIconSize),
             ),
           ],
         ),
@@ -273,14 +291,13 @@ class DashboardIconMetricCard extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color iconBgColor;
-  static const double _kMetricCardHeight = 107;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: _kMetricCardHeight,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(_kMetricCardPadding),
         decoration: BoxDecoration(
           color: const Color(0xFFFCFDFF),
           borderRadius: BorderRadius.circular(16),
@@ -304,7 +321,11 @@ class DashboardIconMetricCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.max,
                                 children: <Widget>[
-                                  Icon(metric.icon, size: 18, color: metric.color ?? const Color(0xFF475069)),
+                                  Icon(
+                                    metric.icon,
+                                    size: _kMetricInlineIconSize,
+                                    color: metric.color ?? const Color(0xFF475069),
+                                  ),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
@@ -312,7 +333,7 @@ class DashboardIconMetricCard extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        fontSize: 24,
+                                        fontSize: _kMetricIconMetricCountFontSize,
                                         fontWeight: FontWeight.w700,
                                         color: metric.color ?? const Color(0xFF111827),
                                       ),
@@ -325,21 +346,22 @@ class DashboardIconMetricCard extends StatelessWidget {
                         )
                         .toList(growable: false),
                   ),
-                  const SizedBox(height: 8),
+                  const Spacer(),
+                  const SizedBox(height: _kMetricLabelBottomGap),
                   Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: _kMetricLabelFontSize),
                   ),
                 ],
               ),
             ),
             Container(
-              width: 42,
-              height: 42,
+              width: _kMetricIconBubbleSize,
+              height: _kMetricIconBubbleSize,
               decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-              child: Icon(icon, size: 20),
+              child: Icon(icon, size: _kMetricIconBubbleIconSize),
             ),
           ],
         ),

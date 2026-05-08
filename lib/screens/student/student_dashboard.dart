@@ -13,6 +13,7 @@ import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/student_dashboard_service.dart';
 import '../../widgets/attachment_viewer.dart';
+import '../../widgets/student_team_overview_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/ideas_list_screen.dart';
@@ -96,9 +97,9 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             children: <Widget>[
               _buildSummaryCards(vm),
               const SizedBox(height: 16),
-              _buildCharts(vm),
+              _buildStatusAndDetailsRow(vm),
               const SizedBox(height: 16),
-              _buildGeneralInfo(vm),
+              StudentTeamOverviewCard(vm: vm),
               const SizedBox(height: 16),
               _buildIdeasSection(vm),
               const SizedBox(height: 16),
@@ -204,29 +205,25 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildCharts(StudentDashboardVm vm) {
+  Widget _buildStatusAndDetailsRow(StudentDashboardVm vm) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Expanded(
-          child: ChartCard(
-            title: 'Idea Status Distribution',
-            child: SizedBox(
-              height: 210,
-              child: _StudentIdeaStatusDonut(vm: vm),
-            ),
+          child: SizedBox(
+            height: 252,
+            child: _buildStudentDetails(vm),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
-          flex: 2,
-          child: ChartCard(
-            title: 'Submission Timeline',
-            child: SizedBox(
-              height: 210,
-              child: _StudentTimelineChart(
-                ideaSeries: vm.ideaSeries,
-                paymentSeries: vm.paymentSeries,
+          child: SizedBox(
+            height: 252,
+            child: ChartCard(
+              title: 'Idea Status Distribution',
+              child: SizedBox(
+                height: 188,
+                child: _StudentIdeaStatusDonut(vm: vm),
               ),
             ),
           ),
@@ -235,26 +232,29 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildGeneralInfo(StudentDashboardVm vm) {
-    return SectionContainer(
+  Widget _buildStudentDetails(StudentDashboardVm vm) {
+    return ChartCard(
+      title: 'Student Details',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('General Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: <Widget>[
-              _infoPill(AppIcons.student, 'Student', vm.studentName),
-              _infoPill(AppIcons.departments, 'Department', vm.department),
-              _infoPill(AppIcons.organizations, 'Organization', vm.organizationId),
-              _infoPill(AppIcons.teams, 'Team', vm.team.teamName.isEmpty ? '-' : vm.team.teamName),
-              _infoPill(AppIcons.faculty, 'Mentor', vm.mentorName),
-              _infoPill(AppIcons.departments, 'Dept Admin', vm.departmentAdminName),
-              _infoPill(AppIcons.organizations, 'College Admin', vm.collegeAdminName),
-            ],
+          _detailRow(icon: AppIcons.student, label: 'Student', value: vm.studentName),
+          const SizedBox(height: 8),
+          _detailRow(icon: AppIcons.departments, label: 'Department', value: vm.department),
+          const SizedBox(height: 8),
+          _detailRow(
+            icon: AppIcons.teams,
+            label: 'Team',
+            value: vm.team.teamName.isEmpty ? '-' : vm.team.teamName,
           ),
+          const SizedBox(height: 8),
+          _detailRow(icon: AppIcons.faculty, label: 'Mentor', value: vm.mentorName),
+          const SizedBox(height: 8),
+          _detailRow(icon: AppIcons.departments, label: 'Dept Admin', value: vm.departmentAdminName),
+          const SizedBox(height: 8),
+          _detailRow(icon: AppIcons.organizations, label: 'College Admin', value: vm.collegeAdminName),
+          const SizedBox(height: 8),
+          _detailRow(icon: AppIcons.organizations, label: 'Organization', value: vm.organizationName),
         ],
       ),
     );
@@ -535,23 +535,36 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _infoPill(IconData icon, String label, String value) {
-    return SizedBox(
-      width: 260,
-      child: Row(
-        children: <Widget>[
-          Icon(icon, size: 16, color: const Color(0xFF57629A)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              '$label: ${value.trim().isEmpty ? '-' : value}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
-            ),
+  Widget _detailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        SizedBox(
+          width: 22,
+          child: Icon(icon, size: 16, color: const Color(0xFF57629A)),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF4B556A), fontWeight: FontWeight.w600),
           ),
-        ],
-      ),
+        ),
+        const Text(': ', style: TextStyle(fontSize: 13, color: Color(0xFF4B556A))),
+        Expanded(
+          child: Text(
+            value.trim().isEmpty ? '-' : value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 
@@ -662,7 +675,7 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: AspectRatio(
-            aspectRatio: 1,
+            aspectRatio: 0.78,
             child: CustomPaint(
               painter: _StudentDonutPainter(
                 pendingPct: vm.pendingIdeas / total,
@@ -697,40 +710,6 @@ class _StudentIdeaStatusDonut extends StatelessWidget {
   }
 }
 
-class _StudentTimelineChart extends StatelessWidget {
-  const _StudentTimelineChart({required this.ideaSeries, required this.paymentSeries});
-
-  final Map<String, int> ideaSeries;
-  final Map<String, int> paymentSeries;
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = <String>{...ideaSeries.keys, ...paymentSeries.keys}.toList(growable: false)..sort();
-    if (labels.isEmpty) return const Center(child: Text('No timeline data'));
-    final ideas = labels.map((d) => ideaSeries[d] ?? 0).toList(growable: false);
-    final payments = labels.map((d) => paymentSeries[d] ?? 0).toList(growable: false);
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: CustomPaint(
-            painter: _StudentLinePainter(ideas: ideas, payments: payments),
-            child: const SizedBox.expand(),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: <Widget>[
-            const _LegendRow(color: Color(0xFF4F67E8), text: 'Ideas'),
-            const SizedBox(width: 10),
-            const _LegendRow(color: Color(0xFF00A7A1), text: 'Payments'),
-            const Spacer(),
-            Text(labels.last, style: const TextStyle(fontSize: 11, color: Color(0xFF6E7394))),
-          ],
-        ),
-      ],
-    );
-  }
-}
 
 class _LegendRow extends StatelessWidget {
   const _LegendRow({required this.color, required this.text});
@@ -767,10 +746,10 @@ class _StudentDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
-    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.42);
+    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.31);
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 18
+      ..strokeWidth = 13
       ..strokeCap = StrokeCap.round;
     double start = -1.57;
 
@@ -797,58 +776,3 @@ class _StudentDonutPainter extends CustomPainter {
   }
 }
 
-class _StudentLinePainter extends CustomPainter {
-  _StudentLinePainter({required this.ideas, required this.payments});
-
-  final List<int> ideas;
-  final List<int> payments;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final maxVal = <int>[...ideas, ...payments].fold<int>(1, (a, b) => a > b ? a : b);
-    final count = ideas.length;
-    if (count == 0) return;
-    final dx = count == 1 ? 0.0 : size.width / (count - 1);
-    Offset point(int i, int value) {
-      final x = dx * i;
-      final y = size.height - ((value / maxVal) * (size.height - 8)) - 4;
-      return Offset(x, y);
-    }
-
-    final grid = Paint()
-      ..color = const Color(0xFFE6EAF5)
-      ..strokeWidth = 1;
-    for (int i = 1; i <= 3; i++) {
-      final y = size.height * (i / 4);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-
-    void drawSeries(List<int> values, Color color) {
-      if (values.isEmpty) return;
-      final path = Path()..moveTo(point(0, values[0]).dx, point(0, values[0]).dy);
-      for (int i = 1; i < values.length; i++) {
-        final p = point(i, values[i]);
-        path.lineTo(p.dx, p.dy);
-      }
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.3,
-      );
-      for (int i = 0; i < values.length; i++) {
-        final p = point(i, values[i]);
-        canvas.drawCircle(p, 2.8, Paint()..color = color);
-      }
-    }
-
-    drawSeries(ideas, const Color(0xFF4F67E8));
-    drawSeries(payments, const Color(0xFF00A7A1));
-  }
-
-  @override
-  bool shouldRepaint(covariant _StudentLinePainter oldDelegate) {
-    return oldDelegate.ideas != ideas || oldDelegate.payments != payments;
-  }
-}

@@ -5,6 +5,7 @@ import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
 import '../models/enums/user_role.dart';
 import '../models/idea_model.dart';
+import '../models/organization_model.dart';
 import '../models/payment_model.dart';
 import '../models/problem_model.dart';
 import '../models/score_model.dart';
@@ -29,6 +30,7 @@ class StudentDashboardService {
       _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: student.orgId).get(),
       _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: student.orgId).get(),
       _db.collection(FirestoreUtils.hkzAttachments).where('orgId', isEqualTo: student.orgId).where('isActive', isEqualTo: true).get(),
+      _db.collection(FirestoreUtils.hkzOrganizations).doc(student.orgId).get(),
     ]);
 
     final teamDocs = (results[0] as QuerySnapshot<Map<String, dynamic>>).docs;
@@ -38,6 +40,10 @@ class StudentDashboardService {
     final userDocs = (results[4] as QuerySnapshot<Map<String, dynamic>>).docs;
     final problemDocs = (results[5] as QuerySnapshot<Map<String, dynamic>>).docs;
     final attachmentDocs = (results[6] as QuerySnapshot<Map<String, dynamic>>).docs;
+    final orgDoc = results[7] as DocumentSnapshot<Map<String, dynamic>>;
+    final organizationName = (orgDoc.exists && orgDoc.data() != null)
+        ? OrganizationModel.fromMap(orgDoc.id, orgDoc.data()!).name.trim()
+        : '';
 
     final usersById = <String, UserModel>{
       for (final d in userDocs)
@@ -141,22 +147,11 @@ class StudentDashboardService {
     final verifiedPayments = scopedPayments.where((p) => p.status == PaymentRecordStatus.verified).length;
     final rejectedPayments = scopedPayments.where((p) => p.status == PaymentRecordStatus.rejected).length;
 
-    final timeline = <String, int>{};
-    final paymentTimeline = <String, int>{};
-    for (final idea in scopedIdeas) {
-      final day = _dayKey(idea.createdAt);
-      timeline[day] = (timeline[day] ?? 0) + 1;
-    }
-    for (final payment in scopedPayments) {
-      final day = _dayKey(payment.createdAt);
-      paymentTimeline[day] = (paymentTimeline[day] ?? 0) + 1;
-    }
-    final sortedDays = <String>{...timeline.keys, ...paymentTimeline.keys}.toList(growable: false)..sort();
-    final latestDays = sortedDays.take(10).toList(growable: false);
-    final ideaSeries = <String, int>{for (final d in latestDays) d.substring(5): timeline[d] ?? 0};
-    final paymentSeries = <String, int>{for (final d in latestDays) d.substring(5): paymentTimeline[d] ?? 0};
-
     final mentor = usersById[resolvedTeam.mentorId];
+    final teamMembers = resolvedTeam.studentIds
+        .map((id) => usersById[id])
+        .whereType<UserModel>()
+        .toList(growable: false);
     final departmentAdmin = usersById.values.firstWhere(
       (u) => UserRole.fromCode(u.role) == UserRole.departmentAdmin && u.departmentCode == student.departmentCode,
       orElse: () => _emptyUser('DADM'),
@@ -176,6 +171,7 @@ class StudentDashboardService {
                   orElse: () => null,
                 ),
             latestScore: scoresByIdea[idea.ideaId]?.first,
+            scoreCount: scoresByIdea[idea.ideaId]?.length ?? 0,
             feedbackSummary: scoresByIdea[idea.ideaId]
                     ?.where((s) => s.feedback.trim().isNotEmpty)
                     .map((s) => s.feedback.trim())
@@ -213,8 +209,9 @@ class StudentDashboardService {
     return StudentDashboardVm(
       studentName: _fullName(student),
       department: student.department.isEmpty ? student.departmentCode : student.department,
-      organizationId: student.orgId,
+      organizationName: organizationName.isEmpty ? student.orgId : organizationName,
       team: resolvedTeam,
+      teamMembers: teamMembers,
       mentorName: _fullName(mentor),
       departmentAdminName: _fullName(departmentAdmin),
       collegeAdminName: _fullName(collegeAdmin),
@@ -230,18 +227,12 @@ class StudentDashboardService {
       pendingPayments: pendingPayments,
       verifiedPayments: verifiedPayments,
       rejectedPayments: rejectedPayments,
-      ideaSeries: ideaSeries,
-      paymentSeries: paymentSeries,
       ideaCards: ideaCards,
       activities: activities.take(40).toList(growable: false),
       paymentAttachmentCounts: <String, int>{
         for (final p in scopedPayments) p.paymentId: attachmentCountByEntity['payment:${p.paymentId}'] ?? 0,
       },
     );
-  }
-
-  String _dayKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   static String _fullName(UserModel? user) {
@@ -272,8 +263,9 @@ class StudentDashboardVm {
   const StudentDashboardVm({
     required this.studentName,
     required this.department,
-    required this.organizationId,
+    required this.organizationName,
     required this.team,
+    required this.teamMembers,
     required this.mentorName,
     required this.departmentAdminName,
     required this.collegeAdminName,
@@ -289,8 +281,6 @@ class StudentDashboardVm {
     required this.pendingPayments,
     required this.verifiedPayments,
     required this.rejectedPayments,
-    required this.ideaSeries,
-    required this.paymentSeries,
     required this.ideaCards,
     required this.activities,
     required this.paymentAttachmentCounts,
@@ -298,8 +288,9 @@ class StudentDashboardVm {
 
   final String studentName;
   final String department;
-  final String organizationId;
+  final String organizationName;
   final TeamModel team;
+  final List<UserModel> teamMembers;
   final String mentorName;
   final String departmentAdminName;
   final String collegeAdminName;
@@ -315,8 +306,6 @@ class StudentDashboardVm {
   final int pendingPayments;
   final int verifiedPayments;
   final int rejectedPayments;
-  final Map<String, int> ideaSeries;
-  final Map<String, int> paymentSeries;
   final List<StudentIdeaItem> ideaCards;
   final List<StudentActivityItem> activities;
   final Map<String, int> paymentAttachmentCounts;
@@ -328,6 +317,7 @@ class StudentIdeaItem {
     required this.problemDepartment,
     required this.payment,
     required this.latestScore,
+    required this.scoreCount,
     required this.feedbackSummary,
     required this.attachmentCount,
   });
@@ -336,6 +326,7 @@ class StudentIdeaItem {
   final String problemDepartment;
   final PaymentModel? payment;
   final ScoreModel? latestScore;
+  final int scoreCount;
   final String feedbackSummary;
   final int attachmentCount;
 }
