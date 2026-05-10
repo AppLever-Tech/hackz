@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/enums/organization_type.dart';
+import '../../models/enums/account_workspace_phase.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/department_model.dart';
 import '../../models/user_model.dart';
@@ -9,9 +10,11 @@ import '../common/auth_page_layout.dart';
 import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
 import 'otp_screen.dart';
+import 'sign_in_screen.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
+import '../../widgets/signup/account_status_workspace.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, this.phone = ''});
@@ -164,12 +167,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ? (codeData['departmentCode'] as String)
                           : ((codeData['department'] as String?) ?? ''),
                     ),
-                    status: UserStatus.pending,
+                    status: UserStatus.pendingApproval,
                     createdAt: DateTime.now(),
                   );
 
-                  await FirestoreUtils.createUser(user);
+                  final userId = await FirestoreUtils.createUser(user);
+                  if (!mounted) return;
+                  final createdUser = user.copyWith(userId: userId);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => AccountStatusWorkspace(
+                        user: createdUser,
+                        phase: AccountWorkspacePhase.pendingApproval,
+                        onSignOut: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const SignInScreen()),
+                            (_) => false,
+                          );
+                        },
+                      ),
+                    ),
+                    (_) => false,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Registration submitted. Use Sign In anytime to track approval status.'),
+                    ),
+                  );
                 },
+                navigateToAuthGateOnVerified: false,
               ),
             ),
           );

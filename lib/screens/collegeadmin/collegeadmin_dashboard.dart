@@ -9,6 +9,7 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
@@ -80,6 +81,12 @@ class CollegeAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 4) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 5) {
           return const SectionContainer(
             child: Text('Settings module placeholder'),
           );

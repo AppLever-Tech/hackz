@@ -62,6 +62,34 @@ List<String> sortUserIdsByDisplayName(Iterable<String> userIds, Map<String, Stri
   return sorted;
 }
 
+/// Long form: "Monday, January 5, 2026" (app shell / headers).
+String formatLongDisplayDate(DateTime date) {
+  const weekdays = <String>[
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  const months = <String>[
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+}
+
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm
 String formatDateTime(DateTime date) {
   final dd = date.day.toString().padLeft(2, '0');

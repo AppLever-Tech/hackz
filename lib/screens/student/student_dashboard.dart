@@ -12,6 +12,7 @@ import '../../utils/common_helpers.dart';
 import '../../widgets/student_team_overview_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 
@@ -37,6 +38,12 @@ class StudentDashboard extends StatelessWidget {
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.student, user),
+          );
+        }
+        if (selectedMenuIndex == 3) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
           );
         }
         return _StudentDashboardHome(

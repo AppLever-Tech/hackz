@@ -13,6 +13,7 @@ import '../../utils/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import 'teams_screen.dart';
@@ -45,6 +46,12 @@ class FacultyDashboard extends StatelessWidget {
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.faculty, user),
+          );
+        }
+        if (selectedMenuIndex == 4) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
           );
         }
         return _FacultyDashboardHome(

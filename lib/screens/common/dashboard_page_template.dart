@@ -194,6 +194,7 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: commonSecondary,
         );
@@ -204,6 +205,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Manage College', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
             DashboardMenuItem(label: 'Settings', icon: AppIcons.settings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
@@ -217,6 +219,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Judges Panel', icon: AppIcons.judges),
             DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
             DashboardMenuItem(label: 'Settings', icon: AppIcons.settings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
@@ -228,6 +231,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
             DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: commonSecondary,
         );
@@ -247,6 +251,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -256,6 +261,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
+            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: commonSecondary,
         );

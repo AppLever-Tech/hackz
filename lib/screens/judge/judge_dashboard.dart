@@ -12,6 +12,7 @@ import '../../utils/problem_role_config.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/ideas_list_screen.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/problems_list_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {
@@ -39,10 +40,9 @@ class JudgeDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 3) {
-          return IdeasListScreen(
+          return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.judge, user),
+            user: user,
           );
         }
         return _JudgeDashboardHome(

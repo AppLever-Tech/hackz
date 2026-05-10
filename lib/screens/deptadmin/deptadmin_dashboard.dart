@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/account_workspace_visuals.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
@@ -7,6 +8,7 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
@@ -93,6 +95,12 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 6) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 7) {
           return const SectionContainer(child: Text('Settings module placeholder'));
         }
 
@@ -283,9 +291,9 @@ class DeptAdminDashboard extends StatelessWidget {
                                 SizedBox(
                                   width: 80,
                                   child: Text(
-                                    u.status == UserStatus.active ? 'Active' : u.status.value,
+                                    AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
                                     style: TextStyle(
-                                      color: u.status == UserStatus.active ? Colors.green : Colors.orange,
+                                      color: AccountWorkspaceVisuals.userStatusAccent(u.status),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),

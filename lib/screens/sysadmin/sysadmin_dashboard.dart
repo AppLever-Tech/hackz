@@ -6,6 +6,7 @@ import '../../models/enums/user_role.dart';
 import '../../models/organization_model.dart';
 import '../../models/user_model.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import 'organization_dialog.dart';
 import 'edit_org_screen.dart';
@@ -52,6 +53,12 @@ class SysAdminDashboard extends StatelessWidget {
     return DashboardPageTemplate(
       user: user,
       bodyBuilder: (BuildContext context, int refreshToken, int selectedMenuIndex) {
+        if (selectedMenuIndex == 2) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
         if (selectedMenuIndex == 1) {
           return _OrganizationDetailsView(
             refreshToken: refreshToken,

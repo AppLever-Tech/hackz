@@ -1,7 +1,8 @@
 enum UserStatus {
-  pending('pending'),
+  pendingApproval('pendingApproval'),
   active('active'),
-  rejected('rejected');
+  rejected('rejected'),
+  suspended('suspended');
 
   const UserStatus(this.value);
   final String value;
@@ -13,9 +14,11 @@ enum UserStatus {
         return UserStatus.active;
       case 'rejected':
         return UserStatus.rejected;
-      case 'pending':
+      case 'suspended':
+        return UserStatus.suspended;
+      case 'pendingapproval':
       default:
-        return UserStatus.pending;
+        return UserStatus.pendingApproval;
     }
   }
 }

@@ -158,7 +158,7 @@ class FirestoreUtils {
     final normalizedDept = DepartmentModel.resolveCode(departmentCode);
     return _db
         .collection(hkzUsers)
-        .where('status', isEqualTo: UserStatus.pending.value)
+        .where('status', isEqualTo: UserStatus.pendingApproval.value)
         .where('orgId', isEqualTo: orgId)
         .where('departmentCode', isEqualTo: normalizedDept)
         .snapshots()
@@ -206,7 +206,7 @@ class FirestoreUtils {
       final status = UserStatus.fromRaw((doc.data()['status'] as String?) ?? '');
       if (status == UserStatus.active) {
         activeCount++;
-      } else if (status == UserStatus.pending) {
+      } else if (status == UserStatus.pendingApproval) {
         pendingCount++;
       }
     }
@@ -294,7 +294,7 @@ class FirestoreUtils {
       current['totalUsers'] = (current['totalUsers'] as int) + 1;
       if (status == UserStatus.active) {
         current['activeUsers'] = (current['activeUsers'] as int) + 1;
-      } else if (status == UserStatus.pending) {
+      } else if (status == UserStatus.pendingApproval) {
         current['pendingUsers'] = (current['pendingUsers'] as int) + 1;
       }
     }
@@ -317,6 +317,14 @@ class FirestoreUtils {
         .toList(growable: false);
     items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return items;
+  }
+
+  static Future<OrganizationModel?> fetchOrganization(String orgId) async {
+    final id = orgId.trim();
+    if (id.isEmpty) return null;
+    final doc = await _db.collection(hkzOrganizations).doc(id).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
 
   static Future<void> upsertOrganization(OrganizationModel org) async {

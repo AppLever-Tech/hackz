@@ -9,10 +9,12 @@ class OtpScreen extends StatefulWidget {
     super.key,
     required this.phone,
     this.onVerified,
+    this.navigateToAuthGateOnVerified = true,
   });
 
   final String phone;
   final Future<void> Function()? onVerified;
+  final bool navigateToAuthGateOnVerified;
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -66,6 +68,7 @@ class _OtpScreenState extends State<OtpScreen> {
       if (widget.onVerified != null) {
         await widget.onVerified!();
       }
+      if (!widget.navigateToAuthGateOnVerified) return;
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthGate()),

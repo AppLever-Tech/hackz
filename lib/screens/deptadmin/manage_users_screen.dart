@@ -8,6 +8,7 @@ import '../../models/enums/organization_type.dart';
 import '../../models/department_model.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/user_model.dart';
+import '../../constants/account_workspace_visuals.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
@@ -251,7 +252,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     return _allUsers.where((u) {
       final roleOk = switch (_filter) {
         UsersFilter.all => true,
-        UsersFilter.pending => u.status == UserStatus.pending,
+        UsersFilter.pending => u.status == UserStatus.pendingApproval,
         UsersFilter.faculty => u.role == 'FAC',
         UsersFilter.students => u.role == 'STU',
         UsersFilter.coordinators => u.role == 'COO',
@@ -266,7 +267,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   List<UserModel> _section(List<UserModel> users, {String? role, UserStatus? status}) {
     return users.where((u) {
       if (status != null) return u.status == status;
-      if (role != null) return u.role == role && u.status != UserStatus.pending;
+      if (role != null) return u.role == role && u.status != UserStatus.pendingApproval;
       return false;
     }).toList(growable: false);
   }
@@ -274,7 +275,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   int _countForFilter(UsersFilter filter) {
     return switch (filter) {
       UsersFilter.all => _allUsers.length,
-      UsersFilter.pending => _allUsers.where((UserModel u) => u.status == UserStatus.pending).length,
+      UsersFilter.pending => _allUsers.where((UserModel u) => u.status == UserStatus.pendingApproval).length,
       UsersFilter.faculty => _allUsers.where((UserModel u) => u.role == 'FAC').length,
       UsersFilter.students => _allUsers.where((UserModel u) => u.role == 'STU').length,
       UsersFilter.coordinators => _allUsers.where((UserModel u) => u.role == 'COO').length,
@@ -393,7 +394,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Widget _userRow(UserModel u) {
-    final isPending = u.status == UserStatus.pending;
+    final isPending = u.status == UserStatus.pendingApproval;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -431,10 +432,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: u.status == UserStatus.pending ? const Color(0xFFFFF1E4) : const Color(0xFFFDECEC),
+                color: AccountWorkspaceVisuals.chipBackgroundForUserStatus(u.status),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(u.status.value, style: const TextStyle(fontSize: 12)),
+              child: Text(
+                AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AccountWorkspaceVisuals.userStatusAccent(u.status),
+                ),
+              ),
             ),
           ],
           const SizedBox(width: 8),
@@ -461,7 +469,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
 
   Widget _buildUsersTab() {
     final users = _filteredUsers();
-    final pending = _section(users, status: UserStatus.pending);
+    final pending = _section(users, status: UserStatus.pendingApproval);
     final faculty = _section(users, role: 'FAC');
     final students = _section(users, role: 'STU');
     final coordinators = _section(users, role: 'COO');

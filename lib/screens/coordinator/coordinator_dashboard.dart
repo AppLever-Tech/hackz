@@ -10,6 +10,7 @@ import '../../utils/idea_role_config.dart';
 import 'coordinator_payment_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../../widgets/attachment_viewer.dart';
 
@@ -37,6 +38,12 @@ class CoordinatorDashboard extends StatelessWidget {
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.coordinator, user),
+          );
+        }
+        if (selectedMenuIndex == 3) {
+          return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
           );
         }
         return _CoordinatorSummaryView(

@@ -59,6 +59,23 @@ class AppIcons {
   static const IconData statusActive = Icons.circle;
   static const IconData statusInactive = Icons.circle_outlined;
 
+  /// Account onboarding / approval timeline (signup workspace).
+  static const IconData timelineRegistration = Icons.app_registration_outlined;
+  static const IconData timelineAccessVerified = Icons.verified_outlined;
+  static const IconData timelineApprovalPending = Icons.hourglass_top_rounded;
+  static const IconData timelineWorkspace = Icons.dashboard_customize_outlined;
+
+  static const IconData accountPending = Icons.hourglass_empty_rounded;
+  static const IconData accountApproved = Icons.verified_rounded;
+  static const IconData accountRejected = Icons.highlight_off_rounded;
+  static const IconData accountInvalidCode = Icons.password_outlined;
+  static const IconData accountSuspended = Icons.pause_circle_outline_rounded;
+
+  static const IconData helpSupport = Icons.support_agent_rounded;
+  static const IconData info = Icons.info_outline_rounded;
+  static const IconData onboardingNext = Icons.arrow_forward_rounded;
+  static const IconData clock = Icons.schedule_rounded;
+
   static IconData forOrganizationType(OrganizationType? type) {
     switch (type) {
       case OrganizationType.college:

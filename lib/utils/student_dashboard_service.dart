@@ -255,7 +255,7 @@ class StudentDashboardService {
       orgId: '',
       department: '',
       departmentCode: '',
-      status: UserStatus.pending,
+      status: UserStatus.pendingApproval,
       createdAt: DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
