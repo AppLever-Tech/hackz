@@ -30,6 +30,8 @@ class FirestoreUtils {
   static const String hkzUserAuthMirror = 'hkzUserAuthMirror';
   static const String hkzTeams = 'hkzTeams';
   static const String hkzAttachments = 'hkzAttachments';
+  /// Single-doc platform configuration for SysAdmin (`config`).
+  static const String hkzPlatformSettings = 'hkzPlatformSettings';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);

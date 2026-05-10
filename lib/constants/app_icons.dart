@@ -28,6 +28,7 @@ class AppIcons {
   static const IconData pendingUsers = Icons.how_to_reg_outlined;
   static const IconData payments = Icons.payments_outlined;
   static const IconData settings = Icons.settings_outlined;
+  static const IconData platformSettings = Icons.tune_rounded;
   static const IconData scoring = Icons.score_outlined;
   static const IconData leaderboard = Icons.leaderboard_outlined;
   static const IconData submissions = Icons.upload_file_outlined;

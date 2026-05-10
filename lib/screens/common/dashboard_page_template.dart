@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
+import '../../utils/platform_settings_service.dart';
 import '../auth/landing_screen.dart';
 import 'dashboard_components.dart';
 
@@ -76,6 +77,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    PlatformSettingsService.instance.clearCache();
     await FirebaseAuth.instance.signOut();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -195,6 +197,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
+            DashboardMenuItem(label: 'Platform settings', icon: AppIcons.platformSettings),
           ],
           secondaryMenus: commonSecondary,
         );

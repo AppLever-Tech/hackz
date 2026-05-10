@@ -10,6 +10,7 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import 'organization_dialog.dart';
 import 'edit_org_screen.dart';
+import 'platform_settings_dashboard.dart';
 import '../../utils/firestore_utils.dart';
 import '../../widgets/filter_pill.dart';
 
@@ -53,6 +54,12 @@ class SysAdminDashboard extends StatelessWidget {
     return DashboardPageTemplate(
       user: user,
       bodyBuilder: (BuildContext context, int refreshToken, int selectedMenuIndex) {
+        if (selectedMenuIndex == 3) {
+          return PlatformSettingsDashboard(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
         if (selectedMenuIndex == 2) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
