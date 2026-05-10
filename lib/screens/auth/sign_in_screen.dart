@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/enums/account_workspace_phase.dart';
 import '../../models/user_model.dart';
-import '../../utils/auth_status_resolver.dart';
 import '../common/auth_page_layout.dart';
 import '../common/phone_number_field.dart';
 import '../../utils/auth_utils.dart';
@@ -10,6 +10,10 @@ import '../../utils/common_helpers.dart';
 import 'otp_screen.dart';
 import 'sign_up_screen.dart';
 import '../../widgets/signup/account_status_workspace.dart';
+import '../../models/enums/user_status.dart';
+import '../../utils/firestore_utils.dart';
+import 'auth_gate.dart';
+import 'landing_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -34,7 +38,11 @@ class _SignInScreenState extends State<SignInScreen> {
       onCodeSent: () {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => OtpScreen(phone: phone),
+            builder: (_) => OtpScreen(
+              phone: phone,
+              navigateToAuthGateOnVerified: false,
+              onVerified: () => _handlePostOtpRouting(phone),
+            ),
           ),
         );
       },
@@ -51,10 +59,44 @@ class _SignInScreenState extends State<SignInScreen> {
           user: user,
           phase: phase,
           onSignOut: () {
-            Navigator.of(context).maybePop();
+            FirebaseAuth.instance.signOut();
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const LandingScreen()),
+              (_) => false,
+            );
           },
         ),
       ),
+    );
+  }
+
+  Future<void> _handlePostOtpRouting(String phone) async {
+    final user = await FirestoreUtils.fetchUserByPhone(phone);
+    if (!mounted) return;
+
+    if (user == null) {
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) return;
+      await Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => SignUpScreen(phone: phone),
+        ),
+        (_) => false,
+      );
+      return;
+    }
+
+    if (user.status == UserStatus.active) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (_) => false,
+      );
+      return;
+    }
+
+    await _openStatusWorkspace(
+      user: user,
+      phase: user.status.toWorkspacePhase,
     );
   }
 
@@ -68,32 +110,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final resolution = await AuthStatusResolver.resolveSignInFlow(_phoneController.text);
-      if (!mounted) return;
-
-      switch (resolution.step) {
-        case SignInNextStep.signUp:
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No registration found for this number. Please sign up first.'),
-            ),
-          );
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => SignUpScreen(phone: resolution.phone),
-            ),
-          );
-          break;
-        case SignInNextStep.verifyOtp:
-          await _sendOtpAndOpen(resolution.phone);
-          break;
-        case SignInNextStep.accountStatusWorkspace:
-          await _openStatusWorkspace(
-            user: resolution.user!,
-            phase: resolution.workspacePhase!,
-          );
-          break;
-      }
+      final phone = normalizePhoneE164(_phoneController.text);
+      await _sendOtpAndOpen(phone);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +150,7 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
           const SizedBox(height: 10),
           const Text(
-            "We'll check your status and send OTP only for approved accounts",
+            "All users verify with OTP, then we'll route by account status",
             style: TextStyle(color: Color(0xFF595E80)),
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/enums/organization_type.dart';
 import '../../models/enums/account_workspace_phase.dart';
@@ -11,6 +12,7 @@ import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
 import 'otp_screen.dart';
 import 'sign_in_screen.dart';
+import 'landing_screen.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
@@ -180,8 +182,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         user: createdUser,
                         phase: AccountWorkspacePhase.pendingApproval,
                         onSignOut: () {
+                          FirebaseAuth.instance.signOut();
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (_) => const SignInScreen()),
+                            MaterialPageRoute(builder: (_) => const LandingScreen()),
                             (_) => false,
                           );
                         },
