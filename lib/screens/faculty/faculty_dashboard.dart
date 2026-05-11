@@ -11,6 +11,7 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -194,7 +195,14 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
             title: 'Idea Status',
             child: SizedBox(
               height: 210,
-              child: _IdeaStatusDonut(vm: vm),
+              child: IdeaStatusDistributionDonut(
+                pending: vm.pendingIdeas,
+                submitted: vm.submittedIdeas,
+                underReview: vm.underReviewIdeas,
+                evaluated: vm.evaluatedIdeas,
+                approved: vm.approvedIdeas,
+                rejected: vm.rejectedIdeas,
+              ),
             ),
           ),
         ),
@@ -553,159 +561,6 @@ class _KeyDataCard extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _IdeaStatusDonut extends StatelessWidget {
-  const _IdeaStatusDonut({required this.vm});
-  final _FacultyDashboardVm vm;
-
-  @override
-  Widget build(BuildContext context) {
-    final total =
-        (vm.pendingIdeas + vm.submittedIdeas + vm.underReviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas)
-            .clamp(1, 1 << 20);
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: AspectRatio(
-            aspectRatio: 0.78,
-            child: CustomPaint(
-              painter: _DonutPainter(
-                pendingPct: vm.pendingIdeas / total,
-                submittedPct: vm.submittedIdeas / total,
-                reviewPct: vm.underReviewIdeas / total,
-                evaluatedPct: vm.evaluatedIdeas / total,
-                approvedPct: vm.approvedIdeas / total,
-                rejectedPct: vm.rejectedIdeas / total,
-              ),
-              child: Center(
-                child: Text(
-                  '${vm.pendingIdeas + vm.submittedIdeas + vm.underReviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas}',
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _IdeaLegendRow(
-                color: StatusStyles.submitted,
-                label: 'Pending ${vm.pendingIdeas}',
-              ),
-              const SizedBox(height: 6),
-              _IdeaLegendRow(
-                color: StatusStyles.submittedChart,
-                label: 'Submitted ${vm.submittedIdeas}',
-              ),
-              const SizedBox(height: 6),
-              _IdeaLegendRow(
-                color: StatusStyles.underReview,
-                label: 'Under Review ${vm.underReviewIdeas}',
-              ),
-              const SizedBox(height: 6),
-              _IdeaLegendRow(
-                color: StatusStyles.evaluated,
-                label: 'Evaluated ${vm.evaluatedIdeas}',
-              ),
-              const SizedBox(height: 6),
-              _IdeaLegendRow(
-                color: StatusStyles.approved,
-                label: 'Approved ${vm.approvedIdeas}',
-              ),
-              const SizedBox(height: 6),
-              _IdeaLegendRow(
-                color: StatusStyles.rejected,
-                label: 'Rejected ${vm.rejectedIdeas}',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DonutPainter extends CustomPainter {
-  const _DonutPainter({
-    required this.pendingPct,
-    required this.submittedPct,
-    required this.reviewPct,
-    required this.evaluatedPct,
-    required this.approvedPct,
-    required this.rejectedPct,
-  });
-
-  final double pendingPct;
-  final double submittedPct;
-  final double reviewPct;
-  final double evaluatedPct;
-  final double approvedPct;
-  final double rejectedPct;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.31);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 13
-      ..strokeCap = StrokeCap.round;
-    double start = -1.57;
-
-    void arc(double pct, Color color) {
-      if (pct <= 0) return;
-      final sweep = 6.28318530718 * pct;
-      paint.color = color;
-      canvas.drawArc(rect, start, sweep, false, paint);
-      start += sweep;
-    }
-
-    arc(pendingPct, StatusStyles.submitted);
-    arc(submittedPct, StatusStyles.submittedChart);
-    arc(reviewPct, StatusStyles.underReview);
-    arc(evaluatedPct, StatusStyles.evaluated);
-    arc(approvedPct, StatusStyles.approved);
-    arc(rejectedPct, StatusStyles.rejected);
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
-      oldDelegate.pendingPct != pendingPct ||
-      oldDelegate.submittedPct != submittedPct ||
-      oldDelegate.reviewPct != reviewPct ||
-      oldDelegate.evaluatedPct != evaluatedPct ||
-      oldDelegate.approvedPct != approvedPct ||
-      oldDelegate.rejectedPct != rejectedPct;
-}
-
-class _IdeaLegendRow extends StatelessWidget {
-  const _IdeaLegendRow({
-    required this.color,
-    required this.label,
-  });
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
     );
   }
 }

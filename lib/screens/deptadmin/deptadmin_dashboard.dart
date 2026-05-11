@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/account_workspace_visuals.dart';
-import '../../models/enums/user_status.dart';
+import '../../constants/app_icons.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
-import '../../utils/firestore_utils.dart';
+import '../../utils/department_dashboard_service.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
+import '../../widgets/common/idea_status_distribution_donut.dart';
+import '../../widgets/deptadmin/department_alerts_section.dart';
+import '../../widgets/deptadmin/department_metric_card.dart';
+import '../../widgets/deptadmin/department_trend_chart.dart';
+import '../../widgets/deptadmin/payment_operations_widget.dart';
+import '../../widgets/deptadmin/problem_analytics_widget.dart';
+import '../../widgets/deptadmin/recent_department_activity_card.dart';
+import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
@@ -16,40 +23,10 @@ import 'judges_panel.dart';
 import 'manage_users_screen.dart';
 import 'payments_screen.dart';
 
-String _deptRoleLabel(String role) {
-  switch (role.trim()) {
-    case 'FAC':
-      return 'Faculty';
-    case 'COO':
-      return 'Coordinator';
-    case 'STU':
-      return 'Student';
-    default:
-      return role;
-  }
-}
-
 class DeptAdminDashboard extends StatelessWidget {
   const DeptAdminDashboard({super.key, required this.user});
 
   final UserModel user;
-
-  Future<Map<String, dynamic>> _loadDashboardData() async {
-    final stats = await FirestoreUtils.getDepartmentStats(
-      orgId: user.orgId,
-      department: user.departmentCode,
-    );
-    final people = await FirestoreUtils.getDepartmentUsers(
-      orgId: user.orgId,
-      department: user.departmentCode,
-      roleCodes: const <String>['FAC', 'STU'],
-      limit: 10,
-    );
-    return <String, dynamic>{
-      'stats': stats,
-      'people': people,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,214 +77,76 @@ class DeptAdminDashboard extends StatelessWidget {
             user: user,
           );
         }
-        if (selectedMenuIndex == 7) {
-          return const SectionContainer(child: Text('Settings module placeholder'));
-        }
 
-        return FutureBuilder<Map<String, dynamic>>(
+        return _DeptAdminOverview(
           key: ValueKey<int>(refreshToken),
-          future: _loadDashboardData(),
-          builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Text('Unable to load department dashboard: ${snapshot.error}');
-            }
-            final data = snapshot.data ?? <String, dynamic>{};
-            final stats = data['stats'] as Map<String, dynamic>? ?? <String, dynamic>{};
-            final users = data['people'] as List<UserModel>? ?? <UserModel>[];
-            final totalStudents = stats['totalStudents'] as int? ?? 0;
-            final totalFaculty = stats['totalFaculty'] as int? ?? 0;
-            final totalIdeas = stats['totalIdeas'] as int? ?? 0;
-            final activeIdeas = stats['activeIdeas'] as int? ?? 0;
-            final totalJudges = stats['totalJudges'] as int? ?? 0;
-            final submittedIdeas = stats['submittedIdeas'] as int? ?? 0;
-            final underReviewIdeas = stats['underReviewIdeas'] as int? ?? 0;
-            final evaluatedIdeas = stats['evaluatedIdeas'] as int? ?? 0;
-            final totalStatusIdeas = (submittedIdeas + underReviewIdeas + evaluatedIdeas).clamp(1, 1 << 20);
-            final distribution = <_StatusSlice>[
-              _StatusSlice('Submitted', submittedIdeas, const Color(0xFF6A38FF)),
-              _StatusSlice('Under Review', underReviewIdeas, const Color(0xFFFFA726)),
-              _StatusSlice('Evaluated', evaluatedIdeas, const Color(0xFF26A69A)),
-            ];
+          user: user,
+        );
+      },
+    );
+  }
+}
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalStudents',
-                        label: 'Total Students',
-                        icon: Icons.school_outlined,
-                        iconBgColor: const Color(0xFFEAF2FF),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalFaculty',
-                        label: 'Total Faculty',
-                        icon: Icons.person_outline,
-                        iconBgColor: const Color(0xFFE9FAF0),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalIdeas',
-                        label: 'Total Ideas',
-                        icon: Icons.lightbulb_outline,
-                        iconBgColor: const Color(0xFFF2EDFF),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$activeIdeas',
-                        label: 'Active Ideas',
-                        icon: Icons.autorenew_rounded,
-                        iconBgColor: const Color(0xFFFFF2E8),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalJudges',
-                        label: 'Total Judges',
-                        icon: Icons.gavel_outlined,
-                        iconBgColor: const Color(0xFFE8F1FF),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      flex: 2,
-                      child: SectionContainer(
-                        child: const SizedBox(
-                          height: 220,
-                          child: _DeptIdeaLinePlaceholder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: SectionContainer(
-                        child: SizedBox(
-                          height: 220,
-                          child: Column(
-                            children: <Widget>[
-                              Expanded(
-                                child: Center(
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: <Widget>[
-                                      SizedBox(
-                                        width: 150,
-                                        height: 150,
-                                        child: CircularProgressIndicator(
-                                          value: totalStatusIdeas == 0
-                                              ? 0
-                                              : (evaluatedIdeas / totalStatusIdeas),
-                                          strokeWidth: 14,
-                                          color: const Color(0xFF26A69A),
-                                          backgroundColor: const Color(0xFFE8ECF8),
-                                        ),
-                                      ),
-                                      Text(
-                                        '$totalIdeas Ideas',
-                                        style: const TextStyle(fontWeight: FontWeight.w700),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              ...distribution.map(
-                                (s) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Row(
-                                    children: <Widget>[
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(color: s.color, shape: BoxShape.circle),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(child: Text(s.label)),
-                                      Text('${s.value}'),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SectionContainer(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          const Expanded(
-                            child: Text(
-                              'Faculty & Students Overview',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          OutlinedButton(onPressed: () {}, child: const Text('View All')),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (users.isEmpty)
-                        const Text('No faculty/students found.')
-                      else
-                        ...users.map(
-                          (u) => Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFF),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: <Widget>[
-                                Expanded(child: Text('${u.firstName} ${u.lastName}'.trim())),
-                                SizedBox(
-                                  width: 100,
-                                  child: Text(_deptRoleLabel(u.role)),
-                                ),
-                                SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
-                                    style: TextStyle(
-                                      color: AccountWorkspaceVisuals.userStatusAccent(u.status),
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                ],
-              ),
-            );
+class _DeptAdminOverview extends StatefulWidget {
+  const _DeptAdminOverview({super.key, required this.user});
+
+  final UserModel user;
+
+  @override
+  State<_DeptAdminOverview> createState() => _DeptAdminOverviewState();
+}
+
+class _DeptAdminOverviewState extends State<_DeptAdminOverview> {
+  DepartmentAnalyticsTimeframe _trendTimeframe = DepartmentAnalyticsTimeframe.currentWeek;
+  DepartmentAnalyticsTimeframe _activityTimeframe = DepartmentAnalyticsTimeframe.currentWeek;
+  late Future<DepartmentDashboardAnalytics> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load(forceRefresh: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DeptAdminOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.orgId != widget.user.orgId || oldWidget.user.departmentCode != widget.user.departmentCode) {
+      _future = _load(forceRefresh: true);
+    }
+  }
+
+  Future<DepartmentDashboardAnalytics> _load({bool forceRefresh = false}) {
+    return DepartmentDashboardService.load(
+      orgId: widget.user.orgId,
+      departmentCode: widget.user.departmentCode,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DepartmentDashboardAnalytics>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<DepartmentDashboardAnalytics> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('Unable to load department dashboard: ${snapshot.error}');
+        }
+        final analytics = snapshot.data;
+        if (analytics == null) {
+          return const Center(child: Text('No department analytics available yet.'));
+        }
+        return _DepartmentAnalyticsView(
+          analytics: analytics,
+          trendTimeframe: _trendTimeframe,
+          activityTimeframe: _activityTimeframe,
+          onTrendChanged: (DepartmentAnalyticsTimeframe timeframe) {
+            setState(() => _trendTimeframe = timeframe);
+          },
+          onActivityChanged: (DepartmentAnalyticsTimeframe timeframe) {
+            setState(() => _activityTimeframe = timeframe);
           },
         );
       },
@@ -315,49 +154,322 @@ class DeptAdminDashboard extends StatelessWidget {
   }
 }
 
-class _StatusSlice {
-  const _StatusSlice(this.label, this.value, this.color);
-  final String label;
-  final int value;
-  final Color color;
-}
+class _DepartmentAnalyticsView extends StatelessWidget {
+  const _DepartmentAnalyticsView({
+    required this.analytics,
+    required this.trendTimeframe,
+    required this.activityTimeframe,
+    required this.onTrendChanged,
+    required this.onActivityChanged,
+  });
 
-class _DeptIdeaLinePlaceholder extends StatelessWidget {
-  const _DeptIdeaLinePlaceholder();
+  final DepartmentDashboardAnalytics analytics;
+  final DepartmentAnalyticsTimeframe trendTimeframe;
+  final DepartmentAnalyticsTimeframe activityTimeframe;
+  final ValueChanged<DepartmentAnalyticsTimeframe> onTrendChanged;
+  final ValueChanged<DepartmentAnalyticsTimeframe> onActivityChanged;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DeptIdeaLinePainter(),
-      child: Container(),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _MetricGrid(analytics: analytics),
+          const SizedBox(height: 16),
+          SectionContainer(
+            child: DepartmentTrendChart(
+              points: analytics.trendFor(trendTimeframe),
+              selectedTimeframe: trendTimeframe,
+              onTimeframeChanged: onTrendChanged,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _ResponsivePair(
+            first: _FixedDashboardCard(
+              height: 320,
+              child: _UserManagementSection(analytics: analytics),
+            ),
+            second: _FixedDashboardCard(
+              height: 320,
+              child: UserDistributionWidget(
+                title: 'Users by Role',
+                subtitle: 'Active role mix plus pending onboarding queue',
+                segments: analytics.usersByRole,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _ResponsivePair(
+            first: _FixedDashboardCard(
+              height: 380,
+              flex: 7,
+              child: ProblemAnalyticsWidget(
+                activeProblems: analytics.activeProblems,
+                problemsByTheme: analytics.problemsByTheme,
+                ideaInflowByProblem: analytics.ideaInflowByProblem,
+              ),
+            ),
+            second: _FixedDashboardCard(
+              height: 380,
+              flex: 5,
+              child: PaymentOperationsWidget(
+                pendingPayments: analytics.pendingPayments,
+                submittedIdeas: analytics.submittedIdeas,
+                evaluatedIdeas: analytics.evaluatedIdeas,
+                approvedIdeas: analytics.approvedIdeas,
+                rejectedIdeas: analytics.rejectedIdeas,
+                paymentVerificationRate: analytics.paymentVerificationRate,
+                evaluationCompletionRate: analytics.evaluationCompletionRate,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _ResponsivePair(
+            first: _FixedDashboardCard(
+              height: 350,
+              child: _IdeaStatusMixSection(analytics: analytics),
+            ),
+            second: _FixedDashboardCard(
+              height: 350,
+              child: DepartmentAlertsSection(alerts: analytics.alerts),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _FixedDashboardCard(
+            height: 390,
+            child: RecentDepartmentActivityCard(
+              events: analytics.recentActivity,
+              selectedTimeframe: activityTimeframe,
+              onTimeframeChanged: onActivityChanged,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _DeptIdeaLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = const Color(0xFFE8ECF6)
-      ..strokeWidth = 1;
-    for (int i = 1; i < 5; i++) {
-      final y = size.height * i / 5;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-    final line = Paint()
-      ..color = const Color(0xFF6A38FF)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(0, size.height * 0.82)
-      ..lineTo(size.width * 0.2, size.height * 0.73)
-      ..lineTo(size.width * 0.4, size.height * 0.62)
-      ..lineTo(size.width * 0.6, size.height * 0.56)
-      ..lineTo(size.width * 0.8, size.height * 0.4)
-      ..lineTo(size.width, size.height * 0.32);
-    canvas.drawPath(path, line);
-  }
+class _IdeaStatusMixSection extends StatelessWidget {
+  const _IdeaStatusMixSection({required this.analytics});
+
+  final DepartmentDashboardAnalytics analytics;
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          'Idea Status Mix',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Submission, review, evaluated and decision states',
+          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: IdeaStatusDistributionDonut(
+            pending: analytics.pendingSubmissionIdeas,
+            submitted: analytics.submittedIdeas - analytics.underReviewIdeas,
+            underReview: analytics.underReviewIdeas,
+            evaluated: analytics.evaluatedOnlyIdeas,
+            approved: analytics.approvedIdeas,
+            rejected: analytics.rejectedIdeas,
+            centerStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+            legendTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricGrid extends StatelessWidget {
+  const _MetricGrid({required this.analytics});
+
+  final DepartmentDashboardAnalytics analytics;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <Widget>[
+      DepartmentMetricCard(
+        value: '${analytics.totalActiveUsers}',
+        label: 'Total Active Users',
+        icon: AppIcons.users,
+        iconBgColor: const Color(0xFFEAF2FF),
+        footnote: '${analytics.studentCount} students · ${analytics.facultyCount} faculty',
+        tooltip: 'Active faculty, students, coordinators and judges in this department.',
+      ),
+      DepartmentMetricCard(
+        value: '${analytics.pendingApprovals}',
+        label: 'Pending Approvals',
+        icon: AppIcons.pendingUsers,
+        iconBgColor: const Color(0xFFFFF7E6),
+        footnote: '${analytics.pendingCoordinatorJudgeCount} coordinator/judge requests',
+        tooltip: 'Users waiting for department onboarding approval.',
+      ),
+      DepartmentMetricCard(
+        value: '${analytics.activeProblems}',
+        label: 'Active Problems',
+        icon: AppIcons.problems,
+        iconBgColor: const Color(0xFFE9FAF0),
+        footnote: '${analytics.ideaInflowByProblem.length} problems receiving ideas',
+        tooltip: 'Currently active problem statements in this department.',
+      ),
+      DepartmentMetricCard(
+        value: '${analytics.ideasSubmitted}',
+        label: 'Ideas Submitted',
+        icon: AppIcons.ideas,
+        iconBgColor: const Color(0xFFF2EDFF),
+        footnote: '${analytics.evaluatedIdeas} evaluated · ${analytics.pendingPayments} payments pending',
+        tooltip: 'Department idea submissions and related operational workload.',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double gap = 16;
+        final int columns = constraints.maxWidth >= 1050
+            ? 4
+            : constraints.maxWidth >= 760
+                ? 2
+                : 1;
+        final double width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _UserManagementSection extends StatelessWidget {
+  const _UserManagementSection({required this.analytics});
+
+  final DepartmentDashboardAnalytics analytics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text('User Management Snapshot', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        const SizedBox(height: 4),
+        const Text('Quick role visibility for department operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+        const SizedBox(height: 14),
+        Expanded(
+          child: GridView.count(
+            padding: EdgeInsets.zero,
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 2.3,
+            children: <Widget>[
+              _RoleStat(label: 'Faculty', value: analytics.facultyCount, icon: AppIcons.faculty, color: const Color(0xFF6A38FF)),
+              _RoleStat(label: 'Students', value: analytics.studentCount, icon: AppIcons.student, color: const Color(0xFF0EA5E9)),
+              _RoleStat(label: 'Coordinators', value: analytics.coordinatorCount, icon: AppIcons.coordinator, color: const Color(0xFF16A34A)),
+              _RoleStat(label: 'Judges', value: analytics.judgeCount, icon: AppIcons.judges, color: const Color(0xFFEA580C)),
+              _RoleStat(label: 'Pending approvals', value: analytics.pendingApprovals, icon: AppIcons.pendingUsers, color: const Color(0xFFF59E0B)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleStat extends StatelessWidget {
+  const _RoleStat({required this.label, required this.value, required this.icon, required this.color});
+
+  final String label;
+  final int value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.09),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text('$value', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResponsivePair extends StatelessWidget {
+  const _ResponsivePair({required this.first, required this.second});
+
+  final _FixedDashboardCard first;
+  final _FixedDashboardCard second;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < 900) {
+          return Column(
+            children: <Widget>[
+              first,
+              const SizedBox(height: 16),
+              second,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(flex: first.flex, child: first),
+            const SizedBox(width: 16),
+            Expanded(flex: second.flex, child: second),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FixedDashboardCard extends StatelessWidget {
+  const _FixedDashboardCard({
+    required this.child,
+    required this.height,
+    this.flex = 1,
+  });
+
+  final Widget child;
+  final double height;
+  final int flex;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionContainer(
+      child: SizedBox(
+        height: height,
+        child: child,
+      ),
+    );
+  }
 }

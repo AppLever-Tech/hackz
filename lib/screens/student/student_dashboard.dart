@@ -9,6 +9,7 @@ import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/student_dashboard_service.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../../widgets/student_team_overview_card.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
@@ -216,7 +217,14 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
               title: 'Idea Status Distribution',
               child: SizedBox(
                 height: 188,
-                child: _StudentIdeaStatusDonut(vm: vm),
+                child: IdeaStatusDistributionDonut(
+                  pending: vm.pendingIdeas,
+                  submitted: vm.submittedIdeas,
+                  underReview: vm.reviewIdeas,
+                  evaluated: vm.evaluatedIdeas,
+                  approved: vm.approvedIdeas,
+                  rejected: vm.rejectedIdeas,
+                ),
               ),
             ),
           ),
@@ -330,141 +338,5 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     return formatDateTime(date);
   }
 
-}
-
-class _StudentIdeaStatusDonut extends StatelessWidget {
-  const _StudentIdeaStatusDonut({required this.vm});
-
-  final StudentDashboardVm vm;
-
-  @override
-  Widget build(BuildContext context) {
-    final total =
-        (vm.pendingIdeas +
-                vm.submittedIdeas +
-                vm.reviewIdeas +
-                vm.evaluatedIdeas +
-                vm.approvedIdeas +
-                vm.rejectedIdeas)
-            .clamp(1, 1 << 20);
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: AspectRatio(
-            aspectRatio: 0.78,
-            child: CustomPaint(
-              painter: _StudentDonutPainter(
-                pendingPct: vm.pendingIdeas / total,
-                submittedPct: vm.submittedIdeas / total,
-                reviewPct: vm.reviewIdeas / total,
-                evaluatedPct: vm.evaluatedIdeas / total,
-                approvedPct: vm.approvedIdeas / total,
-                rejectedPct: vm.rejectedIdeas / total,
-              ),
-              child: Center(
-                child: Text(
-                  '${vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas + vm.evaluatedIdeas + vm.approvedIdeas + vm.rejectedIdeas}',
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _LegendRow(color: StatusStyles.submitted, text: 'Pending ${vm.pendingIdeas}'),
-              const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.submittedChart, text: 'Submitted ${vm.submittedIdeas}'),
-              const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.underReview, text: 'Under Review ${vm.reviewIdeas}'),
-              const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.evaluated, text: 'Evaluated ${vm.evaluatedIdeas}'),
-              const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.approved, text: 'Approved ${vm.approvedIdeas}'),
-              const SizedBox(height: 6),
-              _LegendRow(color: StatusStyles.rejected, text: 'Rejected ${vm.rejectedIdeas}'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-
-class _LegendRow extends StatelessWidget {
-  const _LegendRow({required this.color, required this.text});
-
-  final Color color;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 6),
-        Text(text, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
-}
-
-class _StudentDonutPainter extends CustomPainter {
-  _StudentDonutPainter({
-    required this.pendingPct,
-    required this.submittedPct,
-    required this.reviewPct,
-    required this.evaluatedPct,
-    required this.approvedPct,
-    required this.rejectedPct,
-  });
-
-  final double pendingPct;
-  final double submittedPct;
-  final double reviewPct;
-  final double evaluatedPct;
-  final double approvedPct;
-  final double rejectedPct;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.31);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 13
-      ..strokeCap = StrokeCap.round;
-    double start = -1.57;
-
-    void arc(double value, Color color) {
-      if (value <= 0) return;
-      final sweep = 6.28318530718 * value;
-      paint.color = color;
-      canvas.drawArc(rect, start, sweep, false, paint);
-      start += sweep;
-    }
-
-    arc(pendingPct, StatusStyles.submitted);
-    arc(submittedPct, StatusStyles.submittedChart);
-    arc(reviewPct, StatusStyles.underReview);
-    arc(evaluatedPct, StatusStyles.evaluated);
-    arc(approvedPct, StatusStyles.approved);
-    arc(rejectedPct, StatusStyles.rejected);
-  }
-
-  @override
-  bool shouldRepaint(covariant _StudentDonutPainter oldDelegate) {
-    return oldDelegate.pendingPct != pendingPct ||
-        oldDelegate.submittedPct != submittedPct ||
-        oldDelegate.reviewPct != reviewPct ||
-        oldDelegate.evaluatedPct != evaluatedPct ||
-        oldDelegate.approvedPct != approvedPct ||
-        oldDelegate.rejectedPct != rejectedPct;
-  }
 }
 

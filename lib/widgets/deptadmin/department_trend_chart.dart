@@ -2,20 +2,20 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../utils/sysadmin_dashboard_service.dart';
+import '../../utils/department_dashboard_service.dart';
 import '../common/time_frame_filter.dart';
 
-class ParticipationTrendChart extends StatelessWidget {
-  const ParticipationTrendChart({
+class DepartmentTrendChart extends StatelessWidget {
+  const DepartmentTrendChart({
     super.key,
     required this.points,
     required this.selectedTimeframe,
     required this.onTimeframeChanged,
   });
 
-  final List<PlatformTrendPoint> points;
-  final PlatformAnalyticsTimeframe selectedTimeframe;
-  final ValueChanged<PlatformAnalyticsTimeframe> onTimeframeChanged;
+  final List<DepartmentTrendPoint> points;
+  final DepartmentAnalyticsTimeframe selectedTimeframe;
+  final ValueChanged<DepartmentAnalyticsTimeframe> onTimeframeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -24,48 +24,40 @@ class ParticipationTrendChart extends StatelessWidget {
       children: <Widget>[
         LayoutBuilder(
           builder: (BuildContext context, BoxConstraints c) {
-            final Widget title = const Text(
-              'Platform Participation Growth Trend',
+            const title = Text(
+              'Department Participation Trend',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
             );
-            final Widget filter = TimeFrameFilter<PlatformAnalyticsTimeframe>(
-              options: PlatformAnalyticsTimeframe.values,
+            final filter = TimeFrameFilter<DepartmentAnalyticsTimeframe>(
+              options: DepartmentAnalyticsTimeframe.values,
               selected: selectedTimeframe,
-              labelBuilder: (PlatformAnalyticsTimeframe timeframe) => timeframe.label,
+              labelBuilder: (DepartmentAnalyticsTimeframe timeframe) => timeframe.label,
               onChanged: onTimeframeChanged,
             );
             if (c.maxWidth < 720) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  title,
-                  const SizedBox(height: 10),
-                  filter,
-                ],
+                children: <Widget>[title, const SizedBox(height: 10), filter],
               );
             }
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: title),
-                const SizedBox(width: 12),
-                filter,
-              ],
+              children: <Widget>[Expanded(child: title), const SizedBox(width: 12), filter],
             );
           },
         ),
         const SizedBox(height: 4),
         Text(
-          '${selectedTimeframe.label} activity across users, teams, submissions and evaluations',
+          '${selectedTimeframe.label} activity across users, teams, ideas and evaluations',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
         SizedBox(
           height: 250,
-          child: points.isEmpty
-              ? const Center(child: Text('No activity data yet'))
+          child: points.every((p) => p.users == 0 && p.teams == 0 && p.ideas == 0 && p.evaluations == 0)
+              ? const Center(child: Text('No department activity data yet'))
               : CustomPaint(
-                  painter: _TrendPainter(points),
+                  painter: _DepartmentTrendPainter(points),
                   child: const SizedBox.expand(),
                 ),
         ),
@@ -74,7 +66,7 @@ class ParticipationTrendChart extends StatelessWidget {
           spacing: 12,
           runSpacing: 8,
           children: <Widget>[
-            _Legend(color: Color(0xFF6A38FF), label: 'Users'),
+            _Legend(color: Color(0xFF6A38FF), label: 'New users'),
             _Legend(color: Color(0xFF0EA5E9), label: 'Teams'),
             _Legend(color: Color(0xFFEA580C), label: 'Ideas'),
             _Legend(color: Color(0xFF16A34A), label: 'Evaluations'),
@@ -104,19 +96,14 @@ class _Legend extends StatelessWidget {
   }
 }
 
-class _TrendPainter extends CustomPainter {
-  _TrendPainter(this.points);
+class _DepartmentTrendPainter extends CustomPainter {
+  _DepartmentTrendPainter(this.points);
 
-  final List<PlatformTrendPoint> points;
+  final List<DepartmentTrendPoint> points;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double left = 34;
-    final double right = 10;
-    final double top = 10;
-    final double bottom = 28;
-    final Rect plot = Rect.fromLTWH(left, top, size.width - left - right, size.height - top - bottom);
-
+    final Rect plot = Rect.fromLTWH(34, 10, size.width - 44, size.height - 38);
     final Paint grid = Paint()
       ..color = const Color(0xFFE8ECF8)
       ..strokeWidth = 1;
@@ -127,9 +114,7 @@ class _TrendPainter extends CustomPainter {
 
     final int maxValue = math.max(
       1,
-      points
-          .expand((p) => <int>[p.users, p.teams, p.ideas, p.evaluations])
-          .fold<int>(0, math.max),
+      points.expand((p) => <int>[p.users, p.teams, p.ideas, p.evaluations]).fold<int>(0, math.max),
     );
 
     void drawSeries(List<int> values, Color color) {
@@ -175,5 +160,5 @@ class _TrendPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _TrendPainter oldDelegate) => oldDelegate.points != points;
+  bool shouldRepaint(covariant _DepartmentTrendPainter oldDelegate) => oldDelegate.points != points;
 }

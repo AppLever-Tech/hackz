@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/sysadmin_dashboard_service.dart';
-
-class PlatformTimeframeFilter extends StatelessWidget {
-  const PlatformTimeframeFilter({
+/// Reusable compact timeframe selector for analytics charts.
+class TimeFrameFilter<T> extends StatelessWidget {
+  const TimeFrameFilter({
     super.key,
+    required this.options,
     required this.selected,
+    required this.labelBuilder,
     required this.onChanged,
   });
 
-  final PlatformAnalyticsTimeframe selected;
-  final ValueChanged<PlatformAnalyticsTimeframe> onChanged;
+  final List<T> options;
+  final T selected;
+  final String Function(T option) labelBuilder;
+  final ValueChanged<T> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: PlatformAnalyticsTimeframe.values.map((PlatformAnalyticsTimeframe timeframe) {
-        final bool isSelected = timeframe == selected;
+      children: options.map((T option) {
+        final bool isSelected = option == selected;
         return ChoiceChip(
           label: Text(
-            timeframe.label,
+            labelBuilder(option),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -29,7 +32,7 @@ class PlatformTimeframeFilter extends StatelessWidget {
             ),
           ),
           selected: isSelected,
-          onSelected: (_) => onChanged(timeframe),
+          onSelected: (_) => onChanged(option),
           selectedColor: const Color(0xFFEDE9FE),
           backgroundColor: const Color(0xFFF8FAFC),
           visualDensity: VisualDensity.compact,

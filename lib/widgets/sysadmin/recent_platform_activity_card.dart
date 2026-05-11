@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/sysadmin_dashboard_service.dart';
-import 'platform_timeframe_filter.dart';
+import '../common/time_frame_filter.dart';
 
 class RecentPlatformActivityCard extends StatelessWidget {
   const RecentPlatformActivityCard({
@@ -30,8 +30,10 @@ class RecentPlatformActivityCard extends StatelessWidget {
               'Recent Platform Activity',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
             );
-            final Widget filter = PlatformTimeframeFilter(
+            final Widget filter = TimeFrameFilter<PlatformAnalyticsTimeframe>(
+              options: PlatformAnalyticsTimeframe.values,
               selected: selectedTimeframe,
+              labelBuilder: (PlatformAnalyticsTimeframe timeframe) => timeframe.label,
               onChanged: onTimeframeChanged,
             );
             if (c.maxWidth < 720) {

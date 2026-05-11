@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
+import '../../utils/department_dashboard_service.dart';
 import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../auth/landing_screen.dart';
@@ -80,6 +81,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   Future<void> _logout(BuildContext context) async {
     PlatformSettingsService.instance.clearCache();
     SysAdminDashboardService.clearCache();
+    DepartmentDashboardService.clearCache();
     await FirebaseAuth.instance.signOut();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -224,7 +226,6 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Judges Panel', icon: AppIcons.judges),
             DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
-            DashboardMenuItem(label: 'Settings', icon: AppIcons.settings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
