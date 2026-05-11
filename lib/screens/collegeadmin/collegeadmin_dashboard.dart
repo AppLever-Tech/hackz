@@ -26,6 +26,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       FirestoreUtils.getDepartmentsByCollege(user.orgId),
       FirestoreUtils.getProblemStatementsByCollege(user.orgId),
       FirestoreUtils.getOrganizations(),
+      FirestoreUtils.getCollegeIdeaActivityTrend(user.orgId),
     ]);
     final organizations = results[3] as List<OrganizationModel>;
     final org = organizations.where((o) => o.id == user.orgId).cast<OrganizationModel?>().firstWhere(
@@ -37,6 +38,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       'departments': results[1] as List<Map<String, dynamic>>,
       'problems': results[2] as List<Map<String, dynamic>>,
       'org': org,
+      'ideaActivity': results[4] as List<Map<String, dynamic>>,
     };
   }
 
@@ -86,11 +88,6 @@ class CollegeAdminDashboard extends StatelessWidget {
             user: user,
           );
         }
-        if (selectedMenuIndex == 5) {
-          return const SectionContainer(
-            child: Text('Settings module placeholder'),
-          );
-        }
         return FutureBuilder<Map<String, dynamic>>(
           key: ValueKey<int>(refreshToken),
           future: _loadDashboardData(),
@@ -107,6 +104,8 @@ class CollegeAdminDashboard extends StatelessWidget {
             final departments =
                 data['departments'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
             final problems = data['problems'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
+            final ideaActivity =
+                data['ideaActivity'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
             final org = data['org'] as OrganizationModel?;
 
             final int totalDepartments = stats['totalDepartments'] as int? ?? 0;
@@ -289,9 +288,9 @@ class CollegeAdminDashboard extends StatelessWidget {
                       flex: 2,
                       child: ChartCard(
                         title: 'Idea Activity',
-                        child: const SizedBox(
+                        child: SizedBox(
                           height: 220,
-                          child: _IdeaActivityChart(),
+                          child: _IdeaActivityChart(points: ideaActivity),
                         ),
                       ),
                     ),
@@ -313,8 +312,10 @@ class CollegeAdminDashboard extends StatelessWidget {
                         ...departments.map(
                           (dept) {
                             final ideas = (dept['totalIdeas'] as int?) ?? 0;
-                            final users = (dept['totalUsers'] as int?) ?? 0;
-                            final bool active = ideas > 0 || users > 0;
+                            final faculty = (dept['facultyCount'] as int?) ?? 0;
+                            final students = (dept['studentCount'] as int?) ?? 0;
+                            final admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
+                            final hasAdmin = admin.isNotEmpty && admin != '-';
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               padding: const EdgeInsets.all(12),
@@ -325,30 +326,66 @@ class CollegeAdminDashboard extends StatelessWidget {
                               child: Row(
                                 children: <Widget>[
                                   Expanded(
-                                    child: Text(
-                                      (dept['name'] as String?) ?? '-',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    child: Row(
+                                      children: <Widget>[
+                                        Container(
+                                          width: 34,
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE8ECFF),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: const Tooltip(
+                                            message: 'Department',
+                                            child: Icon(AppIcons.departments, size: 18, color: Color(0xFF4F46E5)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            (dept['name'] as String?) ?? '-',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(fontWeight: FontWeight.w700),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  SizedBox(
-                                    width: 180,
-                                    child: Text((dept['departmentAdmin'] as String?) ?? '-'),
-                                  ),
-                                  SizedBox(width: 90, child: Text('Users: $users')),
-                                  SizedBox(width: 90, child: Text('Ideas: $ideas')),
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      active ? 'Active' : 'Low Activity',
-                                      style: TextStyle(
-                                        color: active ? Colors.green : Colors.orange,
-                                        fontWeight: FontWeight.w600,
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    flex: 2,
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Wrap(
+                                        alignment: WrapAlignment.end,
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: <Widget>[
+                                          if (hasAdmin)
+                                            _DepartmentMetricPill(
+                                              icon: AppIcons.adminProfile,
+                                              label: admin,
+                                              tooltip: 'Department admin',
+                                            ),
+                                          _DepartmentMetricPill(
+                                            icon: AppIcons.faculty,
+                                            label: '$faculty',
+                                            tooltip: 'Faculty',
+                                          ),
+                                          _DepartmentMetricPill(
+                                            icon: AppIcons.student,
+                                            label: '$students',
+                                            tooltip: 'Students',
+                                          ),
+                                          _DepartmentMetricPill(
+                                            icon: AppIcons.ideas,
+                                            label: '$ideas',
+                                            tooltip: 'Ideas',
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                                  OutlinedButton(
-                                    onPressed: () {},
-                                    child: const Text('View'),
                                   ),
                                 ],
                               ),
@@ -423,6 +460,53 @@ class _CollegeDetailItem extends StatelessWidget {
   }
 }
 
+class _DepartmentMetricPill extends StatelessWidget {
+  const _DepartmentMetricPill({
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 15, color: const Color(0xFF57629A)),
+            const SizedBox(width: 5),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DepartmentTrendChart extends StatelessWidget {
   const _DepartmentTrendChart({
     required this.labels,
@@ -447,9 +531,31 @@ class _DepartmentTrendChart extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Expanded(
-          child: CustomPaint(
-            painter: _DepartmentTrendPainter(labels: labels, ideas: ideas, problems: problems),
-            child: Container(),
+          child: Row(
+            children: <Widget>[
+              const RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  'Count',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: CustomPaint(
+                  painter: _DepartmentTrendPainter(labels: labels, ideas: ideas, problems: problems),
+                  child: Container(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Align(
+          alignment: Alignment.center,
+          child: Text(
+            'Departments',
+            style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
           ),
         ),
       ],
@@ -458,10 +564,14 @@ class _DepartmentTrendChart extends StatelessWidget {
 }
 
 class _IdeaActivityChart extends StatelessWidget {
-  const _IdeaActivityChart();
+  const _IdeaActivityChart({required this.points});
+
+  final List<Map<String, dynamic>> points;
 
   @override
   Widget build(BuildContext context) {
+    final labels = points.map((p) => (p['label'] as String?) ?? '').toList(growable: false);
+    final counts = points.map((p) => (p['count'] as int?) ?? 0).toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -484,7 +594,7 @@ class _IdeaActivityChart extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: CustomPaint(
-                  painter: _IdeaLinePainter(),
+                  painter: _IdeaLinePainter(labels: labels, counts: counts),
                   child: Container(),
                 ),
               ),
@@ -533,6 +643,14 @@ class _LegendDot extends StatelessWidget {
 }
 
 class _IdeaLinePainter extends CustomPainter {
+  const _IdeaLinePainter({
+    required this.labels,
+    required this.counts,
+  });
+
+  final List<String> labels;
+  final List<int> counts;
+
   @override
   void paint(Canvas canvas, Size size) {
     const leftPad = 30.0;
@@ -555,7 +673,8 @@ class _IdeaLinePainter extends CustomPainter {
       ..color = const Color(0xFFE8ECF6)
       ..strokeWidth = 1;
 
-    const yTicks = <int>[0, 10, 20, 30, 40];
+    final maxValue = counts.fold<int>(1, (int max, int value) => value > max ? value : max);
+    final yTicks = List<int>.generate(5, (int i) => (maxValue * i / 4).round());
     for (int i = 0; i < yTicks.length; i++) {
       final t = i / (yTicks.length - 1);
       final y = chartRect.bottom - (chartRect.height * t);
@@ -568,25 +687,32 @@ class _IdeaLinePainter extends CustomPainter {
       yLabel.paint(canvas, Offset(2, y - (yLabel.height / 2)));
     }
 
+    if (counts.isEmpty) return;
+
     final line = Paint()
       ..color = const Color(0xFF6A38FF)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..moveTo(chartRect.left + chartRect.width * 0.0, chartRect.top + chartRect.height * 0.80)
-      ..lineTo(chartRect.left + chartRect.width * 0.2, chartRect.top + chartRect.height * 0.68)
-      ..lineTo(chartRect.left + chartRect.width * 0.4, chartRect.top + chartRect.height * 0.72)
-      ..lineTo(chartRect.left + chartRect.width * 0.6, chartRect.top + chartRect.height * 0.50)
-      ..lineTo(chartRect.left + chartRect.width * 0.8, chartRect.top + chartRect.height * 0.46)
-      ..lineTo(chartRect.left + chartRect.width * 1.0, chartRect.top + chartRect.height * 0.30);
+    final dot = Paint()..color = const Color(0xFF6A38FF);
+    final path = Path();
+    for (int i = 0; i < counts.length; i++) {
+      final t = counts.length == 1 ? 0.5 : i / (counts.length - 1);
+      final x = chartRect.left + chartRect.width * t;
+      final y = chartRect.bottom - ((counts[i] / maxValue) * chartRect.height);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+      canvas.drawCircle(Offset(x, y), 3.2, dot);
+    }
     canvas.drawPath(path, line);
 
-    const xLabels = <String>['01 Apr', '05 Apr', '10 Apr', '15 Apr', '20 Apr', '25 Apr'];
-    for (int i = 0; i < xLabels.length; i++) {
-      final t = i / (xLabels.length - 1);
+    for (int i = 0; i < labels.length; i++) {
+      final t = labels.length == 1 ? 0.5 : i / (labels.length - 1);
       final x = chartRect.left + (chartRect.width * t);
       final xLabel = TextPainter(
-        text: TextSpan(text: xLabels[i], style: labelStyle),
+        text: TextSpan(text: labels[i], style: labelStyle),
         textDirection: TextDirection.ltr,
       )..layout();
       xLabel.paint(
@@ -597,7 +723,8 @@ class _IdeaLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _IdeaLinePainter oldDelegate) =>
+      oldDelegate.labels != labels || oldDelegate.counts != counts;
 }
 
 class _DepartmentTrendPainter extends CustomPainter {
@@ -613,13 +740,15 @@ class _DepartmentTrendPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const leftPad = 12.0;
+    const leftPad = 30.0;
     const rightPad = 8.0;
     const topPad = 10.0;
     const bottomPad = 28.0;
     final rect = Rect.fromLTWH(leftPad, topPad, size.width - leftPad - rightPad, size.height - topPad - bottomPad);
     final count = labels.isEmpty ? 1 : labels.length;
-    final maxValue = <int>[...ideas, ...problems].fold<int>(1, (a, b) => a > b ? a : b).toDouble();
+    final maxValueInt = <int>[...ideas, ...problems].fold<int>(1, (a, b) => a > b ? a : b);
+    final maxValue = maxValueInt.toDouble();
+    final labelStyle = TextStyle(color: Colors.grey.shade700, fontSize: 10);
 
     final grid = Paint()
       ..color = const Color(0xFFE8ECF6)
@@ -627,6 +756,12 @@ class _DepartmentTrendPainter extends CustomPainter {
     for (int i = 0; i < 4; i++) {
       final y = rect.top + (rect.height * i / 3);
       canvas.drawLine(Offset(rect.left, y), Offset(rect.right, y), grid);
+      final tickValue = (maxValueInt * (3 - i) / 3).round();
+      final yLabel = TextPainter(
+        text: TextSpan(text: '$tickValue', style: labelStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      yLabel.paint(canvas, Offset(2, y - (yLabel.height / 2)));
     }
 
     Offset pointAt(int i, int value) {
@@ -664,7 +799,6 @@ class _DepartmentTrendPainter extends CustomPainter {
         ..style = PaintingStyle.stroke,
     );
 
-    final labelStyle = TextStyle(color: Colors.grey.shade700, fontSize: 10);
     for (int i = 0; i < count; i++) {
       final x = rect.left + (rect.width * (count == 1 ? 0.5 : i / (count - 1)));
       final txt = labels.isEmpty ? '-' : labels[i];

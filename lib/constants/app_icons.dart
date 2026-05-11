@@ -14,6 +14,7 @@ class AppIcons {
   static const IconData copied = Icons.check;
   static const IconData key = Icons.key_outlined;
   static const IconData more = Icons.more_vert;
+  static const IconData remove = Icons.close_rounded;
 
   // Shared domain icons
   static const IconData dashboard = Icons.grid_view_rounded;

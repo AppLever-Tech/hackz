@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../models/department_model.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
@@ -94,7 +95,9 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
 
   Future<void> _showAddDepartmentDialog() async {
     final departmentController = TextEditingController();
+    final customDepartmentController = TextEditingController();
     String selectedDepartment = '';
+    bool useCustomDepartment = false;
     bool isSaving = false;
 
     final shouldRefresh = await showAppDialog<bool>(
@@ -102,19 +105,22 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       child: StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
             Future<void> submit() async {
-              if (selectedDepartment.trim().isEmpty) {
+              final departmentName = useCustomDepartment
+                  ? customDepartmentController.text.trim()
+                  : selectedDepartment.trim();
+              if (departmentName.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select a department')),
+                  const SnackBar(content: Text('Please select or enter a department')),
                 );
                 return;
               }
 
-              final departmentCode = DepartmentModel.byName(selectedDepartment)?.code ?? '';
+              final departmentCode = _resolveDepartmentCode(departmentName);
               setState(() => isSaving = true);
               try {
                 await FirestoreUtils.addDepartment(
                   orgId: widget.user.orgId,
-                  name: selectedDepartment,
+                  name: departmentName,
                   code: departmentCode,
                 );
                 if (!context.mounted) return;
@@ -133,7 +139,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   children: <Widget>[
                     const Row(
                       children: <Widget>[
-                        Icon(Icons.account_tree_outlined, color: Color(0xFF6A38FF), size: 28),
+                        Icon(AppIcons.departments, color: Color(0xFF6A38FF), size: 28),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -144,29 +150,69 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        ChoiceChip(
+                          label: const Text('Existing list'),
+                          selected: !useCustomDepartment,
+                          onSelected: isSaving
+                              ? null
+                              : (_) => setState(() {
+                                    useCustomDepartment = false;
+                                  }),
+                        ),
+                        ChoiceChip(
+                          label: const Text('New department'),
+                          selected: useCustomDepartment,
+                          onSelected: isSaving
+                              ? null
+                              : (_) => setState(() {
+                                    useCustomDepartment = true;
+                                  }),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
                     const Text(
                       'Department',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 8),
-                    DropdownMenu<String>(
-                      width: 520,
-                      requestFocusOnTap: true,
-                      controller: departmentController,
-                      hintText: 'Select department',
-                      enableSearch: true,
-                      dropdownMenuEntries: DepartmentModel.masterNames
-                          .map(
-                            (name) => DropdownMenuEntry<String>(
-                              value: name,
-                              label: name,
-                            ),
-                          )
-                          .toList(growable: false),
-                      onSelected: (value) {
-                        setState(() => selectedDepartment = value ?? '');
-                      },
-                    ),
+                    if (useCustomDepartment)
+                      TextField(
+                        controller: customDepartmentController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter department name',
+                          prefixIcon: Icon(AppIcons.departments),
+                          border: OutlineInputBorder(),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) {
+                          if (!isSaving) submit();
+                        },
+                      )
+                    else
+                      DropdownMenu<String>(
+                        width: 520,
+                        requestFocusOnTap: true,
+                        controller: departmentController,
+                        hintText: 'Select department',
+                        enableSearch: true,
+                        dropdownMenuEntries: DepartmentModel.masterNames
+                            .map(
+                              (name) => DropdownMenuEntry<String>(
+                                value: name,
+                                label: name,
+                              ),
+                            )
+                            .toList(growable: false),
+                        onSelected: (value) {
+                          setState(() => selectedDepartment = value ?? '');
+                        },
+                      ),
                     const SizedBox(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -188,7 +234,24 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         },
       ),
     );
+    departmentController.dispose();
+    customDepartmentController.dispose();
     if (mounted && shouldRefresh == true) setState(() {});
+  }
+
+  String _resolveDepartmentCode(String departmentName) {
+    final master = DepartmentModel.byName(departmentName);
+    if (master != null) return master.code;
+    final words = departmentName
+        .split(RegExp(r'\s+'))
+        .map((word) => word.replaceAll(RegExp(r'[^A-Za-z0-9]'), ''))
+        .where((word) => word.isNotEmpty)
+        .toList(growable: false);
+    if (words.length > 1) {
+      return words.map((word) => word[0]).join().toUpperCase();
+    }
+    final compact = departmentName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    return compact.length <= 6 ? compact : compact.substring(0, 6);
   }
 
   @override
@@ -217,7 +280,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   ),
                   FilledButton.icon(
                     onPressed: _showAddDepartmentDialog,
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(AppIcons.add),
                     label: const Text('Add Department'),
                   ),
                 ],
@@ -234,7 +297,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
-                    childAspectRatio: 3.2,
+                    childAspectRatio: 3.7,
                   ),
                   itemBuilder: (BuildContext context, int index) {
                     final dept = departments[index];
@@ -272,7 +335,6 @@ class _DepartmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (department['name'] as String?) ?? '-';
-    final code = (department['code'] as String?) ?? '-';
     final admin = (department['departmentAdmin'] as String?)?.trim().isNotEmpty == true
         ? (department['departmentAdmin'] as String).trim()
         : 'Not Assigned';
@@ -295,86 +357,166 @@ class _DepartmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8ECFF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Tooltip(
+                  message: 'Department',
+                  child: Icon(AppIcons.departments, size: 20, color: Color(0xFF4F46E5)),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, height: 1.2),
                 ),
               ),
             ],
           ),
-          Text(
-            code,
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 18),
-          if (!hasAdmin)
-            Row(
-              children: <Widget>[
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              if (!hasAdmin) ...<Widget>[
                 Expanded(
-                  child: Text(
-                    'No Department Admin',
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: <Widget>[
+                      const Tooltip(
+                        message: 'Department admin',
+                        child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF94A3B8)),
+                      ),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          'No admin assigned',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Add department admin',
+                        onPressed: onAddAdmin,
+                        icon: const Icon(AppIcons.add, size: 18, color: Color(0xFF6A38FF)),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...<Widget>[
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      const Tooltip(
+                        message: 'Department admin',
+                        child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF57629A)),
+                      ),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          admin,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remove department admin',
+                        onPressed: () => onRemoveAdmin(adminUserId, admin),
+                        icon: const Icon(AppIcons.remove, size: 15, color: Colors.redAccent),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(width: 8),
+              Flexible(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _DepartmentCountChip(
+                      icon: AppIcons.faculty,
+                      count: facultyCount,
+                      tooltip: 'Faculty count',
                     ),
-                  ),
+                    _DepartmentCountChip(
+                      icon: AppIcons.student,
+                      count: studentCount,
+                      tooltip: 'Student count',
+                    ),
+                    _DepartmentCountChip(
+                      icon: AppIcons.ideas,
+                      count: totalIdeas,
+                      tooltip: 'Ideas count',
+                    ),
+                  ],
                 ),
-                IconButton(
-                  tooltip: 'Add Admin',
-                  onPressed: onAddAdmin,
-                  icon: const Icon(Icons.add_circle_outline, size: 20, color: Color(0xFF6A38FF)),
-                  visualDensity: VisualDensity.compact,
-                ),
-                IconButton(
-                  tooltip: 'No admin to remove',
-                  onPressed: null,
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            )
-          else
-            Row(
-              children: <Widget>[
-                CircleAvatar(
-                radius: 14,
-                  backgroundColor: const Color(0xFFE9EEFF),
-                  child: Text(
-                    admin.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF42508B)),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    admin,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Remove Admin',
-                  onPressed: () => onRemoveAdmin(adminUserId, admin),
-                  icon: const Icon(Icons.close_rounded, size: 16, color: Colors.redAccent),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          const SizedBox(height: 0),
-          Text(
-            'Faculty: $facultyCount   Student: $studentCount   Ideas: $totalIdeas',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DepartmentCountChip extends StatelessWidget {
+  const _DepartmentCountChip({
+    required this.icon,
+    required this.count,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final int count;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 15, color: const Color(0xFF57629A)),
+            const SizedBox(width: 5),
+            Text(
+              '$count',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF334155),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

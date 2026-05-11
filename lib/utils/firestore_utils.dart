@@ -464,7 +464,9 @@ class FirestoreUtils {
     final activeUsers = usersSnapshot.docs
         .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.active)
         .length;
-    final pendingUsers = totalUsers - activeUsers;
+    final pendingUsers = usersSnapshot.docs
+        .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.pendingApproval)
+        .length;
 
     return <String, dynamic>{
       'totalDepartments': departmentsSnapshot.docs.length,
@@ -474,6 +476,37 @@ class FirestoreUtils {
       'totalProblems': problemsSnapshot.docs.length,
       'totalIdeas': ideasSnapshot.docs.length,
     };
+  }
+
+  static Future<List<Map<String, dynamic>>> getCollegeIdeaActivityTrend(String orgId) async {
+    final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final start = today.subtract(const Duration(days: 25));
+    final buckets = List<DateTime>.generate(6, (int i) => start.add(Duration(days: i * 5)));
+    final counts = List<int>.filled(buckets.length, 0);
+
+    for (final doc in ideasSnapshot.docs) {
+      final createdAt = (doc.data()['createdAt'] as Timestamp?)?.toDate();
+      if (createdAt == null || createdAt.isBefore(start)) continue;
+      for (int i = 0; i < buckets.length; i++) {
+        final from = buckets[i];
+        final to = i == buckets.length - 1 ? now.add(const Duration(days: 1)) : buckets[i + 1];
+        if (!createdAt.isBefore(from) && createdAt.isBefore(to)) {
+          counts[i]++;
+          break;
+        }
+      }
+    }
+
+    return List<Map<String, dynamic>>.generate(
+      buckets.length,
+      (int i) => <String, dynamic>{
+        'label': '${buckets[i].day}/${buckets[i].month}',
+        'count': counts[i],
+      },
+      growable: false,
+    );
   }
 
   static Future<List<Map<String, dynamic>>> getIdeasByCollege(String orgId) async {
