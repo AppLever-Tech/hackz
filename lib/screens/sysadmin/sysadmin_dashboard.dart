@@ -12,32 +12,20 @@ import 'organization_dialog.dart';
 import 'edit_org_screen.dart';
 import 'platform_settings_dashboard.dart';
 import '../../utils/firestore_utils.dart';
+import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/sysadmin/innovation_funnel_widget.dart';
+import '../../widgets/sysadmin/organization_analytics_chart.dart';
+import '../../widgets/sysadmin/participation_trend_chart.dart';
+import '../../widgets/sysadmin/platform_alerts_section.dart';
+import '../../widgets/sysadmin/platform_distribution_chart.dart';
+import '../../widgets/sysadmin/platform_metric_card.dart';
+import '../../widgets/sysadmin/recent_platform_activity_card.dart';
 
 class SysAdminDashboard extends StatelessWidget {
   const SysAdminDashboard({super.key, required this.user});
 
   final UserModel user;
-
-  Future<Map<String, dynamic>> _loadDashboardData() async {
-    final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      FirestoreUtils.getTotalOrganizations(),
-      FirestoreUtils.getTotalUsers(),
-      FirestoreUtils.getActiveUsers(),
-      FirestoreUtils.getProblemsCount(),
-      FirestoreUtils.getIdeasCount(),
-      FirestoreUtils.getOrgStats(),
-    ]);
-
-    return <String, dynamic>{
-      'totalOrganizations': results[0] as int,
-      'totalUsers': results[1] as int,
-      'activeUsers': results[2] as int,
-      'totalProblems': results[3] as int,
-      'totalIdeas': results[4] as int,
-      'orgStats': results[5] as List<Map<String, dynamic>>,
-    };
-  }
 
   Future<List<OrganizationModel>> _loadOrganizations() {
     return FirestoreUtils.getOrganizations();
@@ -72,155 +60,289 @@ class SysAdminDashboard extends StatelessWidget {
             loadOrganizations: _loadOrganizations,
           );
         }
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _loadDashboardData(),
-          builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Text('Unable to load dashboard data: ${snapshot.error}');
-            }
+        return _SysAdminOverview(refreshToken: refreshToken);
+      },
+    );
+  }
+}
 
-            final data = snapshot.data ?? <String, dynamic>{};
-            final int totalOrganizations = data['totalOrganizations'] as int? ?? 0;
-            final int totalUsers = data['totalUsers'] as int? ?? 0;
-            final int activeUsers = data['activeUsers'] as int? ?? 0;
-            final int totalProblems = data['totalProblems'] as int? ?? 0;
-            final int totalIdeas = data['totalIdeas'] as int? ?? 0;
-            final List<Map<String, dynamic>> orgStats =
-                data['orgStats'] as List<Map<String, dynamic>>? ?? <Map<String, dynamic>>[];
+class _SysAdminOverview extends StatefulWidget {
+  const _SysAdminOverview({required this.refreshToken});
 
-            final int inactiveUsers = (totalUsers - activeUsers).clamp(0, totalUsers);
-            final double activePct = totalUsers == 0 ? 0 : (activeUsers / totalUsers);
-            final int activationPercent = (activePct * 100).round();
+  final int refreshToken;
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                Row(
+  @override
+  State<_SysAdminOverview> createState() => _SysAdminOverviewState();
+}
+
+class _SysAdminOverviewState extends State<_SysAdminOverview> {
+  late Future<SysAdminDashboardAnalytics> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = SysAdminDashboardService.load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SysAdminOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      setState(() {
+        _future = SysAdminDashboardService.load(forceRefresh: true);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<SysAdminDashboardAnalytics>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<SysAdminDashboardAnalytics> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('Unable to load platform analytics: ${snapshot.error}');
+        }
+        final data = snapshot.data;
+        if (data == null) {
+          return const Center(child: Text('No platform analytics available yet.'));
+        }
+        return _SysAdminAnalyticsView(data: data);
+      },
+    );
+  }
+}
+
+class _SysAdminAnalyticsView extends StatefulWidget {
+  const _SysAdminAnalyticsView({required this.data});
+
+  final SysAdminDashboardAnalytics data;
+
+  @override
+  State<_SysAdminAnalyticsView> createState() => _SysAdminAnalyticsViewState();
+}
+
+class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
+  PlatformAnalyticsTimeframe _trendTimeframe = PlatformAnalyticsTimeframe.currentWeek;
+  PlatformAnalyticsTimeframe _activityTimeframe = PlatformAnalyticsTimeframe.currentWeek;
+
+  @override
+  Widget build(BuildContext context) {
+    final SysAdminDashboardAnalytics data = widget.data;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        final bool compact = c.maxWidth < 860;
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _MetricGrid(data: data),
+              const SizedBox(height: 16),
+              SectionContainer(
+                child: ParticipationTrendChart(
+                  points: data.trendFor(_trendTimeframe),
+                  selectedTimeframe: _trendTimeframe,
+                  onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                    setState(() => _trendTimeframe = timeframe);
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (compact)
+                Column(
                   children: <Widget>[
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalOrganizations',
-                        label: 'Total Organizations',
-                        icon: Icons.apartment_outlined,
-                        iconBgColor: const Color(0xFFEAF2FF),
+                    SectionContainer(child: InnovationFunnelWidget(steps: data.funnel)),
+                    const SizedBox(height: 16),
+                    SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity)),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: SectionContainer(child: InnovationFunnelWidget(steps: data.funnel))),
+                    const SizedBox(width: 16),
+                    Expanded(child: SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity))),
+                  ],
+                ),
+              const SizedBox(height: 16),
+              if (compact)
+                Column(
+                  children: <Widget>[
+                    SectionContainer(
+                      child: PlatformDistributionChart(
+                        title: 'Users by Role',
+                        subtitle: 'Operational identity mix across the platform',
+                        segments: data.usersByRole,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalUsers',
-                        label: 'Total Users',
-                        icon: Icons.groups_outlined,
-                        iconBgColor: const Color(0xFFFFF4E8),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalProblems',
-                        label: 'Total Problems',
-                        icon: Icons.warning_amber_rounded,
-                        iconBgColor: const Color(0xFFFFF2E8),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalIdeas',
-                        label: 'Total Ideas',
-                        icon: Icons.lightbulb_outline,
-                        iconBgColor: const Color(0xFFF2EDFF),
+                    const SizedBox(height: 16),
+                    SectionContainer(
+                      child: PlatformDistributionChart(
+                        title: 'Idea Status Mix',
+                        subtitle: 'Submission lifecycle distribution',
+                        segments: data.ideaStatusDistribution,
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
+                )
+              else
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Expanded(
-                      flex: 2,
-                      child: ChartCard(
-                        title: 'Platform Activity',
-                        child: const SizedBox(
-                          height: 220,
-                          child: _LineChartPlaceholder(),
+                      child: _FixedDashboardCard(
+                        height: 236,
+                        child: PlatformDistributionChart(
+                          title: 'Users by Role',
+                          subtitle: 'Operational identity mix across the platform',
+                          segments: data.usersByRole,
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: ChartCard(
-                        title: 'Activation Rate',
-                        child: SizedBox(
-                          height: 220,
-                          child: Center(
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                SizedBox(
-                                  height: 150,
-                                  width: 150,
-                                  child: CircularProgressIndicator(
-                                    value: activePct,
-                                    strokeWidth: 14,
-                                    color: const Color(0xFF6A38FF),
-                                    backgroundColor: const Color(0xFFE8ECF8),
-                                  ),
-                                ),
-                                Text(
-                                  '$activationPercent% Active\n$inactiveUsers Inactive',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
+                      child: _FixedDashboardCard(
+                        height: 236,
+                        child: PlatformDistributionChart(
+                          title: 'Idea Status Mix',
+                          subtitle: 'Submission lifecycle distribution',
+                          segments: data.ideaStatusDistribution,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                ChartCard(
-                  title: 'Organization Snapshot',
-                  child: Column(
-                    children: orgStats.isEmpty
-                        ? const <Widget>[Text('No organizations found')]
-                        : orgStats
-                            .map(
-                              (org) => OrganizationRow(
-                                name: (org['name'] as String?) ?? '-',
-                                type: (org['type'] as String?) ?? '-',
-                                totalUsers: (org['totalUsers'] as int?) ?? 0,
-                                activeUsers: (org['activeUsers'] as int?) ?? 0,
-                                pendingUsers: (org['pendingUsers'] as int?) ?? 0,
-                                totalIdeas: (org['totalIdeas'] as int?) ?? 0,
-                              ),
-                            )
-                            .toList(growable: false),
-                  ),
+              const SizedBox(height: 16),
+              if (compact)
+                Column(
+                  children: <Widget>[
+                    SectionContainer(child: PlatformAlertsSection(alerts: data.alerts)),
+                    const SizedBox(height: 16),
+                    SectionContainer(
+                      child: RecentPlatformActivityCard(
+                        events: data.recentActivity,
+                        selectedTimeframe: _activityTimeframe,
+                        onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                          setState(() => _activityTimeframe = timeframe);
+                        },
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: _FixedDashboardCard(
+                        height: 380,
+                        child: PlatformAlertsSection(alerts: data.alerts),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _FixedDashboardCard(
+                        height: 380,
+                        child: RecentPlatformActivityCard(
+                          events: data.recentActivity,
+                          selectedTimeframe: _activityTimeframe,
+                          onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                            setState(() => _activityTimeframe = timeframe);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'System Insights',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _FixedDashboardCard extends StatelessWidget {
+  const _FixedDashboardCard({
+    required this.height,
+    required this.child,
+  });
+
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: SectionContainer(
+        child: SingleChildScrollView(
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricGrid extends StatelessWidget {
+  const _MetricGrid({required this.data});
+
+  final SysAdminDashboardAnalytics data;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        final int columns = c.maxWidth < 640
+            ? 1
+            : c.maxWidth < 1040
+                ? 2
+                : 4;
+        final List<Widget> cards = <Widget>[
+          PlatformMetricCard(
+            label: 'Active Organizations',
+            value: '${data.activeOrganizations}',
+            icon: AppIcons.organizations,
+            accent: const Color(0xFF2563EB),
+            caption: 'Recent ecosystem activity',
+          ),
+          PlatformMetricCard(
+            label: 'Total Active Users',
+            value: '${data.totalActiveUsers}',
+            icon: AppIcons.users,
+            accent: const Color(0xFF7C3AED),
+            caption: 'Approved platform users',
+          ),
+          PlatformMetricCard(
+            label: 'Ideas Submitted',
+            value: '${data.ideasSubmitted}',
+            icon: AppIcons.ideas,
+            accent: const Color(0xFFEA580C),
+            caption: 'All submitted ideas',
+          ),
+          PlatformMetricCard(
+            label: 'Approval Rate',
+            value: '${(data.approvalRate * 100).round()}%',
+            icon: AppIcons.statusApproved,
+            accent: const Color(0xFF16A34A),
+            caption: 'Active users / registrations',
+          ),
+        ];
+        return Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: cards
+              .map(
+                (Widget child) => SizedBox(
+                  width: (c.maxWidth - (columns - 1) * 14) / columns,
+                  child: child,
                 ),
-                const SizedBox(height: 10),
-                const InsightCard(text: '3 organizations have high pending users'),
-                const SizedBox(height: 10),
-                const InsightCard(text: '2 organizations inactive for 7 days'),
-                const SizedBox(height: 10),
-                const InsightCard(text: 'Low engagement in 1 organization'),
-                ],
-              ),
-            );
-          },
+              )
+              .toList(growable: false),
         );
       },
     );
@@ -468,58 +590,3 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
   }
 }
 
-class _LineChartPlaceholder extends StatelessWidget {
-  const _LineChartPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _LinePainter(),
-      child: Container(),
-    );
-  }
-}
-
-class _LinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = const Color(0xFFE8ECF6)
-      ..strokeWidth = 1;
-    for (int i = 1; i < 5; i++) {
-      final y = size.height * i / 5;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-
-    final ideas = Paint()
-      ..color = const Color(0xFF6A38FF)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final users = Paint()
-      ..color = const Color(0xFFFF8C2B)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-
-    final ideasPath = Path()
-      ..moveTo(0, size.height * 0.75)
-      ..lineTo(size.width * 0.2, size.height * 0.6)
-      ..lineTo(size.width * 0.4, size.height * 0.7)
-      ..lineTo(size.width * 0.6, size.height * 0.45)
-      ..lineTo(size.width * 0.8, size.height * 0.5)
-      ..lineTo(size.width, size.height * 0.3);
-
-    final usersPath = Path()
-      ..moveTo(0, size.height * 0.85)
-      ..lineTo(size.width * 0.2, size.height * 0.8)
-      ..lineTo(size.width * 0.4, size.height * 0.55)
-      ..lineTo(size.width * 0.6, size.height * 0.65)
-      ..lineTo(size.width * 0.8, size.height * 0.42)
-      ..lineTo(size.width, size.height * 0.38);
-
-    canvas.drawPath(ideasPath, ideas);
-    canvas.drawPath(usersPath, users);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
