@@ -12,6 +12,7 @@ import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
 import '../../widgets/common/idea_status_distribution_donut.dart';
+import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -64,6 +65,17 @@ class FacultyDashboard extends StatelessWidget {
   }
 }
 
+enum _FacultyTimeframe {
+  currentWeek('Current week'),
+  lastWeek('Last week'),
+  lastMonth('Last month'),
+  lastSixMonths('Last 6 months'),
+  all('All');
+
+  const _FacultyTimeframe(this.label);
+  final String label;
+}
+
 class _FacultyDashboardHome extends StatefulWidget {
   const _FacultyDashboardHome({super.key, required this.user});
 
@@ -77,6 +89,8 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   static const double _kDashboardIconSize = 18;
   late Future<_FacultyDashboardVm> _future;
   int _activityLimit = 8;
+  _FacultyTimeframe _submissionTimeframe = _FacultyTimeframe.currentWeek;
+  _FacultyTimeframe _activityTimeframe = _FacultyTimeframe.currentWeek;
 
   @override
   void initState() {
@@ -112,6 +126,96 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         );
       },
     );
+  }
+
+  Map<String, int> _buildTimeSeries(Iterable<DateTime> source, _FacultyTimeframe timeframe) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    late final DateTime start;
+    late final DateTime end;
+    late final int bucketCount;
+    late final Duration bucketSize;
+    switch (timeframe) {
+      case _FacultyTimeframe.currentWeek:
+        start = today.subtract(Duration(days: today.weekday - 1));
+        end = start.add(const Duration(days: 7));
+        bucketCount = 7;
+        bucketSize = const Duration(days: 1);
+        break;
+      case _FacultyTimeframe.lastWeek:
+        end = today.subtract(Duration(days: today.weekday - 1));
+        start = end.subtract(const Duration(days: 7));
+        bucketCount = 7;
+        bucketSize = const Duration(days: 1);
+        break;
+      case _FacultyTimeframe.lastMonth:
+        start = today.subtract(const Duration(days: 30));
+        end = now.add(const Duration(days: 1));
+        bucketCount = 6;
+        bucketSize = const Duration(days: 5);
+        break;
+      case _FacultyTimeframe.lastSixMonths:
+        start = DateTime(today.year, today.month - 5, 1);
+        end = now.add(const Duration(days: 1));
+        bucketCount = 6;
+        bucketSize = const Duration(days: 31);
+        break;
+      case _FacultyTimeframe.all:
+        final dates = source.toList(growable: false)..sort();
+        start = dates.isEmpty ? today.subtract(const Duration(days: 180)) : DateTime(dates.first.year, dates.first.month, 1);
+        end = now.add(const Duration(days: 1));
+        bucketCount = 8;
+        final days = end.difference(start).inDays.clamp(1, 3650).toInt();
+        bucketSize = Duration(days: (days / bucketCount).ceil().clamp(1, 365).toInt());
+        break;
+    }
+
+    final buckets = List<DateTime>.generate(bucketCount, (int i) => start.add(Duration(days: bucketSize.inDays * i)));
+    final dates = source.toList(growable: false);
+    return <String, int>{
+      for (int i = 0; i < buckets.length; i++)
+        _bucketLabel(buckets[i], timeframe): dates.where((date) {
+          final from = buckets[i];
+          final to = i == buckets.length - 1 ? end : buckets[i + 1];
+          return !date.isBefore(from) && date.isBefore(to);
+        }).length,
+    };
+  }
+
+  bool _isWithinTimeframe(DateTime date, _FacultyTimeframe timeframe) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (timeframe) {
+      case _FacultyTimeframe.currentWeek:
+        final start = today.subtract(Duration(days: today.weekday - 1));
+        return !date.isBefore(start) && date.isBefore(start.add(const Duration(days: 7)));
+      case _FacultyTimeframe.lastWeek:
+        final currentWeekStart = today.subtract(Duration(days: today.weekday - 1));
+        final start = currentWeekStart.subtract(const Duration(days: 7));
+        return !date.isBefore(start) && date.isBefore(currentWeekStart);
+      case _FacultyTimeframe.lastMonth:
+        return !date.isBefore(today.subtract(const Duration(days: 30)));
+      case _FacultyTimeframe.lastSixMonths:
+        return !date.isBefore(DateTime(today.year, today.month - 5, 1));
+      case _FacultyTimeframe.all:
+        return true;
+    }
+  }
+
+  String _bucketLabel(DateTime date, _FacultyTimeframe timeframe) {
+    const months = <String>['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    switch (timeframe) {
+      case _FacultyTimeframe.currentWeek:
+      case _FacultyTimeframe.lastWeek:
+        const days = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return days[date.weekday - 1];
+      case _FacultyTimeframe.lastMonth:
+        return '${date.month}/${date.day}';
+      case _FacultyTimeframe.lastSixMonths:
+        return months[date.month - 1];
+      case _FacultyTimeframe.all:
+        return '${months[date.month - 1]} ${date.year % 100}';
+    }
   }
 
   Widget _buildSummaryCards(_FacultyDashboardVm vm) {
@@ -187,81 +291,142 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildCharts(_FacultyDashboardVm vm) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(
-          child: ChartCard(
-            title: 'Idea Status',
-            child: SizedBox(
-              height: 210,
-              child: IdeaStatusDistributionDonut(
-                pending: vm.pendingIdeas,
-                submitted: vm.submittedIdeas,
-                underReview: vm.underReviewIdeas,
-                evaluated: vm.evaluatedIdeas,
-                approved: vm.approvedIdeas,
-                rejected: vm.rejectedIdeas,
-              ),
-            ),
-          ),
+    final statusChart = ChartCard(
+      title: 'Idea Status',
+      child: SizedBox(
+        height: 210,
+        child: IdeaStatusDistributionDonut(
+          pending: vm.pendingIdeas,
+          submitted: vm.submittedIdeas,
+          underReview: vm.underReviewIdeas,
+          evaluated: vm.evaluatedIdeas,
+          approved: vm.approvedIdeas,
+          rejected: vm.rejectedIdeas,
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 2,
-          child: ChartCard(
-            title: 'Submissions Over Time',
-            child: SizedBox(
-              height: 210,
-              child: _SubmissionTrendChart(series: vm.submissionsByDay),
-            ),
-          ),
+      ),
+    );
+    final submissionChart = ChartCard(
+      title: 'Submissions Over Time',
+      child: SizedBox(
+        height: 210,
+        child: _SubmissionTrendChart(
+                problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
+                ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
+                teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
+          selectedTimeframe: _submissionTimeframe,
+          onTimeframeChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
         ),
-      ],
+      ),
+    );
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < 900) {
+          return Column(
+            children: <Widget>[
+              statusChart,
+              const SizedBox(height: 16),
+              submissionChart,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: statusChart),
+            const SizedBox(width: 16),
+            Expanded(flex: 2, child: submissionChart),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildKeyCards(BuildContext context, _FacultyDashboardVm vm) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(
-          child: _KeyDataCard(
-            title: 'My Teams',
-            teamPreview: vm.teams.take(3).toList(growable: false),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _KeyDataCard(
-            title: 'My Problems',
-            preview: vm.problemPreview,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _KeyDataCard(
-            title: 'My Ideas',
-            preview: vm.ideaPreview,
-          ),
-        ),
-      ],
+    final cards = <Widget>[
+      _KeyDataCard(
+        title: 'My Teams',
+        icon: AppIcons.teams,
+        count: vm.teamCount,
+        teamPreview: vm.teams.take(3).toList(growable: false),
+      ),
+      _KeyDataCard(
+        title: 'My Problems',
+        icon: AppIcons.problems,
+        count: vm.departmentProblemCount,
+        preview: vm.problemPreview,
+      ),
+      _KeyDataCard(
+        title: 'My Ideas',
+        icon: AppIcons.ideas,
+        count: vm.ideaCount,
+        preview: vm.ideaPreview,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        if (constraints.maxWidth < 900) {
+          return Column(
+            children: cards
+                .map(
+                  (card) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: card,
+                  ),
+                )
+                .toList(growable: false),
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: cards[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cards[2]),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildRecentActivity(_FacultyDashboardVm vm) {
-    final visible = vm.activities.take(_activityLimit).toList(growable: false);
+    final filtered = vm.activities.where((a) => _isWithinTimeframe(a.time, _activityTimeframe)).toList(growable: false);
+    final visible = filtered.take(_activityLimit).toList(growable: false);
     return SectionContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text(
-            'Recent Activity',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              const title = Text(
+                'Recent Activity',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              );
+              final filter = TimeFrameFilter<_FacultyTimeframe>(
+                options: _FacultyTimeframe.values,
+                selected: _activityTimeframe,
+                labelBuilder: (_FacultyTimeframe option) => option.label,
+                onChanged: (timeframe) => setState(() {
+                  _activityTimeframe = timeframe;
+                  _activityLimit = 8;
+                }),
+              );
+              if (constraints.maxWidth < 720) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[title, const SizedBox(height: 10), filter],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[Expanded(child: title), const SizedBox(width: 12), filter],
+              );
+            },
           ),
           const SizedBox(height: 10),
           if (visible.isEmpty)
-            const Text('No recent activity.')
+            const Text('No activity in this period.')
           else
             ...visible.map(
               (a) => Padding(
@@ -279,7 +444,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
                 ),
               ),
             ),
-          if (_activityLimit < vm.activities.length)
+          if (_activityLimit < filtered.length)
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -368,15 +533,6 @@ class _FacultyDashboardService {
       }
     }
 
-    final byDay = <String, int>{};
-    for (final idea in ideas) {
-      final key =
-          '${idea.createdAt.year}-${idea.createdAt.month.toString().padLeft(2, '0')}-${idea.createdAt.day.toString().padLeft(2, '0')}';
-      byDay[key] = (byDay[key] ?? 0) + 1;
-    }
-    final sortedDays = byDay.keys.toList(growable: false)..sort();
-    final submissionsByDay = <String, int>{for (final day in sortedDays.take(7)) day.substring(5): byDay[day] ?? 0};
-
     final teamNameById = <String, String>{
       for (final t in teams) t.teamId: (t.teamName.isEmpty ? t.teamId : t.teamName)
     };
@@ -394,7 +550,7 @@ class _FacultyDashboardService {
       }),
       ...teams.map(
         (t) => _ActivityItem(
-          icon: AppIcons.users,
+          icon: AppIcons.teams,
           color: const Color(0xFF6E7394),
           text: 'Team created: ${t.teamName.isEmpty ? t.teamId : t.teamName}',
           time: t.createdAt,
@@ -424,7 +580,11 @@ class _FacultyDashboardService {
       approvedIdeas: approved,
       rejectedIdeas: rejected,
       departmentProblemCount: departmentProblems.length,
-      submissionsByDay: submissionsByDay,
+      submissionDates: ideas.map((i) => i.createdAt).toList(growable: false),
+      problemDates: departmentProblems
+          .map((p) => (p.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now())
+          .toList(growable: false),
+      teamCreationDates: teams.map((t) => t.createdAt).toList(growable: false),
       problemPreview: departmentProblems
           .take(3)
           .map((p) => ((p.data()['title'] as String?) ?? 'Untitled problem').trim())
@@ -452,7 +612,9 @@ class _FacultyDashboardVm {
     required this.approvedIdeas,
     required this.rejectedIdeas,
     required this.departmentProblemCount,
-    required this.submissionsByDay,
+    required this.submissionDates,
+    required this.problemDates,
+    required this.teamCreationDates,
     required this.problemPreview,
     required this.ideaPreview,
     required this.activities,
@@ -471,7 +633,9 @@ class _FacultyDashboardVm {
     approvedIdeas: 0,
     rejectedIdeas: 0,
     departmentProblemCount: 0,
-    submissionsByDay: <String, int>{},
+    submissionDates: <DateTime>[],
+    problemDates: <DateTime>[],
+    teamCreationDates: <DateTime>[],
     problemPreview: <String>[],
     ideaPreview: <String>[],
     activities: <_ActivityItem>[],
@@ -489,7 +653,9 @@ class _FacultyDashboardVm {
   final int approvedIdeas;
   final int rejectedIdeas;
   final int departmentProblemCount;
-  final Map<String, int> submissionsByDay;
+  final List<DateTime> submissionDates;
+  final List<DateTime> problemDates;
+  final List<DateTime> teamCreationDates;
   final List<String> problemPreview;
   final List<String> ideaPreview;
   final List<_ActivityItem> activities;
@@ -499,66 +665,109 @@ class _FacultyDashboardVm {
 class _KeyDataCard extends StatelessWidget {
   const _KeyDataCard({
     required this.title,
+    required this.icon,
+    required this.count,
     this.preview = const <String>[],
     this.teamPreview = const <TeamModel>[],
   });
 
   final String title;
+  final IconData icon;
+  final int count;
   final List<String> preview;
   final List<TeamModel> teamPreview;
 
   @override
   Widget build(BuildContext context) {
     return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          if (preview.isEmpty && teamPreview.isEmpty)
-            const Text('-', style: TextStyle(color: Color(0xFF6E7394)))
-          else if (title == 'My Teams' && teamPreview.isNotEmpty)
-            ...teamPreview.map(
-              (team) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        team.teamName.isEmpty ? team.teamId : team.teamName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+      child: SizedBox(
+        height: 170,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(color: Color(0xFFF2EDFF), shape: BoxShape.circle),
+                  child: Icon(icon, size: 17, color: Color(0xFF6A38FF)),
+                ),
+                const SizedBox(width: 10),
+                Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(999)),
+                  child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC))),
+                ),
+                const Spacer(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: preview.isEmpty && teamPreview.isEmpty
+                  ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: title == 'My Teams' && teamPreview.isNotEmpty
+                            ? teamPreview.map((team) => _teamBullet(team)).toList(growable: false)
+                            : preview.map((item) => _textBullet(item)).toList(growable: false),
                       ),
                     ),
-                    Row(
-                      children: <Widget>[
-                        Icon(
-                          AppIcons.student,
-                          size: _FacultyDashboardHomeState._kDashboardIconSize,
-                          color: const Color(0xFF4A4F73),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${team.studentIds.length}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A4F73),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            ...preview.map(
-              (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis),
-              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _teamBullet(TeamModel team) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: <Widget>[
+          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              team.teamName.isEmpty ? team.teamId : team.teamName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF1E293B)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            AppIcons.student,
+            size: _FacultyDashboardHomeState._kDashboardIconSize,
+            color: Color(0xFF4A4F73),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${team.studentIds.length}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _textBullet(String item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: <Widget>[
+          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              item,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF1E293B)),
+            ),
+          ),
         ],
       ),
     );
@@ -566,39 +775,118 @@ class _KeyDataCard extends StatelessWidget {
 }
 
 class _SubmissionTrendChart extends StatelessWidget {
-  const _SubmissionTrendChart({required this.series});
-  final Map<String, int> series;
+  const _SubmissionTrendChart({
+    required this.problemSeries,
+    required this.ideaSeries,
+    required this.teamSeries,
+    required this.selectedTimeframe,
+    required this.onTimeframeChanged,
+  });
+
+  final Map<String, int> problemSeries;
+  final Map<String, int> ideaSeries;
+  final Map<String, int> teamSeries;
+  final _FacultyTimeframe selectedTimeframe;
+  final ValueChanged<_FacultyTimeframe> onTimeframeChanged;
 
   @override
   Widget build(BuildContext context) {
-    if (series.isEmpty) {
-      return const Center(child: Text('No submissions yet.'));
-    }
-    final labels = series.keys.toList(growable: false);
-    final values = series.values.toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const _LegendItem(
-          icon: AppIcons.submissions,
-          color: StatusStyles.underReview,
-          label: 'Ideas Submitted',
+        LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final filter = TimeFrameFilter<_FacultyTimeframe>(
+              options: _FacultyTimeframe.values,
+              selected: selectedTimeframe,
+              labelBuilder: (_FacultyTimeframe option) => option.label,
+              onChanged: onTimeframeChanged,
+            );
+            if (constraints.maxWidth < 620) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[_SubmissionTrendLegend(), const SizedBox(height: 8), filter],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[const Expanded(child: _SubmissionTrendLegend()), const SizedBox(width: 12), filter],
+            );
+          },
         ),
         const SizedBox(height: 8),
+        Expanded(
+          child: _MultiLineTimeSeriesChart(
+            series: <_TrendSeries>[
+              _TrendSeries(values: problemSeries, color: const Color(0xFF6A38FF)),
+              _TrendSeries(values: ideaSeries, color: StatusStyles.underReview),
+              _TrendSeries(values: teamSeries, color: const Color(0xFF16A34A)),
+            ],
+            emptyLabel: 'No trend data in this period.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SubmissionTrendLegend extends StatelessWidget {
+  const _SubmissionTrendLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: <Widget>[
+        _LegendItem(icon: AppIcons.problems, color: Color(0xFF6A38FF), label: 'Problems'),
+        _LegendItem(icon: AppIcons.submissions, color: StatusStyles.underReview, label: 'Ideas Submitted'),
+        _LegendItem(icon: AppIcons.teams, color: Color(0xFF16A34A), label: 'Teams Created'),
+      ],
+    );
+  }
+}
+
+class _TrendSeries {
+  const _TrendSeries({
+    required this.values,
+    required this.color,
+  });
+
+  final Map<String, int> values;
+  final Color color;
+}
+
+class _MultiLineTimeSeriesChart extends StatelessWidget {
+  const _MultiLineTimeSeriesChart({
+    required this.series,
+    required this.emptyLabel,
+  });
+
+  final List<_TrendSeries> series;
+  final String emptyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = series.isEmpty ? <String>[] : series.first.values.keys.toList(growable: false);
+    final hasData = series.any((line) => line.values.values.any((value) => value > 0));
+    if (series.isEmpty || labels.isEmpty || !hasData) {
+      return Center(child: Text(emptyLabel));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
         Expanded(
           child: Row(
             children: <Widget>[
               const RotatedBox(
                 quarterTurns: 3,
-                child: Text(
-                  'Idea Count',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
-                ),
+                child: Text('Count', style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87))),
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: CustomPaint(
-                  painter: _SubmissionTrendLinePainter(values: values),
+                  painter: _MultiLineTimeSeriesPainter(series: series),
                   child: Container(),
                 ),
               ),
@@ -607,46 +895,27 @@ class _SubmissionTrendChart extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Row(
-          children: List<Widget>.generate(
-            values.length,
-            (int i) => Expanded(
-              child: Text(
-                '${values[i]}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
           children: labels
-              .map((label) => Expanded(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
-                    ),
-                  ))
+              .map(
+                (label) => Expanded(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
+                  ),
+                ),
+              )
               .toList(growable: false),
-        ),
-        const SizedBox(height: 2),
-        const Align(
-          alignment: Alignment.center,
-          child: Text(
-            'Date',
-            style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
-          ),
         ),
       ],
     );
   }
 }
 
-class _SubmissionTrendLinePainter extends CustomPainter {
-  const _SubmissionTrendLinePainter({required this.values});
+class _MultiLineTimeSeriesPainter extends CustomPainter {
+  const _MultiLineTimeSeriesPainter({required this.series});
 
-  final List<int> values;
+  final List<_TrendSeries> series;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -658,37 +927,43 @@ class _SubmissionTrendLinePainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
 
-    if (values.isEmpty) return;
-    final maxV = values.fold<int>(1, (a, b) => a > b ? a : b).toDouble();
-    final count = values.length;
+    final allValues = series.expand((line) => line.values.values).toList(growable: false);
+    if (allValues.isEmpty) return;
+    final maxV = allValues.fold<int>(1, (a, b) => a > b ? a : b).toDouble();
+    final count = series.first.values.length;
     final dx = count == 1 ? 0.0 : size.width / (count - 1);
     Offset pointAt(int index, int value) {
-      final x = dx * index;
+      final x = count == 1 ? size.width / 2 : dx * index;
       final y = size.height - ((value / maxV) * (size.height - 8)) - 4;
       return Offset(x, y);
     }
 
-    final line = Paint()
-      ..color = StatusStyles.underReview
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
-    final path = Path()..moveTo(pointAt(0, values[0]).dx, pointAt(0, values[0]).dy);
-    for (int i = 1; i < count; i++) {
-      final p = pointAt(i, values[i]);
-      path.lineTo(p.dx, p.dy);
-    }
-    canvas.drawPath(path, line);
+    for (final trend in series) {
+      final values = trend.values.values.toList(growable: false);
+      if (values.isEmpty) continue;
+      final line = Paint()
+        ..color = trend.color
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+      final path = Path()..moveTo(pointAt(0, values[0]).dx, pointAt(0, values[0]).dy);
+      for (int i = 1; i < count; i++) {
+        final p = pointAt(i, values[i]);
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path, line);
 
-    final dot = Paint()..color = StatusStyles.underReview;
-    for (int i = 0; i < count; i++) {
-      final p = pointAt(i, values[i]);
-      canvas.drawCircle(p, 3.5, dot);
+      final dot = Paint()..color = trend.color;
+      for (int i = 0; i < count; i++) {
+        final p = pointAt(i, values[i]);
+        canvas.drawCircle(p, 3.2, dot);
+      }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _SubmissionTrendLinePainter oldDelegate) =>
-      oldDelegate.values != values;
+  bool shouldRepaint(covariant _MultiLineTimeSeriesPainter oldDelegate) =>
+      oldDelegate.series != series;
 }
 
 class _LegendItem extends StatelessWidget {
