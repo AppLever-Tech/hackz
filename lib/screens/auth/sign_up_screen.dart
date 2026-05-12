@@ -176,14 +176,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   final userId = await FirestoreUtils.createUser(user);
                   if (!mounted) return;
                   final createdUser = user.copyWith(userId: userId);
-                  Navigator.of(context).pushAndRemoveUntil(
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+                  navigator.pushAndRemoveUntil(
                     MaterialPageRoute(
-                      builder: (_) => AccountStatusWorkspace(
+                      builder: (routeContext) => AccountStatusWorkspace(
                         user: createdUser,
                         phase: AccountWorkspacePhase.pendingApproval,
                         onSignOut: () {
                           FirebaseAuth.instance.signOut();
-                          Navigator.of(context).pushAndRemoveUntil(
+                          Navigator.of(routeContext).pushAndRemoveUntil(
                             MaterialPageRoute(builder: (_) => const LandingScreen()),
                             (_) => false,
                           );
@@ -192,7 +194,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     (_) => false,
                   );
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Registration submitted. Use Sign In anytime to track approval status.'),
                     ),

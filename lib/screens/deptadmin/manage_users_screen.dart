@@ -9,6 +9,7 @@ import '../../models/department_model.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/user_model.dart';
 import '../../constants/account_workspace_visuals.dart';
+import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
@@ -30,7 +31,7 @@ class ManageUsersScreen extends StatefulWidget {
   State<ManageUsersScreen> createState() => _ManageUsersScreenState();
 }
 
-enum UsersFilter { all, pending, faculty, students, coordinators }
+enum UsersFilter { all, faculty, students, coordinators, pending, rejected }
 
 class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTickerProviderStateMixin {
   late final TabController _tabController;
@@ -140,6 +141,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
               DropdownMenuItem<String>(value: 'FAC', child: Text('Faculty')),
               DropdownMenuItem<String>(value: 'STU', child: Text('Student')),
               DropdownMenuItem<String>(value: 'COO', child: Text('Coordinator')),
+              DropdownMenuItem<String>(value: 'JUD', child: Text('Judge')),
             ],
             onChanged: (value) {
               if (value == null) return;
@@ -165,11 +167,60 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Future<void> _reject(UserModel user) async {
+    final reasonController = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Reject user request'),
+        content: TextField(
+          controller: reasonController,
+          minLines: 3,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            labelText: 'Rejection reason',
+            hintText: 'Share a clear reason for the user record.',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: <Widget>[
+          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(reasonController.text.trim()),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+    reasonController.dispose();
+    if (reason == null) return;
+    final now = DateTime.now();
     await FirestoreUtils.updateUser(user.userId, <String, dynamic>{
       'status': UserStatus.rejected.value,
       'approvedBy': widget.user.userId,
-      'approvedAt': Timestamp.fromDate(DateTime.now()),
+      'approvedAt': Timestamp.fromDate(now),
+      'rejectedAt': Timestamp.fromDate(now),
+      'rejectionReason': reason.trim().isEmpty ? 'Rejected by department admin.' : reason.trim(),
     });
+    if (mounted) _loadAll();
+  }
+
+  Future<void> _deleteUser(UserModel user) async {
+    final displayName = '${user.firstName} ${user.lastName}'.trim().isEmpty
+        ? user.phone
+        : '${user.firstName} ${user.lastName}'.trim();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete user?'),
+        content: Text('This will remove $displayName from this department.'),
+        actions: <Widget>[
+          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await FirestoreUtils.deleteUser(user.userId);
     if (mounted) _loadAll();
   }
 
@@ -252,14 +303,15 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     return _allUsers.where((u) {
       final roleOk = switch (_filter) {
         UsersFilter.all => true,
+        UsersFilter.faculty => u.role == 'FAC' && u.status == UserStatus.active,
+        UsersFilter.students => u.role == 'STU' && u.status == UserStatus.active,
+        UsersFilter.coordinators => u.role == 'COO' && u.status == UserStatus.active,
         UsersFilter.pending => u.status == UserStatus.pendingApproval,
-        UsersFilter.faculty => u.role == 'FAC',
-        UsersFilter.students => u.role == 'STU',
-        UsersFilter.coordinators => u.role == 'COO',
+        UsersFilter.rejected => u.status == UserStatus.rejected,
       };
       if (!roleOk) return false;
       if (q.isEmpty) return true;
-      final blob = '${u.firstName} ${u.lastName} ${u.phone} ${u.email}'.toLowerCase();
+      final blob = '${u.firstName} ${u.lastName} ${u.phone} ${u.email} ${u.rejectionReason ?? ''}'.toLowerCase();
       return blob.contains(q);
     }).toList(growable: false);
   }
@@ -267,7 +319,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   List<UserModel> _section(List<UserModel> users, {String? role, UserStatus? status}) {
     return users.where((u) {
       if (status != null) return u.status == status;
-      if (role != null) return u.role == role && u.status != UserStatus.pendingApproval;
+      if (role != null) return u.role == role && u.status == UserStatus.active;
       return false;
     }).toList(growable: false);
   }
@@ -275,10 +327,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   int _countForFilter(UsersFilter filter) {
     return switch (filter) {
       UsersFilter.all => _allUsers.length,
+      UsersFilter.faculty => _allUsers.where((UserModel u) => u.role == 'FAC' && u.status == UserStatus.active).length,
+      UsersFilter.students => _allUsers.where((UserModel u) => u.role == 'STU' && u.status == UserStatus.active).length,
+      UsersFilter.coordinators => _allUsers.where((UserModel u) => u.role == 'COO' && u.status == UserStatus.active).length,
       UsersFilter.pending => _allUsers.where((UserModel u) => u.status == UserStatus.pendingApproval).length,
-      UsersFilter.faculty => _allUsers.where((UserModel u) => u.role == 'FAC').length,
-      UsersFilter.students => _allUsers.where((UserModel u) => u.role == 'STU').length,
-      UsersFilter.coordinators => _allUsers.where((UserModel u) => u.role == 'COO').length,
+      UsersFilter.rejected => _allUsers.where((UserModel u) => u.status == UserStatus.rejected).length,
     };
   }
 
@@ -395,6 +448,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
 
   Widget _userRow(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
+    final isRejected = u.status == UserStatus.rejected;
+    final rejectedDate = u.approvedAt == null ? 'Not recorded' : formatDateTime(u.approvedAt!);
+    final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No rejection reason recorded.' : u.rejectionReason!.trim();
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -417,6 +473,20 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
               children: <Widget>[
                 Text('${u.firstName} ${u.lastName}'.trim(), style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text('${u.phone} • ${u.email}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (isRejected) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Reason: $rejectionReason',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D), fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Rejected on $rejectedDate',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ],
               ],
             ),
           ),
@@ -449,13 +519,18 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           if (isPending) ...<Widget>[
             TextButton(onPressed: () => _approve(u), child: const Text('Approve')),
             TextButton(onPressed: () => _reject(u), child: const Text('Reject')),
+          ] else if (isRejected) ...<Widget>[
+            TextButton.icon(
+              onPressed: () => _deleteUser(u),
+              icon: const Icon(AppIcons.remove, size: 16),
+              label: const Text('Delete'),
+            ),
           ] else
             PopupMenuButton<String>(
               icon: const Icon(AppIcons.more, size: 18),
               onSelected: (v) async {
                 if (v == 'delete') {
-                  await FirestoreUtils.deleteUser(u.userId);
-                  if (mounted) _loadAll();
+                  await _deleteUser(u);
                 }
               },
               itemBuilder: (_) => const <PopupMenuEntry<String>>[
@@ -467,12 +542,35 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     );
   }
 
+  Widget _filterPill(UsersFilter filter, IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterPill(
+        selected: _filter == filter,
+        icon: icon,
+        label: label,
+        count: _countForFilter(filter),
+        onTap: () => setState(() => _filter = filter),
+      ),
+    );
+  }
+
+  Widget _pillSeparator() {
+    return Container(
+      width: 1,
+      height: 30,
+      margin: const EdgeInsets.only(right: 8),
+      color: const Color(0xFFE2E8F0),
+    );
+  }
+
   Widget _buildUsersTab() {
     final users = _filteredUsers();
     final pending = _section(users, status: UserStatus.pendingApproval);
     final faculty = _section(users, role: 'FAC');
     final students = _section(users, role: 'STU');
     final coordinators = _section(users, role: 'COO');
+    final rejected = _section(users, status: UserStatus.rejected);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -480,53 +578,14 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           scrollDirection: Axis.horizontal,
           child: Row(
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterPill(
-                  selected: _filter == UsersFilter.all,
-                  icon: AppIcons.users,
-                  label: 'All',
-                  count: _countForFilter(UsersFilter.all),
-                  onTap: () => setState(() => _filter = UsersFilter.all),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterPill(
-                  selected: _filter == UsersFilter.pending,
-                  icon: AppIcons.pendingUsers,
-                  label: 'Pending',
-                  count: _countForFilter(UsersFilter.pending),
-                  onTap: () => setState(() => _filter = UsersFilter.pending),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterPill(
-                  selected: _filter == UsersFilter.faculty,
-                  icon: AppIcons.faculty,
-                  label: 'Faculty',
-                  count: _countForFilter(UsersFilter.faculty),
-                  onTap: () => setState(() => _filter = UsersFilter.faculty),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterPill(
-                  selected: _filter == UsersFilter.students,
-                  icon: AppIcons.student,
-                  label: 'Students',
-                  count: _countForFilter(UsersFilter.students),
-                  onTap: () => setState(() => _filter = UsersFilter.students),
-                ),
-              ),
-              FilterPill(
-                selected: _filter == UsersFilter.coordinators,
-                icon: AppIcons.coordinator,
-                label: 'Coordinators',
-                count: _countForFilter(UsersFilter.coordinators),
-                onTap: () => setState(() => _filter = UsersFilter.coordinators),
-              ),
+              _filterPill(UsersFilter.all, AppIcons.users, 'All'),
+              _pillSeparator(),
+              _filterPill(UsersFilter.faculty, AppIcons.faculty, 'Faculty'),
+              _filterPill(UsersFilter.students, AppIcons.student, 'Student'),
+              _filterPill(UsersFilter.coordinators, AppIcons.coordinator, 'Coordinator'),
+              _pillSeparator(),
+              _filterPill(UsersFilter.pending, AppIcons.pendingUsers, 'Pending'),
+              _filterPill(UsersFilter.rejected, AppIcons.statusRejected, 'Rejected'),
             ],
           ),
         ),
@@ -579,6 +638,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                     child: Padding(padding: const EdgeInsets.only(top: 10), child: _sectionHeader('Coordinators', coordinators.length))),
                 SliverList(
                   delegate: SliverChildBuilderDelegate((_, i) => _userRow(coordinators[i]), childCount: coordinators.length),
+                ),
+              ],
+              if (rejected.isNotEmpty) ...<Widget>[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: _sectionHeader('Rejected Users', rejected.length, highlighted: true),
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(rejected[i]), childCount: rejected.length),
                 ),
               ],
               if (users.isEmpty)

@@ -55,12 +55,12 @@ class _SignInScreenState extends State<SignInScreen> {
   }) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => AccountStatusWorkspace(
+        builder: (routeContext) => AccountStatusWorkspace(
           user: user,
           phase: phase,
           onSignOut: () {
             FirebaseAuth.instance.signOut();
-            Navigator.of(context).pushAndRemoveUntil(
+            Navigator.of(routeContext).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LandingScreen()),
               (_) => false,
             );
