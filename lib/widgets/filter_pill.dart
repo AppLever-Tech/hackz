@@ -42,7 +42,7 @@ class FilterPill extends StatelessWidget {
               Icon(icon, size: 18, color: fg),
               const SizedBox(width: 6),
               Text(
-                '$label ($count)',
+                count == 0 ? label : '$label ($count)',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,

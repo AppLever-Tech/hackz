@@ -105,6 +105,7 @@ class IdeaCard extends StatelessWidget {
               _metaPill('Created: ${_formatDate(item.idea.createdAt)}'),
               if (item.idea.status == IdeaStatus.pendingSubmission || item.payment != null) _metaPill(paymentChip),
               if (item.score != null) _metaPill('Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
+              if (item.score != null) _metaPill('Judge: ${item.judgeName ?? item.score!.judgeId}'),
             ],
           ),
           const SizedBox(height: 12),

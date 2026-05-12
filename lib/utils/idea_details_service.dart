@@ -50,12 +50,22 @@ class IdeaDetailsService {
         createdAt: DateTime.now(),
       ),
     );
-    final users = (results[2] as QuerySnapshot<Map<String, dynamic>>).docs
-        .map((d) => UserModel.fromMap(d.data()))
-        .toList(growable: false);
-    final usersById = <String, UserModel>{for (final u in users) u.userId: u};
+    final userDocs = (results[2] as QuerySnapshot<Map<String, dynamic>>).docs;
+    final usersById = <String, UserModel>{};
+    for (final doc in userDocs) {
+      final user = UserModel.fromMap(doc.data());
+      final normalizedUser = user.userId.trim().isNotEmpty ? user : user.copyWith(userId: doc.id);
+      final userId = normalizedUser.userId.trim();
+      if (userId.isNotEmpty) {
+        usersById[userId] = normalizedUser;
+      }
+      if (doc.id.trim().isNotEmpty) {
+        usersById[doc.id.trim()] = normalizedUser;
+      }
+    }
     final mentor = usersById[team.mentorId];
     final students = team.studentIds.map((id) => usersById[id]).whereType<UserModel>().toList(growable: false);
+    final submittedBy = usersById[idea.createdBy];
 
     final problems = (results[3] as QuerySnapshot<Map<String, dynamic>>).docs
         .map((d) => ProblemModel.fromMap(d.id, d.data()))
@@ -115,7 +125,9 @@ class IdeaDetailsService {
       problem: problem,
       team: team,
       mentor: mentor,
+      submittedBy: submittedBy,
       students: students,
+      usersById: usersById,
       payment: payment,
       scores: scores,
       averageScore: avgScore,
@@ -132,7 +144,9 @@ class IdeaDetailsVm {
     required this.problem,
     required this.team,
     required this.mentor,
+    required this.submittedBy,
     required this.students,
+    required this.usersById,
     required this.payment,
     required this.scores,
     required this.averageScore,
@@ -145,7 +159,9 @@ class IdeaDetailsVm {
   final ProblemModel problem;
   final TeamModel team;
   final UserModel? mentor;
+  final UserModel? submittedBy;
   final List<UserModel> students;
+  final Map<String, UserModel> usersById;
   final PaymentModel? payment;
   final List<ScoreModel> scores;
   final double? averageScore;

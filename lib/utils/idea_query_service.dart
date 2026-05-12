@@ -40,6 +40,7 @@ class IdeaListItem {
     this.team,
     this.payment,
     this.score,
+    this.judgeName,
   });
 
   final IdeaModel idea;
@@ -47,6 +48,7 @@ class IdeaListItem {
   final TeamModel? team;
   final PaymentModel? payment;
   final ScoreModel? score;
+  final String? judgeName;
   final bool canUploadPayment;
 }
 
@@ -78,6 +80,10 @@ class IdeaQueryService {
       orgId: params.config.orgId,
       ideaIds: ideas.map((e) => e.ideaId),
     );
+    final usersById = await _fetchUsersById(
+      orgId: params.config.orgId,
+      userIds: scoreByIdeaId.values.map((score) => score.judgeId),
+    );
     final viewer = params.viewer;
     var items = ideas
         .map(
@@ -97,6 +103,7 @@ class IdeaQueryService {
               team: team,
               payment: payment,
               score: scoreByIdeaId[idea.ideaId],
+              judgeName: _displayName(usersById[scoreByIdeaId[idea.ideaId]?.judgeId ?? '']),
               canUploadPayment: canPay,
             );
           },
@@ -179,6 +186,28 @@ class IdeaQueryService {
     return mapped;
   }
 
+  static Future<Map<String, UserModel>> _fetchUsersById({
+    required String orgId,
+    required Iterable<String> userIds,
+  }) async {
+    final idSet = userIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (idSet.isEmpty) return <String, UserModel>{};
+    final snap = await _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: orgId).get();
+    final mapped = <String, UserModel>{};
+    for (final doc in snap.docs) {
+      final user = UserModel.fromMap(doc.data());
+      final normalizedUser = user.userId.trim().isNotEmpty ? user : user.copyWith(userId: doc.id);
+      final userId = normalizedUser.userId.trim();
+      if (idSet.contains(userId)) {
+        mapped[userId] = normalizedUser;
+      }
+      if (doc.id.trim().isNotEmpty && idSet.contains(doc.id.trim())) {
+        mapped[doc.id.trim()] = normalizedUser;
+      }
+    }
+    return mapped;
+  }
+
   static Future<Map<String, PaymentModel>> _fetchPaymentByIdea({
     required String orgId,
     required Iterable<String> ideaIds,
@@ -213,6 +242,12 @@ class IdeaQueryService {
       return team.mentorId == viewer.userId;
     }
     return false;
+  }
+
+  static String? _displayName(UserModel? user) {
+    if (user == null) return null;
+    final name = '${user.firstName} ${user.lastName}'.trim();
+    return name.isEmpty ? user.userId : name;
   }
 
   static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {

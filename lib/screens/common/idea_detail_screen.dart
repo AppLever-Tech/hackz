@@ -247,7 +247,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
               _pill('Department', vm.problem.departmentDisplayName),
               _pill('Category', vm.problem.category.isEmpty ? '-' : vm.problem.category),
               _pill('Theme', vm.problem.theme.isEmpty ? '-' : vm.problem.theme),
-              _pill('Submitted By', vm.idea.createdBy),
+              _pill('Submitted By', _name(vm.submittedBy, fallback: vm.idea.createdBy)),
               _pill('Created', _fmt(vm.idea.createdAt)),
             ],
           ),
@@ -414,7 +414,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Judge: ${s.judgeId} • Score: ${s.score.toStringAsFixed(1)}'),
+                        Text('Judge: ${_name(vm.usersById[s.judgeId], fallback: s.judgeId)} • Score: ${s.score.toStringAsFixed(1)}'),
                         if (s.feedback.trim().isNotEmpty) ...<Widget>[
                           const SizedBox(height: 4),
                           Text(s.feedback),
@@ -639,9 +639,9 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
     return '$dd/$mm/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
-  String _name(UserModel? u) {
-    if (u == null) return '-';
+  String _name(UserModel? u, {String fallback = '-'}) {
+    if (u == null) return fallback.trim().isEmpty ? '-' : fallback;
     final n = '${u.firstName} ${u.lastName}'.trim();
-    return n.isEmpty ? u.userId : n;
+    return n.isEmpty ? (u.userId.trim().isEmpty ? fallback : u.userId) : n;
   }
 }
