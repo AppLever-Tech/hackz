@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../models/idea_model.dart';
+import '../../models/payment_model.dart';
 import '../../models/team_model.dart';
 import '../../models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/team_service.dart';
-import '../../widgets/team_dialog.dart';
+import '../../utils/faculty_teams_service.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_components.dart';
+import '../../widgets/faculty/faculty_team_summary_card.dart';
+import '../../widgets/faculty/submit_idea_dialog.dart';
+import '../../widgets/faculty/team_capacity_widget.dart';
+import '../../widgets/faculty/team_form_dialog.dart';
+import '../../widgets/faculty/team_workspace_card.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key, required this.user});
@@ -18,59 +24,82 @@ class TeamsScreen extends StatefulWidget {
 }
 
 class _TeamsScreenState extends State<TeamsScreen> {
-  Future<_TeamsViewData> _loadTeamsData() async {
-    final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      TeamService.getFacultyTeams(widget.user.userId),
-      TeamService.getDepartmentStudents(
-        orgId: widget.user.orgId,
-        departmentCode: widget.user.departmentCode,
-      ),
-    ]);
-    final teams = results[0] as List<TeamModel>;
-    final students = sortUsersByDisplayName(results[1] as List<UserModel>);
-    final studentNamesById = <String, String>{
-      for (final student in students) student.userId: userDisplayName(student),
-    };
-    return _TeamsViewData(
-      teams: teams,
-      studentNamesById: studentNamesById,
-    );
+  late Future<FacultyTeamsWorkspaceData> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadTeamsData(forceRefresh: true);
   }
 
-  Future<void> _openCreateDialog(List<TeamModel> existing) async {
-    if (existing.length >= 3) return;
-    final result = await showAppDialog<TeamDialogAction>(
-      context: context,
-      child: TeamDialog(
-        currentUser: widget.user,
-        existingTeamCount: existing.length,
-      ),
-      maxWidth: 740,
-    );
-    if (result == TeamDialogAction.saved && mounted) {
-      setState(() {});
-    }
+  Future<FacultyTeamsWorkspaceData> _loadTeamsData({bool forceRefresh = false}) =>
+      FacultyTeamsService.load(widget.user, forceRefresh: forceRefresh);
+
+  void _refresh() {
+    setState(() => _future = _loadTeamsData(forceRefresh: true));
   }
 
-  Future<void> _openEditDialog(TeamModel team, int existingCount) async {
-    final result = await showAppDialog<TeamDialogAction>(
+  Future<void> _openTeamDialog(FacultyTeamsWorkspaceData data, {TeamModel? team}) async {
+    if (team == null && !FacultyTeamsService.canCreateTeam(data.teams)) return;
+    final result = await showAppDialog<TeamFormDialogAction>(
       context: context,
-      child: TeamDialog(
+      child: TeamFormDialog(
         currentUser: widget.user,
+        existingTeams: data.teams,
+        departmentStudents: data.students,
         initialTeam: team,
-        existingTeamCount: existingCount,
       ),
-      maxWidth: 740,
+      maxWidth: 780,
     );
-    if ((result == TeamDialogAction.saved || result == TeamDialogAction.deleted) && mounted) {
-      setState(() {});
+    if (result == TeamFormDialogAction.saved && mounted) {
+      _refresh();
     }
+  }
+
+  Future<void> _openSubmitIdea(FacultyTeamsWorkspaceData data, TeamModel team) async {
+    final created = await showAppDialog<bool>(
+      context: context,
+      child: SubmitIdeaDialog(
+        currentUser: widget.user,
+        team: team,
+        problems: data.problems,
+      ),
+      maxWidth: 700,
+    );
+    if (created == true && mounted) {
+      _refresh();
+    }
+  }
+
+  Future<void> _disableTeam(TeamModel team) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Disable team?'),
+        content: Text('This will mark ${team.teamName} inactive and release assigned students.'),
+        actions: <Widget>[
+          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Disable')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await FacultyTeamsService.disableTeam(team);
+    if (mounted) _refresh();
+  }
+
+  Future<void> _viewIdeas(FacultyTeamInsight insight) {
+    return showAppDialog<void>(
+      context: context,
+      maxWidth: 680,
+      child: _TeamIdeasPreview(insight: insight),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_TeamsViewData>(
-      future: _loadTeamsData(),
+    return FutureBuilder<FacultyTeamsWorkspaceData>(
+      future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -79,142 +108,291 @@ class _TeamsScreenState extends State<TeamsScreen> {
           return Text('Unable to load teams: ${snapshot.error}');
         }
         final data = snapshot.data;
-        final teams = data?.teams ?? <TeamModel>[];
-        final studentNamesById = data?.studentNamesById ?? const <String, String>{};
-        final studentsCount = teams.expand((t) => t.studentIds).toSet().length;
-        final canCreate = teams.length < 3;
+        if (data == null) return const Center(child: Text('No team data available.'));
+        final teams = data.teams;
+        final canCreate = FacultyTeamsService.canCreateTeam(teams);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                const Expanded(
-                  child: Text(
-                    'My Teams',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: canCreate ? () => _openCreateDialog(teams) : null,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create Team'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SectionContainer(
-              child: Row(
-                children: <Widget>[
-                  _summary('Teams', '${teams.length}/3'),
-                  const SizedBox(width: 16),
-                  _summary('Students', '$studentsCount'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (teams.isEmpty)
-              const SectionContainer(child: Text('No teams created yet.'))
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: teams.length,
-                itemBuilder: (context, index) {
-                  final team = teams[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _TeamCard(
-                      team: team,
-                      mentorName: '${widget.user.firstName} ${widget.user.lastName}'.trim(),
-                      studentNamesById: studentNamesById,
-                      onEdit: () => _openEditDialog(team, teams.length),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final viewportHeight = constraints.hasBoundedHeight
+                ? constraints.maxHeight
+                : MediaQuery.sizeOf(context).height;
+            return SizedBox(
+              width: constraints.maxWidth,
+              height: viewportHeight,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const _HeaderSection(),
+                    const SizedBox(height: 14),
+                    _SummaryGrid(data: data),
+                    const SizedBox(height: 14),
+                    _CreateTeamCta(
+                      canCreate: canCreate,
+                      teamCount: teams.length,
+                      onCreate: () => _openTeamDialog(data),
                     ),
-                  );
-                },
+                    const SizedBox(height: 14),
+                    if (teams.isEmpty)
+                      _EmptyTeamsState(onCreate: canCreate ? () => _openTeamDialog(data) : null)
+                    else
+                      _TeamGrid(
+                        teams: teams,
+                        data: data,
+                        mentorName: '${widget.user.firstName} ${widget.user.lastName}'.trim(),
+                        onEdit: (team) => _openTeamDialog(data, team: team),
+                        onSubmitIdea: (team) => _openSubmitIdea(data, team),
+                        onViewIdeas: (insight) => _viewIdeas(insight),
+                        onDisable: _disableTeam,
+                      ),
+                  ],
+                ),
               ),
-          ],
+            );
+          },
         );
       },
     );
   }
-
-  Widget _summary(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 13)),
-        ],
-      ),
-    );
-  }
 }
 
-class _TeamCard extends StatelessWidget {
-  const _TeamCard({
-    required this.team,
-    required this.mentorName,
-    required this.studentNamesById,
-    required this.onEdit,
-  });
-
-  final TeamModel team;
-  final String mentorName;
-  final Map<String, String> studentNamesById;
-  final VoidCallback onEdit;
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection();
 
   @override
   Widget build(BuildContext context) {
-    final sortedStudentIds = sortUserIdsByDisplayName(team.studentIds, studentNamesById);
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('Team Workspace', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        SizedBox(height: 3),
+        Text('Manage teams, mentoring actions, and idea submission workflow.', style: TextStyle(color: Color(0xFF64748B))),
+      ],
+    );
+  }
+}
+
+class _SummaryGrid extends StatelessWidget {
+  const _SummaryGrid({required this.data});
+
+  final FacultyTeamsWorkspaceData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <Widget>[
+      FacultyTeamSummaryCard(title: 'Total Teams', value: '${data.teams.length} / ${FacultyTeamsService.maxTeamsPerFaculty} Teams', icon: AppIcons.teams, accent: const Color(0xFF6A38FF)),
+      FacultyTeamSummaryCard(title: 'Total Students', value: '${data.totalStudents}', icon: AppIcons.student, accent: const Color(0xFF0EA5E9)),
+      FacultyTeamSummaryCard(title: 'Active Ideas', value: '${data.activeIdeas}', icon: AppIcons.ideas, accent: const Color(0xFFEA580C)),
+      FacultyTeamSummaryCard(title: 'Team Capacity Status', value: FacultyTeamsService.capacityMessage(data.teams.length), icon: AppIcons.verification, accent: const Color(0xFF16A34A)),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1100
+            ? 4
+            : constraints.maxWidth >= 720
+                ? 2
+                : 1;
+        final gap = 12.0;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _CreateTeamCta extends StatelessWidget {
+  const _CreateTeamCta({
+    required this.canCreate,
+    required this.teamCount,
+    required this.onCreate,
+  });
+
+  final bool canCreate;
+  final int teamCount;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
     return SectionContainer(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final details = const Row(
             children: <Widget>[
+              Icon(AppIcons.teams, color: Color(0xFF6A38FF), size: 24),
+              SizedBox(width: 12),
               Expanded(
-                child: Text(team.teamName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              ),
-              OutlinedButton.icon(
-                onPressed: team.status.name == 'locked' ? null : onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Edit'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Create an innovation team', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                    SizedBox(height: 3),
+                    Text('Build a compact 2-4 student team for idea submission.', style: TextStyle(color: Color(0xFF64748B))),
+                  ],
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          Text('Status: ${team.status.value.toUpperCase()}'),
-          const SizedBox(height: 4),
-          Text('Mentor: ${mentorName.isEmpty ? '-' : mentorName}'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
+          );
+          final actions = Wrap(
+            spacing: 10,
             runSpacing: 8,
-            children: sortedStudentIds
-                .map((id) => Chip(label: Text(studentNamesById[id] ?? id)))
-                .toList(growable: false),
-          ),
-        ],
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              TeamCapacityWidget(teamCount: teamCount, maxTeams: FacultyTeamsService.maxTeamsPerFaculty),
+              FilledButton.icon(
+                onPressed: canCreate ? onCreate : null,
+                icon: const Icon(AppIcons.add, size: 16),
+                label: const Text('Create Team'),
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 720) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[details, const SizedBox(height: 12), actions],
+            );
+          }
+          return Row(
+            children: <Widget>[Expanded(child: details), const SizedBox(width: 12), actions],
+          );
+        },
       ),
     );
   }
 }
 
-class _TeamsViewData {
-  const _TeamsViewData({
+class _TeamGrid extends StatelessWidget {
+  const _TeamGrid({
     required this.teams,
-    required this.studentNamesById,
+    required this.data,
+    required this.mentorName,
+    required this.onEdit,
+    required this.onSubmitIdea,
+    required this.onViewIdeas,
+    required this.onDisable,
   });
 
   final List<TeamModel> teams;
-  final Map<String, String> studentNamesById;
+  final FacultyTeamsWorkspaceData data;
+  final String mentorName;
+  final ValueChanged<TeamModel> onEdit;
+  final ValueChanged<TeamModel> onSubmitIdea;
+  final ValueChanged<FacultyTeamInsight> onViewIdeas;
+  final ValueChanged<TeamModel> onDisable;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1050
+            ? 2
+            : 1;
+        final gap = 14.0;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: teams.map((team) {
+            final insight = data.insightsByTeamId[team.teamId] ??
+                FacultyTeamInsight(team: team, ideas: const <IdeaModel>[], paymentStatuses: const <PaymentRecordStatus>[], evaluationCount: 0);
+            return SizedBox(
+              width: width,
+              child: TeamWorkspaceCard(
+                team: team,
+                insight: insight,
+                mentorName: mentorName,
+                studentNamesById: data.studentNamesById,
+                onEdit: () => onEdit(team),
+                onSubmitIdea: () => onSubmitIdea(team),
+                onViewIdeas: () => onViewIdeas(insight),
+                onDisable: () => onDisable(team),
+              ),
+            );
+          }).toList(growable: false),
+        );
+      },
+    );
+  }
 }
+
+class _EmptyTeamsState extends StatelessWidget {
+  const _EmptyTeamsState({required this.onCreate});
+
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionContainer(
+      padding: const EdgeInsets.all(28),
+      child: Center(
+        child: Column(
+          children: <Widget>[
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(color: Color(0xFFEDE9FE), shape: BoxShape.circle),
+              child: const Icon(AppIcons.teams, size: 34, color: Color(0xFF6A38FF)),
+            ),
+            const SizedBox(height: 14),
+            const Text('Create your first innovation team', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            const Text('Select students, assign yourself as mentor, and start the idea submission workflow.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B))),
+            const SizedBox(height: 16),
+            FilledButton.icon(onPressed: onCreate, icon: const Icon(AppIcons.add), label: const Text('Create Team')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamIdeasPreview extends StatelessWidget {
+  const _TeamIdeasPreview({required this.insight});
+
+  final FacultyTeamInsight insight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('${insight.team.teamName} Ideas', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        const SizedBox(height: 12),
+        if (insight.ideas.isEmpty)
+          const Text('No ideas submitted for this team yet.')
+        else
+          ...insight.ideas.map(
+            (idea) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.82), borderRadius: BorderRadius.circular(14)),
+              child: Row(
+                children: <Widget>[
+                  const Icon(AppIcons.ideas, color: Color(0xFF6A38FF)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(idea.problemTitle.isEmpty ? idea.description : idea.problemTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(idea.status.value, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Align(alignment: Alignment.centerRight, child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))),
+      ],
+    );
+  }
+}
+

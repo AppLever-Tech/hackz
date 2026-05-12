@@ -6,20 +6,18 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/attachment_model.dart';
 import '../../models/enums/user_role.dart';
-import '../../models/enums/team_status.dart';
 import '../../models/idea_list_config.dart';
 import '../../models/idea_model.dart';
-import '../../models/problem_model.dart';
 import '../../models/score_model.dart';
-import '../../models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../models/payment_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_query_service.dart';
-import '../../utils/team_service.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
 import '../../widgets/attachment_viewer.dart';
+import '../../widgets/faculty/submit_idea_dialog.dart';
+import 'app_dialog_template.dart';
 import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
 
@@ -90,9 +88,10 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   }
 
   Future<void> _openSubmitIdeaDialog() async {
-    final created = await showDialog<bool>(
+    final created = await showAppDialog<bool>(
       context: context,
-      builder: (_) => _SubmitIdeaDialog(currentUser: widget.currentUser),
+      maxWidth: 700,
+      child: SubmitIdeaDialog(currentUser: widget.currentUser),
     );
     if (created == true && mounted) _loadIdeas();
   }
@@ -633,186 +632,6 @@ class _EvaluateIdeaDialogState extends State<_EvaluateIdeaDialog> {
         FilledButton(
           onPressed: _saving ? null : _save,
           child: Text(_saving ? 'Saving...' : 'Save'),
-        ),
-      ],
-    );
-  }
-}
-
-class _SubmitIdeaDialog extends StatefulWidget {
-  const _SubmitIdeaDialog({
-    required this.currentUser,
-  });
-
-  final UserModel currentUser;
-
-  @override
-  State<_SubmitIdeaDialog> createState() => _SubmitIdeaDialogState();
-}
-
-class _SubmitIdeaDialogState extends State<_SubmitIdeaDialog> {
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _filesController = TextEditingController();
-  bool _saving = false;
-  List<TeamModel> _teams = <TeamModel>[];
-  TeamModel? _selectedTeam;
-  List<ProblemModel> _problems = <ProblemModel>[];
-  ProblemModel? _selectedProblem;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTeams();
-  }
-
-  @override
-  void dispose() {
-    _descriptionController.dispose();
-    _filesController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadTeams() async {
-    final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      TeamService.getFacultyTeams(widget.currentUser.userId),
-      FirestoreUtils.getProblemModelsByCollege(widget.currentUser.orgId),
-    ]);
-    final teams = results[0] as List<TeamModel>;
-    final problems = results[1] as List<ProblemModel>;
-    if (!mounted) return;
-    setState(() {
-      _teams = teams.where((t) => t.status != TeamStatus.inactive).toList(growable: false);
-      _problems = problems;
-      if (teams.isNotEmpty) _selectedTeam = teams.first;
-      if (problems.isNotEmpty) _selectedProblem = problems.first;
-    });
-  }
-
-  Future<void> _submit() async {
-    if (_selectedTeam == null || _selectedProblem == null || _descriptionController.text.trim().isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      await TeamService.validateIdeaCreation(
-        teamId: _selectedTeam!.teamId,
-        problemId: _selectedProblem!.problemId,
-      );
-      final dept = _selectedProblem!.departmentCode.trim().toUpperCase();
-      final doc = FirebaseFirestore.instance.collection(FirestoreUtils.hkzIdeas).doc();
-      final files = _filesController.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(growable: false);
-      final idea = IdeaModel(
-        ideaId: doc.id,
-        problemId: _selectedProblem!.problemId,
-        teamId: _selectedTeam!.teamId,
-        description: _descriptionController.text.trim(),
-        files: files,
-        status: IdeaStatus.pendingSubmission,
-        createdAt: DateTime.now(),
-        orgId: widget.currentUser.orgId,
-        departmentCode: dept,
-        problemNumber: _selectedProblem!.problemNumber,
-        problemTitle: _selectedProblem!.title,
-        createdBy: widget.currentUser.userId,
-      );
-      final batch = FirebaseFirestore.instance.batch();
-      batch.set(doc, idea.toMap());
-      batch.set(
-        FirebaseFirestore.instance.collection(FirestoreUtils.hkzTeams).doc(_selectedTeam!.teamId),
-        <String, dynamic>{'status': TeamStatus.locked.value},
-        SetOptions(merge: true),
-      );
-      await batch.commit();
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } on TeamRuleException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Submit Idea'),
-      content: SizedBox(
-        width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            DropdownButtonFormField<String>(
-              value: _selectedTeam?.teamId,
-              isExpanded: true,
-              items: _teams
-                  .map(
-                    (team) => DropdownMenuItem<String>(
-                      value: team.teamId,
-                      child: Text(team.teamName),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedTeam = _teams.firstWhere((t) => t.teamId == value));
-              },
-              decoration: const InputDecoration(
-                labelText: 'Team',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: _selectedProblem?.problemId,
-              isExpanded: true,
-              items: _problems
-                  .map(
-                    (problem) => DropdownMenuItem<String>(
-                      value: problem.problemId,
-                      child: Text('${problem.problemNumber} • ${problem.title}'),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _selectedProblem = _problems.firstWhere((p) => p.problemId == value));
-              },
-              decoration: const InputDecoration(
-                labelText: 'Problem',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Idea Description',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _filesController,
-              decoration: const InputDecoration(
-                labelText: 'Files (comma-separated URLs, optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        OutlinedButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: Text(_saving ? 'Submitting...' : 'Submit'),
         ),
       ],
     );
