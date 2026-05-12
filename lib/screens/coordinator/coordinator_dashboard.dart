@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/attachment_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/attachment_service.dart';
+import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
+import '../../widgets/coordinator/coordinator_activity_feed.dart';
+import '../../widgets/coordinator/coordinator_panel_card.dart';
+import '../../widgets/coordinator/department_operational_snapshot.dart';
+import '../../widgets/coordinator/escalation_alert_card.dart';
+import '../../widgets/coordinator/operational_metric_card.dart';
+import '../../widgets/coordinator/payment_queue_card.dart';
+import '../../widgets/coordinator/submission_workflow_funnel.dart';
+import '../../widgets/coordinator/verification_trend_chart.dart';
 import 'coordinator_payment_card.dart';
-import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
@@ -49,82 +58,399 @@ class CoordinatorDashboard extends StatelessWidget {
         return _CoordinatorSummaryView(
           key: ValueKey<int>(refreshToken),
           user: user,
+          refreshToken: refreshToken,
         );
       },
     );
   }
 }
 
-class _CoordinatorSummaryView extends StatelessWidget {
-  const _CoordinatorSummaryView({super.key, required this.user});
+class _CoordinatorSummaryView extends StatefulWidget {
+  const _CoordinatorSummaryView({super.key, required this.user, required this.refreshToken});
 
   final UserModel user;
+  final int refreshToken;
+
+  @override
+  State<_CoordinatorSummaryView> createState() => _CoordinatorSummaryViewState();
+}
+
+class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
+  CoordinatorDashboardTimeframe _timeframe = CoordinatorDashboardTimeframe.currentWeek;
+  late Future<CoordinatorDashboardAnalytics> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = CoordinatorDashboardService.load(widget.user, forceRefresh: widget.refreshToken > 0);
+  }
+
+  void _refresh({bool force = false}) {
+    setState(() {
+      _future = CoordinatorDashboardService.load(widget.user, forceRefresh: force);
+    });
+  }
+
+  Future<void> _viewProof(PaymentModel payment) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => FutureBuilder<List<AttachmentModel>>(
+        future: AttachmentService.fetchActiveAttachments(
+          entityType: AttachmentEntityType.payment,
+          entityId: payment.paymentId,
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
+              title: Text('Payment proof'),
+              content: SizedBox(width: 520, height: 160, child: Center(child: CircularProgressIndicator())),
+            );
+          }
+          final attachments = snapshot.data ?? const <AttachmentModel>[];
+          if (attachments.isNotEmpty) {
+            return AttachmentViewerDialog(
+              title: 'Payment proof',
+              attachments: attachments,
+            );
+          }
+          final url = payment.paymentProofUrl.trim();
+          return AlertDialog(
+            title: const Text('Payment proof'),
+            content: SizedBox(
+              width: 520,
+              child: url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
+            ),
+            actions: <Widget>[
+              OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _verify(PaymentModel payment) async {
+    await CoordinatorDashboardService.verifyPayment(payment: payment, coordinator: widget.user);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment verified.')));
+    _refresh(force: true);
+  }
+
+  Future<void> _reject(PaymentModel payment) async {
+    final remarks = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: const Text('Reject payment'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Remarks (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: const Text('Reject')),
+          ],
+        );
+      },
+    );
+    if (remarks == null) return;
+    await CoordinatorDashboardService.rejectPayment(payment: payment, coordinator: widget.user, remarks: remarks.isEmpty ? null : remarks);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment rejected.')));
+    _refresh(force: true);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<PaymentModel>>(
-      future: FirestoreUtils.getPaymentsByOrg(user.orgId),
+    return FutureBuilder<CoordinatorDashboardAnalytics>(
+      future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Text('Unable to load payments: ${snapshot.error}');
+          return Text('Unable to load coordinator dashboard: ${snapshot.error}');
         }
-        final payments = _scopePayments(snapshot.data ?? <PaymentModel>[]);
-        final pending = payments.where((p) => p.status == PaymentRecordStatus.pending).length;
-        final verified = payments.where((p) => p.status == PaymentRecordStatus.verified).length;
-        final rejected = payments.where((p) => p.status == PaymentRecordStatus.rejected).length;
-        return Column(
+        final analytics = snapshot.data!;
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _CoordinatorHero(onRefresh: () => _refresh(force: true)),
+              const SizedBox(height: 16),
+              _OperationalMetricGrid(analytics: analytics),
+              const SizedBox(height: 16),
+              _ResponsivePair(
+                first: _FixedDashboardCard(
+                  height: 380,
+                  child: VerificationTrendChart(
+                    points: analytics.trendFor(_timeframe),
+                    selectedTimeframe: _timeframe,
+                    onTimeframeChanged: (timeframe) => setState(() => _timeframe = timeframe),
+                  ),
+                ),
+                second: _FixedDashboardCard(
+                  height: 380,
+                  child: SubmissionWorkflowFunnel(steps: analytics.workflow),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _ResponsivePair(
+                firstFlex: 2,
+                secondFlex: 1,
+                first: _PaymentVerificationQueue(
+                  items: analytics.pendingQueue,
+                  onVerify: _verify,
+                  onReject: _reject,
+                  onViewProof: _viewProof,
+                ),
+                second: Column(
+                  children: <Widget>[
+                    _EscalationsPanel(alerts: analytics.escalations),
+                    const SizedBox(height: 16),
+                    _FixedDashboardCard(
+                      height: 245,
+                      child: DepartmentOperationalSnapshot(snapshot: analytics.snapshot),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              _FixedDashboardCard(
+                height: 360,
+                child: CoordinatorActivityFeed(activities: analytics.recentActivity),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CoordinatorHero extends StatelessWidget {
+  const _CoordinatorHero({required this.onRefresh});
+
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: <Color>[Color(0xFFEEF2FF), Color(0xFFF8FAFC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFDDE6FF)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textBlock = const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Coordinator Operations Control Center', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+              SizedBox(height: 4),
+              Text('Monitor payment verification, submission readiness and delayed actions in one compact workspace.', style: TextStyle(fontSize: 13, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+            ],
+          );
+          final icon = Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            child: const Icon(AppIcons.verification, color: Color(0xFF4F46E5), size: 26),
+          );
+          final refreshButton = OutlinedButton.icon(
+            onPressed: onRefresh,
+            icon: const Icon(AppIcons.refresh, size: 16),
+            label: const Text('Refresh'),
+          );
+          if (constraints.maxWidth < 640) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                icon,
+                const SizedBox(height: 12),
+                textBlock,
+                const SizedBox(height: 12),
+                refreshButton,
+              ],
+            );
+          }
+          return Row(
+            children: <Widget>[
+              icon,
+              const SizedBox(width: 14),
+              Expanded(child: textBlock),
+              const SizedBox(width: 12),
+              refreshButton,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _OperationalMetricGrid extends StatelessWidget {
+  const _OperationalMetricGrid({required this.analytics});
+
+  final CoordinatorDashboardAnalytics analytics;
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <Widget>[
+      OperationalMetricCard(value: '${analytics.pendingPayments}', label: 'Pending Payments', icon: AppIcons.pendingUsers, iconBgColor: const Color(0xFFFFF7ED), footnote: 'Payments waiting for coordinator verification'),
+      OperationalMetricCard(value: '${analytics.verifiedPaymentsToday}', label: 'Verified Today', icon: AppIcons.verification, iconBgColor: const Color(0xFFE8FAF1), footnote: 'Payments verified since midnight'),
+      OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Ideas Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Ideas waiting on payment validation'),
+      OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators'),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1100 ? 4 : constraints.maxWidth >= 720 ? 2 : 1;
+        final width = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _PaymentVerificationQueue extends StatelessWidget {
+  const _PaymentVerificationQueue({
+    required this.items,
+    required this.onVerify,
+    required this.onReject,
+    required this.onViewProof,
+  });
+
+  final List<PaymentQueueItem> items;
+  final ValueChanged<PaymentModel> onVerify;
+  final ValueChanged<PaymentModel> onReject;
+  final ValueChanged<PaymentModel> onViewProof;
+
+  @override
+  Widget build(BuildContext context) {
+    return CoordinatorPanelCard(
+      height: 560,
+      backgroundColor: const Color(0xFFFCFDFF),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text('Pending Verification Queue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          const SizedBox(height: 4),
+          const Text('Prioritized payment reviews with proof and overdue signals', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 14),
+          Expanded(
+            child: items.isEmpty
+                ? const Center(child: Text('No pending payment verifications.'))
+                : ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return PaymentQueueCard(
+                        item: item,
+                        onVerify: () => onVerify(item.payment),
+                        onReject: () => onReject(item.payment),
+                        onViewProof: () => onViewProof(item.payment),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EscalationsPanel extends StatelessWidget {
+  const _EscalationsPanel({required this.alerts});
+
+  final List<CoordinatorEscalation> alerts;
+
+  @override
+  Widget build(BuildContext context) {
+    return CoordinatorPanelCard(
+      height: 300,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text('Escalations / Delayed Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView.separated(
+              itemCount: alerts.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) => EscalationAlertCard(alert: alerts[index]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResponsivePair extends StatelessWidget {
+  const _ResponsivePair({
+    required this.first,
+    required this.second,
+    this.firstFlex = 1,
+    this.secondFlex = 1,
+  });
+
+  final Widget first;
+  final Widget second;
+  final int firstFlex;
+  final int secondFlex;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 880) {
+          return Column(
+            children: <Widget>[
+              first,
+              const SizedBox(height: 16),
+              second,
+            ],
+          );
+        }
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: SummaryCard(
-                    value: '$pending',
-                    label: 'Pending Payments',
-                    icon: Icons.pending_actions_outlined,
-                    iconBgColor: const Color(0xFFFFF4E8),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: SummaryCard(
-                    value: '$verified',
-                    label: 'Verified',
-                    icon: Icons.verified_outlined,
-                    iconBgColor: const Color(0xFFE8FAF1),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: SummaryCard(
-                    value: '$rejected',
-                    label: 'Rejected',
-                    icon: Icons.cancel_outlined,
-                    iconBgColor: const Color(0xFFFDECEC),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const SectionContainer(
-              child: Text(
-                'Use Payment Verification in the left menu to review pending uploads.',
-                style: TextStyle(fontSize: 14),
-              ),
-            ),
+            Expanded(flex: firstFlex, child: first),
+            const SizedBox(width: 16),
+            Expanded(flex: secondFlex, child: second),
           ],
         );
       },
     );
   }
+}
 
-  List<PaymentModel> _scopePayments(List<PaymentModel> all) {
-    final dep = user.departmentCode.trim().toUpperCase();
-    if (dep.isEmpty) return all;
-    return all.where((p) => p.departmentCode.trim().toUpperCase() == dep).toList(growable: false);
+class _FixedDashboardCard extends StatelessWidget {
+  const _FixedDashboardCard({required this.height, required this.child});
+
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: child,
+    );
   }
 }
 
@@ -221,6 +547,7 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
       paymentId: p.paymentId,
       coordinatorId: widget.user.userId,
     );
+    CoordinatorDashboardService.clearCache();
     if (mounted) setState(() {});
   }
 
@@ -251,6 +578,7 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
       coordinatorId: widget.user.userId,
       remarks: remarks.isEmpty ? null : remarks,
     );
+    CoordinatorDashboardService.clearCache();
     if (mounted) setState(() {});
   }
 
