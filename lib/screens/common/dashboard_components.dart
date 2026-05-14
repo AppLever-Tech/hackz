@@ -12,6 +12,17 @@ const double _kMetricIconBubbleIconSize = 20;
 const double _kMetricInlineIconSize = 18;
 const double _kMetricLabelBottomGap = 8;
 
+/// Surface, border, and shadow shared by dashboard metric cards and section tiles.
+/// Not `const`: [Border.all] is not a const factory in this SDK when used inside [BoxDecoration].
+final BoxDecoration kDashboardCardDecoration = BoxDecoration(
+  color: const Color(0xFFFCFDFF),
+  borderRadius: BorderRadius.circular(16),
+  border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
+  boxShadow: const <BoxShadow>[
+    BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
+  ],
+);
+
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({
     super.key,
@@ -195,14 +206,7 @@ class DashboardCountCard extends StatelessWidget {
       height: _kMetricCardHeight,
       child: Container(
         padding: const EdgeInsets.all(_kMetricCardPadding),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFCFDFF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
-          ],
-        ),
+        decoration: kDashboardCardDecoration,
         child: Row(
           children: <Widget>[
             Expanded(
@@ -418,14 +422,7 @@ class SectionContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD9E2F5), width: 1.2),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
-        ],
-      ),
+      decoration: kDashboardCardDecoration,
       child: child,
     );
   }

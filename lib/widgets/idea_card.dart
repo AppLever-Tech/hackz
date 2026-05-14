@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../screens/common/dashboard_components.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../utils/idea_query_service.dart';
@@ -33,17 +34,7 @@ class IdeaCard extends StatelessWidget {
     final paymentChip = _paymentChip(item.payment);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: kDashboardCardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

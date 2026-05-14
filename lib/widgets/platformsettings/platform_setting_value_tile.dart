@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/enums/platform_setting_value_type.dart';
 import '../../models/platform_setting_definition.dart';
 import '../../utils/platform_settings_service.dart';
+import '../../utils/platform_settings_validators.dart';
 import 'settings_number_stepper.dart';
 import 'settings_slider_tile.dart';
 import 'settings_string_list_tile.dart';
@@ -13,9 +14,20 @@ class PlatformSettingValueTile extends StatefulWidget {
   const PlatformSettingValueTile({
     super.key,
     required this.definition,
-  });
+    this.persistImmediately = true,
+    /// When [persistImmediately] is false, use this as the displayed value (draft over server).
+    this.resolvedValue,
+    /// When [persistImmediately] is false, called with validated coerced values instead of persisting.
+    this.onLocalCoerced,
+  }) : assert(
+          persistImmediately || onLocalCoerced != null,
+          'onLocalCoerced is required when persistImmediately is false',
+        );
 
   final PlatformSettingDefinition definition;
+  final bool persistImmediately;
+  final Object? resolvedValue;
+  final void Function(Object? coerced)? onLocalCoerced;
 
   @override
   State<PlatformSettingValueTile> createState() => _PlatformSettingValueTileState();
@@ -34,6 +46,29 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
     }
   }
 
+  void _applyLocalOrPersist(Object? value) {
+    final PlatformSettingDefinition d = widget.definition;
+    Object? coerced;
+    final String? err = PlatformSettingsValidators.validateAndCoerce(d, value, (c) => coerced = c);
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      return;
+    }
+    if (widget.persistImmediately) {
+      _persist(coerced);
+    } else {
+      widget.onLocalCoerced?.call(coerced);
+    }
+  }
+
+  Object? _rawForDisplay() {
+    final PlatformSettingDefinition d = widget.definition;
+    if (!widget.persistImmediately) {
+      return widget.resolvedValue ?? PlatformSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
+    }
+    return PlatformSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
+  }
+
   int _sliderDivisions(double min, double max, double step) {
     if (step <= 0) return 20;
     final int n = ((max - min) / step).round();
@@ -43,7 +78,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
   @override
   Widget build(BuildContext context) {
     final PlatformSettingDefinition d = widget.definition;
-    final Object? raw = PlatformSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
+    final Object? raw = _rawForDisplay();
 
     switch (d.type) {
       case PlatformSettingValueType.boolean:
@@ -53,7 +88,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
           subtitle: d.description,
           value: v,
           loading: _busy,
-          onChanged: (bool next) => _persist(next),
+          onChanged: (bool next) => _applyLocalOrPersist(next),
         );
       case PlatformSettingValueType.integer:
         final int min = (d.min ?? 0).toInt();
@@ -70,7 +105,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
             max: max,
             step: step,
             loading: _busy,
-            onChanged: (int next) => _persist(next),
+            onChanged: (int next) => _applyLocalOrPersist(next),
           ),
         );
       case PlatformSettingValueType.double:
@@ -90,7 +125,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
           loading: _busy,
           onChangedEnd: (double x) {
             final double snapped = (x / step).round() * step;
-            _persist(snapped.clamp(min, max));
+            _applyLocalOrPersist(snapped.clamp(min, max));
           },
         );
       case PlatformSettingValueType.stringList:
@@ -105,10 +140,17 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
           value: list,
           loading: _busy,
           onCommit: (List<String> next) async {
-            setState(() => _busy = true);
-            final String? err = await PlatformSettingsService.instance.updateValue(d.key, next);
-            setState(() => _busy = false);
-            return err;
+            if (widget.persistImmediately) {
+              setState(() => _busy = true);
+              final String? err = await PlatformSettingsService.instance.updateValue(d.key, next);
+              setState(() => _busy = false);
+              return err;
+            }
+            Object? coerced;
+            final String? validationErr = PlatformSettingsValidators.validateAndCoerce(d, next, (c) => coerced = c);
+            if (validationErr != null) return validationErr;
+            widget.onLocalCoerced?.call(coerced);
+            return null;
           },
         );
     }

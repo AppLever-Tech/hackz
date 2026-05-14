@@ -274,7 +274,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                 children: <Widget>[
                   const Expanded(
                     child: Text(
-                      'Manage College',
+                      'Departments',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -297,7 +297,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
-                    childAspectRatio: 3.7,
+                    childAspectRatio: 3.35,
                   ),
                   itemBuilder: (BuildContext context, int index) {
                     final dept = departments[index];
@@ -345,30 +345,25 @@ class _DepartmentCard extends StatelessWidget {
     final hasAdmin = adminUserId.isNotEmpty && admin != 'Not Assigned';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
-        ],
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: kDashboardCardDecoration,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8ECFF),
+                  color: const Color(0xFFF4F0FF),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE8ECF8)),
                 ),
                 child: const Tooltip(
                   message: 'Department',
-                  child: Icon(AppIcons.departments, size: 20, color: Color(0xFF4F46E5)),
+                  child: Icon(AppIcons.departments, size: 20, color: Color(0xFF6A38FF)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -386,91 +381,85 @@ class _DepartmentCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              if (!hasAdmin) ...<Widget>[
-                Expanded(
-                  child: Row(
-                    children: <Widget>[
-                      const Tooltip(
-                        message: 'Department admin',
-                        child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF94A3B8)),
-                      ),
-                      const SizedBox(width: 7),
-                      Flexible(
-                        child: Text(
-                          'No admin assigned',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
+              Expanded(
+                child: hasAdmin
+                    ? Row(
+                        children: <Widget>[
+                          const Tooltip(
+                            message: 'Department admin',
+                            child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF57629A)),
                           ),
-                        ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              admin,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Remove department admin',
+                            onPressed: () => onRemoveAdmin(adminUserId, admin),
+                            icon: const Icon(AppIcons.remove, size: 15, color: Colors.redAccent),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: <Widget>[
+                          const Tooltip(
+                            message: 'Department admin',
+                            child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF94A3B8)),
+                          ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              'No admin assigned',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Add department admin',
+                            onPressed: onAddAdmin,
+                            icon: const Icon(AppIcons.add, size: 18, color: Color(0xFF6A38FF)),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        tooltip: 'Add department admin',
-                        onPressed: onAddAdmin,
-                        icon: const Icon(AppIcons.add, size: 18, color: Color(0xFF6A38FF)),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      ),
-                    ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  _DepartmentCountChip(
+                    icon: AppIcons.faculty,
+                    count: facultyCount,
+                    tooltip: 'Faculty count',
                   ),
-                ),
-              ] else ...<Widget>[
-                Expanded(
-                  child: Row(
-                    children: <Widget>[
-                      const Tooltip(
-                        message: 'Department admin',
-                        child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF57629A)),
-                      ),
-                      const SizedBox(width: 7),
-                      Flexible(
-                        child: Text(
-                          admin,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Remove department admin',
-                        onPressed: () => onRemoveAdmin(adminUserId, admin),
-                        icon: const Icon(AppIcons.remove, size: 15, color: Colors.redAccent),
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  _DepartmentCountChip(
+                    icon: AppIcons.student,
+                    count: studentCount,
+                    tooltip: 'Student count',
                   ),
-                ),
-              ],
-              const SizedBox(width: 8),
-              Flexible(
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    _DepartmentCountChip(
-                      icon: AppIcons.faculty,
-                      count: facultyCount,
-                      tooltip: 'Faculty count',
-                    ),
-                    _DepartmentCountChip(
-                      icon: AppIcons.student,
-                      count: studentCount,
-                      tooltip: 'Student count',
-                    ),
-                    _DepartmentCountChip(
-                      icon: AppIcons.ideas,
-                      count: totalIdeas,
-                      tooltip: 'Ideas count',
-                    ),
-                  ],
-                ),
+                  const SizedBox(width: 8),
+                  _DepartmentCountChip(
+                    icon: AppIcons.ideas,
+                    count: totalIdeas,
+                    tooltip: 'Ideas count',
+                  ),
+                ],
               ),
             ],
           ),
@@ -496,23 +485,23 @@ class _DepartmentCountChip extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFCFDFF),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: const Color(0xFFD9E2F5), width: 1.1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(icon, size: 15, color: const Color(0xFF57629A)),
-            const SizedBox(width: 5),
+            Icon(icon, size: 17, color: const Color(0xFF57629A)),
+            const SizedBox(width: 6),
             Text(
               '$count',
               style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF334155),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0F172A),
               ),
             ),
           ],

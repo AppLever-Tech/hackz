@@ -206,7 +206,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(16),
                       onTap: () => _showIdeaDetails(item),
                       child: IdeaCard(
                         key: ValueKey(item.idea.ideaId),
