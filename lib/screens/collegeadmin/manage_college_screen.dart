@@ -266,55 +266,57 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
           return Text('Unable to load departments: ${snapshot.error}');
         }
         final departments = snapshot.data ?? <Map<String, dynamic>>[];
-        return SectionContainer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  const Expanded(
-                    child: Text(
-                      'Departments',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                    ),
+        final int deptCount = departments.length;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    'Departments ($deptCount)',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
-                  FilledButton.icon(
-                    onPressed: _showAddDepartmentDialog,
-                    icon: const Icon(AppIcons.add),
-                    label: const Text('Add Department'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (departments.isEmpty)
-                const Text('No departments available for this college.')
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: departments.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 3.35,
-                  ),
-                  itemBuilder: (BuildContext context, int index) {
-                    final dept = departments[index];
-                    return _DepartmentCard(
-                      department: dept,
-                      onAddAdmin: () => _openDepartmentAdminDialog(dept),
-                      onRemoveAdmin: (String adminUserId, String adminName) =>
-                          _removeDepartmentAdmin(
-                        dept,
-                        adminUserId: adminUserId,
-                        adminName: adminName,
-                      ),
-                    );
-                  },
                 ),
-            ],
-          ),
+                FilledButton.icon(
+                  onPressed: _showAddDepartmentDialog,
+                  icon: const Icon(AppIcons.add),
+                  label: const Text('Add Department'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (departments.isEmpty)
+              Text(
+                'No departments available for this college.',
+                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: departments.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 3.35,
+                ),
+                itemBuilder: (BuildContext context, int index) {
+                  final dept = departments[index];
+                  return _DepartmentCard(
+                    department: dept,
+                    onAddAdmin: () => _openDepartmentAdminDialog(dept),
+                    onRemoveAdmin: (String adminUserId, String adminName) =>
+                        _removeDepartmentAdmin(
+                      dept,
+                      adminUserId: adminUserId,
+                      adminName: adminName,
+                    ),
+                  );
+                },
+              ),
+          ],
         );
       },
     );
