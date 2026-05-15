@@ -117,6 +117,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
 
               final departmentCode = _resolveDepartmentCode(departmentName);
               setState(() => isSaving = true);
+              var didPop = false;
               try {
                 await FirestoreUtils.addDepartment(
                   orgId: widget.user.orgId,
@@ -124,9 +125,17 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   code: departmentCode,
                 );
                 if (!context.mounted) return;
+                didPop = true;
                 Navigator.of(context).pop(true);
-              } finally {
+              } catch (e) {
                 if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Could not add department: $e')),
+                  );
+                }
+              } finally {
+                // Do not rebuild after pop — DropdownMenu can still touch the controller during route teardown.
+                if (!didPop && context.mounted) {
                   setState(() => isSaving = false);
                 }
               }
@@ -234,8 +243,11 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         },
       ),
     );
-    departmentController.dispose();
-    customDepartmentController.dispose();
+    // Let the dialog route (and DropdownMenu overlays) finish disposing before releasing controllers.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      departmentController.dispose();
+      customDepartmentController.dispose();
+    });
     if (mounted && shouldRefresh == true) setState(() {});
   }
 
