@@ -39,6 +39,10 @@ class TeamService {
   }) =>
       FirestoreUtils.getActiveProblemsByDepartment(orgId: orgId, departmentCode: departmentCode);
 
+  /// Active problems across all departments (for idea submission, etc.).
+  static Future<List<ProblemModel>> getActiveProblemsForCollege(String orgId) =>
+      FirestoreUtils.getActiveProblemsByCollege(orgId);
+
   static Future<void> validateTeamUpsert({
     required UserModel faculty,
     required String teamName,

@@ -493,7 +493,15 @@ class DepartmentDashboardService {
       final data = doc.data();
       final when = _dateFrom(data['createdAt']);
       if (when == null) continue;
-      events.add(DepartmentActivityEvent(title: 'Idea submitted', subtitle: ((data['problemTitle'] as String?) ?? 'Idea').trim(), when: when, icon: AppIcons.ideas, tint: const Color(0xFF0EA5E9)));
+      events.add(DepartmentActivityEvent(
+        title: 'Idea submitted',
+        subtitle: ((data['ideaTitle'] as String?) ?? '').trim().isNotEmpty
+            ? ((data['ideaTitle'] as String?) ?? '').trim()
+            : ((data['problemTitle'] as String?) ?? 'Idea').trim(),
+        when: when,
+        icon: AppIcons.ideas,
+        tint: const Color(0xFF0EA5E9),
+      ));
     }
     for (final doc in scores) {
       final data = doc.data();

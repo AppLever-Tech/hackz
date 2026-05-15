@@ -1,11 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 
+import '../models/attachment_model.dart';
 import '../models/enums/team_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/problem_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
+import 'attachment_service.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
 import 'team_service.dart';
@@ -194,8 +197,9 @@ class FacultyTeamsService {
     required UserModel faculty,
     required TeamModel team,
     required ProblemModel problem,
+    required String ideaTitle,
     required String description,
-    required List<String> files,
+    required List<PlatformFile> attachmentFiles,
   }) async {
     await TeamService.validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
     final doc = _db.collection(FirestoreUtils.hkzIdeas).doc();
@@ -203,8 +207,9 @@ class FacultyTeamsService {
       ideaId: doc.id,
       problemId: problem.problemId,
       teamId: team.teamId,
+      ideaTitle: ideaTitle.trim(),
       description: description.trim(),
-      files: files,
+      files: const <String>[],
       status: IdeaStatus.pendingSubmission,
       createdAt: DateTime.now(),
       orgId: faculty.orgId,
@@ -221,6 +226,20 @@ class FacultyTeamsService {
       SetOptions(merge: true),
     );
     await batch.commit();
+
+    if (attachmentFiles.isNotEmpty) {
+      final uploaded = await AttachmentService.uploadAttachments(
+        entityType: AttachmentEntityType.idea,
+        entityId: doc.id,
+        orgId: faculty.orgId,
+        departmentCode: problem.departmentCode.trim().toUpperCase(),
+        uploadedBy: faculty.userId,
+        files: attachmentFiles,
+        fileType: 'idea',
+      );
+      final urls = uploaded.map((e) => e.downloadUrl).toList(growable: false);
+      await doc.update(<String, dynamic>{'files': urls});
+    }
     _invalidate(faculty.userId);
   }
 }

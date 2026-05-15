@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_icons.dart';
 import '../screens/common/dashboard_components.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
@@ -31,7 +32,8 @@ class IdeaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final badge = _statusStyle(item.idea.status);
-    final paymentChip = _paymentChip(item.payment);
+    final ideaTitle = item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim();
+    final problemTitle = item.idea.problemTitle.trim().isEmpty ? 'Untitled Problem' : item.idea.problemTitle.trim();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: kDashboardCardDecoration,
@@ -40,63 +42,82 @@ class IdeaCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  item.idea.problemNumber.isEmpty ? 'N/A' : item.idea.problemNumber,
-                  style: const TextStyle(
-                    color: Color(0xFF2E43C6),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+              _metaPill(
+                icon: AppIcons.problems,
+                label: item.idea.problemNumber.isEmpty ? 'N/A' : item.idea.problemNumber,
+                emphasized: true,
               ),
               const Spacer(),
               if (canViewStatus)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: badge.bg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    badge.label,
-                    style: TextStyle(
-                      color: badge.fg,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
+                _metaPill(
+                  icon: _statusIcon(item.idea.status),
+                  label: badge.label,
+                  fg: badge.fg,
+                  bg: badge.bg,
                 ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            item.idea.problemTitle.trim().isEmpty ? 'Untitled Problem' : item.idea.problemTitle,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(AppIcons.ideas, size: 20, color: Color(0xFF6A38FF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ideaTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            item.idea.description.trim().isEmpty ? '-' : item.idea.description,
-            style: theme.textTheme.bodyMedium,
-            maxLines: 2,
+            item.idea.description.trim().isEmpty ? '-' : item.idea.description.trim(),
+            style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFF475569)),
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(AppIcons.problems, size: 18, color: Color(0xFF64748B)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  problemTitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              _metaPill('Team: ${item.teamName.trim().isEmpty ? '-' : item.teamName}'),
-              _metaPill('Created: ${_formatDate(item.idea.createdAt)}'),
-              if (item.idea.status == IdeaStatus.pendingSubmission || item.payment != null) _metaPill(paymentChip),
-              if (item.score != null) _metaPill('Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
-              if (item.score != null) _metaPill('Judge: ${item.judgeName ?? item.score!.judgeId}'),
+              _metaPill(
+                icon: AppIcons.teams,
+                label: 'Team: ${item.teamName.trim().isEmpty ? '-' : item.teamName}',
+              ),
+              _metaPill(icon: AppIcons.clock, label: 'Created: ${_formatDate(item.idea.createdAt)}'),
+              if (item.idea.status == IdeaStatus.pendingSubmission || item.payment != null)
+                _metaPill(icon: AppIcons.payments, label: _paymentChip(item.payment)),
+              if (item.score != null)
+                _metaPill(icon: AppIcons.scoring, label: 'Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
+              if (item.score != null)
+                _metaPill(
+                  icon: AppIcons.judges,
+                  label: 'Judge: ${item.judgeName ?? item.score!.judgeId}',
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -105,14 +126,14 @@ class IdeaCard extends StatelessWidget {
               if (showViewDetails)
                 OutlinedButton.icon(
                   onPressed: onViewDetails,
-                  icon: const Icon(Icons.open_in_new, size: 16),
+                  icon: const Icon(AppIcons.openInNew, size: 16),
                   label: const Text('View Details'),
                 ),
               if (showUploadPayment) ...<Widget>[
                 SizedBox(width: showViewDetails ? 8 : 0),
                 FilledButton.icon(
                   onPressed: onUploadPayment,
-                  icon: const Icon(Icons.payment_outlined, size: 16),
+                  icon: const Icon(AppIcons.payments, size: 16),
                   label: const Text('Upload Payment'),
                 ),
               ],
@@ -120,7 +141,7 @@ class IdeaCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 FilledButton.icon(
                   onPressed: onEvaluate,
-                  icon: const Icon(Icons.rate_review_outlined, size: 16),
+                  icon: const Icon(AppIcons.scoring, size: 16),
                   label: const Text('Evaluate'),
                 ),
               ],
@@ -129,6 +150,23 @@ class IdeaCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _statusIcon(IdeaStatus status) {
+    switch (status) {
+      case IdeaStatus.pendingSubmission:
+        return AppIcons.statusSubmitted;
+      case IdeaStatus.submitted:
+        return AppIcons.submissions;
+      case IdeaStatus.underReview:
+        return AppIcons.statusUnderReview;
+      case IdeaStatus.evaluated:
+        return AppIcons.statusEvaluated;
+      case IdeaStatus.approved:
+        return AppIcons.statusApproved;
+      case IdeaStatus.rejected:
+        return AppIcons.statusRejected;
+    }
   }
 
   String _paymentChip(PaymentModel? payment) {
@@ -143,16 +181,34 @@ class IdeaCard extends StatelessWidget {
     }
   }
 
-  Widget _metaPill(String text) {
+  Widget _metaPill({
+    required IconData icon,
+    required String label,
+    bool emphasized = false,
+    Color? fg,
+    Color? bg,
+  }) {
+    final textColor = fg ?? (emphasized ? const Color(0xFF2E43C6) : const Color(0xFF334155));
+    final background = bg ?? (emphasized ? const Color(0xFFEEF2FF) : const Color(0xFFF1F5F9));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: background,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

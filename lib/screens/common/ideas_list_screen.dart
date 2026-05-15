@@ -269,6 +269,8 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Widget _buildHeader() {
     return Row(
       children: <Widget>[
+        const Icon(AppIcons.ideas, size: 24, color: Color(0xFF6A38FF)),
+        const SizedBox(width: 10),
         const Expanded(
           child: Text(
             'Ideas',
@@ -292,7 +294,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by problem number, title, description',
+              hintText: 'Search by idea title, problem, or description',
               prefixIcon: const Icon(AppIcons.search),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -336,7 +338,13 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
-            const Text('Status', style: TextStyle(fontWeight: FontWeight.w600)),
+            Row(
+              children: const <Widget>[
+                Icon(AppIcons.statusUnderReview, size: 18, color: Color(0xFF64748B)),
+                SizedBox(width: 6),
+                Text('Status', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -344,6 +352,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               children: IdeaStatus.values
                   .map(
                     (status) => FilterChip(
+                      avatar: Icon(_statusIcon(status), size: 16),
                       label: Text(_statusLabel(status)),
                       selected: _statusFilters.contains(status),
                       onSelected: (selected) {
@@ -362,7 +371,13 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             const SizedBox(height: 12),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.problem)) ...<Widget>[
-            const Text('Problem', style: TextStyle(fontWeight: FontWeight.w600)),
+            Row(
+              children: const <Widget>[
+                Icon(AppIcons.problems, size: 18, color: Color(0xFF64748B)),
+                SizedBox(width: 6),
+                Text('Problem', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: _problemFilters.length == 1 ? _problemFilters.first : null,
@@ -375,6 +390,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               }),
               decoration: const InputDecoration(
                 isDense: true,
+                prefixIcon: Icon(AppIcons.problems),
                 border: OutlineInputBorder(),
                 hintText: 'Select problem',
               ),
@@ -383,7 +399,13 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
               !widget.config.restrictToDepartment) ...<Widget>[
-            const Text('Department', style: TextStyle(fontWeight: FontWeight.w600)),
+            Row(
+              children: const <Widget>[
+                Icon(AppIcons.departments, size: 18, color: Color(0xFF64748B)),
+                SizedBox(width: 6),
+                Text('Department', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -391,6 +413,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               children: availableDepartments
                   .map(
                     (d) => FilterChip(
+                      avatar: const Icon(AppIcons.departments, size: 16),
                       label: Text(d),
                       selected: _departmentFilters.contains(d),
                       onSelected: (selected) {
@@ -428,6 +451,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       children: <Widget>[
         ..._statusFilters.map(
           (status) => InputChip(
+            avatar: Icon(_statusIcon(status), size: 16),
             label: Text(_statusLabel(status)),
             onDeleted: () {
               setState(() => _statusFilters.remove(status));
@@ -437,6 +461,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         ),
         ..._problemFilters.map(
           (problemId) => InputChip(
+            avatar: const Icon(AppIcons.problems, size: 16),
             label: Text(problems[problemId] ?? problemId),
             onDeleted: () {
               setState(() => _problemFilters.remove(problemId));
@@ -467,6 +492,8 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     final availableSorts = order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
     return Row(
       children: <Widget>[
+        const Icon(AppIcons.ideas, size: 18, color: Color(0xFF6A38FF)),
+        const SizedBox(width: 6),
         Text('$count Ideas', style: const TextStyle(fontWeight: FontWeight.w600)),
         const Spacer(),
         const Text('Sort:'),
@@ -496,6 +523,23 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         return 'Status';
       case IdeaSortType.score:
         return 'Score';
+    }
+  }
+
+  IconData _statusIcon(IdeaStatus status) {
+    switch (status) {
+      case IdeaStatus.pendingSubmission:
+        return AppIcons.statusSubmitted;
+      case IdeaStatus.submitted:
+        return AppIcons.submissions;
+      case IdeaStatus.underReview:
+        return AppIcons.statusUnderReview;
+      case IdeaStatus.evaluated:
+        return AppIcons.statusEvaluated;
+      case IdeaStatus.approved:
+        return AppIcons.statusApproved;
+      case IdeaStatus.rejected:
+        return AppIcons.statusRejected;
     }
   }
 

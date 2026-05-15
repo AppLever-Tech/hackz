@@ -108,7 +108,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  vm.idea.problemTitle.isEmpty ? vm.idea.problemNumber : vm.idea.problemTitle,
+                  vm.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : vm.idea.ideaTitle.trim(),
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
@@ -231,7 +231,11 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text('Idea Description', style: TextStyle(fontWeight: FontWeight.w700)),
+              const Text('Idea title', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Text(vm.idea.ideaTitle.trim().isEmpty ? '-' : vm.idea.ideaTitle.trim()),
+              const SizedBox(height: 14),
+              const Text('Idea description', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               Text(vm.idea.description.isEmpty ? '-' : vm.idea.description),
             ],

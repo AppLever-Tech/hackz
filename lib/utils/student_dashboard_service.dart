@@ -186,7 +186,7 @@ class StudentDashboardService {
     final activities = <StudentActivityItem>[
       ...scopedIdeas.map(
         (i) => StudentActivityItem(
-          text: 'Idea submitted for ${i.problemTitle.isEmpty ? i.problemNumber : i.problemTitle}',
+          text: 'Idea submitted: ${i.ideaTitle.trim().isEmpty ? i.problemNumber : i.ideaTitle.trim()}',
           at: i.createdAt,
           icon: AppIcons.ideas,
         ),

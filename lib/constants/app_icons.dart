@@ -54,11 +54,12 @@ class AppIcons {
   static const IconData attachmentPpt = Icons.slideshow_outlined;
   static const IconData download = Icons.download_rounded;
   static const IconData preview = Icons.visibility_outlined;
-  static const IconData statusSubmitted = Icons.radio_button_unchecked_rounded;
-  static const IconData statusUnderReview = Icons.pending_actions_outlined;
-  static const IconData statusEvaluated = Icons.fact_check_outlined;
-  static const IconData statusApproved = Icons.check_circle_outline_rounded;
-  static const IconData statusRejected = Icons.cancel_outlined;
+  static const IconData statusPendingSubmission = Icons.hourglass_bottom_rounded;
+  static const IconData statusSubmitted = Icons.send_rounded;
+  static const IconData statusUnderReview = Icons.pending_rounded;
+  static const IconData statusEvaluated = Icons.verified_rounded;
+  static const IconData statusApproved = Icons.check_circle_rounded;
+  static const IconData statusRejected = Icons.cancel_rounded;
   static const IconData statusActive = Icons.circle;
   static const IconData statusInactive = Icons.circle_outlined;
 

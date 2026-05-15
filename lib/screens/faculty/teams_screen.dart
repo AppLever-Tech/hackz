@@ -64,7 +64,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
       child: SubmitIdeaDialog(
         currentUser: widget.user,
         team: team,
-        problems: data.problems,
       ),
       maxWidth: 700,
     );
@@ -382,7 +381,12 @@ class _TeamIdeasPreview extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(idea.problemTitle.isEmpty ? idea.description : idea.problemTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(
+                          idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : idea.ideaTitle.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                         Text(idea.status.value, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                       ],
                     ),

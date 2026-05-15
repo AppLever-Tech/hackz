@@ -37,6 +37,7 @@ class IdeaModel {
     required this.ideaId,
     required this.problemId,
     required this.teamId,
+    required this.ideaTitle,
     required this.description,
     required this.files,
     required this.status,
@@ -51,6 +52,7 @@ class IdeaModel {
   final String ideaId;
   final String problemId;
   final String teamId;
+  final String ideaTitle;
   final String description;
   final List<String> files;
   final IdeaStatus status;
@@ -66,6 +68,7 @@ class IdeaModel {
       'ideaId': ideaId,
       'problemId': problemId,
       'teamId': teamId,
+      'ideaTitle': ideaTitle,
       'description': description,
       'files': files,
       'status': status.value,
@@ -75,20 +78,16 @@ class IdeaModel {
       'problemNumber': problemNumber,
       'problemTitle': problemTitle,
       'createdBy': createdBy,
-      // Kept for backward compatibility with existing screens that read "title".
-      'title': problemTitle,
     };
   }
 
   factory IdeaModel.fromMap(String ideaId, Map<String, dynamic> map) {
-    final problemTitle = ((map['problemTitle'] as String?) ?? '').trim();
-    final fallbackTitle = ((map['title'] as String?) ?? '').trim();
-    final description = ((map['description'] as String?) ?? '').trim();
     return IdeaModel(
       ideaId: ((map['ideaId'] as String?) ?? '').trim().isNotEmpty ? (map['ideaId'] as String).trim() : ideaId,
       problemId: ((map['problemId'] as String?) ?? '').trim(),
       teamId: ((map['teamId'] as String?) ?? '').trim(),
-      description: description.isNotEmpty ? description : fallbackTitle,
+      ideaTitle: ((map['ideaTitle'] as String?) ?? '').trim(),
+      description: ((map['description'] as String?) ?? '').trim(),
       files: (map['files'] as List<dynamic>? ?? const <dynamic>[])
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty)
@@ -98,7 +97,7 @@ class IdeaModel {
       orgId: ((map['orgId'] as String?) ?? '').trim(),
       departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
       problemNumber: ((map['problemNumber'] as String?) ?? '').trim(),
-      problemTitle: problemTitle.isNotEmpty ? problemTitle : fallbackTitle,
+      problemTitle: ((map['problemTitle'] as String?) ?? '').trim(),
       createdBy: ((map['createdBy'] as String?) ?? '').trim(),
     );
   }

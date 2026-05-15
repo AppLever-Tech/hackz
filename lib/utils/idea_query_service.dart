@@ -143,8 +143,9 @@ class IdeaQueryService {
       if (search.isEmpty) return true;
       final inProblemNumber = idea.problemNumber.toLowerCase().contains(search);
       final inProblemTitle = idea.problemTitle.toLowerCase().contains(search);
+      final inIdeaTitle = idea.ideaTitle.toLowerCase().contains(search);
       final inDescription = idea.description.toLowerCase().contains(search);
-      return inProblemNumber || inProblemTitle || inDescription;
+      return inProblemNumber || inProblemTitle || inIdeaTitle || inDescription;
     }).toList(growable: false);
   }
 

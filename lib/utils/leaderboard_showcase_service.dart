@@ -545,7 +545,7 @@ class LeaderboardShowcaseService {
   }
 
   static String _ideaTitle(IdeaModel idea) {
-    final t = idea.problemTitle.trim();
+    final t = idea.ideaTitle.trim();
     if (t.isNotEmpty) return t;
     if (idea.problemNumber.trim().isNotEmpty) return idea.problemNumber.trim();
     return idea.ideaId;

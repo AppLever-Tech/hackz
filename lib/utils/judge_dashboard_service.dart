@@ -232,7 +232,7 @@ class JudgeDashboardService {
   }
 
   static String _ideaTitle(IdeaModel idea) {
-    final title = idea.problemTitle.trim();
+    final title = idea.ideaTitle.trim();
     if (title.isNotEmpty) return title;
     if (idea.problemNumber.trim().isNotEmpty) return idea.problemNumber.trim();
     return idea.ideaId;

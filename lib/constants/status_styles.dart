@@ -31,6 +31,10 @@ class StatusStyles {
 
   static IconData iconForIdeaStatus(IdeaStatus status) {
     switch (status) {
+      case IdeaStatus.pendingSubmission:
+        return AppIcons.statusPendingSubmission;
+      case IdeaStatus.submitted:
+        return AppIcons.statusSubmitted;
       case IdeaStatus.underReview:
         return AppIcons.statusUnderReview;
       case IdeaStatus.evaluated:
@@ -39,9 +43,46 @@ class StatusStyles {
         return AppIcons.statusApproved;
       case IdeaStatus.rejected:
         return AppIcons.statusRejected;
-      case IdeaStatus.pendingSubmission:
-      case IdeaStatus.submitted:
-        return AppIcons.statusSubmitted;
     }
+  }
+
+  static String labelForIdeaStatus(IdeaStatus status) {
+    switch (status) {
+      case IdeaStatus.pendingSubmission:
+        return 'Pending Submission';
+      case IdeaStatus.submitted:
+        return 'Submitted';
+      case IdeaStatus.underReview:
+        return 'Under Review';
+      case IdeaStatus.evaluated:
+        return 'Evaluated';
+      case IdeaStatus.approved:
+        return 'Approved';
+      case IdeaStatus.rejected:
+        return 'Rejected';
+    }
+  }
+
+  /// Colored filled status icon with tinted background (tooltip optional).
+  static Widget ideaStatusIcon(
+    IdeaStatus status, {
+    double size = 18,
+    String? tooltip,
+  }) {
+    final color = colorForIdeaStatus(status);
+    final badge = Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(
+        iconForIdeaStatus(status),
+        size: size,
+        color: color,
+      ),
+    );
+    final message = tooltip ?? labelForIdeaStatus(status);
+    return Tooltip(message: message, child: badge);
   }
 }

@@ -711,6 +711,20 @@ class FirestoreUtils {
     return problems;
   }
 
+  /// All active problems for a college (any department).
+  static Future<List<ProblemModel>> getActiveProblemsByCollege(String orgId) async {
+    final snapshot = await _db
+        .collection(hkzProblems)
+        .where('orgId', isEqualTo: orgId)
+        .where('isActive', isEqualTo: true)
+        .get();
+    final problems = snapshot.docs
+        .map((d) => ProblemModel.fromMap(d.id, d.data()))
+        .toList(growable: false);
+    problems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return problems;
+  }
+
   static Future<List<ProblemModel>> getProblemModelsByCollege(String orgId) async {
     final snapshot = await _db.collection(hkzProblems).where('orgId', isEqualTo: orgId).get();
     final items = snapshot.docs

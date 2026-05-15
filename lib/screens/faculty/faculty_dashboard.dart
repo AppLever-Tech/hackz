@@ -359,7 +359,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         title: 'My Ideas',
         icon: AppIcons.ideas,
         count: vm.ideaCount,
-        preview: vm.ideaPreview,
+        ideaPreviews: vm.ideaPreviews,
       ),
     ];
     return LayoutBuilder(
@@ -589,14 +589,25 @@ class _FacultyDashboardService {
           .take(3)
           .map((p) => ((p.data()['title'] as String?) ?? 'Untitled problem').trim())
           .toList(growable: false),
-      ideaPreview: ideas
-          .take(3)
-          .map((i) => i.problemTitle.isEmpty ? i.description : i.problemTitle)
+      ideaPreviews: (ideas.toList(growable: false)..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
+          .map(
+            (i) => _FacultyIdeaPreview(
+              title: i.ideaTitle.trim().isEmpty ? 'Untitled Idea' : i.ideaTitle.trim(),
+              status: i.status,
+            ),
+          )
           .toList(growable: false),
       activities: activities.take(40).toList(growable: false),
       usersById: usersById,
     );
   }
+}
+
+class _FacultyIdeaPreview {
+  const _FacultyIdeaPreview({required this.title, required this.status});
+
+  final String title;
+  final IdeaStatus status;
 }
 
 class _FacultyDashboardVm {
@@ -616,7 +627,7 @@ class _FacultyDashboardVm {
     required this.problemDates,
     required this.teamCreationDates,
     required this.problemPreview,
-    required this.ideaPreview,
+    required this.ideaPreviews,
     required this.activities,
     required this.usersById,
   });
@@ -637,7 +648,7 @@ class _FacultyDashboardVm {
     problemDates: <DateTime>[],
     teamCreationDates: <DateTime>[],
     problemPreview: <String>[],
-    ideaPreview: <String>[],
+    ideaPreviews: <_FacultyIdeaPreview>[],
     activities: <_ActivityItem>[],
     usersById: <String, Map<String, dynamic>>{},
   );
@@ -657,7 +668,7 @@ class _FacultyDashboardVm {
   final List<DateTime> problemDates;
   final List<DateTime> teamCreationDates;
   final List<String> problemPreview;
-  final List<String> ideaPreview;
+  final List<_FacultyIdeaPreview> ideaPreviews;
   final List<_ActivityItem> activities;
   final Map<String, Map<String, dynamic>> usersById;
 }
@@ -669,6 +680,7 @@ class _KeyDataCard extends StatelessWidget {
     required this.count,
     this.preview = const <String>[],
     this.teamPreview = const <TeamModel>[],
+    this.ideaPreviews = const <_FacultyIdeaPreview>[],
   });
 
   final String title;
@@ -676,6 +688,7 @@ class _KeyDataCard extends StatelessWidget {
   final int count;
   final List<String> preview;
   final List<TeamModel> teamPreview;
+  final List<_FacultyIdeaPreview> ideaPreviews;
 
   @override
   Widget build(BuildContext context) {
@@ -706,13 +719,15 @@ class _KeyDataCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: preview.isEmpty && teamPreview.isEmpty
+              child: preview.isEmpty && teamPreview.isEmpty && ideaPreviews.isEmpty
                   ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
                   : SingleChildScrollView(
                       child: Column(
                         children: title == 'My Teams' && teamPreview.isNotEmpty
                             ? teamPreview.map((team) => _teamBullet(team)).toList(growable: false)
-                            : preview.map((item) => _textBullet(item)).toList(growable: false),
+                            : title == 'My Ideas' && ideaPreviews.isNotEmpty
+                                ? ideaPreviews.map((idea) => _ideaBullet(idea)).toList(growable: false)
+                                : preview.map((item) => _textBullet(item)).toList(growable: false),
                       ),
                     ),
             ),
@@ -772,6 +787,31 @@ class _KeyDataCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _ideaBullet(_FacultyIdeaPreview idea) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: <Widget>[
+          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              idea.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF1E293B)),
+            ),
+          ),
+          StatusStyles.ideaStatusIcon(
+            idea.status,
+            size: _FacultyDashboardHomeState._kDashboardIconSize,
+          ),
+        ],
+      ),
+    );
+  }
+
 }
 
 class _SubmissionTrendChart extends StatelessWidget {
