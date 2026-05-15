@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/payment_model.dart';
+import '../../screens/common/dashboard_components.dart';
 import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
 import 'payment_proof_viewer.dart';
@@ -13,9 +14,11 @@ class PaymentDetailPane extends StatelessWidget {
   const PaymentDetailPane({
     super.key,
     required this.detail,
+    this.sectionBorderRadius = 20,
   });
 
   final DepartmentPaymentDetail detail;
+  final double sectionBorderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -25,92 +28,112 @@ class PaymentDetailPane extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            const Icon(AppIcons.payments, color: Color(0xFF0891B2), size: 20),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Payment summary',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+        _sectionPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  const Icon(AppIcons.payments, color: Color(0xFF0891B2), size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Payment summary',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                    ),
+                  ),
+                  PaymentStatusPill(status: payment.status, showAttentionDot: contribution.needsAttention),
+                ],
               ),
-            ),
-            PaymentStatusPill(status: payment.status, showAttentionDot: contribution.needsAttention),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          PaymentFinanceHelpers.formatCurrency(payment.amount),
-          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 6),
-        _summaryRow('Paid on', PaymentFinanceHelpers.formatDate(payment.createdAt)),
-        if (payment.verifiedAt != null)
-          _summaryRow(
-            payment.status == PaymentRecordStatus.rejected ? 'Rejected on' : 'Verified on',
-            PaymentFinanceHelpers.formatDate(payment.verifiedAt!),
+              const SizedBox(height: 8),
+              Text(
+                PaymentFinanceHelpers.formatCurrency(payment.amount),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 8),
+              _summaryRow('Paid on', PaymentFinanceHelpers.formatDate(payment.createdAt)),
+              if (payment.verifiedAt != null)
+                _summaryRow(
+                  payment.status == PaymentRecordStatus.rejected ? 'Rejected on' : 'Verified on',
+                  PaymentFinanceHelpers.formatDate(payment.verifiedAt!),
+                ),
+              _summaryRow('Coordinator', contribution.coordinatorName),
+              if (payment.transactionId?.trim().isNotEmpty == true)
+                _summaryRow('Transaction ID', payment.transactionId!.trim()),
+            ],
           ),
-        _summaryRow('Coordinator', contribution.coordinatorName),
-        if (payment.transactionId?.trim().isNotEmpty == true)
-          _summaryRow('Transaction ID', payment.transactionId!.trim()),
-        const SizedBox(height: 10),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-        const SizedBox(height: 10),
-        TeamContributionSection.fromModels(
-          team: detail.team,
-          mentorName: contribution.mentorName,
-          students: detail.students,
-          idea: detail.idea,
-          problem: detail.problem,
         ),
         const SizedBox(height: 10),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-        const SizedBox(height: 10),
-        PaymentProofViewer(payment: payment, attachments: detail.proofAttachments),
-        const SizedBox(height: 10),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-        const SizedBox(height: 10),
-        const Row(
-          children: <Widget>[
-            Icon(AppIcons.clock, color: Color(0xFF6A38FF), size: 18),
-            SizedBox(width: 8),
-            Text('Verification timeline', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
-          ],
+        _sectionPanel(
+          child: TeamContributionSection.fromModels(
+            team: detail.team,
+            mentorName: contribution.mentorName,
+            students: detail.students,
+            idea: detail.idea,
+            problem: detail.problem,
+          ),
         ),
-        const SizedBox(height: 8),
-        VerificationTimelineWidget(payment: payment, remarks: payment.remarks),
         const SizedBox(height: 10),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        _sectionPanel(
+          child: PaymentProofViewer(payment: payment, attachments: detail.proofAttachments),
+        ),
         const SizedBox(height: 10),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _insightTile(
-                icon: AppIcons.insights,
-                label: 'Dept. contribution',
-                value: '${detail.departmentContributionPercent.toStringAsFixed(1)}%',
-                color: const Color(0xFF6A38FF),
+        _sectionPanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Row(
+                children: <Widget>[
+                  Icon(AppIcons.clock, color: Color(0xFF6A38FF), size: 18),
+                  SizedBox(width: 8),
+                  Text('Verification timeline', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                ],
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _insightTile(
-                icon: AppIcons.payments,
-                label: 'Trend',
-                value: detail.paymentTrendLabel,
-                color: const Color(0xFF0891B2),
-                compactValue: true,
+              const SizedBox(height: 10),
+              VerificationTimelineWidget(payment: payment, remarks: payment.remarks),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        _sectionPanel(
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: _insightTile(
+                  icon: AppIcons.insights,
+                  label: 'Dept. contribution',
+                  value: '${detail.departmentContributionPercent.toStringAsFixed(1)}%',
+                  color: const Color(0xFF6A38FF),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _insightTile(
+                  icon: AppIcons.payments,
+                  label: 'Trend',
+                  value: detail.paymentTrendLabel,
+                  color: const Color(0xFF0891B2),
+                  compactValue: true,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
+  Widget _sectionPanel({required Widget child}) {
+    return SectionContainer(
+      borderRadius: sectionBorderRadius,
+      padding: const EdgeInsets.all(14),
+      child: child,
+    );
+  }
+
   Widget _summaryRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: <Widget>[
           SizedBox(

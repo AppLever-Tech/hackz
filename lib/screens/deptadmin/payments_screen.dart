@@ -7,9 +7,8 @@ import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/payments/payment_contribution_tile.dart';
+import '../../widgets/payments/payment_detail_pane.dart';
 import '../../widgets/payments/payment_summary_card.dart';
-import 'payment_detail_screen.dart';
-import '../common/dashboard_components.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});
@@ -71,8 +70,74 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       _dateFilter != DepartmentPaymentDateFilter.all ||
       _verificationFilter != DepartmentPaymentVerificationFilter.all;
 
+  void _closeDetail() => setState(() => _selectedPaymentId = null);
+
+  Widget _buildDetailBackButton() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: _closeDetail,
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+        icon: const Icon(Icons.arrow_back, size: 20),
+        label: const Text('Back to payments'),
+      ),
+    );
+  }
+
+  Widget _buildDetailBody(DepartmentPaymentsWorkspace workspace) {
+    final paymentId = _selectedPaymentId;
+    if (paymentId == null) return const SizedBox.shrink();
+
+    final detail = workspace.detailFor(paymentId);
+    if (detail == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedPaymentId == paymentId) _closeDetail();
+      });
+      return const Center(child: Text('Payment not found.'));
+    }
+
+    return Column(
+      key: ValueKey<String>(paymentId),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _buildDetailBackButton(),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.zero,
+            child: PaymentDetailPane(detail: detail),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_selectedPaymentId != null) {
+      return FutureBuilder<DepartmentPaymentsWorkspace>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Unable to load payment: ${snapshot.error}'));
+          }
+          final workspace = snapshot.data;
+          if (workspace == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return _buildDetailBody(workspace);
+        },
+      );
+    }
+
     return FutureBuilder<DepartmentPaymentsWorkspace>(
       future: _future,
       builder: (context, snapshot) {
@@ -83,54 +148,39 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           return Center(child: Text('Unable to load payments: ${snapshot.error}'));
         }
         final workspace = snapshot.data!;
-
-        if (_selectedPaymentId != null) {
-          final detail = workspace.detailFor(_selectedPaymentId!);
-          if (detail != null) {
-            return PaymentDetailScreen(
-              key: ValueKey<String>(_selectedPaymentId!),
-              detail: detail,
-              onBack: () => setState(() => _selectedPaymentId = null),
-            );
-          }
-        }
-
         final filtered = _filtered(workspace);
 
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            return SectionContainer(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _buildSummaryRow(workspace.summary),
-                  const SizedBox(height: 10),
-                  _buildSearchRow(),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _buildSummaryRow(workspace.summary),
+                const SizedBox(height: 10),
+                _buildSearchRow(),
+                const SizedBox(height: 8),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: _buildFiltersPanel(workspace),
+                  crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 220),
+                ),
+                if (_hasAnyActiveFilter) ...<Widget>[
                   const SizedBox(height: 8),
-                  AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: _buildFiltersPanel(workspace),
-                    crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 220),
-                  ),
-                  if (_hasAnyActiveFilter) ...<Widget>[
-                    const SizedBox(height: 8),
-                    _buildActiveFiltersRow(workspace),
-                  ],
-                  const SizedBox(height: 8),
-                  Text(
-                    'Showing ${filtered.length} contribution${filtered.length == 1 ? '' : 's'}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  if (hasBoundedHeight)
-                    Expanded(child: _buildList(workspace, filtered))
-                  else
-                    SizedBox(height: 480, child: _buildList(workspace, filtered)),
+                  _buildActiveFiltersRow(workspace),
                 ],
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  'Showing ${filtered.length} contribution${filtered.length == 1 ? '' : 's'}',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                if (hasBoundedHeight)
+                  Expanded(child: _buildList(workspace, filtered))
+                else
+                  SizedBox(height: 480, child: _buildList(workspace, filtered)),
+              ],
             );
           },
         );
