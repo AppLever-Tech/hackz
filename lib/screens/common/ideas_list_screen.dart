@@ -13,6 +13,7 @@ import '../../models/user_model.dart';
 import '../../models/payment_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_query_service.dart';
+import '../../utils/role_visibility_helpers.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
 import '../../widgets/attachment_viewer.dart';
@@ -186,7 +187,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   : '${item.idea.problemNumber.isEmpty ? '' : '${item.idea.problemNumber} - '}${item.idea.problemTitle}',
         };
         final availableDepartments = ideas
-            .map((e) => e.idea.departmentCode)
+            .map((e) => e.idea.teamDepartmentCode)
             .where((e) => e.trim().isNotEmpty)
             .toSet()
             .toList(growable: false)
@@ -398,7 +399,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             const SizedBox(height: 12),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
-              !widget.config.restrictToDepartment) ...<Widget>[
+              widget.config.ideaDepartmentScope == IdeaDepartmentScope.none) ...<Widget>[
             Row(
               children: const <Widget>[
                 Icon(AppIcons.departments, size: 18, color: Color(0xFF64748B)),
@@ -618,7 +619,7 @@ class _EvaluateIdeaDialogState extends State<_EvaluateIdeaDialog> {
         feedback: _feedbackController.text.trim(),
         createdAt: DateTime.now(),
         orgId: widget.currentUser.orgId,
-        departmentCode: widget.item.idea.departmentCode,
+        departmentCode: widget.item.idea.problemDepartmentCode,
       );
       if (existing.docs.isEmpty) {
         final doc = col.doc();

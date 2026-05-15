@@ -88,11 +88,20 @@ class LeaderboardRoleConfig {
           studentTeamId: null,
         );
       case UserRole.collegeAdmin:
-      case UserRole.coordinator:
         return LeaderboardRoleConfig(
           visibleTabs: LeaderboardShowcaseTab.values.toSet(),
           scopeOrgId: org,
           scopeDepartmentCode: null,
+          platformWide: false,
+          judgeEvaluationAnalyticsOnly: false,
+          facultyMentorId: null,
+          studentTeamId: null,
+        );
+      case UserRole.coordinator:
+        return LeaderboardRoleConfig(
+          visibleTabs: LeaderboardShowcaseTab.values.toSet(),
+          scopeOrgId: org,
+          scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
           facultyMentorId: null,
@@ -104,7 +113,7 @@ class LeaderboardRoleConfig {
             LeaderboardShowcaseTab.ideas,
           },
           scopeOrgId: org,
-          scopeDepartmentCode: dept,
+          scopeDepartmentCode: null,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: true,
           facultyMentorId: null,

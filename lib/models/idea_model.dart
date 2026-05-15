@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'department_model.dart';
+
 enum IdeaStatus {
   pendingSubmission('pendingSubmission'),
   submitted('submitted'),
@@ -43,11 +45,15 @@ class IdeaModel {
     required this.status,
     required this.createdAt,
     required this.orgId,
-    required this.departmentCode,
+    required this.teamDepartmentCode,
+    required this.problemDepartmentCode,
     required this.problemNumber,
     required this.problemTitle,
     required this.createdBy,
   });
+
+  static const String fieldTeamDepartmentCode = 'teamDepartmentCode';
+  static const String fieldProblemDepartmentCode = 'problemDepartmentCode';
 
   final String ideaId;
   final String problemId;
@@ -58,7 +64,13 @@ class IdeaModel {
   final IdeaStatus status;
   final DateTime createdAt;
   final String orgId;
-  final String departmentCode;
+
+  /// Department of the faculty/team that submitted the idea (innovation ownership).
+  final String teamDepartmentCode;
+
+  /// Department that owns the problem statement / payment context.
+  final String problemDepartmentCode;
+
   final String problemNumber;
   final String problemTitle;
   final String createdBy;
@@ -74,7 +86,8 @@ class IdeaModel {
       'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
       'orgId': orgId,
-      'departmentCode': departmentCode,
+      fieldTeamDepartmentCode: teamDepartmentCode,
+      fieldProblemDepartmentCode: problemDepartmentCode,
       'problemNumber': problemNumber,
       'problemTitle': problemTitle,
       'createdBy': createdBy,
@@ -95,7 +108,8 @@ class IdeaModel {
       status: IdeaStatus.fromRaw((map['status'] as String?) ?? 'pendingSubmission'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
-      departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
+      teamDepartmentCode: DepartmentModel.resolveCode((map[fieldTeamDepartmentCode] as String?) ?? ''),
+      problemDepartmentCode: DepartmentModel.resolveCode((map[fieldProblemDepartmentCode] as String?) ?? ''),
       problemNumber: ((map['problemNumber'] as String?) ?? '').trim(),
       problemTitle: ((map['problemTitle'] as String?) ?? '').trim(),
       createdBy: ((map['createdBy'] as String?) ?? '').trim(),

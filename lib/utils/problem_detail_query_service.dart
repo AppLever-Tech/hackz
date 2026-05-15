@@ -8,6 +8,7 @@ import '../models/score_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
+import 'idea_department_helpers.dart';
 import 'idea_query_service.dart';
 import 'problem_detail_config.dart';
 
@@ -51,7 +52,7 @@ class ProblemDetailQueryService {
     final shouldRestrictToDepartment = config.restrictToDepartment && viewerDepartment.isNotEmpty;
     if (shouldRestrictToDepartment &&
         (config.ideaScope == ProblemIdeaScope.department || config.ideaScope == ProblemIdeaScope.teamOwn)) {
-      ideasQuery = ideasQuery.where('departmentCode', isEqualTo: viewerDepartment);
+      ideasQuery = ideasQuery.where(IdeaModel.fieldTeamDepartmentCode, isEqualTo: viewerDepartment);
     }
 
     final ideasSnap = await ideasQuery.get();
@@ -95,7 +96,7 @@ class ProblemDetailQueryService {
               feedback: '',
               createdAt: DateTime.now(),
               orgId: orgId,
-              departmentCode: idea.departmentCode,
+              departmentCode: idea.problemDepartmentCode,
             ));
       final canUploadPayment = _viewerCanUploadPayment(
         currentUser: currentUser,
@@ -134,11 +135,17 @@ class ProblemDetailQueryService {
   }) {
     final userId = currentUser.userId.trim();
     return ideas.where((idea) {
-      if (config.restrictToDepartment &&
-          viewerDepartment.isNotEmpty &&
-          config.ideaScope == ProblemIdeaScope.department &&
-          DepartmentModel.resolveCode(idea.departmentCode) != viewerDepartment) {
-        return false;
+      if (config.restrictToDepartment && viewerDepartment.isNotEmpty) {
+        switch (config.ideaScope) {
+          case ProblemIdeaScope.department:
+            if (!IdeaDepartmentHelpers.ideaMatchesTeamDept(idea, viewerDepartment)) return false;
+          case ProblemIdeaScope.problemDepartment:
+            if (!IdeaDepartmentHelpers.ideaMatchesProblemDept(idea, viewerDepartment)) return false;
+          case ProblemIdeaScope.teamOwn:
+          case ProblemIdeaScope.facultyOwn:
+          case ProblemIdeaScope.org:
+            break;
+        }
       }
       final team = teamsById[idea.teamId];
       switch (config.ideaScope) {
@@ -147,8 +154,9 @@ class ProblemDetailQueryService {
         case ProblemIdeaScope.teamOwn:
           return team?.studentIds.contains(userId) ?? false;
         case ProblemIdeaScope.department:
-          return viewerDepartment.isEmpty ||
-              DepartmentModel.resolveCode(idea.departmentCode) == viewerDepartment;
+          return viewerDepartment.isEmpty || IdeaDepartmentHelpers.ideaMatchesTeamDept(idea, viewerDepartment);
+        case ProblemIdeaScope.problemDepartment:
+          return viewerDepartment.isEmpty || IdeaDepartmentHelpers.ideaMatchesProblemDept(idea, viewerDepartment);
         case ProblemIdeaScope.org:
           return true;
       }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../models/attachment_model.dart';
+import '../models/department_model.dart';
 import '../models/enums/team_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
@@ -202,6 +203,8 @@ class FacultyTeamsService {
     required List<PlatformFile> attachmentFiles,
   }) async {
     await TeamService.validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
+    final teamDept = DepartmentModel.resolveCode(team.departmentCode);
+    final problemDept = DepartmentModel.resolveCode(problem.departmentCode);
     final doc = _db.collection(FirestoreUtils.hkzIdeas).doc();
     final idea = IdeaModel(
       ideaId: doc.id,
@@ -213,7 +216,8 @@ class FacultyTeamsService {
       status: IdeaStatus.pendingSubmission,
       createdAt: DateTime.now(),
       orgId: faculty.orgId,
-      departmentCode: problem.departmentCode.trim().toUpperCase(),
+      teamDepartmentCode: teamDept,
+      problemDepartmentCode: problemDept,
       problemNumber: problem.problemNumber,
       problemTitle: problem.title,
       createdBy: faculty.userId,
@@ -232,7 +236,7 @@ class FacultyTeamsService {
         entityType: AttachmentEntityType.idea,
         entityId: doc.id,
         orgId: faculty.orgId,
-        departmentCode: problem.departmentCode.trim().toUpperCase(),
+        departmentCode: teamDept,
         uploadedBy: faculty.userId,
         files: attachmentFiles,
         fileType: 'idea',

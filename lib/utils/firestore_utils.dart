@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/department_model.dart';
+import 'idea_department_helpers.dart';
 import '../models/idea_model.dart';
 import '../models/organization_model.dart';
 import '../models/enums/organization_type.dart';
@@ -420,7 +421,7 @@ class FirestoreUtils {
 
     for (final i in ideasSnapshot.docs) {
       final data = i.data();
-      final departmentCode = ((data['departmentCode'] as String?) ?? '').trim().toUpperCase();
+      final departmentCode = IdeaDepartmentHelpers.teamDeptFromMap(data);
       if (departmentCode.isEmpty) continue;
       final department = DepartmentModel.byCode(departmentCode)?.name ?? departmentCode;
       final current = map.putIfAbsent(
@@ -865,7 +866,7 @@ class FirestoreUtils {
     final snapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
     final items = snapshot.docs
         .map((d) => <String, dynamic>{'id': d.id, ...d.data()})
-        .where((i) => _matchesDepartmentCode(i, departmentCode))
+        .where((i) => IdeaDepartmentHelpers.matchesTeamDept(i, departmentCode))
         .toList(growable: false);
     items.sort((a, b) {
       final aTs = a['createdAt'] as Timestamp?;

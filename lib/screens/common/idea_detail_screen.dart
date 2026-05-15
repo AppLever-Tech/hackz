@@ -509,7 +509,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
         feedback: '',
         createdAt: DateTime.now(),
         orgId: widget.currentUser.orgId,
-        departmentCode: vm.idea.departmentCode,
+        departmentCode: vm.idea.problemDepartmentCode,
       ),
     );
     if (existing.score > 0) scoreController.text = existing.score.toStringAsFixed(1);
@@ -552,7 +552,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
       feedback: feedbackController.text.trim(),
       createdAt: DateTime.now(),
       orgId: widget.currentUser.orgId,
-      departmentCode: vm.idea.departmentCode,
+      departmentCode: vm.idea.problemDepartmentCode,
     );
     if (current.docs.isEmpty) {
       final doc = col.doc();

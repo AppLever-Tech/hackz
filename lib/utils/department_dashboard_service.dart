@@ -7,6 +7,7 @@ import '../models/enums/user_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import 'firestore_utils.dart';
+import 'idea_department_helpers.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -187,8 +188,11 @@ class DepartmentDashboardService {
 
     final users = results[0].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
     final teams = results[1].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
-    final ideas = results[2].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
-    final scores = results[3].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
+    final ideas = results[2].where((doc) => IdeaDepartmentHelpers.matchesTeamDept(doc.data(), dept)).toList(growable: false);
+    final scopedIdeaIds = ideas.map((doc) => doc.id).toSet();
+    final scores = results[3]
+        .where((doc) => scopedIdeaIds.contains(((doc.data()['ideaId'] as String?) ?? '').trim()))
+        .toList(growable: false);
     final problems = results[4].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
     final payments = results[5].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
 

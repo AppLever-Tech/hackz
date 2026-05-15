@@ -1,11 +1,13 @@
 import '../models/enums/user_role.dart';
 import '../models/idea_list_config.dart';
 import '../models/user_model.dart';
+import 'role_visibility_helpers.dart';
 
 class IdeaRoleConfig {
   IdeaRoleConfig._();
 
   static IdeaListConfig configFor(UserRole role, UserModel user) {
+    final scope = RoleVisibilityHelpers.ideaDepartmentScopeFor(role);
     switch (role) {
       case UserRole.faculty:
         return IdeaListConfig(
@@ -13,7 +15,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: true,
-          restrictToDepartment: false,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
@@ -32,13 +34,12 @@ class IdeaRoleConfig {
           canEvaluate: true,
           canViewStatus: true,
           canUploadPayment: false,
-          restrictToDepartment: false,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
             IdeaFilterType.status,
             IdeaFilterType.problem,
-            IdeaFilterType.department,
           },
           enabledSorts: const <IdeaSortType>{
             IdeaSortType.newest,
@@ -54,7 +55,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
-          restrictToDepartment: true,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
@@ -73,7 +74,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: true,
-          restrictToDepartment: true,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
@@ -92,7 +93,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
-          restrictToDepartment: false,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{
@@ -113,7 +114,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
-          restrictToDepartment: true,
+          ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <IdeaFilterType>{

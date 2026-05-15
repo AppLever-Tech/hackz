@@ -9,6 +9,7 @@ import '../models/score_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
+import 'role_visibility_helpers.dart';
 
 class IdeaQueryParams {
   const IdeaQueryParams({
@@ -127,8 +128,14 @@ class IdeaQueryService {
         .toSet();
 
     return ideas.where((idea) {
-      if (params.config.restrictToDepartment && restrictedDepartment.isNotEmpty) {
-        if (DepartmentModel.resolveCode(idea.departmentCode) != restrictedDepartment) return false;
+      if (params.config.ideaDepartmentScope != IdeaDepartmentScope.none && restrictedDepartment.isNotEmpty) {
+        if (!RoleVisibilityHelpers.ideaMatchesDepartmentScope(
+          idea,
+          params.config.ideaDepartmentScope,
+          restrictedDepartment,
+        )) {
+          return false;
+        }
       }
       if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(idea.status)) {
         return false;
@@ -136,9 +143,12 @@ class IdeaQueryService {
       if (selectedProblems.isNotEmpty && !selectedProblems.contains(idea.problemId)) {
         return false;
       }
-      if (selectedDepartments.isNotEmpty &&
-          !selectedDepartments.contains(idea.departmentCode.trim().toUpperCase())) {
-        return false;
+      if (selectedDepartments.isNotEmpty) {
+        final ideaDept = RoleVisibilityHelpers.ideaDepartmentCodeForScope(
+          idea,
+          params.config.ideaDepartmentScope,
+        ).trim().toUpperCase();
+        if (!selectedDepartments.contains(ideaDept)) return false;
       }
       if (search.isEmpty) return true;
       final inProblemNumber = idea.problemNumber.toLowerCase().contains(search);

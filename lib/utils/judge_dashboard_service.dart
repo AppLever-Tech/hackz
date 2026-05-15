@@ -9,6 +9,7 @@ import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
+import 'role_visibility_helpers.dart';
 
 class JudgeDashboardService {
   JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
@@ -42,15 +43,9 @@ class JudgeDashboardService {
             UserModel.fromMap(d.data()),
     };
 
-    final normalizedJudgeDept = judge.departmentCode.trim().toUpperCase();
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where(
-          (idea) =>
-              normalizedJudgeDept.isEmpty ||
-              idea.departmentCode == normalizedJudgeDept ||
-              (problemsById[idea.problemId]?.departmentCode ?? '').toUpperCase() == normalizedJudgeDept,
-        )
+        .where((idea) => RoleVisibilityHelpers.ideaVisibleToUser(idea, judge))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -157,7 +152,7 @@ class JudgeDashboardService {
     final companyOrOrg = judge.orgId;
     final expertise = judge.department.isEmpty ? judge.departmentCode : judge.department;
     final assignedDepartments = scopedIdeas
-        .map((i) => problemsById[i.problemId]?.departmentDisplayName ?? i.departmentCode)
+        .map((i) => problemsById[i.problemId]?.departmentDisplayName ?? i.problemDepartmentCode)
         .where((d) => d.trim().isNotEmpty)
         .toSet()
         .toList(growable: false)
@@ -206,7 +201,7 @@ class JudgeDashboardService {
       ideaId: idea.ideaId,
       title: _ideaTitle(idea),
       teamName: (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName,
-      problemDepartment: (problem?.departmentDisplayName ?? idea.departmentCode).trim(),
+      problemDepartment: (problem?.departmentDisplayName ?? idea.problemDepartmentCode).trim(),
       status: idea.status,
       score: score.score,
       lastUpdated: score.createdAt,
@@ -224,7 +219,7 @@ class JudgeDashboardService {
       ideaId: idea.ideaId,
       title: _ideaTitle(idea),
       teamName: (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName,
-      problemDepartment: (problem?.departmentDisplayName ?? idea.departmentCode).trim(),
+      problemDepartment: (problem?.departmentDisplayName ?? idea.problemDepartmentCode).trim(),
       status: idea.status,
       score: 0,
       lastUpdated: idea.createdAt,

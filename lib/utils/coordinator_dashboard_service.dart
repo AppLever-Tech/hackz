@@ -8,6 +8,7 @@ import '../models/payment_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
+import 'role_visibility_helpers.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -172,18 +173,32 @@ class CoordinatorDashboardService {
     ]);
 
     final dept = user.departmentCode.trim().toUpperCase();
-    bool inDept(Map<String, dynamic> data) => dept.isEmpty || ((data['departmentCode'] as String?) ?? '').trim().toUpperCase() == dept;
+    bool inFinanceDept(Map<String, dynamic> data) =>
+        dept.isEmpty || ((data['departmentCode'] as String?) ?? '').trim().toUpperCase() == dept;
 
-    final payments = results[0].where((doc) => inDept(doc.data())).map((doc) => PaymentModel.fromMap(doc.id, doc.data())).toList(growable: false)
+    final payments = results[0]
+        .where((doc) => inFinanceDept(doc.data()))
+        .map((doc) => PaymentModel.fromMap(doc.id, doc.data()))
+        .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final ideas = results[1].where((doc) => inDept(doc.data())).map((doc) => IdeaModel.fromMap(doc.id, doc.data())).toList(growable: false);
-    final teams = results[2].where((doc) => inDept(doc.data())).map((doc) => TeamModel.fromMap(doc.id, doc.data())).toList(growable: false);
+    final paymentTeamIds = payments.map((p) => p.teamId.trim()).where((id) => id.isNotEmpty).toSet();
+    final ideas = results[1]
+        .where((doc) => RoleVisibilityHelpers.ideaMapVisibleToUser(doc.data(), user))
+        .map((doc) => IdeaModel.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
+    final teams = results[2]
+        .where((doc) => paymentTeamIds.contains(doc.id))
+        .map((doc) => TeamModel.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
     final attachments = results[3]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) => RoleVisibilityHelpers.paymentMapVisibleToCoordinator(doc.data(), user))
         .map((doc) => AttachmentModel.fromMap(doc.id, doc.data()))
         .where((attachment) => attachment.isActive && attachment.entityType == AttachmentEntityType.payment)
         .toList(growable: false);
-    final scores = results[4].where((doc) => inDept(doc.data())).toList(growable: false);
+    final scopedIdeaIds = ideas.map((idea) => idea.ideaId).toSet();
+    final scores = results[4]
+        .where((doc) => scopedIdeaIds.contains(((doc.data()['ideaId'] as String?) ?? '').trim()))
+        .toList(growable: false);
 
     final paymentByIdea = <String, PaymentModel>{for (final payment in payments) payment.ideaId: payment};
     final teamNameById = <String, String>{for (final team in teams) team.teamId: team.teamName.isEmpty ? team.teamId : team.teamName};

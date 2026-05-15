@@ -166,7 +166,7 @@ class StudentDashboardService {
         .map(
           (idea) => StudentIdeaItem(
             idea: idea,
-            problemDepartment: problemsById[idea.problemId]?.departmentDisplayName ?? idea.departmentCode,
+            problemDepartment: problemsById[idea.problemId]?.departmentDisplayName ?? idea.problemDepartmentCode,
             payment: scopedPayments.where((p) => p.ideaId == idea.ideaId).cast<PaymentModel?>().firstWhere(
                   (p) => p != null,
                   orElse: () => null,

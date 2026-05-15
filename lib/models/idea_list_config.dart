@@ -1,3 +1,5 @@
+import '../utils/role_visibility_helpers.dart';
+
 enum IdeaFilterType {
   status,
   problem,
@@ -17,7 +19,7 @@ class IdeaListConfig {
     required this.canEvaluate,
     required this.canViewStatus,
     required this.canUploadPayment,
-    required this.restrictToDepartment,
+    required this.ideaDepartmentScope,
     required this.orgId,
     required this.departmentCode,
     required this.enabledFilters,
@@ -28,7 +30,7 @@ class IdeaListConfig {
   final bool canEvaluate;
   final bool canViewStatus;
   final bool canUploadPayment;
-  final bool restrictToDepartment;
+  final IdeaDepartmentScope ideaDepartmentScope;
   final String orgId;
   final String departmentCode;
   final Set<IdeaFilterType> enabledFilters;

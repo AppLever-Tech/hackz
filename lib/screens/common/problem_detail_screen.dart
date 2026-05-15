@@ -558,7 +558,7 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                             feedback: feedbackController.text.trim(),
                             createdAt: DateTime.now(),
                             orgId: widget.currentUser.orgId,
-                            departmentCode: entry.item.idea.departmentCode,
+                            departmentCode: entry.item.idea.problemDepartmentCode,
                           );
                           if (existing.docs.isEmpty) {
                             final doc = col.doc();

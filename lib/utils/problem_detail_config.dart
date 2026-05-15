@@ -5,6 +5,7 @@ enum ProblemIdeaScope {
   facultyOwn,
   teamOwn,
   department,
+  problemDepartment,
   org,
 }
 
@@ -53,14 +54,14 @@ class ProblemDetailRoleConfig {
       case UserRole.judge:
         return const ProblemDetailConfig(
           canViewAllIdeas: true,
-          restrictToDepartment: true,
-          ideaScope: ProblemIdeaScope.department,
+          restrictToDepartment: false,
+          ideaScope: ProblemIdeaScope.org,
         );
       case UserRole.coordinator:
         return const ProblemDetailConfig(
           canViewAllIdeas: false,
           restrictToDepartment: true,
-          ideaScope: ProblemIdeaScope.department,
+          ideaScope: ProblemIdeaScope.problemDepartment,
         );
       case UserRole.sysAdmin:
         return const ProblemDetailConfig(

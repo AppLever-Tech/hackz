@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/attachment_model.dart';
+import '../models/department_model.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/problem_model.dart';
@@ -8,6 +9,7 @@ import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
+import 'idea_department_helpers.dart';
 import 'payment_finance_helpers.dart';
 
 typedef _Docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
@@ -152,8 +154,8 @@ class DepartmentPaymentsService {
       return cached;
     }
 
-    final dept = user.departmentCode.trim().toUpperCase();
-    bool inDept(Map<String, dynamic> data) =>
+    final dept = DepartmentModel.resolveCode(user.departmentCode);
+    bool inFinanceDept(Map<String, dynamic> data) =>
         dept.isEmpty || ((data['departmentCode'] as String?) ?? '').trim().toUpperCase() == dept;
 
     final results = await Future.wait<_Docs>(<Future<_Docs>>[
@@ -166,21 +168,33 @@ class DepartmentPaymentsService {
     ]);
 
     final payments = results[0]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) => inFinanceDept(doc.data()))
         .map((doc) => PaymentModel.fromMap(doc.id, doc.data()))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+    final paymentTeamIds = payments.map((p) => p.teamId.trim()).where((id) => id.isNotEmpty).toSet();
+
     final ideas = results[1]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) => IdeaDepartmentHelpers.matchesProblemDept(doc.data(), dept))
         .map((doc) => IdeaModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
     final teams = results[2]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) => paymentTeamIds.contains(doc.id))
         .map((doc) => TeamModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
+    final teamMentorIds = teams.map((t) => t.mentorId.trim()).where((id) => id.isNotEmpty);
+    final teamStudentIds = teams.expand((t) => t.studentIds);
+    final paymentVerifierIds = payments.map((p) => p.verifiedBy.trim()).where((id) => id.isNotEmpty);
+    final relatedUserIds = <String>{...teamMentorIds, ...teamStudentIds, ...paymentVerifierIds};
     final users = results[3]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) {
+          final data = doc.data();
+          final userId = ((data['userId'] as String?) ?? '').trim().isNotEmpty
+              ? (data['userId'] as String).trim()
+              : doc.id;
+          return relatedUserIds.contains(userId);
+        })
         .map((doc) {
           final data = doc.data();
           final userId = ((data['userId'] as String?) ?? '').trim().isNotEmpty
@@ -189,12 +203,19 @@ class DepartmentPaymentsService {
           return UserModel.fromMap(<String, dynamic>{...data, 'userId': userId});
         })
         .toList(growable: false);
+    final paymentProblemIds = payments.map((p) => p.problemId.trim()).where((id) => id.isNotEmpty).toSet();
     final problems = results[4]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) => paymentProblemIds.contains(doc.id) || inFinanceDept(doc.data()))
         .map((doc) => ProblemModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
+    final paymentIds = payments.map((p) => p.paymentId).toSet();
     final attachments = results[5]
-        .where((doc) => inDept(doc.data()))
+        .where((doc) {
+          final data = doc.data();
+          if (!inFinanceDept(data)) return false;
+          final entityId = ((data['entityId'] as String?) ?? '').trim();
+          return paymentIds.contains(entityId);
+        })
         .map((doc) => AttachmentModel.fromMap(doc.id, doc.data()))
         .where((a) => a.isActive && a.entityType == AttachmentEntityType.payment)
         .toList(growable: false);

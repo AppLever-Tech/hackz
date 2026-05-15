@@ -9,6 +9,7 @@ import '../models/score_model.dart';
 import '../models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
+import 'idea_department_helpers.dart';
 import 'leaderboard_ranking_engine.dart';
 import 'leaderboard_role_config.dart';
 
@@ -133,9 +134,7 @@ class LeaderboardShowcaseService {
       list.sort((a, b) => b.composite.compareTo(a.composite));
       final top = list.first;
       final avgComposite = list.map((e) => e.composite).reduce((a, b) => a + b) / list.length;
-      final dept = problemsById[top.idea.problemId]?.departmentDisplayName ??
-          DepartmentModel.byCode(top.idea.departmentCode)?.name ??
-          top.idea.departmentCode;
+      final dept = DepartmentModel.byCode(top.idea.teamDepartmentCode)?.name ?? top.idea.teamDepartmentCode;
       teamEntries.add(
         _TeamAgg(
           team: t,
@@ -166,7 +165,7 @@ class LeaderboardShowcaseService {
 
     final deptCodeStats = <String, List<_IdeaScoreBundle>>{};
     for (final b in bundles) {
-      final code = (problemsById[b.idea.problemId]?.departmentCode ?? b.idea.departmentCode).toUpperCase();
+      final code = b.idea.teamDepartmentCode.toUpperCase();
       deptCodeStats.putIfAbsent(code, () => <_IdeaScoreBundle>[]).add(b);
     }
 
@@ -393,9 +392,7 @@ class LeaderboardShowcaseService {
           break;
         }
       }
-      final code = idea == null
-          ? s.departmentCode
-          : (problemsById[idea.problemId]?.departmentCode ?? idea.departmentCode).toUpperCase();
+      final code = idea == null ? s.departmentCode : idea.problemDepartmentCode.toUpperCase();
       byDept.putIfAbsent(code, () => <double>[]).add(s.score);
     }
     final avgByDept = <String, double>{};
@@ -444,17 +441,17 @@ class LeaderboardShowcaseService {
       final code = config.scopeDepartmentCode!;
       out = out.where((i) {
         final p = problemsById[i.problemId];
-        final dc = (p?.departmentCode ?? i.departmentCode).toUpperCase();
+        final dc = i.teamDepartmentCode.toUpperCase();
         return dc == code;
       });
     }
     if (role == UserRole.departmentAdmin && config.scopeDepartmentCode != null) {
       final code = config.scopeDepartmentCode!;
-      out = out.where((i) {
-        final p = problemsById[i.problemId];
-        final dc = (p?.departmentCode ?? i.departmentCode).toUpperCase();
-        return dc == code;
-      });
+      out = out.where((i) => i.teamDepartmentCode.toUpperCase() == code);
+    }
+    if (role == UserRole.coordinator && config.scopeDepartmentCode != null) {
+      final code = config.scopeDepartmentCode!;
+      out = out.where((i) => IdeaDepartmentHelpers.ideaMatchesProblemDept(i, code));
     }
     return out.toList(growable: false);
   }
