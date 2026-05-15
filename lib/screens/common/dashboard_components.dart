@@ -413,16 +413,20 @@ class SectionContainer extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(14),
+    this.borderRadius = 16,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
-      decoration: kDashboardCardDecoration,
+      decoration: kDashboardCardDecoration.copyWith(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
       child: child,
     );
   }

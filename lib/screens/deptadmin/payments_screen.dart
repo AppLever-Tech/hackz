@@ -1,76 +1,367 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
-import '../../utils/firestore_utils.dart';
+import '../../utils/department_payments_service.dart';
+import '../../utils/payment_finance_helpers.dart';
+import '../../widgets/filter_pill.dart';
+import '../../widgets/payments/payment_contribution_tile.dart';
+import '../../widgets/payments/payment_summary_card.dart';
+import 'payment_detail_screen.dart';
 import '../common/dashboard_components.dart';
 
-class PaymentsScreen extends StatelessWidget {
+class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});
 
   final UserModel user;
 
   @override
+  State<PaymentsScreen> createState() => _PaymentsScreenState();
+}
+
+class _PaymentsScreenState extends State<PaymentsScreen> {
+  late Future<DepartmentPaymentsWorkspace> _future;
+  final TextEditingController _searchController = TextEditingController();
+
+  bool _showFilters = false;
+  String? _selectedPaymentId;
+
+  PaymentRecordStatus? _statusFilter;
+  DepartmentPaymentDateFilter _dateFilter = DepartmentPaymentDateFilter.all;
+  DepartmentPaymentVerificationFilter _verificationFilter = DepartmentPaymentVerificationFilter.all;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = DepartmentPaymentsService.load(widget.user);
+    _searchController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<DepartmentPaymentContribution> _filtered(DepartmentPaymentsWorkspace workspace) {
+    return DepartmentPaymentsService.filterContributions(
+      source: workspace.contributions,
+      search: _searchController.text,
+      status: _statusFilter,
+      dateFilter: _dateFilter,
+      verificationFilter: _verificationFilter,
+    );
+  }
+
+  void _openDetail(String paymentId) {
+    setState(() => _selectedPaymentId = paymentId);
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _statusFilter = null;
+      _dateFilter = DepartmentPaymentDateFilter.all;
+      _verificationFilter = DepartmentPaymentVerificationFilter.all;
+    });
+  }
+
+  bool get _hasAnyActiveFilter =>
+      _statusFilter != null ||
+      _dateFilter != DepartmentPaymentDateFilter.all ||
+      _verificationFilter != DepartmentPaymentVerificationFilter.all;
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: FirestoreUtils.getDepartmentPayments(
-        orgId: user.orgId,
-        department: user.departmentCode,
-      ),
-      builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+    return FutureBuilder<DepartmentPaymentsWorkspace>(
+      future: _future,
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Text('Unable to load payments: ${snapshot.error}');
+          return Center(child: Text('Unable to load payments: ${snapshot.error}'));
         }
-        final rows = snapshot.data ?? <Map<String, dynamic>>[];
-        return SectionContainer(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                'Payments',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        final workspace = snapshot.data!;
+
+        if (_selectedPaymentId != null) {
+          final detail = workspace.detailFor(_selectedPaymentId!);
+          if (detail != null) {
+            return PaymentDetailScreen(
+              key: ValueKey<String>(_selectedPaymentId!),
+              detail: detail,
+              onBack: () => setState(() => _selectedPaymentId = null),
+            );
+          }
+        }
+
+        final filtered = _filtered(workspace);
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            return SectionContainer(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  _buildSummaryRow(workspace.summary),
+                  const SizedBox(height: 10),
+                  _buildSearchRow(),
+                  const SizedBox(height: 8),
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox.shrink(),
+                    secondChild: _buildFiltersPanel(workspace),
+                    crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 220),
+                  ),
+                  if (_hasAnyActiveFilter) ...<Widget>[
+                    const SizedBox(height: 8),
+                    _buildActiveFiltersRow(workspace),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Showing ${filtered.length} contribution${filtered.length == 1 ? '' : 's'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  if (hasBoundedHeight)
+                    Expanded(child: _buildList(workspace, filtered))
+                  else
+                    SizedBox(height: 480, child: _buildList(workspace, filtered)),
+                ],
               ),
-              const SizedBox(height: 12),
-              if (rows.isEmpty)
-                const Text('No payment records found.')
-              else
-                ...rows.map((row) {
-                  final faculty = row['user'] as UserModel;
-                  final total = (row['totalPayment'] as double?) ?? 0;
-                  final history = (row['history'] as List<Map<String, dynamic>>?) ?? <Map<String, dynamic>>[];
-                  return ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: Text('${faculty.firstName} ${faculty.lastName}'.trim()),
-                    subtitle: Text('Total Payment: ${total.toStringAsFixed(2)}'),
-                    children: history.isEmpty
-                        ? const <Widget>[
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Padding(
-                                padding: EdgeInsets.only(bottom: 8),
-                                child: Text('No payment history'),
-                              ),
-                            ),
-                          ]
-                        : history
-                            .map(
-                              (h) => Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 6),
-                                  child: Text(
-                                    'Amount: ${((h['amount'] as num?) ?? 0).toString()} | ${((h['dateLabel'] as String?) ?? 'Date N/A')}',
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                  );
-                }),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSummaryRow(DepartmentPaymentsSummary summary) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 1100
+            ? 4
+            : constraints.maxWidth >= 640
+                ? 2
+                : 1;
+        const gap = 10.0;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final cards = <Widget>[
+          PaymentSummaryCard(
+            label: 'Total department collection',
+            value: PaymentFinanceHelpers.formatCurrency(summary.totalCollection),
+            icon: AppIcons.payments,
+            iconBgColor: const Color(0xFFE0F2FE),
+            accentColor: const Color(0xFF0369A1),
+            subtitle: '${summary.verifiedCount + summary.pendingCount + summary.rejectedCount} contributions',
+          ),
+          PaymentSummaryCard(
+            label: 'Verified payments',
+            value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
+            icon: AppIcons.statusApproved,
+            iconBgColor: const Color(0xFFECFDF5),
+            accentColor: const Color(0xFF047857),
+            subtitle: '${summary.verifiedCount} verified',
+          ),
+          PaymentSummaryCard(
+            label: 'Pending verifications',
+            value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
+            icon: AppIcons.statusUnderReview,
+            iconBgColor: const Color(0xFFFFF7ED),
+            accentColor: const Color(0xFFEA580C),
+            subtitle: '${summary.pendingCount} awaiting review',
+          ),
+          PaymentSummaryCard(
+            label: 'Rejected payments',
+            value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
+            icon: AppIcons.statusRejected,
+            iconBgColor: const Color(0xFFFEF2F2),
+            accentColor: const Color(0xFFB91C1C),
+            subtitle: '${summary.rejectedCount} rejected',
+          ),
+        ];
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: cards.map((c) => SizedBox(width: width, child: c)).toList(growable: false),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchRow() {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search idea, problem, team, mentor…',
+              prefixIcon: const Icon(AppIcons.search),
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _showFilters = !_showFilters),
+          icon: const Icon(Icons.tune),
+          label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 40),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiltersPanel(DepartmentPaymentsWorkspace workspace) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                FilterPill(
+                  selected: _statusFilter == null,
+                  icon: AppIcons.payments,
+                  label: 'All status',
+                  count: workspace.contributions.length,
+                  onTap: () => setState(() => _statusFilter = null),
+                ),
+                const SizedBox(width: 8),
+                FilterPill(
+                  selected: _statusFilter == PaymentRecordStatus.pending,
+                  icon: AppIcons.statusUnderReview,
+                  label: 'Pending',
+                  count: workspace.summary.pendingCount,
+                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
+                ),
+                const SizedBox(width: 8),
+                FilterPill(
+                  selected: _statusFilter == PaymentRecordStatus.verified,
+                  icon: AppIcons.statusApproved,
+                  label: 'Verified',
+                  count: workspace.summary.verifiedCount,
+                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
+                ),
+                const SizedBox(width: 8),
+                FilterPill(
+                  selected: _statusFilter == PaymentRecordStatus.rejected,
+                  icon: AppIcons.statusRejected,
+                  label: 'Rejected',
+                  count: workspace.summary.rejectedCount,
+                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text('Payment date', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: DepartmentPaymentDateFilter.values
+                .map(
+                  (f) => FilterChip(
+                    label: Text(f.label),
+                    selected: _dateFilter == f,
+                    onSelected: (_) => setState(() => _dateFilter = f),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 10),
+          const Text('Verification', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: DepartmentPaymentVerificationFilter.values
+                .map(
+                  (f) => FilterChip(
+                    label: Text(f.label),
+                    selected: _verificationFilter == f,
+                    onSelected: (_) => setState(() => _verificationFilter = f),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              TextButton(onPressed: _clearAllFilters, child: const Text('Clear All')),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersRow(DepartmentPaymentsWorkspace workspace) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        if (_statusFilter != null)
+          InputChip(
+            avatar: Icon(PaymentFinanceHelpers.statusIcon(_statusFilter!), size: 16),
+            label: Text(PaymentFinanceHelpers.statusLabel(_statusFilter!)),
+            onDeleted: () => setState(() => _statusFilter = null),
+          ),
+        if (_dateFilter != DepartmentPaymentDateFilter.all)
+          InputChip(
+            label: Text(_dateFilter.label),
+            onDeleted: () => setState(() => _dateFilter = DepartmentPaymentDateFilter.all),
+          ),
+        if (_verificationFilter != DepartmentPaymentVerificationFilter.all)
+          InputChip(
+            label: Text(_verificationFilter.label),
+            onDeleted: () => setState(() => _verificationFilter = DepartmentPaymentVerificationFilter.all),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildList(DepartmentPaymentsWorkspace workspace, List<DepartmentPaymentContribution> items) {
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('No payment contributions match your filters.', style: TextStyle(color: Color(0xFF64748B))),
+      );
+    }
+
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return PaymentContributionTile(
+          item: item,
+          selected: false,
+          onTap: () => _openDetail(item.payment.paymentId),
         );
       },
     );
