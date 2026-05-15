@@ -71,15 +71,27 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _handlePostOtpRouting(String phone) async {
-    final user = await FirestoreUtils.fetchUserByPhone(phone);
+    final normalizedPhone = normalizePhoneE164(phone);
+    final user = await FirestoreUtils.fetchUserByPhone(normalizedPhone);
     if (!mounted) return;
 
     if (user == null) {
+      // Whitelisted SysAdmin may have no hkzUsers row yet; resolver creates it — do not sign out or send to signup.
+      final whitelist = await AuthUtils.checkWhitelist(normalizedPhone);
+      if (whitelist != null) {
+        if (!mounted) return;
+        await Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (_) => false,
+        );
+        return;
+      }
+
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => SignUpScreen(phone: phone),
+          builder: (_) => SignUpScreen(phone: normalizedPhone),
         ),
         (_) => false,
       );

@@ -36,7 +36,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
       FacultyTeamsService.load(widget.user, forceRefresh: forceRefresh);
 
   void _refresh() {
-    setState(() => _future = _loadTeamsData(forceRefresh: true));
+    setState(() {
+      _future = _loadTeamsData(forceRefresh: true);
+    });
   }
 
   Future<void> _openTeamDialog(FacultyTeamsWorkspaceData data, {TeamModel? team}) async {
