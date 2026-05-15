@@ -1,8 +1,10 @@
 import '../models/enums/user_role.dart';
 import '../models/user_model.dart';
+import 'role_visibility_helpers.dart';
 
 class IdeaDetailConfig {
   const IdeaDetailConfig({
+    required this.canViewIdeas,
     required this.canVerifyPayment,
     required this.canUploadPayment,
     required this.canEvaluate,
@@ -10,6 +12,7 @@ class IdeaDetailConfig {
     required this.canEditTeam,
   });
 
+  final bool canViewIdeas;
   final bool canVerifyPayment;
   final bool canUploadPayment;
   final bool canEvaluate;
@@ -21,9 +24,12 @@ class IdeaDetailRoleConfig {
   IdeaDetailRoleConfig._();
 
   static IdeaDetailConfig configFor(UserModel user) {
-    switch (UserRole.fromCode(user.role)) {
+    final role = UserRole.fromCode(user.role);
+    final canViewIdeas = RoleVisibilityHelpers.canViewIdeas(role);
+    switch (role) {
       case UserRole.student:
-        return const IdeaDetailConfig(
+        return IdeaDetailConfig(
+          canViewIdeas: canViewIdeas,
           canVerifyPayment: false,
           canUploadPayment: true,
           canEvaluate: false,
@@ -31,7 +37,8 @@ class IdeaDetailRoleConfig {
           canEditTeam: false,
         );
       case UserRole.faculty:
-        return const IdeaDetailConfig(
+        return IdeaDetailConfig(
+          canViewIdeas: canViewIdeas,
           canVerifyPayment: false,
           canUploadPayment: true,
           canEvaluate: false,
@@ -40,14 +47,16 @@ class IdeaDetailRoleConfig {
         );
       case UserRole.coordinator:
         return const IdeaDetailConfig(
-          canVerifyPayment: true,
+          canViewIdeas: false,
+          canVerifyPayment: false,
           canUploadPayment: false,
           canEvaluate: false,
-          canViewSensitivePayment: true,
+          canViewSensitivePayment: false,
           canEditTeam: false,
         );
       case UserRole.judge:
-        return const IdeaDetailConfig(
+        return IdeaDetailConfig(
+          canViewIdeas: canViewIdeas,
           canVerifyPayment: false,
           canUploadPayment: false,
           canEvaluate: true,
@@ -57,7 +66,8 @@ class IdeaDetailRoleConfig {
       case UserRole.departmentAdmin:
       case UserRole.collegeAdmin:
       case UserRole.sysAdmin:
-        return const IdeaDetailConfig(
+        return IdeaDetailConfig(
+          canViewIdeas: canViewIdeas,
           canVerifyPayment: false,
           canUploadPayment: false,
           canEvaluate: false,

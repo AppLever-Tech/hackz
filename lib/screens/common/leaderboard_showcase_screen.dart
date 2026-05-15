@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
 import '../../utils/leaderboard_role_config.dart';
+import '../../utils/role_visibility_helpers.dart';
 import '../../utils/leaderboard_showcase_service.dart';
 import '../../widgets/leaderboard/comparative_analytics_section.dart';
 import '../../widgets/leaderboard/innovation_momentum_chart.dart';
@@ -82,9 +84,12 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
                   tabChildren: _tabBodies(vm),
                   height: MediaQuery.sizeOf(context).height.clamp(380, 620),
                 ),
-                const SizedBox(height: 20),
-                RisingIdeasWidget(rows: vm.risingIdeaRows),
-                const SizedBox(height: 20),
+                if (RoleVisibilityHelpers.canViewIdeas(UserRole.fromCode(widget.user.role))) ...<Widget>[
+                  const SizedBox(height: 20),
+                  RisingIdeasWidget(rows: vm.risingIdeaRows),
+                  const SizedBox(height: 20),
+                ] else
+                  const SizedBox(height: 20),
                 InnovationMomentumChart(series: vm.momentumSeries, height: 140),
                 const SizedBox(height: 16),
                 ComparativeAnalyticsSection(

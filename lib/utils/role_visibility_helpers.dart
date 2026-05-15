@@ -20,6 +20,9 @@ enum IdeaDepartmentScope {
 
 /// Centralized judge vs coordinator (and related) visibility rules.
 abstract final class RoleVisibilityHelpers {
+  /// Coordinators work on payments only — no idea lists, detail, or leaderboard idea views.
+  static bool canViewIdeas(UserRole role) => role != UserRole.coordinator;
+
   static IdeaDepartmentScope ideaDepartmentScopeFor(UserRole role) {
     switch (role) {
       case UserRole.coordinator:

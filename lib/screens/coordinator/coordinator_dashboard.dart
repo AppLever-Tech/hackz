@@ -8,7 +8,6 @@ import '../../models/user_model.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
-import '../../utils/idea_role_config.dart';
 import '../../widgets/coordinator/coordinator_activity_feed.dart';
 import '../../widgets/coordinator/coordinator_panel_card.dart';
 import '../../widgets/coordinator/department_operational_snapshot.dart';
@@ -20,7 +19,6 @@ import '../../widgets/coordinator/verification_trend_chart.dart';
 import 'coordinator_payment_card.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../common/ideas_list_screen.dart';
 import '../../widgets/attachment_viewer.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
@@ -43,13 +41,6 @@ class CoordinatorDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return IdeasListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.coordinator, user),
-          );
-        }
-        if (selectedMenuIndex == 3) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
@@ -308,7 +299,7 @@ class _OperationalMetricGrid extends StatelessWidget {
     final cards = <Widget>[
       OperationalMetricCard(value: '${analytics.pendingPayments}', label: 'Pending Payments', icon: AppIcons.pendingUsers, iconBgColor: const Color(0xFFFFF7ED), footnote: 'Payments waiting for coordinator verification'),
       OperationalMetricCard(value: '${analytics.verifiedPaymentsToday}', label: 'Verified Today', icon: AppIcons.verification, iconBgColor: const Color(0xFFE8FAF1), footnote: 'Payments verified since midnight'),
-      OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Ideas Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Ideas waiting on payment validation'),
+      OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Payments Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Submitted payments waiting for coordinator review'),
       OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators'),
     ];
     return LayoutBuilder(
@@ -595,11 +586,15 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
         }
         final data = snapshot.data!;
         final pending = data.payments
-            .where((p) => p.status != PaymentRecordStatus.verified)
+            .where((p) => p.status == PaymentRecordStatus.pending)
             .toList(growable: false)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         final verified = data.payments
-            .where((p) => p.status == PaymentRecordStatus.verified)
+            .where(
+              (p) =>
+                  p.status == PaymentRecordStatus.verified ||
+                  p.status == PaymentRecordStatus.rejected,
+            )
             .toList(growable: false)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         return Column(

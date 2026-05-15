@@ -269,10 +269,9 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
-            DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
-          secondaryMenus: commonSecondary,
+          secondaryMenus: <DashboardMenuItem>[],
         );
     }
   }

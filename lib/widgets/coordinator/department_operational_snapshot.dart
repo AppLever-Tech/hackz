@@ -31,7 +31,7 @@ class DepartmentOperationalSnapshot extends StatelessWidget {
                   mainAxisSpacing: 8,
                   childAspectRatio: crossAxisCount == 2 ? 2.45 : 4.2,
                   children: <Widget>[
-                    _SnapshotTile(icon: AppIcons.ideas, label: 'Awaiting Payment', value: '${snapshot.ideasAwaitingPayment}', tint: const Color(0xFF7C3AED)),
+                    _SnapshotTile(icon: AppIcons.payments, label: 'Awaiting Payment', value: '${snapshot.ideasAwaitingPayment}', tint: const Color(0xFF7C3AED)),
                     _SnapshotTile(icon: AppIcons.teams, label: 'Blocked Teams', value: '${snapshot.blockedTeams}', tint: const Color(0xFFEA580C)),
                     _SnapshotTile(icon: AppIcons.verification, label: 'Completion', value: '${(snapshot.verificationCompletion * 100).round()}%', tint: const Color(0xFF16A34A)),
                     _SnapshotTile(icon: AppIcons.clock, label: 'Submission Window', value: snapshot.activeSubmissionWindow, tint: const Color(0xFF0284C7)),

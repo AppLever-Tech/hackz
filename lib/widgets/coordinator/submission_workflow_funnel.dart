@@ -17,7 +17,12 @@ class SubmissionWorkflowFunnel extends StatelessWidget {
         children: <Widget>[
           const Text('Submission Workflow Funnel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
           const SizedBox(height: 4),
-          const Text('Processing visibility from idea creation to official submission', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          Text(
+            steps.any((s) => s.label == 'Ideas Created')
+                ? 'Processing visibility from idea creation to official submission'
+                : 'Payment verification pipeline for your department',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 16),
           ...steps.map((step) {
             final widthFactor = maxCount == 0 ? 0.08 : (step.count / maxCount).clamp(0.08, 1.0).toDouble();

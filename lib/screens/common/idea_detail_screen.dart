@@ -60,6 +60,11 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_config.canViewIdeas) {
+      return const Center(
+        child: Text('Ideas are not available for your role.'),
+      );
+    }
     final content = FutureBuilder<IdeaDetailsVm>(
         future: _future,
         builder: (context, snapshot) {

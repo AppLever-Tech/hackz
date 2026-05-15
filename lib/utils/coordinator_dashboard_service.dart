@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
+import '../models/enums/user_role.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/team_model.dart';
@@ -250,7 +251,7 @@ class CoordinatorDashboardService {
       trendsByTimeframe: <CoordinatorDashboardTimeframe, List<CoordinatorTrendPoint>>{
         for (final timeframe in CoordinatorDashboardTimeframe.values) timeframe: _buildTrend(payments, timeframe),
       },
-      workflow: _buildWorkflow(ideas, payments),
+      workflow: _buildWorkflow(ideas, payments, paymentOnly: !RoleVisibilityHelpers.canViewIdeas(UserRole.fromCode(user.role))),
       pendingQueue: pendingQueue,
       escalations: _buildEscalations(pendingQueue, payments),
       snapshot: DepartmentOperationalSnapshotVm(
@@ -282,11 +283,24 @@ class CoordinatorDashboardService {
     return snap.docs;
   }
 
-  static List<SubmissionWorkflowStep> _buildWorkflow(List<IdeaModel> ideas, List<PaymentModel> payments) {
-    final paymentsByIdea = <String, PaymentModel>{for (final payment in payments) payment.ideaId: payment};
-    final paymentSubmitted = ideas.where((idea) => paymentsByIdea.containsKey(idea.ideaId)).length;
+  static List<SubmissionWorkflowStep> _buildWorkflow(
+    List<IdeaModel> ideas,
+    List<PaymentModel> payments, {
+    required bool paymentOnly,
+  }) {
     final pending = payments.where((payment) => payment.status == PaymentRecordStatus.pending).length;
     final approved = payments.where((payment) => payment.status == PaymentRecordStatus.verified).length;
+    final rejected = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
+    if (paymentOnly) {
+      return <SubmissionWorkflowStep>[
+        SubmissionWorkflowStep(label: 'Payments Submitted', count: payments.length, color: const Color(0xFF0EA5E9)),
+        SubmissionWorkflowStep(label: 'Verification Pending', count: pending, color: const Color(0xFFF59E0B)),
+        SubmissionWorkflowStep(label: 'Payment Approved', count: approved, color: const Color(0xFF16A34A)),
+        SubmissionWorkflowStep(label: 'Payment Rejected', count: rejected, color: const Color(0xFFDC2626)),
+      ];
+    }
+    final paymentsByIdea = <String, PaymentModel>{for (final payment in payments) payment.ideaId: payment};
+    final paymentSubmitted = ideas.where((idea) => paymentsByIdea.containsKey(idea.ideaId)).length;
     final official = ideas.where((idea) => idea.status == IdeaStatus.submitted || idea.status == IdeaStatus.underReview || idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.approved).length;
     return <SubmissionWorkflowStep>[
       SubmissionWorkflowStep(label: 'Ideas Created', count: ideas.length, color: const Color(0xFF6A38FF)),
@@ -310,7 +324,7 @@ class CoordinatorDashboardService {
       if (overdue > 0) CoordinatorEscalation(title: 'Delayed payment reviews', message: '$overdue payments have been pending for more than 48 hours.', severity: CoordinatorEscalationSeverity.critical),
       if (missingProof > 0) CoordinatorEscalation(title: 'Missing proof uploads', message: '$missingProof pending payments do not have a screenshot or attachment.', severity: CoordinatorEscalationSeverity.warning),
       if (rejected > 0) CoordinatorEscalation(title: 'Failed verifications', message: '$rejected payments were rejected and may need follow-up.', severity: CoordinatorEscalationSeverity.warning),
-      if (repeatedCount > 0) CoordinatorEscalation(title: 'Repeated resubmissions', message: '$repeatedCount ideas have repeated payment rejection history.', severity: CoordinatorEscalationSeverity.critical),
+      if (repeatedCount > 0) CoordinatorEscalation(title: 'Repeated resubmissions', message: '$repeatedCount submissions have repeated payment rejection history.', severity: CoordinatorEscalationSeverity.critical),
     ];
     if (alerts.isEmpty) {
       alerts.add(const CoordinatorEscalation(title: 'Queue health looks clear', message: 'No escalation thresholds are currently crossed.', severity: CoordinatorEscalationSeverity.info));

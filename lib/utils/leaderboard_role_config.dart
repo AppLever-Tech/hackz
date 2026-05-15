@@ -99,7 +99,11 @@ class LeaderboardRoleConfig {
         );
       case UserRole.coordinator:
         return LeaderboardRoleConfig(
-          visibleTabs: LeaderboardShowcaseTab.values.toSet(),
+          visibleTabs: {
+            LeaderboardShowcaseTab.teams,
+            LeaderboardShowcaseTab.departments,
+            LeaderboardShowcaseTab.mentors,
+          },
           scopeOrgId: org,
           scopeDepartmentCode: dept,
           platformWide: false,

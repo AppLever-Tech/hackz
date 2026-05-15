@@ -15,6 +15,7 @@ enum IdeaSortType {
 
 class IdeaListConfig {
   const IdeaListConfig({
+    required this.canViewIdeas,
     required this.canCreateIdea,
     required this.canEvaluate,
     required this.canViewStatus,
@@ -26,6 +27,7 @@ class IdeaListConfig {
     required this.enabledSorts,
   });
 
+  final bool canViewIdeas;
   final bool canCreateIdea;
   final bool canEvaluate;
   final bool canViewStatus;

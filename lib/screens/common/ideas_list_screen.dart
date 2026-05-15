@@ -146,6 +146,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.config.canViewIdeas) {
+      return const Center(
+        child: Text('Ideas are not available for your role.'),
+      );
+    }
     if (_selectedIdeaId != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -57,7 +57,9 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
   void initState() {
     super.initState();
     _config = ProblemDetailRoleConfig.configFor(widget.currentUser);
-    _ideasFuture = _loadIdeas();
+    if (_config.canViewIdeas) {
+      _ideasFuture = _loadIdeas();
+    }
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -178,11 +180,12 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                 ),
           ),
         ),
-        IconButton(
-          tooltip: 'Refresh ideas',
-          onPressed: _refreshIdeas,
-          icon: const Icon(AppIcons.refresh),
-        ),
+        if (_config.canViewIdeas)
+          IconButton(
+            tooltip: 'Refresh ideas',
+            onPressed: _refreshIdeas,
+            icon: const Icon(AppIcons.refresh),
+          ),
       ],
     );
   }
@@ -222,6 +225,9 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
   }
 
   Widget _buildDetailsTab() {
+    if (!_config.canViewIdeas) {
+      return _buildProblemDetailsOnly();
+    }
     return FutureBuilder<List<ProblemIdeaAggregate>>(
       future: _ideasFuture,
       builder: (context, snapshot) {
@@ -330,6 +336,90 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildProblemDetailsOnly() {
+    return ListView(
+      key: const ValueKey<String>('problem-detail-details'),
+      padding: EdgeInsets.zero,
+      children: <Widget>[
+        SectionContainer(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Overview',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.problem.description.trim().isEmpty
+                    ? 'No description provided.'
+                    : widget.problem.description.trim(),
+                maxLines: _descriptionExpanded ? null : 3,
+                overflow: _descriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              ),
+              if (widget.problem.description.trim().length > 180)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+                    child: Text(_descriptionExpanded ? 'Show less' : 'Show more'),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  _metaPill(widget.problem.category.trim().isEmpty ? 'Category: -' : widget.problem.category),
+                  _metaPill(widget.problem.theme.trim().isEmpty ? 'Theme: -' : widget.problem.theme),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SectionContainer(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Metadata',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text('Department: ${widget.problem.departmentDisplayName}'),
+              const SizedBox(height: 4),
+              Text('Created by: ${widget.problem.createdBy.trim().isEmpty ? '-' : widget.problem.createdBy}'),
+              const SizedBox(height: 4),
+              Text('Created on: ${_formatDate(widget.problem.createdAt)}'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SectionContainer(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Attachments',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              AttachmentPreviewRow(
+                entityType: AttachmentEntityType.problem,
+                entityId: widget.problem.problemId,
+                title: 'Problem Attachments',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -8,9 +8,11 @@ class IdeaRoleConfig {
 
   static IdeaListConfig configFor(UserRole role, UserModel user) {
     final scope = RoleVisibilityHelpers.ideaDepartmentScopeFor(role);
+    final canViewIdeas = RoleVisibilityHelpers.canViewIdeas(role);
     switch (role) {
       case UserRole.faculty:
         return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
           canCreateIdea: true,
           canEvaluate: false,
           canViewStatus: true,
@@ -30,6 +32,7 @@ class IdeaRoleConfig {
         );
       case UserRole.judge:
         return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
           canCreateIdea: false,
           canEvaluate: true,
           canViewStatus: true,
@@ -51,6 +54,7 @@ class IdeaRoleConfig {
       case UserRole.collegeAdmin:
       case UserRole.departmentAdmin:
         return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
           canCreateIdea: false,
           canEvaluate: false,
           canViewStatus: true,
@@ -70,6 +74,7 @@ class IdeaRoleConfig {
         );
       case UserRole.student:
         return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
           canCreateIdea: false,
           canEvaluate: false,
           canViewStatus: true,
@@ -89,6 +94,7 @@ class IdeaRoleConfig {
         );
       case UserRole.sysAdmin:
         return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
           canCreateIdea: false,
           canEvaluate: false,
           canViewStatus: true,
@@ -110,23 +116,16 @@ class IdeaRoleConfig {
         );
       case UserRole.coordinator:
         return IdeaListConfig(
+          canViewIdeas: false,
           canCreateIdea: false,
           canEvaluate: false,
-          canViewStatus: true,
+          canViewStatus: false,
           canUploadPayment: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
-          enabledFilters: const <IdeaFilterType>{
-            IdeaFilterType.status,
-            IdeaFilterType.problem,
-            IdeaFilterType.department,
-          },
-          enabledSorts: const <IdeaSortType>{
-            IdeaSortType.newest,
-            IdeaSortType.oldest,
-            IdeaSortType.status,
-          },
+          enabledFilters: const <IdeaFilterType>{},
+          enabledSorts: const <IdeaSortType>{},
         );
     }
   }
