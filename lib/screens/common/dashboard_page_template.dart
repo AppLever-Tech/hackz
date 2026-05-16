@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../utils/faculty_teams_service.dart';
+import '../../utils/judge_evaluation_service.dart';
 import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../auth/landing_screen.dart';
@@ -86,6 +87,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     DepartmentDashboardService.clearCache();
     FacultyTeamsService.clearCache();
     CoordinatorDashboardService.clearCache();
+    JudgeEvaluationService.clearCache();
     await FirebaseAuth.instance.signOut();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

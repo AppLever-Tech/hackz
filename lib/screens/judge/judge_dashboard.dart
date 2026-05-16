@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
-import '../../models/enums/user_role.dart';
 import '../../models/idea_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
-import '../../utils/idea_role_config.dart';
 import '../../utils/judge_dashboard_service.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
-import '../common/ideas_list_screen.dart';
 import '../common/leaderboard_showcase_screen.dart';
+import 'judge_evaluation_workspace_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {
   const JudgeDashboard({super.key, required this.user});
@@ -24,10 +22,9 @@ class JudgeDashboard extends StatelessWidget {
       user: user,
       bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
         if (selectedMenuIndex == 1) {
-          return IdeasListScreen(
+          return JudgeEvaluationWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.judge, user),
+            user: user,
           );
         }
         if (selectedMenuIndex == 2) {
