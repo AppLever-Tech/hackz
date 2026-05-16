@@ -25,6 +25,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
     this.team,
     this.problem,
     this.latestJudgeScore,
+    this.readOnly = false,
   });
 
   final UserModel judge;
@@ -32,6 +33,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
   final TeamModel? team;
   final ProblemModel? problem;
   final ScoreModel? latestJudgeScore;
+  final bool readOnly;
 
   static Future<bool?> showForIdeaListItem(
     BuildContext context, {
@@ -173,7 +175,15 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
                 problemLine.isEmpty ? 'Problem' : problemLine,
                 style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
               ),
-              Text('Team $teamName', style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
+              Row(
+                children: <Widget>[
+                  const Icon(AppIcons.teams, size: 14, color: Color(0xFF94A3B8)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(teamName, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
+                  ),
+                ],
+              ),
               if (_loadingProblem) const LinearProgressIndicator(minHeight: 2),
               const SizedBox(height: 16),
               JudgeScoreGrid(
@@ -225,8 +235,12 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         ),
       ),
       actions: <Widget>[
-        TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-        FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Submit evaluation')),
+        if (widget.readOnly)
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
+        else ...<Widget>[
+          TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Submit evaluation')),
+        ],
       ],
     );
   }

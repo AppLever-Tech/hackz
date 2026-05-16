@@ -25,6 +25,9 @@ class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
 class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspaceScreen> with SingleTickerProviderStateMixin {
   late TabController _tabs;
   Future<JudgeEvaluationWorkspaceVm>? _future;
+  String? _selectedIdeaId;
+
+  static const double _splitBreakpoint = 900;
 
   @override
   void initState() {
@@ -62,7 +65,22 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     if (ok == true && mounted) await _reload();
   }
 
-  Future<void> _openEvaluateEvaluated(JudgeEvaluationEvaluatedRow row) async {
+  Future<void> _openViewEvaluation(JudgeEvaluationEvaluatedRow row) async {
+    await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => EvaluateIdeaDialog(
+        judge: widget.user,
+        idea: row.idea,
+        team: null,
+        problem: null,
+        latestJudgeScore: row.latestScore,
+        readOnly: true,
+      ),
+    );
+  }
+
+  Future<void> _openEditEvaluation(JudgeEvaluationEvaluatedRow row) async {
     final ok = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -94,14 +112,88 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   void _openIdeaDetail(String ideaId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (ctx) => IdeaDetailScreen(
-          ideaId: ideaId,
-          currentUser: widget.user,
-          onBack: () => Navigator.of(ctx).pop(),
-        ),
+    setState(() => _selectedIdeaId = ideaId);
+  }
+
+  void _closeIdeaDetail() {
+    setState(() => _selectedIdeaId = null);
+  }
+
+  Widget _buildDetailBackButton() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: IconButton(
+        onPressed: _closeIdeaDetail,
+        icon: const Icon(Icons.arrow_back),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        visualDensity: VisualDensity.compact,
+        tooltip: 'Back',
       ),
+    );
+  }
+
+  Widget _buildIdeaDetailPane() {
+    final ideaId = _selectedIdeaId;
+    if (ideaId == null) return const SizedBox.shrink();
+    return Column(
+      key: ValueKey<String>(ideaId),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildDetailBackButton(),
+        Expanded(
+          child: IdeaDetailScreen(
+            ideaId: ideaId,
+            currentUser: widget.user,
+            embedded: true,
+            onBack: _closeIdeaDetail,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
+    return TabBarView(
+      controller: _tabs,
+      children: <Widget>[
+        PendingEvaluationList(
+          rows: vm.pending,
+          onEvaluate: _openEvaluate,
+          onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
+          onOpenAttachments: _openAttachments,
+        ),
+        EvaluatedIdeaList(
+          rows: vm.evaluated,
+          onViewEvaluation: _openViewEvaluation,
+          onEditEvaluation: _openEditEvaluation,
+          onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
+        ),
+        EvaluationFeedbackSection(rows: vm.feedback),
+      ],
+    );
+  }
+
+  Widget _buildWorkspaceBody(JudgeEvaluationWorkspaceVm vm, BoxConstraints constraints) {
+    final showSplit = _selectedIdeaId != null && constraints.maxWidth >= _splitBreakpoint;
+
+    if (_selectedIdeaId != null && !showSplit) {
+      return _buildIdeaDetailPane();
+    }
+
+    final lists = _buildTabLists(vm);
+
+    if (!showSplit) {
+      return lists;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Expanded(child: lists),
+        const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+        Expanded(child: _buildIdeaDetailPane()),
+      ],
     );
   }
 
@@ -127,22 +219,6 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               completionPercent: vm.completionPercent,
             ),
             const SizedBox(height: 12),
-            Row(
-              children: <Widget>[
-                const Expanded(
-                  child: Text(
-                    'Evaluation queue',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _reload,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Refresh'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
@@ -173,23 +249,8 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: <Widget>[
-                  PendingEvaluationList(
-                    rows: vm.pending,
-                    onEvaluate: _openEvaluate,
-                    onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
-                    onOpenAttachments: _openAttachments,
-                  ),
-                  EvaluatedIdeaList(
-                    rows: vm.evaluated,
-                    onViewEvaluation: _openEvaluateEvaluated,
-                    onEditEvaluation: _openEvaluateEvaluated,
-                    onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
-                  ),
-                  EvaluationFeedbackSection(rows: vm.feedback),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) => _buildWorkspaceBody(vm, constraints),
               ),
             ),
           ],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/idea_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/judge_evaluation_service.dart';
+import '../common/card_overflow_menu.dart';
 import 'evaluation_status_pill.dart';
 
 enum JudgeEvaluationCardVariant { pending, evaluated }
@@ -89,106 +89,98 @@ class _PendingBody extends StatelessWidget {
   final VoidCallback onViewDetails;
   final VoidCallback onOpenAttachments;
 
+  void _onMenuSelected(String value) {
+    switch (value) {
+      case 'evaluate':
+        onEvaluate();
+      case 'details':
+        onViewDetails();
+      case 'files':
+        onOpenAttachments();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final idea = row.idea;
     final title = idea.ideaTitle.trim().isNotEmpty ? idea.ideaTitle.trim() : idea.problemNumber;
     final priorityColor = row.priority == JudgeEvaluationPriority.high ? const Color(0xFFB91C1C) : const Color(0xFF64748B);
     final priorityLabel = row.priority == JudgeEvaluationPriority.high ? 'Priority' : 'Standard';
+    final hasFiles = row.attachmentCount > 0;
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: <BoxShadow>[
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.25),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: priorityColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      priorityLabel,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: priorityColor),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                row.problemTitle,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: <Widget>[
-                  _miniMeta(AppIcons.users, row.teamName),
-                  _miniMeta(AppIcons.clock, formatDateTime(row.submittedAt)),
-                  _miniMeta(Icons.flag_outlined, dueLabel),
-                  if (row.attachmentCount > 0) _miniMeta(AppIcons.attachments, '${row.attachmentCount} files'),
-                ],
-              ),
-              if (row.category.isNotEmpty || row.theme.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: <Widget>[
-                    if (row.category.isNotEmpty) _pill('Category', row.category),
-                    if (row.theme.isNotEmpty) _pill('Theme', row.theme),
-                  ],
+              Expanded(child: _ideaTitleText(title)),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  FilledButton.icon(
-                    onPressed: onEvaluate,
-                    icon: const Icon(Icons.rate_review_outlined, size: 18),
-                    label: const Text('Evaluate'),
+                child: Text(
+                  priorityLabel,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: priorityColor),
+                ),
+              ),
+              const SizedBox(width: 4),
+              CardOverflowMenuButton(
+                tooltip: 'Idea actions',
+                onSelected: _onMenuSelected,
+                actions: <CardOverflowMenuAction>[
+                  const CardOverflowMenuAction(value: 'evaluate', icon: AppIcons.scoring, label: 'Evaluate'),
+                  const CardOverflowMenuAction(value: 'details', icon: AppIcons.preview, label: 'Details'),
+                  CardOverflowMenuAction(
+                    value: 'files',
+                    icon: AppIcons.attachmentDocument,
+                    label: 'Files',
+                    enabled: hasFiles,
                   ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: onViewDetails,
-                    child: const Text('Details'),
-                  ),
-                  const SizedBox(width: 8),
-                  if (row.attachmentCount > 0)
-                    OutlinedButton.icon(
-                      onPressed: onOpenAttachments,
-                      icon: const Icon(AppIcons.attachments, size: 16),
-                      label: const Text('Files'),
-                    ),
                 ],
               ),
             ],
           ),
-        ),
-      );
+          const SizedBox(height: 4),
+          _iconLine(AppIcons.problems, row.problemTitle, dense: true),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 10,
+            runSpacing: 4,
+            children: <Widget>[
+              _miniMeta(AppIcons.teams, row.teamName, dense: true),
+              _miniMeta(AppIcons.clock, formatDateTime(row.submittedAt), dense: true),
+              _miniMeta(AppIcons.statusUnderReview, dueLabel, dense: true),
+              if (hasFiles) _miniMeta(AppIcons.attachments, '${row.attachmentCount} files', dense: true),
+            ],
+          ),
+          if (row.category.isNotEmpty || row.theme.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: <Widget>[
+                if (row.category.isNotEmpty) _pill(AppIcons.orgType, row.category),
+                if (row.theme.isNotEmpty) _pill(AppIcons.address, row.theme),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -205,73 +197,64 @@ class _EvaluatedBody extends StatelessWidget {
   final VoidCallback onEditEvaluation;
   final VoidCallback onViewDetails;
 
+  void _onMenuSelected(String value) {
+    switch (value) {
+      case 'view':
+        onViewEvaluation();
+      case 'edit':
+        onEditEvaluation();
+      case 'details':
+        onViewDetails();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final idea = row.idea;
     final title = idea.ideaTitle.trim().isNotEmpty ? idea.ideaTitle.trim() : idea.problemNumber;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFBBF7D0)),
-                ),
-                child: Text(
-                  row.score.toStringAsFixed(1),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF15803D)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(row.problemTitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 8),
-          Row(
-            children: <Widget>[
-              Expanded(child: Text('Team ${row.teamName}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)))),
-              EvaluationStatusPill(status: row.status),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: <Widget>[
-              Icon(Icons.schedule, size: 14, color: Colors.grey.shade600),
+              Expanded(child: _ideaTitleText(title)),
+              const SizedBox(width: 6),
+              EvaluationStatusPill(status: row.status, compact: true),
               const SizedBox(width: 4),
-              Text(formatDateTime(row.evaluatedAt), style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
-              const Spacer(),
-              if (row.hasFeedback)
-                const Icon(Icons.chat_bubble_outline, size: 14, color: Color(0xFF6366F1))
-              else
-                const SizedBox.shrink(),
+              _scorePill(row.score),
+              const SizedBox(width: 4),
+              CardOverflowMenuButton(
+                tooltip: 'Idea actions',
+                onSelected: _onMenuSelected,
+                actions: const <CardOverflowMenuAction>[
+                  CardOverflowMenuAction(value: 'view', icon: AppIcons.preview, label: 'View evaluation'),
+                  CardOverflowMenuAction(value: 'edit', icon: AppIcons.edit, label: 'Edit'),
+                  CardOverflowMenuAction(value: 'details', icon: AppIcons.ideas, label: 'Idea details'),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          _iconLine(AppIcons.problems, row.problemTitle, dense: true),
+          const SizedBox(height: 4),
           Row(
             children: <Widget>[
-              TextButton(onPressed: onViewEvaluation, child: const Text('View evaluation')),
-              TextButton(onPressed: onEditEvaluation, child: const Text('Edit')),
-              TextButton(onPressed: onViewDetails, child: const Text('Idea details')),
+              Expanded(child: _miniMeta(AppIcons.teams, row.teamName, dense: true)),
+              const SizedBox(width: 8),
+              _miniMeta(AppIcons.clock, formatDateTime(row.evaluatedAt), dense: true),
+              if (row.hasFeedback) ...<Widget>[
+                const SizedBox(width: 6),
+                const Icon(AppIcons.helpSupport, size: 13, color: Color(0xFF6366F1)),
+              ],
             ],
           ),
         ],
@@ -280,16 +263,15 @@ class _EvaluatedBody extends StatelessWidget {
   }
 }
 
-Widget _miniMeta(IconData icon, String text) {
+Widget _ideaTitleText(String title) {
   return Row(
-    mainAxisSize: MainAxisSize.min,
     children: <Widget>[
-      Icon(icon, size: 14, color: const Color(0xFF94A3B8)),
-      const SizedBox(width: 4),
-      Flexible(
+      const Icon(AppIcons.ideas, size: 16, color: Color(0xFF6366F1)),
+      const SizedBox(width: 6),
+      Expanded(
         child: Text(
-          text,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          title,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), height: 1.2),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -298,16 +280,84 @@ Widget _miniMeta(IconData icon, String text) {
   );
 }
 
-Widget _pill(String k, String v) {
+Widget _scorePill(double score) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: const Color(0xFFECFDF5),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0xFFBBF7D0)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Icon(AppIcons.scoring, size: 12, color: Color(0xFF15803D)),
+        const SizedBox(width: 3),
+        Text(
+          score.toStringAsFixed(1),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF15803D)),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _iconLine(IconData icon, String text, {bool dense = false}) {
+  final iconSize = dense ? 12.0 : 14.0;
+  final fontSize = dense ? 11.0 : 12.0;
+  return Row(
+    children: <Widget>[
+      Icon(icon, size: iconSize, color: const Color(0xFF94A3B8)),
+      const SizedBox(width: 4),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _miniMeta(IconData icon, String text, {bool dense = false}) {
+  final iconSize = dense ? 12.0 : 14.0;
+  final fontSize = dense ? 10.0 : 11.0;
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: <Widget>[
+      Icon(icon, size: iconSize, color: const Color(0xFF94A3B8)),
+      const SizedBox(width: 3),
+      Flexible(
+        child: Text(
+          text,
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ],
+  );
+}
+
+Widget _pill(IconData icon, String value) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
       color: const Color(0xFFEEF2FF),
       borderRadius: BorderRadius.circular(8),
     ),
-    child: Text(
-      '$k: $v',
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4338CA)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 12, color: const Color(0xFF4338CA)),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4338CA)),
+        ),
+      ],
     ),
   );
 }

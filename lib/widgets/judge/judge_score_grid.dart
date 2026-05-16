@@ -9,6 +9,7 @@ class JudgeScoreGrid extends StatelessWidget {
     this.label = 'Score',
     this.compact = false,
     this.hint,
+    this.readOnly = false,
   });
 
   final int selectedValue;
@@ -16,6 +17,7 @@ class JudgeScoreGrid extends StatelessWidget {
   final String label;
   final bool compact;
   final String? hint;
+  final bool readOnly;
 
   static Color hueForScore(int value) {
     final t = (value.clamp(1, 10) - 1) / 9.0;
@@ -135,7 +137,7 @@ class JudgeScoreGrid extends StatelessWidget {
               final Widget padded = Padding(
                 padding: EdgeInsets.all(compact ? 2 : 4),
                 child: Semantics(
-                  button: true,
+                  button: !readOnly,
                   selected: selected,
                   label: '$label $v out of 10',
                   child: tile,

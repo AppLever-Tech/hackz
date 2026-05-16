@@ -27,7 +27,7 @@ class EvaluatedIdeaList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.only(bottom: 16),
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, i) {
         final r = rows[i];
         return JudgeEvaluationCard.evaluated(
