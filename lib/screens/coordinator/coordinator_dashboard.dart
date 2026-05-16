@@ -20,6 +20,7 @@ import 'coordinator_payment_card.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../widgets/attachment_viewer.dart';
+import '../../widgets/common/rich_tabs.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -454,21 +455,7 @@ class _CoordinatorPaymentsView extends StatefulWidget {
   State<_CoordinatorPaymentsView> createState() => _CoordinatorPaymentsViewState();
 }
 
-class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
   Future<_CoordinatorPaymentsData> _load() async {
     final payments = FirestoreUtils.getPaymentsByOrg(widget.user.orgId);
     final teams = FirestoreUtils.getTeamNamesByOrg(widget.user.orgId);
@@ -590,33 +577,24 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> with
             .toList(growable: false)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         final verified = data.payments
-            .where(
-              (p) =>
-                  p.status == PaymentRecordStatus.verified ||
-                  p.status == PaymentRecordStatus.rejected,
-            )
+            .where((p) => p.status == PaymentRecordStatus.verified)
             .toList(growable: false)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        final rejected = data.payments
+            .where((p) => p.status == PaymentRecordStatus.rejected)
+            .toList(growable: false)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return RichTabs(
+          spacingAfterBar: 10,
+          tabs: <RichTabItem>[
+            RichTabItem('Pending', count: pending.isEmpty ? null : pending.length),
+            RichTabItem('Verified', count: verified.isEmpty ? null : verified.length),
+            RichTabItem('Rejected', count: rejected.isEmpty ? null : rejected.length),
+          ],
           children: <Widget>[
-            TabBar(
-              controller: _tabController,
-              tabs: const <Widget>[
-                Tab(text: 'Pending'),
-                Tab(text: 'Verified'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: <Widget>[
-                  _buildList(pending, data),
-                  _buildList(verified, data),
-                ],
-              ),
-            ),
+            _buildList(pending, data),
+            _buildList(verified, data),
+            _buildList(rejected, data),
           ],
         );
       },

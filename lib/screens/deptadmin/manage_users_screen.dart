@@ -13,6 +13,7 @@ import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
+import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/filter_pill.dart';
 
 class ManageUsersScreen extends StatefulWidget {
@@ -672,11 +673,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           Row(
             children: <Widget>[
               Expanded(
-                child: TabBar(
+                child: RichTabBar(
                   controller: _tabController,
-                  tabs: const <Tab>[
-                    Tab(text: 'Overview'),
-                    Tab(text: 'Users'),
+                  tabs: const <RichTabItem>[
+                    RichTabItem('Overview'),
+                    RichTabItem('Users'),
                   ],
                 ),
               ),

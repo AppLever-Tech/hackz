@@ -9,6 +9,7 @@ import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/judge/evaluation_feedback_section.dart';
 import '../../widgets/judge/evaluation_summary_strip.dart';
 import '../../widgets/judge/evaluated_idea_list.dart';
+import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/judge/pending_evaluation_list.dart';
 import '../common/idea_detail_screen.dart';
 
@@ -219,33 +220,13 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               completionPercent: vm.completionPercent,
             ),
             const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: TabBar(
-                controller: _tabs,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                indicator: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
-                  ],
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                labelColor: const Color(0xFF0F172A),
-                unselectedLabelColor: const Color(0xFF64748B),
-                tabs: const <Tab>[
-                  Tab(text: 'Pending review'),
-                  Tab(text: 'Evaluated'),
-                  Tab(text: 'Feedback'),
-                ],
-              ),
+            RichTabBar(
+              controller: _tabs,
+              tabs: const <RichTabItem>[
+                RichTabItem('Pending review'),
+                RichTabItem('Evaluated'),
+                RichTabItem('Feedback'),
+              ],
             ),
             const SizedBox(height: 12),
             Expanded(

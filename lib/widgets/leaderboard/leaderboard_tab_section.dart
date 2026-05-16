@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/leaderboard_role_config.dart';
+import '../common/rich_tabs.dart';
 
 class LeaderboardTabSection extends StatelessWidget {
   const LeaderboardTabSection({
@@ -20,46 +21,24 @@ class LeaderboardTabSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return DefaultTabController(
-      length: visibleTabs.length,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+    return RichTabs(
+      isScrollable: true,
+      fitBodyHeight: true,
+      bodyHeight: height,
+      spacingAfterBar: 12,
+      tabs: visibleTabs
+          .map(
+            (t) => RichTabItem(
+              switch (t) {
+                LeaderboardShowcaseTab.teams => 'Teams',
+                LeaderboardShowcaseTab.departments => 'Departments',
+                LeaderboardShowcaseTab.mentors => 'Mentors',
+                LeaderboardShowcaseTab.ideas => 'Ideas',
+              },
             ),
-            child: TabBar(
-              isScrollable: true,
-              labelColor: const Color(0xFF312E81),
-              unselectedLabelColor: const Color(0xFF64748B),
-              indicatorColor: const Color(0xFF8B5CF6),
-              indicatorWeight: 3,
-              tabs: visibleTabs
-                  .map(
-                    (t) => Tab(
-                      text: switch (t) {
-                        LeaderboardShowcaseTab.teams => 'Teams',
-                        LeaderboardShowcaseTab.departments => 'Departments',
-                        LeaderboardShowcaseTab.mentors => 'Mentors',
-                        LeaderboardShowcaseTab.ideas => 'Ideas',
-                      },
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: height,
-            child: TabBarView(
-              children: tabChildren,
-            ),
-          ),
-        ],
-      ),
+          )
+          .toList(growable: false),
+      children: tabChildren,
     );
   }
 }
