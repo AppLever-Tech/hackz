@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../theme/auth_theme.dart';
 import '../../widgets/auth/auth_action_button.dart';
+import '../../widgets/auth/landing_brand_header.dart';
+import '../../widgets/auth/mobile_landing_shell.dart';
 
+/// Full-page auth flow layout: landing gradient, logo header, scrollable form, pinned CTAs.
 class AuthPageLayout extends StatelessWidget {
   const AuthPageLayout({
     super.key,
@@ -14,8 +17,9 @@ class AuthPageLayout extends StatelessWidget {
     required this.onCancel,
     this.isLoading = false,
     this.extraContent,
-    this.titleFontSize = 40,
+    this.titleFontSize = 28,
     this.actionsInRow = true,
+    this.logoHeight = 100,
   });
 
   final String title;
@@ -28,122 +32,110 @@ class AuthPageLayout extends StatelessWidget {
   final Widget? extraContent;
   final double titleFontSize;
   final bool actionsInRow;
+  final double logoHeight;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              Color(0xFFEDEBFF),
-              Color(0xFFF7ECFF),
-              Color(0xFFF9F1FF),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: const Color(0xB3FFFFFF),
-                      width: 1.2,
-                    ),
-                    boxShadow: const <BoxShadow>[
-                      BoxShadow(
-                        color: Color(0x1A000000),
-                        blurRadius: 18,
-                        offset: Offset(0, 8),
+    return MobileLandingShell(
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final bool useRowActions =
+              actionsInRow && constraints.maxWidth >= 480;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: AuthTheme.pagePadding.copyWith(top: 8, bottom: 16),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: AuthTheme.maxContentWidth,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: <Widget>[
-                      const SizedBox(height: 4),
-                      Image.asset(
-                        'assets/images/hackz_logo.png',
-                        height: 170,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: titleFontSize,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF10143B),
-                        ),
-                      ),
-                      if (subtitle != null && subtitle!.trim().isNotEmpty) ...<Widget>[
-                        const SizedBox(height: 8),
-                        Text(
-                          subtitle!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Color(0xFF43486A),
-                            height: 1.35,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Center(
+                            child: LandingBrandHeader(logoHeight: logoHeight),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 22),
-                      formContent,
-                      if (extraContent != null) ...<Widget>[
-                        const SizedBox(height: 16),
-                        extraContent!,
-                      ],
-                      const SizedBox(height: 20),
-                      if (actionsInRow)
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: AuthActionButton.primary(
+                          const SizedBox(height: 16),
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: AuthTheme.flowTitleStyle.copyWith(
+                              fontSize: titleFontSize,
+                            ),
+                          ),
+                          if (subtitle != null &&
+                              subtitle!.trim().isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 8),
+                            Text(
+                              subtitle!,
+                              textAlign: TextAlign.center,
+                              style: AuthTheme.subtitleStyle,
+                            ),
+                          ],
+                          const SizedBox(height: 22),
+                          formContent,
+                          if (extraContent != null) ...<Widget>[
+                            const SizedBox(height: 16),
+                            extraContent!,
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: AuthTheme.pagePadding.copyWith(bottom: 8),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: AuthTheme.maxContentWidth,
+                    ),
+                    child: useRowActions
+                        ? Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: AuthActionButton.primary(
+                                  label: nextLabel,
+                                  onPressed: onNext,
+                                  isLoading: isLoading,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: AuthActionButton.secondary(
+                                  label: 'Cancel',
+                                  onPressed: onCancel,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              AuthActionButton.primary(
                                 label: nextLabel,
                                 onPressed: onNext,
                                 isLoading: isLoading,
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: AuthActionButton.secondary(
+                              const SizedBox(height: 10),
+                              AuthActionButton.secondary(
                                 label: 'Cancel',
                                 onPressed: onCancel,
                               ),
-                            ),
-                          ],
-                        )
-                      else ...<Widget>[
-                        AuthActionButton.primary(
-                          label: nextLabel,
-                          onPressed: onNext,
-                          isLoading: isLoading,
-                        ),
-                        const SizedBox(height: 10),
-                        AuthActionButton.secondary(
-                          label: 'Cancel',
-                          onPressed: onCancel,
-                        ),
-                      ],
-                    ],
+                            ],
+                          ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ),
+            ],
+          );
+        },
       ),
     );
   }
-
 }

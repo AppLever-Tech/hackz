@@ -52,4 +52,52 @@ abstract final class AuthTheme {
     fontWeight: FontWeight.w600,
     color: muted,
   );
+
+  static const TextStyle flowTitleStyle = TextStyle(
+    fontSize: 28,
+    fontWeight: FontWeight.w800,
+    color: ink,
+    letterSpacing: -0.3,
+    height: 1.15,
+  );
+
+  static const TextStyle helperStyle = TextStyle(
+    fontSize: 14,
+    color: label,
+    height: 1.35,
+  );
+
+  static const EdgeInsets pagePadding = EdgeInsets.symmetric(horizontal: 20);
+  static const double maxContentWidth = 420;
+
+  static InputDecoration filledField({
+    String? hintText,
+    Widget? prefixIcon,
+    InputBorder? inputBorder,
+  }) {
+    final OutlineInputBorder fieldBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AuthTheme.border),
+    );
+    return InputDecoration(
+      hintText: hintText,
+      prefixIcon: prefixIcon,
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.92),
+      border: inputBorder ?? fieldBorder,
+      enabledBorder: inputBorder ?? fieldBorder,
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+  }
+
+  static InputDecoration otpDigitField() {
+    return filledField().copyWith(
+      counterText: '',
+      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+    );
+  }
 }

@@ -8,6 +8,7 @@ import '../../models/department_model.dart';
 import '../../models/user_model.dart';
 import '../../constants/app_icons.dart';
 import '../common/auth_page_layout.dart';
+import '../../theme/auth_theme.dart';
 import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
 import 'otp_screen.dart';
@@ -224,47 +225,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
         children: <Widget>[
           TextField(
             controller: _firstNameController,
-            decoration: const InputDecoration(
+            decoration: AuthTheme.filledField(
               hintText: 'First Name',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.person_outline),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _lastNameController,
-            decoration: const InputDecoration(
+            decoration: AuthTheme.filledField(
               hintText: 'Last Name',
-              prefixIcon: Icon(Icons.person_outline),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.person_outline),
             ),
           ),
           const SizedBox(height: 12),
           EmailField(
             controller: _emailController,
-            decoration: const InputDecoration(
+            decoration: AuthTheme.filledField(
               hintText: 'Email Address',
-              prefixIcon: Icon(Icons.email_outlined),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.email_outlined),
             ),
           ),
           const SizedBox(height: 12),
           PhoneNumberField(
             controller: _phoneController,
-            decoration: const InputDecoration(
+            decoration: AuthTheme.filledField(
               hintText: 'Enter your phone number',
-              prefixIcon: Icon(Icons.phone_android_outlined),
-              border: OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.phone_android_outlined),
             ),
           ),
           const SizedBox(height: 12),
           const Row(
             children: <Widget>[
-              Icon(AppIcons.key, size: 18, color: Color(0xFF5F6684)),
+              Icon(AppIcons.key, size: 18, color: AuthTheme.label),
               SizedBox(width: 8),
               Text(
                 'Access Code',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AuthTheme.ink,
+                ),
               ),
             ],
           ),

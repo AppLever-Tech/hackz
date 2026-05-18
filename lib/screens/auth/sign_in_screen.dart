@@ -5,6 +5,9 @@ import '../../models/enums/account_workspace_phase.dart';
 import '../../models/user_model.dart';
 import '../common/auth_page_layout.dart';
 import '../common/phone_number_field.dart';
+import '../../theme/auth_theme.dart';
+import '../../widgets/auth/auth_feature_strip.dart';
+import '../../widgets/auth/auth_field_container.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import 'otp_screen.dart';
@@ -171,49 +174,7 @@ class _SignInScreenState extends State<SignInScreen> {
       onNext: _onSignIn,
       onCancel: () => Navigator.of(context).maybePop(),
       isLoading: _isLoading,
-      extraContent: _FeatureRow(),
-    );
-  }
-}
-
-class _FeatureRow extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    Widget item(IconData icon, String label) {
-      return Expanded(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, color: const Color(0xFF5A5F87), size: 22),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF515777),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD4D8F1)),
-      ),
-      child: Row(
-        children: <Widget>[
-          item(Icons.shield_outlined, 'Secure\nAccess'),
-          item(Icons.groups_outlined, 'Role Based\nDashboards'),
-          item(Icons.auto_awesome_outlined, 'Smart\nCollaboration'),
-          item(Icons.fact_check_outlined, 'Approval\nWorkflow'),
-        ],
-      ),
+      extraContent: const AuthFeatureStrip(),
     );
   }
 }

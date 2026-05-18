@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../common/auth_page_layout.dart';
 import 'auth_gate.dart';
+import '../../theme/auth_theme.dart';
 import '../../utils/auth_utils.dart';
 
 class OtpScreen extends StatefulWidget {
@@ -119,23 +120,7 @@ class _OtpScreenState extends State<OtpScreen> {
             maxLength: 1,
             textInputAction:
                 index == _otpLength - 1 ? TextInputAction.done : TextInputAction.next,
-            decoration: InputDecoration(
-              counterText: '',
-              filled: true,
-              fillColor: const Color(0xFFFFFFFF),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD0D5EC)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFFD0D5EC)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
-              ),
-            ),
+            decoration: AuthTheme.otpDigitField(),
             onChanged: (String value) => _onOtpDigitChanged(index, value),
           ),
         );
