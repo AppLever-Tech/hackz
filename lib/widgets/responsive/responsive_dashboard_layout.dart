@@ -12,6 +12,7 @@ class ResponsiveDashboardLayout extends StatefulWidget {
     required this.secondaryMenus,
     required this.selectedPrimaryIndex,
     required this.onPrimaryMenuSelected,
+    required this.onLogout,
     required this.header,
     required this.body,
   });
@@ -20,6 +21,7 @@ class ResponsiveDashboardLayout extends StatefulWidget {
   final List<DashboardMenuItem> secondaryMenus;
   final int selectedPrimaryIndex;
   final ValueChanged<int> onPrimaryMenuSelected;
+  final VoidCallback onLogout;
   final Widget header;
   final Widget body;
 
@@ -38,12 +40,20 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
     }
   }
 
+  void _handleLogout() {
+    if (ResponsiveHelper.isMobile(context)) {
+      Navigator.of(context).pop();
+    }
+    widget.onLogout();
+  }
+
   Widget _navigationPanel({required bool compact, required bool inDrawer}) {
     return DashboardNavigationPanel(
       primaryMenus: widget.primaryMenus,
       secondaryMenus: widget.secondaryMenus,
       selectedPrimaryIndex: widget.selectedPrimaryIndex,
       onPrimaryMenuTap: _selectMenu,
+      onLogout: _handleLogout,
       compact: compact,
       showBranding: !compact || inDrawer,
     );
@@ -72,6 +82,7 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
           secondaryMenus: widget.secondaryMenus,
           selectedPrimaryIndex: widget.selectedPrimaryIndex,
           onPrimaryMenuTap: widget.onPrimaryMenuSelected,
+          onLogout: _handleLogout,
         );
     }
   }

@@ -117,13 +117,13 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
       secondaryMenus: menuConfig.secondaryMenus,
       selectedPrimaryIndex: _selectedPrimaryMenuIndex,
       onPrimaryMenuSelected: (int index) => setState(() => _selectedPrimaryMenuIndex = index),
+      onLogout: () => _logout(context),
       header: TopHeaderWidget(
         title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
         titleIcon: selectedMenuIcon,
         subtitle: isDashboardTab ? roleName : '',
         dateText: longDate,
         onRefresh: () => setState(() => _refreshToken++),
-        onLogout: () => _logout(context),
       ),
       body: widget.bodyBuilder(
         context,
@@ -144,10 +144,6 @@ class _RoleMenuConfig {
   final List<DashboardMenuItem> secondaryMenus;
 
   static _RoleMenuConfig forRole(UserRole role) {
-    const commonSecondary = <DashboardMenuItem>[
-      DashboardMenuItem(label: 'Settings', icon: AppIcons.settings),
-    ];
-
     switch (role) {
       case UserRole.sysAdmin:
         return const _RoleMenuConfig(
@@ -157,7 +153,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
             DashboardMenuItem(label: 'Platform settings', icon: AppIcons.platformSettings),
           ],
-          secondaryMenus: commonSecondary,
+          secondaryMenus: <DashboardMenuItem>[],
         );
       case UserRole.collegeAdmin:
         return const _RoleMenuConfig(
@@ -192,7 +188,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
-          secondaryMenus: commonSecondary,
+          secondaryMenus: <DashboardMenuItem>[],
         );
       case UserRole.judge:
         return const _RoleMenuConfig(

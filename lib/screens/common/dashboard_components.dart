@@ -31,9 +31,10 @@ class DashboardNavigationPanel extends StatelessWidget {
   const DashboardNavigationPanel({
     super.key,
     required this.primaryMenus,
-    required this.secondaryMenus,
+    this.secondaryMenus = const <DashboardMenuItem>[],
     this.selectedPrimaryIndex = 0,
     this.onPrimaryMenuTap,
+    this.onLogout,
     this.compact = false,
     this.showBranding = true,
   });
@@ -42,6 +43,7 @@ class DashboardNavigationPanel extends StatelessWidget {
   final List<DashboardMenuItem> secondaryMenus;
   final int selectedPrimaryIndex;
   final ValueChanged<int>? onPrimaryMenuTap;
+  final VoidCallback? onLogout;
   final bool compact;
   final bool showBranding;
 
@@ -88,11 +90,12 @@ class DashboardNavigationPanel extends StatelessWidget {
               onTap: onPrimaryMenuTap == null ? null : () => onPrimaryMenuTap!(index),
             ),
           const Spacer(),
-          for (final item in secondaryMenus)
+          if (onLogout != null)
             _NavItem(
-              label: item.label,
-              icon: item.icon,
+              label: 'Logout',
+              icon: Icons.logout,
               compact: compact,
+              onTap: onLogout,
             ),
         ],
       ),
@@ -104,15 +107,17 @@ class SidebarWidget extends StatelessWidget {
   const SidebarWidget({
     super.key,
     required this.primaryMenus,
-    required this.secondaryMenus,
+    this.secondaryMenus = const <DashboardMenuItem>[],
     this.selectedPrimaryIndex = 0,
     this.onPrimaryMenuTap,
+    this.onLogout,
   });
 
   final List<DashboardMenuItem> primaryMenus;
   final List<DashboardMenuItem> secondaryMenus;
   final int selectedPrimaryIndex;
   final ValueChanged<int>? onPrimaryMenuTap;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +132,7 @@ class SidebarWidget extends StatelessWidget {
         secondaryMenus: secondaryMenus,
         selectedPrimaryIndex: selectedPrimaryIndex,
         onPrimaryMenuTap: onPrimaryMenuTap,
+        onLogout: onLogout,
       ),
     );
   }
@@ -140,7 +146,6 @@ class TopHeaderWidget extends StatelessWidget {
     required this.subtitle,
     required this.dateText,
     required this.onRefresh,
-    required this.onLogout,
   });
 
   final String title;
@@ -148,7 +153,6 @@ class TopHeaderWidget extends StatelessWidget {
   final String subtitle;
   final String dateText;
   final VoidCallback onRefresh;
-  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -269,22 +273,11 @@ class TopHeaderWidget extends StatelessWidget {
 
   Widget _actionButtons({required bool compact}) {
     final iconSize = compact ? 22.0 : 24.0;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        IconButton(
-          tooltip: 'Refresh',
-          icon: Icon(Icons.refresh, size: iconSize),
-          visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-          onPressed: onRefresh,
-        ),
-        IconButton(
-          tooltip: 'Logout',
-          icon: Icon(Icons.logout, size: iconSize),
-          visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-          onPressed: onLogout,
-        ),
-      ],
+    return IconButton(
+      tooltip: 'Refresh',
+      icon: Icon(Icons.refresh, size: iconSize),
+      visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+      onPressed: onRefresh,
     );
   }
 }

@@ -75,7 +75,6 @@ class _AccountStatusWorkspaceState extends State<AccountStatusWorkspace> {
                     subtitle: 'Hackz onboarding workspace',
                     dateText: formatLongDisplayDate(DateTime.now()),
                     onRefresh: _onRefresh,
-                    onLogout: widget.onSignOut,
                   ),
                   const SizedBox(height: 16),
                   Expanded(
@@ -150,6 +149,15 @@ class _AccountStatusWorkspaceState extends State<AccountStatusWorkspace> {
                           SectionContainer(
                             child: SupportHelpCard(
                               departmentHint: deptHint.trim().isEmpty ? null : deptHint,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: widget.onSignOut,
+                              icon: const Icon(Icons.logout),
+                              label: const Text('Logout'),
                             ),
                           ),
                           const SizedBox(height: 8),

@@ -178,50 +178,52 @@ class CollegeAdminDashboard extends StatelessWidget {
                   first: ChartCard(
                     title: 'College Details',
                     child: ResponsiveChartBox(
-                      desktopHeight: 190,
-                      child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
-                              _CollegeDetailItem(icon: AppIcons.orgType, label: 'Type', value: org?.type.displayName ?? 'College'),
-                              _CollegeDetailItem(
-                                icon: AppIcons.address,
-                                label: 'Address',
-                                value: org?.address.isNotEmpty == true ? org!.address : '-',
-                                wrapValue: true,
+                      desktopHeight: 200,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
+                            _CollegeDetailItem(icon: AppIcons.orgType, label: 'Type', value: org?.type.displayName ?? 'College'),
+                            _CollegeDetailItem(
+                              icon: AppIcons.address,
+                              label: 'Address',
+                              value: org?.address.isNotEmpty == true ? org!.address : '-',
+                              wrapValue: true,
+                            ),
+                            _CollegeDetailItem(
+                              icon: AppIcons.website,
+                              label: 'Website',
+                              value: org?.website.isNotEmpty == true ? org!.website : '-',
+                              trailing: Builder(
+                                builder: (BuildContext context) {
+                                  final uri = _parseWebsiteUri(org?.website ?? '');
+                                  if (uri == null) return const SizedBox.shrink();
+                                  return Link(
+                                    uri: uri,
+                                    target: LinkTarget.blank,
+                                    builder: (BuildContext context, Future<void> Function()? followLink) {
+                                      return IconButton(
+                                        onPressed: followLink,
+                                        icon: const Icon(
+                                          AppIcons.openInNew,
+                                          size: 18,
+                                          color: Color(0xFF5A5F87),
+                                        ),
+                                        tooltip: 'Open website',
+                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                        padding: EdgeInsets.zero,
+                                        splashRadius: 18,
+                                      );
+                                    },
+                                  );
+                                },
                               ),
-                              _CollegeDetailItem(
-                                icon: AppIcons.website,
-                                label: 'Website',
-                                value: org?.website.isNotEmpty == true ? org!.website : '-',
-                                trailing: Builder(
-                                  builder: (BuildContext context) {
-                                    final uri = _parseWebsiteUri(org?.website ?? '');
-                                    if (uri == null) return const SizedBox.shrink();
-                                    return Link(
-                                      uri: uri,
-                                      target: LinkTarget.blank,
-                                      builder: (BuildContext context, Future<void> Function()? followLink) {
-                                        return IconButton(
-                                          onPressed: followLink,
-                                          icon: const Icon(
-                                            AppIcons.openInNew,
-                                            size: 18,
-                                            color: Color(0xFF5A5F87),
-                                          ),
-                                          tooltip: 'Open website',
-                                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                          padding: EdgeInsets.zero,
-                                          splashRadius: 18,
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                              _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
-                            ],
-                          ),
+                            ),
+                            _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   second: ChartCard(
@@ -403,7 +405,7 @@ class _CollegeDetailItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: wrapValue ? CrossAxisAlignment.start : CrossAxisAlignment.center,
         children: <Widget>[
