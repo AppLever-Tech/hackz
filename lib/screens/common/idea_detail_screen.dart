@@ -19,7 +19,9 @@ import '../../widgets/payment_dialog.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 import '../../widgets/filter_pill.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 
 enum _IdeaDetailTab { details, team, payment, evaluation, attachments, activity }
 
@@ -75,16 +77,28 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           }
           if (snapshot.hasError) return Center(child: Text('Unable to load idea details: ${snapshot.error}'));
           final vm = snapshot.data!;
+          final padding = ResponsiveHelper.isMobile(context)
+              ? const EdgeInsets.fromLTRB(12, 8, 12, 12)
+              : const EdgeInsets.all(16);
           return Padding(
-            padding: const EdgeInsets.all(16),
+            padding: padding,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _header(vm),
-                const SizedBox(height: 10),
-                _summary(vm),
-                const SizedBox(height: 10),
-                _tabs(),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _header(vm),
+                        const SizedBox(height: 10),
+                        _summary(vm),
+                        const SizedBox(height: 10),
+                        _tabs(),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Expanded(child: _tabContent(vm)),
               ],
@@ -107,82 +121,83 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
 
   Widget _header(IdeaDetailsVm vm) {
     final payment = vm.payment;
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          vm.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : vm.idea.ideaTitle.trim(),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.isMobile(context) ? 18 : 22,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
+          style: const TextStyle(color: Color(0xFF5B628A)),
+        ),
+      ],
+    );
+    final pills = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        _ideaStatusPill(vm.idea.status),
+        _paymentPill(payment?.status),
+      ],
+    );
     return SectionContainer(
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
+      child: ResponsiveHelper.isMobile(context)
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  vm.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : vm.idea.ideaTitle.trim(),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
-                  style: const TextStyle(color: Color(0xFF5B628A)),
-                ),
+                titleBlock,
+                const SizedBox(height: 10),
+                pills,
+              ],
+            )
+          : Row(
+              children: <Widget>[
+                Expanded(child: titleBlock),
+                _ideaStatusPill(vm.idea.status),
+                const SizedBox(width: 8),
+                _paymentPill(payment?.status),
               ],
             ),
-          ),
-          _ideaStatusPill(vm.idea.status),
-          const SizedBox(width: 8),
-          _paymentPill(payment?.status),
-        ],
-      ),
     );
   }
 
   Widget _summary(IdeaDetailsVm vm) {
-    return LayoutBuilder(
-      builder: (_, c) {
-        const gap = 10.0;
-        final cols = (c.maxWidth / 210).floor().clamp(1, 4);
-        final w = (c.maxWidth - (gap * (cols - 1))) / cols;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: <Widget>[
-            SizedBox(
-              width: w,
-              child: DashboardCountCard(
-                value: vm.averageScore?.toStringAsFixed(1) ?? '-',
-                label: 'Score',
-                icon: AppIcons.scoring,
-                iconBgColor: const Color(0xFFE8FAF1),
-              ),
-            ),
-            SizedBox(
-              width: w,
-              child: DashboardCountCard(
-                value: vm.scores.length.toString(),
-                label: 'Evaluations',
-                icon: AppIcons.statusEvaluated,
-                iconBgColor: const Color(0xFFF2EDFF),
-              ),
-            ),
-            SizedBox(
-              width: w,
-              child: DashboardCountCard(
-                value: vm.ideaAttachments.length.toString(),
-                label: 'Idea Attachments',
-                icon: AppIcons.attachments,
-                iconBgColor: const Color(0xFFEAF2FF),
-              ),
-            ),
-            SizedBox(
-              width: w,
-              child: DashboardCountCard(
-                value: vm.paymentAttachments.length.toString(),
-                label: 'Payment Attachments',
-                icon: AppIcons.payments,
-                iconBgColor: const Color(0xFFFFF4E8),
-              ),
-            ),
-          ],
-        );
-      },
+    return ResponsiveMetricGrid(
+      minTileWidth: ResponsiveHelper.isMobile(context) ? 150 : 200,
+      useStandardColumns: false,
+      maxColumns: 4,
+      children: <Widget>[
+        DashboardCountCard(
+          value: vm.averageScore?.toStringAsFixed(1) ?? '-',
+          label: 'Score',
+          icon: AppIcons.scoring,
+          iconBgColor: const Color(0xFFE8FAF1),
+        ),
+        DashboardCountCard(
+          value: vm.scores.length.toString(),
+          label: 'Evaluations',
+          icon: AppIcons.statusEvaluated,
+          iconBgColor: const Color(0xFFF2EDFF),
+        ),
+        DashboardCountCard(
+          value: vm.ideaAttachments.length.toString(),
+          label: 'Idea Attachments',
+          icon: AppIcons.attachments,
+          iconBgColor: const Color(0xFFEAF2FF),
+        ),
+        DashboardCountCard(
+          value: vm.paymentAttachments.length.toString(),
+          label: 'Payment Attachments',
+          icon: AppIcons.payments,
+          iconBgColor: const Color(0xFFFFF4E8),
+        ),
+      ],
     );
   }
 

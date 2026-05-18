@@ -35,12 +35,22 @@ class ResponsiveListDetailLayout extends StatelessWidget {
     }
 
     if (!_useSplit(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          ResponsiveDetailBackButton(onPressed: onCloseDetail, label: backLabel),
-          Expanded(child: detail),
-        ],
+      return LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final height = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : MediaQuery.sizeOf(context).height;
+          return SizedBox(
+            height: height,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                ResponsiveDetailBackButton(onPressed: onCloseDetail, label: backLabel),
+                Expanded(child: detail),
+              ],
+            ),
+          );
+        },
       );
     }
 
