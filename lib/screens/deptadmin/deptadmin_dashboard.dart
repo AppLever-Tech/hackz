@@ -313,8 +313,21 @@ class _IdeaStatusMixSection extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 14),
-        Expanded(
-          child: IdeaStatusDistributionDonut(
+        if (ResponsiveHelper.isDesktopOrWider(context))
+          Expanded(
+            child: IdeaStatusDistributionDonut(
+              pending: analytics.pendingSubmissionIdeas,
+              submitted: analytics.submittedIdeas - analytics.underReviewIdeas,
+              underReview: analytics.underReviewIdeas,
+              evaluated: analytics.evaluatedOnlyIdeas,
+              approved: analytics.approvedIdeas,
+              rejected: analytics.rejectedIdeas,
+              centerStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              legendTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+            ),
+          )
+        else
+          IdeaStatusDistributionDonut(
             pending: analytics.pendingSubmissionIdeas,
             submitted: analytics.submittedIdeas - analytics.underReviewIdeas,
             underReview: analytics.underReviewIdeas,
@@ -324,7 +337,6 @@ class _IdeaStatusMixSection extends StatelessWidget {
             centerStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
             legendTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
           ),
-        ),
       ],
     );
   }

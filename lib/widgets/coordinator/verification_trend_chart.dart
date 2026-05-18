@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../common/time_frame_filter.dart';
 import 'coordinator_panel_card.dart';
@@ -20,6 +21,14 @@ class VerificationTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
+    final Widget chart = points.isEmpty
+        ? const Center(child: Text('No payment trend data yet.'))
+        : CustomPaint(
+            painter: _VerificationTrendPainter(points),
+            child: const SizedBox.expand(),
+          );
+
     return CoordinatorPanelCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,14 +52,10 @@ class VerificationTrendChart extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: points.isEmpty
-                ? const Center(child: Text('No payment trend data yet.'))
-                : CustomPaint(
-                    painter: _VerificationTrendPainter(points),
-                    child: const SizedBox.expand(),
-                  ),
-          ),
+          if (inFixedPanel)
+            Expanded(child: chart)
+          else
+            SizedBox(height: 220, child: chart),
           const SizedBox(height: 12),
           const Wrap(
             spacing: 14,

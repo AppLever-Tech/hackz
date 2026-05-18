@@ -75,7 +75,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Future<void> _loadAll() async {
-    setState(() => _refreshing = true);
     try {
       final query = await FirebaseFirestore.instance
           .collection(FirestoreUtils.hkzUsers)
@@ -686,43 +685,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          ResponsiveHelper.isMobile(context)
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    RichTabBar(
-                      controller: _tabController,
-                      tabs: const <RichTabItem>[
-                        RichTabItem('Overview'),
-                        RichTabItem('Users'),
-                      ],
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: IconButton(
-                        onPressed: _refreshing ? null : _loadAll,
-                        icon: const Icon(AppIcons.refresh),
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: RichTabBar(
-                        controller: _tabController,
-                        tabs: const <RichTabItem>[
-                          RichTabItem('Overview'),
-                          RichTabItem('Users'),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _refreshing ? null : _loadAll,
-                      icon: const Icon(AppIcons.refresh),
-                    ),
-                  ],
-                ),
+          RichTabBar(
+            controller: _tabController,
+            tabs: const <RichTabItem>[
+              RichTabItem('Overview'),
+              RichTabItem('Users'),
+            ],
+          ),
           const SizedBox(height: 8),
           Expanded(
             child: TabBarView(

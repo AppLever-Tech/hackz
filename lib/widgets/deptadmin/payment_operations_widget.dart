@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../responsive/responsive_helper.dart';
 import '../../utils/department_dashboard_service.dart';
 
 class PaymentOperationsWidget extends StatelessWidget {
@@ -24,6 +25,33 @@ class PaymentOperationsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
+    final Widget body = Column(
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(child: _MiniOperationCard(label: 'Pending payments', value: '$pendingPayments', color: const Color(0xFFEA580C))),
+            const SizedBox(width: 10),
+            Expanded(child: _MiniOperationCard(label: 'Submitted ideas', value: '$submittedIdeas', color: const Color(0xFF6A38FF))),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: <Widget>[
+            Expanded(child: _MiniOperationCard(label: 'Evaluated ideas', value: '$evaluatedIdeas', color: const Color(0xFF16A34A))),
+            const SizedBox(width: 10),
+            Expanded(child: _MiniOperationCard(label: 'Rejected ideas', value: '$rejectedIdeas', color: const Color(0xFFDC2626))),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _ProgressMetric(label: 'Payment verification', value: paymentVerificationRate, color: const Color(0xFF0891B2)),
+        const SizedBox(height: 12),
+        _ProgressMetric(label: 'Evaluation completion', value: evaluationCompletionRate, color: const Color(0xFF16A34A)),
+        const SizedBox(height: 12),
+        _ApprovalMix(approvedIdeas: approvedIdeas, rejectedIdeas: rejectedIdeas),
+      ],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -31,35 +59,10 @@ class PaymentOperationsWidget extends StatelessWidget {
         const SizedBox(height: 4),
         const Text('Operational workload without rankings or showcase metrics', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         const SizedBox(height: 14),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(child: _MiniOperationCard(label: 'Pending payments', value: '$pendingPayments', color: const Color(0xFFEA580C))),
-                    const SizedBox(width: 10),
-                    Expanded(child: _MiniOperationCard(label: 'Submitted ideas', value: '$submittedIdeas', color: const Color(0xFF6A38FF))),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: <Widget>[
-                    Expanded(child: _MiniOperationCard(label: 'Evaluated ideas', value: '$evaluatedIdeas', color: const Color(0xFF16A34A))),
-                    const SizedBox(width: 10),
-                    Expanded(child: _MiniOperationCard(label: 'Rejected ideas', value: '$rejectedIdeas', color: const Color(0xFFDC2626))),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                _ProgressMetric(label: 'Payment verification', value: paymentVerificationRate, color: const Color(0xFF0891B2)),
-                const SizedBox(height: 12),
-                _ProgressMetric(label: 'Evaluation completion', value: evaluationCompletionRate, color: const Color(0xFF16A34A)),
-                const SizedBox(height: 12),
-                _ApprovalMix(approvedIdeas: approvedIdeas, rejectedIdeas: rejectedIdeas),
-              ],
-            ),
-          ),
-        ),
+        if (inFixedPanel)
+          Expanded(child: SingleChildScrollView(child: body))
+        else
+          body,
       ],
     );
   }

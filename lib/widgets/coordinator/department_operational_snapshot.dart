@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import 'coordinator_panel_card.dart';
 
@@ -11,6 +12,28 @@ class DepartmentOperationalSnapshot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
+    final grid = LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth >= 300 ? 2 : 1;
+        return GridView.count(
+          padding: EdgeInsets.zero,
+          shrinkWrap: !inFixedPanel,
+          physics: inFixedPanel ? const ClampingScrollPhysics() : const NeverScrollableScrollPhysics(),
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: crossAxisCount == 2 ? 2.45 : 4.2,
+          children: <Widget>[
+            _SnapshotTile(icon: AppIcons.payments, label: 'Awaiting Payment', value: '${snapshot.ideasAwaitingPayment}', tint: const Color(0xFF7C3AED)),
+            _SnapshotTile(icon: AppIcons.teams, label: 'Blocked Teams', value: '${snapshot.blockedTeams}', tint: const Color(0xFFEA580C)),
+            _SnapshotTile(icon: AppIcons.verification, label: 'Completion', value: '${(snapshot.verificationCompletion * 100).round()}%', tint: const Color(0xFF16A34A)),
+            _SnapshotTile(icon: AppIcons.clock, label: 'Submission Window', value: snapshot.activeSubmissionWindow, tint: const Color(0xFF0284C7)),
+          ],
+        );
+      },
+    );
+
     return CoordinatorPanelCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -19,27 +42,7 @@ class DepartmentOperationalSnapshot extends StatelessWidget {
           const SizedBox(height: 4),
           const Text('Compact processing health for coordinator workflow', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth >= 300 ? 2 : 1;
-                return GridView.count(
-                  padding: EdgeInsets.zero,
-                  physics: const ClampingScrollPhysics(),
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: crossAxisCount == 2 ? 2.45 : 4.2,
-                  children: <Widget>[
-                    _SnapshotTile(icon: AppIcons.payments, label: 'Awaiting Payment', value: '${snapshot.ideasAwaitingPayment}', tint: const Color(0xFF7C3AED)),
-                    _SnapshotTile(icon: AppIcons.teams, label: 'Blocked Teams', value: '${snapshot.blockedTeams}', tint: const Color(0xFFEA580C)),
-                    _SnapshotTile(icon: AppIcons.verification, label: 'Completion', value: '${(snapshot.verificationCompletion * 100).round()}%', tint: const Color(0xFF16A34A)),
-                    _SnapshotTile(icon: AppIcons.clock, label: 'Submission Window', value: snapshot.activeSubmissionWindow, tint: const Color(0xFF0284C7)),
-                  ],
-                );
-              },
-            ),
-          ),
+          if (inFixedPanel) Expanded(child: grid) else grid,
         ],
       ),
     );

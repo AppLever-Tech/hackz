@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -64,25 +66,48 @@ class AuthUtils {
       return;
     }
 
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phone,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        throw FirebaseAuthException(
-          code: e.code,
-          message: e.message,
-        );
-      },
-      codeSent: (String verificationId, int? _) {
-        _verificationId = verificationId;
-        onCodeSent();
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        _verificationId = verificationId;
-      },
-    );
+    final sent = Completer<void>();
+
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phone,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          try {
+            await _auth.signInWithCredential(credential);
+            if (!sent.isCompleted) {
+              sent.complete();
+            }
+          } catch (e, st) {
+            if (!sent.isCompleted) {
+              sent.completeError(e, st);
+            }
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!sent.isCompleted) {
+            sent.completeError(
+              FirebaseAuthException(code: e.code, message: e.message),
+            );
+          }
+        },
+        codeSent: (String verificationId, int? _) {
+          _verificationId = verificationId;
+          onCodeSent();
+          if (!sent.isCompleted) {
+            sent.complete();
+          }
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e, st) {
+      if (!sent.isCompleted) {
+        sent.completeError(e, st);
+      }
+    }
+
+    await sent.future;
   }
 
   static Future<UserCredential> verifyOtp(String otpCode) async {
