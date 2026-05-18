@@ -10,6 +10,7 @@ import '../../utils/faculty_teams_service.dart';
 import '../../utils/judge_evaluation_service.dart';
 import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
+import '../../widgets/responsive/responsive_dashboard_layout.dart';
 import '../auth/landing_screen.dart';
 import 'dashboard_components.dart';
 
@@ -111,76 +112,23 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
     final IconData selectedMenuIcon = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].icon;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F5FB),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: <Widget>[
-                  SizedBox(
-                    height: constraints.maxHeight,
-                    child: SidebarWidget(
-                      primaryMenus: menuConfig.primaryMenus,
-                      secondaryMenus: menuConfig.secondaryMenus,
-                      selectedPrimaryIndex: _selectedPrimaryMenuIndex,
-                      onPrimaryMenuTap: (int index) {
-                        setState(() {
-                          _selectedPrimaryMenuIndex = index;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(
-                      height: constraints.maxHeight,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            TopHeaderWidget(
-                              title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
-                              titleIcon: selectedMenuIcon,
-                              subtitle: isDashboardTab ? roleName : '',
-                              dateText: longDate,
-                              onRefresh: () => setState(() => _refreshToken++),
-                              onLogout: () => _logout(context),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (BuildContext context, BoxConstraints bodyConstraints) {
-                                  return ScrollConfiguration(
-                                    behavior: ScrollConfiguration.of(context).copyWith(
-                                      scrollbars: false,
-                                    ),
-                                    child: widget.bodyBuilder(
-                                      context,
-                                      _refreshToken,
-                                      _selectedPrimaryMenuIndex,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+    return ResponsiveDashboardLayout(
+      primaryMenus: menuConfig.primaryMenus,
+      secondaryMenus: menuConfig.secondaryMenus,
+      selectedPrimaryIndex: _selectedPrimaryMenuIndex,
+      onPrimaryMenuSelected: (int index) => setState(() => _selectedPrimaryMenuIndex = index),
+      header: TopHeaderWidget(
+        title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
+        titleIcon: selectedMenuIcon,
+        subtitle: isDashboardTab ? roleName : '',
+        dateText: longDate,
+        onRefresh: () => setState(() => _refreshToken++),
+        onLogout: () => _logout(context),
+      ),
+      body: widget.bodyBuilder(
+        context,
+        _refreshToken,
+        _selectedPrimaryMenuIndex,
       ),
     );
   }

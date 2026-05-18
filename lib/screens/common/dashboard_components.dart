@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../responsive/responsive_helper.dart';
+import '../../responsive/responsive_layout.dart';
+
 const double _kMetricCardHeight = 108;
 const double _kMetricCardPadding = 16;
 const double _kMetricPrimaryCountFontSize = 32;
@@ -23,6 +26,80 @@ final BoxDecoration kDashboardCardDecoration = BoxDecoration(
   ],
 );
 
+/// Shared nav tree for desktop sidebar, tablet rail, and mobile drawer.
+class DashboardNavigationPanel extends StatelessWidget {
+  const DashboardNavigationPanel({
+    super.key,
+    required this.primaryMenus,
+    required this.secondaryMenus,
+    this.selectedPrimaryIndex = 0,
+    this.onPrimaryMenuTap,
+    this.compact = false,
+    this.showBranding = true,
+  });
+
+  final List<DashboardMenuItem> primaryMenus;
+  final List<DashboardMenuItem> secondaryMenus;
+  final int selectedPrimaryIndex;
+  final ValueChanged<int>? onPrimaryMenuTap;
+  final bool compact;
+  final bool showBranding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14, vertical: compact ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (showBranding) ...<Widget>[
+            compact
+                ? Center(
+                    child: Image.asset(
+                      'assets/images/hackz_logo.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                : Row(
+                    children: <Widget>[
+                      Image.asset(
+                        'assets/images/hackz_logo.png',
+                        width: 34,
+                        height: 34,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'HACKZ',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+            SizedBox(height: compact ? 12 : 18),
+          ],
+          for (int index = 0; index < primaryMenus.length; index++)
+            _NavItem(
+              label: primaryMenus[index].label,
+              icon: primaryMenus[index].icon,
+              selected: index == selectedPrimaryIndex,
+              compact: compact,
+              onTap: onPrimaryMenuTap == null ? null : () => onPrimaryMenuTap!(index),
+            ),
+          const Spacer(),
+          for (final item in secondaryMenus)
+            _NavItem(
+              label: item.label,
+              icon: item.icon,
+              compact: compact,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class SidebarWidget extends StatelessWidget {
   const SidebarWidget({
     super.key,
@@ -40,45 +117,16 @@ class SidebarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 230,
+      width: ResponsiveHelper.expandedSidebarWidth(context),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Image.asset(
-                'assets/images/hackz_logo.png',
-                width: 34,
-                height: 34,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'HACKZ',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          for (int index = 0; index < primaryMenus.length; index++)
-            _NavItem(
-              label: primaryMenus[index].label,
-              icon: primaryMenus[index].icon,
-              selected: index == selectedPrimaryIndex,
-              onTap: onPrimaryMenuTap == null ? null : () => onPrimaryMenuTap!(index),
-            ),
-          const Spacer(),
-          for (final item in secondaryMenus)
-            _NavItem(
-              label: item.label,
-              icon: item.icon,
-            ),
-        ],
+      child: DashboardNavigationPanel(
+        primaryMenus: primaryMenus,
+        secondaryMenus: secondaryMenus,
+        selectedPrimaryIndex: selectedPrimaryIndex,
+        onPrimaryMenuTap: onPrimaryMenuTap,
       ),
     );
   }
@@ -104,51 +152,136 @@ class TopHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ResponsiveLayout(
+      builder: (BuildContext context, ScreenSize screenSize) {
+        if (screenSize == ScreenSize.mobile) {
+          return _buildMobileHeader(context);
+        }
+        return _buildDesktopHeader(context);
+      },
+    );
+  }
+
+  Widget _buildMobileHeader(BuildContext context) {
+    final titleSize = ResponsiveHelper.titleFontSize(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
+            _actionButtons(compact: true),
+          ],
+        ),
+        if (subtitle.trim().isNotEmpty && ResponsiveHelper.showHeaderSubtitle(context)) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDesktopHeader(BuildContext context) {
+    final titleSize = ResponsiveHelper.titleFontSize(context);
+    final showDate = ResponsiveHelper.showHeaderDate(context);
+
+    if (screenSizeIsCompactTablet(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
+              _actionButtons(compact: false),
+            ],
+          ),
+          if (showDate) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              dateText,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                if (titleIcon != null) ...<Widget>[
-                  Icon(titleIcon, size: 24, color: const Color(0xFF334155)),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
-                ),
-              ],
+        Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
+        if (showDate)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, right: 4),
+            child: Text(
+              dateText,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+          ),
+        _actionButtons(compact: false),
+      ],
+    );
+  }
+
+  bool screenSizeIsCompactTablet(BuildContext context) {
+    return ResponsiveHelper.isTablet(context);
+  }
+
+  Widget _titleBlock(BuildContext context, double titleSize, {required int maxLines}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            if (titleIcon != null) ...<Widget>[
+              Icon(titleIcon, size: titleSize >= 24 ? 24 : 20, color: const Color(0xFF334155)),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                title,
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
-        const Spacer(),
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(
-            dateText,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+        if (subtitle.trim().isNotEmpty && ResponsiveHelper.showHeaderSubtitle(context)) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: ResponsiveHelper.isTablet(context) ? 14 : 15),
           ),
-        ),
+        ],
+      ],
+    );
+  }
+
+  Widget _actionButtons({required bool compact}) {
+    final iconSize = compact ? 22.0 : 24.0;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
         IconButton(
           tooltip: 'Refresh',
-          icon: const Icon(Icons.refresh),
+          icon: Icon(Icons.refresh, size: iconSize),
+          visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
           onPressed: onRefresh,
         ),
         IconButton(
           tooltip: 'Logout',
-          icon: const Icon(Icons.logout),
+          icon: Icon(Icons.logout, size: iconSize),
+          visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
           onPressed: onLogout,
         ),
       ],
@@ -546,43 +679,52 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.icon,
     this.selected = false,
+    this.compact = false,
     this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final Color color = selected ? const Color(0xFF00A7A1) : Colors.grey.shade600;
+    final content = Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 10, vertical: compact ? 10 : 10),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFE8FAF9) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: compact
+          ? Center(child: Icon(icon, size: 20, color: color))
+          : Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+
     return MouseRegion(
       cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFE8FAF9) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            children: <Widget>[
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: compact
+          ? Tooltip(message: label, child: GestureDetector(onTap: onTap, child: content))
+          : GestureDetector(onTap: onTap, child: content),
     );
   }
 }
