@@ -8,7 +8,7 @@ import '../../models/user_model.dart';
 import '../../utils/faculty_teams_service.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_components.dart';
-import '../../widgets/faculty/faculty_team_summary_card.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/faculty/team_capacity_widget.dart';
 import '../../widgets/faculty/team_form_dialog.dart';
@@ -186,27 +186,35 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = <Widget>[
-      FacultyTeamSummaryCard(title: 'Total Teams', value: '${data.teams.length} / ${FacultyTeamsService.maxTeamsPerFaculty} Teams', icon: AppIcons.teams, accent: const Color(0xFF6A38FF)),
-      FacultyTeamSummaryCard(title: 'Total Students', value: '${data.totalStudents}', icon: AppIcons.student, accent: const Color(0xFF0EA5E9)),
-      FacultyTeamSummaryCard(title: 'Active Ideas', value: '${data.activeIdeas}', icon: AppIcons.ideas, accent: const Color(0xFFEA580C)),
-      FacultyTeamSummaryCard(title: 'Team Capacity Status', value: FacultyTeamsService.capacityMessage(data.teams.length), icon: AppIcons.verification, accent: const Color(0xFF16A34A)),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1100
-            ? 4
-            : constraints.maxWidth >= 720
-                ? 2
-                : 1;
-        final gap = 12.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
-        );
-      },
+    return ResponsiveMetricGrid(
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.ratio(
+          label: 'Total Teams',
+          primary: '${data.teams.length}',
+          secondary: '${FacultyTeamsService.maxTeamsPerFaculty}',
+          subtitle: 'Teams created',
+          color: const Color(0xFF6A38FF),
+          icon: AppIcons.teams,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Total Students',
+          value: '${data.totalStudents}',
+          color: const Color(0xFF0EA5E9),
+          icon: AppIcons.student,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Active Ideas',
+          value: '${data.activeIdeas}',
+          color: const Color(0xFFEA580C),
+          icon: AppIcons.ideas,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Team Capacity',
+          value: FacultyTeamsService.capacityMessage(data.teams.length),
+          color: const Color(0xFF16A34A),
+          icon: AppIcons.verification,
+        ),
+      ],
     );
   }
 }
