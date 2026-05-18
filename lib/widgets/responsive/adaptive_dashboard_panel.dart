@@ -24,16 +24,14 @@ class AdaptiveDashboardPanel extends StatelessWidget {
         ? null
         : ResponsiveHelper.fixedPanelHeight(context, desktopHeight!);
 
-    Widget body = child;
-    if (fixedHeight != null) {
-      body = SizedBox(
-        height: fixedHeight,
-        child: SingleChildScrollView(
-          primary: false,
-          child: child,
-        ),
-      );
-    }
+    // Bounded height only — do not wrap in [SingleChildScrollView], which gives
+    // unbounded max height and breaks [Expanded] inside panel children.
+    final Widget body = fixedHeight == null
+        ? child
+        : SizedBox(
+            height: fixedHeight,
+            child: ClipRect(child: child),
+          );
 
     return SectionContainer(
       padding: padding ?? EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 12 : 14),
