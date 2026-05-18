@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_breakpoints.dart';
 import '../../responsive/responsive_helper.dart';
 
 /// Wraps [children] into a responsive grid using [Wrap] (no horizontal overflow).
@@ -9,19 +8,28 @@ class ResponsiveMetricGrid extends StatelessWidget {
     super.key,
     required this.children,
     this.minTileWidth = 240,
-    this.spacing = 12,
-    this.runSpacing = 12,
+    this.spacing,
+    this.runSpacing,
     this.maxColumns = 4,
+    this.useStandardColumns = true,
   });
 
   final List<Widget> children;
   final double minTileWidth;
-  final double spacing;
-  final double runSpacing;
+
+  /// When null, uses [ResponsiveHelper.metricGridSpacing].
+  final double? spacing;
+  final double? runSpacing;
   final int maxColumns;
+
+  /// When true and [maxColumns] is 4, uses 1 / 2 / 4 columns by screen size.
+  final bool useStandardColumns;
 
   @override
   Widget build(BuildContext context) {
+    final gap = spacing ?? ResponsiveHelper.metricGridSpacing(context);
+    final runGap = runSpacing ?? gap;
+
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final maxWidth = constraints.maxWidth;
@@ -29,16 +37,18 @@ class ResponsiveMetricGrid extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        int columns = (maxWidth / minTileWidth).floor().clamp(1, maxColumns);
-        if (ResponsiveHelper.isMobile(context) && columns > 1 && maxWidth < ResponsiveBreakpoints.mobile) {
-          columns = 1;
+        final int columns;
+        if (useStandardColumns && maxColumns >= 4) {
+          columns = ResponsiveHelper.standardMetricColumns(context);
+        } else {
+          columns = (maxWidth / minTileWidth).floor().clamp(1, maxColumns);
         }
 
-        final tileWidth = (maxWidth - spacing * (columns - 1)) / columns;
+        final tileWidth = (maxWidth - gap * (columns - 1)) / columns;
 
         return Wrap(
-          spacing: spacing,
-          runSpacing: runSpacing,
+          spacing: gap,
+          runSpacing: runGap,
           children: children
               .map((Widget child) => SizedBox(width: tileWidth, child: child))
               .toList(growable: false),

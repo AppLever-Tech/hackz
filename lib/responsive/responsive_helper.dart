@@ -68,4 +68,36 @@ abstract final class ResponsiveHelper {
   static bool showHeaderDate(BuildContext context) => !isMobile(context);
 
   static bool showHeaderSubtitle(BuildContext context) => true;
+
+  /// Vertical gap between dashboard home sections.
+  static double dashboardSectionGap(BuildContext context) {
+    return isMobile(context) ? 12 : 16;
+  }
+
+  /// Spacing between metric cards in [ResponsiveMetricGrid].
+  static double metricGridSpacing(BuildContext context) {
+    return isMobile(context) ? 10 : 12;
+  }
+
+  /// Standard dashboard metric columns: 1 / 2 / 4.
+  static int standardMetricColumns(BuildContext context) {
+    return switch (screenSizeOf(context)) {
+      ScreenSize.mobile => 1,
+      ScreenSize.tablet => 2,
+      ScreenSize.desktop => 4,
+      ScreenSize.wide => 4,
+    };
+  }
+
+  /// Chart / panel height; slightly shorter on mobile.
+  static double chartPanelHeight(BuildContext context, {double desktop = 220}) {
+    return isMobile(context) ? 200 : desktop;
+  }
+
+  /// Fixed panel height on desktop only; intrinsic height on mobile/tablet.
+  static double? fixedPanelHeight(BuildContext context, double desktopHeight) {
+    return isDesktopOrWider(context) ? desktopHeight : null;
+  }
+
+  static bool useDashboardMultiColumn(BuildContext context) => isDesktopOrWider(context);
 }

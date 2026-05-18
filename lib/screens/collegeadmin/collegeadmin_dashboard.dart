@@ -13,6 +13,10 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 import 'manage_college_screen.dart';
 
 class CollegeAdminDashboard extends StatelessWidget {
@@ -133,60 +137,49 @@ class CollegeAdminDashboard extends StatelessWidget {
             final ideaSeries = plotKeys.map((k) => ideasByDept[k] ?? 0).toList(growable: false);
             final problemSeries = plotKeys.map((k) => problemsByDept[k] ?? 0).toList(growable: false);
 
+            final gap = ResponsiveHelper.dashboardSectionGap(context);
             return SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                Row(
+                ResponsiveMetricGrid(
                   children: <Widget>[
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalDepartments',
-                        label: 'Total Departments',
-                        icon: AppIcons.departments,
-                        iconBgColor: const Color(0xFFEAF2FF),
-                      ),
+                    DashboardCountCard(
+                      value: '$totalDepartments',
+                      label: 'Total Departments',
+                      icon: AppIcons.departments,
+                      iconBgColor: const Color(0xFFEAF2FF),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalUsers',
-                        label: 'Total Users',
-                        icon: AppIcons.users,
-                        iconBgColor: const Color(0xFFFFF4E8),
-                      ),
+                    DashboardCountCard(
+                      value: '$totalUsers',
+                      label: 'Total Users',
+                      icon: AppIcons.users,
+                      iconBgColor: const Color(0xFFFFF4E8),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalProblems',
-                        label: 'Problem Statements',
-                        icon: AppIcons.problems,
-                        iconBgColor: const Color(0xFFE8FAF1),
-                      ),
+                    DashboardCountCard(
+                      value: '$totalProblems',
+                      label: 'Problem Statements',
+                      icon: AppIcons.problems,
+                      iconBgColor: const Color(0xFFE8FAF1),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DashboardCountCard(
-                        value: '$totalIdeas',
-                        label: 'Ideas (College)',
-                        icon: AppIcons.ideas,
-                        iconBgColor: const Color(0xFFF2EDFF),
-                      ),
+                    DashboardCountCard(
+                      value: '$totalIdeas',
+                      label: 'Ideas (College)',
+                      icon: AppIcons.ideas,
+                      iconBgColor: const Color(0xFFF2EDFF),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: ChartCard(
-                        title: 'College Details',
-                        child: SizedBox(
-                          height: 190,
-                          child: Column(
+                SizedBox(height: gap),
+                ResponsivePair(
+                  spacing: gap,
+                  secondFlex: 2,
+                  first: ChartCard(
+                    title: 'College Details',
+                    child: ResponsiveChartBox(
+                      desktopHeight: 190,
+                      child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
@@ -229,74 +222,61 @@ class CollegeAdminDashboard extends StatelessWidget {
                               _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
                             ],
                           ),
-                        ),
+                    ),
+                  ),
+                  second: ChartCard(
+                    title: 'Department-wise Problems vs Ideas',
+                    child: ResponsiveChartBox(
+                      desktopHeight: 200,
+                      child: _DepartmentTrendChart(
+                        labels: plotKeys,
+                        ideas: ideaSeries,
+                        problems: problemSeries,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ChartCard(
-                        title: 'Department-wise Problems vs Ideas',
-                        child: SizedBox(
-                          height: 200,
-                          child: _DepartmentTrendChart(
-                            labels: plotKeys,
-                            ideas: ideaSeries,
-                            problems: problemSeries,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: ChartCard(
-                        title: 'User Activation',
-                        child: SizedBox(
-                          height: 220,
-                          child: Center(
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                SizedBox(
-                                  height: 150,
-                                  width: 150,
-                                  child: CircularProgressIndicator(
-                                    value: activePct,
-                                    strokeWidth: 14,
-                                    color: const Color(0xFF6A38FF),
-                                    backgroundColor: const Color(0xFFE8ECF8),
-                                  ),
-                                ),
-                                Text(
-                                  '$activationPercent% Active\n$pendingUsers Pending',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                              ],
+                SizedBox(height: gap),
+                ResponsivePair(
+                  spacing: gap,
+                  secondFlex: 2,
+                  first: ChartCard(
+                    title: 'User Activation',
+                    child: ResponsiveChartBox(
+                      desktopHeight: 220,
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: <Widget>[
+                            SizedBox(
+                              height: ResponsiveHelper.isMobile(context) ? 120 : 150,
+                              width: ResponsiveHelper.isMobile(context) ? 120 : 150,
+                              child: CircularProgressIndicator(
+                                value: activePct,
+                                strokeWidth: 14,
+                                color: const Color(0xFF6A38FF),
+                                backgroundColor: const Color(0xFFE8ECF8),
+                              ),
                             ),
-                          ),
+                            Text(
+                              '$activationPercent% Active\n$pendingUsers Pending',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ChartCard(
-                        title: 'Idea Activity',
-                        child: SizedBox(
-                          height: 220,
-                          child: _IdeaActivityChart(points: ideaActivity),
-                        ),
-                      ),
+                  ),
+                  second: ChartCard(
+                    title: 'Idea Activity',
+                    child: ResponsiveChartBox(
+                      desktopHeight: 220,
+                      child: _IdeaActivityChart(points: ideaActivity),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: gap),
                 SectionContainer(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

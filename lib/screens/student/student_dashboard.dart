@@ -11,6 +11,10 @@ import '../../utils/student_dashboard_service.dart';
 import '../../utils/common_helpers.dart';
 import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../../widgets/student_team_overview_card.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -88,16 +92,17 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
           return Text('Unable to load student dashboard: ${snapshot.error}');
         }
         final vm = snapshot.data!;
+        final gap = ResponsiveHelper.dashboardSectionGap(context);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildSummaryCards(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildStatusAndDetailsRow(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               StudentTeamOverviewCard(vm: vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildRecentActivity(vm),
             ],
           ),
@@ -107,129 +112,94 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildSummaryCards(StudentDashboardVm vm) {
-    const spacing = 16.0;
     final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas;
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final columns = (maxWidth / 260).floor().clamp(1, 4);
-        final cardWidth = (maxWidth - (spacing * (columns - 1))) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: <Widget>[
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.teamMemberCount}',
-                label: 'Members • ${vm.team.teamName.isEmpty ? 'No Team' : vm.team.teamName}',
-                icon: AppIcons.teams,
-                iconBgColor: const Color(0xFFEAF2FF),
-              ),
+    return ResponsiveMetricGrid(
+      children: <Widget>[
+        DashboardCountCard(
+          value: '${vm.teamMemberCount}',
+          label: 'Members • ${vm.team.teamName.isEmpty ? 'No Team' : vm.team.teamName}',
+          icon: AppIcons.teams,
+          iconBgColor: const Color(0xFFEAF2FF),
+        ),
+        DashboardIconMetricCard(
+          metrics: <DashboardIconMetric>[
+            DashboardIconMetric(
+              icon: AppIcons.statusSubmitted,
+              tooltip: 'In Progress (Pending + Submitted + Under Review)',
+              count: '$inProgressIdeas',
+              color: StatusStyles.submitted,
             ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardIconMetricCard(
-                metrics: <DashboardIconMetric>[
-                  DashboardIconMetric(
-                    icon: AppIcons.statusSubmitted,
-                    tooltip: 'In Progress (Pending + Submitted + Under Review)',
-                    count: '$inProgressIdeas',
-                    color: StatusStyles.submitted,
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusApproved,
-                    tooltip: 'Approved',
-                    count: '${vm.approvedIdeas}',
-                    color: StatusStyles.approved,
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusRejected,
-                    tooltip: 'Rejected',
-                    count: '${vm.rejectedIdeas}',
-                    color: StatusStyles.rejected,
-                  ),
-                ],
-                label: 'Ideas',
-                icon: AppIcons.ideas,
-                iconBgColor: const Color(0xFFF2EDFF),
-              ),
+            DashboardIconMetric(
+              icon: AppIcons.statusApproved,
+              tooltip: 'Approved',
+              count: '${vm.approvedIdeas}',
+              color: StatusStyles.approved,
             ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: vm.avgScore?.toStringAsFixed(1) ?? '-',
-                secondaryValue: vm.highestScore?.toStringAsFixed(1) ?? '-',
-                label: 'Avg / Highest Score',
-                icon: AppIcons.scoring,
-                iconBgColor: const Color(0xFFE8FAF1),
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardIconMetricCard(
-                metrics: <DashboardIconMetric>[
-                  DashboardIconMetric(
-                    icon: AppIcons.statusSubmitted,
-                    tooltip: 'Pending',
-                    count: '${vm.pendingPayments}',
-                    color: const Color(0xFFB56A11),
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusApproved,
-                    tooltip: 'Verified',
-                    count: '${vm.verifiedPayments}',
-                    color: const Color(0xFF177C50),
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusRejected,
-                    tooltip: 'Rejected',
-                    count: '${vm.rejectedPayments}',
-                    color: const Color(0xFFB93838),
-                  ),
-                ],
-                label: 'Payments',
-                icon: AppIcons.payments,
-                iconBgColor: const Color(0xFFFFF4E8),
-              ),
+            DashboardIconMetric(
+              icon: AppIcons.statusRejected,
+              tooltip: 'Rejected',
+              count: '${vm.rejectedIdeas}',
+              color: StatusStyles.rejected,
             ),
           ],
-        );
-      },
+          label: 'Ideas',
+          icon: AppIcons.ideas,
+          iconBgColor: const Color(0xFFF2EDFF),
+        ),
+        DashboardCountCard(
+          value: vm.avgScore?.toStringAsFixed(1) ?? '-',
+          secondaryValue: vm.highestScore?.toStringAsFixed(1) ?? '-',
+          label: 'Avg / Highest Score',
+          icon: AppIcons.scoring,
+          iconBgColor: const Color(0xFFE8FAF1),
+        ),
+        DashboardIconMetricCard(
+          metrics: <DashboardIconMetric>[
+            DashboardIconMetric(
+              icon: AppIcons.statusSubmitted,
+              tooltip: 'Pending',
+              count: '${vm.pendingPayments}',
+              color: const Color(0xFFB56A11),
+            ),
+            DashboardIconMetric(
+              icon: AppIcons.statusApproved,
+              tooltip: 'Verified',
+              count: '${vm.verifiedPayments}',
+              color: const Color(0xFF177C50),
+            ),
+            DashboardIconMetric(
+              icon: AppIcons.statusRejected,
+              tooltip: 'Rejected',
+              count: '${vm.rejectedPayments}',
+              color: const Color(0xFFB93838),
+            ),
+          ],
+          label: 'Payments',
+          icon: AppIcons.payments,
+          iconBgColor: const Color(0xFFFFF4E8),
+        ),
+      ],
     );
   }
 
   Widget _buildStatusAndDetailsRow(StudentDashboardVm vm) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(
-          child: SizedBox(
-            height: 252,
-            child: _buildStudentDetails(vm),
+    return ResponsivePair(
+      spacing: ResponsiveHelper.dashboardSectionGap(context),
+      first: _buildStudentDetails(vm),
+      second: ChartCard(
+        title: 'Idea Status Distribution',
+        child: ResponsiveChartBox(
+          desktopHeight: 188,
+          child: IdeaStatusDistributionDonut(
+            pending: vm.pendingIdeas,
+            submitted: vm.submittedIdeas,
+            underReview: vm.reviewIdeas,
+            evaluated: vm.evaluatedIdeas,
+            approved: vm.approvedIdeas,
+            rejected: vm.rejectedIdeas,
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: SizedBox(
-            height: 252,
-            child: ChartCard(
-              title: 'Idea Status Distribution',
-              child: SizedBox(
-                height: 188,
-                child: IdeaStatusDistributionDonut(
-                  pending: vm.pendingIdeas,
-                  submitted: vm.submittedIdeas,
-                  underReview: vm.reviewIdeas,
-                  evaluated: vm.evaluatedIdeas,
-                  approved: vm.approvedIdeas,
-                  rejected: vm.rejectedIdeas,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 

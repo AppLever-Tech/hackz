@@ -18,6 +18,11 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../widgets/responsive/responsive_multi_column.dart';
 import 'teams_screen.dart';
 
 class FacultyDashboard extends StatelessWidget {
@@ -110,16 +115,17 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
           return Text('Unable to load faculty dashboard: ${snapshot.error}');
         }
         final vm = snapshot.data ?? _FacultyDashboardVm.empty;
+        final gap = ResponsiveHelper.dashboardSectionGap(context);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildSummaryCards(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildCharts(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildKeyCards(context, vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildRecentActivity(vm),
             ],
           ),
@@ -219,82 +225,60 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildSummaryCards(_FacultyDashboardVm vm) {
-    const spacing = 16.0;
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final maxWidth = constraints.maxWidth;
-        final columns = (maxWidth / 260).floor().clamp(1, 4);
-        final cardWidth = (maxWidth - (spacing * (columns - 1))) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: <Widget>[
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.teamCount}',
-                label: 'Teams',
-                icon: AppIcons.teams,
-                iconBgColor: const Color(0xFFEAF2FF),
-              ),
+    return ResponsiveMetricGrid(
+      children: <Widget>[
+        DashboardCountCard(
+          value: '${vm.teamCount}',
+          label: 'Teams',
+          icon: AppIcons.teams,
+          iconBgColor: const Color(0xFFEAF2FF),
+        ),
+        DashboardCountCard(
+          value: '${vm.studentCount}',
+          label: 'Students',
+          icon: AppIcons.student,
+          iconBgColor: const Color(0xFFE9FAF0),
+        ),
+        DashboardCountCard(
+          value: '${vm.departmentProblemCount}',
+          label: 'Problems',
+          icon: AppIcons.problems,
+          iconBgColor: const Color(0xFFE8FAF1),
+        ),
+        DashboardIconMetricCard(
+          metrics: <DashboardIconMetric>[
+            DashboardIconMetric(
+              icon: AppIcons.statusSubmitted,
+              tooltip: 'Submitted',
+              count: '${vm.submittedIdeas}',
+              color: StatusStyles.submitted,
             ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.studentCount}',
-                label: 'Students',
-                icon: AppIcons.student,
-                iconBgColor: const Color(0xFFE9FAF0),
-              ),
+            DashboardIconMetric(
+              icon: AppIcons.statusApproved,
+              tooltip: 'Approved',
+              count: '${vm.approvedIdeas}',
+              color: StatusStyles.approved,
             ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.departmentProblemCount}',
-                label: 'Problems',
-                icon: AppIcons.problems,
-                iconBgColor: const Color(0xFFE8FAF1),
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardIconMetricCard(
-                metrics: <DashboardIconMetric>[
-                  DashboardIconMetric(
-                    icon: AppIcons.statusSubmitted,
-                    tooltip: 'Submitted',
-                    count: '${vm.submittedIdeas}',
-                    color: StatusStyles.submitted,
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusApproved,
-                    tooltip: 'Approved',
-                    count: '${vm.approvedIdeas}',
-                    color: StatusStyles.approved,
-                  ),
-                  DashboardIconMetric(
-                    icon: AppIcons.statusRejected,
-                    tooltip: 'Rejected',
-                    count: '${vm.rejectedIdeas}',
-                    color: StatusStyles.rejected,
-                  ),
-                ],
-                label: 'Ideas',
-                icon: AppIcons.ideas,
-                iconBgColor: const Color(0xFFF2EDFF),
-              ),
+            DashboardIconMetric(
+              icon: AppIcons.statusRejected,
+              tooltip: 'Rejected',
+              count: '${vm.rejectedIdeas}',
+              color: StatusStyles.rejected,
             ),
           ],
-        );
-      },
+          label: 'Ideas',
+          icon: AppIcons.ideas,
+          iconBgColor: const Color(0xFFF2EDFF),
+        ),
+      ],
     );
   }
 
   Widget _buildCharts(_FacultyDashboardVm vm) {
     final statusChart = ChartCard(
       title: 'Idea Status',
-      child: SizedBox(
-        height: 210,
+      child: ResponsiveChartBox(
+        desktopHeight: 210,
         child: IdeaStatusDistributionDonut(
           pending: vm.pendingIdeas,
           submitted: vm.submittedIdeas,
@@ -307,8 +291,8 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     );
     final submissionChart = ChartCard(
       title: 'Submissions Over Time',
-      child: SizedBox(
-        height: 210,
+      child: ResponsiveChartBox(
+        desktopHeight: 210,
         child: _SubmissionTrendChart(
                 problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
                 ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
@@ -318,26 +302,11 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         ),
       ),
     );
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        if (constraints.maxWidth < 900) {
-          return Column(
-            children: <Widget>[
-              statusChart,
-              const SizedBox(height: 16),
-              submissionChart,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: statusChart),
-            const SizedBox(width: 16),
-            Expanded(flex: 2, child: submissionChart),
-          ],
-        );
-      },
+    return ResponsivePair(
+      spacing: ResponsiveHelper.dashboardSectionGap(context),
+      secondFlex: 2,
+      first: statusChart,
+      second: submissionChart,
     );
   }
 
@@ -362,31 +331,22 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         ideaPreviews: vm.ideaPreviews,
       ),
     ];
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        if (constraints.maxWidth < 900) {
-          return Column(
-            children: cards
-                .map(
-                  (card) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: card,
-                  ),
-                )
-                .toList(growable: false),
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: cards[0]),
-            const SizedBox(width: 16),
-            Expanded(child: cards[1]),
-            const SizedBox(width: 16),
-            Expanded(child: cards[2]),
-          ],
-        );
-      },
+    if (ResponsiveHelper.useDashboardMultiColumn(context)) {
+      return ResponsiveMultiColumn(
+        spacing: ResponsiveHelper.dashboardSectionGap(context),
+        children: cards,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: cards
+          .map(
+            (card) => Padding(
+              padding: EdgeInsets.only(bottom: ResponsiveHelper.dashboardSectionGap(context)),
+              child: card,
+            ),
+          )
+          .toList(growable: false),
     );
   }
 

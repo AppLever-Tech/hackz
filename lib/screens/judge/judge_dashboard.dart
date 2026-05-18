@@ -9,6 +9,11 @@ import '../../utils/judge_dashboard_service.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../widgets/responsive/responsive_multi_column.dart';
 import 'judge_evaluation_workspace_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {
@@ -75,16 +80,17 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
           return Text('Unable to load judge dashboard: ${snapshot.error}');
         }
         final vm = snapshot.data!;
+        final gap = ResponsiveHelper.dashboardSectionGap(context);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _buildSummaryCards(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildInsights(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildJudgeInfoAndWorkload(vm),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _buildRecentActivity(vm),
             ],
           ),
@@ -94,91 +100,52 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   }
 
   Widget _buildSummaryCards(JudgeDashboardVm vm) {
-    const spacing = 16.0;
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        final maxWidth = constraints.maxWidth;
-        final columns = (maxWidth / 260).floor().clamp(1, 4);
-        final cardWidth = (maxWidth - (spacing * (columns - 1))) / columns;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: <Widget>[
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.assignedIdeas}',
-                label: 'Assigned Ideas',
-                icon: AppIcons.ideas,
-                iconBgColor: const Color(0xFFEAF2FF),
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.evaluatedIdeas}',
-                label: 'Evaluated Ideas',
-                icon: AppIcons.statusEvaluated,
-                iconBgColor: const Color(0xFFE9FAF0),
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: '${vm.pendingReviews}',
-                label: 'Pending Reviews',
-                icon: AppIcons.statusUnderReview,
-                iconBgColor: const Color(0xFFFFF4E8),
-              ),
-            ),
-            SizedBox(
-              width: cardWidth,
-              child: DashboardCountCard(
-                value: vm.averageScoreGiven?.toStringAsFixed(1) ?? '-',
-                label: 'Average Score Given',
-                icon: AppIcons.scoring,
-                iconBgColor: const Color(0xFFF2EDFF),
-              ),
-            ),
-          ],
-        );
-      },
+    return ResponsiveMetricGrid(
+      children: <Widget>[
+        DashboardCountCard(
+          value: '${vm.assignedIdeas}',
+          label: 'Assigned Ideas',
+          icon: AppIcons.ideas,
+          iconBgColor: const Color(0xFFEAF2FF),
+        ),
+        DashboardCountCard(
+          value: '${vm.evaluatedIdeas}',
+          label: 'Evaluated Ideas',
+          icon: AppIcons.statusEvaluated,
+          iconBgColor: const Color(0xFFE9FAF0),
+        ),
+        DashboardCountCard(
+          value: '${vm.pendingReviews}',
+          label: 'Pending Reviews',
+          icon: AppIcons.statusUnderReview,
+          iconBgColor: const Color(0xFFFFF4E8),
+        ),
+        DashboardCountCard(
+          value: vm.averageScoreGiven?.toStringAsFixed(1) ?? '-',
+          label: 'Average Score Given',
+          icon: AppIcons.scoring,
+          iconBgColor: const Color(0xFFF2EDFF),
+        ),
+      ],
     );
   }
 
   Widget _buildInsights(JudgeDashboardVm vm) {
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        if (constraints.maxWidth < 1080) {
-          return Column(
-            children: <Widget>[
-              _buildStatusDistributionChart(vm),
-              const SizedBox(height: 16),
-              _buildScoreDistributionChart(vm),
-              const SizedBox(height: 16),
-              _buildEvaluationTimelineChart(vm),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: _buildStatusDistributionChart(vm)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildScoreDistributionChart(vm)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildEvaluationTimelineChart(vm)),
-          ],
-        );
-      },
+    return ResponsiveMultiColumn(
+      spacing: ResponsiveHelper.dashboardSectionGap(context),
+      children: <Widget>[
+        _buildStatusDistributionChart(vm),
+        _buildScoreDistributionChart(vm),
+        _buildEvaluationTimelineChart(vm),
+      ],
     );
   }
 
   Widget _buildStatusDistributionChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Evaluation Status Distribution',
-      child: SizedBox(
-        height: 210,
+      child: ResponsiveChartBox(
+        desktopHeight: 210,
         child: _JudgeStatusDonut(
           pending: vm.pendingDistributionCount,
           completed: vm.completedDistributionCount,
@@ -190,8 +157,8 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   Widget _buildScoreDistributionChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Score Distribution',
-      child: SizedBox(
-        height: 210,
+      child: ResponsiveChartBox(
+        desktopHeight: 210,
         child: _ScoreDistributionChart(
           lowCount: vm.lowScoreCount,
           mediumCount: vm.mediumScoreCount,
@@ -204,35 +171,19 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   Widget _buildEvaluationTimelineChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Evaluation Timeline',
-      child: SizedBox(
-        height: 210,
+      child: ResponsiveChartBox(
+        desktopHeight: 210,
         child: _EvaluationTimelineChart(series: vm.evaluationTimeline),
       ),
     );
   }
 
   Widget _buildJudgeInfoAndWorkload(JudgeDashboardVm vm) {
-    return LayoutBuilder(
-      builder: (_, constraints) {
-        if (constraints.maxWidth < 1080) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _buildJudgeInfoCard(vm),
-              const SizedBox(height: 16),
-              _buildWorkloadOverview(vm),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: _buildJudgeInfoCard(vm)),
-            const SizedBox(width: 16),
-            Expanded(flex: 2, child: _buildWorkloadOverview(vm)),
-          ],
-        );
-      },
+    return ResponsivePair(
+      spacing: ResponsiveHelper.dashboardSectionGap(context),
+      secondFlex: 2,
+      first: _buildJudgeInfoCard(vm),
+      second: _buildWorkloadOverview(vm),
     );
   }
 

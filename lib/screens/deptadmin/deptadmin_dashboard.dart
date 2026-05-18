@@ -21,6 +21,10 @@ import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import 'judges_panel.dart';
 import 'manage_users_screen.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 import 'payments_screen.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
@@ -171,12 +175,48 @@ class _DepartmentAnalyticsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gap = ResponsiveHelper.dashboardSectionGap(context);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _MetricGrid(analytics: analytics),
-          const SizedBox(height: 16),
+          ResponsiveMetricGrid(
+            children: <Widget>[
+              DepartmentMetricCard(
+                value: '${analytics.totalActiveUsers}',
+                label: 'Total Active Users',
+                icon: AppIcons.users,
+                iconBgColor: const Color(0xFFEAF2FF),
+                footnote: '${analytics.studentCount} students · ${analytics.facultyCount} faculty',
+                tooltip: 'Active faculty, students, coordinators and judges in this department.',
+              ),
+              DepartmentMetricCard(
+                value: '${analytics.pendingApprovals}',
+                label: 'Pending Approvals',
+                icon: AppIcons.pendingUsers,
+                iconBgColor: const Color(0xFFFFF7E6),
+                footnote: '${analytics.pendingCoordinatorJudgeCount} coordinator/judge requests',
+                tooltip: 'Users waiting for department onboarding approval.',
+              ),
+              DepartmentMetricCard(
+                value: '${analytics.activeProblems}',
+                label: 'Active Problems',
+                icon: AppIcons.problems,
+                iconBgColor: const Color(0xFFE9FAF0),
+                footnote: '${analytics.ideaInflowByProblem.length} problems receiving ideas',
+                tooltip: 'Currently active problem statements in this department.',
+              ),
+              DepartmentMetricCard(
+                value: '${analytics.ideasSubmitted}',
+                label: 'Ideas Submitted',
+                icon: AppIcons.ideas,
+                iconBgColor: const Color(0xFFF2EDFF),
+                footnote: '${analytics.evaluatedIdeas} evaluated · ${analytics.pendingPayments} payments pending',
+                tooltip: 'Department idea submissions and related operational workload.',
+              ),
+            ],
+          ),
+          SizedBox(height: gap),
           SectionContainer(
             child: DepartmentTrendChart(
               points: analytics.trendFor(trendTimeframe),
@@ -184,14 +224,15 @@ class _DepartmentAnalyticsView extends StatelessWidget {
               onTimeframeChanged: onTrendChanged,
             ),
           ),
-          const SizedBox(height: 16),
-          _ResponsivePair(
-            first: _FixedDashboardCard(
-              height: 320,
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            first: AdaptiveDashboardPanel(
+              desktopHeight: 320,
               child: _UserManagementSection(analytics: analytics),
             ),
-            second: _FixedDashboardCard(
-              height: 320,
+            second: AdaptiveDashboardPanel(
+              desktopHeight: 320,
               child: UserDistributionWidget(
                 title: 'Users by Role',
                 subtitle: 'Active role mix plus pending onboarding queue',
@@ -199,20 +240,21 @@ class _DepartmentAnalyticsView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _ResponsivePair(
-            first: _FixedDashboardCard(
-              height: 380,
-              flex: 7,
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            firstFlex: 7,
+            secondFlex: 5,
+            first: AdaptiveDashboardPanel(
+              desktopHeight: 380,
               child: ProblemAnalyticsWidget(
                 activeProblems: analytics.activeProblems,
                 problemsByTheme: analytics.problemsByTheme,
                 ideaInflowByProblem: analytics.ideaInflowByProblem,
               ),
             ),
-            second: _FixedDashboardCard(
-              height: 380,
-              flex: 5,
+            second: AdaptiveDashboardPanel(
+              desktopHeight: 380,
               child: PaymentOperationsWidget(
                 pendingPayments: analytics.pendingPayments,
                 submittedIdeas: analytics.submittedIdeas,
@@ -224,20 +266,21 @@ class _DepartmentAnalyticsView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _ResponsivePair(
-            first: _FixedDashboardCard(
-              height: 350,
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            first: AdaptiveDashboardPanel(
+              desktopHeight: 350,
               child: _IdeaStatusMixSection(analytics: analytics),
             ),
-            second: _FixedDashboardCard(
-              height: 350,
+            second: AdaptiveDashboardPanel(
+              desktopHeight: 350,
               child: DepartmentAlertsSection(alerts: analytics.alerts),
             ),
           ),
-          const SizedBox(height: 16),
-          _FixedDashboardCard(
-            height: 390,
+          SizedBox(height: gap),
+          AdaptiveDashboardPanel(
+            desktopHeight: 390,
             child: RecentDepartmentActivityCard(
               events: analytics.recentActivity,
               selectedTimeframe: activityTimeframe,
@@ -287,67 +330,6 @@ class _IdeaStatusMixSection extends StatelessWidget {
   }
 }
 
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.analytics});
-
-  final DepartmentDashboardAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    final cards = <Widget>[
-      DepartmentMetricCard(
-        value: '${analytics.totalActiveUsers}',
-        label: 'Total Active Users',
-        icon: AppIcons.users,
-        iconBgColor: const Color(0xFFEAF2FF),
-        footnote: '${analytics.studentCount} students · ${analytics.facultyCount} faculty',
-        tooltip: 'Active faculty, students, coordinators and judges in this department.',
-      ),
-      DepartmentMetricCard(
-        value: '${analytics.pendingApprovals}',
-        label: 'Pending Approvals',
-        icon: AppIcons.pendingUsers,
-        iconBgColor: const Color(0xFFFFF7E6),
-        footnote: '${analytics.pendingCoordinatorJudgeCount} coordinator/judge requests',
-        tooltip: 'Users waiting for department onboarding approval.',
-      ),
-      DepartmentMetricCard(
-        value: '${analytics.activeProblems}',
-        label: 'Active Problems',
-        icon: AppIcons.problems,
-        iconBgColor: const Color(0xFFE9FAF0),
-        footnote: '${analytics.ideaInflowByProblem.length} problems receiving ideas',
-        tooltip: 'Currently active problem statements in this department.',
-      ),
-      DepartmentMetricCard(
-        value: '${analytics.ideasSubmitted}',
-        label: 'Ideas Submitted',
-        icon: AppIcons.ideas,
-        iconBgColor: const Color(0xFFF2EDFF),
-        footnote: '${analytics.evaluatedIdeas} evaluated · ${analytics.pendingPayments} payments pending',
-        tooltip: 'Department idea submissions and related operational workload.',
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double gap = 16;
-        final int columns = constraints.maxWidth >= 1050
-            ? 4
-            : constraints.maxWidth >= 760
-                ? 2
-                : 1;
-        final double width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
-        );
-      },
-    );
-  }
-}
-
 class _UserManagementSection extends StatelessWidget {
   const _UserManagementSection({required this.analytics});
 
@@ -355,6 +337,24 @@ class _UserManagementSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
+    final grid = GridView.count(
+      padding: EdgeInsets.zero,
+      shrinkWrap: !inFixedPanel,
+      physics: inFixedPanel ? null : const NeverScrollableScrollPhysics(),
+      crossAxisCount: ResponsiveHelper.isMobile(context) ? 1 : 2,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
+      childAspectRatio: ResponsiveHelper.isMobile(context) ? 3.2 : 2.3,
+      children: <Widget>[
+        _RoleStat(label: 'Faculty', value: analytics.facultyCount, icon: AppIcons.faculty, color: const Color(0xFF6A38FF)),
+        _RoleStat(label: 'Students', value: analytics.studentCount, icon: AppIcons.student, color: const Color(0xFF0EA5E9)),
+        _RoleStat(label: 'Coordinators', value: analytics.coordinatorCount, icon: AppIcons.coordinator, color: const Color(0xFF16A34A)),
+        _RoleStat(label: 'Judges', value: analytics.judgeCount, icon: AppIcons.judges, color: const Color(0xFFEA580C)),
+        _RoleStat(label: 'Pending approvals', value: analytics.pendingApprovals, icon: AppIcons.pendingUsers, color: const Color(0xFFF59E0B)),
+      ],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -362,22 +362,7 @@ class _UserManagementSection extends StatelessWidget {
         const SizedBox(height: 4),
         const Text('Quick role visibility for department operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         const SizedBox(height: 14),
-        Expanded(
-          child: GridView.count(
-            padding: EdgeInsets.zero,
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 2.3,
-            children: <Widget>[
-              _RoleStat(label: 'Faculty', value: analytics.facultyCount, icon: AppIcons.faculty, color: const Color(0xFF6A38FF)),
-              _RoleStat(label: 'Students', value: analytics.studentCount, icon: AppIcons.student, color: const Color(0xFF0EA5E9)),
-              _RoleStat(label: 'Coordinators', value: analytics.coordinatorCount, icon: AppIcons.coordinator, color: const Color(0xFF16A34A)),
-              _RoleStat(label: 'Judges', value: analytics.judgeCount, icon: AppIcons.judges, color: const Color(0xFFEA580C)),
-              _RoleStat(label: 'Pending approvals', value: analytics.pendingApprovals, icon: AppIcons.pendingUsers, color: const Color(0xFFF59E0B)),
-            ],
-          ),
-        ),
+        if (inFixedPanel) Expanded(child: grid) else grid,
       ],
     );
   }
@@ -420,56 +405,3 @@ class _RoleStat extends StatelessWidget {
   }
 }
 
-class _ResponsivePair extends StatelessWidget {
-  const _ResponsivePair({required this.first, required this.second});
-
-  final _FixedDashboardCard first;
-  final _FixedDashboardCard second;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        if (constraints.maxWidth < 900) {
-          return Column(
-            children: <Widget>[
-              first,
-              const SizedBox(height: 16),
-              second,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(flex: first.flex, child: first),
-            const SizedBox(width: 16),
-            Expanded(flex: second.flex, child: second),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _FixedDashboardCard extends StatelessWidget {
-  const _FixedDashboardCard({
-    required this.child,
-    required this.height,
-    this.flex = 1,
-  });
-
-  final Widget child;
-  final double height;
-  final int flex;
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionContainer(
-      child: SizedBox(
-        height: height,
-        child: child,
-      ),
-    );
-  }
-}

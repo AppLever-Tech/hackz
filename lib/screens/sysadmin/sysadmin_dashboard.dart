@@ -20,6 +20,10 @@ import '../../widgets/sysadmin/participation_trend_chart.dart';
 import '../../widgets/sysadmin/platform_alerts_section.dart';
 import '../../widgets/sysadmin/platform_distribution_chart.dart';
 import '../../widgets/sysadmin/platform_metric_card.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../widgets/sysadmin/recent_platform_activity_card.dart';
 
 class SysAdminDashboard extends StatelessWidget {
@@ -131,220 +135,100 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
   @override
   Widget build(BuildContext context) {
     final SysAdminDashboardAnalytics data = widget.data;
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints c) {
-        final bool compact = c.maxWidth < 860;
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    final gap = ResponsiveHelper.dashboardSectionGap(context);
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ResponsiveMetricGrid(
             children: <Widget>[
-              _MetricGrid(data: data),
-              const SizedBox(height: 16),
-              SectionContainer(
-                child: ParticipationTrendChart(
-                  points: data.trendFor(_trendTimeframe),
-                  selectedTimeframe: _trendTimeframe,
-                  onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
-                    setState(() => _trendTimeframe = timeframe);
-                  },
-                ),
+              PlatformMetricCard(
+                label: 'Active Organizations',
+                value: '${data.activeOrganizations}',
+                icon: AppIcons.organizations,
+                accent: const Color(0xFF2563EB),
+                caption: 'Recent ecosystem activity',
               ),
-              const SizedBox(height: 16),
-              if (compact)
-                Column(
-                  children: <Widget>[
-                    SectionContainer(child: InnovationFunnelWidget(steps: data.funnel)),
-                    const SizedBox(height: 16),
-                    SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity)),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(child: SectionContainer(child: InnovationFunnelWidget(steps: data.funnel))),
-                    const SizedBox(width: 16),
-                    Expanded(child: SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity))),
-                  ],
-                ),
-              const SizedBox(height: 16),
-              if (compact)
-                Column(
-                  children: <Widget>[
-                    SectionContainer(
-                      child: PlatformDistributionChart(
-                        title: 'Users by Role',
-                        subtitle: 'Operational identity mix across the platform',
-                        segments: data.usersByRole,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SectionContainer(
-                      child: PlatformDistributionChart(
-                        title: 'Idea Status Mix',
-                        subtitle: 'Submission lifecycle distribution',
-                        segments: data.ideaStatusDistribution,
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: _FixedDashboardCard(
-                        height: 236,
-                        child: PlatformDistributionChart(
-                          title: 'Users by Role',
-                          subtitle: 'Operational identity mix across the platform',
-                          segments: data.usersByRole,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _FixedDashboardCard(
-                        height: 236,
-                        child: PlatformDistributionChart(
-                          title: 'Idea Status Mix',
-                          subtitle: 'Submission lifecycle distribution',
-                          segments: data.ideaStatusDistribution,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 16),
-              if (compact)
-                Column(
-                  children: <Widget>[
-                    SectionContainer(child: PlatformAlertsSection(alerts: data.alerts)),
-                    const SizedBox(height: 16),
-                    SectionContainer(
-                      child: RecentPlatformActivityCard(
-                        events: data.recentActivity,
-                        selectedTimeframe: _activityTimeframe,
-                        onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
-                          setState(() => _activityTimeframe = timeframe);
-                        },
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: _FixedDashboardCard(
-                        height: 380,
-                        child: PlatformAlertsSection(alerts: data.alerts),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _FixedDashboardCard(
-                        height: 380,
-                        child: RecentPlatformActivityCard(
-                          events: data.recentActivity,
-                          selectedTimeframe: _activityTimeframe,
-                          onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
-                            setState(() => _activityTimeframe = timeframe);
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 8),
+              PlatformMetricCard(
+                label: 'Total Active Users',
+                value: '${data.totalActiveUsers}',
+                icon: AppIcons.users,
+                accent: const Color(0xFF7C3AED),
+                caption: 'Approved platform users',
+              ),
+              PlatformMetricCard(
+                label: 'Ideas Submitted',
+                value: '${data.ideasSubmitted}',
+                icon: AppIcons.ideas,
+                accent: const Color(0xFFEA580C),
+                caption: 'All submitted ideas',
+              ),
+              PlatformMetricCard(
+                label: 'Approval Rate',
+                value: '${(data.approvalRate * 100).round()}%',
+                icon: AppIcons.statusApproved,
+                accent: const Color(0xFF16A34A),
+                caption: 'Active users / registrations',
+              ),
             ],
           ),
-        );
-      },
-    );
-  }
-}
-
-class _FixedDashboardCard extends StatelessWidget {
-  const _FixedDashboardCard({
-    required this.height,
-    required this.child,
-  });
-
-  final double height;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: SectionContainer(
-        child: SingleChildScrollView(
-          child: child,
-        ),
+          SizedBox(height: gap),
+          SectionContainer(
+            child: ParticipationTrendChart(
+              points: data.trendFor(_trendTimeframe),
+              selectedTimeframe: _trendTimeframe,
+              onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                setState(() => _trendTimeframe = timeframe);
+              },
+            ),
+          ),
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            first: SectionContainer(child: InnovationFunnelWidget(steps: data.funnel)),
+            second: SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity)),
+          ),
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            first: AdaptiveDashboardPanel(
+              desktopHeight: 236,
+              child: PlatformDistributionChart(
+                title: 'Users by Role',
+                subtitle: 'Operational identity mix across the platform',
+                segments: data.usersByRole,
+              ),
+            ),
+            second: AdaptiveDashboardPanel(
+              desktopHeight: 236,
+              child: PlatformDistributionChart(
+                title: 'Idea Status Mix',
+                subtitle: 'Submission lifecycle distribution',
+                segments: data.ideaStatusDistribution,
+              ),
+            ),
+          ),
+          SizedBox(height: gap),
+          ResponsivePair(
+            spacing: gap,
+            first: AdaptiveDashboardPanel(
+              desktopHeight: 380,
+              child: PlatformAlertsSection(alerts: data.alerts),
+            ),
+            second: AdaptiveDashboardPanel(
+              desktopHeight: 380,
+              child: RecentPlatformActivityCard(
+                events: data.recentActivity,
+                selectedTimeframe: _activityTimeframe,
+                onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                  setState(() => _activityTimeframe = timeframe);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
-    );
-  }
-}
-
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.data});
-
-  final SysAdminDashboardAnalytics data;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints c) {
-        final int columns = c.maxWidth < 640
-            ? 1
-            : c.maxWidth < 1040
-                ? 2
-                : 4;
-        final List<Widget> cards = <Widget>[
-          PlatformMetricCard(
-            label: 'Active Organizations',
-            value: '${data.activeOrganizations}',
-            icon: AppIcons.organizations,
-            accent: const Color(0xFF2563EB),
-            caption: 'Recent ecosystem activity',
-          ),
-          PlatformMetricCard(
-            label: 'Total Active Users',
-            value: '${data.totalActiveUsers}',
-            icon: AppIcons.users,
-            accent: const Color(0xFF7C3AED),
-            caption: 'Approved platform users',
-          ),
-          PlatformMetricCard(
-            label: 'Ideas Submitted',
-            value: '${data.ideasSubmitted}',
-            icon: AppIcons.ideas,
-            accent: const Color(0xFFEA580C),
-            caption: 'All submitted ideas',
-          ),
-          PlatformMetricCard(
-            label: 'Approval Rate',
-            value: '${(data.approvalRate * 100).round()}%',
-            icon: AppIcons.statusApproved,
-            accent: const Color(0xFF16A34A),
-            caption: 'Active users / registrations',
-          ),
-        ];
-        return Wrap(
-          spacing: 14,
-          runSpacing: 14,
-          children: cards
-              .map(
-                (Widget child) => SizedBox(
-                  width: (c.maxWidth - (columns - 1) * 14) / columns,
-                  child: child,
-                ),
-              )
-              .toList(growable: false),
-        );
-      },
     );
   }
 }

@@ -20,7 +20,12 @@ import 'coordinator_payment_card.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../widgets/attachment_viewer.dart';
+import '../../responsive/responsive_breakpoints.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
+import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -168,30 +173,33 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
           return Text('Unable to load coordinator dashboard: ${snapshot.error}');
         }
         final analytics = snapshot.data!;
+        final gap = ResponsiveHelper.dashboardSectionGap(context);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _CoordinatorHero(onRefresh: () => _refresh(force: true)),
-              const SizedBox(height: 16),
+              SizedBox(height: gap),
               _OperationalMetricGrid(analytics: analytics),
-              const SizedBox(height: 16),
-              _ResponsivePair(
-                first: _FixedDashboardCard(
-                  height: 380,
+              SizedBox(height: gap),
+              ResponsivePair(
+                spacing: gap,
+                first: AdaptiveDashboardPanel(
+                  desktopHeight: 380,
                   child: VerificationTrendChart(
                     points: analytics.trendFor(_timeframe),
                     selectedTimeframe: _timeframe,
                     onTimeframeChanged: (timeframe) => setState(() => _timeframe = timeframe),
                   ),
                 ),
-                second: _FixedDashboardCard(
-                  height: 380,
+                second: AdaptiveDashboardPanel(
+                  desktopHeight: 380,
                   child: SubmissionWorkflowFunnel(steps: analytics.workflow),
                 ),
               ),
-              const SizedBox(height: 16),
-              _ResponsivePair(
+              SizedBox(height: gap),
+              ResponsivePair(
+                spacing: gap,
                 firstFlex: 2,
                 secondFlex: 1,
                 first: _PaymentVerificationQueue(
@@ -203,17 +211,17 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                 second: Column(
                   children: <Widget>[
                     _EscalationsPanel(alerts: analytics.escalations),
-                    const SizedBox(height: 16),
-                    _FixedDashboardCard(
-                      height: 245,
+                    SizedBox(height: gap),
+                    AdaptiveDashboardPanel(
+                      desktopHeight: 245,
                       child: DepartmentOperationalSnapshot(snapshot: analytics.snapshot),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              _FixedDashboardCard(
-                height: 360,
+              SizedBox(height: gap),
+              AdaptiveDashboardPanel(
+                desktopHeight: 360,
                 child: CoordinatorActivityFeed(activities: analytics.recentActivity),
               ),
             ],
@@ -263,7 +271,7 @@ class _CoordinatorHero extends StatelessWidget {
             icon: const Icon(AppIcons.refresh, size: 16),
             label: const Text('Refresh'),
           );
-          if (constraints.maxWidth < 640) {
+          if (constraints.maxWidth < ResponsiveBreakpoints.mobile) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -303,17 +311,7 @@ class _OperationalMetricGrid extends StatelessWidget {
       OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Payments Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Submitted payments waiting for coordinator review'),
       OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators'),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1100 ? 4 : constraints.maxWidth >= 720 ? 2 : 1;
-        final width = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: cards.map((card) => SizedBox(width: width, child: card)).toList(growable: false),
-        );
-      },
-    );
+    return ResponsiveMetricGrid(children: cards);
   }
 }
 
@@ -332,8 +330,30 @@ class _PaymentVerificationQueue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fixedHeight = ResponsiveHelper.fixedPanelHeight(context, 560);
+  final listBody = items.isEmpty
+        ? const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('No pending payment verifications.')),
+          )
+        : ListView.separated(
+            shrinkWrap: fixedHeight == null,
+            physics: fixedHeight == null ? const NeverScrollableScrollPhysics() : null,
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return PaymentQueueCard(
+                item: item,
+                onVerify: () => onVerify(item.payment),
+                onReject: () => onReject(item.payment),
+                onViewProof: () => onViewProof(item.payment),
+              );
+            },
+          );
+
     return CoordinatorPanelCard(
-      height: 560,
+      height: fixedHeight,
       backgroundColor: const Color(0xFFFCFDFF),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -342,23 +362,7 @@ class _PaymentVerificationQueue extends StatelessWidget {
           const SizedBox(height: 4),
           const Text('Prioritized payment reviews with proof and overdue signals', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           const SizedBox(height: 14),
-          Expanded(
-            child: items.isEmpty
-                ? const Center(child: Text('No pending payment verifications.'))
-                : ListView.separated(
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return PaymentQueueCard(
-                        item: item,
-                        onVerify: () => onVerify(item.payment),
-                        onReject: () => onReject(item.payment),
-                        onViewProof: () => onViewProof(item.payment),
-                      );
-                    },
-                  ),
-          ),
+          if (fixedHeight != null) Expanded(child: listBody) else listBody,
         ],
       ),
     );
@@ -372,76 +376,25 @@ class _EscalationsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fixedHeight = ResponsiveHelper.fixedPanelHeight(context, 300);
+    final listBody = ListView.separated(
+      shrinkWrap: fixedHeight == null,
+      physics: fixedHeight == null ? const NeverScrollableScrollPhysics() : null,
+      itemCount: alerts.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) => EscalationAlertCard(alert: alerts[index]),
+    );
+
     return CoordinatorPanelCard(
-      height: 300,
+      height: fixedHeight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           const Text('Escalations / Delayed Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
           const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              itemCount: alerts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) => EscalationAlertCard(alert: alerts[index]),
-            ),
-          ),
+          if (fixedHeight != null) Expanded(child: listBody) else listBody,
         ],
       ),
-    );
-  }
-}
-
-class _ResponsivePair extends StatelessWidget {
-  const _ResponsivePair({
-    required this.first,
-    required this.second,
-    this.firstFlex = 1,
-    this.secondFlex = 1,
-  });
-
-  final Widget first;
-  final Widget second;
-  final int firstFlex;
-  final int secondFlex;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 880) {
-          return Column(
-            children: <Widget>[
-              first,
-              const SizedBox(height: 16),
-              second,
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(flex: firstFlex, child: first),
-            const SizedBox(width: 16),
-            Expanded(flex: secondFlex, child: second),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _FixedDashboardCard extends StatelessWidget {
-  const _FixedDashboardCard({required this.height, required this.child});
-
-  final double height;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: child,
     );
   }
 }
