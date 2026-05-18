@@ -13,7 +13,9 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_query_service.dart';
 import '../../utils/judge_evaluation_feedback_codec.dart';
 import '../../utils/judge_evaluation_service.dart';
+import '../../screens/common/app_dialog_template.dart';
 import '../attachment_viewer.dart';
+import '../responsive/responsive_dialog_actions.dart';
 import 'judge_score_grid.dart';
 
 /// Premium evaluation dialog — shared by judge workspace and ideas list (judge path).
@@ -40,10 +42,11 @@ class EvaluateIdeaDialog extends StatefulWidget {
     required UserModel judge,
     required IdeaListItem item,
   }) {
-    return showDialog<bool>(
+    return showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => EvaluateIdeaDialog(
+      width: DialogWidthPreset.wide,
+      child: EvaluateIdeaDialog(
         judge: judge,
         idea: item.idea,
         team: item.team,
@@ -117,9 +120,10 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No attachments for this idea.')));
       return;
     }
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
-      builder: (ctx) => AttachmentViewerDialog(title: 'Idea attachments', attachments: list),
+      width: DialogWidthPreset.wide,
+      child: AttachmentViewerDialog(title: 'Idea attachments', attachments: list, embedded: true),
     );
   }
 
@@ -157,12 +161,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     final theme = Theme.of(context);
     final teamName = (widget.team?.teamName ?? '').trim().isNotEmpty ? widget.team!.teamName.trim() : widget.idea.teamId;
     final problemLine = (_problem?.title ?? widget.idea.problemTitle).trim();
-    return AlertDialog(
-      title: const Text('Evaluate submission'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
+    final formBody = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -231,16 +230,26 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
                 label: const Text('Preview attachments'),
               ),
             ],
-          ),
+          );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text('Evaluate submission', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        formBody,
+        const SizedBox(height: 16),
+        ResponsiveDialogActions(
+          children: <Widget>[
+            if (widget.readOnly)
+              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
+            else ...<Widget>[
+              TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+              FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Submit evaluation')),
+            ],
+          ],
         ),
-      ),
-      actions: <Widget>[
-        if (widget.readOnly)
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
-        else ...<Widget>[
-          TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Submit evaluation')),
-        ],
       ],
     );
   }

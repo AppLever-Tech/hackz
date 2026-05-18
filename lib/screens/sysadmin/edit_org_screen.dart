@@ -4,7 +4,9 @@ import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
+import '../common/app_dialog_template.dart';
 import '../common/create_user_dialog.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
 
 class EditOrgScreen extends StatefulWidget {
   const EditOrgScreen({
@@ -104,8 +106,9 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return ResponsiveAlertDialog(
           title: const Text('Delete organization?'),
+          widthPreset: DialogWidthPreset.compact,
           content: Text('This will remove "${widget.organization.name}".'),
           actions: <Widget>[
             TextButton(
@@ -143,8 +146,9 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return ResponsiveAlertDialog(
           title: const Text('Remove college admin?'),
+          widthPreset: DialogWidthPreset.compact,
           content: Text('Remove ${admin.firstName} ${admin.lastName} from this organization?'),
           actions: <Widget>[
             TextButton(

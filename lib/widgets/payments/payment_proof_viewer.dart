@@ -4,7 +4,9 @@ import '../../constants/app_icons.dart';
 import '../../models/attachment_model.dart';
 import '../../models/payment_model.dart';
 import '../../utils/payment_finance_helpers.dart';
+import '../../screens/common/app_dialog_template.dart';
 import '../attachment_viewer.dart';
+import '../responsive/responsive_alert_dialog.dart';
 
 class PaymentProofViewer extends StatelessWidget {
   const PaymentProofViewer({
@@ -76,8 +78,9 @@ class PaymentProofViewer extends StatelessWidget {
           () {
             showDialog<void>(
               context: context,
-              builder: (_) => AlertDialog(
+              builder: (_) => ResponsiveAlertDialog(
                 title: const Text('Payment proof URL'),
+                widthPreset: DialogWidthPreset.standard,
                 content: SelectableText(payment.paymentProofUrl),
                 actions: <Widget>[
                   TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),

@@ -9,6 +9,8 @@ import '../../utils/platform_settings_service.dart';
 import '../../widgets/platformsettings/platform_setting_value_tile.dart';
 import '../../widgets/platformsettings/settings_group_widget.dart';
 import '../../constants/app_icons.dart';
+import '../../responsive/responsive_helper.dart';
+import '../../widgets/responsive/responsive_filter_bar.dart';
 
 /// SysAdmin: centralized platform rules (`hkzPlatformSettings/config`).
 class PlatformSettingsDashboard extends StatefulWidget {
@@ -203,49 +205,62 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
 
   Widget _buildToolbar(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
+    final searchField = TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Search all platform settings',
+        prefixIcon: Icon(AppIcons.search, size: 20, color: cs.onSurfaceVariant),
+        filled: true,
+        fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.35)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: cs.primary, width: 1.4),
+        ),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      ),
+    );
+    final actions = <Widget>[
+      FilledButton.icon(
+        onPressed: (!_hasDirtyDraft || _saving) ? null : () => _saveDraft(),
+        icon: _saving
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.save_outlined, size: 18),
+        label: Text(_saving ? 'Saving' : 'Save'),
+      ),
+      OutlinedButton.icon(
+        onPressed: (!_hasDirtyDraft || _saving) ? null : _discardDraft,
+        icon: const Icon(AppIcons.remove, size: 18),
+        label: const Text('Discard'),
+      ),
+    ];
+
+    if (ResponsiveHelper.isMobile(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          searchField,
+          const SizedBox(height: 8),
+          ResponsiveWrapToolbar(children: actions),
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search all platform settings',
-              prefixIcon: Icon(AppIcons.search, size: 20, color: cs.onSurfaceVariant),
-              filled: true,
-              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.35)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: cs.primary, width: 1.4),
-              ),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-          ),
-        ),
+        Expanded(child: searchField),
         const SizedBox(width: 6),
-        FilledButton.icon(
-          onPressed: (!_hasDirtyDraft || _saving) ? null : () => _saveDraft(),
-          icon: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Icon(Icons.save_outlined, size: 18),
-          label: Text(_saving ? 'Saving' : 'Save'),
-        ),
-        const SizedBox(width: 6),
-        OutlinedButton.icon(
-          onPressed: (!_hasDirtyDraft || _saving) ? null : _discardDraft,
-          icon: const Icon(AppIcons.remove, size: 18),
-          label: const Text('Discard'),
-        ),
+        ...actions.map((w) => Padding(padding: const EdgeInsets.only(left: 6), child: w)),
       ],
     );
   }
@@ -253,7 +268,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
   Widget _buildLoadedBody(BuildContext context, String? weightsHint) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints c) {
-        final bool twoColumn = c.maxWidth >= 900;
+        final bool twoColumn = ResponsiveHelper.useDashboardMultiColumn(context);
         final Widget? hintBanner = weightsHint == null
             ? null
             : Padding(

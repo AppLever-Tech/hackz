@@ -9,6 +9,9 @@ import '../../widgets/filter_pill.dart';
 import '../../widgets/payments/payment_contribution_tile.dart';
 import '../../widgets/payments/payment_detail_pane.dart';
 import '../../widgets/payments/payment_summary_card.dart';
+import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});
@@ -72,25 +75,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   void _closeDetail() => setState(() => _selectedPaymentId = null);
 
-  Widget _buildDetailBackButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton.icon(
-        onPressed: _closeDetail,
-        style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-        ),
-        icon: const Icon(Icons.arrow_back, size: 20),
-        label: const Text('Back to payments'),
-      ),
-    );
-  }
-
-  Widget _buildDetailBody(DepartmentPaymentsWorkspace workspace) {
+  Widget _buildDetailPane(DepartmentPaymentsWorkspace workspace) {
     final paymentId = _selectedPaymentId;
     if (paymentId == null) return const SizedBox.shrink();
 
@@ -102,42 +87,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       return const Center(child: Text('Payment not found.'));
     }
 
-    return Column(
+    return SingleChildScrollView(
       key: ValueKey<String>(paymentId),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        _buildDetailBackButton(),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.zero,
-            child: PaymentDetailPane(detail: detail),
-          ),
-        ),
-      ],
+      padding: EdgeInsets.zero,
+      child: PaymentDetailPane(detail: detail),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_selectedPaymentId != null) {
-      return FutureBuilder<DepartmentPaymentsWorkspace>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Unable to load payment: ${snapshot.error}'));
-          }
-          final workspace = snapshot.data;
-          if (workspace == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return _buildDetailBody(workspace);
-        },
-      );
-    }
-
     return FutureBuilder<DepartmentPaymentsWorkspace>(
       future: _future,
       builder: (context, snapshot) {
@@ -153,12 +111,17 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            return Column(
+            final listPanel = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _buildSummaryRow(workspace.summary),
                 const SizedBox(height: 10),
-                _buildSearchRow(),
+                ResponsiveSearchFilterBar(
+                  searchController: _searchController,
+                  searchHint: 'Search idea, problem, team, mentor…',
+                  filtersExpanded: _showFilters,
+                  onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+                ),
                 const SizedBox(height: 8),
                 AnimatedCrossFade(
                   firstChild: const SizedBox.shrink(),
@@ -182,6 +145,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   SizedBox(height: 480, child: _buildList(workspace, filtered)),
               ],
             );
+
+            return ResponsiveListDetailLayout(
+              hasSelection: _selectedPaymentId != null,
+              onCloseDetail: _closeDetail,
+              backLabel: 'Back to payments',
+              list: listPanel,
+              detail: _buildDetailPane(workspace),
+            );
           },
         );
       },
@@ -189,89 +160,39 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget _buildSummaryRow(DepartmentPaymentsSummary summary) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1100
-            ? 4
-            : constraints.maxWidth >= 640
-                ? 2
-                : 1;
-        const gap = 10.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
-        final cards = <Widget>[
-          PaymentSummaryCard(
-            label: 'Total department collection',
-            value: PaymentFinanceHelpers.formatCurrency(summary.totalCollection),
-            icon: AppIcons.payments,
-            iconBgColor: const Color(0xFFE0F2FE),
-            accentColor: const Color(0xFF0369A1),
-            subtitle: '${summary.verifiedCount + summary.pendingCount + summary.rejectedCount} contributions',
-          ),
-          PaymentSummaryCard(
-            label: 'Verified payments',
-            value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
-            icon: AppIcons.statusApproved,
-            iconBgColor: const Color(0xFFECFDF5),
-            accentColor: const Color(0xFF047857),
-            subtitle: '${summary.verifiedCount} verified',
-          ),
-          PaymentSummaryCard(
-            label: 'Pending verifications',
-            value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
-            icon: AppIcons.statusUnderReview,
-            iconBgColor: const Color(0xFFFFF7ED),
-            accentColor: const Color(0xFFEA580C),
-            subtitle: '${summary.pendingCount} awaiting review',
-          ),
-          PaymentSummaryCard(
-            label: 'Rejected payments',
-            value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
-            icon: AppIcons.statusRejected,
-            iconBgColor: const Color(0xFFFEF2F2),
-            accentColor: const Color(0xFFB91C1C),
-            subtitle: '${summary.rejectedCount} rejected',
-          ),
-        ];
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: cards.map((c) => SizedBox(width: width, child: c)).toList(growable: false),
-        );
-      },
-    );
-  }
-
-  Widget _buildSearchRow() {
-    return Row(
+    return ResponsiveMetricGrid(
       children: <Widget>[
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search idea, problem, team, mentor…',
-              prefixIcon: const Icon(AppIcons.search),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-            ),
-          ),
+        PaymentSummaryCard(
+          label: 'Total department collection',
+          value: PaymentFinanceHelpers.formatCurrency(summary.totalCollection),
+          icon: AppIcons.payments,
+          iconBgColor: const Color(0xFFE0F2FE),
+          accentColor: const Color(0xFF0369A1),
+          subtitle: '${summary.verifiedCount + summary.pendingCount + summary.rejectedCount} contributions',
         ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: () => setState(() => _showFilters = !_showFilters),
-          icon: const Icon(Icons.tune),
-          label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 40),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
+        PaymentSummaryCard(
+          label: 'Verified payments',
+          value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
+          icon: AppIcons.statusApproved,
+          iconBgColor: const Color(0xFFECFDF5),
+          accentColor: const Color(0xFF047857),
+          subtitle: '${summary.verifiedCount} verified',
+        ),
+        PaymentSummaryCard(
+          label: 'Pending verifications',
+          value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
+          icon: AppIcons.statusUnderReview,
+          iconBgColor: const Color(0xFFFFF7ED),
+          accentColor: const Color(0xFFEA580C),
+          subtitle: '${summary.pendingCount} awaiting review',
+        ),
+        PaymentSummaryCard(
+          label: 'Rejected payments',
+          value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
+          icon: AppIcons.statusRejected,
+          iconBgColor: const Color(0xFFFEF2F2),
+          accentColor: const Color(0xFFB91C1C),
+          subtitle: '${summary.rejectedCount} rejected',
         ),
       ],
     );
@@ -288,43 +209,37 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: <Widget>[
-                FilterPill(
-                  selected: _statusFilter == null,
-                  icon: AppIcons.payments,
-                  label: 'All status',
-                  count: workspace.contributions.length,
-                  onTap: () => setState(() => _statusFilter = null),
-                ),
-                const SizedBox(width: 8),
-                FilterPill(
-                  selected: _statusFilter == PaymentRecordStatus.pending,
-                  icon: AppIcons.statusUnderReview,
-                  label: 'Pending',
-                  count: workspace.summary.pendingCount,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
-                ),
-                const SizedBox(width: 8),
-                FilterPill(
-                  selected: _statusFilter == PaymentRecordStatus.verified,
-                  icon: AppIcons.statusApproved,
-                  label: 'Verified',
-                  count: workspace.summary.verifiedCount,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
-                ),
-                const SizedBox(width: 8),
-                FilterPill(
-                  selected: _statusFilter == PaymentRecordStatus.rejected,
-                  icon: AppIcons.statusRejected,
-                  label: 'Rejected',
-                  count: workspace.summary.rejectedCount,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
-                ),
-              ],
-            ),
+          ResponsiveFilterChipRow(
+            children: <Widget>[
+              FilterPill(
+                selected: _statusFilter == null,
+                icon: AppIcons.payments,
+                label: 'All status',
+                count: workspace.contributions.length,
+                onTap: () => setState(() => _statusFilter = null),
+              ),
+              FilterPill(
+                selected: _statusFilter == PaymentRecordStatus.pending,
+                icon: AppIcons.statusUnderReview,
+                label: 'Pending',
+                count: workspace.summary.pendingCount,
+                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
+              ),
+              FilterPill(
+                selected: _statusFilter == PaymentRecordStatus.verified,
+                icon: AppIcons.statusApproved,
+                label: 'Verified',
+                count: workspace.summary.verifiedCount,
+                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
+              ),
+              FilterPill(
+                selected: _statusFilter == PaymentRecordStatus.rejected,
+                icon: AppIcons.statusRejected,
+                label: 'Rejected',
+                count: workspace.summary.rejectedCount,
+                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           const Text('Payment date', style: TextStyle(fontWeight: FontWeight.w600)),

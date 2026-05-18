@@ -8,6 +8,7 @@ import '../../models/enums/organization_type.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import 'app_dialog_template.dart';
+import '../../widgets/responsive/responsive_dialog_actions.dart';
 import 'email_field.dart';
 import 'phone_number_field.dart';
 import 'read_only_field.dart';
@@ -41,10 +42,10 @@ Future<bool> showCreateUserDialog({
     selectedRoleCode = normalizedRoleOptions.first;
   }
 
-  final result = await showDialog<bool>(
+  final result = await showAppDialog<bool>(
     context: context,
-    builder: (BuildContext context) {
-      return StatefulBuilder(
+    width: DialogWidthPreset.standard,
+    child: StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           InputDecoration fieldDecoration(String hint, {bool readOnly = false}) {
             return InputDecoration(
@@ -156,9 +157,7 @@ Future<bool> showCreateUserDialog({
             }
           }
 
-          return AppDialogTemplate(
-            child: SingleChildScrollView(
-              child: Column(
+          return Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -236,8 +235,7 @@ Future<bool> showCreateUserDialog({
                           decoration: fieldDecoration('Enter phone number'),
                         ),
                   const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                  ResponsiveDialogActions(
                     children: <Widget>[
                       FilledButton(
                         onPressed: isSubmitting ? null : saveUser,
@@ -250,7 +248,6 @@ Future<bool> showCreateUserDialog({
                               )
                             : Text(isEdit ? 'Save' : 'Create'),
                       ),
-                      const SizedBox(width: 8),
                       OutlinedButton(
                         onPressed: isSubmitting ? null : () => Navigator.of(context).pop(false),
                         style: compactOutlineButtonStyle(),
@@ -259,12 +256,9 @@ Future<bool> showCreateUserDialog({
                     ],
                   ),
                 ],
-              ),
-            ),
           );
         },
-      );
-    },
+      ),
   );
   return result ?? false;
 }

@@ -18,7 +18,9 @@ import '../../widgets/attachment_viewer.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/idea_card.dart';
 import 'idea_detail_screen.dart';
+import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
 
 enum _ProblemDetailTab { details, ideas }
 
@@ -594,32 +596,30 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) => AlertDialog(
+          builder: (context, setStateDialog) => ResponsiveAlertDialog(
             title: const Text('Evaluate Idea'),
-            content: SizedBox(
-              width: 460,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  TextField(
-                    controller: scoreController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'Score (1-10)',
-                      border: OutlineInputBorder(),
-                    ),
+            widthPreset: DialogWidthPreset.standard,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                TextField(
+                  controller: scoreController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Score (1-10)',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: feedbackController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Feedback',
-                      border: OutlineInputBorder(),
-                    ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: feedbackController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Feedback',
+                    border: OutlineInputBorder(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
             actions: <Widget>[
               OutlinedButton(

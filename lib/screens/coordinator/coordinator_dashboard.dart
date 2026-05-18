@@ -17,7 +17,9 @@ import '../../widgets/coordinator/payment_queue_card.dart';
 import '../../widgets/coordinator/submission_workflow_funnel.dart';
 import '../../widgets/coordinator/verification_trend_chart.dart';
 import 'coordinator_payment_card.dart';
+import '../common/app_dialog_template.dart';
 import '../common/dashboard_page_template.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../responsive/responsive_breakpoints.dart';
@@ -89,36 +91,39 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
   }
 
   Future<void> _viewProof(PaymentModel payment) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
-      builder: (ctx) => FutureBuilder<List<AttachmentModel>>(
+      width: DialogWidthPreset.wide,
+      child: FutureBuilder<List<AttachmentModel>>(
         future: AttachmentService.fetchActiveAttachments(
           entityType: AttachmentEntityType.payment,
           entityId: payment.paymentId,
         ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AlertDialog(
-              title: Text('Payment proof'),
-              content: SizedBox(width: 520, height: 160, child: Center(child: CircularProgressIndicator())),
-            );
+            return const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()));
           }
           final attachments = snapshot.data ?? const <AttachmentModel>[];
           if (attachments.isNotEmpty) {
             return AttachmentViewerDialog(
               title: 'Payment proof',
               attachments: attachments,
+              embedded: true,
             );
           }
           final url = payment.paymentProofUrl.trim();
-          return AlertDialog(
-            title: const Text('Payment proof'),
-            content: SizedBox(
-              width: 520,
-              child: url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
-            ),
-            actions: <Widget>[
-              OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text('Payment proof', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+              ),
             ],
           );
         },
@@ -138,8 +143,9 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
       context: context,
       builder: (ctx) {
         final controller = TextEditingController();
-        return AlertDialog(
+        return ResponsiveAlertDialog(
           title: const Text('Reject payment'),
+          widthPreset: DialogWidthPreset.compact,
           content: TextField(
             controller: controller,
             decoration: const InputDecoration(
@@ -436,36 +442,39 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
   }
 
   Future<void> _viewShot(PaymentModel payment) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
-      builder: (ctx) => FutureBuilder<List<AttachmentModel>>(
+      width: DialogWidthPreset.wide,
+      child: FutureBuilder<List<AttachmentModel>>(
         future: AttachmentService.fetchActiveAttachments(
           entityType: AttachmentEntityType.payment,
           entityId: payment.paymentId,
         ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AlertDialog(
-              title: Text('Payment attachments'),
-              content: SizedBox(width: 520, height: 160, child: Center(child: CircularProgressIndicator())),
-            );
+            return const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()));
           }
           final attachments = snapshot.data ?? const <AttachmentModel>[];
           if (attachments.isNotEmpty) {
             return AttachmentViewerDialog(
               title: 'Payment attachments',
               attachments: attachments,
+              embedded: true,
             );
           }
           final url = payment.paymentProofUrl.trim();
-          return AlertDialog(
-            title: const Text('Payment screenshot'),
-            content: SizedBox(
-              width: 520,
-              child: url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
-            ),
-            actions: <Widget>[
-              OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Close')),
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text('Payment screenshot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+              ),
             ],
           );
         },
@@ -487,8 +496,9 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
       context: context,
       builder: (ctx) {
         final c = TextEditingController();
-        return AlertDialog(
+        return ResponsiveAlertDialog(
           title: const Text('Reject payment'),
+          widthPreset: DialogWidthPreset.compact,
           content: TextField(
             controller: c,
             decoration: const InputDecoration(

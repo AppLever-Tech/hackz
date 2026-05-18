@@ -6,6 +6,8 @@ import '../../models/user_model.dart';
 import '../../utils/faculty_teams_service.dart';
 import '../../utils/team_service.dart';
 import '../multi_select_dropdown.dart';
+import '../responsive/responsive_dialog_actions.dart';
+import '../responsive/responsive_filter_bar.dart';
 import 'student_member_chips.dart';
 
 enum TeamFormDialogAction { none, saved }
@@ -161,13 +163,13 @@ class _TeamFormDialogState extends State<TeamFormDialog> {
             ),
           ),
           const SizedBox(height: 14),
-          Row(
+          ResponsiveDialogActions(
+            leading: const Text(
+              'Team will be locked after idea submission.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+            ),
             children: <Widget>[
-              const Expanded(
-                child: Text('Team will be locked after idea submission.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-              ),
               OutlinedButton(onPressed: _saving ? null : () => Navigator.of(context).pop(TeamFormDialogAction.none), child: const Text('Cancel')),
-              const SizedBox(width: 8),
               FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving...' : (widget.isEdit ? 'Save Changes' : 'Create Team'))),
             ],
           ),

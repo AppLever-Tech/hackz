@@ -16,6 +16,8 @@ import '../../widgets/payment_dialog.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
+import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import 'app_dialog_template.dart';
 import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
@@ -89,7 +91,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Future<void> _openSubmitIdeaDialog() async {
     final created = await showAppDialog<bool>(
       context: context,
-      maxWidth: 700,
+      width: DialogWidthPreset.wide,
       child: SubmitIdeaDialog(currentUser: widget.currentUser),
     );
     if (created == true && mounted) _loadIdeas();
@@ -145,28 +147,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     if (!widget.config.canViewIdeas) {
       return const Center(
         child: Text('Ideas are not available for your role.'),
-      );
-    }
-    if (_selectedIdeaId != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          TextButton.icon(
-            onPressed: () => setState(() => _selectedIdeaId = null),
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Back to Ideas'),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: IdeaDetailScreen(
-              key: ValueKey<String>(_selectedIdeaId!),
-              ideaId: _selectedIdeaId!,
-              currentUser: widget.currentUser,
-              embedded: true,
-              onBack: () => setState(() => _selectedIdeaId = null),
-            ),
-          ),
-        ],
       );
     }
     return FutureBuilder<List<IdeaListItem>>(
@@ -228,13 +208,18 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            return SectionContainer(
+            final listPanel = SectionContainer(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _buildHeader(),
                   const SizedBox(height: 12),
-                  _buildSearchAndFilterRow(),
+                  ResponsiveSearchFilterBar(
+                    searchController: _searchController,
+                    searchHint: 'Search by idea title, problem, or description',
+                    filtersExpanded: _showFilters,
+                    onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+                  ),
                   const SizedBox(height: 12),
                   AnimatedCrossFade(
                     firstChild: const SizedBox.shrink(),
@@ -255,12 +240,26 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   if (hasBoundedHeight)
                     Expanded(child: listWidget)
                   else
-                    SizedBox(
-                      height: 420,
-                      child: listWidget,
-                    ),
+                    SizedBox(height: 420, child: listWidget),
                 ],
               ),
+            );
+
+            final selectedId = _selectedIdeaId;
+            return ResponsiveListDetailLayout(
+              hasSelection: selectedId != null,
+              onCloseDetail: () => setState(() => _selectedIdeaId = null),
+              backLabel: 'Back to Ideas',
+              list: listPanel,
+              detail: selectedId == null
+                  ? const SizedBox.shrink()
+                  : IdeaDetailScreen(
+                      key: ValueKey<String>(selectedId),
+                      ideaId: selectedId,
+                      currentUser: widget.currentUser,
+                      embedded: true,
+                      onBack: () => setState(() => _selectedIdeaId = null),
+                    ),
             );
           },
         );
@@ -269,58 +268,16 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
+    return ResponsiveWrapToolbar(
       children: <Widget>[
         const Icon(AppIcons.ideas, size: 24, color: Color(0xFF6A38FF)),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Text(
-            'Ideas',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-        ),
+        const Text('Ideas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
         if (widget.config.canCreateIdea)
           FilledButton.icon(
             onPressed: _openSubmitIdeaDialog,
             icon: const Icon(AppIcons.add),
             label: const Text('Submit Idea'),
           ),
-      ],
-    );
-  }
-
-  Widget _buildSearchAndFilterRow() {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by idea title, problem, or description',
-              prefixIcon: const Icon(AppIcons.search),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: () => setState(() => _showFilters = !_showFilters),
-          icon: const Icon(Icons.tune),
-          label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
       ],
     );
   }
@@ -492,24 +449,35 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       IdeaSortType.score,
     ];
     final availableSorts = order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
-    return Row(
+    return ResponsiveWrapToolbar(
+      alignment: WrapAlignment.spaceBetween,
       children: <Widget>[
-        const Icon(AppIcons.ideas, size: 18, color: Color(0xFF6A38FF)),
-        const SizedBox(width: 6),
-        Text('$count Ideas', style: const TextStyle(fontWeight: FontWeight.w600)),
-        const Spacer(),
-        const Text('Sort:'),
-        const SizedBox(width: 8),
-        DropdownButton<IdeaSortType>(
-          value: _sort,
-          items: availableSorts
-              .map((sort) => DropdownMenuItem<IdeaSortType>(value: sort, child: Text(_sortLabel(sort))))
-              .toList(growable: false),
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() => _sort = value);
-            _loadIdeas();
-          },
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(AppIcons.ideas, size: 18, color: Color(0xFF6A38FF)),
+            const SizedBox(width: 6),
+            Text('$count Ideas', style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Text('Sort:'),
+            const SizedBox(width: 8),
+            DropdownButton<IdeaSortType>(
+              value: _sort,
+              isDense: true,
+              items: availableSorts
+                  .map((sort) => DropdownMenuItem<IdeaSortType>(value: sort, child: Text(_sortLabel(sort))))
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _sort = value);
+                _loadIdeas();
+              },
+            ),
+          ],
         ),
       ],
     );

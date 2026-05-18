@@ -13,6 +13,10 @@ import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/faculty/team_capacity_widget.dart';
 import '../../widgets/faculty/team_form_dialog.dart';
 import '../../widgets/faculty/team_workspace_card.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../responsive/responsive_breakpoints.dart';
+import '../../responsive/responsive_helper.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key, required this.user});
@@ -51,7 +55,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         departmentStudents: data.students,
         initialTeam: team,
       ),
-      maxWidth: 780,
+      width: DialogWidthPreset.extraWide,
     );
     if (result == TeamFormDialogAction.saved && mounted) {
       _refresh();
@@ -65,7 +69,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         currentUser: widget.user,
         team: team,
       ),
-      maxWidth: 700,
+      width: DialogWidthPreset.wide,
     );
     if (created == true && mounted) {
       _refresh();
@@ -75,8 +79,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
   Future<void> _disableTeam(TeamModel team) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ResponsiveAlertDialog(
         title: const Text('Disable team?'),
+        widthPreset: DialogWidthPreset.compact,
         content: Text('This will mark ${team.teamName} inactive and release assigned students.'),
         actions: <Widget>[
           OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
@@ -92,7 +97,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   Future<void> _viewIdeas(FacultyTeamInsight insight) {
     return showAppDialog<void>(
       context: context,
-      maxWidth: 680,
+      width: DialogWidthPreset.standard,
       child: _TeamIdeasPreview(insight: insight),
     );
   }
@@ -252,7 +257,7 @@ class _CreateTeamCta extends StatelessWidget {
               ),
             ],
           );
-          if (constraints.maxWidth < 720) {
+          if (ResponsiveHelper.isMobile(context) || constraints.maxWidth < ResponsiveBreakpoints.tablet) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[details, const SizedBox(height: 12), actions],
@@ -290,9 +295,7 @@ class _TeamGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1050
-            ? 2
-            : 1;
+        final columns = ResponsiveHelper.useDashboardMultiColumn(context) ? 2 : 1;
         final gap = 14.0;
         final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(

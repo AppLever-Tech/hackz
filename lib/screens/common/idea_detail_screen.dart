@@ -16,8 +16,10 @@ import '../../utils/idea_detail_config.dart';
 import '../../utils/idea_details_service.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../widgets/payment_dialog.dart';
+import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
 
 enum _IdeaDetailTab { details, team, payment, evaluation, attachments, activity }
 
@@ -358,8 +360,9 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
                         final c = TextEditingController();
                         final remarks = await showDialog<String>(
                           context: context,
-                          builder: (ctx) => AlertDialog(
+                          builder: (ctx) => ResponsiveAlertDialog(
                             title: const Text('Reject payment'),
+                            widthPreset: DialogWidthPreset.compact,
                             content: TextField(controller: c, decoration: const InputDecoration(labelText: 'Remarks')),
                             actions: <Widget>[
                               TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
@@ -521,18 +524,16 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
     feedbackController.text = existing.feedback;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ResponsiveAlertDialog(
         title: const Text('Evaluate Idea'),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(controller: scoreController, decoration: const InputDecoration(labelText: 'Score (1-10)')),
-              const SizedBox(height: 8),
-              TextField(controller: feedbackController, maxLines: 3, decoration: const InputDecoration(labelText: 'Feedback')),
-            ],
-          ),
+        widthPreset: DialogWidthPreset.standard,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(controller: scoreController, decoration: const InputDecoration(labelText: 'Score (1-10)')),
+            const SizedBox(height: 8),
+            TextField(controller: feedbackController, maxLines: 3, decoration: const InputDecoration(labelText: 'Feedback')),
+          ],
         ),
         actions: <Widget>[
           OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),

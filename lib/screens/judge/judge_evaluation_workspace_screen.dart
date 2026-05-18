@@ -11,6 +11,8 @@ import '../../widgets/judge/evaluation_summary_strip.dart';
 import '../../widgets/judge/evaluated_idea_list.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/judge/pending_evaluation_list.dart';
+import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../common/app_dialog_template.dart';
 import '../common/idea_detail_screen.dart';
 
 /// Judge-only evaluation workspace (Scoring tab). Not an idea dashboard clone.
@@ -27,8 +29,6 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   late TabController _tabs;
   Future<JudgeEvaluationWorkspaceVm>? _future;
   String? _selectedIdeaId;
-
-  static const double _splitBreakpoint = 900;
 
   @override
   void initState() {
@@ -52,10 +52,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   Future<void> _openEvaluate(JudgeEvaluationPendingRow row) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => EvaluateIdeaDialog(
+      width: DialogWidthPreset.wide,
+      child: EvaluateIdeaDialog(
         judge: widget.user,
         idea: row.idea,
         team: null,
@@ -67,10 +68,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   Future<void> _openViewEvaluation(JudgeEvaluationEvaluatedRow row) async {
-    await showDialog<bool>(
+    await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => EvaluateIdeaDialog(
+      width: DialogWidthPreset.wide,
+      child: EvaluateIdeaDialog(
         judge: widget.user,
         idea: row.idea,
         team: null,
@@ -82,10 +84,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   Future<void> _openEditEvaluation(JudgeEvaluationEvaluatedRow row) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => EvaluateIdeaDialog(
+      width: DialogWidthPreset.wide,
+      child: EvaluateIdeaDialog(
         judge: widget.user,
         idea: row.idea,
         team: null,
@@ -106,9 +109,10 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No attachments for this idea.')));
       return;
     }
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
-      builder: (ctx) => AttachmentViewerDialog(title: 'Idea attachments', attachments: list),
+      width: DialogWidthPreset.wide,
+      child: AttachmentViewerDialog(title: 'Idea attachments', attachments: list, embedded: true),
     );
   }
 
@@ -120,37 +124,15 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     setState(() => _selectedIdeaId = null);
   }
 
-  Widget _buildDetailBackButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: IconButton(
-        onPressed: _closeIdeaDetail,
-        icon: const Icon(Icons.arrow_back),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        visualDensity: VisualDensity.compact,
-        tooltip: 'Back',
-      ),
-    );
-  }
-
   Widget _buildIdeaDetailPane() {
     final ideaId = _selectedIdeaId;
     if (ideaId == null) return const SizedBox.shrink();
-    return Column(
+    return IdeaDetailScreen(
       key: ValueKey<String>(ideaId),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _buildDetailBackButton(),
-        Expanded(
-          child: IdeaDetailScreen(
-            ideaId: ideaId,
-            currentUser: widget.user,
-            embedded: true,
-            onBack: _closeIdeaDetail,
-          ),
-        ),
-      ],
+      ideaId: ideaId,
+      currentUser: widget.user,
+      embedded: true,
+      onBack: _closeIdeaDetail,
     );
   }
 
@@ -175,26 +157,13 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     );
   }
 
-  Widget _buildWorkspaceBody(JudgeEvaluationWorkspaceVm vm, BoxConstraints constraints) {
-    final showSplit = _selectedIdeaId != null && constraints.maxWidth >= _splitBreakpoint;
-
-    if (_selectedIdeaId != null && !showSplit) {
-      return _buildIdeaDetailPane();
-    }
-
-    final lists = _buildTabLists(vm);
-
-    if (!showSplit) {
-      return lists;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Expanded(child: lists),
-        const VerticalDivider(width: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-        Expanded(child: _buildIdeaDetailPane()),
-      ],
+  Widget _buildWorkspaceBody(JudgeEvaluationWorkspaceVm vm) {
+    return ResponsiveListDetailLayout(
+      hasSelection: _selectedIdeaId != null,
+      onCloseDetail: _closeIdeaDetail,
+      backLabel: 'Back',
+      list: _buildTabLists(vm),
+      detail: _buildIdeaDetailPane(),
     );
   }
 
@@ -229,11 +198,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               ],
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) => _buildWorkspaceBody(vm, constraints),
-              ),
-            ),
+            Expanded(child: _buildWorkspaceBody(vm)),
           ],
         );
       },

@@ -6,13 +6,10 @@ import 'create_org_screen.dart';
 Future<bool> showOrganizationDialog({
   required BuildContext context,
 }) async {
-  final created = await showDialog<bool>(
+  final created = await showAppDialog<bool>(
     context: context,
-    builder: (BuildContext dialogContext) {
-      return const AppDialogTemplate(
-        child: CreateOrganizationDialogForm(asDialog: true),
-      );
-    },
+    width: DialogWidthPreset.wide,
+    child: const CreateOrganizationDialogForm(asDialog: true),
   );
   return created ?? false;
 }

@@ -12,7 +12,9 @@ import '../models/team_model.dart';
 import '../models/user_model.dart';
 import '../utils/attachment_service.dart';
 import '../utils/firestore_utils.dart';
+import '../screens/common/app_dialog_template.dart';
 import 'attachment_pick_field.dart';
+import 'responsive/responsive_dialog_actions.dart';
 
 /// Compact student payment submission (amount + screenshot required).
 Future<bool?> showPaymentDialog({
@@ -21,9 +23,10 @@ Future<bool?> showPaymentDialog({
   required IdeaModel idea,
   required TeamModel team,
 }) {
-  return showDialog<bool>(
+  return showAppDialog<bool>(
     context: context,
-    builder: (_) => _PaymentDialog(
+    width: DialogWidthPreset.compact,
+    child: _PaymentDialog(
       currentUser: currentUser,
       idea: idea,
       team: team,
@@ -147,56 +150,55 @@ class _PaymentDialogState extends State<_PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Upload payment'),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const Text('Upload payment', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _amountController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Amount',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _txnController,
+          decoration: const InputDecoration(
+            labelText: 'Transaction ID (optional)',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: 10),
+        AttachmentSingleImagePickField(
+          file: _picked,
+          enabled: !_saving,
+          onChanged: (f) => setState(() => _picked = f),
+        ),
+        if (_errorMessage != null) ...<Widget>[
+          const SizedBox(height: 10),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(fontSize: 13, color: Color(0xFFB93838)),
+          ),
+        ],
+        const SizedBox(height: 16),
+        ResponsiveDialogActions(
           children: <Widget>[
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+            OutlinedButton(
+              onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _txnController,
-              decoration: const InputDecoration(
-                labelText: 'Transaction ID (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+            FilledButton(
+              onPressed: _saving ? null : _submit,
+              child: Text(_saving ? 'Submitting...' : 'Submit'),
             ),
-            const SizedBox(height: 10),
-            AttachmentSingleImagePickField(
-              file: _picked,
-              enabled: !_saving,
-              onChanged: (f) => setState(() => _picked = f),
-            ),
-            if (_errorMessage != null) ...<Widget>[
-              const SizedBox(height: 10),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(fontSize: 13, color: Color(0xFFB93838)),
-              ),
-            ],
           ],
-        ),
-      ),
-      actions: <Widget>[
-        OutlinedButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: Text(_saving ? 'Submitting...' : 'Submit'),
         ),
       ],
     );

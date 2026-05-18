@@ -9,6 +9,8 @@ import '../../models/user_model.dart';
 import '../../utils/faculty_teams_service.dart';
 import '../../utils/team_service.dart';
 import '../attachment_pick_field.dart';
+import '../responsive/responsive_dialog_actions.dart';
+import '../responsive/responsive_filter_bar.dart';
 
 class SubmitIdeaDialog extends StatefulWidget {
   const SubmitIdeaDialog({
@@ -223,11 +225,13 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
           const SizedBox(height: 10),
           const Text('Files are uploaded to secure storage and linked to this idea after you submit.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
           const SizedBox(height: 14),
-          Row(
+          ResponsiveDialogActions(
+            leading: const Text(
+              'Submitting locks team edits for this idea cycle.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+            ),
             children: <Widget>[
-              const Expanded(child: Text('Submitting locks team edits for this idea cycle.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)))),
               OutlinedButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-              const SizedBox(width: 8),
               FilledButton(
                 onPressed: _saving || _problems.isEmpty ? null : _submit,
                 child: Text(_saving ? 'Submitting...' : 'Submit Idea'),

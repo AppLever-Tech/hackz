@@ -13,8 +13,12 @@ import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/filter_pill.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../common/app_dialog_template.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -130,8 +134,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     final role = await showDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
+        builder: (ctx, setState) => ResponsiveAlertDialog(
           title: const Text('Select Role'),
+          widthPreset: DialogWidthPreset.compact,
           content: DropdownButtonFormField<String>(
             value: selectedRole,
             decoration: const InputDecoration(
@@ -171,8 +176,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     final reasonController = TextEditingController();
     final reason = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ResponsiveAlertDialog(
         title: const Text('Reject user request'),
+        widthPreset: DialogWidthPreset.standard,
         content: TextField(
           controller: reasonController,
           minLines: 3,
@@ -211,8 +217,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         : '${user.firstName} ${user.lastName}'.trim();
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ResponsiveAlertDialog(
         title: const Text('Delete user?'),
+        widthPreset: DialogWidthPreset.compact,
         content: Text('This will remove $displayName from this department.'),
         actions: <Widget>[
           OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
@@ -250,8 +257,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   Future<void> _regenerateInviteCode() async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => ResponsiveAlertDialog(
         title: const Text('Regenerate invite code?'),
+        widthPreset: DialogWidthPreset.compact,
         content: const Text('Existing active codes for this department will be deactivated.'),
         actions: <Widget>[
           OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
@@ -385,42 +393,58 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFF),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            const Icon(AppIcons.key, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _inviteCode.isEmpty ? 'No active invite code' : _formatCode(_inviteCode),
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                        ),
+                LayoutBuilder(
+                  builder: (context, _) {
+                    final codeField = Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFF),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton.icon(
-                      onPressed: _inviteCode.isEmpty ? null : _copyInviteCode,
-                      icon: Icon(_copied ? AppIcons.copied : AppIcons.copy, size: 16),
-                      label: Text(_copied ? 'Copied' : 'Copy'),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: 'Regenerate code',
-                      onPressed: _regenerateInviteCode,
-                      icon: const Icon(AppIcons.refresh),
-                    ),
-                  ],
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(AppIcons.key, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _inviteCode.isEmpty ? 'No active invite code' : _formatCode(_inviteCode),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    final actions = <Widget>[
+                      OutlinedButton.icon(
+                        onPressed: _inviteCode.isEmpty ? null : _copyInviteCode,
+                        icon: Icon(_copied ? AppIcons.copied : AppIcons.copy, size: 16),
+                        label: Text(_copied ? 'Copied' : 'Copy'),
+                      ),
+                      IconButton(
+                        tooltip: 'Regenerate code',
+                        onPressed: _regenerateInviteCode,
+                        icon: const Icon(AppIcons.refresh),
+                      ),
+                    ];
+                    if (ResponsiveHelper.isMobile(context)) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          codeField,
+                          const SizedBox(height: 8),
+                          ResponsiveWrapToolbar(children: actions),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: <Widget>[
+                        Expanded(child: codeField),
+                        const SizedBox(width: 8),
+                        ...actions,
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -452,6 +476,56 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     final isRejected = u.status == UserStatus.rejected;
     final rejectedDate = u.approvedAt == null ? 'Not recorded' : formatDateTime(u.approvedAt!);
     final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No rejection reason recorded.' : u.rejectionReason!.trim();
+
+    final chips = <Widget>[
+      if (!isPending)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
+          child: Text(_roleLabel(u.role), style: const TextStyle(fontSize: 12)),
+        ),
+      if (u.status != UserStatus.active)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AccountWorkspaceVisuals.chipBackgroundForUserStatus(u.status),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AccountWorkspaceVisuals.userStatusAccent(u.status),
+            ),
+          ),
+        ),
+    ];
+
+    final actions = <Widget>[
+      if (isPending) ...<Widget>[
+        TextButton(onPressed: () => _approve(u), child: const Text('Approve')),
+        TextButton(onPressed: () => _reject(u), child: const Text('Reject')),
+      ] else if (isRejected) ...<Widget>[
+        TextButton.icon(
+          onPressed: () => _deleteUser(u),
+          icon: const Icon(AppIcons.remove, size: 16),
+          label: const Text('Delete'),
+        ),
+      ] else
+        PopupMenuButton<String>(
+          icon: const Icon(AppIcons.more, size: 18),
+          onSelected: (v) async {
+            if (v == 'delete') {
+              await _deleteUser(u);
+            }
+          },
+          itemBuilder: (_) => const <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
+          ],
+        ),
+    ];
+
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -460,84 +534,49 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE9ECF6)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: const Color(0xFFEAF2FF),
-            child: Icon(AppIcons.forUserRoleCode(u.role), size: 16, color: const Color(0xFF3552CC)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text('${u.firstName} ${u.lastName}'.trim(), style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text('${u.phone} • ${u.email}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                if (isRejected) ...<Widget>[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Reason: $rejectionReason',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D), fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Rejected on $rejectedDate',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (!isPending)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
-              child: Text(_roleLabel(u.role), style: const TextStyle(fontSize: 12)),
-            ),
-          if (u.status != UserStatus.active) ...<Widget>[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AccountWorkspaceVisuals.chipBackgroundForUserStatus(u.status),
-                borderRadius: BorderRadius.circular(14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: const Color(0xFFEAF2FF),
+                child: Icon(AppIcons.forUserRoleCode(u.role), size: 16, color: const Color(0xFF3552CC)),
               ),
-              child: Text(
-                AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AccountWorkspaceVisuals.userStatusAccent(u.status),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('${u.firstName} ${u.lastName}'.trim(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('${u.phone} • ${u.email}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                    if (isRejected) ...<Widget>[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Reason: $rejectionReason',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D), fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Rejected on $rejectedDate',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ],
                 ),
               ),
+            ],
+          ),
+          if (chips.isNotEmpty || actions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            ResponsiveWrapToolbar(
+              children: <Widget>[...chips, ...actions],
             ),
           ],
-          const SizedBox(width: 8),
-          if (isPending) ...<Widget>[
-            TextButton(onPressed: () => _approve(u), child: const Text('Approve')),
-            TextButton(onPressed: () => _reject(u), child: const Text('Reject')),
-          ] else if (isRejected) ...<Widget>[
-            TextButton.icon(
-              onPressed: () => _deleteUser(u),
-              icon: const Icon(AppIcons.remove, size: 16),
-              label: const Text('Delete'),
-            ),
-          ] else
-            PopupMenuButton<String>(
-              icon: const Icon(AppIcons.more, size: 18),
-              onSelected: (v) async {
-                if (v == 'delete') {
-                  await _deleteUser(u);
-                }
-              },
-              itemBuilder: (_) => const <PopupMenuEntry<String>>[
-                PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
-              ],
-            ),
         ],
       ),
     );
@@ -556,15 +595,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     );
   }
 
-  Widget _pillSeparator() {
-    return Container(
-      width: 1,
-      height: 30,
-      margin: const EdgeInsets.only(right: 8),
-      color: const Color(0xFFE2E8F0),
-    );
-  }
-
   Widget _buildUsersTab() {
     final users = _filteredUsers();
     final pending = _section(users, status: UserStatus.pendingApproval);
@@ -575,36 +605,22 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: <Widget>[
-              _filterPill(UsersFilter.all, AppIcons.users, 'All'),
-              _pillSeparator(),
-              _filterPill(UsersFilter.faculty, AppIcons.faculty, 'Faculty'),
-              _filterPill(UsersFilter.students, AppIcons.student, 'Student'),
-              _filterPill(UsersFilter.coordinators, AppIcons.coordinator, 'Coordinator'),
-              _pillSeparator(),
-              _filterPill(UsersFilter.pending, AppIcons.pendingUsers, 'Pending'),
-              _filterPill(UsersFilter.rejected, AppIcons.statusRejected, 'Rejected'),
-            ],
-          ),
+        ResponsiveFilterChipRow(
+          children: <Widget>[
+            _filterPill(UsersFilter.all, AppIcons.users, 'All'),
+            _filterPill(UsersFilter.faculty, AppIcons.faculty, 'Faculty'),
+            _filterPill(UsersFilter.students, AppIcons.student, 'Student'),
+            _filterPill(UsersFilter.coordinators, AppIcons.coordinator, 'Coordinator'),
+            _filterPill(UsersFilter.pending, AppIcons.pendingUsers, 'Pending'),
+            _filterPill(UsersFilter.rejected, AppIcons.statusRejected, 'Rejected'),
+          ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search users',
-                  isDense: true,
-                  prefixIcon: const Icon(AppIcons.search),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
+        ResponsiveSearchFilterBar(
+          searchController: _searchController,
+          searchHint: 'Search users',
+          showFilterButton: false,
+          trailing: <Widget>[
             FilledButton.icon(
               onPressed: _openCreateUser,
               icon: const Icon(AppIcons.add, size: 16),
@@ -670,23 +686,43 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: RichTabBar(
-                  controller: _tabController,
-                  tabs: const <RichTabItem>[
-                    RichTabItem('Overview'),
-                    RichTabItem('Users'),
+          ResponsiveHelper.isMobile(context)
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    RichTabBar(
+                      controller: _tabController,
+                      tabs: const <RichTabItem>[
+                        RichTabItem('Overview'),
+                        RichTabItem('Users'),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        onPressed: _refreshing ? null : _loadAll,
+                        icon: const Icon(AppIcons.refresh),
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: RichTabBar(
+                        controller: _tabController,
+                        tabs: const <RichTabItem>[
+                          RichTabItem('Overview'),
+                          RichTabItem('Users'),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _refreshing ? null : _loadAll,
+                      icon: const Icon(AppIcons.refresh),
+                    ),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: _refreshing ? null : _loadAll,
-                icon: const Icon(AppIcons.refresh),
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           Expanded(
             child: TabBarView(

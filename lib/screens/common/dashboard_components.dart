@@ -333,6 +333,45 @@ class DashboardCountCard extends StatelessWidget {
   final IconData icon;
   final Color iconBgColor;
 
+  Widget _buildValueText() {
+    if (secondaryValue == null) {
+      return Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: _kMetricPrimaryCountFontSize, fontWeight: FontWeight.w700),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          value,
+          style: const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6),
+          child: Text(
+            '/',
+            style: TextStyle(
+              fontSize: _kMetricSlashFontSize,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF6B7280),
+            ),
+          ),
+        ),
+        Flexible(
+          child: Text(
+            secondaryValue!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -341,58 +380,41 @@ class DashboardCountCard extends StatelessWidget {
         padding: const EdgeInsets.all(_kMetricCardPadding),
         decoration: kDashboardCardDecoration,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  if (secondaryValue == null)
-                    Text(
-                      value,
-                    style: const TextStyle(fontSize: _kMetricPrimaryCountFontSize, fontWeight: FontWeight.w700),
-                    )
-                  else
-                    Row(
-                      children: <Widget>[
-                        Text(
-                          value,
-                        style:
-                            const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Text(
-                            '/',
-                          style: TextStyle(
-                            fontSize: _kMetricSlashFontSize,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
-                          ),
-                        ),
-                        Text(
-                          secondaryValue!,
-                        style:
-                            const TextStyle(fontSize: _kMetricSecondaryCountFontSize, fontWeight: FontWeight.w700),
-                        ),
-                      ],
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: _buildValueText(),
+                      ),
                     ),
-                const Spacer(),
-                const SizedBox(height: _kMetricLabelBottomGap),
+                  ),
+                  const SizedBox(height: _kMetricLabelBottomGap),
                   Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: _kMetricLabelFontSize),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: _kMetricLabelFontSize,
+                      height: 1.2,
+                    ),
                   ),
                 ],
               ),
             ),
             Container(
-            width: _kMetricIconBubbleSize,
-            height: _kMetricIconBubbleSize,
+              width: _kMetricIconBubbleSize,
+              height: _kMetricIconBubbleSize,
               decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-            child: Icon(icon, size: _kMetricIconBubbleIconSize),
+              child: Icon(icon, size: _kMetricIconBubbleIconSize),
             ),
           ],
         ),
@@ -444,52 +466,65 @@ class DashboardIconMetricCard extends StatelessWidget {
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Row(
-                    children: metrics
-                        .map(
-                          (metric) => Expanded(
-                            child: Tooltip(
-                              message: metric.tooltip,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: <Widget>[
-                                  Icon(
-                                    metric.icon,
-                                    size: _kMetricInlineIconSize,
-                                    color: metric.color ?? const Color(0xFF475069),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      metric.count,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: _kMetricIconMetricCountFontSize,
-                                        fontWeight: FontWeight.w700,
-                                        color: metric.color ?? const Color(0xFF111827),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Row(
+                        children: metrics
+                            .map(
+                              (metric) => Expanded(
+                                child: Tooltip(
+                                  message: metric.tooltip,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.max,
+                                    children: <Widget>[
+                                      Icon(
+                                        metric.icon,
+                                        size: _kMetricInlineIconSize,
+                                        color: metric.color ?? const Color(0xFF475069),
                                       ),
-                                    ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            metric.count,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: _kMetricIconMetricCountFontSize,
+                                              fontWeight: FontWeight.w700,
+                                              color: metric.color ?? const Color(0xFF111827),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
+                            )
+                            .toList(growable: false),
+                      ),
+                    ),
                   ),
-                  const Spacer(),
                   const SizedBox(height: _kMetricLabelBottomGap),
                   Text(
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: _kMetricLabelFontSize),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: _kMetricLabelFontSize,
+                      height: 1.2,
+                    ),
                   ),
                 ],
               ),

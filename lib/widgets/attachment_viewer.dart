@@ -5,8 +5,13 @@ import 'package:video_player/video_player.dart';
 
 import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
+import '../screens/common/app_dialog_template.dart';
+import '../responsive/responsive_breakpoints.dart';
+import '../responsive/responsive_dialog.dart';
+import '../responsive/responsive_helper.dart';
 import '../utils/attachment_service.dart';
 import 'network_image_compat.dart';
+import 'responsive/responsive_filter_bar.dart';
 
 class AttachmentPreviewRow extends StatefulWidget {
   const AttachmentPreviewRow({
@@ -37,11 +42,13 @@ class _AttachmentPreviewRowState extends State<AttachmentPreviewRow> {
         entityId: widget.entityId,
       );
       if (!mounted) return;
-      await showDialog<void>(
+      await showAppDialog<void>(
         context: context,
-        builder: (_) => AttachmentViewerDialog(
+        width: DialogWidthPreset.wide,
+        child: AttachmentViewerDialog(
           title: widget.title,
           attachments: _attachments ?? const <AttachmentModel>[],
+          embedded: true,
         ),
       );
     } finally {
@@ -122,10 +129,14 @@ class AttachmentViewerDialog extends StatefulWidget {
     super.key,
     required this.title,
     required this.attachments,
+    this.embedded = false,
   });
 
   final String title;
   final List<AttachmentModel> attachments;
+
+  /// When true, renders inside [showAppDialog] without an outer [Dialog] shell.
+  final bool embedded;
 
   @override
   State<AttachmentViewerDialog> createState() => _AttachmentViewerDialogState();
@@ -211,91 +222,118 @@ class _AttachmentViewerDialogState extends State<AttachmentViewerDialog> with Ti
     if (_selected != null && !list.contains(_selected)) {
       _selected = list.firstOrNull;
     }
-    return Dialog(
-      child: SizedBox(
-        width: 920,
-        height: 620,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
+    final body = LayoutBuilder(
+      builder: (context, constraints) {
+        final stackVertically = widget.embedded ||
+            ResponsiveHelper.isMobile(context) ||
+            constraints.maxWidth < ResponsiveBreakpoints.tablet;
+        final viewerHeight = widget.embedded
+            ? (constraints.maxHeight.isFinite ? constraints.maxHeight.clamp(280.0, 560.0) : 420.0)
+            : (ResponsiveHelper.isMobile(context) ? 360.0 : 520.0);
+
+        final preview = _AttachmentContent(
+          attachment: _selected,
+          resolvedUrl: _selected == null ? null : _resolveUrl(_selected!),
+        );
+
+        final grid = AttachmentGrid(
+          attachments: list,
+          resolveUrl: _resolveUrl,
+          selectedId: _selected?.attachmentId,
+          onTap: (a) => setState(() => _selected = a),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (!widget.embedded)
+                  IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ResponsiveFilterChipRow(
+              children: _visibleTabs
+                  .map(
+                    (tab) => ChoiceChip(
+                      selected: _selectedTab == tab,
+                      label: Text(_tabLabel(tab)),
+                      onSelected: (_) => setState(() {
+                        _selectedTab = tab;
+                        _selected = _currentList.firstOrNull;
+                      }),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+            const SizedBox(height: 10),
+            if (_resolvingUrls) const LinearProgressIndicator(minHeight: 2),
+            if (_resolvingUrls) const SizedBox(height: 8),
+            SizedBox(
+              height: viewerHeight,
+              child: stackVertically
+                  ? Column(
+                      children: <Widget>[
+                        SizedBox(height: 140, child: grid),
+                        const SizedBox(height: 10),
+                        Expanded(child: preview),
+                      ],
+                    )
+                  : Row(
+                      children: <Widget>[
+                        SizedBox(width: 260, child: grid),
+                        const SizedBox(width: 10),
+                        Expanded(child: preview),
+                      ],
+                    ),
+            ),
+            const SizedBox(height: 8),
+            if (_selected != null)
+              ResponsiveWrapToolbar(
                 children: <Widget>[
-                  Expanded(
+                  Flexible(
                     child: Text(
-                      widget.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      '${_selected!.fileName} • ${_formatSize(_selected!.sizeInBytes)}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
+                  TextButton.icon(
+                    onPressed: () => _openExternal(_selected!),
+                    icon: const Icon(AppIcons.openInNew, size: 16),
+                    label: const Text('Open externally'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _openExternal(_selected!),
+                    icon: const Icon(AppIcons.download, size: 16),
+                    label: const Text('Download'),
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: _visibleTabs
-                    .map((tab) => ChoiceChip(
-                          selected: _selectedTab == tab,
-                          label: Text(_tabLabel(tab)),
-                          onSelected: (_) => setState(() {
-                            _selectedTab = tab;
-                            _selected = _currentList.firstOrNull;
-                          }),
-                        ))
-                    .toList(growable: false),
-              ),
-              const SizedBox(height: 10),
-              if (_resolvingUrls) const LinearProgressIndicator(minHeight: 2),
-              if (_resolvingUrls) const SizedBox(height: 8),
-              Expanded(
-                child: Row(
-                  children: <Widget>[
-                    SizedBox(
-                      width: 290,
-                      child: AttachmentGrid(
-                        attachments: list,
-                        resolveUrl: _resolveUrl,
-                        selectedId: _selected?.attachmentId,
-                        onTap: (a) => setState(() => _selected = a),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _AttachmentContent(
-                        attachment: _selected,
-                        resolvedUrl: _selected == null ? null : _resolveUrl(_selected!),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_selected != null)
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        '${_selected!.fileName} • ${_formatSize(_selected!.sizeInBytes)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => _openExternal(_selected!),
-                      icon: const Icon(AppIcons.openInNew, size: 16),
-                      label: const Text('Open externally'),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => _openExternal(_selected!),
-                      icon: const Icon(AppIcons.download, size: 16),
-                      label: const Text('Download'),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
+          ],
+        );
+      },
+    );
+
+    if (widget.embedded) {
+      return body;
+    }
+
+    final maxW = ResponsiveDialogConstraints.maxWidth(context, preset: DialogWidthPreset.extraWide);
+    final maxH = ResponsiveHelper.isMobile(context) ? double.infinity : 640.0;
+
+    return Dialog(
+      insetPadding: ResponsiveDialogConstraints.dialogInsets(context),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxW, maxHeight: maxH),
+        child: Padding(padding: const EdgeInsets.all(14), child: body),
       ),
     );
   }

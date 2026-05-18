@@ -14,7 +14,11 @@ import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/problem_query_service.dart';
 import '../../widgets/problem_card.dart';
+import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import '../collegeadmin/problem_create_screen.dart';
+import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 import 'problem_detail_screen.dart';
 
@@ -162,8 +166,9 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   Future<void> _deleteProblem(ProblemModel problem) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => ResponsiveAlertDialog(
         title: const Text('Delete Problem'),
+        widthPreset: DialogWidthPreset.compact,
         content: const Text('Delete this problem permanently?'),
         actions: <Widget>[
           TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
@@ -258,27 +263,6 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         onSaved: _onProblemFormSaved,
       );
     }
-    if (_selectedProblem != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          OutlinedButton.icon(
-            onPressed: _closeProblemDetails,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Back to Problems'),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: ProblemDetailScreen(
-              problem: _selectedProblem!,
-              currentUser: widget.currentUser,
-              embedded: true,
-              onBack: _closeProblemDetails,
-            ),
-          ),
-        ],
-      );
-    }
     return FutureBuilder<List<ProblemModel>>(
       future: _problemsFuture,
       builder: (context, snapshot) {
@@ -335,14 +319,19 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            return SectionContainer(
+            final listPanel = SectionContainer(
               padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _buildHeader(count: problems.length),
                   const SizedBox(height: 6),
-                  _buildSearchRow(),
+                  ResponsiveSearchFilterBar(
+                    searchController: _searchController,
+                    searchHint: 'Search by title, tags, problem number',
+                    filtersExpanded: _showFilters,
+                    onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+                  ),
                   const SizedBox(height: 8),
                   AnimatedCrossFade(
                     firstChild: const SizedBox.shrink(),
@@ -362,6 +351,22 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                 ],
               ),
             );
+
+            final selected = _selectedProblem;
+            return ResponsiveListDetailLayout(
+              hasSelection: selected != null,
+              onCloseDetail: _closeProblemDetails,
+              backLabel: 'Back to Problems',
+              list: listPanel,
+              detail: selected == null
+                  ? const SizedBox.shrink()
+                  : ProblemDetailScreen(
+                      problem: selected,
+                      currentUser: widget.currentUser,
+                      embedded: true,
+                      onBack: _closeProblemDetails,
+                    ),
+            );
           },
         );
       },
@@ -369,7 +374,8 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Widget _buildHeader({required int count}) {
-    return Row(
+    return ResponsiveWrapToolbar(
+      alignment: WrapAlignment.spaceBetween,
       children: <Widget>[
         if (widget.config.canCreate)
           FilledButton.icon(
@@ -381,76 +387,43 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
-        const Spacer(),
-        const SizedBox(width: 8),
-        const Text('Sort', style: TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(width: 8),
-        Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<ProblemSortType>(
-              value: _sort,
-              isDense: true,
-              borderRadius: BorderRadius.circular(14),
-              items: _availableSorts
-                  .map(
-                    (sort) => DropdownMenuItem<ProblemSortType>(
-                      value: sort,
-                      child: Text(_sortLabel(sort)),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _sort = value);
-                _loadProblems();
-              },
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text('Showing $count Problems', style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  Widget _buildSearchRow() {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by title, tags, problem number',
-              prefixIcon: const Icon(AppIcons.search),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Text('Sort', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(width: 8),
+            Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade300),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<ProblemSortType>(
+                  value: _sort,
+                  isDense: true,
+                  borderRadius: BorderRadius.circular(14),
+                  items: _availableSorts
+                      .map(
+                        (sort) => DropdownMenuItem<ProblemSortType>(
+                          value: sort,
+                          child: Text(_sortLabel(sort)),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _sort = value);
+                    _loadProblems();
+                  },
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          onPressed: () => setState(() => _showFilters = !_showFilters),
-          icon: const Icon(Icons.tune),
-          label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 40),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
+            const SizedBox(width: 10),
+            Text('Showing $count Problems', style: const TextStyle(fontWeight: FontWeight.w600)),
+          ],
         ),
       ],
     );
