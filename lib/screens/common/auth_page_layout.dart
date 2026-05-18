@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/auth_theme.dart';
+import '../../widgets/auth/auth_action_button.dart';
+
 class AuthPageLayout extends StatelessWidget {
   const AuthPageLayout({
     super.key,
@@ -105,23 +108,31 @@ class AuthPageLayout extends StatelessWidget {
                         Row(
                           children: <Widget>[
                             Expanded(
-                              child: _nextButton(),
+                              child: AuthActionButton.primary(
+                                label: nextLabel,
+                                onPressed: onNext,
+                                isLoading: isLoading,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: _cancelButton(),
+                              child: AuthActionButton.secondary(
+                                label: 'Cancel',
+                                onPressed: onCancel,
+                              ),
                             ),
                           ],
                         )
                       else ...<Widget>[
-                        SizedBox(
-                          width: double.infinity,
-                          child: _nextButton(),
+                        AuthActionButton.primary(
+                          label: nextLabel,
+                          onPressed: onNext,
+                          isLoading: isLoading,
                         ),
                         const SizedBox(height: 10),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _cancelButton(),
+                        AuthActionButton.secondary(
+                          label: 'Cancel',
+                          onPressed: onCancel,
                         ),
                       ],
                     ],
@@ -135,47 +146,4 @@ class AuthPageLayout extends StatelessWidget {
     );
   }
 
-  Widget _nextButton() {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFF6A38FF), Color(0xFFFF8C2B)],
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: FilledButton(
-        onPressed: isLoading ? null : onNext,
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(nextLabel),
-      ),
-    );
-  }
-
-  Widget _cancelButton() {
-    return OutlinedButton(
-      onPressed: onCancel,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 48),
-        side: const BorderSide(color: Color(0xFFA5ABD0)),
-        foregroundColor: const Color(0xFF202658),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-      child: const Text('Cancel'),
-    );
-  }
 }

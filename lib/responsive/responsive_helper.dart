@@ -27,6 +27,9 @@ abstract final class ResponsiveHelper {
 
   static bool isWide(BuildContext context) => screenSizeOf(context) == ScreenSize.wide;
 
+  /// Mobile/tablet auth landing; desktop keeps hero image layout.
+  static bool useCompactLanding(BuildContext context) => !isDesktopOrWider(context);
+
   /// Outer padding around the dashboard shell (SafeArea child).
   static EdgeInsets dashboardOuterPadding(BuildContext context) {
     return switch (screenSizeOf(context)) {
