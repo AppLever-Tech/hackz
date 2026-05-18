@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../responsive/responsive_helper.dart';
 import '../../responsive/responsive_layout.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 
 const double _kMetricCardHeight = 108;
 const double _kMetricCardPadding = 16;
@@ -300,13 +301,21 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCountCard(
-      value: value,
-      secondaryValue: secondaryValue,
-      label: label,
-      icon: icon,
-      iconBgColor: iconBgColor,
-    );
+    final chip = secondaryValue == null
+        ? DashboardMetricChipData.single(
+            label: label,
+            value: value,
+            color: dashboardMetricAccentFromIconBg(iconBgColor),
+            icon: icon,
+          )
+        : DashboardMetricChipData.ratio(
+            label: label,
+            primary: value,
+            secondary: secondaryValue!,
+            color: dashboardMetricAccentFromIconBg(iconBgColor),
+            icon: icon,
+          );
+    return DashboardMetricChip(data: chip);
   }
 }
 

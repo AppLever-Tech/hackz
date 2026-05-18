@@ -21,6 +21,7 @@ import 'dashboard_components.dart';
 import '../../widgets/filter_pill.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 
 enum _IdeaDetailTab { details, team, payment, evaluation, attachments, activity }
@@ -169,33 +170,30 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
 
   Widget _summary(IdeaDetailsVm vm) {
     return ResponsiveMetricGrid(
-      minTileWidth: ResponsiveHelper.isMobile(context) ? 150 : 200,
-      useStandardColumns: false,
-      maxColumns: 4,
-      children: <Widget>[
-        DashboardCountCard(
-          value: vm.averageScore?.toStringAsFixed(1) ?? '-',
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.single(
           label: 'Score',
+          value: vm.averageScore?.toStringAsFixed(1) ?? '-',
+          color: const Color(0xFF059669),
           icon: AppIcons.scoring,
-          iconBgColor: const Color(0xFFE8FAF1),
         ),
-        DashboardCountCard(
-          value: vm.scores.length.toString(),
+        DashboardMetricChipData.single(
           label: 'Evaluations',
+          value: vm.scores.length.toString(),
+          color: const Color(0xFF7C3AED),
           icon: AppIcons.statusEvaluated,
-          iconBgColor: const Color(0xFFF2EDFF),
         ),
-        DashboardCountCard(
-          value: vm.ideaAttachments.length.toString(),
+        DashboardMetricChipData.single(
           label: 'Idea Attachments',
+          value: vm.ideaAttachments.length.toString(),
+          color: const Color(0xFF4A67FF),
           icon: AppIcons.attachments,
-          iconBgColor: const Color(0xFFEAF2FF),
         ),
-        DashboardCountCard(
-          value: vm.paymentAttachments.length.toString(),
+        DashboardMetricChipData.single(
           label: 'Payment Attachments',
+          value: vm.paymentAttachments.length.toString(),
+          color: const Color(0xFFEA580C),
           icon: AppIcons.payments,
-          iconBgColor: const Color(0xFFFFF4E8),
         ),
       ],
     );

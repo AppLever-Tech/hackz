@@ -12,6 +12,7 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../widgets/responsive/responsive_multi_column.dart';
 import 'judge_evaluation_workspace_screen.dart';
@@ -101,30 +102,30 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
 
   Widget _buildSummaryCards(JudgeDashboardVm vm) {
     return ResponsiveMetricGrid(
-      children: <Widget>[
-        DashboardCountCard(
-          value: '${vm.assignedIdeas}',
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.single(
           label: 'Assigned Ideas',
+          value: '${vm.assignedIdeas}',
+          color: const Color(0xFF4A67FF),
           icon: AppIcons.ideas,
-          iconBgColor: const Color(0xFFEAF2FF),
         ),
-        DashboardCountCard(
-          value: '${vm.evaluatedIdeas}',
+        DashboardMetricChipData.single(
           label: 'Evaluated Ideas',
+          value: '${vm.evaluatedIdeas}',
+          color: const Color(0xFF16A34A),
           icon: AppIcons.statusEvaluated,
-          iconBgColor: const Color(0xFFE9FAF0),
         ),
-        DashboardCountCard(
-          value: '${vm.pendingReviews}',
+        DashboardMetricChipData.single(
           label: 'Pending Reviews',
+          value: '${vm.pendingReviews}',
+          color: const Color(0xFFEA580C),
           icon: AppIcons.statusUnderReview,
-          iconBgColor: const Color(0xFFFFF4E8),
         ),
-        DashboardCountCard(
-          value: vm.averageScoreGiven?.toStringAsFixed(1) ?? '-',
+        DashboardMetricChipData.single(
           label: 'Average Score Given',
+          value: vm.averageScoreGiven?.toStringAsFixed(1) ?? '-',
+          color: const Color(0xFF7C3AED),
           icon: AppIcons.scoring,
-          iconBgColor: const Color(0xFFF2EDFF),
         ),
       ],
     );

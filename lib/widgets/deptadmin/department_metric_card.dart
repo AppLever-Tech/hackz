@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/common/dashboard_components.dart';
+import '../dashboard/dashboard_metric_chips.dart';
 
-class DepartmentMetricCard extends StatelessWidget {
+class DepartmentMetricCard {
   const DepartmentMetricCard({
-    super.key,
     required this.value,
     required this.label,
     required this.icon,
@@ -20,29 +19,14 @@ class DepartmentMetricCard extends StatelessWidget {
   final String? tooltip;
   final String? footnote;
 
-  @override
-  Widget build(BuildContext context) {
-    final card = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        DashboardCountCard(
-          value: value,
-          label: label,
-          icon: icon,
-          iconBgColor: iconBgColor,
-        ),
-        if (footnote != null && footnote!.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            footnote!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w700),
-          ),
-        ],
-      ],
+  DashboardMetricChipData toChipData() {
+    return DashboardMetricChipData.single(
+      label: label,
+      value: value,
+      color: dashboardMetricAccentFromIconBg(iconBgColor),
+      icon: icon,
+      subtitle: footnote,
+      tooltip: tooltip,
     );
-    if (tooltip == null || tooltip!.trim().isEmpty) return card;
-    return Tooltip(message: tooltip!, child: card);
   }
 }

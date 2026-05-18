@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/common/dashboard_components.dart';
+import '../dashboard/dashboard_metric_chips.dart';
 
-class PlatformMetricCard extends StatelessWidget {
+class PlatformMetricCard {
   const PlatformMetricCard({
-    super.key,
     required this.label,
     required this.value,
     required this.icon,
@@ -18,16 +17,14 @@ class PlatformMetricCard extends StatelessWidget {
   final Color accent;
   final String? caption;
 
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: caption ?? label,
-      child: DashboardCountCard(
-        value: value,
-        label: label,
-        icon: icon,
-        iconBgColor: accent.withOpacity(0.12),
-      ),
+  DashboardMetricChipData toChipData() {
+    return DashboardMetricChipData.single(
+      label: label,
+      value: value,
+      color: accent,
+      icon: icon,
+      subtitle: caption,
+      tooltip: caption ?? label,
     );
   }
 }

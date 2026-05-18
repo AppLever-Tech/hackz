@@ -1,6 +1,7 @@
 /// Reusable responsive layout widgets for dashboards and feature screens.
 library;
 
+export '../dashboard/dashboard_metric_chips.dart';
 export 'adaptive_dashboard_panel.dart';
 export 'dashboard_scrollable_body.dart';
 export 'responsive_columns.dart';

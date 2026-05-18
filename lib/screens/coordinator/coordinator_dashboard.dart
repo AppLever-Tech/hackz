@@ -27,6 +27,7 @@ import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
@@ -311,13 +312,14 @@ class _OperationalMetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = <Widget>[
-      OperationalMetricCard(value: '${analytics.pendingPayments}', label: 'Pending Payments', icon: AppIcons.pendingUsers, iconBgColor: const Color(0xFFFFF7ED), footnote: 'Payments waiting for coordinator verification'),
-      OperationalMetricCard(value: '${analytics.verifiedPaymentsToday}', label: 'Verified Today', icon: AppIcons.verification, iconBgColor: const Color(0xFFE8FAF1), footnote: 'Payments verified since midnight'),
-      OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Payments Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Submitted payments waiting for coordinator review'),
-      OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators'),
-    ];
-    return ResponsiveMetricGrid(children: cards);
+    return ResponsiveMetricGrid(
+      chips: <DashboardMetricChipData>[
+        OperationalMetricCard(value: '${analytics.pendingPayments}', label: 'Pending Payments', icon: AppIcons.pendingUsers, iconBgColor: const Color(0xFFFFF7ED), footnote: 'Payments waiting for coordinator verification').toChipData(),
+        OperationalMetricCard(value: '${analytics.verifiedPaymentsToday}', label: 'Verified Today', icon: AppIcons.verification, iconBgColor: const Color(0xFFE8FAF1), footnote: 'Payments verified since midnight').toChipData(),
+        OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Payments Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Submitted payments waiting for coordinator review').toChipData(),
+        OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators').toChipData(),
+      ],
+    );
   }
 }
 

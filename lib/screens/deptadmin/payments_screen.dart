@@ -11,6 +11,7 @@ import '../../widgets/payments/payment_detail_pane.dart';
 import '../../widgets/payments/payment_summary_card.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 
 class PaymentsScreen extends StatefulWidget {
@@ -161,7 +162,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
 
   Widget _buildSummaryRow(DepartmentPaymentsSummary summary) {
     return ResponsiveMetricGrid(
-      children: <Widget>[
+      chips: <DashboardMetricChipData>[
         PaymentSummaryCard(
           label: 'Total department collection',
           value: PaymentFinanceHelpers.formatCurrency(summary.totalCollection),
@@ -169,7 +170,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           iconBgColor: const Color(0xFFE0F2FE),
           accentColor: const Color(0xFF0369A1),
           subtitle: '${summary.verifiedCount + summary.pendingCount + summary.rejectedCount} contributions',
-        ),
+        ).toChipData(),
         PaymentSummaryCard(
           label: 'Verified payments',
           value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
@@ -177,7 +178,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           iconBgColor: const Color(0xFFECFDF5),
           accentColor: const Color(0xFF047857),
           subtitle: '${summary.verifiedCount} verified',
-        ),
+        ).toChipData(),
         PaymentSummaryCard(
           label: 'Pending verifications',
           value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
@@ -185,7 +186,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           iconBgColor: const Color(0xFFFFF7ED),
           accentColor: const Color(0xFFEA580C),
           subtitle: '${summary.pendingCount} awaiting review',
-        ),
+        ).toChipData(),
         PaymentSummaryCard(
           label: 'Rejected payments',
           value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
@@ -193,7 +194,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           iconBgColor: const Color(0xFFFEF2F2),
           accentColor: const Color(0xFFB91C1C),
           subtitle: '${summary.rejectedCount} rejected',
-        ),
+        ).toChipData(),
       ],
     );
   }

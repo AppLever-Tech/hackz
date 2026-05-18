@@ -24,6 +24,7 @@ import 'manage_users_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import 'payments_screen.dart';
 
@@ -181,7 +182,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ResponsiveMetricGrid(
-            children: <Widget>[
+            chips: <DashboardMetricChipData>[
               DepartmentMetricCard(
                 value: '${analytics.totalActiveUsers}',
                 label: 'Total Active Users',
@@ -189,7 +190,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 iconBgColor: const Color(0xFFEAF2FF),
                 footnote: '${analytics.studentCount} students · ${analytics.facultyCount} faculty',
                 tooltip: 'Active faculty, students, coordinators and judges in this department.',
-              ),
+              ).toChipData(),
               DepartmentMetricCard(
                 value: '${analytics.pendingApprovals}',
                 label: 'Pending Approvals',
@@ -197,7 +198,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 iconBgColor: const Color(0xFFFFF7E6),
                 footnote: '${analytics.pendingCoordinatorJudgeCount} coordinator/judge requests',
                 tooltip: 'Users waiting for department onboarding approval.',
-              ),
+              ).toChipData(),
               DepartmentMetricCard(
                 value: '${analytics.activeProblems}',
                 label: 'Active Problems',
@@ -205,7 +206,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 iconBgColor: const Color(0xFFE9FAF0),
                 footnote: '${analytics.ideaInflowByProblem.length} problems receiving ideas',
                 tooltip: 'Currently active problem statements in this department.',
-              ),
+              ).toChipData(),
               DepartmentMetricCard(
                 value: '${analytics.ideasSubmitted}',
                 label: 'Ideas Submitted',
@@ -213,7 +214,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 iconBgColor: const Color(0xFFF2EDFF),
                 footnote: '${analytics.evaluatedIdeas} evaluated · ${analytics.pendingPayments} payments pending',
                 tooltip: 'Department idea submissions and related operational workload.',
-              ),
+              ).toChipData(),
             ],
           ),
           SizedBox(height: gap),

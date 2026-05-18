@@ -14,6 +14,7 @@ import '../../widgets/student_team_overview_card.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
@@ -114,69 +115,69 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   Widget _buildSummaryCards(StudentDashboardVm vm) {
     final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas;
     return ResponsiveMetricGrid(
-      children: <Widget>[
-        DashboardCountCard(
-          value: '${vm.teamMemberCount}',
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.single(
           label: 'Members • ${vm.team.teamName.isEmpty ? 'No Team' : vm.team.teamName}',
+          value: '${vm.teamMemberCount}',
+          color: const Color(0xFF4A67FF),
           icon: AppIcons.teams,
-          iconBgColor: const Color(0xFFEAF2FF),
         ),
-        DashboardIconMetricCard(
-          metrics: <DashboardIconMetric>[
-            DashboardIconMetric(
+        DashboardMetricChipData.withSegments(
+          label: 'Ideas',
+          color: const Color(0xFF7C3AED),
+          icon: AppIcons.ideas,
+          segments: <DashboardMetricChipSegment>[
+            DashboardMetricChipSegment(
               icon: AppIcons.statusSubmitted,
               tooltip: 'In Progress (Pending + Submitted + Under Review)',
-              count: '$inProgressIdeas',
+              value: '$inProgressIdeas',
               color: StatusStyles.submitted,
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusApproved,
               tooltip: 'Approved',
-              count: '${vm.approvedIdeas}',
+              value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusRejected,
               tooltip: 'Rejected',
-              count: '${vm.rejectedIdeas}',
+              value: '${vm.rejectedIdeas}',
               color: StatusStyles.rejected,
             ),
           ],
-          label: 'Ideas',
-          icon: AppIcons.ideas,
-          iconBgColor: const Color(0xFFF2EDFF),
         ),
-        DashboardCountCard(
-          value: vm.avgScore?.toStringAsFixed(1) ?? '-',
-          secondaryValue: vm.highestScore?.toStringAsFixed(1) ?? '-',
+        DashboardMetricChipData.ratio(
           label: 'Avg / Highest Score',
+          primary: vm.avgScore?.toStringAsFixed(1) ?? '-',
+          secondary: vm.highestScore?.toStringAsFixed(1) ?? '-',
+          color: const Color(0xFF059669),
           icon: AppIcons.scoring,
-          iconBgColor: const Color(0xFFE8FAF1),
         ),
-        DashboardIconMetricCard(
-          metrics: <DashboardIconMetric>[
-            DashboardIconMetric(
+        DashboardMetricChipData.withSegments(
+          label: 'Payments',
+          color: const Color(0xFFEA580C),
+          icon: AppIcons.payments,
+          segments: <DashboardMetricChipSegment>[
+            DashboardMetricChipSegment(
               icon: AppIcons.statusSubmitted,
               tooltip: 'Pending',
-              count: '${vm.pendingPayments}',
+              value: '${vm.pendingPayments}',
               color: const Color(0xFFB56A11),
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusApproved,
               tooltip: 'Verified',
-              count: '${vm.verifiedPayments}',
+              value: '${vm.verifiedPayments}',
               color: const Color(0xFF177C50),
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusRejected,
               tooltip: 'Rejected',
-              count: '${vm.rejectedPayments}',
+              value: '${vm.rejectedPayments}',
               color: const Color(0xFFB93838),
             ),
           ],
-          label: 'Payments',
-          icon: AppIcons.payments,
-          iconBgColor: const Color(0xFFFFF4E8),
         ),
       ],
     );

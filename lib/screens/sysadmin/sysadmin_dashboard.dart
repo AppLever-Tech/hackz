@@ -22,6 +22,7 @@ import '../../widgets/sysadmin/platform_distribution_chart.dart';
 import '../../widgets/sysadmin/platform_metric_card.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/sysadmin/recent_platform_activity_card.dart';
@@ -141,35 +142,35 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           ResponsiveMetricGrid(
-            children: <Widget>[
+            chips: <DashboardMetricChipData>[
               PlatformMetricCard(
                 label: 'Active Organizations',
                 value: '${data.activeOrganizations}',
                 icon: AppIcons.organizations,
                 accent: const Color(0xFF2563EB),
                 caption: 'Recent ecosystem activity',
-              ),
+              ).toChipData(),
               PlatformMetricCard(
                 label: 'Total Active Users',
                 value: '${data.totalActiveUsers}',
                 icon: AppIcons.users,
                 accent: const Color(0xFF7C3AED),
                 caption: 'Approved platform users',
-              ),
+              ).toChipData(),
               PlatformMetricCard(
                 label: 'Ideas Submitted',
                 value: '${data.ideasSubmitted}',
                 icon: AppIcons.ideas,
                 accent: const Color(0xFFEA580C),
                 caption: 'All submitted ideas',
-              ),
+              ).toChipData(),
               PlatformMetricCard(
                 label: 'Approval Rate',
                 value: '${(data.approvalRate * 100).round()}%',
                 icon: AppIcons.statusApproved,
                 accent: const Color(0xFF16A34A),
                 caption: 'Active users / registrations',
-              ),
+              ).toChipData(),
             ],
           ),
           SizedBox(height: gap),

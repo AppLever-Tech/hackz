@@ -16,6 +16,7 @@ import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import 'manage_college_screen.dart';
 
@@ -144,30 +145,30 @@ class CollegeAdminDashboard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                 ResponsiveMetricGrid(
-                  children: <Widget>[
-                    DashboardCountCard(
-                      value: '$totalDepartments',
+                  chips: <DashboardMetricChipData>[
+                    DashboardMetricChipData.single(
                       label: 'Total Departments',
+                      value: '$totalDepartments',
+                      color: const Color(0xFF4A67FF),
                       icon: AppIcons.departments,
-                      iconBgColor: const Color(0xFFEAF2FF),
                     ),
-                    DashboardCountCard(
-                      value: '$totalUsers',
+                    DashboardMetricChipData.single(
                       label: 'Total Users',
+                      value: '$totalUsers',
+                      color: const Color(0xFFEA580C),
                       icon: AppIcons.users,
-                      iconBgColor: const Color(0xFFFFF4E8),
                     ),
-                    DashboardCountCard(
-                      value: '$totalProblems',
+                    DashboardMetricChipData.single(
                       label: 'Problem Statements',
+                      value: '$totalProblems',
+                      color: const Color(0xFF059669),
                       icon: AppIcons.problems,
-                      iconBgColor: const Color(0xFFE8FAF1),
                     ),
-                    DashboardCountCard(
-                      value: '$totalIdeas',
+                    DashboardMetricChipData.single(
                       label: 'Ideas (College)',
+                      value: '$totalIdeas',
+                      color: const Color(0xFF7C3AED),
                       icon: AppIcons.ideas,
-                      iconBgColor: const Color(0xFFF2EDFF),
                     ),
                   ],
                 ),

@@ -21,6 +21,7 @@ import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../widgets/responsive/responsive_multi_column.dart';
 import 'teams_screen.dart';
@@ -226,49 +227,49 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
 
   Widget _buildSummaryCards(_FacultyDashboardVm vm) {
     return ResponsiveMetricGrid(
-      children: <Widget>[
-        DashboardCountCard(
-          value: '${vm.teamCount}',
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.single(
           label: 'Teams',
+          value: '${vm.teamCount}',
+          color: const Color(0xFF4A67FF),
           icon: AppIcons.teams,
-          iconBgColor: const Color(0xFFEAF2FF),
         ),
-        DashboardCountCard(
-          value: '${vm.studentCount}',
+        DashboardMetricChipData.single(
           label: 'Students',
+          value: '${vm.studentCount}',
+          color: const Color(0xFF16A34A),
           icon: AppIcons.student,
-          iconBgColor: const Color(0xFFE9FAF0),
         ),
-        DashboardCountCard(
-          value: '${vm.departmentProblemCount}',
+        DashboardMetricChipData.single(
           label: 'Problems',
+          value: '${vm.departmentProblemCount}',
+          color: const Color(0xFF059669),
           icon: AppIcons.problems,
-          iconBgColor: const Color(0xFFE8FAF1),
         ),
-        DashboardIconMetricCard(
-          metrics: <DashboardIconMetric>[
-            DashboardIconMetric(
+        DashboardMetricChipData.withSegments(
+          label: 'Ideas',
+          color: const Color(0xFF7C3AED),
+          icon: AppIcons.ideas,
+          segments: <DashboardMetricChipSegment>[
+            DashboardMetricChipSegment(
               icon: AppIcons.statusSubmitted,
               tooltip: 'Submitted',
-              count: '${vm.submittedIdeas}',
+              value: '${vm.submittedIdeas}',
               color: StatusStyles.submitted,
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusApproved,
               tooltip: 'Approved',
-              count: '${vm.approvedIdeas}',
+              value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
             ),
-            DashboardIconMetric(
+            DashboardMetricChipSegment(
               icon: AppIcons.statusRejected,
               tooltip: 'Rejected',
-              count: '${vm.rejectedIdeas}',
+              value: '${vm.rejectedIdeas}',
               color: StatusStyles.rejected,
             ),
           ],
-          label: 'Ideas',
-          icon: AppIcons.ideas,
-          iconBgColor: const Color(0xFFF2EDFF),
         ),
       ],
     );
