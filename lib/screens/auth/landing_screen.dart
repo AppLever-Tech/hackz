@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../responsive/responsive_helper.dart';
-import 'desktop_landing_view.dart';
 import 'mobile_landing_screen.dart';
+import 'web_landing_screen.dart';
 
-/// Entry landing: compact mobile/tablet experience or desktop hero image.
+/// Entry landing: compact mobile or premium web/tablet experience.
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
 
@@ -13,6 +13,6 @@ class LandingScreen extends StatelessWidget {
     if (ResponsiveHelper.useCompactLanding(context)) {
       return const MobileLandingScreen();
     }
-    return const DesktopLandingView();
+    return const WebLandingScreen();
   }
 }

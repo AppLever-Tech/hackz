@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/firebase/firebase_bootstrap.dart';
 import 'screens/auth/auth_gate.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   await FirebaseBootstrap.initialize();
@@ -16,9 +17,7 @@ class HackzApp extends StatelessWidget {
     return MaterialApp(
       title: 'Hackz',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: AppTheme.light,
       home: const AuthGate(),
     );
   }

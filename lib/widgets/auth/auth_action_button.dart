@@ -12,6 +12,7 @@ class AuthActionButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
+    this.compact = false,
   }) : variant = _AuthActionVariant.primary;
 
   const AuthActionButton.secondary({
@@ -20,12 +21,14 @@ class AuthActionButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isLoading = false,
+    this.compact = false,
   }) : variant = _AuthActionVariant.secondary;
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool isLoading;
+  final bool compact;
   final _AuthActionVariant variant;
 
   @override
@@ -50,7 +53,7 @@ class AuthActionButton extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: compact ? 14 : 16,
                     fontWeight: FontWeight.w700,
                     color: variant == _AuthActionVariant.primary ? Colors.white : AuthTheme.ink,
                   ),
@@ -73,7 +76,7 @@ class AuthActionButton extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            minimumSize: const Size(double.infinity, AuthTheme.buttonHeight),
+            minimumSize: Size(double.infinity, compact ? 44 : AuthTheme.buttonHeight),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AuthTheme.buttonRadius),
             ),
@@ -86,7 +89,7 @@ class AuthActionButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, AuthTheme.buttonHeight),
+        minimumSize: Size(double.infinity, compact ? 44 : AuthTheme.buttonHeight),
         side: const BorderSide(color: AuthTheme.outline, width: 1.2),
         foregroundColor: AuthTheme.ink,
         backgroundColor: Colors.white.withValues(alpha: 0.72),

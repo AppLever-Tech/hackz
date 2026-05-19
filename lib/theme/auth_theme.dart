@@ -69,6 +69,70 @@ abstract final class AuthTheme {
 
   static const EdgeInsets pagePadding = EdgeInsets.symmetric(horizontal: 20);
   static const double maxContentWidth = 420;
+  static const double webLandingMaxWidth = 1180;
+
+  static const TextStyle heroHeadlineStyle = TextStyle(
+    fontSize: 40,
+    fontWeight: FontWeight.w800,
+    color: ink,
+    letterSpacing: -0.8,
+    height: 1.08,
+  );
+
+  static const TextStyle heroLeadStyle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w600,
+    color: body,
+    height: 1.45,
+  );
+
+  static const TextStyle sectionTitleStyle = TextStyle(
+    fontSize: 26,
+    fontWeight: FontWeight.w800,
+    color: ink,
+    letterSpacing: -0.4,
+    height: 1.15,
+  );
+
+  static const TextStyle sectionLeadStyle = TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    color: body,
+    height: 1.4,
+  );
+
+  static const TextStyle cardLabelStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: ink,
+    height: 1.2,
+  );
+
+  static const TextStyle cardCaptionStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: label,
+    height: 1.25,
+  );
+
+  static BoxDecoration glassCard({
+    double radius = 16,
+    Color? tint,
+    double opacity = 0.58,
+  }) {
+    return BoxDecoration(
+      color: (tint ?? Colors.white).withValues(alpha: opacity),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(color: border.withValues(alpha: 0.9)),
+      boxShadow: const <BoxShadow>[
+        BoxShadow(
+          color: Color(0x0F6A38FF),
+          blurRadius: 20,
+          offset: Offset(0, 8),
+        ),
+      ],
+    );
+  }
 
   static InputDecoration filledField({
     String? hintText,
