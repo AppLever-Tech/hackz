@@ -27,6 +27,9 @@ class InnovationMilestoneNode extends StatefulWidget {
 class _InnovationMilestoneNodeState extends State<InnovationMilestoneNode> {
   bool _hovered = false;
 
+  Color get _softAccent =>
+      Color.lerp(widget.accent, Colors.white, 0.38) ?? widget.accent;
+
   @override
   Widget build(BuildContext context) {
     final double w = InnovationMilestoneNode.width * widget.scale;
@@ -45,18 +48,18 @@ class _InnovationMilestoneNodeState extends State<InnovationMilestoneNode> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
-              Colors.white.withValues(alpha: _hovered ? 0.92 : 0.78),
-              widget.accent.withValues(alpha: _hovered ? 0.16 : 0.09),
+              Colors.white.withValues(alpha: _hovered ? 0.96 : 0.9),
+              _softAccent.withValues(alpha: _hovered ? 0.1 : 0.06),
             ],
           ),
           border: Border.all(
-            color: widget.accent.withValues(alpha: _hovered ? 0.48 : 0.28),
+            color: _softAccent.withValues(alpha: _hovered ? 0.32 : 0.2),
             width: 1,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: widget.accent.withValues(alpha: _hovered ? 0.22 : 0.1),
-              blurRadius: _hovered ? 12 : 7,
+              color: _softAccent.withValues(alpha: _hovered ? 0.12 : 0.06),
+              blurRadius: _hovered ? 10 : 6,
               offset: const Offset(0, 2),
             ),
           ],
@@ -64,7 +67,7 @@ class _InnovationMilestoneNodeState extends State<InnovationMilestoneNode> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(widget.icon, size: 19 * widget.scale, color: widget.accent),
+            Icon(widget.icon, size: 19 * widget.scale, color: _softAccent),
             SizedBox(height: 4 * widget.scale),
             Text(
               widget.label,
@@ -73,7 +76,8 @@ class _InnovationMilestoneNodeState extends State<InnovationMilestoneNode> {
               overflow: TextOverflow.ellipsis,
               style: AuthTheme.cardLabelStyle.copyWith(
                 fontSize: 10.5 * widget.scale,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
+                color: AuthTheme.body,
               ),
             ),
           ],

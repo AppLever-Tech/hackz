@@ -40,7 +40,7 @@ class _BrandColumn extends StatelessWidget {
   final VoidCallback onSignUp;
   final bool stackButtons;
 
-  static const double _compactButtonWidth = 132;
+  static const double _heroButtonWidth = 200;
 
   @override
   Widget build(BuildContext context) {
@@ -90,21 +90,21 @@ class _BrandColumn extends StatelessWidget {
               const SizedBox(height: 14),
               if (stackButtons) ...<Widget>[
                 SizedBox(
-                  width: _compactButtonWidth,
+                  width: _heroButtonWidth,
                   child: AuthActionButton.primary(
                     label: 'Sign In',
                     icon: Icons.login_rounded,
-                    compact: true,
+                    prominent: true,
                     onPressed: onSignIn,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 SizedBox(
-                  width: _compactButtonWidth,
+                  width: _heroButtonWidth,
                   child: AuthActionButton.secondary(
                     label: 'Sign Up',
                     icon: Icons.person_add_alt_1_rounded,
-                    compact: true,
+                    prominent: true,
                     onPressed: onSignUp,
                   ),
                 ),
@@ -113,21 +113,21 @@ class _BrandColumn extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     SizedBox(
-                      width: _compactButtonWidth,
+                      width: _heroButtonWidth,
                       child: AuthActionButton.primary(
                         label: 'Sign In',
                         icon: Icons.login_rounded,
-                        compact: true,
+                        prominent: true,
                         onPressed: onSignIn,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     SizedBox(
-                      width: _compactButtonWidth,
+                      width: _heroButtonWidth,
                       child: AuthActionButton.secondary(
                         label: 'Sign Up',
                         icon: Icons.person_add_alt_1_rounded,
-                        compact: true,
+                        prominent: true,
                         onPressed: onSignUp,
                       ),
                     ),

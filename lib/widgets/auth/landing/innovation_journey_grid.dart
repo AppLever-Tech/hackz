@@ -92,17 +92,14 @@ class _InnovationJourneyGridState extends State<InnovationJourneyGrid>
                 JourneyConnectorSegment(
                   from: MilestoneAnchors.exitBottom(topLeft(2), scale),
                   to: MilestoneAnchors.enterTop(topLeft(3), scale),
-                  emphasis: true,
                 ),
                 JourneyConnectorSegment(
                   from: MilestoneAnchors.exitLeft(topLeft(3), scale),
                   to: MilestoneAnchors.enterRight(topLeft(4), scale),
-                  emphasis: true,
                 ),
                 JourneyConnectorSegment(
                   from: MilestoneAnchors.exitLeft(topLeft(4), scale),
                   to: MilestoneAnchors.enterRight(topLeft(5), scale),
-                  emphasis: true,
                 ),
               ];
 

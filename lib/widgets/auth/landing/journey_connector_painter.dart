@@ -7,12 +7,10 @@ class JourneyConnectorSegment {
   const JourneyConnectorSegment({
     required this.from,
     required this.to,
-    this.emphasis = false,
   });
 
   final Offset from;
   final Offset to;
-  final bool emphasis;
 }
 
 /// Premium sequential-flow connectors with glow and optional pulse.
@@ -25,8 +23,12 @@ class JourneyConnectorPainter extends CustomPainter {
   final List<JourneyConnectorSegment> segments;
   final double pulse;
 
-  static const Color _primary = Color(0xFF6A38FF);
-  static const Color _secondary = Color(0x996A38FF);
+  static const Color _strokeStart = Color(0x886A38FF);
+  static const Color _strokeEnd = Color(0xFF8B5CF6);
+  static const Color _arrowFill = Color(0xFF7C4DFF);
+  static const double _strokeWidth = 4.2;
+  static const double _headLen = 11;
+  static const double _headW = 6.5;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -42,38 +44,30 @@ class JourneyConnectorPainter extends CustomPainter {
     if (delta.distance < 2) return;
 
     final Offset unit = delta / delta.distance;
-    final bool emphasis = seg.emphasis;
-    final double stroke = emphasis ? 5.2 : 4.2;
-    final double headLen = emphasis ? 13 : 11;
-    final double headW = emphasis ? 7.5 : 6.5;
-
-    final Offset lineEnd = to - unit * headLen;
+    final Offset lineEnd = to - unit * _headLen;
 
     final Paint glow = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke + 6
+      ..strokeWidth = _strokeWidth + 6
       ..strokeCap = StrokeCap.round
-      ..color = _primary.withValues(alpha: emphasis ? 0.14 : 0.1)
+      ..color = const Color(0xFF6A38FF).withValues(alpha: 0.1)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
     final Paint line = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
+      ..strokeWidth = _strokeWidth
       ..strokeCap = StrokeCap.round
       ..shader = ui.Gradient.linear(
         from,
         lineEnd,
-        <Color>[
-          emphasis ? _primary.withValues(alpha: 0.75) : _secondary,
-          emphasis ? _primary : const Color(0xFF8B5CF6),
-        ],
+        const <Color>[_strokeStart, _strokeEnd],
       );
 
     canvas.drawLine(from, lineEnd, glow);
     canvas.drawLine(from, lineEnd, line);
 
-    final Offset wing = Offset(-unit.dy, unit.dx) * headW;
-    final Offset base = to - unit * headLen;
+    final Offset wing = Offset(-unit.dy, unit.dx) * _headW;
+    final Offset base = to - unit * _headLen;
 
     canvas.drawPath(
       Path()
@@ -81,7 +75,7 @@ class JourneyConnectorPainter extends CustomPainter {
         ..lineTo(base.dx + wing.dx, base.dy + wing.dy)
         ..lineTo(base.dx - wing.dx, base.dy - wing.dy)
         ..close(),
-      Paint()..color = emphasis ? _primary : const Color(0xFF7C4DFF),
+      Paint()..color = _arrowFill,
     );
 
     if (pulse > 0) {
@@ -96,7 +90,7 @@ class JourneyConnectorPainter extends CustomPainter {
       canvas.drawCircle(
         pulsePos,
         5,
-        Paint()..color = _primary.withValues(alpha: 0.35),
+        Paint()..color = const Color(0xFF6A38FF).withValues(alpha: 0.35),
       );
     }
   }
