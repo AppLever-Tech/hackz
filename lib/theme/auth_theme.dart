@@ -86,11 +86,11 @@ abstract final class AuthTheme {
     height: 1.45,
   );
 
-  static const TextStyle sectionTitleStyle = TextStyle(
-    fontSize: 26,
+  static const TextStyle landingSectionTitle = TextStyle(
+    fontSize: 18,
     fontWeight: FontWeight.w800,
     color: ink,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     height: 1.15,
   );
 
@@ -114,25 +114,6 @@ abstract final class AuthTheme {
     color: label,
     height: 1.25,
   );
-
-  static BoxDecoration glassCard({
-    double radius = 16,
-    Color? tint,
-    double opacity = 0.58,
-  }) {
-    return BoxDecoration(
-      color: (tint ?? Colors.white).withValues(alpha: opacity),
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: border.withValues(alpha: 0.9)),
-      boxShadow: const <BoxShadow>[
-        BoxShadow(
-          color: Color(0x0F6A38FF),
-          blurRadius: 20,
-          offset: Offset(0, 8),
-        ),
-      ],
-    );
-  }
 
   static InputDecoration filledField({
     String? hintText,

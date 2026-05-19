@@ -4,9 +4,9 @@ import 'capability_pill_list.dart';
 import 'landing_section_header.dart';
 import 'role_constellation_grid.dart';
 
-/// Section header + child for landing ecosystem blocks.
-class LandingEcosystemColumn extends StatelessWidget {
-  const LandingEcosystemColumn({
+/// Section header + child for web landing ecosystem blocks.
+class LandingEcosystemSection extends StatelessWidget {
+  const LandingEcosystemSection({
     super.key,
     required this.title,
     required this.subtitle,
@@ -36,7 +36,7 @@ class EcosystemParticipantsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const LandingEcosystemColumn(
+    return const LandingEcosystemSection(
       title: 'Ecosystem Participants',
       subtitle: 'Roles connected across the innovation pipeline.',
       child: RoleConstellationGrid(),
@@ -50,7 +50,7 @@ class InnovationCapabilitiesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const LandingEcosystemColumn(
+    return const LandingEcosystemSection(
       title: 'Innovation Capabilities',
       subtitle: 'Infrastructure layers powering the lifecycle.',
       child: CapabilityPillList(),

@@ -2,15 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/auth_theme.dart';
 
-/// Shared centered title + subtitle for landing sections (18px title).
-abstract final class LandingSectionHeaderStyles {
-  static TextStyle get title =>
-      AuthTheme.sectionTitleStyle.copyWith(fontSize: 18);
-
-  static TextStyle get subtitle =>
-      AuthTheme.sectionLeadStyle.copyWith(fontSize: 13);
-}
-
+/// Shared centered title + subtitle for landing sections.
 class LandingSectionHeader extends StatelessWidget {
   const LandingSectionHeader({
     super.key,
@@ -29,13 +21,13 @@ class LandingSectionHeader extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: LandingSectionHeaderStyles.title,
+          style: AuthTheme.landingSectionTitle,
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: LandingSectionHeaderStyles.subtitle,
+          style: AuthTheme.sectionLeadStyle.copyWith(fontSize: 13),
         ),
       ],
     );

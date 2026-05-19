@@ -85,12 +85,6 @@ class _InnovationMilestoneNodeState extends State<InnovationMilestoneNode> {
 
 /// Edge anchor points for connector attachment (flush to node bounds).
 abstract final class MilestoneAnchors {
-  static Offset center(Offset topLeft, double scale) {
-    final double w = InnovationMilestoneNode.width * scale;
-    final double h = InnovationMilestoneNode.height * scale;
-    return Offset(topLeft.dx + w / 2, topLeft.dy + h / 2);
-  }
-
   static Offset enterLeft(Offset topLeft, double scale) {
     final double h = InnovationMilestoneNode.height * scale;
     return Offset(topLeft.dx, topLeft.dy + h / 2);

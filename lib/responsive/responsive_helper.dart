@@ -30,9 +30,6 @@ abstract final class ResponsiveHelper {
   /// Compact auth landing for phone only; tablet+ uses premium web landing.
   static bool useCompactLanding(BuildContext context) => isMobile(context);
 
-  /// Tablet and desktop/wide auth landing.
-  static bool useWebLanding(BuildContext context) => !isMobile(context);
-
   /// Outer padding around the dashboard shell (SafeArea child).
   static EdgeInsets dashboardOuterPadding(BuildContext context) {
     return switch (screenSizeOf(context)) {

@@ -7,7 +7,6 @@ import '../common/auth_page_layout.dart';
 import '../common/phone_number_field.dart';
 import '../../theme/auth_theme.dart';
 import '../../widgets/auth/auth_feature_strip.dart';
-import '../../widgets/auth/auth_field_container.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
 import 'otp_screen.dart';

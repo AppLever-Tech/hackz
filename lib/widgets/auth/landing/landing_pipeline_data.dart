@@ -55,13 +55,11 @@ class LandingRoleTile {
   const LandingRoleTile({
     required this.icon,
     required this.title,
-    required this.caption,
     required this.accent,
   });
 
   final IconData icon;
   final String title;
-  final String caption;
   final Color accent;
 }
 
@@ -70,37 +68,31 @@ abstract final class LandingRoleData {
     LandingRoleTile(
       icon: AppIcons.student,
       title: 'Student',
-      caption: 'Ideate, build teams & submit innovations',
       accent: Color(0xFF6A38FF),
     ),
     LandingRoleTile(
       icon: AppIcons.faculty,
       title: 'Faculty',
-      caption: 'Mentor teams through research & product paths',
       accent: Color(0xFF0EA5E9),
     ),
     LandingRoleTile(
       icon: AppIcons.judges,
       title: 'Judge',
-      caption: 'Evaluate submissions with structured rubrics',
       accent: Color(0xFFEA580C),
     ),
     LandingRoleTile(
       icon: AppIcons.coordinator,
       title: 'Coordinator',
-      caption: 'Orchestrate programs & innovation cycles',
       accent: Color(0xFF16A34A),
     ),
     LandingRoleTile(
       icon: AppIcons.departments,
       title: 'Department Admin',
-      caption: 'Align department innovation portfolios',
       accent: Color(0xFF7C3AED),
     ),
     LandingRoleTile(
       icon: AppIcons.settings,
       title: 'SysAdmin',
-      caption: 'Govern platform-wide innovation infrastructure',
       accent: Color(0xFF64748B),
     ),
   ];
