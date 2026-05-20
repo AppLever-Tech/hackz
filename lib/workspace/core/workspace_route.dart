@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 /// One workspace destination on the internal navigation stack.
 class WorkspaceRoute {
+  /// Shown under the header title while [prepare] runs (cleared when load finishes).
+  static const String loadingSubtitle = 'Loading…';
+
   const WorkspaceRoute({
     required this.id,
     required this.title,

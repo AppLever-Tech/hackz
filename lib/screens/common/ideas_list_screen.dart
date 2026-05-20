@@ -205,6 +205,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                           if (teamId.isEmpty) return;
                           WorkspaceNavigator.openTeam(context, teamId);
                         },
+                        onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
                         showViewDetails: false,
                         onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
                         showUploadPayment: showPay,

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../responsive/responsive_helper.dart';
-import 'team_activity_section.dart';
-import 'team_ideas_section.dart';
-import 'team_members_section.dart';
-import 'team_metrics_section.dart';
-import 'team_summary_section.dart';
-import 'team_workspace_loader.dart';
+import 'idea_attachments_section.dart';
+import 'idea_metrics_section.dart';
+import 'idea_related_section.dart';
+import 'idea_status_section.dart';
+import 'idea_summary_section.dart';
+import 'idea_workspace_loader.dart';
 
-class TeamWorkspaceBody extends StatelessWidget {
-  const TeamWorkspaceBody({super.key, required this.vm});
+class IdeaWorkspaceBody extends StatelessWidget {
+  const IdeaWorkspaceBody({super.key, required this.vm});
 
-  final TeamWorkspaceViewModel vm;
+  final IdeaWorkspaceViewModel vm;
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +26,15 @@ class TeamWorkspaceBody extends StatelessWidget {
     return ListView(
       padding: pad,
       children: <Widget>[
-        TeamSummarySection(vm: vm),
+        IdeaSummarySection(vm: vm),
         const SizedBox(height: 14),
-        TeamMembersSection(vm: vm),
+        IdeaStatusSection(vm: vm),
         const SizedBox(height: 14),
-        TeamMetricsSection(vm: vm),
+        IdeaMetricsSection(vm: vm),
         const SizedBox(height: 14),
-        TeamIdeasSection(vm: vm),
+        IdeaRelatedSection(vm: vm),
         const SizedBox(height: 14),
-        TeamActivitySection(items: vm.recentActivity),
+        IdeaAttachmentsSection(attachmentsByType: vm.attachmentsByType),
       ],
     );
   }

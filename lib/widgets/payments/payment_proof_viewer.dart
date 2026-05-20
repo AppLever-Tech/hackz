@@ -14,11 +14,13 @@ class PaymentProofViewer extends StatelessWidget {
     required this.payment,
     required this.attachments,
     this.onOpenGallery,
+    this.readOnly = false,
   });
 
   final PaymentModel payment;
   final List<AttachmentModel> attachments;
   final VoidCallback? onOpenGallery;
+  final bool readOnly;
 
   bool get _hasProof => payment.paymentProofUrl.trim().isNotEmpty || attachments.isNotEmpty;
 
@@ -66,9 +68,50 @@ class PaymentProofViewer extends StatelessWidget {
               title: 'Screenshots & files',
             )
           else if (payment.paymentProofUrl.trim().isNotEmpty)
-            _legacyProofActions(context),
+            readOnly ? _legacyProofReadOnly(context) : _legacyProofActions(context),
         ],
       ],
+    );
+  }
+
+  Widget _legacyProofReadOnly(BuildContext context) {
+    final String url = payment.paymentProofUrl.trim();
+    final Uri? uri = Uri.tryParse(url);
+    final bool isImage = uri != null &&
+        (uri.path.toLowerCase().endsWith('.png') ||
+            uri.path.toLowerCase().endsWith('.jpg') ||
+            uri.path.toLowerCase().endsWith('.jpeg') ||
+            uri.path.toLowerCase().endsWith('.webp'));
+
+    if (isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _legacyProofUrlText(url),
+          ),
+        ),
+      );
+    }
+    return _legacyProofUrlText(url);
+  }
+
+  Widget _legacyProofUrlText(String url) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: SelectableText(
+        url,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+      ),
     );
   }
 

@@ -489,6 +489,8 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                                   if (teamId.isEmpty) return;
                                   WorkspaceNavigator.openTeam(context, teamId);
                                 },
+                                onOpenIdea: () =>
+                                    WorkspaceNavigator.openIdea(context, entry.item.idea.ideaId),
                                 onEvaluate: canEvaluate ? () => _openEvaluateDialog(entry) : null,
                                 showUploadPayment: false,
                               ),

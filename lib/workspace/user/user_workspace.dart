@@ -11,8 +11,8 @@ abstract final class UserWorkspace {
     late UserWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'user:$id',
-      title: 'Member',
-      subtitle: 'Loading…',
+      title: 'User Details',
+      subtitle: WorkspaceRoute.loadingSubtitle,
       prepare: () async {
         vm = await UserWorkspaceLoader.load(id);
       },

@@ -9,6 +9,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
     required this.problemNumber,
     this.onOpenProblem,
     this.onOpenTeam,
+    this.onOpenPayment,
     required this.teamName,
     required this.studentName,
     this.onOpenStudent,
@@ -21,6 +22,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
   final String problemNumber;
   final VoidCallback? onOpenProblem;
   final VoidCallback? onOpenTeam;
+  final VoidCallback? onOpenPayment;
   final String teamName;
   final String studentName;
   final VoidCallback? onOpenStudent;
@@ -113,7 +115,16 @@ class CoordinatorPaymentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text('Amount: ${payment.amount.toStringAsFixed(2)}', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          InkWell(
+            onTap: onOpenPayment,
+            child: Text(
+              'Amount: ${payment.amount.toStringAsFixed(2)}',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: onOpenPayment == null ? null : const Color(0xFF334155),
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

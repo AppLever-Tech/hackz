@@ -554,6 +554,7 @@ class _FacultyDashboardService {
       ideaPreviews: (ideas.toList(growable: false)..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
           .map(
             (i) => _FacultyIdeaPreview(
+              ideaId: i.ideaId,
               title: i.ideaTitle.trim().isEmpty ? 'Untitled Idea' : i.ideaTitle.trim(),
               status: i.status,
             ),
@@ -566,8 +567,13 @@ class _FacultyDashboardService {
 }
 
 class _FacultyIdeaPreview {
-  const _FacultyIdeaPreview({required this.title, required this.status});
+  const _FacultyIdeaPreview({
+    required this.ideaId,
+    required this.title,
+    required this.status,
+  });
 
+  final String ideaId;
   final String title;
   final IdeaStatus status;
 }
@@ -688,7 +694,7 @@ class _KeyDataCard extends StatelessWidget {
                         children: title == 'My Teams' && teamPreview.isNotEmpty
                             ? teamPreview.map((team) => _teamBullet(context, team)).toList(growable: false)
                             : title == 'My Ideas' && ideaPreviews.isNotEmpty
-                                ? ideaPreviews.map((idea) => _ideaBullet(idea)).toList(growable: false)
+                                ? ideaPreviews.map((idea) => _ideaBullet(context, idea)).toList(growable: false)
                                 : preview.map((item) => _textBullet(item)).toList(growable: false),
                       ),
                     ),
@@ -755,7 +761,7 @@ class _KeyDataCard extends StatelessWidget {
     );
   }
 
-  Widget _ideaBullet(_FacultyIdeaPreview idea) {
+  Widget _ideaBullet(BuildContext context, _FacultyIdeaPreview idea) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -763,11 +769,16 @@ class _KeyDataCard extends StatelessWidget {
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              idea.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF1E293B)),
+            child: InkWell(
+              onTap: idea.ideaId.trim().isEmpty
+                  ? null
+                  : () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+              child: Text(
+                idea.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+              ),
             ),
           ),
           StatusStyles.ideaStatusIcon(

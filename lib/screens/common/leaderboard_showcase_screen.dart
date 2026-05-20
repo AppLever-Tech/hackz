@@ -178,6 +178,9 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
                   (r) => RankShowcaseCard(
                     rank: r.rank,
                     title: r.title,
+                    onTitleTap: r.ideaId.trim().isEmpty
+                        ? null
+                        : () => WorkspaceNavigator.openIdea(context, r.ideaId),
                     subtitle: r.categoryTheme,
                     scoreLabel: 'Innovation / Final',
                     scoreValue: '${r.innovationScore.toStringAsFixed(0)} • ${r.finalScore.toStringAsFixed(1)}',

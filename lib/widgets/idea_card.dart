@@ -15,6 +15,7 @@ class IdeaCard extends StatelessWidget {
     required this.onViewDetails,
     this.onOpenProblem,
     this.onOpenTeam,
+    this.onOpenIdea,
     this.showViewDetails = true,
     this.onEvaluate,
     required this.showUploadPayment,
@@ -27,6 +28,7 @@ class IdeaCard extends StatelessWidget {
   final VoidCallback onViewDetails;
   final VoidCallback? onOpenProblem;
   final VoidCallback? onOpenTeam;
+  final VoidCallback? onOpenIdea;
   final bool showViewDetails;
   final VoidCallback? onEvaluate;
   final bool showUploadPayment;
@@ -69,11 +71,17 @@ class IdeaCard extends StatelessWidget {
               const Icon(AppIcons.ideas, size: 20, color: Color(0xFF6A38FF)),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  ideaTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                child: InkWell(
+                  onTap: onOpenIdea,
+                  child: Text(
+                    ideaTitle,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: onOpenIdea == null ? null : const Color(0xFF334155),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ],

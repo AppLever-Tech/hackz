@@ -37,7 +37,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
             const SizedBox(height: 10),
             _membersRow(context),
             const SizedBox(height: 10),
-            _ideasBlock(),
+            _ideasBlock(context),
           ],
         ],
       ),
@@ -164,7 +164,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _ideasBlock() {
+  Widget _ideasBlock(BuildContext context) {
     if (vm.ideaCards.isEmpty) return _emptyState('No ideas submitted by this team yet.');
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
@@ -186,11 +186,16 @@ class StudentTeamOverviewCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        InkWell(
+                          onTap: item.idea.ideaId.trim().isEmpty
+                              ? null
+                              : () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                          child: Text(
+                            item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -203,7 +208,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
                           runSpacing: 6,
                           children: <Widget>[
                             _ideaPill(item.idea.status),
-                            _paymentPill(item.payment?.status),
+                            _paymentPill(context, item.payment),
                             _scoreBadge(item),
                           ],
                         ),
@@ -262,7 +267,8 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _paymentPill(PaymentRecordStatus? status) {
+  Widget _paymentPill(BuildContext context, PaymentModel? payment) {
+    final PaymentRecordStatus? status = payment?.status;
     final label = switch (status) {
       PaymentRecordStatus.pending => 'Payment Pending',
       PaymentRecordStatus.verified => 'Payment Verified',
@@ -275,13 +281,20 @@ class StudentTeamOverviewCard extends StatelessWidget {
       PaymentRecordStatus.rejected => const Color(0xFFB93838),
       null => const Color(0xFF5B628A),
     };
-    return Container(
+    final String paymentId = payment?.paymentId.trim() ?? '';
+    final Widget pill = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
+      child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+    );
+    if (paymentId.isEmpty) return pill;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => WorkspaceNavigator.openPayment(context, paymentId),
+      child: pill,
     );
   }
 

@@ -13,7 +13,7 @@ import '../../utils/firestore_utils.dart';
 import '../core/workspace_host.dart';
 import '../core/workspace_route.dart';
 import '../user/user_workspace.dart';
-import 'problem_related_section.dart';
+import '../idea/idea_workspace.dart';
 import 'problem_workspace_body.dart';
 
 class ProblemWorkspaceViewModel {
@@ -75,6 +75,28 @@ class ProblemIdeaPreview {
 }
 
 abstract final class ProblemWorkspace {
+  static void push(BuildContext context, String problemId) {
+    final String id = problemId.trim();
+    if (id.isEmpty) return;
+    final String routeId = 'problem:$id';
+    final current = HkzWorkspace.controllerOf(context).current;
+    if (current != null && current.id == routeId) return;
+
+    late ProblemWorkspaceViewModel vm;
+    HkzWorkspace.push(
+      context,
+      WorkspaceRoute(
+        id: routeId,
+        title: 'Problem Details',
+        subtitle: WorkspaceRoute.loadingSubtitle,
+        prepare: () async {
+          vm = await _load(id);
+        },
+        builder: (BuildContext context) => ProblemWorkspaceBody(vm: vm),
+      ),
+    );
+  }
+
   static void open(BuildContext context, String problemId) {
     final String id = problemId.trim();
     if (id.isEmpty) return;
@@ -87,8 +109,8 @@ abstract final class ProblemWorkspace {
       context,
       WorkspaceRoute(
         id: routeId,
-        title: 'Problem',
-        subtitle: 'Loading…',
+        title: 'Problem Details',
+        subtitle: WorkspaceRoute.loadingSubtitle,
         prepare: () async {
           vm = await _load(id);
         },
@@ -106,22 +128,7 @@ abstract final class ProblemWorkspace {
   }
 
   static void openIdeaFromProblem(BuildContext context, ProblemIdeaPreview preview) {
-    final String ideaId = preview.idea.ideaId.trim();
-    if (ideaId.isEmpty) return;
-    final current = HkzWorkspace.controllerOf(context).current;
-    if (current != null && current.id == 'idea:$ideaId') return;
-    HkzWorkspace.push(
-      context,
-      WorkspaceRoute(
-        id: 'idea:$ideaId',
-        title: preview.idea.ideaTitle.trim().isEmpty ? 'Idea' : preview.idea.ideaTitle.trim(),
-        subtitle: _ideaStatusLabel(preview.idea.status),
-        builder: (BuildContext context) => ProblemIdeaPreviewRoute(
-          preview: preview,
-          onOpenCreator: () => openUserFromProblem(context, preview.createdByUserId),
-        ),
-      ),
-    );
+    IdeaWorkspace.push(context, preview.idea.ideaId);
   }
 
   static Future<ProblemWorkspaceViewModel> _load(String problemId) async {
@@ -231,15 +238,4 @@ abstract final class ProblemWorkspace {
       judgeCount: judges,
     );
   }
-}
-
-String _ideaStatusLabel(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => 'Pending',
-    IdeaStatus.submitted => 'Submitted',
-    IdeaStatus.underReview => 'Under review',
-    IdeaStatus.evaluated => 'Evaluated',
-    IdeaStatus.approved => 'Approved',
-    IdeaStatus.rejected => 'Rejected',
-  };
 }

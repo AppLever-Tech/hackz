@@ -9,6 +9,8 @@ export 'core/workspace_navigator.dart';
 export 'core/workspace_route.dart';
 export 'core/workspace_theme.dart';
 export 'core/workspace_transition.dart';
+export 'idea/idea_workspace.dart';
+export 'payment/payment_workspace.dart';
 export 'problem/problem_workspace.dart';
 export 'team/team_workspace.dart';
 export 'user/user_workspace.dart';

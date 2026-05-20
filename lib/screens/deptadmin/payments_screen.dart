@@ -7,10 +7,8 @@ import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/payments/payment_contribution_tile.dart';
-import '../../widgets/payments/payment_detail_pane.dart';
 import '../../widgets/payments/payment_summary_card.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
-import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
@@ -29,7 +27,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   bool _showFilters = false;
-  String? _selectedPaymentId;
 
   PaymentRecordStatus? _statusFilter;
   DepartmentPaymentDateFilter _dateFilter = DepartmentPaymentDateFilter.all;
@@ -58,10 +55,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  void _openDetail(String paymentId) {
-    setState(() => _selectedPaymentId = paymentId);
-  }
-
   void _clearAllFilters() {
     setState(() {
       _statusFilter = null;
@@ -74,27 +67,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       _statusFilter != null ||
       _dateFilter != DepartmentPaymentDateFilter.all ||
       _verificationFilter != DepartmentPaymentVerificationFilter.all;
-
-  void _closeDetail() => setState(() => _selectedPaymentId = null);
-
-  Widget _buildDetailPane(DepartmentPaymentsWorkspace workspace) {
-    final paymentId = _selectedPaymentId;
-    if (paymentId == null) return const SizedBox.shrink();
-
-    final detail = workspace.detailFor(paymentId);
-    if (detail == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _selectedPaymentId == paymentId) _closeDetail();
-      });
-      return const Center(child: Text('Payment not found.'));
-    }
-
-    return SingleChildScrollView(
-      key: ValueKey<String>(paymentId),
-      padding: EdgeInsets.zero,
-      child: PaymentDetailPane(detail: detail),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -148,13 +120,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ],
             );
 
-            return ResponsiveListDetailLayout(
-              hasSelection: _selectedPaymentId != null,
-              onCloseDetail: _closeDetail,
-              backLabel: 'Back to payments',
-              list: listPanel,
-              detail: _buildDetailPane(workspace),
-            );
+            return listPanel;
           },
         );
       },
@@ -328,7 +294,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         return PaymentContributionTile(
           item: item,
           selected: false,
-          onTap: () => _openDetail(item.payment.paymentId),
+          onTap: () => WorkspaceNavigator.openPayment(context, item.payment.paymentId),
           onOpenProblem: item.payment.problemId.trim().isEmpty
               ? null
               : () => WorkspaceNavigator.openProblem(context, item.payment.problemId),

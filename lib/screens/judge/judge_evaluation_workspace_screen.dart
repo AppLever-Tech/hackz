@@ -144,7 +144,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         PendingEvaluationList(
           rows: vm.pending,
           onEvaluate: _openEvaluate,
-          onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
+          onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
           onOpenAttachments: _openAttachments,
           onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
         ),
@@ -152,7 +152,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           rows: vm.evaluated,
           onViewEvaluation: _openViewEvaluation,
           onEditEvaluation: _openEditEvaluation,
-          onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
+          onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
           onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
         ),
         EvaluationFeedbackSection(rows: vm.feedback),

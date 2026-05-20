@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/loading/hkz_progress_indicator.dart';
+import '../idea/idea_workspace.dart';
+import '../payment/payment_workspace.dart';
 import '../problem/problem_workspace.dart';
 import '../team/team_workspace.dart';
 import '../user/user_workspace.dart';
@@ -33,6 +35,16 @@ class WorkspaceNavigator extends StatelessWidget {
     TeamWorkspace.open(context, teamId);
   }
 
+  /// Opens the read-only idea workspace for [ideaId] (replaces the current workspace stack).
+  static void openIdea(BuildContext context, String ideaId) {
+    IdeaWorkspace.open(context, ideaId);
+  }
+
+  /// Opens the read-only payment workspace for [paymentId].
+  static void openPayment(BuildContext context, String paymentId) {
+    PaymentWorkspace.open(context, paymentId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final WorkspaceRoute? route = controller.current;
@@ -54,6 +66,7 @@ class WorkspaceNavigator extends StatelessWidget {
             child: _WorkspaceRouteBody(
               key: ValueKey<String>(route.id),
               route: route,
+              controller: controller,
             ),
           ),
         ),
@@ -66,9 +79,11 @@ class _WorkspaceRouteBody extends StatefulWidget {
   const _WorkspaceRouteBody({
     super.key,
     required this.route,
+    required this.controller,
   });
 
   final WorkspaceRoute route;
+  final WorkspaceController controller;
 
   @override
   State<_WorkspaceRouteBody> createState() => _WorkspaceRouteBodyState();
@@ -101,11 +116,16 @@ class _WorkspaceRouteBodyState extends State<_WorkspaceRouteBody> {
       if (mounted) setState(() => _ready = true);
       return;
     }
+    widget.controller.updateTop(subtitle: WorkspaceRoute.loadingSubtitle);
     try {
       await prep();
-      if (mounted) setState(() => _ready = true);
+      if (mounted) {
+        widget.controller.updateTop(subtitle: '');
+        setState(() => _ready = true);
+      }
     } catch (e) {
       if (mounted) {
+        widget.controller.updateTop(subtitle: '');
         setState(() {
           _error = e;
           _ready = true;
