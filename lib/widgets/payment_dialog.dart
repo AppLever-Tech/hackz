@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -14,6 +13,7 @@ import '../utils/attachment_service.dart';
 import '../utils/firestore_utils.dart';
 import '../screens/common/app_dialog_template.dart';
 import 'attachment_pick_field.dart';
+import 'loading/loading.dart';
 import 'responsive/responsive_dialog_actions.dart';
 
 /// Compact student payment submission (amount + screenshot required).
@@ -53,7 +53,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _txnController = TextEditingController();
   PlatformFile? _picked;
-  bool _saving = false;
+  bool _busy = false;
   String? _errorMessage;
 
   static const Duration _uploadTimeout = Duration(seconds: 120);
@@ -77,7 +77,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   }
 
   Future<void> _submit() async {
-    if (_saving) return;
+    if (_busy) return;
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       setState(() => _errorMessage = 'Enter a valid amount.');
@@ -88,48 +88,61 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       return;
     }
     setState(() {
-      _saving = true;
+      _busy = true;
       _errorMessage = null;
     });
+
     try {
-      var ext = (_picked!.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-      if (ext.isEmpty) ext = 'jpg';
-      if (ext == 'jpg') ext = 'jpeg';
-      final authUid = FirebaseAuth.instance.currentUser?.uid;
-      if (authUid == null || authUid.isEmpty) {
-        throw StateError('Not signed in.');
-      }
-      final paymentId = widget.idea.ideaId;
-      final uploaded = await AttachmentService.uploadAttachments(
-        entityType: AttachmentEntityType.payment,
-        entityId: paymentId,
-        orgId: widget.idea.orgId,
-        departmentCode: widget.idea.problemDepartmentCode,
-        uploadedBy: widget.currentUser.userId,
-        files: <PlatformFile>[_picked!],
-        fileType: 'payment',
-      ).timeout(_uploadTimeout);
-      final url = uploaded.first.downloadUrl;
-      final payment = PaymentModel(
-        paymentId: paymentId,
-        ideaId: widget.idea.ideaId,
-        teamId: widget.team.teamId,
-        problemId: widget.idea.problemId,
-        problemNumber: widget.idea.problemNumber,
-        orgId: widget.idea.orgId,
-        departmentCode: widget.idea.problemDepartmentCode,
-        amount: amount,
-        paymentProofUrl: url,
-        paidByStudentId: widget.currentUser.userId,
-        uploadedByAuthUid: authUid,
-        status: PaymentRecordStatus.pending,
-        verifiedBy: '',
-        verifiedAt: null,
-        remarks: '',
-        createdAt: DateTime.now(),
-        transactionId: _txnController.text.trim().isEmpty ? null : _txnController.text.trim(),
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Saving Payment',
+        message: 'Uploading payment proof and updating records...',
+        successMessage: 'Payment submitted',
+        task: () async {
+          var ext = (_picked!.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          if (ext.isEmpty) ext = 'jpg';
+          if (ext == 'jpg') ext = 'jpeg';
+          final authUid = FirebaseAuth.instance.currentUser?.uid;
+          if (authUid == null || authUid.isEmpty) {
+            throw StateError('Not signed in.');
+          }
+          final paymentId = widget.idea.ideaId;
+          HkzAsyncLoader.update(
+            message: 'Uploading payment screenshot securely...',
+          );
+          final uploaded = await AttachmentService.uploadAttachments(
+            entityType: AttachmentEntityType.payment,
+            entityId: paymentId,
+            orgId: widget.idea.orgId,
+            departmentCode: widget.idea.problemDepartmentCode,
+            uploadedBy: widget.currentUser.userId,
+            files: <PlatformFile>[_picked!],
+            fileType: 'payment',
+          ).timeout(_uploadTimeout);
+          final url = uploaded.first.downloadUrl;
+          HkzAsyncLoader.update(message: 'Saving payment record...');
+          final payment = PaymentModel(
+            paymentId: paymentId,
+            ideaId: widget.idea.ideaId,
+            teamId: widget.team.teamId,
+            problemId: widget.idea.problemId,
+            problemNumber: widget.idea.problemNumber,
+            orgId: widget.idea.orgId,
+            departmentCode: widget.idea.problemDepartmentCode,
+            amount: amount,
+            paymentProofUrl: url,
+            paidByStudentId: widget.currentUser.userId,
+            uploadedByAuthUid: authUid,
+            status: PaymentRecordStatus.pending,
+            verifiedBy: '',
+            verifiedAt: null,
+            remarks: '',
+            createdAt: DateTime.now(),
+            transactionId: _txnController.text.trim().isEmpty ? null : _txnController.text.trim(),
+          );
+          await FirestoreUtils.saveStudentIdeaPayment(payment).timeout(_firestoreTimeout);
+        },
       );
-      await FirestoreUtils.saveStudentIdeaPayment(payment).timeout(_firestoreTimeout);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e, stackTrace) {
@@ -142,9 +155,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       setState(() => _errorMessage = message);
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -177,7 +188,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         const SizedBox(height: 10),
         AttachmentSingleImagePickField(
           file: _picked,
-          enabled: !_saving,
+          enabled: !_busy,
           onChanged: (f) => setState(() => _picked = f),
         ),
         if (_errorMessage != null) ...<Widget>[
@@ -191,12 +202,12 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         ResponsiveDialogActions(
           children: <Widget>[
             OutlinedButton(
-              onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+              onPressed: _busy ? null : () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: _saving ? null : _submit,
-              child: Text(_saving ? 'Submitting...' : 'Submit'),
+              onPressed: _busy ? null : _submit,
+              child: const Text('Submit'),
             ),
           ],
         ),

@@ -9,6 +9,7 @@ import '../../models/user_model.dart';
 import '../../utils/faculty_teams_service.dart';
 import '../../utils/team_service.dart';
 import '../attachment_pick_field.dart';
+import '../loading/loading.dart';
 import '../responsive/responsive_dialog_actions.dart';
 import '../responsive/responsive_filter_bar.dart';
 
@@ -34,7 +35,7 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
   List<ProblemModel> _problems = <ProblemModel>[];
   ProblemModel? _selectedProblem;
   List<PlatformFile> _attachmentFiles = <PlatformFile>[];
-  bool _saving = false;
+  bool _busy = false;
   bool _loadingLookups = true;
 
   @override
@@ -93,15 +94,31 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
       }
       return;
     }
-    setState(() => _saving = true);
+    final int fileCount = _attachmentFiles.length;
+    setState(() => _busy = true);
     try {
-      await FacultyTeamsService.submitIdea(
-        faculty: widget.currentUser,
-        team: team,
-        problem: problem,
-        ideaTitle: title,
-        description: description,
-        attachmentFiles: _attachmentFiles,
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Uploading Idea',
+        message: fileCount > 0
+            ? 'Uploading $fileCount attachment${fileCount == 1 ? '' : 's'} and saving idea...'
+            : 'Saving idea and updating records...',
+        successMessage: 'Idea submitted',
+        task: () async {
+          if (fileCount > 0) {
+            HkzAsyncLoader.update(
+              message: 'Uploading $fileCount file${fileCount == 1 ? '' : 's'} securely...',
+            );
+          }
+          await FacultyTeamsService.submitIdea(
+            faculty: widget.currentUser,
+            team: team,
+            problem: problem,
+            ideaTitle: title,
+            description: description,
+            attachmentFiles: _attachmentFiles,
+          );
+        },
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -112,7 +129,7 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submit failed: $e')));
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -128,7 +145,7 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
     if (_loadingLookups) {
       return const Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: HkzProgressIndicator(size: 36)),
       );
     }
 
@@ -219,7 +236,7 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
           const SizedBox(height: 12),
           AttachmentFilesPickField(
             files: _attachmentFiles,
-            enabled: !_saving,
+            enabled: !_busy,
             onChanged: (next) => setState(() => _attachmentFiles = next),
           ),
           const SizedBox(height: 10),
@@ -231,10 +248,13 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
             children: <Widget>[
-              OutlinedButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+              OutlinedButton(
+                onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
               FilledButton(
-                onPressed: _saving || _problems.isEmpty ? null : _submit,
-                child: Text(_saving ? 'Submitting...' : 'Submit Idea'),
+                onPressed: _busy || _problems.isEmpty ? null : _submit,
+                child: const Text('Submit Idea'),
               ),
             ],
           ),
