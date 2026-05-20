@@ -102,7 +102,7 @@ abstract final class ProblemWorkspace {
     if (id.isEmpty) return;
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == 'user:$id') return;
-    UserWorkspace.open(context, id);
+    UserWorkspace.push(context, id);
   }
 
   static void openIdeaFromProblem(BuildContext context, ProblemIdeaPreview preview) {
