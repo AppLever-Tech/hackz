@@ -9,7 +9,6 @@ import '../../models/department_model.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/user_model.dart';
 import '../../constants/account_workspace_visuals.dart';
-import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
@@ -456,140 +455,197 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     );
   }
 
-  Widget _sectionHeader(String label, int count, {bool highlighted = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: highlighted ? const Color(0xFFFFF4E8) : const Color(0xFFF6F8FD),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: <Widget>[
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(width: 6),
-          Text('($count)', style: const TextStyle(color: Color(0xFF5F6684))),
-        ],
+  Widget _metaDot() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 6),
+      child: Text('·', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFCBD5E1))),
+    );
+  }
+
+  Widget _inlineMeta(String text, {Color? color, int maxLines = 1}) {
+    return Text(
+      text,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: color ?? const Color(0xFF64748B),
       ),
     );
   }
 
-  Widget _userRow(UserModel u) {
+  Widget _userDetailsLine(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
     final isRejected = u.status == UserStatus.rejected;
-    final rejectedDate = u.approvedAt == null ? 'Not recorded' : formatDateTime(u.approvedAt!);
-    final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No rejection reason recorded.' : u.rejectionReason!.trim();
+    final String name = '${u.firstName} ${u.lastName}'.trim().isEmpty ? u.phone : '${u.firstName} ${u.lastName}'.trim();
+    final String email = u.email.trim().isEmpty ? '—' : u.email.trim();
+    final String phone = u.phone.trim().isEmpty ? '—' : u.phone.trim();
+    final String typeLabel = isPending ? 'Pending approval' : _roleLabel(u.role);
+    final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No reason recorded' : u.rejectionReason!.trim();
 
-    final chips = <Widget>[
-      if (!isPending)
+    final List<Widget> segments = <Widget>[
+      ContextPill(
+        label: name,
+        semantic: ContextPillSemantic.user,
+        icon: AppIcons.forUserRoleCode(u.role),
+        onTap: () => WorkspaceNavigator.openUser(context, u.userId),
+        compact: true,
+        fitContent: true,
+      ),
+      _metaDot(),
+      _inlineMeta(email),
+      _metaDot(),
+      _inlineMeta(phone),
+      _metaDot(),
+      _inlineMeta(typeLabel),
+      if (u.status != UserStatus.active && !isPending) ...<Widget>[
+        _metaDot(),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
-          child: Text(_roleLabel(u.role), style: const TextStyle(fontSize: 12)),
-        ),
-      if (u.status != UserStatus.active)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
             color: AccountWorkspaceVisuals.chipBackgroundForUserStatus(u.status),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
               color: AccountWorkspaceVisuals.userStatusAccent(u.status),
             ),
           ),
         ),
+      ],
+      if (isRejected) ...<Widget>[
+        _metaDot(),
+        _inlineMeta('Reason: $rejectionReason', color: const Color(0xFF7F1D1D)),
+      ],
     ];
 
-    final actions = <Widget>[
-      if (isPending) ...<Widget>[
-        TextButton(onPressed: () => _approve(u), child: const Text('Approve')),
-        TextButton(onPressed: () => _reject(u), child: const Text('Reject')),
-      ] else if (isRejected) ...<Widget>[
-        TextButton.icon(
-          onPressed: () => _deleteUser(u),
-          icon: const Icon(AppIcons.remove, size: 16),
-          label: const Text('Delete'),
-        ),
-      ] else
-        PopupMenuButton<String>(
-          icon: const Icon(AppIcons.more, size: 18),
-          onSelected: (v) async {
-            if (v == 'delete') {
-              await _deleteUser(u);
-            }
-          },
-          itemBuilder: (_) => const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
+    final Widget line = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: segments,
+    );
+
+    if (ResponsiveHelper.isMobile(context)) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: line,
+      );
+    }
+    return line;
+  }
+
+  Widget _userRowTrailing(UserModel u) {
+    final isPending = u.status == UserStatus.pendingApproval;
+    if (isPending) {
+      if (ResponsiveHelper.isMobile(context)) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            IconButton(
+              tooltip: 'Approve',
+              onPressed: () => _approve(u),
+              icon: const Icon(Icons.check_circle_outline, color: Color(0xFF177C50)),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
+            IconButton(
+              tooltip: 'Reject',
+              onPressed: () => _reject(u),
+              icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            ),
           ],
-        ),
-    ];
+        );
+      }
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          TextButton(
+            onPressed: () => _approve(u),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Approve'),
+          ),
+          TextButton(
+            onPressed: () => _reject(u),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Reject'),
+          ),
+        ],
+      );
+    }
+    return IconButton(
+      tooltip: 'Delete user',
+      onPressed: () => _deleteUser(u),
+      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
 
+  Widget _userRow(UserModel u) {
     return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      margin: const EdgeInsets.only(top: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveHelper.isMobile(context) ? 8 : 10,
+        vertical: 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE9ECF6)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: const Color(0xFFEAF2FF),
-                child: Icon(AppIcons.forUserRoleCode(u.role), size: 16, color: const Color(0xFF3552CC)),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ContextPill(
-                        label: '${u.firstName} ${u.lastName}'.trim(),
-                        semantic: ContextPillSemantic.user,
-                        icon: AppIcons.forUserRoleCode(u.role),
-                        onTap: () => WorkspaceNavigator.openUser(context, u.userId),
-                        compact: true,
-                        fitContent: true,
-                      ),
-                    ),
-                    Text('${u.phone} • ${u.email}', maxLines: 2, overflow: TextOverflow.ellipsis),
-                    if (isRejected) ...<Widget>[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Reason: $rejectionReason',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF7F1D1D), fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Rejected on $rejectedDate',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (chips.isNotEmpty || actions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            ResponsiveWrapToolbar(
-              children: <Widget>[...chips, ...actions],
-            ),
-          ],
+          Expanded(child: _userDetailsLine(u)),
+          const SizedBox(width: 4),
+          _userRowTrailing(u),
         ],
+      ),
+    );
+  }
+
+  Widget _roleAccordion({
+    required String title,
+    required int count,
+    required List<UserModel> users,
+    bool highlighted = false,
+  }) {
+    if (users.isEmpty) return const SizedBox.shrink();
+    final Color headerBg = highlighted ? const Color(0xFFFFF4E8) : const Color(0xFFF6F8FD);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: headerBg,
+        borderRadius: BorderRadius.circular(10),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            initiallyExpanded: false,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+            childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            title: Text(
+              '$title ($count)',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF0F172A)),
+            ),
+            children: users.map(_userRow).toList(growable: false),
+          ),
+        ),
       ),
     );
   }
@@ -642,51 +698,23 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         ),
         const SizedBox(height: 10),
         Expanded(
-          child: CustomScrollView(
-            slivers: <Widget>[
-              if (pending.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(child: _sectionHeader('Pending Users', pending.length, highlighted: true)),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(pending[i]), childCount: pending.length),
+          child: users.isEmpty
+              ? const Center(child: Text('No users match the selected filter.'))
+              : ListView(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  children: <Widget>[
+                    _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
+                    _roleAccordion(title: 'Faculty', count: faculty.length, users: faculty),
+                    _roleAccordion(title: 'Students', count: students.length, users: students),
+                    _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
+                    _roleAccordion(
+                      title: 'Rejected Users',
+                      count: rejected.length,
+                      users: rejected,
+                      highlighted: true,
+                    ),
+                  ],
                 ),
-              ],
-              if (faculty.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 10), child: _sectionHeader('Faculty', faculty.length))),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(faculty[i]), childCount: faculty.length),
-                ),
-              ],
-              if (students.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.only(top: 10), child: _sectionHeader('Students', students.length))),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(students[i]), childCount: students.length),
-                ),
-              ],
-              if (coordinators.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(
-                    child: Padding(padding: const EdgeInsets.only(top: 10), child: _sectionHeader('Coordinators', coordinators.length))),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(coordinators[i]), childCount: coordinators.length),
-                ),
-              ],
-              if (rejected.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: _sectionHeader('Rejected Users', rejected.length, highlighted: true),
-                  ),
-                ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((_, i) => _userRow(rejected[i]), childCount: rejected.length),
-                ),
-              ],
-              if (users.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: Text('No users match the selected filter.')),
-                ),
-            ],
-          ),
         ),
       ],
     );
