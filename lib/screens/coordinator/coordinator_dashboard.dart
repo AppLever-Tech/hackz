@@ -594,6 +594,9 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
             onOpenStudent: p.paidByStudentId.trim().isEmpty
                 ? null
                 : () => WorkspaceNavigator.openUser(context, p.paidByStudentId),
+            onOpenTeam: p.teamId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openTeam(context, p.teamId),
             onViewScreenshot: () => _viewShot(p),
             onApprove: () => _approve(p),
             onReject: () => _reject(p),

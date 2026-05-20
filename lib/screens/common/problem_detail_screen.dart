@@ -483,6 +483,12 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                                 onOpenProblem: entry.item.idea.problemId.trim().isEmpty
                                     ? null
                                     : () => WorkspaceNavigator.openProblem(context, entry.item.idea.problemId),
+                                onOpenTeam: () {
+                                  final String teamId =
+                                      (entry.item.team?.teamId ?? entry.item.idea.teamId).trim();
+                                  if (teamId.isEmpty) return;
+                                  WorkspaceNavigator.openTeam(context, teamId);
+                                },
                                 onEvaluate: canEvaluate ? () => _openEvaluateDialog(entry) : null,
                                 showUploadPayment: false,
                               ),

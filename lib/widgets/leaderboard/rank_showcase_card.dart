@@ -15,11 +15,13 @@ class RankShowcaseCard extends StatelessWidget {
     required this.scoreValue,
     required this.trend,
     required this.achievementId,
+    this.onSubtitleTap,
   });
 
   final int rank;
   final String title;
   final String subtitle;
+  final VoidCallback? onSubtitleTap;
   final String scoreLabel;
   final String scoreValue;
   final TrendDirection trend;
@@ -82,12 +84,26 @@ class RankShowcaseCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
+                onSubtitleTap == null
+                    ? Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      )
+                    : InkWell(
+                        onTap: onSubtitleTap,
+                        child: Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF334155),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
               ],
             ),
           ),

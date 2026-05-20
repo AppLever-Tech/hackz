@@ -23,6 +23,7 @@ import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../workspace/workspace.dart';
 
 enum _IdeaDetailTab { details, team, payment, evaluation, attachments, activity }
 
@@ -133,9 +134,17 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
-          style: const TextStyle(color: Color(0xFF5B628A)),
+        InkWell(
+          onTap: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
+              ? null
+              : () => WorkspaceNavigator.openTeam(
+                    context,
+                    vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId,
+                  ),
+          child: Text(
+            'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
+            style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );
@@ -288,8 +297,18 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              InkWell(
+                onTap: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
+                    ? null
+                    : () => WorkspaceNavigator.openTeam(
+                          context,
+                          vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId,
+                        ),
+                child: Text(
+                  'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                ),
+              ),
               const SizedBox(height: 8),
               Text('Mentor: ${_name(vm.mentor)}'),
               const SizedBox(height: 8),

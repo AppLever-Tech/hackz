@@ -66,11 +66,16 @@ class StudentTeamOverviewCard extends StatelessWidget {
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: Text(
-                        vm.team.teamName.isEmpty ? 'Team' : vm.team.teamName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      child: InkWell(
+                        onTap: vm.team.teamId.trim().isEmpty
+                            ? null
+                            : () => WorkspaceNavigator.openTeam(context, vm.team.teamId),
+                        child: Text(
+                          vm.team.teamName.isEmpty ? 'Team' : vm.team.teamName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                        ),
                       ),
                     ),
                     _teamStatusPill(vm.team.status),

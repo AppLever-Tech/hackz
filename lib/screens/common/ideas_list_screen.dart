@@ -200,6 +200,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                         onOpenProblem: item.idea.problemId.trim().isEmpty
                             ? null
                             : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
+                        onOpenTeam: () {
+                          final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+                          if (teamId.isEmpty) return;
+                          WorkspaceNavigator.openTeam(context, teamId);
+                        },
                         showViewDetails: false,
                         onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
                         showUploadPayment: showPay,

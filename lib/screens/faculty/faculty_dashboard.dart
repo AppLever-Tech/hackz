@@ -16,6 +16,7 @@ import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
+import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
@@ -685,7 +686,7 @@ class _KeyDataCard extends StatelessWidget {
                   : SingleChildScrollView(
                       child: Column(
                         children: title == 'My Teams' && teamPreview.isNotEmpty
-                            ? teamPreview.map((team) => _teamBullet(team)).toList(growable: false)
+                            ? teamPreview.map((team) => _teamBullet(context, team)).toList(growable: false)
                             : title == 'My Ideas' && ideaPreviews.isNotEmpty
                                 ? ideaPreviews.map((idea) => _ideaBullet(idea)).toList(growable: false)
                                 : preview.map((item) => _textBullet(item)).toList(growable: false),
@@ -698,7 +699,7 @@ class _KeyDataCard extends StatelessWidget {
     );
   }
 
-  Widget _teamBullet(TeamModel team) {
+  Widget _teamBullet(BuildContext context, TeamModel team) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -706,11 +707,16 @@ class _KeyDataCard extends StatelessWidget {
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              team.teamName.isEmpty ? team.teamId : team.teamName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF1E293B)),
+            child: InkWell(
+              onTap: team.teamId.trim().isEmpty
+                  ? null
+                  : () => WorkspaceNavigator.openTeam(context, team.teamId),
+              child: Text(
+                team.teamName.isEmpty ? team.teamId : team.teamName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+              ),
             ),
           ),
           const SizedBox(width: 8),

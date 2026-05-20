@@ -4,6 +4,7 @@ import '../../constants/app_icons.dart';
 import '../../models/team_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/faculty_teams_service.dart';
+import '../../workspace/workspace.dart';
 import '../common/card_overflow_menu.dart';
 import 'student_member_chips.dart';
 import 'team_idea_summary_widget.dart';
@@ -55,7 +56,17 @@ class TeamWorkspaceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(team.teamName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                    InkWell(
+                      onTap: team.teamId.trim().isEmpty
+                          ? null
+                          : () => WorkspaceNavigator.openTeam(context, team.teamId),
+                      child: Text(
+                        team.teamName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF334155)),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: <Widget>[

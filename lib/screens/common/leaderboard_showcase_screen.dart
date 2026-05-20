@@ -10,6 +10,7 @@ import '../../widgets/leaderboard/innovation_momentum_chart.dart';
 import '../../widgets/leaderboard/leaderboard_hero_section.dart';
 import '../../widgets/leaderboard/leaderboard_tab_section.dart';
 import '../../widgets/leaderboard/rank_showcase_card.dart';
+import '../../workspace/workspace.dart';
 import '../../widgets/leaderboard/rising_ideas_widget.dart';
 import '../../widgets/leaderboard/trend_indicator_widget.dart';
 import '../../responsive/responsive_helper.dart';
@@ -148,6 +149,9 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
                     rank: r.rank,
                     title: r.spotlightIdeaTitle,
                     subtitle: '${r.teamName} • ${r.departmentLabel}',
+                    onSubtitleTap: r.teamId.trim().isEmpty
+                        ? null
+                        : () => WorkspaceNavigator.openTeam(context, r.teamId),
                     scoreLabel: 'Innovation score',
                     scoreValue: r.finalScore.toStringAsFixed(1),
                     trend: r.trend,

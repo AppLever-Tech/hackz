@@ -14,6 +14,7 @@ class IdeaCard extends StatelessWidget {
     required this.canEvaluate,
     required this.onViewDetails,
     this.onOpenProblem,
+    this.onOpenTeam,
     this.showViewDetails = true,
     this.onEvaluate,
     required this.showUploadPayment,
@@ -25,6 +26,7 @@ class IdeaCard extends StatelessWidget {
   final bool canEvaluate;
   final VoidCallback onViewDetails;
   final VoidCallback? onOpenProblem;
+  final VoidCallback? onOpenTeam;
   final bool showViewDetails;
   final VoidCallback? onEvaluate;
   final bool showUploadPayment;
@@ -113,6 +115,7 @@ class IdeaCard extends StatelessWidget {
               _metaPill(
                 icon: AppIcons.teams,
                 label: 'Team: ${item.teamName.trim().isEmpty ? '-' : item.teamName}',
+                onTap: onOpenTeam,
               ),
               _metaPill(icon: AppIcons.clock, label: 'Created: ${_formatDate(item.idea.createdAt)}'),
               if (item.idea.status == IdeaStatus.pendingSubmission || item.payment != null)

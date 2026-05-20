@@ -11,6 +11,7 @@ import '../../workspace/workspace.dart';
 class TeamContributionSection extends StatelessWidget {
   const TeamContributionSection({
     super.key,
+    this.teamId,
     required this.teamName,
     required this.mentorName,
     required this.students,
@@ -19,6 +20,7 @@ class TeamContributionSection extends StatelessWidget {
     this.problemDescription,
   });
 
+  final String? teamId;
   final String teamName;
   final String mentorName;
   final List<UserModel> students;
@@ -34,6 +36,7 @@ class TeamContributionSection extends StatelessWidget {
     required ProblemModel? problem,
   }) {
     return TeamContributionSection(
+      teamId: team?.teamId,
       teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : (team?.teamId ?? '-'),
       mentorName: mentorName,
       students: students,
@@ -52,7 +55,7 @@ class TeamContributionSection extends StatelessWidget {
       children: <Widget>[
         _sectionTitle(AppIcons.teams, 'Team contribution'),
         const SizedBox(height: 8),
-        _line(AppIcons.teams, 'Team', teamName),
+        _teamLine(context),
         const SizedBox(height: 6),
         _line(AppIcons.faculty, 'Mentor', mentorName),
         const SizedBox(height: 8),
@@ -125,6 +128,30 @@ class TeamContributionSection extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _teamLine(BuildContext context) {
+    final String id = teamId?.trim() ?? '';
+    if (id.isEmpty) {
+      return _line(AppIcons.teams, 'Team', teamName);
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Icon(AppIcons.teams, size: 16, color: Color(0xFF64748B)),
+        const SizedBox(width: 8),
+        const Text('Team: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+        Expanded(
+          child: InkWell(
+            onTap: () => WorkspaceNavigator.openTeam(context, id),
+            child: Text(
+              teamName,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
