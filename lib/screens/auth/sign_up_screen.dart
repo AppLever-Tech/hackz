@@ -12,7 +12,6 @@ import '../../theme/auth_theme.dart';
 import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
 import 'otp_screen.dart';
-import 'sign_in_screen.dart';
 import 'landing_screen.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';
@@ -68,6 +67,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   String get _accessCodeRaw => _accessCodeControllers.map((c) => c.text).join();
+
+  Future<void> _cancelToLanding() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LandingScreen()),
+      (_) => false,
+    );
+  }
 
   void _onAccessCodeChanged(int index, String value) {
     if (value.isNotEmpty && index < _accessCodeControllers.length - 1) {
@@ -274,7 +282,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
       nextLabel: 'Next',
       onNext: _submit,
-      onCancel: () => Navigator.of(context).maybePop(),
+      onCancel: _cancelToLanding,
       isLoading: _isSubmitting,
     );
   }
