@@ -29,6 +29,7 @@ import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../workspace/workspace.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -581,6 +582,9 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
             problemNumber: p.problemNumber,
             teamName: teamName,
             studentName: student,
+            onOpenStudent: p.paidByStudentId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openUser(context, p.paidByStudentId),
             onViewScreenshot: () => _viewShot(p),
             onApprove: () => _approve(p),
             onReject: () => _reject(p),

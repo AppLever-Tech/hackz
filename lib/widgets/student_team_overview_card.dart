@@ -5,10 +5,10 @@ import '../constants/status_styles.dart';
 import '../models/enums/team_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
-import '../models/user_model.dart';
 import '../utils/common_helpers.dart';
 import '../utils/student_dashboard_service.dart';
 import '../screens/common/dashboard_components.dart';
+import '../workspace/workspace.dart';
 
 class StudentTeamOverviewCard extends StatelessWidget {
   const StudentTeamOverviewCard({
@@ -33,9 +33,9 @@ class StudentTeamOverviewCard extends StatelessWidget {
           if (vm.team.teamId.isEmpty)
             _emptyState('No team assigned yet.')
           else ...<Widget>[
-            _header(activeIdeas: activeIdeas),
+            _header(context, activeIdeas: activeIdeas),
             const SizedBox(height: 10),
-            _membersRow(),
+            _membersRow(context),
             const SizedBox(height: 10),
             _ideasBlock(),
           ],
@@ -44,7 +44,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _header({required int activeIdeas}) {
+  Widget _header(BuildContext context, {required int activeIdeas}) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -82,7 +82,13 @@ class StudentTeamOverviewCard extends StatelessWidget {
                   runSpacing: 6,
                   children: <Widget>[
                     _mini('Department', vm.department),
-                    _mini('Mentor', vm.mentorName),
+                    _mini(
+                      'Mentor',
+                      vm.mentorName,
+                      onTap: vm.mentorId.trim().isEmpty
+                          ? null
+                          : () => WorkspaceNavigator.openUser(context, vm.mentorId),
+                    ),
                     _mini('Members', '${vm.teamMembers.length}'),
                     _mini('Active Ideas', '$activeIdeas'),
                   ],
@@ -95,7 +101,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _membersRow() {
+  Widget _membersRow(BuildContext context) {
     if (vm.teamMembers.isEmpty) return _emptyState('No team members found.');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,7 +134,17 @@ class StudentTeamOverviewCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(name, style: const TextStyle(fontSize: 12)),
+                    InkWell(
+                      onTap: () => WorkspaceNavigator.openUser(context, m.userId),
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                    ),
                     if (idx == 0) ...<Widget>[
                       const SizedBox(width: 6),
                       const Icon(Icons.star_rounded, size: 14, color: Color(0xFFB56A11)),
@@ -280,10 +296,24 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _mini(String label, String value) {
-    return Text(
-      '$label: ${value.trim().isEmpty ? '-' : value}',
-      style: const TextStyle(fontSize: 11, color: Color(0xFF5B628A)),
+  Widget _mini(String label, String value, {VoidCallback? onTap}) {
+    final String text = '$label: ${value.trim().isEmpty ? '-' : value}';
+    if (onTap == null) {
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 11, color: Color(0xFF5B628A)),
+      );
+    }
+    return InkWell(
+      onTap: onTap,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Color(0xFF334155),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 

@@ -9,6 +9,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
     required this.problemNumber,
     required this.teamName,
     required this.studentName,
+    this.onOpenStudent,
     required this.onViewScreenshot,
     required this.onApprove,
     required this.onReject,
@@ -18,6 +19,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
   final String problemNumber;
   final String teamName;
   final String studentName;
+  final VoidCallback? onOpenStudent;
   final VoidCallback onViewScreenshot;
   final VoidCallback onApprove;
   final VoidCallback onReject;
@@ -65,7 +67,25 @@ class CoordinatorPaymentCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text('Team: $teamName', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text('Student: $studentName', style: theme.textTheme.bodySmall),
+          Row(
+            children: <Widget>[
+              Text('Student: ', style: theme.textTheme.bodySmall),
+              Expanded(
+                child: InkWell(
+                  onTap: onOpenStudent,
+                  child: Text(
+                    studentName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: onOpenStudent == null ? null : const Color(0xFF334155),
+                      fontWeight: onOpenStudent == null ? FontWeight.w400 : FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text('Amount: ${payment.amount.toStringAsFixed(2)}', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),

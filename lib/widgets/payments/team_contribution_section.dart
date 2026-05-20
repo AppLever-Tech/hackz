@@ -119,8 +119,6 @@ class TeamContributionSection extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF334155),
-                  decoration: TextDecoration.underline,
-                  decorationThickness: 1.2,
                 ),
               ),
             ],

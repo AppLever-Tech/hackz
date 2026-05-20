@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
 import '../../models/enums/user_role.dart';
-import '../../models/idea_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
@@ -21,6 +20,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
+import '../../workspace/workspace.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, required this.user});
@@ -220,11 +220,32 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             value: vm.team.teamName.isEmpty ? '-' : vm.team.teamName,
           ),
           const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.faculty, label: 'Mentor', value: vm.mentorName),
+          _detailRow(
+            icon: AppIcons.faculty,
+            label: 'Mentor',
+            value: vm.mentorName,
+            onTap: vm.mentorId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openUser(context, vm.mentorId),
+          ),
           const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.departments, label: 'Dept Admin', value: vm.departmentAdminName),
+          _detailRow(
+            icon: AppIcons.departments,
+            label: 'Dept Admin',
+            value: vm.departmentAdminName,
+            onTap: vm.departmentAdminId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openUser(context, vm.departmentAdminId),
+          ),
           const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.organizations, label: 'College Admin', value: vm.collegeAdminName),
+          _detailRow(
+            icon: AppIcons.organizations,
+            label: 'College Admin',
+            value: vm.collegeAdminName,
+            onTap: vm.collegeAdminId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openUser(context, vm.collegeAdminId),
+          ),
           const SizedBox(height: 8),
           _detailRow(icon: AppIcons.organizations, label: 'Organization', value: vm.organizationName),
         ],
@@ -276,7 +297,9 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     required IconData icon,
     required String label,
     required String value,
+    VoidCallback? onTap,
   }) {
+    final String display = value.trim().isEmpty ? '-' : value;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
@@ -294,11 +317,18 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
         ),
         const Text(': ', style: TextStyle(fontSize: 13, color: Color(0xFF4B556A))),
         Expanded(
-          child: Text(
-            value.trim().isEmpty ? '-' : value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13),
+          child: InkWell(
+            onTap: onTap,
+            child: Text(
+              display,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: onTap == null ? const Color(0xFF111827) : const Color(0xFF334155),
+                fontWeight: onTap == null ? FontWeight.w500 : FontWeight.w700,
+              ),
+            ),
           ),
         ),
       ],

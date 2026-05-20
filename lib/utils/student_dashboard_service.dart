@@ -208,13 +208,17 @@ class StudentDashboardService {
     ]..sort((a, b) => b.at.compareTo(a.at));
 
     return StudentDashboardVm(
+      studentId: student.userId,
       studentName: _fullName(student),
       department: student.department.isEmpty ? student.departmentCode : student.department,
       organizationName: organizationName.isEmpty ? student.orgId : organizationName,
       team: resolvedTeam,
       teamMembers: teamMembers,
+      mentorId: mentor?.userId ?? '',
       mentorName: _fullName(mentor),
+      departmentAdminId: departmentAdmin.userId,
       departmentAdminName: _fullName(departmentAdmin),
+      collegeAdminId: collegeAdmin.userId,
       collegeAdminName: _fullName(collegeAdmin),
       teamMemberCount: resolvedTeam.studentIds.length,
       pendingIdeas: pendingIdeas,
@@ -263,13 +267,17 @@ class StudentDashboardService {
 
 class StudentDashboardVm {
   const StudentDashboardVm({
+    required this.studentId,
     required this.studentName,
     required this.department,
     required this.organizationName,
     required this.team,
     required this.teamMembers,
+    required this.mentorId,
     required this.mentorName,
+    required this.departmentAdminId,
     required this.departmentAdminName,
+    required this.collegeAdminId,
     required this.collegeAdminName,
     required this.teamMemberCount,
     required this.pendingIdeas,
@@ -289,13 +297,17 @@ class StudentDashboardVm {
     required this.paymentAttachmentCounts,
   });
 
+  final String studentId;
   final String studentName;
   final String department;
   final String organizationName;
   final TeamModel team;
   final List<UserModel> teamMembers;
+  final String mentorId;
   final String mentorName;
+  final String departmentAdminId;
   final String departmentAdminName;
+  final String collegeAdminId;
   final String collegeAdminName;
   final int teamMemberCount;
   final int pendingIdeas;

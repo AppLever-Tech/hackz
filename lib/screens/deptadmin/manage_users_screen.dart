@@ -556,8 +556,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                         '${u.firstName} ${u.lastName}'.trim(),
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                          decorationThickness: 1.2,
+                          color: Color(0xFF334155),
                         ),
                       ),
                     ),
