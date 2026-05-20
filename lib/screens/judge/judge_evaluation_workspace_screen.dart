@@ -11,10 +11,8 @@ import '../../widgets/judge/evaluation_summary_strip.dart';
 import '../../widgets/judge/evaluated_idea_list.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/judge/pending_evaluation_list.dart';
-import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import '../../workspace/workspace.dart';
 import '../common/app_dialog_template.dart';
-import '../common/idea_detail_screen.dart';
 
 /// Judge-only evaluation workspace (Scoring tab). Not an idea dashboard clone.
 class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
@@ -29,7 +27,6 @@ class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
 class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspaceScreen> with SingleTickerProviderStateMixin {
   late TabController _tabs;
   Future<JudgeEvaluationWorkspaceVm>? _future;
-  String? _selectedIdeaId;
 
   @override
   void initState() {
@@ -68,20 +65,8 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     if (ok == true && mounted) await _reload();
   }
 
-  Future<void> _openViewEvaluation(JudgeEvaluationEvaluatedRow row) async {
-    await showAppDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      width: DialogWidthPreset.wide,
-      child: EvaluateIdeaDialog(
-        judge: widget.user,
-        idea: row.idea,
-        team: null,
-        problem: null,
-        latestJudgeScore: row.latestScore,
-        readOnly: true,
-      ),
-    );
+  void _openViewEvaluation(JudgeEvaluationEvaluatedRow row) {
+    WorkspaceNavigator.openEvaluation(context, row.latestScore.scoreId);
   }
 
   Future<void> _openEditEvaluation(JudgeEvaluationEvaluatedRow row) async {
@@ -117,57 +102,38 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     );
   }
 
-  void _openIdeaDetail(String ideaId) {
-    setState(() => _selectedIdeaId = ideaId);
-  }
-
-  void _closeIdeaDetail() {
-    setState(() => _selectedIdeaId = null);
-  }
-
-  Widget _buildIdeaDetailPane() {
-    final ideaId = _selectedIdeaId;
-    if (ideaId == null) return const SizedBox.shrink();
-    return IdeaDetailScreen(
-      key: ValueKey<String>(ideaId),
-      ideaId: ideaId,
-      currentUser: widget.user,
-      embedded: true,
-      onBack: _closeIdeaDetail,
-    );
-  }
-
   Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
-    return TabBarView(
-      controller: _tabs,
-      children: <Widget>[
-        PendingEvaluationList(
-          rows: vm.pending,
-          onEvaluate: _openEvaluate,
-          onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
-          onOpenAttachments: _openAttachments,
-          onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
-        ),
-        EvaluatedIdeaList(
-          rows: vm.evaluated,
-          onViewEvaluation: _openViewEvaluation,
-          onEditEvaluation: _openEditEvaluation,
-          onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
-          onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
-        ),
-        EvaluationFeedbackSection(rows: vm.feedback),
-      ],
+    // IndexedStack avoids TabBarView stacking sibling tabs on top of the active
+    // tab, which blocks row taps and overflow menus on Pending review.
+    return AnimatedBuilder(
+      animation: _tabs,
+      builder: (BuildContext context, Widget? child) {
+        return IndexedStack(
+          index: _tabs.index,
+          children: <Widget>[
+            PendingEvaluationList(
+              rows: vm.pending,
+              onEvaluate: _openEvaluate,
+              onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
+              onOpenAttachments: _openAttachments,
+              onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
+            ),
+            EvaluatedIdeaList(
+              rows: vm.evaluated,
+              onViewEvaluation: _openViewEvaluation,
+              onEditEvaluation: _openEditEvaluation,
+              onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
+              onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
+            ),
+            EvaluationFeedbackSection(rows: vm.feedback),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildWorkspaceBody(JudgeEvaluationWorkspaceVm vm) {
-    return ResponsiveListDetailLayout(
-      hasSelection: _selectedIdeaId != null,
-      onCloseDetail: _closeIdeaDetail,
-      backLabel: 'Back',
-      list: _buildTabLists(vm),
-      detail: _buildIdeaDetailPane(),
-    );
+    return _buildTabLists(vm);
   }
 
   @override

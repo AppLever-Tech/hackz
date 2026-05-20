@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/loading/hkz_progress_indicator.dart';
 import '../idea/idea_workspace.dart';
+import '../evaluation/evaluation_workspace.dart';
 import '../payment/payment_workspace.dart';
 import '../problem/problem_workspace.dart';
 import '../team/team_workspace.dart';
@@ -43,6 +44,11 @@ class WorkspaceNavigator extends StatelessWidget {
   /// Opens the read-only payment workspace for [paymentId].
   static void openPayment(BuildContext context, String paymentId) {
     PaymentWorkspace.open(context, paymentId);
+  }
+
+  /// Opens the read-only evaluation workspace for [evaluationId] (score id or idea id).
+  static void openEvaluation(BuildContext context, String evaluationId) {
+    EvaluationWorkspace.open(context, evaluationId);
   }
 
   @override

@@ -114,78 +114,86 @@ class _PendingBody extends StatelessWidget {
     final priorityColor = row.priority == JudgeEvaluationPriority.high ? const Color(0xFFB91C1C) : const Color(0xFF64748B);
     final priorityLabel = row.priority == JudgeEvaluationPriority.high ? 'Priority' : 'Standard';
     final hasFiles = row.attachmentCount > 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onEvaluate,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: <BoxShadow>[
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: <BoxShadow>[
+              BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Expanded(child: _ideaTitleText(title)),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  priorityLabel,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: priorityColor),
-                ),
-              ),
-              const SizedBox(width: 4),
-              CardOverflowMenuButton(
-                tooltip: 'Idea actions',
-                onSelected: _onMenuSelected,
-                actions: <CardOverflowMenuAction>[
-                  const CardOverflowMenuAction(value: 'evaluate', icon: AppIcons.scoring, label: 'Evaluate'),
-                  const CardOverflowMenuAction(value: 'details', icon: AppIcons.preview, label: 'Details'),
-                  CardOverflowMenuAction(
-                    value: 'files',
-                    icon: AppIcons.attachmentDocument,
-                    label: 'Files',
-                    enabled: hasFiles,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(child: _ideaTitleText(title)),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: priorityColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      priorityLabel,
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: priorityColor),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  CardOverflowMenuButton(
+                    tooltip: 'Idea actions',
+                    onSelected: _onMenuSelected,
+                    actions: <CardOverflowMenuAction>[
+                      const CardOverflowMenuAction(value: 'evaluate', icon: AppIcons.scoring, label: 'Evaluate'),
+                      const CardOverflowMenuAction(value: 'details', icon: AppIcons.preview, label: 'Details'),
+                      CardOverflowMenuAction(
+                        value: 'files',
+                        icon: AppIcons.attachmentDocument,
+                        label: 'Files',
+                        enabled: hasFiles,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
-          const SizedBox(height: 4),
-          Wrap(
-            spacing: 10,
-            runSpacing: 4,
-            children: <Widget>[
-              _miniMeta(AppIcons.teams, row.teamName, dense: true),
-              _miniMeta(AppIcons.clock, formatDateTime(row.submittedAt), dense: true),
-              _miniMeta(AppIcons.statusUnderReview, dueLabel, dense: true),
-              if (hasFiles) _miniMeta(AppIcons.attachments, '${row.attachmentCount} files', dense: true),
-            ],
-          ),
-          if (row.category.isNotEmpty || row.theme.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 6),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: <Widget>[
-                if (row.category.isNotEmpty) _pill(AppIcons.orgType, row.category),
-                if (row.theme.isNotEmpty) _pill(AppIcons.address, row.theme),
+              const SizedBox(height: 4),
+              _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                children: <Widget>[
+                  _miniMeta(AppIcons.teams, row.teamName, dense: true),
+                  _miniMeta(AppIcons.clock, formatDateTime(row.submittedAt), dense: true),
+                  _miniMeta(AppIcons.statusUnderReview, dueLabel, dense: true),
+                  if (hasFiles) _miniMeta(AppIcons.attachments, '${row.attachmentCount} files', dense: true),
+                ],
+              ),
+              if (row.category.isNotEmpty || row.theme.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: <Widget>[
+                    if (row.category.isNotEmpty) _pill(AppIcons.orgType, row.category),
+                    if (row.theme.isNotEmpty) _pill(AppIcons.address, row.theme),
+                  ],
+                ),
               ],
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -221,52 +229,60 @@ class _EvaluatedBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final idea = row.idea;
     final title = idea.ideaTitle.trim().isNotEmpty ? idea.ideaTitle.trim() : idea.problemNumber;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+    return Material(
+      color: const Color(0xFFF8FAFC),
+      elevation: 0,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onViewEvaluation,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Expanded(child: _ideaTitleText(title)),
-              const SizedBox(width: 6),
-              EvaluationStatusPill(status: row.status, compact: true),
-              const SizedBox(width: 4),
-              _scorePill(row.score),
-              const SizedBox(width: 4),
-              CardOverflowMenuButton(
-                tooltip: 'Idea actions',
-                onSelected: _onMenuSelected,
-                actions: const <CardOverflowMenuAction>[
-                  CardOverflowMenuAction(value: 'view', icon: AppIcons.preview, label: 'View evaluation'),
-                  CardOverflowMenuAction(value: 'edit', icon: AppIcons.edit, label: 'Edit'),
-                  CardOverflowMenuAction(value: 'details', icon: AppIcons.ideas, label: 'Idea details'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(child: _ideaTitleText(title)),
+                  const SizedBox(width: 6),
+                  EvaluationStatusPill(status: row.status, compact: true),
+                  const SizedBox(width: 4),
+                  _scorePill(row.score),
+                  const SizedBox(width: 4),
+                  CardOverflowMenuButton(
+                    tooltip: 'Idea actions',
+                    onSelected: _onMenuSelected,
+                    actions: const <CardOverflowMenuAction>[
+                      CardOverflowMenuAction(value: 'view', icon: AppIcons.preview, label: 'View evaluation'),
+                      CardOverflowMenuAction(value: 'edit', icon: AppIcons.edit, label: 'Edit'),
+                      CardOverflowMenuAction(value: 'details', icon: AppIcons.ideas, label: 'Idea details'),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
+              const SizedBox(height: 4),
+              Row(
+                children: <Widget>[
+                  Expanded(child: _miniMeta(AppIcons.teams, row.teamName, dense: true)),
+                  const SizedBox(width: 8),
+                  _miniMeta(AppIcons.clock, formatDateTime(row.evaluatedAt), dense: true),
+                  if (row.hasFeedback) ...<Widget>[
+                    const SizedBox(width: 6),
+                    const Icon(AppIcons.helpSupport, size: 13, color: Color(0xFF6366F1)),
+                  ],
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
-          const SizedBox(height: 4),
-          Row(
-            children: <Widget>[
-              Expanded(child: _miniMeta(AppIcons.teams, row.teamName, dense: true)),
-              const SizedBox(width: 8),
-              _miniMeta(AppIcons.clock, formatDateTime(row.evaluatedAt), dense: true),
-              if (row.hasFeedback) ...<Widget>[
-                const SizedBox(width: 6),
-                const Icon(AppIcons.helpSupport, size: 13, color: Color(0xFF6366F1)),
-              ],
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
