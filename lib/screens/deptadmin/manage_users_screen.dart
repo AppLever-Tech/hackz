@@ -18,6 +18,7 @@ import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../workspace/workspace.dart';
 import '../common/app_dialog_template.dart';
 
 class ManageUsersScreen extends StatefulWidget {
@@ -549,7 +550,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('${u.firstName} ${u.lastName}'.trim(), style: const TextStyle(fontWeight: FontWeight.w600)),
+                    InkWell(
+                      onTap: () => WorkspaceNavigator.openUser(context, u.userId),
+                      child: Text(
+                        '${u.firstName} ${u.lastName}'.trim(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          decoration: TextDecoration.underline,
+                          decorationThickness: 1.2,
+                        ),
+                      ),
+                    ),
                     Text('${u.phone} • ${u.email}', maxLines: 2, overflow: TextOverflow.ellipsis),
                     if (isRejected) ...<Widget>[
                       const SizedBox(height: 4),

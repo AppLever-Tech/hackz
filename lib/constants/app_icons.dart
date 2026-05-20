@@ -13,6 +13,7 @@ class AppIcons {
   static const IconData copy = Icons.copy;
   static const IconData copied = Icons.check;
   static const IconData key = Icons.key_outlined;
+  static const IconData back = Icons.arrow_back_rounded;
   static const IconData more = Icons.more_vert;
   static const IconData edit = Icons.edit_outlined;
   static const IconData remove = Icons.close_rounded;

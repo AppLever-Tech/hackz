@@ -6,6 +6,7 @@ import '../../models/problem_model.dart';
 import '../../models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
+import '../../workspace/workspace.dart';
 
 class TeamContributionSection extends StatelessWidget {
   const TeamContributionSection({
@@ -63,7 +64,9 @@ class TeamContributionSection extends StatelessWidget {
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: students.map(_studentPill).toList(growable: false),
+            children: students
+                .map((UserModel student) => _studentPill(context, student))
+                .toList(growable: false),
           ),
         const SizedBox(height: 10),
         _line(AppIcons.ideas, 'Idea', ideaTitle),
@@ -92,24 +95,37 @@ class TeamContributionSection extends StatelessWidget {
     );
   }
 
-  static Widget _studentPill(UserModel student) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+  static Widget _studentPill(BuildContext context, UserModel student) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(AppIcons.student, size: 14, color: Color(0xFF6A38FF)),
-          const SizedBox(width: 5),
-          Text(
-            userDisplayName(student),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+        onTap: () => WorkspaceNavigator.openUser(context, student.userId),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Icon(AppIcons.student, size: 14, color: Color(0xFF6A38FF)),
+              const SizedBox(width: 5),
+              Text(
+                userDisplayName(student),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155),
+                  decoration: TextDecoration.underline,
+                  decorationThickness: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

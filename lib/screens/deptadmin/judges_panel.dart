@@ -5,6 +5,7 @@ import '../../models/enums/organization_type.dart';
 import '../../models/department_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
+import '../../workspace/workspace.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 
@@ -93,7 +94,17 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                 ...judges.map(
                   (judge) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text('${judge.firstName} ${judge.lastName}'.trim()),
+                    title: InkWell(
+                      onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
+                      child: Text(
+                        '${judge.firstName} ${judge.lastName}'.trim(),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          decoration: TextDecoration.underline,
+                          decorationThickness: 1.2,
+                        ),
+                      ),
+                    ),
                     subtitle: Text('${judge.email} | ${judge.phone}'),
                     trailing: IconButton(
                       tooltip: 'Remove',
