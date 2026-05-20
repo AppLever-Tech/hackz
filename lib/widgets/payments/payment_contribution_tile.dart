@@ -12,11 +12,13 @@ class PaymentContributionTile extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onTap,
+    this.onOpenProblem,
   });
 
   final DepartmentPaymentContribution item;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +58,18 @@ class PaymentContributionTile extends StatelessWidget {
                             const Icon(AppIcons.problems, size: 14, color: Color(0xFF64748B)),
                             const SizedBox(width: 4),
                             Expanded(
-                              child: Text(
-                                item.problemTitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                              child: InkWell(
+                                onTap: onOpenProblem,
+                                child: Text(
+                                  item.problemTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
+                                  ),
+                                ),
                               ),
                             ),
                           ],

@@ -215,6 +215,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                   onVerify: _verify,
                   onReject: _reject,
                   onViewProof: _viewProof,
+                  onOpenProblem: (payment) => WorkspaceNavigator.openProblem(context, payment.problemId),
                 ),
                 second: Column(
                   children: <Widget>[
@@ -330,12 +331,14 @@ class _PaymentVerificationQueue extends StatelessWidget {
     required this.onVerify,
     required this.onReject,
     required this.onViewProof,
+    required this.onOpenProblem,
   });
 
   final List<PaymentQueueItem> items;
   final ValueChanged<PaymentModel> onVerify;
   final ValueChanged<PaymentModel> onReject;
   final ValueChanged<PaymentModel> onViewProof;
+  final ValueChanged<PaymentModel> onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
@@ -357,6 +360,9 @@ class _PaymentVerificationQueue extends StatelessWidget {
                 onVerify: () => onVerify(item.payment),
                 onReject: () => onReject(item.payment),
                 onViewProof: () => onViewProof(item.payment),
+                onOpenProblem: item.payment.problemId.trim().isEmpty
+                    ? null
+                    : () => onOpenProblem(item.payment),
               );
             },
           );
@@ -580,6 +586,9 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
           child: CoordinatorPaymentCard(
             payment: p,
             problemNumber: p.problemNumber,
+            onOpenProblem: p.problemId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openProblem(context, p.problemId),
             teamName: teamName,
             studentName: student,
             onOpenStudent: p.paidByStudentId.trim().isEmpty

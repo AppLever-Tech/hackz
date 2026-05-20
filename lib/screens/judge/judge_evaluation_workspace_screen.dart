@@ -12,6 +12,7 @@ import '../../widgets/judge/evaluated_idea_list.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/judge/pending_evaluation_list.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../workspace/workspace.dart';
 import '../common/app_dialog_template.dart';
 import '../common/idea_detail_screen.dart';
 
@@ -145,12 +146,14 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           onEvaluate: _openEvaluate,
           onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
           onOpenAttachments: _openAttachments,
+          onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
         ),
         EvaluatedIdeaList(
           rows: vm.evaluated,
           onViewEvaluation: _openViewEvaluation,
           onEditEvaluation: _openEditEvaluation,
           onViewDetails: (r) => _openIdeaDetail(r.idea.ideaId),
+          onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
         ),
         EvaluationFeedbackSection(rows: vm.feedback),
       ],

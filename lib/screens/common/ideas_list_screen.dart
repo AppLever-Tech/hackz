@@ -18,6 +18,7 @@ import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../workspace/workspace.dart';
 import 'app_dialog_template.dart';
 import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
@@ -196,6 +197,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                         canEvaluate: canEval,
                         canViewStatus: widget.config.canViewStatus,
                         onViewDetails: () => _showIdeaDetails(item),
+                        onOpenProblem: item.idea.problemId.trim().isEmpty
+                            ? null
+                            : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
                         showViewDetails: false,
                         onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
                         showUploadPayment: showPay,

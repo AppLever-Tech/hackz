@@ -10,12 +10,14 @@ class PaymentQueueCard extends StatelessWidget {
     required this.onVerify,
     required this.onReject,
     required this.onViewProof,
+    this.onOpenProblem,
   });
 
   final PaymentQueueItem item;
   final VoidCallback onVerify;
   final VoidCallback onReject;
   final VoidCallback onViewProof;
+  final VoidCallback? onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,19 @@ class PaymentQueueCard extends StatelessWidget {
                   children: <Widget>[
                     Text(item.teamName.isEmpty ? 'Unnamed team' : item.teamName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
                     const SizedBox(height: 3),
-                    Text(item.problemName.isEmpty ? 'Problem not mapped' : item.problemName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+                    InkWell(
+                      onTap: onOpenProblem,
+                      child: Text(
+                        item.problemName.isEmpty ? 'Problem not mapped' : item.problemName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

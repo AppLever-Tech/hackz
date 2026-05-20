@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/loading/hkz_progress_indicator.dart';
+import '../problem/problem_workspace.dart';
 import '../user/user_workspace.dart';
 import 'workspace_controller.dart';
 import 'workspace_header.dart';
@@ -19,6 +20,11 @@ class WorkspaceNavigator extends StatelessWidget {
   /// Opens the read-only user workspace for [userId] (replaces the current workspace stack).
   static void openUser(BuildContext context, String userId) {
     UserWorkspace.open(context, userId);
+  }
+
+  /// Opens the read-only problem workspace for [problemId].
+  static void openProblem(BuildContext context, String problemId) {
+    ProblemWorkspace.open(context, problemId);
   }
 
   @override

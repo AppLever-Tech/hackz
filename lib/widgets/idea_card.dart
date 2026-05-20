@@ -13,6 +13,7 @@ class IdeaCard extends StatelessWidget {
     required this.canViewStatus,
     required this.canEvaluate,
     required this.onViewDetails,
+    this.onOpenProblem,
     this.showViewDetails = true,
     this.onEvaluate,
     required this.showUploadPayment,
@@ -23,6 +24,7 @@ class IdeaCard extends StatelessWidget {
   final bool canViewStatus;
   final bool canEvaluate;
   final VoidCallback onViewDetails;
+  final VoidCallback? onOpenProblem;
   final bool showViewDetails;
   final VoidCallback? onEvaluate;
   final bool showUploadPayment;
@@ -46,6 +48,7 @@ class IdeaCard extends StatelessWidget {
                 icon: AppIcons.problems,
                 label: item.idea.problemNumber.isEmpty ? 'N/A' : item.idea.problemNumber,
                 emphasized: true,
+                onTap: onOpenProblem,
               ),
               const Spacer(),
               if (canViewStatus)
@@ -87,14 +90,17 @@ class IdeaCard extends StatelessWidget {
               const Icon(AppIcons.problems, size: 18, color: Color(0xFF64748B)),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  problemTitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF64748B),
+                child: InkWell(
+                  onTap: onOpenProblem,
+                  child: Text(
+                    problemTitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -187,28 +193,33 @@ class IdeaCard extends StatelessWidget {
     bool emphasized = false,
     Color? fg,
     Color? bg,
+    VoidCallback? onTap,
   }) {
     final textColor = fg ?? (emphasized ? const Color(0xFF2E43C6) : const Color(0xFF334155));
     final background = bg ?? (emphasized ? const Color(0xFFEEF2FF) : const Color(0xFFF1F5F9));
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
-              overflow: TextOverflow.ellipsis,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 14, color: textColor),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

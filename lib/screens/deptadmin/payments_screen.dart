@@ -13,6 +13,7 @@ import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../workspace/workspace.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});
@@ -328,6 +329,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           item: item,
           selected: false,
           onTap: () => _openDetail(item.payment.paymentId),
+          onOpenProblem: item.payment.problemId.trim().isEmpty
+              ? null
+              : () => WorkspaceNavigator.openProblem(context, item.payment.problemId),
         );
       },
     );

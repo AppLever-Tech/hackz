@@ -7,6 +7,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
     super.key,
     required this.payment,
     required this.problemNumber,
+    this.onOpenProblem,
     required this.teamName,
     required this.studentName,
     this.onOpenStudent,
@@ -17,6 +18,7 @@ class CoordinatorPaymentCard extends StatelessWidget {
 
   final PaymentModel payment;
   final String problemNumber;
+  final VoidCallback? onOpenProblem;
   final String teamName;
   final String studentName;
   final VoidCallback? onOpenStudent;
@@ -46,17 +48,21 @@ class CoordinatorPaymentCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  problemNumber.isEmpty ? 'N/A' : problemNumber,
-                  style: const TextStyle(
-                    color: Color(0xFF2E43C6),
-                    fontWeight: FontWeight.w700,
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: onOpenProblem,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF2FF),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    problemNumber.isEmpty ? 'N/A' : problemNumber,
+                    style: const TextStyle(
+                      color: Color(0xFF2E43C6),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),

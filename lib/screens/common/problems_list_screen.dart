@@ -17,6 +17,7 @@ import '../../widgets/problem_card.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../workspace/workspace.dart';
 import '../collegeadmin/problem_create_screen.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
@@ -219,11 +220,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Future<void> _openProblemDetails(ProblemModel problem) async {
-    setState(() {
-      _selectedProblem = problem;
-      _showCreateProblem = false;
-      _editingProblem = null;
-    });
+    WorkspaceNavigator.openProblem(context, problem.problemId);
   }
 
   void _closeProblemDetails() {

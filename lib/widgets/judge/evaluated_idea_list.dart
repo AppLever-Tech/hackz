@@ -10,12 +10,14 @@ class EvaluatedIdeaList extends StatelessWidget {
     required this.onViewEvaluation,
     required this.onEditEvaluation,
     required this.onViewDetails,
+    required this.onOpenProblem,
   });
 
   final List<JudgeEvaluationEvaluatedRow> rows;
   final void Function(JudgeEvaluationEvaluatedRow row) onViewEvaluation;
   final void Function(JudgeEvaluationEvaluatedRow row) onEditEvaluation;
   final void Function(JudgeEvaluationEvaluatedRow row) onViewDetails;
+  final void Function(JudgeEvaluationEvaluatedRow row) onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,7 @@ class EvaluatedIdeaList extends StatelessWidget {
           onViewEvaluation: () => onViewEvaluation(r),
           onEditEvaluation: () => onEditEvaluation(r),
           onViewDetails: () => onViewDetails(r),
+          onOpenProblem: () => onOpenProblem(r),
         );
       },
     );

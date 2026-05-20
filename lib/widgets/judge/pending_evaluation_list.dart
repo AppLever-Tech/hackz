@@ -10,12 +10,14 @@ class PendingEvaluationList extends StatelessWidget {
     required this.onEvaluate,
     required this.onViewDetails,
     required this.onOpenAttachments,
+    required this.onOpenProblem,
   });
 
   final List<JudgeEvaluationPendingRow> rows;
   final void Function(JudgeEvaluationPendingRow row) onEvaluate;
   final void Function(JudgeEvaluationPendingRow row) onViewDetails;
   final void Function(JudgeEvaluationPendingRow row) onOpenAttachments;
+  final void Function(JudgeEvaluationPendingRow row) onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,7 @@ class PendingEvaluationList extends StatelessWidget {
           onEvaluate: () => onEvaluate(r),
           onViewDetails: () => onViewDetails(r),
           onOpenAttachments: () => onOpenAttachments(r),
+          onOpenProblem: () => onOpenProblem(r),
         );
       },
     );

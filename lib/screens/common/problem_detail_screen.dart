@@ -17,6 +17,7 @@ import '../../utils/problem_detail_query_service.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/idea_card.dart';
+import '../../workspace/workspace.dart';
 import 'idea_detail_screen.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
@@ -479,6 +480,9 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                                 canViewStatus: true,
                                 canEvaluate: canEvaluate,
                                 onViewDetails: () => _showIdeaDetails(entry),
+                                onOpenProblem: entry.item.idea.problemId.trim().isEmpty
+                                    ? null
+                                    : () => WorkspaceNavigator.openProblem(context, entry.item.idea.problemId),
                                 onEvaluate: canEvaluate ? () => _openEvaluateDialog(entry) : null,
                                 showUploadPayment: false,
                               ),

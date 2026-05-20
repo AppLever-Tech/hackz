@@ -15,6 +15,7 @@ class JudgeEvaluationCard extends StatelessWidget {
     required this.onEvaluate,
     required this.onViewDetails,
     required this.onOpenAttachments,
+    this.onOpenProblem,
   })  : variant = JudgeEvaluationCardVariant.pending,
         evaluatedRow = null,
         onViewEvaluation = null,
@@ -26,6 +27,7 @@ class JudgeEvaluationCard extends StatelessWidget {
     required this.onViewEvaluation,
     required this.onEditEvaluation,
     required this.onViewDetails,
+    this.onOpenProblem,
   })  : variant = JudgeEvaluationCardVariant.evaluated,
         row = null,
         onEvaluate = null,
@@ -39,6 +41,7 @@ class JudgeEvaluationCard extends StatelessWidget {
   final VoidCallback? onOpenAttachments;
   final VoidCallback? onViewEvaluation;
   final VoidCallback? onEditEvaluation;
+  final VoidCallback? onOpenProblem;
 
   String _dueLabel(DateTime due) {
     final now = DateTime.now();
@@ -60,6 +63,7 @@ class JudgeEvaluationCard extends StatelessWidget {
         onEvaluate: onEvaluate!,
         onViewDetails: onViewDetails!,
         onOpenAttachments: onOpenAttachments!,
+        onOpenProblem: onOpenProblem,
       );
     }
     if (variant == JudgeEvaluationCardVariant.evaluated && evaluatedRow != null) {
@@ -68,6 +72,7 @@ class JudgeEvaluationCard extends StatelessWidget {
         onViewEvaluation: onViewEvaluation!,
         onEditEvaluation: onEditEvaluation!,
         onViewDetails: onViewDetails!,
+        onOpenProblem: onOpenProblem,
       );
     }
     return const SizedBox.shrink();
@@ -81,6 +86,7 @@ class _PendingBody extends StatelessWidget {
     required this.onEvaluate,
     required this.onViewDetails,
     required this.onOpenAttachments,
+    this.onOpenProblem,
   });
 
   final JudgeEvaluationPendingRow row;
@@ -88,6 +94,7 @@ class _PendingBody extends StatelessWidget {
   final VoidCallback onEvaluate;
   final VoidCallback onViewDetails;
   final VoidCallback onOpenAttachments;
+  final VoidCallback? onOpenProblem;
 
   void _onMenuSelected(String value) {
     switch (value) {
@@ -155,7 +162,7 @@ class _PendingBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          _iconLine(AppIcons.problems, row.problemTitle, dense: true),
+          _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
           const SizedBox(height: 4),
           Wrap(
             spacing: 10,
@@ -190,12 +197,14 @@ class _EvaluatedBody extends StatelessWidget {
     required this.onViewEvaluation,
     required this.onEditEvaluation,
     required this.onViewDetails,
+    this.onOpenProblem,
   });
 
   final JudgeEvaluationEvaluatedRow row;
   final VoidCallback onViewEvaluation;
   final VoidCallback onEditEvaluation;
   final VoidCallback onViewDetails;
+  final VoidCallback? onOpenProblem;
 
   void _onMenuSelected(String value) {
     switch (value) {
@@ -244,7 +253,7 @@ class _EvaluatedBody extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          _iconLine(AppIcons.problems, row.problemTitle, dense: true),
+          _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
           const SizedBox(height: 4),
           Row(
             children: <Widget>[
@@ -302,7 +311,7 @@ Widget _scorePill(double score) {
   );
 }
 
-Widget _iconLine(IconData icon, String text, {bool dense = false}) {
+Widget _iconLine(IconData icon, String text, {bool dense = false, VoidCallback? onTap}) {
   final iconSize = dense ? 12.0 : 14.0;
   final fontSize = dense ? 11.0 : 12.0;
   return Row(
@@ -310,11 +319,18 @@ Widget _iconLine(IconData icon, String text, {bool dense = false}) {
       Icon(icon, size: iconSize, color: const Color(0xFF94A3B8)),
       const SizedBox(width: 4),
       Expanded(
-        child: Text(
-          text,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        child: InkWell(
+          onTap: onTap,
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              color: onTap == null ? const Color(0xFF475569) : const Color(0xFF334155),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     ],

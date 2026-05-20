@@ -39,25 +39,21 @@ class ProblemCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isMobile = ResponsiveHelper.isMobile(context);
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onViewDetails == null ? null : () => onViewDetails!(problem),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: isMobile ? _buildMobileLayout(theme) : _buildDesktopLayout(theme),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
+      child: isMobile ? _buildMobileLayout(theme) : _buildDesktopLayout(theme),
     );
   }
 
@@ -189,12 +185,15 @@ class ProblemCard extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           fit: FlexFit.loose,
-          child: Text(
-            problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+          child: InkWell(
+            onTap: onViewDetails == null ? null : () => onViewDetails!(problem),
+            child: Text(
+              problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
@@ -325,12 +324,15 @@ class ProblemCard extends StatelessWidget {
         Icon(AppIcons.problems, size: 16, color: Colors.grey.shade700),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(
-            problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+          child: InkWell(
+            onTap: onViewDetails == null ? null : () => onViewDetails!(problem),
+            child: Text(
+              problem.title.trim().isEmpty ? 'Untitled Problem' : problem.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
@@ -409,17 +411,21 @@ class ProblemCard extends StatelessWidget {
   }
 
   Widget _buildProblemNumberBadge(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF2FF),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        problem.problemNumber.trim().isEmpty ? 'N/A' : problem.problemNumber,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: const Color(0xFF2E43C6),
-          fontWeight: FontWeight.w700,
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onViewDetails == null ? null : () => onViewDetails!(problem),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEF2FF),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          problem.problemNumber.trim().isEmpty ? 'N/A' : problem.problemNumber,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: const Color(0xFF2E43C6),
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
