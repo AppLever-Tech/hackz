@@ -4,6 +4,8 @@ import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
 import '../../models/idea_model.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/context_pill_group.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 
@@ -98,43 +100,19 @@ class IdeaSummarySection extends StatelessWidget {
         vm.problem.problemId.trim().isEmpty ? vm.idea.problemId.trim() : vm.problem.problemId.trim();
     final bool canOpen = problemId.isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: canOpen ? () => IdeaWorkspace.openProblemFromIdea(context, vm) : null,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(AppIcons.problems, size: 15, color: Color(0xFF57629A)),
-              const SizedBox(width: 6),
-              const Text(
-                'Problem: ',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-              ),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: canOpen ? const Color(0xFF334155) : const Color(0xFF64748B),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    if (!canOpen) {
+      return Text(
+        'Problem: $title',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+      );
+    }
+    return ContextPillGroup(
+      fieldLabel: 'Problem',
+      pillLabel: title,
+      semantic: ContextPillSemantic.problem,
+      onOpenWorkspace: () => IdeaWorkspace.openProblemFromIdea(context, vm),
     );
   }
 

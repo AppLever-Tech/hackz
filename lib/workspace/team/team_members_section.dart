@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import 'team_workspace.dart';
 import 'team_workspace_loader.dart';
 
@@ -78,17 +80,23 @@ class TeamMembersSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                InkWell(
-                  onTap: mentor.userId.trim().isEmpty
-                      ? null
-                      : () => TeamWorkspace.openUserFromTeam(context, mentor.userId),
-                  child: Text(
+                if (mentor.userId.trim().isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ContextPill(
+                      label: mentor.displayName,
+                      semantic: ContextPillSemantic.user,
+                      onTap: () => TeamWorkspace.openUserFromTeam(context, mentor.userId),
+                      compact: true,
+                    ),
+                  )
+                else
+                  Text(
                     mentor.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
                   ),
-                ),
                 const SizedBox(height: 4),
                 _roleChip(mentor.roleLabel, const Color(0xFF6A38FF)),
               ],
@@ -124,15 +132,18 @@ class TeamMembersSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              InkWell(
-                onTap: member.userId.trim().isEmpty
-                    ? null
-                    : () => TeamWorkspace.openUserFromTeam(context, member.userId),
-                child: Text(
+              if (member.userId.trim().isNotEmpty)
+                ContextPill(
+                  label: member.displayName,
+                  semantic: ContextPillSemantic.user,
+                  onTap: () => TeamWorkspace.openUserFromTeam(context, member.userId),
+                  compact: true,
+                )
+              else
+                Text(
                   member.displayName,
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
                 ),
-              ),
               const SizedBox(height: 4),
               _roleChip(member.roleLabel, const Color(0xFF4A67FF)),
             ],

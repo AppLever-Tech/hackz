@@ -6,6 +6,9 @@ import '../../models/problem_model.dart';
 import '../../models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
+import '../common/context_pill.dart';
+import '../common/context_pill_group.dart';
+import '../common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 
 class TeamContributionSection extends StatelessWidget {
@@ -99,34 +102,33 @@ class TeamContributionSection extends StatelessWidget {
   }
 
   static Widget _studentPill(BuildContext context, UserModel student) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
-        onTap: () => WorkspaceNavigator.openUser(context, student.userId),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(AppIcons.student, size: 14, color: Color(0xFF6A38FF)),
+          const SizedBox(width: 5),
+          Text(
+            userDisplayName(student),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(AppIcons.student, size: 14, color: Color(0xFF6A38FF)),
-              const SizedBox(width: 5),
-              Text(
-                userDisplayName(student),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF334155),
-                ),
-              ),
-            ],
+          ContextPill(
+            label: userDisplayName(student),
+            semantic: ContextPillSemantic.user,
+            onTap: () => WorkspaceNavigator.openUser(context, student.userId),
+            compact: true,
           ),
-        ),
+        ],
       ),
     );
   }
@@ -136,22 +138,12 @@ class TeamContributionSection extends StatelessWidget {
     if (id.isEmpty) {
       return _line(AppIcons.teams, 'Team', teamName);
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Icon(AppIcons.teams, size: 16, color: Color(0xFF64748B)),
-        const SizedBox(width: 8),
-        const Text('Team: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-        Expanded(
-          child: InkWell(
-            onTap: () => WorkspaceNavigator.openTeam(context, id),
-            child: Text(
-              teamName,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-            ),
-          ),
-        ),
-      ],
+    return ContextPillGroup(
+      fieldLabel: 'Team',
+      pillLabel: teamName,
+      semantic: ContextPillSemantic.team,
+      onOpenWorkspace: () => WorkspaceNavigator.openTeam(context, id),
+      leadingIcon: AppIcons.teams,
     );
   }
 

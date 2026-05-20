@@ -4,6 +4,8 @@ import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
 import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import 'team_workspace.dart';
 import 'team_workspace_loader.dart';
 
@@ -55,13 +57,13 @@ class TeamIdeasSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                InkWell(
-                  onTap: () => TeamWorkspace.openIdeaFromTeam(context, preview),
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ContextPill(
+                    label: title,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: () => TeamWorkspace.openIdeaFromTeam(context, preview),
+                    compact: true,
                   ),
                 ),
                 const SizedBox(height: 6),

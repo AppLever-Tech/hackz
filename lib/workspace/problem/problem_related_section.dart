@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/idea_model.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import 'problem_workspace_loader.dart';
 
 class ProblemRelatedSection extends StatelessWidget {
@@ -61,13 +63,13 @@ class ProblemRelatedSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                InkWell(
-                  onTap: () => onOpenIdea(preview),
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ContextPill(
+                    label: title,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: () => onOpenIdea(preview),
+                    compact: true,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -76,15 +78,23 @@ class ProblemRelatedSection extends StatelessWidget {
                   style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 2),
-                InkWell(
-                  onTap: preview.createdByUserId.trim().isEmpty
-                      ? null
-                      : () => onOpenUser(preview.createdByUserId),
-                  child: Text(
+                if (preview.createdByUserId.trim().isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ContextPill(
+                      label: preview.createdByName,
+                      semantic: ContextPillSemantic.user,
+                      onTap: () => onOpenUser(preview.createdByUserId),
+                      compact: true,
+                    ),
+                  )
+                else
+                  Text(
                     'By ${preview.createdByName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11, color: Color(0xFF334155), fontWeight: FontWeight.w700),
                   ),
-                ),
               ],
             ),
           ),

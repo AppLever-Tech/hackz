@@ -5,6 +5,8 @@ import '../../models/enums/organization_type.dart';
 import '../../models/department_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
@@ -94,15 +96,17 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                 ...judges.map(
                   (judge) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: InkWell(
-                      onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
-                      child: Text(
-                        '${judge.firstName} ${judge.lastName}'.trim(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155),
+                    title: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ContextPill(
+                            label: '${judge.firstName} ${judge.lastName}'.trim(),
+                            semantic: ContextPillSemantic.judge,
+                            onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
+                            compact: true,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     subtitle: Text('${judge.email} | ${judge.phone}'),
                     trailing: IconButton(

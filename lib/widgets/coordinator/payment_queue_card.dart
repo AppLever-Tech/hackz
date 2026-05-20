@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/coordinator_dashboard_service.dart';
+import '../../workspace/shared/entity_reference_row.dart';
 
 class PaymentQueueCard extends StatelessWidget {
   const PaymentQueueCard({
@@ -49,18 +50,11 @@ class PaymentQueueCard extends StatelessWidget {
                   children: <Widget>[
                     Text(item.teamName.isEmpty ? 'Unnamed team' : item.teamName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
                     const SizedBox(height: 3),
-                    InkWell(
-                      onTap: onOpenProblem,
-                      child: Text(
-                        item.problemName.isEmpty ? 'Problem not mapped' : item.problemName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
-                        ),
-                      ),
+                    EntityReferenceRow(
+                      value: item.problemName.isEmpty ? 'Problem not mapped' : item.problemName,
+                      dense: true,
+                      workspaceEntityLabel: 'problem',
+                      onOpenWorkspace: onOpenProblem,
                     ),
                   ],
                 ),

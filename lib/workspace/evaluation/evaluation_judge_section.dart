@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import 'evaluation_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
@@ -46,15 +48,22 @@ class EvaluationJudgeSection extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: InkWell(
-                  onTap: judge.judgeId.trim().isEmpty
-                      ? null
-                      : () => EvaluationWorkspace.openUserFromEvaluation(context, judge.judgeId),
-                  child: Text(
-                    judge.judgeName,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-                  ),
-                ),
+                child: judge.judgeId.trim().isNotEmpty
+                    ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: ContextPill(
+                          label: judge.judgeName,
+                          semantic: ContextPillSemantic.judge,
+                          onTap: () => EvaluationWorkspace.openUserFromEvaluation(context, judge.judgeId),
+                          compact: true,
+                        ),
+                      )
+                    : Text(
+                        judge.judgeName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                      ),
               ),
               Text(
                 '${judge.overallScore.toStringAsFixed(1)} / 10',

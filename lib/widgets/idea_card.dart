@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../constants/app_icons.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../screens/common/dashboard_components.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../utils/idea_query_service.dart';
+import 'common/context_pill.dart';
+import 'common/context_pill_theme.dart';
 
 class IdeaCard extends StatelessWidget {
   const IdeaCard({
@@ -40,6 +43,9 @@ class IdeaCard extends StatelessWidget {
     final badge = _statusStyle(item.idea.status);
     final ideaTitle = item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim();
     final problemTitle = item.idea.problemTitle.trim().isEmpty ? 'Untitled Problem' : item.idea.problemTitle.trim();
+    final String problemNumber = item.idea.problemNumber.isEmpty ? 'N/A' : item.idea.problemNumber;
+    final String teamLabel = item.teamName.trim().isEmpty ? '-' : item.teamName.trim();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: kDashboardCardDecoration,
@@ -48,44 +54,36 @@ class IdeaCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              _metaPill(
-                icon: AppIcons.problems,
-                label: item.idea.problemNumber.isEmpty ? 'N/A' : item.idea.problemNumber,
-                emphasized: true,
-                onTap: onOpenProblem,
-              ),
+              if (onOpenProblem != null)
+                ContextPill(
+                  label: problemNumber,
+                  semantic: ContextPillSemantic.problem,
+                  onTap: onOpenProblem!,
+                  compact: true,
+                )
+              else
+                _statusMetaPill(label: problemNumber, emphasized: true),
               const Spacer(),
-              if (canViewStatus)
-                _metaPill(
-                  icon: _statusIcon(item.idea.status),
-                  label: badge.label,
-                  fg: badge.fg,
-                  bg: badge.bg,
-                ),
+              if (canViewStatus) _ideaStatusPill(badge),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Icon(AppIcons.ideas, size: 20, color: Color(0xFF6A38FF)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InkWell(
-                  onTap: onOpenIdea,
-                  child: Text(
-                    ideaTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: onOpenIdea == null ? null : const Color(0xFF334155),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+          if (onOpenIdea != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ContextPill(
+                label: ideaTitle,
+                semantic: ContextPillSemantic.idea,
+                onTap: onOpenIdea!,
               ),
-            ],
-          ),
+            )
+          else
+            Text(
+              ideaTitle,
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           const SizedBox(height: 8),
           Text(
             item.idea.description.trim().isEmpty ? '-' : item.idea.description.trim(),
@@ -94,47 +92,48 @@ class IdeaCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Icon(AppIcons.problems, size: 18, color: Color(0xFF64748B)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InkWell(
-                  onTap: onOpenProblem,
-                  child: Text(
-                    problemTitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+          if (onOpenProblem != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ContextPill(
+                label: problemTitle,
+                semantic: ContextPillSemantic.problem,
+                onTap: onOpenProblem!,
+                compact: true,
               ),
-            ],
-          ),
+            )
+          else
+            Text(
+              problemTitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              _metaPill(
-                icon: AppIcons.teams,
-                label: 'Team: ${item.teamName.trim().isEmpty ? '-' : item.teamName}',
-                onTap: onOpenTeam,
-              ),
-              _metaPill(icon: AppIcons.clock, label: 'Created: ${_formatDate(item.idea.createdAt)}'),
+              if (onOpenTeam != null)
+                ContextPill(
+                  label: teamLabel,
+                  semantic: ContextPillSemantic.team,
+                  onTap: onOpenTeam!,
+                  compact: true,
+                )
+              else
+                _statusMetaPill(label: 'Team: $teamLabel'),
+              _statusMetaPill(label: 'Created: ${_formatDate(item.idea.createdAt)}'),
               if (item.idea.status == IdeaStatus.pendingSubmission || item.payment != null)
-                _metaPill(icon: AppIcons.payments, label: _paymentChip(item.payment)),
+                _statusMetaPill(label: _paymentChip(item.payment)),
               if (item.score != null)
-                _metaPill(icon: AppIcons.scoring, label: 'Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
+                _statusMetaPill(label: 'Score: ${item.score!.score.toStringAsFixed(1)} / 10'),
               if (item.score != null)
-                _metaPill(
-                  icon: AppIcons.judges,
-                  label: 'Judge: ${item.judgeName ?? item.score!.judgeId}',
-                ),
+                _statusMetaPill(label: 'Judge: ${item.judgeName ?? item.score!.judgeId}'),
             ],
           ),
           const SizedBox(height: 12),
@@ -143,7 +142,7 @@ class IdeaCard extends StatelessWidget {
               if (showViewDetails)
                 OutlinedButton.icon(
                   onPressed: onViewDetails,
-                  icon: const Icon(AppIcons.openInNew, size: 16),
+                  icon: const Icon(AppIcons.preview, size: 16),
                   label: const Text('View Details'),
                 ),
               if (showUploadPayment) ...<Widget>[
@@ -165,6 +164,45 @@ class IdeaCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _ideaStatusPill(_StatusStyle badge) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: badge.bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(_statusIcon(item.idea.status), size: 14, color: badge.fg),
+          const SizedBox(width: 5),
+          Text(
+            badge.label,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: badge.fg),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusMetaPill({required String label, bool emphasized = false}) {
+    final Color textColor = emphasized ? const Color(0xFF2E43C6) : AppSemanticColors.statusText;
+    final Color background = emphasized ? const Color(0xFFEEF2FF) : AppSemanticColors.statusSurface;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppSemanticColors.statusBorder),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -196,43 +234,6 @@ class IdeaCard extends StatelessWidget {
       case PaymentRecordStatus.rejected:
         return 'Payment: Rejected';
     }
-  }
-
-  Widget _metaPill({
-    required IconData icon,
-    required String label,
-    bool emphasized = false,
-    Color? fg,
-    Color? bg,
-    VoidCallback? onTap,
-  }) {
-    final textColor = fg ?? (emphasized ? const Color(0xFF2E43C6) : const Color(0xFF334155));
-    final background = bg ?? (emphasized ? const Color(0xFFEEF2FF) : const Color(0xFFF1F5F9));
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, size: 14, color: textColor),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   String _formatDate(DateTime date) {

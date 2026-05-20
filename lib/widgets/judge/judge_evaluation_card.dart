@@ -4,6 +4,7 @@ import '../../constants/app_icons.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/judge_evaluation_service.dart';
 import '../common/card_overflow_menu.dart';
+import '../../workspace/shared/entity_reference_row.dart';
 import 'evaluation_status_pill.dart';
 
 enum JudgeEvaluationCardVariant { pending, evaluated }
@@ -168,7 +169,13 @@ class _PendingBody extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
+              EntityReferenceRow(
+            leadingIcon: AppIcons.problems,
+            value: row.problemTitle,
+            dense: true,
+            workspaceEntityLabel: 'problem',
+            onOpenWorkspace: onOpenProblem,
+          ),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 10,
@@ -267,7 +274,13 @@ class _EvaluatedBody extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              _iconLine(AppIcons.problems, row.problemTitle, dense: true, onTap: onOpenProblem),
+              EntityReferenceRow(
+            leadingIcon: AppIcons.problems,
+            value: row.problemTitle,
+            dense: true,
+            workspaceEntityLabel: 'problem',
+            onOpenWorkspace: onOpenProblem,
+          ),
               const SizedBox(height: 4),
               Row(
                 children: <Widget>[
@@ -324,32 +337,6 @@ Widget _scorePill(double score) {
         ),
       ],
     ),
-  );
-}
-
-Widget _iconLine(IconData icon, String text, {bool dense = false, VoidCallback? onTap}) {
-  final iconSize = dense ? 12.0 : 14.0;
-  final fontSize = dense ? 11.0 : 12.0;
-  return Row(
-    children: <Widget>[
-      Icon(icon, size: iconSize, color: const Color(0xFF94A3B8)),
-      const SizedBox(width: 4),
-      Expanded(
-        child: InkWell(
-          onTap: onTap,
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              color: onTap == null ? const Color(0xFF475569) : const Color(0xFF334155),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ),
-    ],
   );
 }
 

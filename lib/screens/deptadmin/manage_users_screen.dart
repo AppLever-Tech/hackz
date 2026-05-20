@@ -18,6 +18,8 @@ import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 import '../common/app_dialog_template.dart';
 
@@ -550,15 +552,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    InkWell(
-                      onTap: () => WorkspaceNavigator.openUser(context, u.userId),
-                      child: Text(
-                        '${u.firstName} ${u.lastName}'.trim(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ContextPill(
+                            label: '${u.firstName} ${u.lastName}'.trim(),
+                            semantic: ContextPillSemantic.user,
+                            onTap: () => WorkspaceNavigator.openUser(context, u.userId),
+                            compact: true,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     Text('${u.phone} • ${u.email}', maxLines: 2, overflow: TextOverflow.ellipsis),
                     if (isRejected) ...<Widget>[

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../shared/entity_reference_tile.dart';
 import 'evaluation_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
@@ -94,96 +96,35 @@ class EvaluationSummarySection extends StatelessWidget {
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
         ),
         const SizedBox(height: 10),
-        _preview(
-          context,
-          icon: AppIcons.ideas,
-          title: 'Idea',
+        EntityReferenceTile(
+          category: 'Idea',
           headline: vm.ideaTitle,
           detail: vm.scope == EvaluationWorkspaceScope.ideaAggregate
               ? 'Aggregate evaluation report'
               : 'Single judge evaluation',
-          onTap: () => EvaluationWorkspace.openIdeaFromEvaluation(context, vm),
+          semantic: ContextPillSemantic.idea,
+          onOpenWorkspace: () => EvaluationWorkspace.openIdeaFromEvaluation(context, vm),
         ),
-        _preview(
-          context,
-          icon: AppIcons.judges,
-          title: 'Judge',
+        EntityReferenceTile(
+          category: 'Judge',
           headline: vm.primaryJudge?.judgeName ?? '—',
           detail: vm.primaryJudge == null
               ? 'No judge linked'
               : 'Score ${vm.primaryJudge!.overallScore.toStringAsFixed(1)} / 10',
-          onTap: vm.primaryJudge == null
+          semantic: ContextPillSemantic.judge,
+          onOpenWorkspace: vm.primaryJudge == null
               ? null
               : () => EvaluationWorkspace.openUserFromEvaluation(context, vm.primaryJudge!.judgeId),
         ),
-        _preview(
-          context,
-          icon: AppIcons.teams,
-          title: 'Team',
+        EntityReferenceTile(
+          category: 'Team',
           headline: vm.teamName,
           detail: 'Innovation team context',
-          onTap: vm.teamId.trim().isEmpty ? null : () => EvaluationWorkspace.openTeamFromEvaluation(context, vm),
+          semantic: ContextPillSemantic.team,
+          onOpenWorkspace:
+              vm.teamId.trim().isEmpty ? null : () => EvaluationWorkspace.openTeamFromEvaluation(context, vm),
         ),
       ],
-    );
-  }
-
-  static Widget _preview(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String headline,
-    required String detail,
-    required VoidCallback? onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: <Widget>[
-                Icon(icon, size: 18, color: const Color(0xFF57629A)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                      Text(
-                        headline,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: onTap == null ? const Color(0xFF64748B) : const Color(0xFF334155),
-                        ),
-                      ),
-                      Text(
-                        detail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onTap != null) const Icon(AppIcons.openInNew, size: 14, color: Color(0xFF94A3B8)),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

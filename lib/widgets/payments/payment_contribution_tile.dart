@@ -4,6 +4,8 @@ import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
+import '../common/context_pill.dart';
+import '../common/context_pill_theme.dart';
 import 'payment_status_pill.dart';
 
 class PaymentContributionTile extends StatelessWidget {
@@ -12,12 +14,14 @@ class PaymentContributionTile extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onTap,
+    this.onOpenWorkspace,
     this.onOpenProblem,
   });
 
   final DepartmentPaymentContribution item;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onOpenWorkspace;
   final VoidCallback? onOpenProblem;
 
   @override
@@ -46,34 +50,44 @@ class PaymentContributionTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text(
-                          item.ideaTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: <Widget>[
-                            const Icon(AppIcons.problems, size: 14, color: Color(0xFF64748B)),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: InkWell(
-                                onTap: onOpenProblem,
-                                child: Text(
-                                  item.problemTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: onOpenProblem == null ? const Color(0xFF64748B) : const Color(0xFF334155),
-                                  ),
-                                ),
-                              ),
+                        if (onOpenWorkspace != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ContextPill(
+                              label: item.ideaTitle,
+                              semantic: ContextPillSemantic.payment,
+                              onTap: onOpenWorkspace!,
                             ),
-                          ],
-                        ),
+                          )
+                        else
+                          Text(
+                            item.ideaTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                          ),
+                        const SizedBox(height: 6),
+                        if (onOpenProblem != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ContextPill(
+                              label: item.problemTitle,
+                              semantic: ContextPillSemantic.problem,
+                              onTap: onOpenProblem!,
+                              compact: true,
+                            ),
+                          )
+                        else
+                          Text(
+                            item.problemTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -87,8 +101,6 @@ class PaymentContributionTile extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: <Widget>[
-                  const Icon(AppIcons.teams, size: 14, color: Color(0xFF6A38FF)),
-                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       item.teamName,

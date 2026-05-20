@@ -219,8 +219,8 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
     );
   }
 
-  Future<void> _openProblemDetails(ProblemModel problem) async {
-    WorkspaceNavigator.openProblem(context, problem.problemId);
+  void _openProblemDetails(ProblemModel problem) {
+    setState(() => _selectedProblem = problem);
   }
 
   void _closeProblemDetails() {

@@ -20,6 +20,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
+import '../../workspace/shared/entity_reference_row.dart';
 import '../../workspace/workspace.dart';
 
 class StudentDashboard extends StatelessWidget {
@@ -220,29 +221,30 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             value: vm.team.teamName.isEmpty ? '-' : vm.team.teamName,
           ),
           const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.faculty,
+          EntityReferenceRow(
+            leadingIcon: AppIcons.faculty,
             label: 'Mentor',
             value: vm.mentorName,
-            onTap: vm.mentorId.trim().isEmpty
+            workspaceEntityLabel: 'user',
+            onOpenWorkspace: vm.mentorId.trim().isEmpty
                 ? null
                 : () => WorkspaceNavigator.openUser(context, vm.mentorId),
           ),
-          const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.departments,
+          EntityReferenceRow(
+            leadingIcon: AppIcons.departments,
             label: 'Dept Admin',
             value: vm.departmentAdminName,
-            onTap: vm.departmentAdminId.trim().isEmpty
+            workspaceEntityLabel: 'user',
+            onOpenWorkspace: vm.departmentAdminId.trim().isEmpty
                 ? null
                 : () => WorkspaceNavigator.openUser(context, vm.departmentAdminId),
           ),
-          const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.organizations,
+          EntityReferenceRow(
+            leadingIcon: AppIcons.organizations,
             label: 'College Admin',
             value: vm.collegeAdminName,
-            onTap: vm.collegeAdminId.trim().isEmpty
+            workspaceEntityLabel: 'user',
+            onOpenWorkspace: vm.collegeAdminId.trim().isEmpty
                 ? null
                 : () => WorkspaceNavigator.openUser(context, vm.collegeAdminId),
           ),
@@ -297,7 +299,6 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     required IconData icon,
     required String label,
     required String value,
-    VoidCallback? onTap,
   }) {
     final String display = value.trim().isEmpty ? '-' : value;
     return Row(
@@ -317,18 +318,11 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
         ),
         const Text(': ', style: TextStyle(fontSize: 13, color: Color(0xFF4B556A))),
         Expanded(
-          child: InkWell(
-            onTap: onTap,
-            child: Text(
-              display,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                color: onTap == null ? const Color(0xFF111827) : const Color(0xFF334155),
-                fontWeight: onTap == null ? FontWeight.w500 : FontWeight.w700,
-              ),
-            ),
+          child: Text(
+            display,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF111827), fontWeight: FontWeight.w500),
           ),
         ),
       ],

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../models/payment_model.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_group.dart';
+import '../../widgets/common/context_pill_theme.dart';
+import '../../workspace/shared/entity_reference_row.dart';
 
 class CoordinatorPaymentCard extends StatelessWidget {
   const CoordinatorPaymentCard({
@@ -34,6 +39,8 @@ class CoordinatorPaymentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final pending = payment.status == PaymentRecordStatus.pending;
+    final String problemLabel = problemNumber.isEmpty ? 'N/A' : problemNumber;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -52,78 +59,68 @@ class CoordinatorPaymentCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: onOpenProblem,
-                child: Container(
+              if (onOpenProblem != null)
+                Expanded(
+                  child: ContextPillGroup(
+                    fieldLabel: 'Problem',
+                    pillLabel: problemLabel,
+                    semantic: ContextPillSemantic.problem,
+                    onOpenWorkspace: onOpenProblem!,
+                    compact: true,
+                  ),
+                )
+              else
+                Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEEF2FF),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    problemNumber.isEmpty ? 'N/A' : problemNumber,
+                    problemLabel,
                     style: const TextStyle(
                       color: Color(0xFF2E43C6),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-              ),
               const Spacer(),
               _statusChip(payment.status),
             ],
           ),
           const SizedBox(height: 10),
+          EntityReferenceRow(
+            leadingIcon: AppIcons.teams,
+            label: 'Team',
+            value: teamName,
+            semantic: ContextPillSemantic.team,
+            onOpenWorkspace: onOpenTeam,
+          ),
+          EntityReferenceRow(
+            leadingIcon: AppIcons.student,
+            label: 'Student',
+            value: studentName,
+            dense: true,
+            semantic: ContextPillSemantic.user,
+            onOpenWorkspace: onOpenStudent,
+          ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Text('Team: ', style: theme.textTheme.bodyMedium),
               Expanded(
-                child: InkWell(
-                  onTap: onOpenTeam,
-                  child: Text(
-                    teamName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: onOpenTeam == null ? null : const Color(0xFF334155),
-                    ),
-                  ),
+                child: Text(
+                  'Amount: ${payment.amount.toStringAsFixed(2)}',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: <Widget>[
-              Text('Student: ', style: theme.textTheme.bodySmall),
-              Expanded(
-                child: InkWell(
-                  onTap: onOpenStudent,
-                  child: Text(
-                    studentName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: onOpenStudent == null ? null : const Color(0xFF334155),
-                      fontWeight: onOpenStudent == null ? FontWeight.w400 : FontWeight.w700,
-                    ),
-                  ),
+              if (onOpenPayment != null)
+                ContextPill(
+                  label: 'Payment record',
+                  semantic: ContextPillSemantic.payment,
+                  onTap: onOpenPayment!,
+                  compact: true,
                 ),
-              ),
             ],
-          ),
-          const SizedBox(height: 8),
-          InkWell(
-            onTap: onOpenPayment,
-            child: Text(
-              'Amount: ${payment.amount.toStringAsFixed(2)}',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: onOpenPayment == null ? null : const Color(0xFF334155),
-              ),
-            ),
           ),
           const SizedBox(height: 12),
           Wrap(

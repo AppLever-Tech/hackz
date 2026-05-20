@@ -8,6 +8,9 @@ import '../models/payment_model.dart';
 import '../utils/common_helpers.dart';
 import '../utils/student_dashboard_service.dart';
 import '../screens/common/dashboard_components.dart';
+import 'common/context_pill.dart';
+import 'common/context_pill_group.dart';
+import 'common/context_pill_theme.dart';
 import '../workspace/workspace.dart';
 
 class StudentTeamOverviewCard extends StatelessWidget {
@@ -65,11 +68,17 @@ class StudentTeamOverviewCard extends StatelessWidget {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Expanded(
-                      child: InkWell(
-                        onTap: vm.team.teamId.trim().isEmpty
-                            ? null
-                            : () => WorkspaceNavigator.openTeam(context, vm.team.teamId),
+                    if (vm.team.teamId.trim().isNotEmpty)
+                      Expanded(
+                        child: ContextPill(
+                          label: vm.team.teamName.isEmpty ? 'Team' : vm.team.teamName,
+                          semantic: ContextPillSemantic.team,
+                          onTap: () => WorkspaceNavigator.openTeam(context, vm.team.teamId),
+                          compact: true,
+                        ),
+                      )
+                    else
+                      Expanded(
                         child: Text(
                           vm.team.teamName.isEmpty ? 'Team' : vm.team.teamName,
                           maxLines: 1,
@@ -77,7 +86,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
                         ),
                       ),
-                    ),
                     _teamStatusPill(vm.team.status),
                   ],
                 ),
@@ -90,9 +98,10 @@ class StudentTeamOverviewCard extends StatelessWidget {
                     _mini(
                       'Mentor',
                       vm.mentorName,
-                      onTap: vm.mentorId.trim().isEmpty
+                      onOpenWorkspace: vm.mentorId.trim().isEmpty
                           ? null
                           : () => WorkspaceNavigator.openUser(context, vm.mentorId),
+                      semantic: ContextPillSemantic.user,
                     ),
                     _mini('Members', '${vm.teamMembers.length}'),
                     _mini('Active Ideas', '$activeIdeas'),
@@ -139,16 +148,11 @@ class StudentTeamOverviewCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    InkWell(
+                    ContextPill(
+                      label: name,
+                      semantic: ContextPillSemantic.user,
                       onTap: () => WorkspaceNavigator.openUser(context, m.userId),
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF334155),
-                        ),
-                      ),
+                      compact: true,
                     ),
                     if (idx == 0) ...<Widget>[
                       const SizedBox(width: 6),
@@ -186,17 +190,23 @@ class StudentTeamOverviewCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        InkWell(
-                          onTap: item.idea.ideaId.trim().isEmpty
-                              ? null
-                              : () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                          child: Text(
+                        if (item.idea.ideaId.trim().isNotEmpty)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ContextPill(
+                              label: item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim(),
+                              semantic: ContextPillSemantic.idea,
+                              onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                              compact: true,
+                            ),
+                          )
+                        else
+                          Text(
                             item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim(),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
                           ),
-                        ),
                         const SizedBox(height: 4),
                         Text(
                           item.problemDepartment,
@@ -291,10 +301,11 @@ class StudentTeamOverviewCard extends StatelessWidget {
       child: Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
     );
     if (paymentId.isEmpty) return pill;
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
+    return ContextPill(
+      label: label,
+      semantic: ContextPillSemantic.payment,
       onTap: () => WorkspaceNavigator.openPayment(context, paymentId),
-      child: pill,
+      compact: true,
     );
   }
 
@@ -314,24 +325,20 @@ class StudentTeamOverviewCard extends StatelessWidget {
     );
   }
 
-  Widget _mini(String label, String value, {VoidCallback? onTap}) {
-    final String text = '$label: ${value.trim().isEmpty ? '-' : value}';
-    if (onTap == null) {
+  Widget _mini(String label, String value, {VoidCallback? onOpenWorkspace, ContextPillSemantic? semantic}) {
+    final String display = value.trim().isEmpty ? '-' : value.trim();
+    if (onOpenWorkspace == null) {
       return Text(
-        text,
+        '$label: $display',
         style: const TextStyle(fontSize: 11, color: Color(0xFF5B628A)),
       );
     }
-    return InkWell(
-      onTap: onTap,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          color: Color(0xFF334155),
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+    return ContextPillGroup(
+      fieldLabel: label,
+      pillLabel: display,
+      semantic: semantic ?? ContextPillTheme.semanticFromEntityLabel(label),
+      onOpenWorkspace: onOpenWorkspace,
+      compact: true,
     );
   }
 

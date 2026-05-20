@@ -16,6 +16,8 @@ import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
@@ -712,11 +714,17 @@ class _KeyDataCard extends StatelessWidget {
         children: <Widget>[
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
-          Expanded(
-            child: InkWell(
-              onTap: team.teamId.trim().isEmpty
-                  ? null
-                  : () => WorkspaceNavigator.openTeam(context, team.teamId),
+          if (team.teamId.trim().isNotEmpty)
+            Expanded(
+              child: ContextPill(
+                label: team.teamName.isEmpty ? team.teamId : team.teamName,
+                semantic: ContextPillSemantic.team,
+                onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
+                compact: true,
+              ),
+            )
+          else
+            Expanded(
               child: Text(
                 team.teamName.isEmpty ? team.teamId : team.teamName,
                 maxLines: 1,
@@ -724,7 +732,6 @@ class _KeyDataCard extends StatelessWidget {
                 style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
               ),
             ),
-          ),
           const SizedBox(width: 8),
           const Icon(
             AppIcons.student,
@@ -768,11 +775,17 @@ class _KeyDataCard extends StatelessWidget {
         children: <Widget>[
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
-          Expanded(
-            child: InkWell(
-              onTap: idea.ideaId.trim().isEmpty
-                  ? null
-                  : () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+          if (idea.ideaId.trim().isNotEmpty)
+            Expanded(
+              child: ContextPill(
+                label: idea.title,
+                semantic: ContextPillSemantic.idea,
+                onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+                compact: true,
+              ),
+            )
+          else
+            Expanded(
               child: Text(
                 idea.title,
                 maxLines: 1,
@@ -780,7 +793,6 @@ class _KeyDataCard extends StatelessWidget {
                 style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
               ),
             ),
-          ),
           StatusStyles.ideaStatusIcon(
             idea.status,
             size: _FacultyDashboardHomeState._kDashboardIconSize,

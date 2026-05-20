@@ -134,17 +134,16 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        InkWell(
-          onTap: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
+        EntityReferenceRow(
+          label: 'Team',
+          value: vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName,
+          workspaceEntityLabel: 'team',
+          onOpenWorkspace: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
               ? null
               : () => WorkspaceNavigator.openTeam(
                     context,
                     vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId,
                   ),
-          child: Text(
-            'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
-            style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-          ),
         ),
       ],
     );
@@ -297,17 +296,16 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              InkWell(
-                onTap: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
+              EntityReferenceRow(
+                label: 'Team',
+                value: vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName,
+                workspaceEntityLabel: 'team',
+                onOpenWorkspace: (vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId).trim().isEmpty
                     ? null
                     : () => WorkspaceNavigator.openTeam(
                           context,
                           vm.team.teamId.isNotEmpty ? vm.team.teamId : vm.idea.teamId,
                         ),
-                child: Text(
-                  'Team: ${vm.team.teamName.isEmpty ? vm.idea.teamId : vm.team.teamName}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-                ),
               ),
               const SizedBox(height: 8),
               Text('Mentor: ${_name(vm.mentor)}'),

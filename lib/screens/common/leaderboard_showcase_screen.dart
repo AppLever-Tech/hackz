@@ -9,6 +9,7 @@ import '../../widgets/leaderboard/comparative_analytics_section.dart';
 import '../../widgets/leaderboard/innovation_momentum_chart.dart';
 import '../../widgets/leaderboard/leaderboard_hero_section.dart';
 import '../../widgets/leaderboard/leaderboard_tab_section.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/leaderboard/rank_showcase_card.dart';
 import '../../workspace/workspace.dart';
 import '../../widgets/leaderboard/rising_ideas_widget.dart';
@@ -149,9 +150,10 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
                     rank: r.rank,
                     title: r.spotlightIdeaTitle,
                     subtitle: '${r.teamName} • ${r.departmentLabel}',
-                    onSubtitleTap: r.teamId.trim().isEmpty
+                    onOpenSubtitleWorkspace: r.teamId.trim().isEmpty
                         ? null
                         : () => WorkspaceNavigator.openTeam(context, r.teamId),
+                    subtitleWorkspaceSemantic: ContextPillSemantic.team,
                     scoreLabel: 'Innovation score',
                     scoreValue: r.finalScore.toStringAsFixed(1),
                     trend: r.trend,
@@ -178,9 +180,10 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
                   (r) => RankShowcaseCard(
                     rank: r.rank,
                     title: r.title,
-                    onTitleTap: r.ideaId.trim().isEmpty
+                    onOpenTitleWorkspace: r.ideaId.trim().isEmpty
                         ? null
                         : () => WorkspaceNavigator.openEvaluation(context, r.ideaId),
+                    titleWorkspaceSemantic: ContextPillSemantic.evaluation,
                     subtitle: r.categoryTheme,
                     scoreLabel: 'Innovation / Final',
                     scoreValue: '${r.innovationScore.toStringAsFixed(0)} • ${r.finalScore.toStringAsFixed(1)}',

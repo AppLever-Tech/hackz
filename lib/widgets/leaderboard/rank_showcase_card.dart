@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/leaderboard_ranking_engine.dart';
+import '../common/context_pill.dart';
+import '../common/context_pill_theme.dart';
 import 'achievement_badge_widget.dart';
 import 'trend_indicator_widget.dart';
 
@@ -15,15 +17,19 @@ class RankShowcaseCard extends StatelessWidget {
     required this.scoreValue,
     required this.trend,
     required this.achievementId,
-    this.onSubtitleTap,
-    this.onTitleTap,
+    this.onOpenTitleWorkspace,
+    this.titleWorkspaceSemantic = ContextPillSemantic.idea,
+    this.onOpenSubtitleWorkspace,
+    this.subtitleWorkspaceSemantic = ContextPillSemantic.team,
   });
 
   final int rank;
   final String title;
   final String subtitle;
-  final VoidCallback? onSubtitleTap;
-  final VoidCallback? onTitleTap;
+  final VoidCallback? onOpenTitleWorkspace;
+  final ContextPillSemantic titleWorkspaceSemantic;
+  final VoidCallback? onOpenSubtitleWorkspace;
+  final ContextPillSemantic subtitleWorkspaceSemantic;
   final String scoreLabel;
   final String scoreValue;
   final TrendDirection trend;
@@ -46,8 +52,8 @@ class RankShowcaseCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
-            const Color(0xFF0F172A).withOpacity(0.04),
-            const Color(0xFF6366F1).withOpacity(0.06),
+            const Color(0xFF0F172A).withValues(alpha: 0.04),
+            const Color(0xFF6366F1).withValues(alpha: 0.06),
           ],
         ),
         border: Border.all(color: const Color(0xFFE2E8F0)),
@@ -79,47 +85,40 @@ class RankShowcaseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                onTitleTap == null
-                    ? Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                      )
-                    : InkWell(
-                        onTap: onTitleTap,
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                      ),
+                if (onOpenTitleWorkspace != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ContextPill(
+                      label: title,
+                      semantic: titleWorkspaceSemantic,
+                      onTap: onOpenTitleWorkspace!,
+                    ),
+                  )
+                else
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  ),
                 const SizedBox(height: 4),
-                onSubtitleTap == null
-                    ? Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      )
-                    : InkWell(
-                        onTap: onSubtitleTap,
-                        child: Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF334155),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
+                if (onOpenSubtitleWorkspace != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ContextPill(
+                      label: subtitle,
+                      semantic: subtitleWorkspaceSemantic,
+                      onTap: onOpenSubtitleWorkspace!,
+                      compact: true,
+                    ),
+                  )
+                else
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
               ],
             ),
           ),
