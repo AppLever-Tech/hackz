@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../core/theme/app_semantic_colors.dart';
 import '../../responsive/responsive_helper.dart';
 
@@ -42,6 +43,33 @@ abstract final class ContextPillTheme {
       _ => ContextPillSemantic.generic,
     };
   }
+
+  static IconData iconFor(ContextPillSemantic semantic) {
+    return switch (semantic) {
+      ContextPillSemantic.user => AppIcons.users,
+      ContextPillSemantic.judge => AppIcons.judges,
+      ContextPillSemantic.team => AppIcons.teams,
+      ContextPillSemantic.idea => AppIcons.ideas,
+      ContextPillSemantic.problem => AppIcons.problems,
+      ContextPillSemantic.payment => AppIcons.payments,
+      ContextPillSemantic.evaluation => AppIcons.scoring,
+      ContextPillSemantic.generic => AppIcons.timelineWorkspace,
+    };
+  }
+
+  static double iconSizeFor({required bool compact}) => compact ? 13 : 15;
+
+  /// Default when [ContextPill.fitContent] is true and no explicit [ContextPill.maxWidth].
+  static double defaultFitMaxWidth({required bool compact, required ContextPillSemantic semantic}) {
+    if (semantic == ContextPillSemantic.user || semantic == ContextPillSemantic.judge) {
+      return compact ? 200 : 240;
+    }
+    return compact ? 260 : 320;
+  }
+
+  /// User/judge pills stay compact in dense lists (dept admin, judge panel).
+  static bool defaultsToFitContent(ContextPillSemantic semantic) =>
+      semantic == ContextPillSemantic.user || semantic == ContextPillSemantic.judge;
 
   static String workspaceTooltipFor(ContextPillSemantic semantic) {
     return switch (semantic) {

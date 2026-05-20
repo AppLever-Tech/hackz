@@ -552,17 +552,16 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: ContextPill(
-                            label: '${u.firstName} ${u.lastName}'.trim(),
-                            semantic: ContextPillSemantic.user,
-                            onTap: () => WorkspaceNavigator.openUser(context, u.userId),
-                            compact: true,
-                          ),
-                        ),
-                      ],
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ContextPill(
+                        label: '${u.firstName} ${u.lastName}'.trim(),
+                        semantic: ContextPillSemantic.user,
+                        icon: AppIcons.forUserRoleCode(u.role),
+                        onTap: () => WorkspaceNavigator.openUser(context, u.userId),
+                        compact: true,
+                        fitContent: true,
+                      ),
                     ),
                     Text('${u.phone} • ${u.email}', maxLines: 2, overflow: TextOverflow.ellipsis),
                     if (isRejected) ...<Widget>[

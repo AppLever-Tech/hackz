@@ -15,6 +15,8 @@ class ContextPillGroup extends StatelessWidget {
     this.compact = false,
     this.leadingIcon,
     this.maxPillWidth,
+    this.fitContent,
+    this.icon,
   });
 
   final String? fieldLabel;
@@ -25,11 +27,14 @@ class ContextPillGroup extends StatelessWidget {
   final bool compact;
   final IconData? leadingIcon;
   final double? maxPillWidth;
+  final bool? fitContent;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final ContextPillSemantic resolved =
         semantic ?? ContextPillTheme.semanticFromEntityLabel(workspaceEntityLabel ?? fieldLabel);
+    final bool shrinkPill = fitContent ?? ContextPillTheme.defaultsToFitContent(resolved);
 
     final TextStyle? fieldStyle = fieldLabel == null
         ? null
@@ -45,8 +50,10 @@ class ContextPillGroup extends StatelessWidget {
         label: pillLabel,
         onTap: onOpenWorkspace,
         semantic: resolved,
+        icon: icon,
         compact: compact,
         maxWidth: maxPillWidth,
+        fitContent: shrinkPill,
       );
     }
 
@@ -64,18 +71,34 @@ class ContextPillGroup extends StatelessWidget {
               padding: const EdgeInsets.only(right: 8),
               child: Text(fieldLabel!, style: fieldStyle),
             ),
-          Flexible(
-            child: Align(
+          if (shrinkPill)
+            Align(
               alignment: Alignment.centerLeft,
               child: ContextPill(
                 label: pillLabel,
                 onTap: onOpenWorkspace,
                 semantic: resolved,
+                icon: icon,
                 compact: compact,
                 maxWidth: maxPillWidth,
+                fitContent: true,
+              ),
+            )
+          else
+            Flexible(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ContextPill(
+                  label: pillLabel,
+                  onTap: onOpenWorkspace,
+                  semantic: resolved,
+                  icon: icon,
+                  compact: compact,
+                  maxWidth: maxPillWidth,
+                  expandWidth: true,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

@@ -96,17 +96,15 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                 ...judges.map(
                   (judge) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: ContextPill(
-                            label: '${judge.firstName} ${judge.lastName}'.trim(),
-                            semantic: ContextPillSemantic.judge,
-                            onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
-                            compact: true,
-                          ),
-                        ),
-                      ],
+                    title: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ContextPill(
+                        label: '${judge.firstName} ${judge.lastName}'.trim(),
+                        semantic: ContextPillSemantic.judge,
+                        onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
+                        compact: true,
+                        fitContent: true,
+                      ),
                     ),
                     subtitle: Text('${judge.email} | ${judge.phone}'),
                     trailing: IconButton(
