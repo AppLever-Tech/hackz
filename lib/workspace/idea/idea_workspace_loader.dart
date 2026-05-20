@@ -13,6 +13,7 @@ import '../../models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
+import '../core/workspace_attachment_counts.dart';
 
 class IdeaWorkspaceViewModel {
   const IdeaWorkspaceViewModel({
@@ -31,9 +32,7 @@ class IdeaWorkspaceViewModel {
     required this.reviewerCount,
     required this.evaluationProgressLabel,
     required this.paymentStatusLabel,
-    required this.attachmentCount,
-    required this.attachments,
-    required this.attachmentsByType,
+    required this.attachmentCounts,
     required this.judgeNamesById,
   });
 
@@ -52,10 +51,10 @@ class IdeaWorkspaceViewModel {
   final int reviewerCount;
   final String evaluationProgressLabel;
   final String paymentStatusLabel;
-  final int attachmentCount;
-  final List<AttachmentModel> attachments;
-  final Map<AttachmentType, List<AttachmentModel>> attachmentsByType;
+  final WorkspaceAttachmentCounts attachmentCounts;
   final Map<String, String> judgeNamesById;
+
+  int get attachmentCount => attachmentCounts.totalCount;
 }
 
 abstract final class IdeaWorkspaceLoader {
@@ -182,10 +181,7 @@ abstract final class IdeaWorkspaceLoader {
         .toList(growable: false)
       ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
 
-    final Map<AttachmentType, List<AttachmentModel>> attachmentsByType = <AttachmentType, List<AttachmentModel>>{};
-    for (final AttachmentModel a in attachments) {
-      attachmentsByType.putIfAbsent(a.attachmentType, () => <AttachmentModel>[]).add(a);
-    }
+    final WorkspaceAttachmentCounts attachmentCounts = WorkspaceAttachmentCounts.fromModels(attachments);
 
     final double? averageScore = scores.isEmpty
         ? null
@@ -221,9 +217,7 @@ abstract final class IdeaWorkspaceLoader {
       reviewerCount: judgeIds.length,
       evaluationProgressLabel: _evaluationProgress(idea.status, scores.length),
       paymentStatusLabel: _paymentStatusLabel(payment?.status),
-      attachmentCount: attachments.length,
-      attachments: attachments,
-      attachmentsByType: attachmentsByType,
+      attachmentCounts: attachmentCounts,
       judgeNamesById: judgeNamesById,
     );
   }

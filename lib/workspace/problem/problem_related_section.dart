@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/idea_model.dart';
-import 'problem_workspace.dart';
+import 'problem_workspace_loader.dart';
 
 class ProblemRelatedSection extends StatelessWidget {
   const ProblemRelatedSection({
@@ -109,70 +109,6 @@ class ProblemRelatedSection extends StatelessWidget {
             '$label: $value',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class ProblemIdeaPreviewRoute extends StatelessWidget {
-  const ProblemIdeaPreviewRoute({
-    super.key,
-    required this.preview,
-    this.onOpenCreator,
-  });
-
-  final ProblemIdeaPreview preview;
-  final VoidCallback? onOpenCreator;
-
-  @override
-  Widget build(BuildContext context) {
-    final idea = preview.idea;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: <Widget>[
-        Text(
-          idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : idea.ideaTitle.trim(),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            _pill(AppIcons.statusUnderReview, _statusLabel(idea.status)),
-            _pill(AppIcons.scoring, preview.avgScore == null ? 'No score' : 'Avg ${preview.avgScore!.toStringAsFixed(1)}'),
-            _pill(AppIcons.clock, '${idea.createdAt.day}/${idea.createdAt.month}/${idea.createdAt.year}'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (idea.description.trim().isNotEmpty)
-          Text(
-            idea.description.trim(),
-            style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
-          ),
-        const SizedBox(height: 12),
-        InkWell(
-          onTap: onOpenCreator,
-          child: Text(
-            'Created by ${preview.createdByName}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static Widget _pill(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: const Color(0xFF57629A)),
-          const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
         ],
       ),
     );

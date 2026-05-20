@@ -9,6 +9,7 @@ import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/payment_finance_helpers.dart';
+import '../core/workspace_attachment_counts.dart';
 
 class PaymentWorkspaceViewModel {
   const PaymentWorkspaceViewModel({
@@ -18,7 +19,8 @@ class PaymentWorkspaceViewModel {
     required this.departmentLabel,
     required this.payerName,
     required this.verifierName,
-    required this.proofAttachments,
+    required this.proofAttachmentCounts,
+    required this.hasLegacyProofUrl,
     required this.hasProof,
     required this.needsAttention,
   });
@@ -29,7 +31,8 @@ class PaymentWorkspaceViewModel {
   final String departmentLabel;
   final String payerName;
   final String verifierName;
-  final List<AttachmentModel> proofAttachments;
+  final WorkspaceAttachmentCounts proofAttachmentCounts;
+  final bool hasLegacyProofUrl;
   final bool hasProof;
   final bool needsAttention;
 }
@@ -87,17 +90,18 @@ abstract final class PaymentWorkspaceLoader {
         secondary[4] as QuerySnapshot<Map<String, dynamic>>;
 
     final String paymentKey = payment.paymentId.trim();
-    final List<AttachmentModel> proofAttachments = attachmentSnap.docs
-        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
-        .where(
-          (AttachmentModel a) =>
-              a.entityType == AttachmentEntityType.payment &&
-              (a.entityId == paymentKey || a.entityId == ideaId),
-        )
-        .toList(growable: false)
-      ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
+    final WorkspaceAttachmentCounts proofAttachmentCounts = WorkspaceAttachmentCounts.fromModels(
+      attachmentSnap.docs
+          .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
+          .where(
+            (AttachmentModel a) =>
+                a.entityType == AttachmentEntityType.payment &&
+                (a.entityId == paymentKey || a.entityId == ideaId),
+          ),
+    );
 
-    final bool hasProof = payment.paymentProofUrl.trim().isNotEmpty || proofAttachments.isNotEmpty;
+    final bool hasLegacyProofUrl = payment.paymentProofUrl.trim().isNotEmpty;
+    final bool hasProof = hasLegacyProofUrl || !proofAttachmentCounts.isEmpty;
     final DepartmentModel? dept = DepartmentModel.byCode(payment.departmentCode);
 
     final String ideaTitle = idea?.ideaTitle.trim().isNotEmpty == true
@@ -120,7 +124,8 @@ abstract final class PaymentWorkspaceLoader {
       departmentLabel: dept?.name ?? payment.departmentCode,
       payerName: payerName,
       verifierName: verifierName,
-      proofAttachments: proofAttachments,
+      proofAttachmentCounts: proofAttachmentCounts,
+      hasLegacyProofUrl: hasLegacyProofUrl,
       hasProof: hasProof,
       needsAttention: PaymentFinanceHelpers.needsAttention(payment, hasProof: hasProof),
     );
