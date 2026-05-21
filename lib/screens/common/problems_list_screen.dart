@@ -13,7 +13,7 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/problem_query_service.dart';
 import '../../widgets/problem_card.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
-import '../../widgets/faculty/submit_idea_dialog.dart';
+import '../../widgets/faculty/innovation_submission_workspace.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -106,13 +106,10 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
-    final created = await showAppDialog<bool>(
+    final created = await showInnovationSubmissionWorkspace(
       context: context,
-      width: DialogWidthPreset.wide,
-      child: SubmitIdeaDialog(
-        currentUser: widget.currentUser,
-        initialProblem: problem,
-      ),
+      currentUser: widget.currentUser,
+      problem: problem,
     );
     if (created == true && mounted) _loadProblems();
   }

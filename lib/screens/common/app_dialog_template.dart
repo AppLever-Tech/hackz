@@ -12,6 +12,7 @@ Future<T?> showAppDialog<T>({
   double? maxWidth,
   EdgeInsetsGeometry? contentPadding,
   bool showBorder = true,
+  Widget? footer,
 }) {
   return showDialog<T>(
     context: context,
@@ -22,6 +23,7 @@ Future<T?> showAppDialog<T>({
         maxWidth: maxWidth,
         contentPadding: contentPadding,
         showBorder: showBorder,
+        footer: footer,
         child: child,
       );
     },
@@ -37,6 +39,7 @@ class AppDialogTemplate extends StatelessWidget {
     this.maxWidth,
     this.contentPadding,
     this.showBorder = true,
+    this.footer,
   });
 
   final Widget child;
@@ -44,6 +47,7 @@ class AppDialogTemplate extends StatelessWidget {
   final double? maxWidth;
   final EdgeInsetsGeometry? contentPadding;
   final bool showBorder;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +70,17 @@ class AppDialogTemplate extends StatelessWidget {
       child: child,
     );
 
-    final body = fullscreen
+    final bool hasFooter = footer != null;
+    final double maxDialogHeight = MediaQuery.sizeOf(context).height * 0.92;
+
+    final Widget scrollArea = SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: hasFooter ? 0 : MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: scrollChild,
+    );
+
+    final Widget body = fullscreen
         ? SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,18 +93,23 @@ class AppDialogTemplate extends StatelessWidget {
                     tooltip: 'Close',
                   ),
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-                    child: scrollChild,
-                  ),
-                ),
+                Expanded(child: scrollArea),
+                if (footer != null) footer!,
               ],
             ),
           )
-        : SingleChildScrollView(
-            child: scrollChild,
-          );
+        : hasFooter
+            ? ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxDialogHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Flexible(child: scrollArea),
+                    footer!,
+                  ],
+                ),
+              )
+            : scrollArea;
 
     if (fullscreen) {
       return Dialog.fullscreen(

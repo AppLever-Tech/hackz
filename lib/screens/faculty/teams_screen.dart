@@ -9,7 +9,6 @@ import '../../utils/faculty_teams_service.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_components.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/faculty/team_capacity_widget.dart';
 import '../../widgets/faculty/team_form_dialog.dart';
 import '../../widgets/faculty/team_workspace_card.dart';
@@ -58,20 +57,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
       width: DialogWidthPreset.extraWide,
     );
     if (result == TeamFormDialogAction.saved && mounted) {
-      _refresh();
-    }
-  }
-
-  Future<void> _openSubmitIdea(FacultyTeamsWorkspaceData data, TeamModel team) async {
-    final created = await showAppDialog<bool>(
-      context: context,
-      child: SubmitIdeaDialog(
-        currentUser: widget.user,
-        team: team,
-      ),
-      width: DialogWidthPreset.wide,
-    );
-    if (created == true && mounted) {
       _refresh();
     }
   }
@@ -148,7 +133,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
                         data: data,
                         mentorName: '${widget.user.firstName} ${widget.user.lastName}'.trim(),
                         onEdit: (team) => _openTeamDialog(data, team: team),
-                        onSubmitIdea: (team) => _openSubmitIdea(data, team),
                         onViewIdeas: (insight) => _viewIdeas(insight),
                         onDisable: _disableTeam,
                       ),
@@ -286,7 +270,6 @@ class _TeamGrid extends StatelessWidget {
     required this.data,
     required this.mentorName,
     required this.onEdit,
-    required this.onSubmitIdea,
     required this.onViewIdeas,
     required this.onDisable,
   });
@@ -295,7 +278,6 @@ class _TeamGrid extends StatelessWidget {
   final FacultyTeamsWorkspaceData data;
   final String mentorName;
   final ValueChanged<TeamModel> onEdit;
-  final ValueChanged<TeamModel> onSubmitIdea;
   final ValueChanged<FacultyTeamInsight> onViewIdeas;
   final ValueChanged<TeamModel> onDisable;
 
@@ -320,7 +302,6 @@ class _TeamGrid extends StatelessWidget {
                 mentorName: mentorName,
                 studentNamesById: data.studentNamesById,
                 onEdit: () => onEdit(team),
-                onSubmitIdea: () => onSubmitIdea(team),
                 onViewIdeas: () => onViewIdeas(insight),
                 onDisable: () => onDisable(team),
               ),

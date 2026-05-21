@@ -19,7 +19,6 @@ class TeamWorkspaceCard extends StatelessWidget {
     required this.mentorName,
     required this.studentNamesById,
     required this.onEdit,
-    required this.onSubmitIdea,
     required this.onViewIdeas,
     required this.onDisable,
   });
@@ -29,7 +28,6 @@ class TeamWorkspaceCard extends StatelessWidget {
   final String mentorName;
   final Map<String, String> studentNamesById;
   final VoidCallback onEdit;
-  final VoidCallback onSubmitIdea;
   final VoidCallback onViewIdeas;
   final VoidCallback onDisable;
 
@@ -93,8 +91,6 @@ class TeamWorkspaceCard extends StatelessWidget {
                   switch (value) {
                     case 'edit':
                       onEdit();
-                    case 'submit':
-                      onSubmitIdea();
                     case 'view':
                       onViewIdeas();
                     case 'disable':
@@ -107,12 +103,6 @@ class TeamWorkspaceCard extends StatelessWidget {
                     icon: AppIcons.edit,
                     label: 'Edit Team',
                     enabled: !insight.isLocked && !isInactive,
-                  ),
-                  CardOverflowMenuAction(
-                    value: 'submit',
-                    icon: AppIcons.ideas,
-                    label: 'Submit Idea',
-                    enabled: !isInactive,
                   ),
                   const CardOverflowMenuAction(
                     value: 'view',

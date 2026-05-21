@@ -10,13 +10,11 @@ import '../../utils/idea_query_service.dart';
 import '../../utils/role_visibility_helpers.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
-import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
-import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 
 class IdeasListScreen extends StatefulWidget {
@@ -83,15 +81,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         ),
       );
     });
-  }
-
-  Future<void> _openSubmitIdeaDialog() async {
-    final created = await showAppDialog<bool>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: SubmitIdeaDialog(currentUser: widget.currentUser),
-    );
-    if (created == true && mounted) _loadIdeas();
   }
 
   Future<void> _openEvaluateDialog(IdeaListItem item) async {
@@ -309,18 +298,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
     final sortButton = _buildSortButton(context);
 
-    final submitButton = widget.config.canCreateIdea
-        ? FilledButton.icon(
-            onPressed: _openSubmitIdeaDialog,
-            icon: const Icon(AppIcons.add, size: 18),
-            label: const Text('Submit Idea'),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          )
-        : null;
-
     final searchField = TextField(
       controller: _searchController,
       onSubmitted: (_) => _loadIdeas(),
@@ -353,7 +330,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              if (submitButton != null) submitButton,
               filterButton,
               sortButton,
             ],
@@ -365,10 +341,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        if (submitButton != null) ...<Widget>[
-          submitButton,
-          const SizedBox(width: 8),
-        ],
         Expanded(child: searchField),
         const SizedBox(width: 8),
         filterButton,
