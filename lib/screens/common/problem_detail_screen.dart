@@ -18,7 +18,6 @@ import '../../widgets/attachment_viewer.dart';
 import '../../widgets/filter_pill.dart';
 import '../../widgets/idea_card.dart';
 import '../../workspace/workspace.dart';
-import 'idea_detail_screen.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
@@ -587,18 +586,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
       final inDesc = entry.item.idea.description.toLowerCase().contains(search);
       return inTeam || inDesc;
     }).toList(growable: false);
-  }
-
-  Future<void> _showIdeaDetails(ProblemIdeaAggregate entry) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => IdeaDetailScreen(
-          ideaId: entry.item.idea.ideaId,
-          currentUser: widget.currentUser,
-        ),
-      ),
-    );
-    await _refreshIdeas();
   }
 
   Future<void> _openEvaluateDialog(ProblemIdeaAggregate entry) async {

@@ -3,27 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/attachment_model.dart';
-import '../../models/enums/user_role.dart';
 import '../../models/idea_list_config.dart';
 import '../../models/idea_model.dart';
 import '../../models/user_model.dart';
-import '../../models/payment_model.dart';
 import '../../utils/idea_query_service.dart';
 import '../../utils/role_visibility_helpers.dart';
 import '../../widgets/idea_card.dart';
 import '../../widgets/payment_dialog.dart';
-import '../../widgets/attachment_viewer.dart';
 import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_list_detail_layout.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
-import 'idea_detail_screen.dart';
 
 class IdeasListScreen extends StatefulWidget {
   const IdeasListScreen({
@@ -52,7 +46,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Set<String> _problemFilters = <String>{};
   Set<String> _departmentFilters = <String>{};
   IdeaSortType _sort = IdeaSortType.newest;
-  String? _selectedIdeaId;
 
   @override
   void initState() {
@@ -110,10 +103,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     if (updated == true && mounted) _loadIdeas();
   }
 
-  Future<void> _showIdeaDetails(IdeaListItem item) async {
-    setState(() => _selectedIdeaId = item.idea.ideaId);
-  }
-
   Future<void> _openUploadPayment(IdeaListItem item) async {
     final team = item.team;
     if (team == null) return;
@@ -124,17 +113,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       team: team,
     );
     if (ok == true && mounted) _loadIdeas();
-  }
-
-  String _paymentStatusLabel(PaymentRecordStatus status) {
-    switch (status) {
-      case PaymentRecordStatus.pending:
-        return 'Pending';
-      case PaymentRecordStatus.verified:
-        return 'Verified';
-      case PaymentRecordStatus.rejected:
-        return 'Rejected';
-    }
   }
 
   void _clearAllFilters() {
@@ -194,35 +172,31 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   final canEval = widget.config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () => _showIdeaDetails(item),
-                      child: IdeaCard(
-                        key: ValueKey(item.idea.ideaId),
-                        item: item,
-                        onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                        onOpenProblem: item.idea.problemId.trim().isEmpty
-                            ? null
-                            : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
-                        onOpenTeam: () {
-                          final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
-                          if (teamId.isEmpty) return;
-                          WorkspaceNavigator.openTeam(context, teamId);
-                        },
-                        onOpenPayment: item.payment == null
-                            ? null
-                            : () => WorkspaceNavigator.openPayment(context, item.payment!.paymentId),
-                        onOpenEvaluation: _canOpenEvaluation(item)
-                            ? () => WorkspaceNavigator.openEvaluation(context, item.idea.ideaId)
-                            : null,
-                        onOpenAttachments: item.attachmentCount > 0
-                            ? () => _openAttachments(context, item)
-                            : null,
-                        showEvaluate: canEval,
-                        onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
-                        showUploadPayment: showPay,
-                        onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
-                      ),
+                    child: IdeaCard(
+                      key: ValueKey(item.idea.ideaId),
+                      item: item,
+                      onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                      onOpenProblem: item.idea.problemId.trim().isEmpty
+                          ? null
+                          : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
+                      onOpenTeam: () {
+                        final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+                        if (teamId.isEmpty) return;
+                        WorkspaceNavigator.openTeam(context, teamId);
+                      },
+                      onOpenPayment: item.payment == null
+                          ? null
+                          : () => WorkspaceNavigator.openPayment(context, item.payment!.paymentId),
+                      onOpenEvaluation: _canOpenEvaluation(item)
+                          ? () => WorkspaceNavigator.openEvaluation(context, item.idea.ideaId)
+                          : null,
+                      onOpenAttachments: item.attachmentCount > 0
+                          ? () => _openAttachments(context, item)
+                          : null,
+                      showEvaluate: canEval,
+                      onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
+                      showUploadPayment: showPay,
+                      onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
                     ),
                   );
                 },
@@ -258,22 +232,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               ],
             );
 
-            final selectedId = _selectedIdeaId;
-            return ResponsiveListDetailLayout(
-              hasSelection: selectedId != null,
-              onCloseDetail: () => setState(() => _selectedIdeaId = null),
-              backLabel: 'Back to Ideas',
-              list: listPanel,
-              detail: selectedId == null
-                  ? const SizedBox.shrink()
-                  : IdeaDetailScreen(
-                      key: ValueKey<String>(selectedId),
-                      ideaId: selectedId,
-                      currentUser: widget.currentUser,
-                      embedded: true,
-                      onBack: () => setState(() => _selectedIdeaId = null),
-                    ),
-            );
+            return listPanel;
           },
         );
       },
