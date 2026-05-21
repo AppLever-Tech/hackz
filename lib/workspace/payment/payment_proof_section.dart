@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../core/workspace_attachments_summary.dart';
+import '../../models/attachment_model.dart';
+import '../core/workspace_attachments_panel.dart';
 import 'payment_workspace_loader.dart';
 
 class PaymentProofSection extends StatelessWidget {
@@ -10,17 +11,36 @@ class PaymentProofSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> footer = vm.hasLegacyProofUrl && vm.proofAttachmentCounts.isEmpty
-        ? const <String>['Legacy proof reference on file (not shown in workspace)']
-        : const <String>[];
+    if (vm.proofAttachments.isEmpty && !vm.hasLegacyProofUrl) {
+      return const WorkspaceAttachmentsPanel(
+        attachments: <AttachmentModel>[],
+        title: 'Payment proof',
+        emptyMessage: 'No payment proof uploaded yet.',
+        showTypeSummary: false,
+      );
+    }
 
-    return WorkspaceAttachmentsSummary(
+    if (vm.proofAttachments.isEmpty && vm.hasLegacyProofUrl) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            'Payment proof',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Legacy proof reference on file (not shown in workspace).',
+            style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+          ),
+        ],
+      );
+    }
+
+    return WorkspaceAttachmentsPanel(
       title: 'Payment proof',
-      counts: vm.proofAttachmentCounts,
-      emptyMessage: vm.hasLegacyProofUrl
-          ? 'No structured proof files; see note below.'
-          : 'No payment proof uploaded yet.',
-      footerLines: footer,
+      attachments: vm.proofAttachments,
+      emptyMessage: 'No payment proof uploaded yet.',
     );
   }
 }

@@ -33,6 +33,7 @@ class IdeaWorkspaceViewModel {
     required this.evaluationProgressLabel,
     required this.paymentStatusLabel,
     required this.attachmentCounts,
+    required this.attachments,
     required this.judgeNamesById,
   });
 
@@ -52,6 +53,7 @@ class IdeaWorkspaceViewModel {
   final String evaluationProgressLabel;
   final String paymentStatusLabel;
   final WorkspaceAttachmentCounts attachmentCounts;
+  final List<AttachmentModel> attachments;
   final Map<String, String> judgeNamesById;
 
   int get attachmentCount => attachmentCounts.totalCount;
@@ -218,6 +220,7 @@ abstract final class IdeaWorkspaceLoader {
       evaluationProgressLabel: _evaluationProgress(idea.status, scores.length),
       paymentStatusLabel: _paymentStatusLabel(payment?.status),
       attachmentCounts: attachmentCounts,
+      attachments: attachments,
       judgeNamesById: judgeNamesById,
     );
   }

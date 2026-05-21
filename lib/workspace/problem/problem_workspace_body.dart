@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/common_helpers.dart';
-import '../core/workspace_attachments_summary.dart';
+import '../core/workspace_attachments_panel.dart';
 import 'problem_metadata_section.dart';
 import 'problem_related_section.dart';
 import 'problem_stats_section.dart';
@@ -30,8 +30,8 @@ class ProblemWorkspaceBody extends StatelessWidget {
         const SizedBox(height: 14),
         ProblemStatsSection(vm: vm),
         const SizedBox(height: 14),
-        WorkspaceAttachmentsSummary(
-          counts: vm.attachmentCounts,
+        WorkspaceAttachmentsPanel(
+          attachments: vm.attachments,
           emptyMessage: 'No attachments uploaded for this problem.',
         ),
         const SizedBox(height: 14),

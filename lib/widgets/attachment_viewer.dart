@@ -231,7 +231,7 @@ class _AttachmentViewerDialogState extends State<AttachmentViewerDialog> with Ti
             ? (constraints.maxHeight.isFinite ? constraints.maxHeight.clamp(280.0, 560.0) : 420.0)
             : (ResponsiveHelper.isMobile(context) ? 360.0 : 520.0);
 
-        final preview = _AttachmentContent(
+        final preview = AttachmentPreviewPane(
           attachment: _selected,
           resolvedUrl: _selected == null ? null : _resolveUrl(_selected!),
         );
@@ -300,7 +300,7 @@ class _AttachmentViewerDialogState extends State<AttachmentViewerDialog> with Ti
                 children: <Widget>[
                   Flexible(
                     child: Text(
-                      '${_selected!.fileName} • ${_formatSize(_selected!.sizeInBytes)}',
+                      '${_selected!.fileName} • ${AttachmentPreviewPane.formatSize(_selected!.sizeInBytes)}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -349,18 +349,6 @@ class _AttachmentViewerDialogState extends State<AttachmentViewerDialog> with Ti
       case AttachmentType.ppt:
         return 'Docs';
     }
-  }
-
-  static String _formatSize(int bytes) {
-    if (bytes <= 0) return '0 B';
-    const units = <String>['B', 'KB', 'MB', 'GB'];
-    double size = bytes.toDouble();
-    int idx = 0;
-    while (size >= 1024 && idx < units.length - 1) {
-      size /= 1024;
-      idx++;
-    }
-    return '${size.toStringAsFixed(size >= 10 || idx == 0 ? 0 : 1)} ${units[idx]}';
   }
 
   String _resolveUrl(AttachmentModel attachment) {
@@ -494,14 +482,48 @@ class AttachmentTile extends StatelessWidget {
   }
 }
 
-class _AttachmentContent extends StatelessWidget {
-  const _AttachmentContent({
+/// File-type-aware preview (image zoom, video player, document card).
+class AttachmentPreviewPane extends StatelessWidget {
+  const AttachmentPreviewPane({
+    super.key,
     required this.attachment,
     required this.resolvedUrl,
   });
 
   final AttachmentModel? attachment;
   final String? resolvedUrl;
+
+  static String formatSize(int bytes) {
+    if (bytes <= 0) return '0 B';
+    const units = <String>['B', 'KB', 'MB', 'GB'];
+    double size = bytes.toDouble();
+    int idx = 0;
+    while (size >= 1024 && idx < units.length - 1) {
+      size /= 1024;
+      idx++;
+    }
+    return '${size.toStringAsFixed(size >= 10 || idx == 0 ? 0 : 1)} ${units[idx]}';
+  }
+
+  static String typeLabel(AttachmentType type) {
+    return switch (type) {
+      AttachmentType.image => 'Image',
+      AttachmentType.video => 'Video',
+      AttachmentType.pdf => 'PDF',
+      AttachmentType.ppt => 'Presentation',
+      AttachmentType.document => 'Document',
+    };
+  }
+
+  static IconData typeIcon(AttachmentType type) {
+    return switch (type) {
+      AttachmentType.image => AppIcons.attachmentImage,
+      AttachmentType.video => AppIcons.attachmentVideo,
+      AttachmentType.pdf => AppIcons.attachmentPdf,
+      AttachmentType.ppt => AppIcons.attachmentPpt,
+      AttachmentType.document => AppIcons.attachmentDocument,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {

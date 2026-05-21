@@ -20,6 +20,7 @@ class PaymentWorkspaceViewModel {
     required this.payerName,
     required this.verifierName,
     required this.proofAttachmentCounts,
+    required this.proofAttachments,
     required this.hasLegacyProofUrl,
     required this.hasProof,
     required this.needsAttention,
@@ -32,6 +33,7 @@ class PaymentWorkspaceViewModel {
   final String payerName;
   final String verifierName;
   final WorkspaceAttachmentCounts proofAttachmentCounts;
+  final List<AttachmentModel> proofAttachments;
   final bool hasLegacyProofUrl;
   final bool hasProof;
   final bool needsAttention;
@@ -90,15 +92,17 @@ abstract final class PaymentWorkspaceLoader {
         secondary[4] as QuerySnapshot<Map<String, dynamic>>;
 
     final String paymentKey = payment.paymentId.trim();
-    final WorkspaceAttachmentCounts proofAttachmentCounts = WorkspaceAttachmentCounts.fromModels(
-      attachmentSnap.docs
-          .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
-          .where(
-            (AttachmentModel a) =>
-                a.entityType == AttachmentEntityType.payment &&
-                (a.entityId == paymentKey || a.entityId == ideaId),
-          ),
-    );
+    final List<AttachmentModel> proofAttachments = attachmentSnap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
+        .where(
+          (AttachmentModel a) =>
+              a.entityType == AttachmentEntityType.payment &&
+              (a.entityId == paymentKey || a.entityId == ideaId),
+        )
+        .toList(growable: false)
+      ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
+    final WorkspaceAttachmentCounts proofAttachmentCounts =
+        WorkspaceAttachmentCounts.fromModels(proofAttachments);
 
     final bool hasLegacyProofUrl = payment.paymentProofUrl.trim().isNotEmpty;
     final bool hasProof = hasLegacyProofUrl || !proofAttachmentCounts.isEmpty;
@@ -125,6 +129,7 @@ abstract final class PaymentWorkspaceLoader {
       payerName: payerName,
       verifierName: verifierName,
       proofAttachmentCounts: proofAttachmentCounts,
+      proofAttachments: proofAttachments,
       hasLegacyProofUrl: hasLegacyProofUrl,
       hasProof: hasProof,
       needsAttention: PaymentFinanceHelpers.needsAttention(payment, hasProof: hasProof),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../responsive/responsive_helper.dart';
-import '../core/workspace_attachments_summary.dart';
+import '../core/workspace_attachments_panel.dart';
 import 'idea_metrics_section.dart';
 import 'idea_related_section.dart';
 import 'idea_status_section.dart';
@@ -34,8 +34,8 @@ class IdeaWorkspaceBody extends StatelessWidget {
         const SizedBox(height: 14),
         IdeaRelatedSection(vm: vm),
         const SizedBox(height: 14),
-        WorkspaceAttachmentsSummary(
-          counts: vm.attachmentCounts,
+        WorkspaceAttachmentsPanel(
+          attachments: vm.attachments,
           emptyMessage: 'No attachments uploaded for this proposal yet.',
         ),
       ],

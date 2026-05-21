@@ -23,6 +23,7 @@ class ProblemWorkspaceViewModel {
     required this.priority,
     required this.tags,
     required this.attachmentCounts,
+    required this.attachments,
     required this.ideasSubmitted,
     required this.approvedIdeas,
     required this.evaluatedIdeas,
@@ -44,6 +45,7 @@ class ProblemWorkspaceViewModel {
   final String priority;
   final List<String> tags;
   final WorkspaceAttachmentCounts attachmentCounts;
+  final List<AttachmentModel> attachments;
   final int ideasSubmitted;
   final int approvedIdeas;
   final int evaluatedIdeas;
@@ -115,14 +117,15 @@ abstract final class ProblemWorkspaceLoader {
       ..sort((IdeaModel a, IdeaModel b) => b.createdAt.compareTo(a.createdAt));
 
     final Set<String> ideaIds = ideas.map((IdeaModel e) => e.ideaId).toSet();
-    final WorkspaceAttachmentCounts attachmentCounts = WorkspaceAttachmentCounts.fromModels(
-      attachmentSnap.docs
-          .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
-          .where(
-            (AttachmentModel a) =>
-                a.entityType == AttachmentEntityType.problem && a.entityId == model.problemId,
-          ),
-    );
+    final List<AttachmentModel> attachments = attachmentSnap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
+        .where(
+          (AttachmentModel a) =>
+              a.entityType == AttachmentEntityType.problem && a.entityId == model.problemId,
+        )
+        .toList(growable: false)
+      ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
+    final WorkspaceAttachmentCounts attachmentCounts = WorkspaceAttachmentCounts.fromModels(attachments);
 
     final List<PaymentModel> payments = paymentsSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => PaymentModel.fromMap(d.id, d.data()))
@@ -182,6 +185,7 @@ abstract final class ProblemWorkspaceLoader {
       priority: ((raw['priority'] as String?) ?? '').trim(),
       tags: tags,
       attachmentCounts: attachmentCounts,
+      attachments: attachments,
       ideasSubmitted: ideas.length,
       approvedIdeas: approvedIdeas,
       evaluatedIdeas: evaluatedIdeas,

@@ -116,6 +116,17 @@ class AttachmentService {
     return created;
   }
 
+  static Future<AttachmentModel?> fetchById(String attachmentId) async {
+    final String id = attachmentId.trim();
+    if (id.isEmpty) return null;
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(FirestoreUtils.hkzAttachments).doc(id).get();
+    if (!doc.exists || doc.data() == null) return null;
+    final AttachmentModel model = AttachmentModel.fromMap(doc.id, doc.data()!);
+    if (!model.isActive) return null;
+    return model;
+  }
+
   static Future<List<AttachmentModel>> fetchActiveAttachments({
     required AttachmentEntityType entityType,
     required String entityId,

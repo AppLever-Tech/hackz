@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../widgets/loading/hkz_progress_indicator.dart';
+import '../attachment/attachment_workspace.dart';
 import '../idea/idea_workspace.dart';
 import '../evaluation/evaluation_workspace.dart';
 import '../payment/payment_workspace.dart';
@@ -49,6 +50,11 @@ class WorkspaceNavigator extends StatelessWidget {
   /// Opens the read-only evaluation workspace for [evaluationId] (score id or idea id).
   static void openEvaluation(BuildContext context, String evaluationId) {
     EvaluationWorkspace.open(context, evaluationId);
+  }
+
+  /// Opens the read-only attachment workspace for [attachmentId].
+  static void openAttachment(BuildContext context, String attachmentId) {
+    AttachmentWorkspace.push(context, attachmentId);
   }
 
   @override

@@ -95,12 +95,12 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
                         _header(vm),
                         const SizedBox(height: 10),
                         _summary(vm),
-                        const SizedBox(height: 10),
-                        _tabs(),
                       ],
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+                _tabs(vm),
                 const SizedBox(height: 10),
                 Expanded(child: _tabContent(vm)),
               ],
@@ -207,14 +207,15 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
     );
   }
 
-  Widget _tabs() {
-    final items = <(_IdeaDetailTab, String, IconData)>[
-      (_IdeaDetailTab.details, 'Details', AppIcons.ideas),
-      (_IdeaDetailTab.team, 'Team', AppIcons.teams),
-      (_IdeaDetailTab.payment, 'Payment', AppIcons.payments),
-      (_IdeaDetailTab.evaluation, 'Evaluation', AppIcons.scoring),
-      (_IdeaDetailTab.attachments, 'Attachments', AppIcons.attachments),
-      (_IdeaDetailTab.activity, 'Activity', AppIcons.insights),
+  Widget _tabs(IdeaDetailsVm vm) {
+    final int attachmentCount = vm.ideaAttachments.length + vm.paymentAttachments.length;
+    final items = <(_IdeaDetailTab, String, IconData, int)>[
+      (_IdeaDetailTab.details, 'Details', AppIcons.ideas, 0),
+      (_IdeaDetailTab.team, 'Team', AppIcons.teams, vm.students.length),
+      (_IdeaDetailTab.payment, 'Payment', AppIcons.payments, vm.payment == null ? 0 : 1),
+      (_IdeaDetailTab.evaluation, 'Evaluation', AppIcons.scoring, vm.scores.length),
+      (_IdeaDetailTab.attachments, 'Attachments', AppIcons.attachments, attachmentCount),
+      (_IdeaDetailTab.activity, 'Activity', AppIcons.insights, vm.activities.length),
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -227,7 +228,7 @@ class _IdeaDetailScreenState extends State<IdeaDetailScreen> {
                   selected: _tab == item.$1,
                   icon: item.$3,
                   label: item.$2,
-                  count: 0,
+                  count: item.$4,
                   onTap: () => setState(() => _tab = item.$1),
                 ),
               ),
