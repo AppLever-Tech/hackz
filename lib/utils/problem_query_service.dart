@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/department_model.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';
 import 'firestore_utils.dart';
@@ -26,21 +27,73 @@ class ProblemQueryParams {
   final int limit;
 }
 
+class ProblemDashboardMetrics {
+  const ProblemDashboardMetrics({
+    required this.total,
+    required this.myDepartment,
+    required this.withIdeas,
+    required this.withoutIdeas,
+  });
+
+  static const ProblemDashboardMetrics empty = ProblemDashboardMetrics(
+    total: 0,
+    myDepartment: 0,
+    withIdeas: 0,
+    withoutIdeas: 0,
+  );
+
+  final int total;
+  final int myDepartment;
+  final int withIdeas;
+  final int withoutIdeas;
+}
+
+class ProblemListQueryResult {
+  const ProblemListQueryResult({
+    required this.items,
+    required this.metrics,
+    required this.ideaCountByProblemId,
+  });
+
+  final List<ProblemModel> items;
+  final ProblemDashboardMetrics metrics;
+  final Map<String, int> ideaCountByProblemId;
+}
+
 class ProblemQueryService {
   ProblemQueryService._();
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static Future<List<ProblemModel>> fetchProblems(ProblemQueryParams params) async {
-    Query<Map<String, dynamic>> query = _db
-        .collection(FirestoreUtils.hkzProblems)
-        .where('orgId', isEqualTo: params.config.orgId);
+  static Future<ProblemListQueryResult> fetchProblems(ProblemQueryParams params) async {
+    final results = await Future.wait<dynamic>(<Future<dynamic>>[
+      _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: params.config.orgId).limit(params.limit).get(),
+      _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: params.config.orgId).get(),
+    ]);
 
-    final snapshot = await query.limit(params.limit).get();
-    var items = snapshot.docs
+    final problemsSnap = results[0] as QuerySnapshot<Map<String, dynamic>>;
+    final ideasSnap = results[1] as QuerySnapshot<Map<String, dynamic>>;
+
+    final allProblems = problemsSnap.docs
         .map((doc) => ProblemModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
 
+    final ideaCountByProblemId = <String, int>{};
+    for (final doc in ideasSnap.docs) {
+      final data = doc.data();
+      final problemId = ((data['problemId'] as String?) ?? '').trim();
+      if (problemId.isEmpty) continue;
+      ideaCountByProblemId[problemId] = (ideaCountByProblemId[problemId] ?? 0) + 1;
+    }
+
+    final scoped = _applyDepartmentRestriction(allProblems, params);
+    final metrics = _computeMetrics(
+      scoped,
+      ideaCountByProblemId,
+      params.config.departmentCode,
+    );
+
+    var items = List<ProblemModel>.from(scoped);
     items = _applyFilters(items, params);
     items = await _applyAttachmentFilter(
       items: items,
@@ -48,7 +101,43 @@ class ProblemQueryService {
       hasAttachments: params.hasAttachments,
     );
     items = _applySort(items, params.sortType);
-    return items;
+
+    return ProblemListQueryResult(
+      items: items,
+      metrics: metrics,
+      ideaCountByProblemId: ideaCountByProblemId,
+    );
+  }
+
+  static List<ProblemModel> _applyDepartmentRestriction(List<ProblemModel> items, ProblemQueryParams params) {
+    if (!params.config.restrictToDepartment) return items;
+    final restrictedDepartmentCode = DepartmentModel.resolveCode(params.config.departmentCode);
+    if (restrictedDepartmentCode.isEmpty) return items;
+    return items
+        .where(
+          (problem) => problem.departmentCode.trim().toUpperCase() == restrictedDepartmentCode,
+        )
+        .toList(growable: false);
+  }
+
+  static ProblemDashboardMetrics _computeMetrics(
+    List<ProblemModel> problems,
+    Map<String, int> ideaCountByProblemId,
+    String viewerDepartmentCode,
+  ) {
+    if (problems.isEmpty) return ProblemDashboardMetrics.empty;
+    final String dept = DepartmentModel.resolveCode(viewerDepartmentCode);
+    final int myDepartment = dept.isEmpty
+        ? 0
+        : problems.where((ProblemModel p) => p.departmentCode.trim().toUpperCase() == dept).length;
+    final int withIdeas =
+        problems.where((ProblemModel p) => (ideaCountByProblemId[p.problemId] ?? 0) > 0).length;
+    return ProblemDashboardMetrics(
+      total: problems.length,
+      myDepartment: myDepartment,
+      withIdeas: withIdeas,
+      withoutIdeas: problems.length - withIdeas,
+    );
   }
 
   static List<ProblemModel> _applyFilters(List<ProblemModel> items, ProblemQueryParams params) {

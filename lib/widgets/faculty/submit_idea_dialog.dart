@@ -18,10 +18,12 @@ class SubmitIdeaDialog extends StatefulWidget {
     super.key,
     required this.currentUser,
     this.team,
+    this.initialProblem,
   });
 
   final UserModel currentUser;
   final TeamModel? team;
+  final ProblemModel? initialProblem;
 
   @override
   State<SubmitIdeaDialog> createState() => _SubmitIdeaDialogState();
@@ -42,6 +44,7 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
   void initState() {
     super.initState();
     _selectedTeam = widget.team;
+    _selectedProblem = widget.initialProblem;
     _loadLookups();
   }
 
@@ -62,9 +65,14 @@ class _SubmitIdeaDialogState extends State<SubmitIdeaDialog> {
         _problems = orgProblems;
         if (_problems.isEmpty) {
           _selectedProblem = null;
-        } else if (_selectedProblem == null ||
-            !_problems.any((p) => p.problemId == _selectedProblem!.problemId)) {
-          _selectedProblem = _problems.first;
+        } else {
+          final ProblemModel? preset = widget.initialProblem;
+          if (preset != null && _problems.any((p) => p.problemId == preset.problemId)) {
+            _selectedProblem = preset;
+          } else if (_selectedProblem == null ||
+              !_problems.any((p) => p.problemId == _selectedProblem!.problemId)) {
+            _selectedProblem = _problems.first;
+          }
         }
       });
 
