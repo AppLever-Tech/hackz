@@ -4,11 +4,8 @@ import '../../constants/app_icons.dart';
 import '../../models/team_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/faculty_teams_service.dart';
-import '../common/context_pill.dart';
-import '../common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 import '../common/card_overflow_menu.dart';
-import 'student_member_chips.dart';
 import 'team_idea_summary_widget.dart';
 
 class TeamWorkspaceCard extends StatelessWidget {
@@ -33,9 +30,9 @@ class TeamWorkspaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sortedStudentIds = sortUserIdsByDisplayName(team.studentIds, studentNamesById);
-    final studentNames = sortedStudentIds.map((id) => studentNamesById[id] ?? id).toList(growable: false);
-    final isInactive = team.status.name == 'inactive';
+    final List<String> sortedStudentIds = sortUserIdsByDisplayName(team.studentIds, studentNamesById);
+    final bool isInactive = team.status.name == 'inactive';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -53,11 +50,8 @@ class TeamWorkspaceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    if (team.teamId.trim().isNotEmpty)
-                      Align(
+                child: team.teamId.trim().isNotEmpty
+                    ? Align(
                         alignment: Alignment.centerLeft,
                         child: ContextPill(
                           label: team.teamName,
@@ -65,29 +59,18 @@ class TeamWorkspaceCard extends StatelessWidget {
                           onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
                         ),
                       )
-                    else
-                      Text(
+                    : Text(
                         team.teamName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                       ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: <Widget>[
-                        Icon(AppIcons.clock, size: 14, color: Colors.grey.shade600),
-                        const SizedBox(width: 4),
-                        Text('Created ${formatDateTime(team.createdAt)}', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                      ],
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(width: 6),
               CardOverflowMenuButton(
                 tooltip: 'Team actions',
                 dividersBefore: const <String>{'disable'},
-                onSelected: (value) {
+                onSelected: (String value) {
                   switch (value) {
                     case 'edit':
                       onEdit();
@@ -120,17 +103,8 @@ class TeamWorkspaceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _metaChip(AppIcons.student, '${team.studentIds.length} students'),
-              _metaChip(AppIcons.faculty, mentorName.isEmpty ? 'Mentor assigned' : mentorName),
-            ],
-          ),
-          const SizedBox(height: 8),
-          StudentMemberChips(names: studentNames),
+          const SizedBox(height: 10),
+          _memberPills(context, sortedStudentIds),
           const SizedBox(height: 10),
           TeamIdeaSummaryWidget(insight: insight),
         ],
@@ -138,18 +112,70 @@ class TeamWorkspaceCard extends StatelessWidget {
     );
   }
 
-  Widget _metaChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(999)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: const Color(0xFF475569)),
-          const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
-        ],
-      ),
+  Widget _memberPills(BuildContext context, List<String> sortedStudentIds) {
+    final List<Widget> pills = <Widget>[];
+
+    final String mentorId = team.mentorId.trim();
+    if (mentorId.isNotEmpty) {
+      pills.add(
+        _userPill(
+          context,
+          userId: mentorId,
+          label: mentorName.trim().isEmpty ? 'Faculty mentor' : mentorName.trim(),
+          icon: AppIcons.faculty,
+        ),
+      );
+    } else if (mentorName.trim().isNotEmpty) {
+      pills.add(_plainMemberLabel(mentorName.trim(), AppIcons.faculty));
+    }
+
+    for (final String studentId in sortedStudentIds) {
+      final String name = (studentNamesById[studentId] ?? studentId).trim();
+      if (studentId.isEmpty) continue;
+      pills.add(
+        _userPill(
+          context,
+          userId: studentId,
+          label: name.isEmpty ? studentId : name,
+          icon: AppIcons.student,
+        ),
+      );
+    }
+
+    if (pills.isEmpty) {
+      return const Text('No members assigned', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: pills,
+    );
+  }
+
+  Widget _userPill(
+    BuildContext context, {
+    required String userId,
+    required String label,
+    required IconData icon,
+  }) {
+    return ContextPill(
+      label: label,
+      semantic: ContextPillSemantic.user,
+      icon: icon,
+      onTap: () => WorkspaceNavigator.openUser(context, userId),
+      compact: true,
+    );
+  }
+
+  Widget _plainMemberLabel(String label, IconData icon) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 14, color: const Color(0xFF64748B)),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
+      ],
     );
   }
 }

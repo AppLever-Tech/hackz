@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../models/enums/team_status.dart';
+import '../../utils/common_helpers.dart';
 import '../../utils/faculty_teams_service.dart';
 
 class TeamIdeaSummaryWidget extends StatelessWidget {
@@ -13,31 +15,44 @@ class TeamIdeaSummaryWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TeamStatus status = insight.team.status;
+    final Color statusColor = switch (status) {
+      TeamStatus.active => const Color(0xFF177C50),
+      TeamStatus.inactive => const Color(0xFFB93838),
+      TeamStatus.locked => const Color(0xFFB56A11),
+    };
+
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 12,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
-        _chip(AppIcons.ideas, '${insight.ideas.length} ideas', const Color(0xFF6A38FF)),
-        if (!insight.hasIdeas) _chip(AppIcons.statusSubmitted, 'Pending submission', const Color(0xFF64748B)),
-        _chip(AppIcons.payments, insight.hasPendingPayment ? 'Payment pending' : 'Payment clear', insight.hasPendingPayment ? const Color(0xFFEA580C) : const Color(0xFF16A34A)),
-        _chip(AppIcons.scoring, insight.hasEvaluation ? 'Evaluated' : 'Awaiting evaluation', insight.hasEvaluation ? const Color(0xFF0891B2) : const Color(0xFF64748B)),
-        _chip(AppIcons.verification, insight.isLocked ? 'Locked' : 'Unlocked', insight.isLocked ? const Color(0xFF7C3AED) : const Color(0xFF16A34A)),
+        _infoLine(AppIcons.ideas, '${insight.ideas.length} idea${insight.ideas.length == 1 ? '' : 's'}'),
+        _infoLine(
+          AppIcons.attachments,
+          '${insight.ideaAttachmentCount} attachment${insight.ideaAttachmentCount == 1 ? '' : 's'}',
+        ),
+        _infoLine(AppIcons.statusActive, 'Team status: ${status.value}', color: statusColor),
+        _infoLine(AppIcons.clock, 'Created ${formatDateTime(insight.team.createdAt)}'),
       ],
     );
   }
 
-  Widget _chip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(999)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
-        ],
-      ),
+  Widget _infoLine(IconData icon, String label, {Color? color}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 14, color: color ?? const Color(0xFF64748B)),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: color ?? const Color(0xFF475569),
+          ),
+        ),
+      ],
     );
   }
 }

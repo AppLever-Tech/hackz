@@ -10,8 +10,9 @@ import '../common/app_dialog_template.dart';
 import '../common/dashboard_components.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/faculty/team_capacity_widget.dart';
-import '../../widgets/faculty/team_form_dialog.dart';
+import '../../widgets/faculty/team_creation_workspace.dart';
 import '../../widgets/faculty/team_workspace_card.dart';
+import '../../workspace/workspace.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../responsive/responsive_breakpoints.dart';
@@ -46,15 +47,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
   Future<void> _openTeamDialog(FacultyTeamsWorkspaceData data, {TeamModel? team}) async {
     if (team == null && !FacultyTeamsService.canCreateTeam(data.teams)) return;
-    final result = await showAppDialog<TeamFormDialogAction>(
+    final result = await showTeamCreationWorkspace(
       context: context,
-      child: TeamFormDialog(
-        currentUser: widget.user,
-        existingTeams: data.teams,
-        departmentStudents: data.students,
-        initialTeam: team,
-      ),
-      width: DialogWidthPreset.extraWide,
+      currentUser: widget.user,
+      existingTeams: data.teams,
+      departmentStudents: data.students,
+      initialTeam: team,
     );
     if (result == TeamFormDialogAction.saved && mounted) {
       _refresh();
@@ -83,6 +81,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
     return showAppDialog<void>(
       context: context,
       width: DialogWidthPreset.standard,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: _TeamIdeasPreview(insight: insight),
     );
   }
@@ -293,7 +292,13 @@ class _TeamGrid extends StatelessWidget {
           runSpacing: gap,
           children: teams.map((team) {
             final insight = data.insightsByTeamId[team.teamId] ??
-                FacultyTeamInsight(team: team, ideas: const <IdeaModel>[], paymentStatuses: const <PaymentRecordStatus>[], evaluationCount: 0);
+                FacultyTeamInsight(
+                  team: team,
+                  ideas: const <IdeaModel>[],
+                  paymentStatuses: const <PaymentRecordStatus>[],
+                  evaluationCount: 0,
+                  ideaAttachmentCount: 0,
+                );
             return SizedBox(
               width: width,
               child: TeamWorkspaceCard(
@@ -351,44 +356,62 @@ class _TeamIdeasPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<IdeaModel> ideas = List<IdeaModel>.from(insight.ideas)
+      ..sort((IdeaModel a, IdeaModel b) => b.createdAt.compareTo(a.createdAt));
+
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text('${insight.team.teamName} Ideas', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-        const SizedBox(height: 12),
-        if (insight.ideas.isEmpty)
-          const Text('No ideas submitted for this team yet.')
+        Text(
+          '${insight.team.teamName} · Ideas',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 8),
+        if (ideas.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('No ideas submitted for this team yet.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+          )
         else
-          ...insight.ideas.map(
-            (idea) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.82), borderRadius: BorderRadius.circular(14)),
-              child: Row(
-                children: <Widget>[
-                  const Icon(AppIcons.ideas, color: Color(0xFF6A38FF)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : idea.ideaTitle.trim(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        Text(idea.status.value, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                      ],
-                    ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 240),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: ideas.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 6),
+              itemBuilder: (BuildContext context, int index) {
+                final IdeaModel idea = ideas[index];
+                final String title = idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : idea.ideaTitle.trim();
+                final String ideaId = idea.ideaId.trim();
+                if (ideaId.isEmpty) {
+                  return Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)));
+                }
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: ContextPill(
+                    label: title,
+                    semantic: ContextPillSemantic.idea,
+                    icon: AppIcons.ideas,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      WorkspaceNavigator.openIdea(context, ideaId);
+                    },
+                    compact: true,
+                    expandWidth: true,
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
-        const SizedBox(height: 8),
-        Align(alignment: Alignment.centerRight, child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close'))),
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
+        ),
       ],
     );
   }
