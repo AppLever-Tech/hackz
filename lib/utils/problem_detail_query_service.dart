@@ -111,6 +111,7 @@ class ProblemDetailQueryService {
         payment: paymentByIdeaId[idea.ideaId],
         score: latestScore,
         canUploadPayment: canUploadPayment,
+        attachmentCount: 0,
       );
       aggregates.add(
         ProblemIdeaAggregate(

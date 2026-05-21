@@ -477,9 +477,6 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                                 ),
                               IdeaCard(
                                 item: entry.item,
-                                canViewStatus: true,
-                                canEvaluate: canEvaluate,
-                                onViewDetails: () => _showIdeaDetails(entry),
                                 onOpenProblem: entry.item.idea.problemId.trim().isEmpty
                                     ? null
                                     : () => WorkspaceNavigator.openProblem(context, entry.item.idea.problemId),
@@ -491,8 +488,14 @@ class _ProblemDetailScreenState extends State<ProblemDetailScreen> {
                                 },
                                 onOpenIdea: () =>
                                     WorkspaceNavigator.openIdea(context, entry.item.idea.ideaId),
+                                onOpenPayment: entry.item.payment == null
+                                    ? null
+                                    : () => WorkspaceNavigator.openPayment(
+                                          context,
+                                          entry.item.payment!.paymentId,
+                                        ),
+                                showEvaluate: canEvaluate,
                                 onEvaluate: canEvaluate ? () => _openEvaluateDialog(entry) : null,
-                                showUploadPayment: false,
                               ),
                             ],
                           ),

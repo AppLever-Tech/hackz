@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_semantic_colors.dart';
 import '../../responsive/responsive_helper.dart';
+import 'context_pill_metrics.dart';
 import 'context_pill_theme.dart';
 
 /// Interactive pill that opens a read-only contextual workspace (icon + label, no arrows).
@@ -18,6 +19,8 @@ class ContextPill extends StatefulWidget {
     this.maxWidth,
     this.fitContent,
     this.expandWidth = false,
+    this.height,
+    this.minWidth,
   });
 
   final String label;
@@ -33,6 +36,10 @@ class ContextPill extends StatefulWidget {
   final bool? fitContent;
   /// When true, pill may grow to fill parent width (e.g. inside [Expanded]).
   final bool expandWidth;
+  /// When set, pill uses a fixed height (e.g. uniform rows in idea cards).
+  final double? height;
+  /// Minimum width when sizing to content ([fitContent]).
+  final double? minWidth;
 
   @override
   State<ContextPill> createState() => _ContextPillState();
@@ -90,10 +97,13 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
     final bool showHoverFx = interactive && _hovering && !ResponsiveHelper.isMobile(context);
     final double scale = !interactive ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
     final IconData icon = widget.icon ?? ContextPillTheme.iconFor(widget.semantic);
-    final double iconSize = ContextPillTheme.iconSizeFor(compact: widget.compact);
+    final double iconSize = ContextPillMetrics.resolvedIconSize(compact: widget.compact);
+    final double iconGap = ContextPillMetrics.resolvedIconGap(compact: widget.compact);
     final double? maxWidth = _resolvedMaxWidth;
+    final double resolvedHeight =
+        ContextPillMetrics.resolvedHeight(context: context, compact: widget.compact, override: widget.height);
 
-    final BorderRadius radius = ContextPillTheme.borderRadiusFor(compact: widget.compact);
+    final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: widget.compact);
     final Color borderColor = !interactive
         ? AppSemanticColors.metricBorder
         : (showHoverFx ? palette.borderHover : palette.border);
@@ -101,27 +111,33 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
         ? AppSemanticColors.metricSurface
         : (showHoverFx ? palette.surfaceHover : palette.surface);
 
-    final TextStyle labelStyle = TextStyle(
-      fontSize: widget.compact ? 11 : 12,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.1,
-      color: interactive ? palette.text : AppSemanticColors.metricText,
-      height: 1.15,
+    final Color labelColor = interactive ? palette.text : AppSemanticColors.metricText;
+    final TextStyle labelStyle = ContextPillMetrics.labelStyle(labelColor);
+
+    final Widget labelText = Text(
+      display,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.left,
+      style: labelStyle,
     );
 
     Widget labelRow = Row(
       mainAxisSize: widget.expandWidth ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Icon(icon, size: iconSize, color: interactive ? palette.text : AppSemanticColors.metricText),
-        SizedBox(width: widget.compact ? 5 : 6),
-        Flexible(
-          child: Text(
-            display,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: labelStyle,
-          ),
-        ),
+        Icon(icon, size: iconSize, color: labelColor),
+        SizedBox(width: iconGap),
+        if (widget.expandWidth)
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: labelText,
+            ),
+          )
+        else
+          labelText,
       ],
     );
 
@@ -140,13 +156,18 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         constraints: BoxConstraints(
-          minHeight: ContextPillTheme.minHeightFor(context, compact: widget.compact),
+          minHeight: resolvedHeight,
+          maxHeight: resolvedHeight,
+          minWidth: widget.minWidth ?? 0,
           maxWidth: widget.expandWidth ? (widget.maxWidth ?? double.infinity) : maxWidth ?? double.infinity,
         ),
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: radius,
-          border: Border.all(color: borderColor, width: showHoverFx ? 1.4 : 1),
+          border: Border.all(
+            color: borderColor,
+            width: showHoverFx ? ContextPillMetrics.borderWidthHover : ContextPillMetrics.borderWidth,
+          ),
           boxShadow: showHoverFx
               ? <BoxShadow>[
                   BoxShadow(color: palette.glow, blurRadius: 14, offset: const Offset(0, 4)),
@@ -156,14 +177,15 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
         child: ClipRRect(
           borderRadius: radius,
           child: Stack(
+            fit: widget.expandWidth ? StackFit.expand : StackFit.loose,
             children: <Widget>[
               if (showHoverFx)
-                AnimatedBuilder(
-                  animation: _shimmer,
-                  builder: (BuildContext context, Widget? child) {
-                    final double t = _shimmer.value;
-                    return Positioned.fill(
-                      child: IgnorePointer(
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _shimmer,
+                    builder: (BuildContext context, Widget? child) {
+                      final double t = _shimmer.value;
+                      return IgnorePointer(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -177,14 +199,31 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              Padding(
-                padding: ContextPillTheme.paddingFor(context, compact: widget.compact),
-                child: labelRow,
-              ),
+              if (widget.expandWidth)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: ContextPillMetrics.resolvedPadding(context, compact: widget.compact),
+                      child: labelRow,
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: ContextPillMetrics.resolvedPadding(context, compact: widget.compact),
+                  child: SizedBox(
+                    height: resolvedHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: labelRow,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

@@ -16,12 +16,14 @@ import '../../widgets/payment_dialog.dart';
 import '../../widgets/attachment_viewer.dart';
 import '../../widgets/faculty/submit_idea_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
-import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_list_detail_layout.dart';
+import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
 import 'app_dialog_template.dart';
-import 'idea_detail_screen.dart';
 import 'dashboard_components.dart';
+import 'idea_detail_screen.dart';
 
 class IdeasListScreen extends StatefulWidget {
   const IdeasListScreen({
@@ -41,8 +43,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
 
-  Future<List<IdeaListItem>>? _ideasFuture;
+  Future<IdeaListQueryResult>? _ideasFuture;
   List<IdeaListItem> _lastLoaded = <IdeaListItem>[];
+  IdeaDepartmentMetrics _metrics = IdeaDepartmentMetrics.empty;
 
   bool _showFilters = false;
   Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
@@ -150,7 +153,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         child: Text('Ideas are not available for your role.'),
       );
     }
-    return FutureBuilder<List<IdeaListItem>>(
+    return FutureBuilder<IdeaListQueryResult>(
       future: _ideasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && _lastLoaded.isEmpty) {
@@ -159,8 +162,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         if (snapshot.hasError) {
           return Text('Unable to load ideas: ${snapshot.error}');
         }
-        final ideas = snapshot.data ?? _lastLoaded;
+        final IdeaListQueryResult result = snapshot.data ??
+            IdeaListQueryResult(items: _lastLoaded, metrics: _metrics);
+        final ideas = result.items;
         _lastLoaded = ideas;
+        _metrics = result.metrics;
         final availableProblems = <String, String>{
           for (final item in ideas)
             if (item.idea.problemId.isNotEmpty)
@@ -189,14 +195,12 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                       onTap: () => _showIdeaDetails(item),
                       child: IdeaCard(
                         key: ValueKey(item.idea.ideaId),
                         item: item,
-                        canEvaluate: canEval,
-                        canViewStatus: widget.config.canViewStatus,
-                        onViewDetails: () => _showIdeaDetails(item),
+                        onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
                         onOpenProblem: item.idea.problemId.trim().isEmpty
                             ? null
                             : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
@@ -205,8 +209,16 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                           if (teamId.isEmpty) return;
                           WorkspaceNavigator.openTeam(context, teamId);
                         },
-                        onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                        showViewDetails: false,
+                        onOpenPayment: item.payment == null
+                            ? null
+                            : () => WorkspaceNavigator.openPayment(context, item.payment!.paymentId),
+                        onOpenEvaluation: _canOpenEvaluation(item)
+                            ? () => WorkspaceNavigator.openEvaluation(context, item.idea.ideaId)
+                            : null,
+                        onOpenAttachments: item.attachmentCount > 0
+                            ? () => _openAttachments(context, item)
+                            : null,
+                        showEvaluate: canEval,
                         onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
                         showUploadPayment: showPay,
                         onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
@@ -218,41 +230,32 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final listPanel = SectionContainer(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _buildHeader(),
-                  const SizedBox(height: 12),
-                  ResponsiveSearchFilterBar(
-                    searchController: _searchController,
-                    searchHint: 'Search by idea title, problem, or description',
-                    filtersExpanded: _showFilters,
-                    onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+            final listPanel = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _buildMetricsRow(_metrics),
+                const SizedBox(height: 12),
+                _buildToolbar(context),
+                const SizedBox(height: 12),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: _buildFiltersPanel(
+                    availableProblems: availableProblems,
+                    availableDepartments: availableDepartments,
                   ),
+                  crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 220),
+                ),
+                if (_hasAnyActiveFilter) ...<Widget>[
                   const SizedBox(height: 12),
-                  AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: _buildFiltersPanel(
-                      availableProblems: availableProblems,
-                      availableDepartments: availableDepartments,
-                    ),
-                    crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 220),
-                  ),
-                  if (_hasAnyActiveFilter) ...<Widget>[
-                    const SizedBox(height: 12),
-                    _buildActiveFiltersRow(availableProblems),
-                  ],
-                  const SizedBox(height: 12),
-                  _buildSortAndCountBar(ideas.length),
-                  const SizedBox(height: 12),
-                  if (hasBoundedHeight)
-                    Expanded(child: listWidget)
-                  else
-                    SizedBox(height: 420, child: listWidget),
+                  _buildActiveFiltersRow(availableProblems),
                 ],
-              ),
+                const SizedBox(height: 12),
+                if (hasBoundedHeight)
+                  Expanded(child: listWidget)
+                else
+                  SizedBox(height: 420, child: listWidget),
+              ],
             );
 
             final selectedId = _selectedIdeaId;
@@ -277,18 +280,184 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return ResponsiveWrapToolbar(
-      children: <Widget>[
-        const Icon(AppIcons.ideas, size: 24, color: Color(0xFF6A38FF)),
-        const Text('Ideas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-        if (widget.config.canCreateIdea)
-          FilledButton.icon(
-            onPressed: _openSubmitIdeaDialog,
-            icon: const Icon(AppIcons.add),
-            label: const Text('Submit Idea'),
-          ),
+  bool _canOpenEvaluation(IdeaListItem item) {
+    if (item.score != null) return true;
+    return item.idea.status == IdeaStatus.evaluated ||
+        item.idea.status == IdeaStatus.approved ||
+        item.idea.status == IdeaStatus.underReview;
+  }
+
+  void _openAttachments(BuildContext context, IdeaListItem item) {
+    final String? id = item.firstAttachmentId?.trim();
+    if (item.attachmentCount == 1 && id != null && id.isNotEmpty) {
+      WorkspaceNavigator.openAttachment(context, id);
+      return;
+    }
+    WorkspaceNavigator.openIdea(context, item.idea.ideaId);
+  }
+
+  Widget _buildMetricsRow(IdeaDepartmentMetrics metrics) {
+    return ResponsiveMetricGrid(
+      spacing: 10,
+      runSpacing: 10,
+      chips: <DashboardMetricChipData>[
+        DashboardMetricChipData.single(
+          label: 'Total Ideas',
+          value: '${metrics.total}',
+          color: const Color(0xFF4A67FF),
+          icon: AppIcons.ideas,
+          subtitle: metrics.pendingSubmission > 0 ? '${metrics.pendingSubmission} pending' : null,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Submitted',
+          value: '${metrics.submitted}',
+          color: const Color(0xFF7C3AED),
+          icon: AppIcons.submissions,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Approved',
+          value: '${metrics.approved}',
+          color: const Color(0xFF059669),
+          icon: AppIcons.statusApproved,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Evaluated',
+          value: '${metrics.evaluated}',
+          color: const Color(0xFFEA580C),
+          icon: AppIcons.scoring,
+        ),
       ],
+    );
+  }
+
+  ButtonStyle _toolbarButtonStyle(BuildContext context) => OutlinedButton.styleFrom(
+        minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        foregroundColor: const Color(0xFF334155),
+        backgroundColor: const Color(0xFFFCFDFF),
+        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
+        disabledForegroundColor: const Color(0xFF334155),
+        disabledBackgroundColor: const Color(0xFFFCFDFF),
+      );
+
+  Widget _buildToolbar(BuildContext context) {
+    final filterButton = OutlinedButton.icon(
+      onPressed: () => setState(() => _showFilters = !_showFilters),
+      icon: const Icon(Icons.tune),
+      label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
+      style: _toolbarButtonStyle(context),
+    );
+
+    final sortButton = _buildSortButton(context);
+
+    final submitButton = widget.config.canCreateIdea
+        ? FilledButton.icon(
+            onPressed: _openSubmitIdeaDialog,
+            icon: const Icon(AppIcons.add, size: 18),
+            label: const Text('Submit Idea'),
+            style: FilledButton.styleFrom(
+              minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          )
+        : null;
+
+    final searchField = TextField(
+      controller: _searchController,
+      onSubmitted: (_) => _loadIdeas(),
+      decoration: InputDecoration(
+        hintText: 'Search by idea title, problem, or description',
+        prefixIcon: const Icon(AppIcons.search),
+        isDense: true,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: ResponsiveHelper.isMobile(context) ? 10 : 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+      ),
+    );
+
+    if (ResponsiveHelper.isMobile(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          searchField,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              if (submitButton != null) submitButton,
+              filterButton,
+              sortButton,
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (submitButton != null) ...<Widget>[
+          submitButton,
+          const SizedBox(width: 8),
+        ],
+        Expanded(child: searchField),
+        const SizedBox(width: 8),
+        filterButton,
+        const SizedBox(width: 8),
+        sortButton,
+      ],
+    );
+  }
+
+  Widget _buildSortButton(BuildContext context) {
+    const order = <IdeaSortType>[
+      IdeaSortType.newest,
+      IdeaSortType.oldest,
+      IdeaSortType.status,
+      IdeaSortType.score,
+    ];
+    final availableSorts =
+        order.where((IdeaSortType sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
+
+    return MenuAnchor(
+      style: const MenuStyle(
+        visualDensity: VisualDensity.compact,
+      ),
+      menuChildren: availableSorts
+          .map(
+            (IdeaSortType sort) => MenuItemButton(
+              onPressed: () {
+                setState(() => _sort = sort);
+                _loadIdeas();
+              },
+              child: Text(_sortLabel(sort)),
+            ),
+          )
+          .toList(growable: false),
+      builder: (BuildContext context, MenuController controller, Widget? child) {
+        return OutlinedButton.icon(
+          onPressed: () {
+            if (controller.isOpen) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          icon: const Icon(Icons.swap_vert),
+          label: Text(_sortLabel(_sort)),
+          style: _toolbarButtonStyle(context),
+        );
+      },
     );
   }
 
@@ -299,7 +468,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+      decoration: kDashboardCardDecoration.copyWith(
         color: const Color(0xFFF8FAFF),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -446,48 +615,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               _loadIdeas();
             },
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSortAndCountBar(int count) {
-    const order = <IdeaSortType>[
-      IdeaSortType.newest,
-      IdeaSortType.oldest,
-      IdeaSortType.status,
-      IdeaSortType.score,
-    ];
-    final availableSorts = order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
-    return ResponsiveWrapToolbar(
-      alignment: WrapAlignment.spaceBetween,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(AppIcons.ideas, size: 18, color: Color(0xFF6A38FF)),
-            const SizedBox(width: 6),
-            Text('$count Ideas', style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Text('Sort:'),
-            const SizedBox(width: 8),
-            DropdownButton<IdeaSortType>(
-              value: _sort,
-              isDense: true,
-              items: availableSorts
-                  .map((sort) => DropdownMenuItem<IdeaSortType>(value: sort, child: Text(_sortLabel(sort))))
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _sort = value);
-                _loadIdeas();
-              },
-            ),
-          ],
         ),
       ],
     );

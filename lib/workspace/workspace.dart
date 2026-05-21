@@ -19,6 +19,7 @@ export '../core/theme/app_semantic_colors.dart';
 export '../widgets/common/context_pill.dart';
 export '../widgets/common/context_pill_group.dart';
 export '../widgets/common/context_pill_theme.dart';
+export '../widgets/common/context_pill_metrics.dart';
 export 'idea/idea_workspace.dart';
 export 'payment/payment_workspace.dart';
 export 'evaluation/evaluation_workspace.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../core/theme/app_semantic_colors.dart';
-import '../../responsive/responsive_helper.dart';
+import 'context_pill_metrics.dart';
 
 /// Entity semantics for contextual workspace navigation pills.
 enum ContextPillSemantic {
@@ -57,17 +57,14 @@ abstract final class ContextPillTheme {
     };
   }
 
-  static double iconSizeFor({required bool compact}) => compact ? 13 : 15;
+  static double iconSizeFor({required bool compact}) => ContextPillMetrics.resolvedIconSize(compact: compact);
 
-  /// Default when [ContextPill.fitContent] is true and no explicit [ContextPill.maxWidth].
   static double defaultFitMaxWidth({required bool compact, required ContextPillSemantic semantic}) {
-    if (semantic == ContextPillSemantic.user || semantic == ContextPillSemantic.judge) {
-      return compact ? 200 : 240;
-    }
-    return compact ? 260 : 320;
+    final bool isUserOrJudge =
+        semantic == ContextPillSemantic.user || semantic == ContextPillSemantic.judge;
+    return ContextPillMetrics.defaultFitMaxWidth(compact: compact, isUserOrJudge: isUserOrJudge);
   }
 
-  /// User/judge pills stay compact in dense lists (dept admin, judge panel).
   static bool defaultsToFitContent(ContextPillSemantic semantic) =>
       semantic == ContextPillSemantic.user || semantic == ContextPillSemantic.judge;
 
@@ -84,22 +81,12 @@ abstract final class ContextPillTheme {
     };
   }
 
-  static EdgeInsets paddingFor(BuildContext context, {bool compact = false}) {
-    if (compact) {
-      return const EdgeInsets.symmetric(horizontal: 10, vertical: 5);
-    }
-    return EdgeInsets.symmetric(
-      horizontal: ResponsiveHelper.isMobile(context) ? 12 : 11,
-      vertical: ResponsiveHelper.isMobile(context) ? 8 : 6,
-    );
-  }
+  static EdgeInsets paddingFor(BuildContext context, {bool compact = false}) =>
+      ContextPillMetrics.resolvedPadding(context, compact: compact);
 
-  static double minHeightFor(BuildContext context, {bool compact = false}) {
-    if (compact) return ResponsiveHelper.isMobile(context) ? 32 : 28;
-    return ResponsiveHelper.isMobile(context) ? 38 : 34;
-  }
+  static double minHeightFor(BuildContext context, {bool compact = false}) =>
+      ContextPillMetrics.resolvedHeight(context: context, compact: compact);
 
-  static BorderRadius borderRadiusFor({bool compact = false}) {
-    return BorderRadius.circular(compact ? 10 : 12);
-  }
+  static BorderRadius borderRadiusFor({bool compact = false}) =>
+      ContextPillMetrics.resolvedBorderRadius(compact: compact);
 }
