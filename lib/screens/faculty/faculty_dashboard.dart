@@ -16,8 +16,6 @@ import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
@@ -26,7 +24,6 @@ import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../widgets/responsive/responsive_multi_column.dart';
 import 'teams_screen.dart';
 
 class FacultyDashboard extends StatelessWidget {
@@ -96,7 +93,11 @@ class _FacultyDashboardHome extends StatefulWidget {
 
 class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   static const double _kDashboardIconSize = 18;
-  late Future<_FacultyDashboardVm> _future;
+  static const double _kFacultyChartHeight = 200;
+  static const double _kChartHeaderSpacing = 6;
+  _FacultyDashboardVm? _vm;
+  Object? _loadError;
+  bool _loading = true;
   int _activityLimit = 8;
   _FacultyTimeframe _submissionTimeframe = _FacultyTimeframe.currentWeek;
   _FacultyTimeframe _activityTimeframe = _FacultyTimeframe.currentWeek;
@@ -104,43 +105,62 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   @override
   void initState() {
     super.initState();
-    _future = _FacultyDashboardService().load(widget.user);
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final _FacultyDashboardVm vm = await _FacultyDashboardService().load(widget.user);
+      if (!mounted) return;
+      setState(() {
+        _vm = vm;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<_FacultyDashboardVm>(
-      future: _future,
-      builder: (BuildContext context, AsyncSnapshot<_FacultyDashboardVm> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Text('Unable to load faculty dashboard: ${snapshot.error}');
-        }
-        final vm = snapshot.data ?? _FacultyDashboardVm.empty;
-        final gap = ResponsiveHelper.dashboardSectionGap(context);
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _buildSummaryCards(vm),
-              SizedBox(height: gap),
-              _buildCharts(vm),
-              SizedBox(height: gap),
-              _buildKeyCards(context, vm),
-              SizedBox(height: gap),
-              _buildRecentActivity(vm),
-            ],
-          ),
-        );
-      },
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Text('Unable to load faculty dashboard: $_loadError');
+    }
+
+    final _FacultyDashboardVm vm = _vm ?? _FacultyDashboardVm.empty;
+    final gap = ResponsiveHelper.dashboardSectionGap(context);
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildSummaryCards(vm),
+          SizedBox(height: gap),
+          _buildCharts(vm),
+          SizedBox(height: gap),
+          _buildKeyCards(context, vm),
+          SizedBox(height: gap),
+          _buildRecentActivity(vm),
+        ],
+      ),
     );
   }
 
+  static DateTime _dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+
   Map<String, int> _buildTimeSeries(Iterable<DateTime> source, _FacultyTimeframe timeframe) {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = _dateOnly(now);
     late final DateTime start;
     late final DateTime end;
     late final int bucketCount;
@@ -181,12 +201,12 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     }
 
     final buckets = List<DateTime>.generate(bucketCount, (int i) => start.add(Duration(days: bucketSize.inDays * i)));
-    final dates = source.toList(growable: false);
+    final dates = source.map(_dateOnly).toList(growable: false);
     return <String, int>{
       for (int i = 0; i < buckets.length; i++)
-        _bucketLabel(buckets[i], timeframe): dates.where((date) {
-          final from = buckets[i];
-          final to = i == buckets.length - 1 ? end : buckets[i + 1];
+        _bucketLabel(buckets[i], timeframe): dates.where((DateTime date) {
+          final DateTime from = _dateOnly(buckets[i]);
+          final DateTime to = _dateOnly(i == buckets.length - 1 ? end : buckets[i + 1]);
           return !date.isBefore(from) && date.isBefore(to);
         }).length,
     };
@@ -194,19 +214,20 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
 
   bool _isWithinTimeframe(DateTime date, _FacultyTimeframe timeframe) {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = _dateOnly(now);
+    final DateTime when = _dateOnly(date);
     switch (timeframe) {
       case _FacultyTimeframe.currentWeek:
-        final start = today.subtract(Duration(days: today.weekday - 1));
-        return !date.isBefore(start) && date.isBefore(start.add(const Duration(days: 7)));
+        final DateTime start = today.subtract(Duration(days: today.weekday - 1));
+        return !when.isBefore(start) && when.isBefore(start.add(const Duration(days: 7)));
       case _FacultyTimeframe.lastWeek:
-        final currentWeekStart = today.subtract(Duration(days: today.weekday - 1));
-        final start = currentWeekStart.subtract(const Duration(days: 7));
-        return !date.isBefore(start) && date.isBefore(currentWeekStart);
+        final DateTime currentWeekStart = today.subtract(Duration(days: today.weekday - 1));
+        final DateTime start = currentWeekStart.subtract(const Duration(days: 7));
+        return !when.isBefore(start) && when.isBefore(currentWeekStart);
       case _FacultyTimeframe.lastMonth:
-        return !date.isBefore(today.subtract(const Duration(days: 30)));
+        return !when.isBefore(today.subtract(const Duration(days: 30)));
       case _FacultyTimeframe.lastSixMonths:
-        return !date.isBefore(DateTime(today.year, today.month - 5, 1));
+        return !when.isBefore(DateTime(today.year, today.month - 5, 1));
       case _FacultyTimeframe.all:
         return true;
     }
@@ -281,8 +302,9 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   Widget _buildCharts(_FacultyDashboardVm vm) {
     final statusChart = ChartCard(
       title: 'Idea Status',
+      headerSpacing: _kChartHeaderSpacing,
       child: ResponsiveChartBox(
-        desktopHeight: 210,
+        desktopHeight: _kFacultyChartHeight,
         child: IdeaStatusDistributionDonut(
           pending: vm.pendingIdeas,
           submitted: vm.submittedIdeas,
@@ -295,14 +317,19 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     );
     final submissionChart = ChartCard(
       title: 'Submissions Over Time',
+      headerSpacing: _kChartHeaderSpacing,
+      trailing: TimeFrameFilter<_FacultyTimeframe>(
+        options: _FacultyTimeframe.values,
+        selected: _submissionTimeframe,
+        labelBuilder: (_FacultyTimeframe option) => option.label,
+        onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
+      ),
       child: ResponsiveChartBox(
-        desktopHeight: 210,
+        desktopHeight: _kFacultyChartHeight,
         child: _SubmissionTrendChart(
-                problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
-                ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
-                teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
-          selectedTimeframe: _submissionTimeframe,
-          onTimeframeChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
+          problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
+          ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
+          teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
         ),
       ),
     );
@@ -315,42 +342,21 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildKeyCards(BuildContext context, _FacultyDashboardVm vm) {
-    final cards = <Widget>[
-      _KeyDataCard(
+    final gap = ResponsiveHelper.dashboardSectionGap(context);
+    return ResponsivePair(
+      spacing: gap,
+      first: _KeyDataCard(
         title: 'My Teams',
         icon: AppIcons.teams,
         count: vm.teamCount,
         teamPreview: vm.teams.take(3).toList(growable: false),
       ),
-      _KeyDataCard(
-        title: 'My Problems',
-        icon: AppIcons.problems,
-        count: vm.departmentProblemCount,
-        preview: vm.problemPreview,
-      ),
-      _KeyDataCard(
+      second: _KeyDataCard(
         title: 'My Ideas',
         icon: AppIcons.ideas,
         count: vm.ideaCount,
         ideaPreviews: vm.ideaPreviews,
       ),
-    ];
-    if (ResponsiveHelper.useDashboardMultiColumn(context)) {
-      return ResponsiveMultiColumn(
-        spacing: ResponsiveHelper.dashboardSectionGap(context),
-        children: cards,
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: cards
-          .map(
-            (card) => Padding(
-              padding: EdgeInsets.only(bottom: ResponsiveHelper.dashboardSectionGap(context)),
-              child: card,
-            ),
-          )
-          .toList(growable: false),
     );
   }
 
@@ -361,32 +367,34 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              const title = Text(
-                'Recent Activity',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              );
-              final filter = TimeFrameFilter<_FacultyTimeframe>(
-                options: _FacultyTimeframe.values,
-                selected: _activityTimeframe,
-                labelBuilder: (_FacultyTimeframe option) => option.label,
-                onChanged: (timeframe) => setState(() {
-                  _activityTimeframe = timeframe;
-                  _activityLimit = 8;
-                }),
-              );
-              if (constraints.maxWidth < 720) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[title, const SizedBox(height: 10), filter],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[Expanded(child: title), const SizedBox(width: 12), filter],
-              );
-            },
+          SizedBox(
+            height: ChartCard.headerRowHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                const Expanded(
+                  child: Text(
+                    'Recent Activity',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: TimeFrameFilter<_FacultyTimeframe>(
+                    options: _FacultyTimeframe.values,
+                    selected: _activityTimeframe,
+                    labelBuilder: (_FacultyTimeframe option) => option.label,
+                    onChanged: (_FacultyTimeframe timeframe) => setState(() {
+                      _activityTimeframe = timeframe;
+                      _activityLimit = 8;
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           if (visible.isEmpty)
@@ -549,10 +557,6 @@ class _FacultyDashboardService {
           .map((p) => (p.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now())
           .toList(growable: false),
       teamCreationDates: teams.map((t) => t.createdAt).toList(growable: false),
-      problemPreview: departmentProblems
-          .take(3)
-          .map((p) => ((p.data()['title'] as String?) ?? 'Untitled problem').trim())
-          .toList(growable: false),
       ideaPreviews: (ideas.toList(growable: false)..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
           .map(
             (i) => _FacultyIdeaPreview(
@@ -596,7 +600,6 @@ class _FacultyDashboardVm {
     required this.submissionDates,
     required this.problemDates,
     required this.teamCreationDates,
-    required this.problemPreview,
     required this.ideaPreviews,
     required this.activities,
     required this.usersById,
@@ -617,7 +620,6 @@ class _FacultyDashboardVm {
     submissionDates: <DateTime>[],
     problemDates: <DateTime>[],
     teamCreationDates: <DateTime>[],
-    problemPreview: <String>[],
     ideaPreviews: <_FacultyIdeaPreview>[],
     activities: <_ActivityItem>[],
     usersById: <String, Map<String, dynamic>>{},
@@ -637,7 +639,6 @@ class _FacultyDashboardVm {
   final List<DateTime> submissionDates;
   final List<DateTime> problemDates;
   final List<DateTime> teamCreationDates;
-  final List<String> problemPreview;
   final List<_FacultyIdeaPreview> ideaPreviews;
   final List<_ActivityItem> activities;
   final Map<String, Map<String, dynamic>> usersById;
@@ -648,7 +649,6 @@ class _KeyDataCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.count,
-    this.preview = const <String>[],
     this.teamPreview = const <TeamModel>[],
     this.ideaPreviews = const <_FacultyIdeaPreview>[],
   });
@@ -656,7 +656,6 @@ class _KeyDataCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final int count;
-  final List<String> preview;
   final List<TeamModel> teamPreview;
   final List<_FacultyIdeaPreview> ideaPreviews;
 
@@ -689,15 +688,13 @@ class _KeyDataCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: preview.isEmpty && teamPreview.isEmpty && ideaPreviews.isEmpty
+              child: teamPreview.isEmpty && ideaPreviews.isEmpty
                   ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
                   : SingleChildScrollView(
                       child: Column(
-                        children: title == 'My Teams' && teamPreview.isNotEmpty
+                        children: title == 'My Teams'
                             ? teamPreview.map((team) => _teamBullet(context, team)).toList(growable: false)
-                            : title == 'My Ideas' && ideaPreviews.isNotEmpty
-                                ? ideaPreviews.map((idea) => _ideaBullet(context, idea)).toList(growable: false)
-                                : preview.map((item) => _textBullet(item)).toList(growable: false),
+                            : ideaPreviews.map((idea) => _ideaBullet(context, idea)).toList(growable: false),
                       ),
                     ),
             ),
@@ -714,24 +711,22 @@ class _KeyDataCard extends StatelessWidget {
         children: <Widget>[
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
-          if (team.teamId.trim().isNotEmpty)
-            Expanded(
-              child: ContextPill(
-                label: team.teamName.isEmpty ? team.teamId : team.teamName,
-                semantic: ContextPillSemantic.team,
-                onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
-                compact: true,
-              ),
-            )
-          else
-            Expanded(
-              child: Text(
-                team.teamName.isEmpty ? team.teamId : team.teamName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-              ),
-            ),
+          Expanded(
+            child: team.teamId.trim().isNotEmpty
+                ? ContextPill(
+                    label: team.teamName.isEmpty ? team.teamId : team.teamName,
+                    semantic: ContextPillSemantic.team,
+                    onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
+                    compact: true,
+                    expandWidth: true,
+                  )
+                : Text(
+                    team.teamName.isEmpty ? team.teamId : team.teamName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                  ),
+          ),
           const SizedBox(width: 8),
           const Icon(
             AppIcons.student,
@@ -748,26 +743,6 @@ class _KeyDataCard extends StatelessWidget {
     );
   }
 
-  Widget _textBullet(String item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: <Widget>[
-          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              item,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF1E293B)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _ideaBullet(BuildContext context, _FacultyIdeaPreview idea) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -775,24 +750,23 @@ class _KeyDataCard extends StatelessWidget {
         children: <Widget>[
           const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
           const SizedBox(width: 8),
-          if (idea.ideaId.trim().isNotEmpty)
-            Expanded(
-              child: ContextPill(
-                label: idea.title,
-                semantic: ContextPillSemantic.idea,
-                onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
-                compact: true,
-              ),
-            )
-          else
-            Expanded(
-              child: Text(
-                idea.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-              ),
-            ),
+          Expanded(
+            child: idea.ideaId.trim().isNotEmpty
+                ? ContextPill(
+                    label: idea.title,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+                    compact: true,
+                    expandWidth: true,
+                  )
+                : Text(
+                    idea.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                  ),
+          ),
+          const SizedBox(width: 8),
           StatusStyles.ideaStatusIcon(
             idea.status,
             size: _FacultyDashboardHomeState._kDashboardIconSize,
@@ -809,42 +783,22 @@ class _SubmissionTrendChart extends StatelessWidget {
     required this.problemSeries,
     required this.ideaSeries,
     required this.teamSeries,
-    required this.selectedTimeframe,
-    required this.onTimeframeChanged,
   });
 
   final Map<String, int> problemSeries;
   final Map<String, int> ideaSeries;
   final Map<String, int> teamSeries;
-  final _FacultyTimeframe selectedTimeframe;
-  final ValueChanged<_FacultyTimeframe> onTimeframeChanged;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final filter = TimeFrameFilter<_FacultyTimeframe>(
-              options: _FacultyTimeframe.values,
-              selected: selectedTimeframe,
-              labelBuilder: (_FacultyTimeframe option) => option.label,
-              onChanged: onTimeframeChanged,
-            );
-            if (constraints.maxWidth < 620) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[_SubmissionTrendLegend(), const SizedBox(height: 8), filter],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[const Expanded(child: _SubmissionTrendLegend()), const SizedBox(width: 12), filter],
-            );
-          },
+        const Align(
+          alignment: Alignment.centerRight,
+          child: _SubmissionTrendLegend(),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Expanded(
           child: _MultiLineTimeSeriesChart(
             series: <_TrendSeries>[
@@ -866,8 +820,9 @@ class _SubmissionTrendLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Wrap(
+      alignment: WrapAlignment.end,
       spacing: 12,
-      runSpacing: 8,
+      runSpacing: 6,
       children: <Widget>[
         _LegendItem(icon: AppIcons.problems, color: Color(0xFF6A38FF), label: 'Problems'),
         _LegendItem(icon: AppIcons.submissions, color: StatusStyles.underReview, label: 'Ideas Submitted'),

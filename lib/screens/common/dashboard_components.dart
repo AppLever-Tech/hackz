@@ -275,13 +275,50 @@ class ChartCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.child,
+    this.trailing,
+    this.headerSpacing = 10,
   });
+
+  static const double headerRowHeight = 32;
 
   final String title;
   final Widget child;
+  final Widget? trailing;
+  final double headerSpacing;
 
   @override
   Widget build(BuildContext context) {
+    const TextStyle titleStyle = TextStyle(fontWeight: FontWeight.w600);
+    final Widget header = trailing == null
+        ? SizedBox(
+            height: headerRowHeight,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(title, style: titleStyle),
+            ),
+          )
+        : SizedBox(
+            height: headerRowHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: trailing!,
+                ),
+              ],
+            ),
+          );
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -293,10 +330,10 @@ class ChartCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
+          header,
+          SizedBox(height: headerSpacing),
           child,
         ],
       ),

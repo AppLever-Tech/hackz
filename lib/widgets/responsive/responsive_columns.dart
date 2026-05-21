@@ -38,8 +38,12 @@ class ResponsivePair extends StatelessWidget {
             ],
           );
         }
+        final CrossAxisAlignment rowCrossAxisAlignment =
+            crossAxisAlignment == CrossAxisAlignment.stretch && !constraints.maxHeight.isFinite
+                ? CrossAxisAlignment.start
+                : crossAxisAlignment;
         return Row(
-          crossAxisAlignment: crossAxisAlignment,
+          crossAxisAlignment: rowCrossAxisAlignment,
           children: <Widget>[
             Expanded(flex: firstFlex, child: first),
             SizedBox(width: spacing),
