@@ -302,6 +302,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   Widget _buildCharts(_FacultyDashboardVm vm) {
     final statusChart = ChartCard(
       title: 'Idea Status',
+      icon: AppIcons.ideas,
       headerSpacing: _kChartHeaderSpacing,
       child: ResponsiveChartBox(
         desktopHeight: _kFacultyChartHeight,
@@ -317,6 +318,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     );
     final submissionChart = ChartCard(
       title: 'Submissions Over Time',
+      icon: AppIcons.submissions,
       headerSpacing: _kChartHeaderSpacing,
       trailing: TimeFrameFilter<_FacultyTimeframe>(
         options: _FacultyTimeframe.values,
@@ -373,12 +375,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 const Expanded(
-                  child: Text(
-                    'Recent Activity',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
+                  child: DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -145,6 +145,7 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   Widget _buildStatusDistributionChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Evaluation Status Distribution',
+      icon: AppIcons.statusEvaluated,
       child: ResponsiveChartBox(
         desktopHeight: 210,
         child: _JudgeStatusDonut(
@@ -158,6 +159,7 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   Widget _buildScoreDistributionChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Score Distribution',
+      icon: AppIcons.scoring,
       child: ResponsiveChartBox(
         desktopHeight: 210,
         child: _ScoreDistributionChart(
@@ -172,6 +174,7 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   Widget _buildEvaluationTimelineChart(JudgeDashboardVm vm) {
     return ChartCard(
       title: 'Evaluation Timeline',
+      icon: AppIcons.clock,
       child: ResponsiveChartBox(
         desktopHeight: 210,
         child: _EvaluationTimelineChart(series: vm.evaluationTimeline),
@@ -193,8 +196,8 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Judge Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
+          const DashboardCardTitle(title: 'Judge Information', icon: AppIcons.judges),
+          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
           _detailRow(icon: AppIcons.judges, label: 'Judge', value: vm.judgeName),
           const SizedBox(height: 8),
           _detailRow(icon: AppIcons.organizations, label: 'Organization', value: vm.organizationName),
@@ -224,8 +227,8 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Evaluation Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
+          const DashboardCardTitle(title: 'Evaluation Overview', icon: AppIcons.insights),
+          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
           LayoutBuilder(
             builder: (_, constraints) {
               final maxWidth = constraints.maxWidth;
@@ -283,8 +286,8 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
+          const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
+          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
           if (visible.isEmpty)
             const Text('No recent activity.')
           else

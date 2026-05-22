@@ -17,33 +17,18 @@ class StudentTeamOverviewCard extends StatelessWidget {
 
   static const double _pillIconSize = 18;
 
-  static const TextStyle _cardTitleStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF0F172A),
-  );
-
   @override
   Widget build(BuildContext context) {
     return SectionContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(AppIcons.teams, size: 20, color: Color(0xFF4B5AA9)),
-              const SizedBox(width: 8),
-              const Text('My Team Overview', style: _cardTitleStyle),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: SingleChildScrollView(
-              child: vm.team.teamId.isEmpty
-                  ? _emptyState('No team assigned yet.')
-                  : _overviewContent(context),
-            ),
-          ),
+          const DashboardCardTitle(title: 'My Team Overview', icon: AppIcons.teams),
+          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+          if (vm.team.teamId.isEmpty)
+            _emptyState('No team assigned yet.')
+          else
+            _overviewContent(context),
         ],
       ),
     );

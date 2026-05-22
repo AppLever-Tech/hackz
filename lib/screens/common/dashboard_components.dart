@@ -270,46 +270,109 @@ class TopHeaderWidget extends StatelessWidget {
   }
 }
 
+/// Shared icon + title styling for dashboard section cards ([ChartCard], [SectionContainer] headers).
+abstract final class DashboardCardTitleStyle {
+  DashboardCardTitleStyle._();
+
+  static const double fontSize = 16;
+  static const double iconSize = 16;
+  static const double iconGap = 8;
+  static const Color iconColor = Color(0xFF4B5AA9);
+
+  static const TextStyle textStyle = TextStyle(
+    fontSize: fontSize,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    color: Color(0xFF0F172A),
+  );
+
+  static const double headerRowHeight = 22;
+  static const double headerSpacing = 6;
+  static const double compactBodyHeight = 168;
+}
+
+/// Icon + title row for dashboard cards.
+class DashboardCardTitle extends StatelessWidget {
+  const DashboardCardTitle({
+    super.key,
+    required this.title,
+    required this.icon,
+  });
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: DashboardCardTitleStyle.headerRowHeight,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: <Widget>[
+            Icon(icon, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
+            const SizedBox(width: DashboardCardTitleStyle.iconGap),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DashboardCardTitleStyle.textStyle,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ChartCard extends StatelessWidget {
   const ChartCard({
     super.key,
     required this.title,
     required this.child,
+    this.icon,
     this.trailing,
-    this.headerSpacing = 10,
+    this.headerSpacing = DashboardCardTitleStyle.headerSpacing,
   });
 
-  static const double headerRowHeight = 32;
+  static double get headerRowHeight => DashboardCardTitleStyle.headerRowHeight;
 
   final String title;
+  final IconData? icon;
   final Widget child;
   final Widget? trailing;
   final double headerSpacing;
 
+  Widget _buildTitle() {
+    if (icon != null) {
+      return DashboardCardTitle(title: title, icon: icon!);
+    }
+    return SizedBox(
+      height: headerRowHeight,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: DashboardCardTitleStyle.textStyle,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const TextStyle titleStyle = TextStyle(fontWeight: FontWeight.w600);
     final Widget header = trailing == null
-        ? SizedBox(
-            height: headerRowHeight,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(title, style: titleStyle),
-            ),
-          )
+        ? _buildTitle()
         : SizedBox(
             height: headerRowHeight,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
-                  ),
-                ),
+                Expanded(child: _buildTitle()),
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 3,

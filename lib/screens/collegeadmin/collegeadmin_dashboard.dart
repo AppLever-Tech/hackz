@@ -178,6 +178,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                   secondFlex: 2,
                   first: ChartCard(
                     title: 'College Details',
+                    icon: AppIcons.organizations,
                     child: ResponsiveChartBox(
                       desktopHeight: 200,
                       child: SingleChildScrollView(
@@ -229,6 +230,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                   ),
                   second: ChartCard(
                     title: 'Department-wise Problems vs Ideas',
+                    icon: AppIcons.departments,
                     child: ResponsiveChartBox(
                       desktopHeight: 200,
                       child: _DepartmentTrendChart(
@@ -245,6 +247,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                   secondFlex: 2,
                   first: ChartCard(
                     title: 'User Activation',
+                    icon: AppIcons.users,
                     child: ResponsiveChartBox(
                       desktopHeight: 220,
                       child: Center(
@@ -273,6 +276,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                   ),
                   second: ChartCard(
                     title: 'Idea Activity',
+                    icon: AppIcons.ideas,
                     child: ResponsiveChartBox(
                       desktopHeight: 220,
                       child: _IdeaActivityChart(points: ideaActivity),
@@ -284,11 +288,11 @@ class CollegeAdminDashboard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const Text(
-                        'Department Overview',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      const DashboardCardTitle(
+                        title: 'Department Overview',
+                        icon: AppIcons.departments,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
                       if (departments.isEmpty)
                         const Text('No departments configured for this college.')
                       else
