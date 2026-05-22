@@ -50,17 +50,18 @@ class ProblemCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Expanded(
-                child: FormValueRow(
-                  labelWidth: EntityCardStyles.labelWidth,
-                  label: 'Problem',
-                  child: onOpenProblem != null
-                      ? EntityCardPills.workspace(
-                          title,
-                          ContextPillSemantic.problem,
-                          onOpenProblem!,
-                          fullWidth: true,
-                        )
-                      : EntityCardPills.plainValue(title),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _buildTitle(title),
+                    const SizedBox(height: 8),
+                    _buildMetaPillsRow(
+                      department: department,
+                      category: category,
+                      theme: theme,
+                      tags: tags,
+                    ),
+                  ],
                 ),
               ),
               if (canEdit || canDelete) ...<Widget>[
@@ -83,44 +84,65 @@ class ProblemCard extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 8),
-          FormValueRow(
-            labelWidth: EntityCardStyles.labelWidth,
-            label: null,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: _spacedMetaPills(<Widget>[
-                  EntityCardPills.meta(department, icon: AppIcons.departments),
-                  EntityCardPills.meta(category, icon: AppIcons.orgType),
-                  EntityCardPills.meta(theme, icon: AppIcons.insights),
-                  ...tags.map((String tag) => EntityCardPills.meta(tag)),
-                  if (tags.isEmpty) EntityCardPills.meta('No tags'),
-                ]),
-              ),
-            ),
-          ),
           if (showSubmitIdea && onSubmitIdea != null) ...<Widget>[
             const SizedBox(height: 8),
-            FormValueRow(
-              labelWidth: EntityCardStyles.labelWidth,
-              label: null,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.icon(
-                  onPressed: onSubmitIdea,
-                  icon: const Icon(AppIcons.ideas, size: 18),
-                  label: const Text('Submit Idea'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 36),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                onPressed: onSubmitIdea,
+                icon: const Icon(AppIcons.ideas, size: 18),
+                label: const Text('Submit Idea'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTitle(String title) {
+    if (onOpenProblem != null) {
+      return EntityCardPills.workspace(
+        title,
+        ContextPillSemantic.problem,
+        onOpenProblem!,
+        fullWidth: true,
+        icon: AppIcons.problems,
+      );
+    }
+    return Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: EntityCardStyles.plainValue,
+    );
+  }
+
+  Widget _buildMetaPillsRow({
+    required String department,
+    required String category,
+    required String theme,
+    required List<String> tags,
+  }) {
+    final List<Widget> pills = <Widget>[
+      EntityCardPills.meta(department, icon: AppIcons.departments),
+      EntityCardPills.meta(category, icon: AppIcons.orgType),
+      EntityCardPills.meta(theme, icon: AppIcons.insights),
+      ...tags.map((String tag) => EntityCardPills.meta(tag)),
+      if (tags.isEmpty) EntityCardPills.meta('No tags'),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      primary: false,
+      clipBehavior: Clip.hardEdge,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: _spacedMetaPills(pills),
       ),
     );
   }

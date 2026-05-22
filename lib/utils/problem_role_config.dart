@@ -51,13 +51,31 @@ class ProblemRoleConfig {
           },
         );
       case UserRole.faculty:
-      case UserRole.student:
         return ProblemListConfig(
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
           canSubmitIdea: true,
-          // All problem statements should be shown for department admin, faculty, and student views.
+          restrictToDepartment: false,
+          orgId: user.orgId,
+          departmentCode: user.departmentCode,
+          enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.status,
+            ProblemFilterType.tags,
+            ProblemFilterType.attachments,
+          },
+          enabledSorts: const <ProblemSortType>{
+            ProblemSortType.newest,
+            ProblemSortType.oldest,
+            ProblemSortType.titleAZ,
+          },
+        );
+      case UserRole.student:
+        return ProblemListConfig(
+          canCreate: false,
+          canEdit: false,
+          canToggleActive: false,
+          canSubmitIdea: false,
           restrictToDepartment: false,
           orgId: user.orgId,
           departmentCode: user.departmentCode,

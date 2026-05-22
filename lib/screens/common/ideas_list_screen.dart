@@ -165,9 +165,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                       key: ValueKey(item.idea.ideaId),
                       item: item,
                       onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                      onOpenProblem: item.idea.problemId.trim().isEmpty
-                          ? null
-                          : () => WorkspaceNavigator.openProblem(context, item.idea.problemId),
                       onOpenTeam: () {
                         final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
                         if (teamId.isEmpty) return;
