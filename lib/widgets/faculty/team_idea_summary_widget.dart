@@ -28,10 +28,6 @@ class TeamIdeaSummaryWidget extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         _infoLine(AppIcons.ideas, '${insight.ideas.length} idea${insight.ideas.length == 1 ? '' : 's'}'),
-        _infoLine(
-          AppIcons.attachments,
-          '${insight.ideaAttachmentCount} attachment${insight.ideaAttachmentCount == 1 ? '' : 's'}',
-        ),
         _infoLine(AppIcons.statusActive, 'Team status: ${status.value}', color: statusColor),
         _infoLine(AppIcons.clock, 'Created ${formatDateTime(insight.team.createdAt)}'),
       ],

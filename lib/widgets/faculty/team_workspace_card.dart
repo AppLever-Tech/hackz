@@ -49,23 +49,7 @@ class TeamWorkspaceCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: team.teamId.trim().isNotEmpty
-                    ? Align(
-                        alignment: Alignment.centerLeft,
-                        child: ContextPill(
-                          label: team.teamName,
-                          semantic: ContextPillSemantic.team,
-                          onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
-                        ),
-                      )
-                    : Text(
-                        team.teamName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                      ),
-              ),
+              Expanded(child: _buildTeamTitleRow(context)),
               const SizedBox(width: 6),
               CardOverflowMenuButton(
                 tooltip: 'Team actions',
@@ -103,32 +87,63 @@ class TeamWorkspaceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          _memberPills(context, sortedStudentIds),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          _buildFacultyRow(context),
+          const SizedBox(height: 8),
+          _buildStudentsRow(context, sortedStudentIds),
+          const SizedBox(height: 8),
           TeamIdeaSummaryWidget(insight: insight),
         ],
       ),
     );
   }
 
-  Widget _memberPills(BuildContext context, List<String> sortedStudentIds) {
-    final List<Widget> pills = <Widget>[];
+  Widget _buildTeamTitleRow(BuildContext context) {
+    final String teamId = team.teamId.trim();
+    if (teamId.isNotEmpty) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: ContextPill(
+          label: team.teamName,
+          semantic: ContextPillSemantic.team,
+          onTap: () => WorkspaceNavigator.openTeam(context, teamId),
+          compact: true,
+        ),
+      );
+    }
 
+    return Text(
+      team.teamName,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+    );
+  }
+
+  Widget _buildFacultyRow(BuildContext context) {
     final String mentorId = team.mentorId.trim();
     if (mentorId.isNotEmpty) {
-      pills.add(
-        _userPill(
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: _userPill(
           context,
           userId: mentorId,
           label: mentorName.trim().isEmpty ? 'Faculty mentor' : mentorName.trim(),
           icon: AppIcons.faculty,
         ),
       );
-    } else if (mentorName.trim().isNotEmpty) {
-      pills.add(_plainMemberLabel(mentorName.trim(), AppIcons.faculty));
     }
+    if (mentorName.trim().isNotEmpty) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: _plainMemberLabel(mentorName.trim(), AppIcons.faculty),
+      );
+    }
+    return const Text('No faculty assigned', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
+  }
 
+  Widget _buildStudentsRow(BuildContext context, List<String> sortedStudentIds) {
+    final List<Widget> pills = <Widget>[];
     for (final String studentId in sortedStudentIds) {
       final String name = (studentNamesById[studentId] ?? studentId).trim();
       if (studentId.isEmpty) continue;
@@ -143,7 +158,7 @@ class TeamWorkspaceCard extends StatelessWidget {
     }
 
     if (pills.isEmpty) {
-      return const Text('No members assigned', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
+      return const Text('No students assigned', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
     }
 
     return Wrap(

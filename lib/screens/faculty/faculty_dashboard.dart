@@ -679,8 +679,8 @@ class _KeyDataCard extends StatelessWidget {
                   : SingleChildScrollView(
                       child: Column(
                         children: title == 'My Teams'
-                            ? teamPreview.map((team) => _teamBullet(context, team)).toList(growable: false)
-                            : ideaPreviews.map((idea) => _ideaBullet(context, idea)).toList(growable: false),
+                            ? teamPreview.map((team) => _teamPreviewRow(context, team)).toList(growable: false)
+                            : ideaPreviews.map((idea) => _ideaPreviewRow(context, idea)).toList(growable: false),
                       ),
                     ),
             ),
@@ -690,24 +690,24 @@ class _KeyDataCard extends StatelessWidget {
     );
   }
 
-  Widget _teamBullet(BuildContext context, TeamModel team) {
+  Widget _teamPreviewRow(BuildContext context, TeamModel team) {
+    final String label = team.teamName.isEmpty ? team.teamId : team.teamName;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
-          const SizedBox(width: 8),
-          Expanded(
+          Align(
+            alignment: Alignment.centerLeft,
             child: team.teamId.trim().isNotEmpty
                 ? ContextPill(
-                    label: team.teamName.isEmpty ? team.teamId : team.teamName,
+                    label: label,
                     semantic: ContextPillSemantic.team,
                     onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
                     compact: true,
-                    expandWidth: true,
                   )
                 : Text(
-                    team.teamName.isEmpty ? team.teamId : team.teamName,
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
@@ -729,21 +729,20 @@ class _KeyDataCard extends StatelessWidget {
     );
   }
 
-  Widget _ideaBullet(BuildContext context, _FacultyIdeaPreview idea) {
+  Widget _ideaPreviewRow(BuildContext context, _FacultyIdeaPreview idea) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          const Icon(AppIcons.statusActive, size: 9, color: Color(0xFF6A38FF)),
-          const SizedBox(width: 8),
-          Expanded(
+          Align(
+            alignment: Alignment.centerLeft,
             child: idea.ideaId.trim().isNotEmpty
                 ? ContextPill(
                     label: idea.title,
                     semantic: ContextPillSemantic.idea,
                     onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
                     compact: true,
-                    expandWidth: true,
                   )
                 : Text(
                     idea.title,
@@ -855,16 +854,16 @@ class _MultiLineTimeSeriesChart extends StatelessWidget {
     if (series.isEmpty || labels.isEmpty || !hasData) {
       return Center(child: Text(emptyLabel));
     }
-    final int maxValue = series
+    final int dataMax = series
         .expand((line) => line.values.values)
-        .fold<int>(1, (int peak, int value) => value > peak ? value : peak);
+        .fold<int>(0, (int peak, int value) => value > peak ? value : peak);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Expanded(
           child: CustomPaint(
-            painter: _MultiLineTimeSeriesPainter(series: series, maxValue: maxValue),
+            painter: _MultiLineTimeSeriesPainter(series: series, dataMax: dataMax),
             child: Container(),
           ),
         ),
@@ -893,13 +892,24 @@ class _MultiLineTimeSeriesChart extends StatelessWidget {
 class _MultiLineTimeSeriesPainter extends CustomPainter {
   const _MultiLineTimeSeriesPainter({
     required this.series,
-    required this.maxValue,
+    required this.dataMax,
   });
 
   static const double yAxisWidth = 32;
+  static const int _tickCount = 4;
 
   final List<_TrendSeries> series;
-  final int maxValue;
+  final int dataMax;
+
+  /// Rounds the data peak up so y-axis ticks are distinct and monotonic (e.g. 0–4 when max count is 1).
+  static int axisMaxFor(int peak) {
+    if (peak <= 0) return 4;
+    if (peak <= 4) return 4;
+    if (peak <= 10) return 10;
+    if (peak <= 20) return ((peak + 3) ~/ 4) * 4;
+    if (peak <= 50) return ((peak + 4) ~/ 5) * 5;
+    return ((peak + 9) ~/ 10) * 10;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -925,13 +935,13 @@ class _MultiLineTimeSeriesPainter extends CustomPainter {
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
     }
 
-    final int peak = maxValue < 1 ? 1 : maxValue;
+    final int axisMax = axisMaxFor(dataMax);
     final int count = series.first.values.length;
     final double dx = count == 1 ? 0.0 : plot.width / (count - 1);
 
     Offset pointAt(int index, int value) {
       final double x = count == 1 ? plot.center.dx : plot.left + dx * index;
-      final double y = plot.bottom - (value / peak) * plot.height;
+      final double y = plot.bottom - (value / axisMax) * plot.height;
       return Offset(x, y);
     }
 
@@ -959,9 +969,9 @@ class _MultiLineTimeSeriesPainter extends CustomPainter {
 
     final TextPainter labelPainter = TextPainter(textDirection: TextDirection.ltr);
     const TextStyle axisStyle = TextStyle(fontSize: 10, color: Color(0xFF64748B));
-    for (int i = 0; i <= 4; i++) {
-      final int tick = (peak * (4 - i) / 4).round();
-      final double y = plot.top + plot.height * i / 4;
+    for (int i = 0; i <= _tickCount; i++) {
+      final int tick = (axisMax * (_tickCount - i)) ~/ _tickCount;
+      final double y = plot.top + plot.height * i / _tickCount;
       labelPainter.text = TextSpan(text: '$tick', style: axisStyle);
       labelPainter.layout();
       labelPainter.paint(canvas, Offset(yAxisWidth - labelPainter.width - 4, y - labelPainter.height / 2));
@@ -970,7 +980,7 @@ class _MultiLineTimeSeriesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MultiLineTimeSeriesPainter oldDelegate) =>
-      oldDelegate.series != series || oldDelegate.maxValue != maxValue;
+      oldDelegate.series != series || oldDelegate.dataMax != dataMax;
 }
 
 class _LegendItem extends StatelessWidget {

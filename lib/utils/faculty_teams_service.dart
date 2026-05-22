@@ -20,14 +20,12 @@ class FacultyTeamInsight {
     required this.ideas,
     required this.paymentStatuses,
     required this.evaluationCount,
-    required this.ideaAttachmentCount,
   });
 
   final TeamModel team;
   final List<IdeaModel> ideas;
   final List<PaymentRecordStatus> paymentStatuses;
   final int evaluationCount;
-  final int ideaAttachmentCount;
 
   int get submittedIdeas => ideas.where((idea) => idea.status != IdeaStatus.pendingSubmission).length;
   bool get hasIdeas => ideas.isNotEmpty;
@@ -90,11 +88,6 @@ class FacultyTeamsService {
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: faculty.orgId).get(),
       _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: faculty.orgId).get(),
       _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: faculty.orgId).get(),
-      _db
-          .collection(FirestoreUtils.hkzAttachments)
-          .where('orgId', isEqualTo: faculty.orgId)
-          .where('isActive', isEqualTo: true)
-          .get(),
     ]);
 
     final teams = results[0] as List<TeamModel>;
@@ -108,7 +101,6 @@ class FacultyTeamsService {
         .toList(growable: false);
     final payments = (results[4] as QuerySnapshot<Map<String, dynamic>>).docs;
     final scores = (results[5] as QuerySnapshot<Map<String, dynamic>>).docs;
-    final attachmentDocs = (results[6] as QuerySnapshot<Map<String, dynamic>>).docs;
 
     final ideasByTeam = <String, List<IdeaModel>>{};
     for (final idea in ideas) {
@@ -130,15 +122,6 @@ class FacultyTeamsService {
       scoresByIdea[ideaId] = (scoresByIdea[ideaId] ?? 0) + 1;
     }
 
-    final Set<String> ideaIds = ideas.map((IdeaModel idea) => idea.ideaId).toSet();
-    final Map<String, int> ideaAttachmentCountById = <String, int>{};
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in attachmentDocs) {
-      final AttachmentModel attachment = AttachmentModel.fromMap(doc.id, doc.data());
-      if (attachment.entityType != AttachmentEntityType.idea) continue;
-      if (!ideaIds.contains(attachment.entityId)) continue;
-      ideaAttachmentCountById.update(attachment.entityId, (int count) => count + 1, ifAbsent: () => 0);
-    }
-
     final insights = <String, FacultyTeamInsight>{};
     for (final team in teams) {
       final teamIdeas = ideasByTeam[team.teamId] ?? const <IdeaModel>[];
@@ -150,10 +133,6 @@ class FacultyTeamsService {
             .whereType<PaymentRecordStatus>()
             .toList(growable: false),
         evaluationCount: teamIdeas.fold<int>(0, (sum, idea) => sum + (scoresByIdea[idea.ideaId] ?? 0)),
-        ideaAttachmentCount: teamIdeas.fold<int>(
-          0,
-          (int sum, IdeaModel idea) => sum + (ideaAttachmentCountById[idea.ideaId] ?? 0),
-        ),
       );
     }
 

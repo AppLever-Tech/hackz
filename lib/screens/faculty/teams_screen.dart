@@ -297,7 +297,6 @@ class _TeamGrid extends StatelessWidget {
                   ideas: const <IdeaModel>[],
                   paymentStatuses: const <PaymentRecordStatus>[],
                   evaluationCount: 0,
-                  ideaAttachmentCount: 0,
                 );
             return SizedBox(
               width: width,
