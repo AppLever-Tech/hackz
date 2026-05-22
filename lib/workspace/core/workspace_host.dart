@@ -63,6 +63,12 @@ class _WorkspaceHostState extends State<WorkspaceHost>
       vsync: this,
       duration: const Duration(milliseconds: 280),
     );
+    _present.addStatusListener((AnimationStatus status) {
+      if (status == AnimationStatus.dismissed ||
+          status == AnimationStatus.completed) {
+        setState(() {});
+      }
+    });
     final CurvedAnimation curved =
         CurvedAnimation(parent: _present, curve: Curves.easeOutCubic);
     _fade = curved;
@@ -95,6 +101,9 @@ class _WorkspaceHostState extends State<WorkspaceHost>
     setState(() {});
   }
 
+  bool get _showWorkspaceLayer =>
+      _controller.isOpen || _present.isAnimating;
+
   @override
   Widget build(BuildContext context) {
     return WorkspaceScope(
@@ -103,18 +112,16 @@ class _WorkspaceHostState extends State<WorkspaceHost>
         fit: StackFit.expand,
         children: <Widget>[
           widget.child,
-          if (_controller.isOpen || _present.isAnimating)
-            Overlay(
-              initialEntries: <OverlayEntry>[
-                OverlayEntry(
-                  builder: (BuildContext context) => _WorkspaceLayer(
-                    controller: _controller,
-                    fade: _fade,
-                    panelSlide: _panelSlide,
-                    sheetSlide: _sheetSlide,
-                  ),
-                ),
-              ],
+          if (_showWorkspaceLayer)
+            IgnorePointer(
+              // After [close], stop intercepting taps while the panel fades out.
+              ignoring: !_controller.isOpen,
+              child: _WorkspaceLayer(
+                controller: _controller,
+                fade: _fade,
+                panelSlide: _panelSlide,
+                sheetSlide: _sheetSlide,
+              ),
             ),
         ],
       ),
@@ -122,6 +129,7 @@ class _WorkspaceHostState extends State<WorkspaceHost>
   }
 }
 
+/// Right/bottom anchored panel only — never a full-screen hit target.
 class _WorkspaceLayer extends StatelessWidget {
   const _WorkspaceLayer({
     required this.controller,
@@ -135,54 +143,83 @@ class _WorkspaceLayer extends StatelessWidget {
   final Animation<Offset> panelSlide;
   final Animation<Offset> sheetSlide;
 
+  /// Local [Overlay] so header tooltips work; scoped to the panel, not the whole app.
+  static Widget _panelOverlayShell({
+    required WorkspaceController controller,
+    required bool isMobile,
+  }) {
+    return Overlay(
+      initialEntries: <OverlayEntry>[
+        OverlayEntry(
+          builder: (BuildContext context) => WorkspaceContainer(
+            controller: controller,
+            isMobile: isMobile,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = workspaceUseMobileSheet(context);
     final double panelWidth = WorkspaceTheme.panelWidth(context, isMobile: isMobile);
+    const double desktopPanelTrailingPadding = 8;
 
-    return FadeTransition(
-      opacity: fade,
-      child: Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          if (isMobile)
-            Align(
+    final Widget panel = _panelOverlayShell(
+      controller: controller,
+      isMobile: isMobile,
+    );
+
+    if (isMobile) {
+      final double sheetHeight = WorkspaceTheme.mobileSheetHeight(context);
+      return Positioned(
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: sheetHeight,
+        child: FadeTransition(
+          opacity: fade,
+          child: SlideTransition(
+            position: sheetSlide,
+            child: Align(
               alignment: Alignment.bottomCenter,
-              child: SlideTransition(
-                position: sheetSlide,
-                child: SizedBox(
-                  width: panelWidth,
-                  height: WorkspaceTheme.mobileSheetHeight(context),
-                  child: WorkspaceContainer(
-                    controller: controller,
-                    isMobile: true,
-                  ),
-                ),
+              child: SizedBox(
+                width: panelWidth,
+                height: sheetHeight,
+                child: panel,
               ),
-            )
-          else
-            Align(
-              alignment: Alignment.centerRight,
-              child: SlideTransition(
-                position: panelSlide,
-                child: SizedBox(
-                  width: panelWidth,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
-                      child: SizedBox(
-                        height: MediaQuery.sizeOf(context).height - 16,
-                        child: WorkspaceContainer(
-                          controller: controller,
-                          isMobile: false,
-                        ),
-                      ),
-                    ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: panelWidth + desktopPanelTrailingPadding,
+      child: FadeTransition(
+        opacity: fade,
+        child: SlideTransition(
+          position: panelSlide,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: panelWidth,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 8, desktopPanelTrailingPadding, 8),
+                  child: SizedBox(
+                    height: MediaQuery.sizeOf(context).height - 16,
+                    child: panel,
                   ),
                 ),
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

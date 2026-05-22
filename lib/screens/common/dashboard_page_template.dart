@@ -11,6 +11,7 @@ import '../../utils/judge_evaluation_service.dart';
 import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/responsive/responsive_dashboard_layout.dart';
+import '../../workspace/workspace.dart';
 import '../auth/landing_screen.dart';
 import 'dashboard_components.dart';
 
@@ -116,7 +117,12 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
       primaryMenus: menuConfig.primaryMenus,
       secondaryMenus: menuConfig.secondaryMenus,
       selectedPrimaryIndex: _selectedPrimaryMenuIndex,
-      onPrimaryMenuSelected: (int index) => setState(() => _selectedPrimaryMenuIndex = index),
+      onPrimaryMenuSelected: (int index) {
+        if (index != _selectedPrimaryMenuIndex) {
+          WorkspaceController.instance.close();
+        }
+        setState(() => _selectedPrimaryMenuIndex = index);
+      },
       onLogout: () => _logout(context),
       header: TopHeaderWidget(
         title: isDashboardTab ? dashboardTitle : selectedMenuTitle,

@@ -247,7 +247,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
               children: <Widget>[
                 _buildMetricsRow(_metrics),
                 const SizedBox(height: 12),
-                _buildToolbar(context),
+                _buildToolbar(context, maxWidth: constraints.maxWidth),
                 const SizedBox(height: 12),
                 AnimatedCrossFade(
                   firstChild: const SizedBox.shrink(),
@@ -315,7 +315,9 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         disabledBackgroundColor: const Color(0xFFFCFDFF),
       );
 
-  Widget _buildToolbar(BuildContext context) {
+  Widget _buildToolbar(BuildContext context, {required double maxWidth}) {
+    final bool useStackedToolbar =
+        ResponsiveHelper.isMobile(context) || maxWidth < 768;
     final filterButton = OutlinedButton.icon(
       onPressed: () => setState(() => _showFilters = !_showFilters),
       icon: const Icon(Icons.tune),
@@ -359,7 +361,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
       ),
     );
 
-    if (ResponsiveHelper.isMobile(context)) {
+    if (useStackedToolbar) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
