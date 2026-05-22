@@ -21,6 +21,7 @@ class ContextPill extends StatefulWidget {
     this.expandWidth = false,
     this.height,
     this.minWidth,
+    this.iconSize,
   });
 
   final String label;
@@ -28,6 +29,8 @@ class ContextPill extends StatefulWidget {
   final ContextPillSemantic semantic;
   /// Overrides [ContextPillTheme.iconFor] when set.
   final IconData? icon;
+  /// Overrides [ContextPillMetrics.resolvedIconSize] when set.
+  final double? iconSize;
   final String? tooltip;
   final bool compact;
   final bool enabled;
@@ -97,7 +100,8 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
     final bool showHoverFx = interactive && _hovering && !ResponsiveHelper.isMobile(context);
     final double scale = !interactive ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
     final IconData icon = widget.icon ?? ContextPillTheme.iconFor(widget.semantic);
-    final double iconSize = ContextPillMetrics.resolvedIconSize(compact: widget.compact);
+    final double iconSize =
+        widget.iconSize ?? ContextPillMetrics.resolvedIconSize(compact: widget.compact);
     final double iconGap = ContextPillMetrics.resolvedIconGap(compact: widget.compact);
     final double? maxWidth = _resolvedMaxWidth;
     final double resolvedHeight =
@@ -122,19 +126,19 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       style: labelStyle,
     );
 
+    final bool constrainLabel = widget.expandWidth || maxWidth != null;
+
     Widget labelRow = Row(
-      mainAxisSize: widget.expandWidth ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Icon(icon, size: iconSize, color: labelColor),
         SizedBox(width: iconGap),
-        if (widget.expandWidth)
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: labelText,
-            ),
+        if (constrainLabel)
+          Flexible(
+            fit: widget.expandWidth ? FlexFit.tight : FlexFit.loose,
+            child: labelText,
           )
         else
           labelText,
@@ -229,10 +233,6 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
         ),
       ),
     );
-
-    if (_fitContent && !widget.expandWidth) {
-      pillBody = IntrinsicWidth(child: pillBody);
-    }
 
     return Tooltip(
       message: tooltipMessage,

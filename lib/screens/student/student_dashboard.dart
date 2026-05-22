@@ -20,7 +20,6 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
-import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/common/entity_card_pills.dart';
 import '../../widgets/common/form_value_row.dart';
 import '../../workspace/workspace.dart';
@@ -75,6 +74,7 @@ class _StudentDashboardHome extends StatefulWidget {
 
 class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   static const double _kDetailsChartHeight = 188;
+  static const double _kTeamActivitySectionHeight = 296;
 
   late Future<StudentDashboardVm> _future;
   final StudentDashboardService _service = StudentDashboardService();
@@ -107,9 +107,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
               SizedBox(height: gap),
               _buildStatusAndDetailsRow(vm),
               SizedBox(height: gap),
-              StudentTeamOverviewCard(vm: vm),
-              SizedBox(height: gap),
-              _buildRecentActivity(vm),
+              _buildTeamOverviewAndActivityRow(vm),
             ],
           ),
         );
@@ -281,41 +279,66 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
+  Widget _buildTeamOverviewAndActivityRow(StudentDashboardVm vm) {
+    return ResponsivePair(
+      spacing: ResponsiveHelper.dashboardSectionGap(context),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      first: SizedBox(
+        height: _kTeamActivitySectionHeight,
+        child: StudentTeamOverviewCard(vm: vm),
+      ),
+      second: SizedBox(
+        height: _kTeamActivitySectionHeight,
+        child: _buildRecentActivity(vm),
+      ),
+    );
+  }
+
   Widget _buildRecentActivity(StudentDashboardVm vm) {
     final visible = vm.activities.take(_activityLimit).toList(growable: false);
     return SectionContainer(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const Text('Recent Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
-          if (visible.isEmpty)
-            const Text('No recent activity.')
-          else
-            ...visible.map(
-              (a) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: <Widget>[
-                    Icon(a.icon, size: 18, color: const Color(0xFF4B5AA9)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(a.text)),
-                    Text(
-                      _formatDate(a.at),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  if (visible.isEmpty)
+                    const Text('No recent activity.')
+                  else
+                    ...visible.map(
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Icon(a.icon, size: 18, color: const Color(0xFF4B5AA9)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(a.text)),
+                            Text(
+                              _formatDate(a.at),
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  if (_activityLimit < vm.activities.length)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => setState(() => _activityLimit += 8),
+                        child: const Text('Load More'),
+                      ),
+                    ),
+                ],
               ),
             ),
-          if (_activityLimit < vm.activities.length)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => setState(() => _activityLimit += 8),
-                child: const Text('Load More'),
-              ),
-            ),
+          ),
         ],
       ),
     );

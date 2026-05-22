@@ -7,36 +7,38 @@ class FormValueRow extends StatelessWidget {
     required this.labelWidth,
     required this.child,
     this.label,
+    this.labelIcon,
     this.labelStyle = EntityCardStyles.fieldLabel,
     this.labelAlignment = Alignment.centerRight,
     this.labelGap = EntityCardStyles.labelGap,
+    this.crossAxisAlignment = CrossAxisAlignment.center,
   });
 
   final double labelWidth;
   final String? label;
+  final IconData? labelIcon;
   final Widget child;
   final TextStyle labelStyle;
   final Alignment labelAlignment;
   final double labelGap;
+  final CrossAxisAlignment crossAxisAlignment;
 
   @override
   Widget build(BuildContext context) {
     final bool hasLabel = label != null && label!.trim().isNotEmpty;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: crossAxisAlignment,
       children: <Widget>[
         SizedBox(
           width: labelWidth,
           child: hasLabel
               ? Align(
                   alignment: labelAlignment,
-                  child: Text(
-                    label!,
-                    style: labelStyle,
-                    textAlign: TextAlign.right,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: _LabelContent(
+                    label: label!,
+                    labelIcon: labelIcon,
+                    labelStyle: labelStyle,
                   ),
                 )
               : const SizedBox.shrink(),
@@ -44,10 +46,47 @@ class FormValueRow extends StatelessWidget {
         if (hasLabel) SizedBox(width: labelGap),
         Expanded(
           child: Align(
-            alignment: Alignment.centerLeft,
+            alignment: crossAxisAlignment == CrossAxisAlignment.start
+                ? Alignment.topLeft
+                : Alignment.centerLeft,
             child: child,
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _LabelContent extends StatelessWidget {
+  const _LabelContent({
+    required this.label,
+    required this.labelIcon,
+    required this.labelStyle,
+  });
+
+  final String label;
+  final IconData? labelIcon;
+  final TextStyle labelStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final Text labelText = Text(
+      label,
+      style: labelStyle,
+      textAlign: TextAlign.right,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    if (labelIcon == null) return labelText;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: <Widget>[
+        Icon(labelIcon, size: 14, color: labelStyle.color),
+        const SizedBox(width: 4),
+        Flexible(child: labelText),
       ],
     );
   }
