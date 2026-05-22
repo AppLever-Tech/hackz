@@ -15,8 +15,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
 
   final StudentDashboardVm vm;
 
-  static const double _pillIconSize = 18;
-
   @override
   Widget build(BuildContext context) {
     return SectionContainer(
@@ -60,7 +58,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
       () => WorkspaceNavigator.openTeam(context, vm.team.teamId),
       fullWidth: true,
       icon: AppIcons.teams,
-      iconSize: _pillIconSize,
     );
   }
 
@@ -75,7 +72,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
       () => WorkspaceNavigator.openUser(context, vm.mentorId),
       fullWidth: true,
       icon: AppIcons.faculty,
-      iconSize: _pillIconSize,
     );
   }
 
@@ -112,7 +108,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
                   () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
                   fullWidth: true,
                   icon: AppIcons.ideas,
-                  iconSize: _pillIconSize,
                 ),
         );
       }).toList(growable: false),
@@ -130,7 +125,6 @@ class StudentTeamOverviewCard extends StatelessWidget {
       ContextPillSemantic.user,
       () => WorkspaceNavigator.openUser(context, member.userId),
       icon: AppIcons.forUserRoleCode(member.role),
-      iconSize: _pillIconSize,
     );
   }
 

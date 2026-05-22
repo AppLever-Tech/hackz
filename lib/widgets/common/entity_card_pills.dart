@@ -14,29 +14,27 @@ abstract final class EntityCardPills {
     VoidCallback onTap, {
     bool fullWidth = false,
     IconData? icon,
-    double? iconSize,
   }) {
     final Widget pill = ContextPill(
       label: label,
       semantic: semantic,
       icon: icon ?? ContextPillTheme.iconFor(semantic),
-      iconSize: iconSize,
       onTap: onTap,
       compact: true,
-      height: ContextPillMetrics.height,
+      height: ContextPillMetrics.workspaceHeight,
       fitContent: !fullWidth,
       expandWidth: fullWidth,
     );
 
     if (fullWidth) {
-      return SizedBox(width: double.infinity, height: ContextPillMetrics.height, child: pill);
+      return SizedBox(width: double.infinity, height: ContextPillMetrics.workspaceHeight, child: pill);
     }
     return pill;
   }
 
   static Widget meta(String label, {IconData? icon}) {
     return SizedBox(
-      height: ContextPillMetrics.height,
+      height: ContextPillMetrics.workspaceHeight,
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

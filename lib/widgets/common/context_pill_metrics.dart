@@ -1,27 +1,36 @@
 import 'package:flutter/material.dart';
 
 import '../../responsive/responsive_helper.dart';
+import 'context_pill_theme.dart';
 
 /// Shared sizing and typography for [ContextPill] and workspace navigation UI.
 abstract final class ContextPillMetrics {
   ContextPillMetrics._();
 
-  // --- Typography (same for compact and standard pills) ---
-  static const double fontSize = 12;
-  static const FontWeight fontWeight = FontWeight.w700;
-  static const double letterSpacing = 0.15;
-  static const double lineHeight = 1.2;
+  // --- Workspace pill standard (student dashboard My Team Overview) ---
+  static const double workspaceIconSize = 18;
+  static const double workspaceFontSize = 12;
+  static const FontWeight workspaceFontWeight = FontWeight.w700;
+  static const double workspaceLetterSpacing = 0.15;
+  static const double workspaceLineHeight = 1.2;
+  static const double workspaceIconLabelGap = 6;
+  static const double workspaceHeight = 34;
+  /// Darker icon tint for workspace launch pills ([AppIcons] only).
+  static const Color workspaceIconColor = Color(0xFF1E293B);
 
-  // --- Icon ---
-  static const double iconSize = 14;
-  static const double iconLabelGap = 6;
+  // --- Compact defaults (match workspace standard) ---
+  static const double fontSize = workspaceFontSize;
+  static const FontWeight fontWeight = workspaceFontWeight;
+  static const double letterSpacing = workspaceLetterSpacing;
+  static const double lineHeight = workspaceLineHeight;
+  static const double iconSize = workspaceIconSize;
+  static const double iconLabelGap = workspaceIconLabelGap;
+  static const double height = workspaceHeight;
 
   // --- Pill shape ---
-  static const double height = 34;
   static const double borderRadiusValue = 10;
   static const double borderWidth = 1;
   static const double borderWidthHover = 1.4;
-
   static const double horizontalPadding = 10;
   static const double verticalPadding = 6;
 
@@ -30,20 +39,34 @@ abstract final class ContextPillMetrics {
   static const double horizontalPaddingStandard = 12;
   static const double verticalPaddingStandard = 7;
   static const double borderRadiusStandard = 12;
-  static const double iconSizeStandard = 15;
+  static const double iconSizeStandard = 18;
   static const double iconLabelGapStandard = 6;
 
   // --- Width caps (fit-content pills) ---
   static const double fitMaxWidthDefault = 280;
   static const double fitMaxWidthUserJudge = 220;
 
-  static TextStyle labelStyle(Color color) => TextStyle(
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        letterSpacing: letterSpacing,
-        height: lineHeight,
-        color: color,
-      );
+  static bool isWorkspaceSemantic(ContextPillSemantic semantic) =>
+      semantic != ContextPillSemantic.generic;
+
+  static Color iconColorFor({
+    required ContextPillSemantic semantic,
+    required Color labelColor,
+  }) {
+    if (isWorkspaceSemantic(semantic)) return workspaceIconColor;
+    return labelColor;
+  }
+
+  static TextStyle labelStyle(Color color, {ContextPillSemantic? semantic}) {
+    final bool workspace = semantic == null || isWorkspaceSemantic(semantic);
+    return TextStyle(
+      fontSize: workspace ? workspaceFontSize : fontSize,
+      fontWeight: workspaceFontWeight,
+      letterSpacing: workspaceLetterSpacing,
+      height: workspaceLineHeight,
+      color: color,
+    );
+  }
 
   static double resolvedHeight({
     required BuildContext context,
@@ -51,13 +74,22 @@ abstract final class ContextPillMetrics {
     double? override,
   }) {
     if (override != null) return override;
-    if (compact) return height;
+    if (compact) return workspaceHeight;
     return ResponsiveHelper.isMobile(context) ? 40 : heightStandard;
   }
 
-  static double resolvedIconSize({bool compact = true}) => compact ? iconSize : iconSizeStandard;
+  static double resolvedIconSize({
+    bool compact = true,
+    ContextPillSemantic? semantic,
+  }) {
+    if (compact) {
+      return workspaceIconSize;
+    }
+    return iconSizeStandard;
+  }
 
-  static double resolvedIconGap({bool compact = true}) => compact ? iconLabelGap : iconLabelGapStandard;
+  static double resolvedIconGap({bool compact = true}) =>
+      compact ? workspaceIconLabelGap : iconLabelGapStandard;
 
   static EdgeInsets resolvedPadding(BuildContext context, {bool compact = true}) {
     if (compact) {

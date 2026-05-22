@@ -86,10 +86,18 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
     if (widget.maxWidth != null) return widget.maxWidth;
     if (widget.expandWidth) return null;
     if (_fitContent) {
-      return ContextPillTheme.defaultFitMaxWidth(compact: widget.compact, semantic: widget.semantic);
+      return ContextPillTheme.defaultFitMaxWidth(
+        compact: _effectiveCompact,
+        semantic: widget.semantic,
+      );
     }
     return null;
   }
+
+  bool get _useWorkspaceMetrics =>
+      ContextPillMetrics.isWorkspaceSemantic(widget.semantic);
+
+  bool get _effectiveCompact => widget.compact || _useWorkspaceMetrics;
 
   @override
   Widget build(BuildContext context) {
@@ -100,14 +108,20 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
     final bool showHoverFx = interactive && _hovering && !ResponsiveHelper.isMobile(context);
     final double scale = !interactive ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
     final IconData icon = widget.icon ?? ContextPillTheme.iconFor(widget.semantic);
-    final double iconSize =
-        widget.iconSize ?? ContextPillMetrics.resolvedIconSize(compact: widget.compact);
-    final double iconGap = ContextPillMetrics.resolvedIconGap(compact: widget.compact);
+    final double iconSize = widget.iconSize ??
+        ContextPillMetrics.resolvedIconSize(
+          compact: _effectiveCompact,
+          semantic: widget.semantic,
+        );
+    final double iconGap = ContextPillMetrics.resolvedIconGap(compact: _effectiveCompact);
     final double? maxWidth = _resolvedMaxWidth;
-    final double resolvedHeight =
-        ContextPillMetrics.resolvedHeight(context: context, compact: widget.compact, override: widget.height);
+    final double resolvedHeight = ContextPillMetrics.resolvedHeight(
+      context: context,
+      compact: _effectiveCompact,
+      override: widget.height,
+    );
 
-    final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: widget.compact);
+    final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: _effectiveCompact);
     final Color borderColor = !interactive
         ? AppSemanticColors.metricBorder
         : (showHoverFx ? palette.borderHover : palette.border);
@@ -116,7 +130,14 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
         : (showHoverFx ? palette.surfaceHover : palette.surface);
 
     final Color labelColor = interactive ? palette.text : AppSemanticColors.metricText;
-    final TextStyle labelStyle = ContextPillMetrics.labelStyle(labelColor);
+    final Color iconColor = ContextPillMetrics.iconColorFor(
+      semantic: widget.semantic,
+      labelColor: labelColor,
+    );
+    final TextStyle labelStyle = ContextPillMetrics.labelStyle(
+      labelColor,
+      semantic: widget.semantic,
+    );
 
     final Widget labelText = Text(
       display,
@@ -133,7 +154,7 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Icon(icon, size: iconSize, color: labelColor),
+        Icon(icon, size: iconSize, color: iconColor),
         SizedBox(width: iconGap),
         if (constrainLabel)
           Flexible(
@@ -212,14 +233,14 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Padding(
-                      padding: ContextPillMetrics.resolvedPadding(context, compact: widget.compact),
+                      padding: ContextPillMetrics.resolvedPadding(context, compact: _effectiveCompact),
                       child: labelRow,
                     ),
                   ),
                 )
               else
                 Padding(
-                  padding: ContextPillMetrics.resolvedPadding(context, compact: widget.compact),
+                  padding: ContextPillMetrics.resolvedPadding(context, compact: _effectiveCompact),
                   child: SizedBox(
                     height: resolvedHeight,
                     child: Align(
