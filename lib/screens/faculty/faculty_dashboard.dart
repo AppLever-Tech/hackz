@@ -11,7 +11,6 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
-import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
@@ -20,7 +19,6 @@ import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -93,8 +91,10 @@ class _FacultyDashboardHome extends StatefulWidget {
 
 class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   static const double _kDashboardIconSize = 18;
-  static const double _kFacultyChartHeight = 200;
   static const double _kChartHeaderSpacing = DashboardCardTitleStyle.headerSpacing;
+  static const double _kDashboardPanelHeight = 252;
+  static const int _kKeyCardFlex = 35;
+  static const int _kCompanionPanelFlex = 65;
   _FacultyDashboardVm? _vm;
   Object? _loadError;
   bool _loading = true;
@@ -146,11 +146,9 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         children: <Widget>[
           _buildSummaryCards(vm),
           SizedBox(height: gap),
-          _buildCharts(vm),
+          _buildTeamsAndSubmissionsRow(vm),
           SizedBox(height: gap),
-          _buildKeyCards(context, vm),
-          SizedBox(height: gap),
-          _buildRecentActivity(vm),
+          _buildIdeasAndActivityRow(vm),
         ],
       ),
     );
@@ -299,65 +297,65 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     );
   }
 
-  Widget _buildCharts(_FacultyDashboardVm vm) {
-    final statusChart = ChartCard(
-      title: 'Idea Status',
-      icon: AppIcons.ideas,
-      headerSpacing: _kChartHeaderSpacing,
-      child: ResponsiveChartBox(
-        desktopHeight: _kFacultyChartHeight,
-        child: IdeaStatusDistributionDonut(
-          pending: vm.pendingIdeas,
-          submitted: vm.submittedIdeas,
-          underReview: vm.underReviewIdeas,
-          evaluated: vm.evaluatedIdeas,
-          approved: vm.approvedIdeas,
-          rejected: vm.rejectedIdeas,
+  Widget _buildTeamsAndSubmissionsRow(_FacultyDashboardVm vm) {
+    return SizedBox(
+      height: _kDashboardPanelHeight,
+      child: ResponsivePair(
+        spacing: ResponsiveHelper.dashboardSectionGap(context),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        firstFlex: _kKeyCardFlex,
+        secondFlex: _kCompanionPanelFlex,
+        first: _KeyDataCard(
+          title: 'My Teams',
+          icon: AppIcons.teams,
+          count: vm.teamCount,
+          teamPreview: vm.teams.take(3).toList(growable: false),
+        ),
+        second: SectionContainer(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DashboardCardHeaderRow(
+                title: 'Submissions Over Time',
+                icon: AppIcons.submissions,
+                trailing: TimeFrameFilter<_FacultyTimeframe>(
+                  options: _FacultyTimeframe.values,
+                  selected: _submissionTimeframe,
+                  labelBuilder: (_FacultyTimeframe option) => option.label,
+                  onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
+                ),
+              ),
+              const SizedBox(height: _kChartHeaderSpacing),
+              Expanded(
+                child: _SubmissionTrendChart(
+                  problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
+                  ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
+                  teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
-    final submissionChart = ChartCard(
-      title: 'Submissions Over Time',
-      icon: AppIcons.submissions,
-      headerSpacing: _kChartHeaderSpacing,
-      trailing: TimeFrameFilter<_FacultyTimeframe>(
-        options: _FacultyTimeframe.values,
-        selected: _submissionTimeframe,
-        labelBuilder: (_FacultyTimeframe option) => option.label,
-        onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
-      ),
-      child: ResponsiveChartBox(
-        desktopHeight: _kFacultyChartHeight,
-        child: _SubmissionTrendChart(
-          problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
-          ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
-          teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
-        ),
-      ),
-    );
-    return ResponsivePair(
-      spacing: ResponsiveHelper.dashboardSectionGap(context),
-      secondFlex: 2,
-      first: statusChart,
-      second: submissionChart,
     );
   }
 
-  Widget _buildKeyCards(BuildContext context, _FacultyDashboardVm vm) {
-    final gap = ResponsiveHelper.dashboardSectionGap(context);
-    return ResponsivePair(
-      spacing: gap,
-      first: _KeyDataCard(
-        title: 'My Teams',
-        icon: AppIcons.teams,
-        count: vm.teamCount,
-        teamPreview: vm.teams.take(3).toList(growable: false),
-      ),
-      second: _KeyDataCard(
-        title: 'My Ideas',
-        icon: AppIcons.ideas,
-        count: vm.ideaCount,
-        ideaPreviews: vm.ideaPreviews,
+  Widget _buildIdeasAndActivityRow(_FacultyDashboardVm vm) {
+    return SizedBox(
+      height: _kDashboardPanelHeight,
+      child: ResponsivePair(
+        spacing: ResponsiveHelper.dashboardSectionGap(context),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        firstFlex: _kKeyCardFlex,
+        secondFlex: _kCompanionPanelFlex,
+        first: _KeyDataCard(
+          title: 'My Ideas',
+          icon: AppIcons.ideas,
+          count: vm.ideaCount,
+          ideaPreviews: vm.ideaPreviews,
+        ),
+        second: _buildRecentActivity(vm),
       ),
     );
   }
@@ -367,7 +365,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
     final visible = filtered.take(_activityLimit).toList(growable: false);
     return SectionContainer(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           DashboardCardHeaderRow(
             title: 'Recent Activity',
@@ -383,33 +381,44 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
             ),
           ),
           const SizedBox(height: 10),
-          if (visible.isEmpty)
-            const Text('No activity in this period.')
-          else
-            ...visible.map(
-              (a) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: <Widget>[
-                    Icon(a.icon, size: _kDashboardIconSize, color: a.color),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(a.text)),
-                    Text(
-                      _formatDate(a.time),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+          Expanded(
+            child: visible.isEmpty
+                ? const Align(
+                    alignment: Alignment.topLeft,
+                    child: Text('No activity in this period.'),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        ...visible.map(
+                          (a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: <Widget>[
+                                Icon(a.icon, size: _kDashboardIconSize, color: a.color),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(a.text)),
+                                Text(
+                                  _formatDate(a.time),
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_activityLimit < filtered.length)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => setState(() => _activityLimit += 8),
+                              child: const Text('Load More'),
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-          if (_activityLimit < filtered.length)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => setState(() => _activityLimit += 8),
-                child: const Text('Load More'),
-              ),
-            ),
+                  ),
+          ),
         ],
       ),
     );
@@ -464,27 +473,17 @@ class _FacultyDashboardService {
     }
 
     int submitted = 0;
-    int underReview = 0;
-    int evaluated = 0;
-    int pending = 0;
     int approved = 0;
     int rejected = 0;
     for (final idea in ideas) {
       switch (idea.status) {
-        case IdeaStatus.pendingSubmission:
-          pending++;
-          break;
-        case IdeaStatus.evaluated:
-          evaluated++;
-          break;
         case IdeaStatus.approved:
           approved++;
           break;
         case IdeaStatus.rejected:
           rejected++;
           break;
-        case IdeaStatus.underReview:
-          underReview++;
+        case IdeaStatus.pendingSubmission:
           break;
         default:
           submitted++;
@@ -532,9 +531,6 @@ class _FacultyDashboardService {
       studentCount: studentIds.length,
       ideaCount: ideas.length,
       submittedIdeas: submitted,
-      underReviewIdeas: underReview,
-      evaluatedIdeas: evaluated,
-      pendingIdeas: pending,
       approvedIdeas: approved,
       rejectedIdeas: rejected,
       departmentProblemCount: departmentProblems.length,
@@ -577,9 +573,6 @@ class _FacultyDashboardVm {
     required this.studentCount,
     required this.ideaCount,
     required this.submittedIdeas,
-    required this.underReviewIdeas,
-    required this.evaluatedIdeas,
-    required this.pendingIdeas,
     required this.approvedIdeas,
     required this.rejectedIdeas,
     required this.departmentProblemCount,
@@ -597,9 +590,6 @@ class _FacultyDashboardVm {
     studentCount: 0,
     ideaCount: 0,
     submittedIdeas: 0,
-    underReviewIdeas: 0,
-    evaluatedIdeas: 0,
-    pendingIdeas: 0,
     approvedIdeas: 0,
     rejectedIdeas: 0,
     departmentProblemCount: 0,
@@ -616,9 +606,6 @@ class _FacultyDashboardVm {
   final int studentCount;
   final int ideaCount;
   final int submittedIdeas;
-  final int underReviewIdeas;
-  final int evaluatedIdeas;
-  final int pendingIdeas;
   final int approvedIdeas;
   final int rejectedIdeas;
   final int departmentProblemCount;
@@ -648,11 +635,9 @@ class _KeyDataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionContainer(
-      child: SizedBox(
-        height: 170,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
             Row(
               children: <Widget>[
                 Container(
@@ -686,7 +671,6 @@ class _KeyDataCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

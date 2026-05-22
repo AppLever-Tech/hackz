@@ -8,10 +8,8 @@ import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/student_dashboard_service.dart';
 import '../../utils/common_helpers.dart';
-import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../../widgets/student_team_overview_card.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -73,12 +71,14 @@ class _StudentDashboardHome extends StatefulWidget {
 }
 
 class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
-  static const double _kDetailsChartHeight = DashboardCardTitleStyle.compactBodyHeight;
+  static const double _kDashboardPanelHeight = 252;
+  /// Compact row for My Details + My Team on wide layouts (equal card heights).
+  static const double _kStudentDetailsRowHeight = 200;
+  static const double _kDashboardIconSize = 18;
 
   late Future<StudentDashboardVm> _future;
   final StudentDashboardService _service = StudentDashboardService();
   int _activityLimit = 8;
-  double? _teamOverviewHeight;
 
   @override
   void initState() {
@@ -105,9 +105,9 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             children: <Widget>[
               _buildSummaryCards(vm),
               SizedBox(height: gap),
-              _buildStatusAndDetailsRow(vm),
+              _buildDetailsAndTeamRow(vm),
               SizedBox(height: gap),
-              _buildTeamOverviewAndActivityRow(vm),
+              _buildIdeasAndActivityRow(vm),
             ],
           ),
         );
@@ -186,31 +186,58 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildStatusAndDetailsRow(StudentDashboardVm vm) {
-    return ResponsivePair(
-      spacing: ResponsiveHelper.dashboardSectionGap(context),
-      first: ChartCard(
-        title: 'Student Details',
-        icon: AppIcons.student,
-        child: SizedBox(
-          height: _kDetailsChartHeight,
-          child: _buildStudentDetailsContent(vm),
-        ),
+  Widget _buildDetailsAndTeamRow(StudentDashboardVm vm) {
+    final double spacing = ResponsiveHelper.dashboardSectionGap(context);
+    final Widget pair = ResponsivePair(
+      spacing: spacing,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      first: _buildMyDetailsCard(vm),
+      second: StudentTeamOverviewCard(vm: vm, compact: true),
+    );
+    if (MediaQuery.sizeOf(context).width < ResponsiveBreakpoints.tablet) {
+      return pair;
+    }
+    return SizedBox(
+      height: _kStudentDetailsRowHeight,
+      child: pair,
+    );
+  }
+
+  Widget _buildMyDetailsCard(StudentDashboardVm vm) {
+    final Widget details = _buildStudentDetailsContent(vm);
+    return SectionContainer(
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final bool boundedHeight = constraints.maxHeight.isFinite;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const DashboardCardTitle(title: 'My Details', icon: AppIcons.student),
+              const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+              if (boundedHeight)
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: details,
+                  ),
+                )
+              else
+                details,
+            ],
+          );
+        },
       ),
-      second: ChartCard(
-        title: 'Idea Status Distribution',
-        icon: AppIcons.ideas,
-        child: ResponsiveChartBox(
-          desktopHeight: _kDetailsChartHeight,
-          child: IdeaStatusDistributionDonut(
-            pending: vm.pendingIdeas,
-            submitted: vm.submittedIdeas,
-            underReview: vm.reviewIdeas,
-            evaluated: vm.evaluatedIdeas,
-            approved: vm.approvedIdeas,
-            rejected: vm.rejectedIdeas,
-          ),
-        ),
+    );
+  }
+
+  Widget _buildIdeasAndActivityRow(StudentDashboardVm vm) {
+    return SizedBox(
+      height: _kDashboardPanelHeight,
+      child: ResponsivePair(
+        spacing: ResponsiveHelper.dashboardSectionGap(context),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        first: _StudentMyIdeasCard(vm: vm),
+        second: _buildRecentActivity(vm),
       ),
     );
   }
@@ -229,7 +256,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             icon: AppIcons.student,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         FormValueRow(
           labelWidth: EntityCardStyles.labelWidth,
           label: 'Mentor',
@@ -239,7 +266,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             icon: AppIcons.faculty,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         FormValueRow(
           labelWidth: EntityCardStyles.labelWidth,
           label: 'Dept Admin',
@@ -249,7 +276,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             icon: AppIcons.departments,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         FormValueRow(
           labelWidth: EntityCardStyles.labelWidth,
           label: 'College Admin',
@@ -281,119 +308,52 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildTeamOverviewAndActivityRow(StudentDashboardVm vm) {
-    final double gap = ResponsiveHelper.dashboardSectionGap(context);
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool sideBySide = constraints.maxWidth >= ResponsiveBreakpoints.tablet;
-        if (!sideBySide) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              StudentTeamOverviewCard(vm: vm),
-              SizedBox(height: gap),
-              _buildRecentActivity(vm),
-            ],
-          );
-        }
-
-        final double activityHeight = _teamOverviewHeight ?? 200;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: _ReportChildHeight(
-                onHeight: (double height) {
-                  if (_teamOverviewHeight != height) {
-                    setState(() => _teamOverviewHeight = height);
-                  }
-                },
-                child: StudentTeamOverviewCard(vm: vm),
-              ),
-            ),
-            SizedBox(width: gap),
-            Expanded(
-              child: SizedBox(
-                height: activityHeight,
-                child: _buildRecentActivity(vm, height: activityHeight),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildRecentActivity(StudentDashboardVm vm, {double? height}) {
+  Widget _buildRecentActivity(StudentDashboardVm vm) {
     final visible = vm.activities.take(_activityLimit).toList(growable: false);
-    final Widget activityBody = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (visible.isEmpty)
-          const Text('No recent activity.')
-        else
-          ...visible.map(
-            (StudentActivityItem a) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(a.icon, size: 18, color: const Color(0xFF4B5AA9)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(a.text)),
-                  Text(
-                    _formatDate(a.at),
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (_activityLimit < vm.activities.length)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: () => setState(() => _activityLimit += 8),
-              child: const Text('Load More'),
-            ),
-          ),
-      ],
-    );
-
-    const Widget header = DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock);
-
-    if (height != null) {
-      return SectionContainer(
-        child: SizedBox(
-          height: height,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              header,
-              const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: activityBody,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return SectionContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          header,
+          const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
           const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: SingleChildScrollView(
-              child: activityBody,
-            ),
+          Expanded(
+            child: visible.isEmpty
+                ? const Align(
+                    alignment: Alignment.topLeft,
+                    child: Text('No recent activity.'),
+                  )
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        ...visible.map(
+                          (StudentActivityItem a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Icon(a.icon, size: _kDashboardIconSize, color: const Color(0xFF4B5AA9)),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(a.text)),
+                                Text(
+                                  _formatDate(a.at),
+                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_activityLimit < vm.activities.length)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () => setState(() => _activityLimit += 8),
+                              child: const Text('Load More'),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -405,48 +365,91 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 }
 
-/// Reports [child] layout height after paint (safe with [LayoutBuilder] siblings).
-class _ReportChildHeight extends StatefulWidget {
-  const _ReportChildHeight({
-    required this.child,
-    required this.onHeight,
-  });
+class _StudentMyIdeasCard extends StatelessWidget {
+  const _StudentMyIdeasCard({required this.vm});
 
-  final Widget child;
-  final ValueChanged<double> onHeight;
-
-  @override
-  State<_ReportChildHeight> createState() => _ReportChildHeightState();
-}
-
-class _ReportChildHeightState extends State<_ReportChildHeight> {
-  final GlobalKey _key = GlobalKey();
-  double? _lastHeight;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(_reportHeight);
-  }
-
-  @override
-  void didUpdateWidget(covariant _ReportChildHeight oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    WidgetsBinding.instance.addPostFrameCallback(_reportHeight);
-  }
-
-  void _reportHeight(Duration _) {
-    final RenderBox? box = _key.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return;
-    final double height = box.size.height;
-    if (_lastHeight == height) return;
-    _lastHeight = height;
-    widget.onHeight(height);
-  }
+  final StudentDashboardVm vm;
 
   @override
   Widget build(BuildContext context) {
-    return KeyedSubtree(key: _key, child: widget.child);
+    final int count = vm.ideaCards.length;
+    return SectionContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(color: Color(0xFFF2EDFF), shape: BoxShape.circle),
+                child: const Icon(AppIcons.ideas, size: 17, color: Color(0xFF6A38FF)),
+              ),
+              const SizedBox(width: 10),
+              const Flexible(child: Text('My Ideas', style: TextStyle(fontWeight: FontWeight.w800))),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF2FF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC)),
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: count == 0
+                ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
+                : SingleChildScrollView(
+                    child: Column(
+                      children: vm.ideaCards
+                          .map((StudentIdeaItem item) => _ideaPreviewRow(context, item))
+                          .toList(growable: false),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ideaPreviewRow(BuildContext context, StudentIdeaItem item) {
+    final String title =
+        item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: item.idea.ideaId.trim().isNotEmpty
+                ? ContextPill(
+                    label: title,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                    compact: true,
+                  )
+                : Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          StatusStyles.ideaStatusIcon(
+            item.idea.status,
+            size: _StudentDashboardHomeState._kDashboardIconSize,
+          ),
+        ],
+      ),
+    );
   }
 }
-
