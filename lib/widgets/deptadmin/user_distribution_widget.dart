@@ -91,7 +91,7 @@ class UserDistributionWidget extends StatelessWidget {
         const SizedBox(height: 4),
         Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
         const SizedBox(height: 14),
-        if (inFixedPanel) Expanded(child: body) else body,
+        body,
       ],
     );
   }

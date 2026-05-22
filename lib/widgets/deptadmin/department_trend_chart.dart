@@ -36,7 +36,7 @@ class DepartmentTrendChart extends StatelessWidget {
             onChanged: onTimeframeChanged,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: DashboardTrendChartLayout.headerToSubtitleGap),
         Text(
           '${selectedTimeframe.label} activity across users, teams, ideas and evaluations',
           maxLines: 1,
@@ -44,33 +44,25 @@ class DepartmentTrendChart extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         const SizedBox(height: DashboardTrendChartLayout.subtitleToChartGap),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              SizedBox(
-                height: DashboardTrendChartLayout.chartBoxHeight,
-                child: isEmpty
-                    ? const Center(child: Text('No department activity data yet'))
-                    : CustomPaint(
-                        painter: _DepartmentTrendPainter(points),
-                        child: const SizedBox.expand(),
-                      ),
-              ),
-              const SizedBox(height: DashboardTrendChartLayout.chartToLegendGap),
-              const Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                children: <Widget>[
-                  _Legend(color: Color(0xFF6A38FF), label: 'New users'),
-                  _Legend(color: Color(0xFF0EA5E9), label: 'Teams'),
-                  _Legend(color: Color(0xFFEA580C), label: 'Ideas'),
-                  _Legend(color: Color(0xFF16A34A), label: 'Evaluations'),
-                ],
-              ),
-            ],
-          ),
+        SizedBox(
+          height: DashboardTrendChartLayout.chartBoxHeight,
+          child: isEmpty
+              ? const Center(child: Text('No department activity data yet'))
+              : CustomPaint(
+                  painter: _DepartmentTrendPainter(points),
+                  child: const SizedBox.expand(),
+                ),
+        ),
+        const SizedBox(height: DashboardTrendChartLayout.chartToLegendGap),
+        const Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: <Widget>[
+            _Legend(color: Color(0xFF6A38FF), label: 'New users'),
+            _Legend(color: Color(0xFF0EA5E9), label: 'Teams'),
+            _Legend(color: Color(0xFFEA580C), label: 'Ideas'),
+            _Legend(color: Color(0xFF16A34A), label: 'Evaluations'),
+          ],
         ),
       ],
     );

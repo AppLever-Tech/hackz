@@ -12,6 +12,7 @@ import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/deptadmin/department_trend_chart.dart';
 import '../../widgets/deptadmin/payment_operations_widget.dart';
 import '../../widgets/deptadmin/recent_department_activity_card.dart';
+import '../../widgets/common/dashboard_trend_chart_layout.dart';
 import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -175,7 +176,13 @@ class _DepartmentAnalyticsView extends StatelessWidget {
 
   static const int _kUsersByRoleFlex = 35;
   static const int _kTrendChartFlex = 65;
-  static const double _kUsersTrendRowHeight = 320;
+  /// Title block (≈50) + donut row (132); trend card uses [DashboardTrendChartLayout.trendCardContentHeight].
+  static const double _kUsersByRoleContentHeight = 50 + 132;
+
+  static double get _kUsersTrendRowHeight {
+    final double trendHeight = DashboardTrendChartLayout.trendCardContentHeight;
+    return trendHeight > _kUsersByRoleContentHeight ? trendHeight : _kUsersByRoleContentHeight;
+  }
   static const double _kProblemsIdeasRowHeight = 252;
   static const double _kListIconSize = 18;
 

@@ -22,6 +22,35 @@ abstract final class DashboardTrendChartLayout {
   /// Total painted chart box height (plot + padding).
   static double get chartBoxHeight => plotTop + plotHeight + plotBottom;
 
+  /// Dashboard card header row (matches [TimeFrameFilter.barHeight]).
+  static const double cardHeaderRowHeight = 20;
+
+  static const double headerToSubtitleGap = 4;
+
+  /// Title stacked above timeframe filter on narrow cards ([DashboardCardHeaderRow]).
+  static const double stackedHeaderBlockHeight =
+      cardHeaderRowHeight + headerToSubtitleGap + cardHeaderRowHeight;
+
+  /// Approximate single-line subtitle height at 12px.
+  static const double subtitleLineEstimate = 16;
+
+  /// Legend [Wrap] height when chips wrap to two rows in a narrow panel.
+  static const double legendRowEstimate = 34;
+
+  /// Small safety margin for font metrics and device rounding.
+  static const double trendCardHeightBuffer = 4;
+
+  /// Minimum panel body height for a trend chart card (header through legend).
+  static double get trendCardContentHeight =>
+      stackedHeaderBlockHeight +
+      headerToSubtitleGap +
+      subtitleLineEstimate +
+      subtitleToChartGap +
+      chartBoxHeight +
+      chartToLegendGap +
+      legendRowEstimate +
+      trendCardHeightBuffer;
+
   static const double plotLeft = 34;
   static const double plotRight = 10;
   static const double plotTop = 8;
