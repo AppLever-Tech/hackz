@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../screens/common/dashboard_components.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../common/time_frame_filter.dart';
 
@@ -24,37 +26,15 @@ class RecentPlatformActivityCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints c) {
-            final Widget title = const Text(
-              'Recent Platform Activity',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-            );
-            final Widget filter = TimeFrameFilter<PlatformAnalyticsTimeframe>(
-              options: PlatformAnalyticsTimeframe.values,
-              selected: selectedTimeframe,
-              labelBuilder: (PlatformAnalyticsTimeframe timeframe) => timeframe.label,
-              onChanged: onTimeframeChanged,
-            );
-            if (c.maxWidth < 720) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  title,
-                  const SizedBox(height: 10),
-                  filter,
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: title),
-                const SizedBox(width: 12),
-                filter,
-              ],
-            );
-          },
+        DashboardCardHeaderRow(
+          title: 'Recent Platform Activity',
+          icon: AppIcons.clock,
+          trailing: TimeFrameFilter<PlatformAnalyticsTimeframe>(
+            options: PlatformAnalyticsTimeframe.values,
+            selected: selectedTimeframe,
+            labelBuilder: (PlatformAnalyticsTimeframe timeframe) => timeframe.label,
+            onChanged: onTimeframeChanged,
+          ),
         ),
         const SizedBox(height: 4),
         Text(

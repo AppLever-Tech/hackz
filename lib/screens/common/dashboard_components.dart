@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../responsive/responsive_layout.dart';
+import '../../widgets/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
 /// Not `const`: [Border.all] is not a const factory in this SDK when used inside [BoxDecoration].
@@ -286,9 +288,14 @@ abstract final class DashboardCardTitleStyle {
     color: Color(0xFF0F172A),
   );
 
-  static const double headerRowHeight = 22;
+  /// Matches [TimeFrameFilter.barHeight] so title + filter share one row without clipping.
+  static const double headerRowHeight = TimeFrameFilter.barHeight;
+
   static const double headerSpacing = 6;
   static const double compactBodyHeight = 168;
+
+  /// When the card is narrower than this, stack the timeframe filter under the title.
+  static const double headerStackBreakpoint = 560;
 }
 
 /// Icon + title row for dashboard cards.
@@ -304,25 +311,78 @@ class DashboardCardTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: DashboardCardTitleStyle.headerRowHeight,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Row(
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
+        const SizedBox(width: DashboardCardTitleStyle.iconGap),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DashboardCardTitleStyle.textStyle,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Title row with optional trailing control (e.g. [TimeFrameFilter]).
+class DashboardCardHeaderRow extends StatelessWidget {
+  const DashboardCardHeaderRow({
+    super.key,
+    required this.title,
+    required this.icon,
+    this.trailing,
+    this.stackBelowWidth = DashboardCardTitleStyle.headerStackBreakpoint,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget? trailing;
+
+  /// Stack [trailing] under the title when the card is narrower than this width.
+  final double stackBelowWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget titlePart = DashboardCardTitle(title: title, icon: icon);
+    if (trailing == null) {
+      return titlePart;
+    }
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool stack = constraints.maxWidth < stackBelowWidth;
+        if (stack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              titlePart,
+              const SizedBox(height: 8),
+              trailing!,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Icon(icon, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
-            const SizedBox(width: DashboardCardTitleStyle.iconGap),
+            Expanded(child: titlePart),
+            const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: DashboardCardTitleStyle.textStyle,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: TimeFrameFilter.barHeight,
+                  child: trailing!,
+                ),
               ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -345,42 +405,26 @@ class ChartCard extends StatelessWidget {
   final Widget? trailing;
   final double headerSpacing;
 
-  Widget _buildTitle() {
-    if (icon != null) {
-      return DashboardCardTitle(title: title, icon: icon!);
-    }
-    return SizedBox(
-      height: headerRowHeight,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: DashboardCardTitleStyle.textStyle,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Widget header = trailing == null
-        ? _buildTitle()
-        : SizedBox(
-            height: headerRowHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Expanded(child: _buildTitle()),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: trailing!,
-                ),
-              ],
-            ),
-          );
+    final Widget header = icon != null
+        ? DashboardCardHeaderRow(
+            title: title,
+            icon: icon!,
+            trailing: trailing,
+          )
+        : trailing == null
+            ? Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DashboardCardTitleStyle.textStyle,
+              )
+            : DashboardCardHeaderRow(
+                title: title,
+                icon: AppIcons.insights,
+                trailing: trailing,
+              );
 
     return Container(
       padding: const EdgeInsets.all(14),

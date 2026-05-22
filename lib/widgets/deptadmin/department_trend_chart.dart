@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../screens/common/dashboard_components.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../common/time_frame_filter.dart';
 
@@ -22,29 +24,15 @@ class DepartmentTrendChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints c) {
-            const title = Text(
-              'Department Participation Trend',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-            );
-            final filter = TimeFrameFilter<DepartmentAnalyticsTimeframe>(
-              options: DepartmentAnalyticsTimeframe.values,
-              selected: selectedTimeframe,
-              labelBuilder: (DepartmentAnalyticsTimeframe timeframe) => timeframe.label,
-              onChanged: onTimeframeChanged,
-            );
-            if (c.maxWidth < 720) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[title, const SizedBox(height: 10), filter],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[Expanded(child: title), const SizedBox(width: 12), filter],
-            );
-          },
+        DashboardCardHeaderRow(
+          title: 'Department Participation Trend',
+          icon: AppIcons.insights,
+          trailing: TimeFrameFilter<DepartmentAnalyticsTimeframe>(
+            options: DepartmentAnalyticsTimeframe.values,
+            selected: selectedTimeframe,
+            labelBuilder: (DepartmentAnalyticsTimeframe timeframe) => timeframe.label,
+            onChanged: onTimeframeChanged,
+          ),
         ),
         const SizedBox(height: 4),
         Text(

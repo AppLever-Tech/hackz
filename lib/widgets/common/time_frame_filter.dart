@@ -22,7 +22,6 @@ class TimeFrameFilter<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: barHeight,
-      width: double.infinity,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(
           scrollbars: false,

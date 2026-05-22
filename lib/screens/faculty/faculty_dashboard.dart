@@ -369,28 +369,17 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(
-            height: ChartCard.headerRowHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                const Expanded(
-                  child: DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: TimeFrameFilter<_FacultyTimeframe>(
-                    options: _FacultyTimeframe.values,
-                    selected: _activityTimeframe,
-                    labelBuilder: (_FacultyTimeframe option) => option.label,
-                    onChanged: (_FacultyTimeframe timeframe) => setState(() {
-                      _activityTimeframe = timeframe;
-                      _activityLimit = 8;
-                    }),
-                  ),
-                ),
-              ],
+          DashboardCardHeaderRow(
+            title: 'Recent Activity',
+            icon: AppIcons.clock,
+            trailing: TimeFrameFilter<_FacultyTimeframe>(
+              options: _FacultyTimeframe.values,
+              selected: _activityTimeframe,
+              labelBuilder: (_FacultyTimeframe option) => option.label,
+              onChanged: (_FacultyTimeframe timeframe) => setState(() {
+                _activityTimeframe = timeframe;
+                _activityLimit = 8;
+              }),
             ),
           ),
           const SizedBox(height: 10),
