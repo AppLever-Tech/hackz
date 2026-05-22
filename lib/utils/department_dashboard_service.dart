@@ -43,21 +43,37 @@ class DepartmentDistributionSegment {
     required this.label,
     required this.count,
     required this.color,
+    required this.icon,
   });
 
   final String label;
   final int count;
   final Color color;
+  final IconData icon;
 }
 
-class DepartmentProblemPoint {
-  const DepartmentProblemPoint({
-    required this.label,
-    required this.count,
+class DepartmentProblemPreview {
+  const DepartmentProblemPreview({
+    required this.problemId,
+    required this.title,
+    required this.ideaCount,
   });
 
-  final String label;
-  final int count;
+  final String problemId;
+  final String title;
+  final int ideaCount;
+}
+
+class DepartmentIdeaPreview {
+  const DepartmentIdeaPreview({
+    required this.ideaId,
+    required this.title,
+    required this.status,
+  });
+
+  final String ideaId;
+  final String title;
+  final IdeaStatus status;
 }
 
 class DepartmentAlert {
@@ -111,9 +127,8 @@ class DepartmentDashboardAnalytics {
     required this.rejectedIdeas,
     required this.trendsByTimeframe,
     required this.usersByRole,
-    required this.ideasByStatus,
-    required this.problemsByTheme,
-    required this.ideaInflowByProblem,
+    required this.departmentProblems,
+    required this.departmentIdeas,
     required this.alerts,
     required this.recentActivity,
     required this.paymentVerificationRate,
@@ -139,9 +154,8 @@ class DepartmentDashboardAnalytics {
   final int rejectedIdeas;
   final Map<DepartmentAnalyticsTimeframe, List<DepartmentTrendPoint>> trendsByTimeframe;
   final List<DepartmentDistributionSegment> usersByRole;
-  final List<DepartmentDistributionSegment> ideasByStatus;
-  final List<DepartmentDistributionSegment> problemsByTheme;
-  final List<DepartmentProblemPoint> ideaInflowByProblem;
+  final List<DepartmentProblemPreview> departmentProblems;
+  final List<DepartmentIdeaPreview> departmentIdeas;
   final List<DepartmentAlert> alerts;
   final List<DepartmentActivityEvent> recentActivity;
   final double paymentVerificationRate;
@@ -254,9 +268,8 @@ class DepartmentDashboardService {
           timeframe: _buildTrend(users, teams, ideas, scores, timeframe),
       },
       usersByRole: _roleDistribution(users),
-      ideasByStatus: _ideaStatusDistribution(ideaStatuses),
-      problemsByTheme: _problemThemeDistribution(problems),
-      ideaInflowByProblem: _ideaInflowByProblem(ideas),
+      departmentProblems: _departmentProblems(problems, ideas),
+      departmentIdeas: _departmentIdeas(ideas),
       alerts: _buildAlerts(
         pendingApprovals: pendingApprovals,
         pendingCoordinatorJudge: pendingCoordinatorJudge,
@@ -403,43 +416,77 @@ class DepartmentDashboardService {
       }
     }
     const colors = <Color>[Color(0xFF6A38FF), Color(0xFF0EA5E9), Color(0xFF16A34A), Color(0xFFEA580C), Color(0xFFF59E0B)];
-    int i = 0;
-    return counts.entries.map((e) => DepartmentDistributionSegment(label: e.key, count: e.value, color: colors[i++ % colors.length])).toList(growable: false);
-  }
-
-  static List<DepartmentDistributionSegment> _ideaStatusDistribution(List<IdeaStatus> statuses) {
-    int count(IdeaStatus status) => statuses.where((s) => s == status).length;
-    return <DepartmentDistributionSegment>[
-      DepartmentDistributionSegment(label: 'Submitted', count: count(IdeaStatus.submitted), color: const Color(0xFF6A38FF)),
-      DepartmentDistributionSegment(label: 'Review', count: count(IdeaStatus.underReview), color: const Color(0xFFF59E0B)),
-      DepartmentDistributionSegment(label: 'Evaluated', count: count(IdeaStatus.evaluated), color: const Color(0xFF0891B2)),
-      DepartmentDistributionSegment(label: 'Approved', count: count(IdeaStatus.approved), color: const Color(0xFF16A34A)),
-      DepartmentDistributionSegment(label: 'Rejected', count: count(IdeaStatus.rejected), color: const Color(0xFFDC2626)),
+    const icons = <IconData>[
+      AppIcons.faculty,
+      AppIcons.student,
+      AppIcons.coordinator,
+      AppIcons.judges,
+      AppIcons.pendingUsers,
     ];
+    var index = 0;
+    return counts.entries
+        .map(
+          (MapEntry<String, int> e) {
+            final int i = index++;
+            return DepartmentDistributionSegment(
+              label: e.key,
+              count: e.value,
+              color: colors[i % colors.length],
+              icon: icons[i % icons.length],
+            );
+          },
+        )
+        .toList(growable: false);
   }
 
-  static List<DepartmentDistributionSegment> _problemThemeDistribution(_FirestoreDocs problems) {
-    final counts = <String, int>{};
-    for (final doc in problems) {
-      final data = doc.data();
-      final theme = ((data['theme'] as String?) ?? (data['category'] as String?) ?? 'Uncategorized').trim();
-      counts[theme.isEmpty ? 'Uncategorized' : theme] = (counts[theme.isEmpty ? 'Uncategorized' : theme] ?? 0) + 1;
+  static List<DepartmentProblemPreview> _departmentProblems(_FirestoreDocs problems, _FirestoreDocs ideas) {
+    final Map<String, int> ideaCountsByProblem = <String, int>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in ideas) {
+      final String problemId = ((doc.data()['problemId'] as String?) ?? '').trim();
+      if (problemId.isEmpty) continue;
+      ideaCountsByProblem[problemId] = (ideaCountsByProblem[problemId] ?? 0) + 1;
     }
-    const colors = <Color>[Color(0xFF2563EB), Color(0xFF7C3AED), Color(0xFFEA580C), Color(0xFF16A34A), Color(0xFF64748B)];
-    int i = 0;
-    return counts.entries.map((e) => DepartmentDistributionSegment(label: e.key, count: e.value, color: colors[i++ % colors.length])).toList(growable: false);
+
+    final List<DepartmentProblemPreview> list = problems
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+          final Map<String, dynamic> data = doc.data();
+          final String title = ((data['title'] as String?) ?? 'Untitled Problem').trim();
+          return DepartmentProblemPreview(
+            problemId: doc.id,
+            title: title.isEmpty ? 'Untitled Problem' : title,
+            ideaCount: ideaCountsByProblem[doc.id] ?? 0,
+          );
+        })
+        .toList(growable: false);
+    list.sort((DepartmentProblemPreview a, DepartmentProblemPreview b) {
+      final int byIdeas = b.ideaCount.compareTo(a.ideaCount);
+      if (byIdeas != 0) return byIdeas;
+      return a.title.compareTo(b.title);
+    });
+    return list;
   }
 
-  static List<DepartmentProblemPoint> _ideaInflowByProblem(_FirestoreDocs ideas) {
-    final counts = <String, int>{};
-    for (final doc in ideas) {
-      final data = doc.data();
-      final title = ((data['problemTitle'] as String?) ?? (data['problemNumber'] as String?) ?? 'Unmapped').trim();
-      counts[title.isEmpty ? 'Unmapped' : title] = (counts[title.isEmpty ? 'Unmapped' : title] ?? 0) + 1;
+  static List<DepartmentIdeaPreview> _departmentIdeas(_FirestoreDocs ideas) {
+    final List<({DepartmentIdeaPreview preview, DateTime? created})> rows =
+        <({DepartmentIdeaPreview preview, DateTime? created})>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in ideas) {
+      final Map<String, dynamic> data = doc.data();
+      final String title = ((data['ideaTitle'] as String?) ?? '').trim();
+      rows.add((
+        preview: DepartmentIdeaPreview(
+          ideaId: doc.id,
+          title: title.isEmpty ? 'Untitled Idea' : title,
+          status: IdeaStatus.fromRaw((data['status'] as String?) ?? ''),
+        ),
+        created: _dateFrom(data['createdAt']),
+      ));
     }
-    final list = counts.entries.map((e) => DepartmentProblemPoint(label: e.key, count: e.value)).toList(growable: false);
-    list.sort((a, b) => b.count.compareTo(a.count));
-    return list.take(6).toList(growable: false);
+    rows.sort((a, b) {
+      final DateTime left = a.created ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime right = b.created ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return right.compareTo(left);
+    });
+    return rows.map((row) => row.preview).toList(growable: false);
   }
 
   static List<DepartmentAlert> _buildAlerts({

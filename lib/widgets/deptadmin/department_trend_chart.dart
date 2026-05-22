@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/department_dashboard_service.dart';
+import '../common/dashboard_trend_chart_layout.dart';
 import '../common/time_frame_filter.dart';
 
 class DepartmentTrendChart extends StatelessWidget {
@@ -21,6 +22,7 @@ class DepartmentTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEmpty = points.every((DepartmentTrendPoint p) => p.users == 0 && p.teams == 0 && p.ideas == 0 && p.evaluations == 0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -37,28 +39,38 @@ class DepartmentTrendChart extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${selectedTimeframe.label} activity across users, teams, ideas and evaluations',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 250,
-          child: points.every((p) => p.users == 0 && p.teams == 0 && p.ideas == 0 && p.evaluations == 0)
-              ? const Center(child: Text('No department activity data yet'))
-              : CustomPaint(
-                  painter: _DepartmentTrendPainter(points),
-                  child: const SizedBox.expand(),
-                ),
-        ),
-        const SizedBox(height: 10),
-        const Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: <Widget>[
-            _Legend(color: Color(0xFF6A38FF), label: 'New users'),
-            _Legend(color: Color(0xFF0EA5E9), label: 'Teams'),
-            _Legend(color: Color(0xFFEA580C), label: 'Ideas'),
-            _Legend(color: Color(0xFF16A34A), label: 'Evaluations'),
-          ],
+        const SizedBox(height: DashboardTrendChartLayout.subtitleToChartGap),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                height: DashboardTrendChartLayout.chartBoxHeight,
+                child: isEmpty
+                    ? const Center(child: Text('No department activity data yet'))
+                    : CustomPaint(
+                        painter: _DepartmentTrendPainter(points),
+                        child: const SizedBox.expand(),
+                      ),
+              ),
+              const SizedBox(height: DashboardTrendChartLayout.chartToLegendGap),
+              const Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                children: <Widget>[
+                  _Legend(color: Color(0xFF6A38FF), label: 'New users'),
+                  _Legend(color: Color(0xFF0EA5E9), label: 'Teams'),
+                  _Legend(color: Color(0xFFEA580C), label: 'Ideas'),
+                  _Legend(color: Color(0xFF16A34A), label: 'Evaluations'),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -91,18 +103,18 @@ class _DepartmentTrendPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Rect plot = Rect.fromLTWH(34, 10, size.width - 44, size.height - 38);
+    final Rect plot = DashboardTrendChartLayout.plotRect(size);
     final Paint grid = Paint()
       ..color = const Color(0xFFE8ECF8)
       ..strokeWidth = 1;
-    for (int i = 0; i <= 4; i++) {
-      final y = plot.top + plot.height * i / 4;
+    for (int i = 0; i <= DashboardTrendChartLayout.yAxisTickCount; i++) {
+      final double y = DashboardTrendChartLayout.yAxisLineY(plot, i);
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
     }
 
     final int maxValue = math.max(
       1,
-      points.expand((p) => <int>[p.users, p.teams, p.ideas, p.evaluations]).fold<int>(0, math.max),
+      points.expand((DepartmentTrendPoint p) => <int>[p.users, p.teams, p.ideas, p.evaluations]).fold<int>(0, math.max),
     );
 
     void drawSeries(List<int> values, Color color) {
@@ -126,22 +138,22 @@ class _DepartmentTrendPainter extends CustomPainter {
       canvas.drawPath(path, stroke);
     }
 
-    drawSeries(points.map((p) => p.users).toList(growable: false), const Color(0xFF6A38FF));
-    drawSeries(points.map((p) => p.teams).toList(growable: false), const Color(0xFF0EA5E9));
-    drawSeries(points.map((p) => p.ideas).toList(growable: false), const Color(0xFFEA580C));
-    drawSeries(points.map((p) => p.evaluations).toList(growable: false), const Color(0xFF16A34A));
+    drawSeries(points.map((DepartmentTrendPoint p) => p.users).toList(growable: false), const Color(0xFF6A38FF));
+    drawSeries(points.map((DepartmentTrendPoint p) => p.teams).toList(growable: false), const Color(0xFF0EA5E9));
+    drawSeries(points.map((DepartmentTrendPoint p) => p.ideas).toList(growable: false), const Color(0xFFEA580C));
+    drawSeries(points.map((DepartmentTrendPoint p) => p.evaluations).toList(growable: false), const Color(0xFF16A34A));
 
     final TextPainter tp = TextPainter(textDirection: TextDirection.ltr);
     for (int i = 0; i < points.length; i++) {
-      final x = points.length == 1 ? plot.center.dx : plot.left + (plot.width * i / (points.length - 1));
-      tp.text = TextSpan(text: points[i].label, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)));
+      final double x = points.length == 1 ? plot.center.dx : plot.left + (plot.width * i / (points.length - 1));
+      tp.text = TextSpan(text: points[i].label, style: DashboardTrendChartLayout.axisLabelStyle);
       tp.layout();
-      tp.paint(canvas, Offset(x - tp.width / 2, plot.bottom + 9));
+      tp.paint(canvas, Offset(x - tp.width / 2, plot.bottom + DashboardTrendChartLayout.xLabelGap));
     }
-    for (int i = 0; i <= 4; i++) {
-      final int value = (maxValue * (4 - i) / 4).round();
-      final y = plot.top + plot.height * i / 4;
-      tp.text = TextSpan(text: '$value', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)));
+    for (int i = 0; i <= DashboardTrendChartLayout.yAxisTickCount; i++) {
+      final int value = DashboardTrendChartLayout.yAxisValue(maxValue, i);
+      final double y = DashboardTrendChartLayout.yAxisLineY(plot, i);
+      tp.text = TextSpan(text: '$value', style: DashboardTrendChartLayout.axisLabelStyle);
       tp.layout();
       tp.paint(canvas, Offset(0, y - tp.height / 2));
     }

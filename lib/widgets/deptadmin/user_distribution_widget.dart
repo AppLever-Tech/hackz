@@ -41,31 +41,43 @@ class UserDistributionWidget extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: SingleChildScrollView(
-                  physics: inFixedPanel ? null : const NeverScrollableScrollPhysics(),
-                  child: Column(
-                    children: segments
-                        .map(
-                          (segment) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: <Widget>[
-                                Container(width: 10, height: 10, decoration: BoxDecoration(color: segment.color, shape: BoxShape.circle)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: SingleChildScrollView(
+                    physics: inFixedPanel ? null : const NeverScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: segments
+                          .map(
+                            (segment) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(color: segment.color, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(segment.icon, size: 14, color: segment.color),
+                                  const SizedBox(width: 6),
+                                  Text(
                                     segment.label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
                                   ),
-                                ),
-                                Text('${segment.count}', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '${segment.count}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(growable: false),
+                          )
+                          .toList(growable: false),
+                    ),
                   ),
                 ),
               ),

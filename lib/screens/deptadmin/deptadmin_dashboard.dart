@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../constants/status_styles.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
-import '../../widgets/common/idea_status_distribution_donut.dart';
 import '../../widgets/deptadmin/department_alerts_section.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/deptadmin/department_trend_chart.dart';
 import '../../widgets/deptadmin/payment_operations_widget.dart';
-import '../../widgets/deptadmin/problem_analytics_widget.dart';
 import '../../widgets/deptadmin/recent_department_activity_card.dart';
 import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
 import 'judges_panel.dart';
@@ -26,6 +24,7 @@ import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../workspace/workspace.dart';
 import 'payments_screen.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
@@ -174,9 +173,17 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   final ValueChanged<DepartmentAnalyticsTimeframe> onTrendChanged;
   final ValueChanged<DepartmentAnalyticsTimeframe> onActivityChanged;
 
+  static const int _kUsersByRoleFlex = 35;
+  static const int _kTrendChartFlex = 65;
+  static const double _kUsersTrendRowHeight = 320;
+  static const double _kProblemsIdeasRowHeight = 252;
+  static const double _kListIconSize = 18;
+
   @override
   Widget build(BuildContext context) {
     final gap = ResponsiveHelper.dashboardSectionGap(context);
+    final int problemsWithIdeas =
+        analytics.departmentProblems.where((DepartmentProblemPreview p) => p.ideaCount > 0).length;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +211,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 label: 'Active Problems',
                 icon: AppIcons.problems,
                 iconBgColor: const Color(0xFFE9FAF0),
-                footnote: '${analytics.ideaInflowByProblem.length} problems receiving ideas',
+                footnote: '$problemsWithIdeas problems receiving ideas',
                 tooltip: 'Currently active problem statements in this department.',
               ).toChipData(),
               DepartmentMetricCard(
@@ -218,66 +225,64 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ],
           ),
           SizedBox(height: gap),
-          SectionContainer(
-            child: DepartmentTrendChart(
-              points: analytics.trendFor(trendTimeframe),
-              selectedTimeframe: trendTimeframe,
-              onTimeframeChanged: onTrendChanged,
-            ),
-          ),
-          SizedBox(height: gap),
-          ResponsivePair(
-            spacing: gap,
-            first: AdaptiveDashboardPanel(
-              desktopHeight: 320,
-              child: _UserManagementSection(analytics: analytics),
-            ),
-            second: AdaptiveDashboardPanel(
-              desktopHeight: 320,
-              child: UserDistributionWidget(
-                title: 'Users by Role',
-                subtitle: 'Active role mix plus pending onboarding queue',
-                segments: analytics.usersByRole,
+          SizedBox(
+            height: _kUsersTrendRowHeight,
+            child: ResponsivePair(
+              spacing: gap,
+              firstFlex: _kUsersByRoleFlex,
+              secondFlex: _kTrendChartFlex,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              first: AdaptiveDashboardPanel(
+                desktopHeight: _kUsersTrendRowHeight,
+                child: UserDistributionWidget(
+                  title: 'Users by Role',
+                  subtitle: 'Active role mix plus pending onboarding queue',
+                  segments: analytics.usersByRole,
+                ),
+              ),
+              second: AdaptiveDashboardPanel(
+                desktopHeight: _kUsersTrendRowHeight,
+                child: DepartmentTrendChart(
+                  points: analytics.trendFor(trendTimeframe),
+                  selectedTimeframe: trendTimeframe,
+                  onTimeframeChanged: onTrendChanged,
+                ),
               ),
             ),
           ),
           SizedBox(height: gap),
-          ResponsivePair(
-            spacing: gap,
-            firstFlex: 7,
-            secondFlex: 5,
-            first: AdaptiveDashboardPanel(
-              desktopHeight: 380,
-              child: ProblemAnalyticsWidget(
-                activeProblems: analytics.activeProblems,
-                problemsByTheme: analytics.problemsByTheme,
-                ideaInflowByProblem: analytics.ideaInflowByProblem,
+          SizedBox(
+            height: _kProblemsIdeasRowHeight,
+            child: ResponsivePair(
+              spacing: gap,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              first: AdaptiveDashboardPanel(
+                desktopHeight: _kProblemsIdeasRowHeight,
+                child: _DepartmentProblemsCard(problems: analytics.departmentProblems),
               ),
-            ),
-            second: AdaptiveDashboardPanel(
-              desktopHeight: 380,
-              child: PaymentOperationsWidget(
-                pendingPayments: analytics.pendingPayments,
-                submittedIdeas: analytics.submittedIdeas,
-                evaluatedIdeas: analytics.evaluatedIdeas,
-                approvedIdeas: analytics.approvedIdeas,
-                rejectedIdeas: analytics.rejectedIdeas,
-                paymentVerificationRate: analytics.paymentVerificationRate,
-                evaluationCompletionRate: analytics.evaluationCompletionRate,
+              second: AdaptiveDashboardPanel(
+                desktopHeight: _kProblemsIdeasRowHeight,
+                child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas),
               ),
             ),
           ),
           SizedBox(height: gap),
-          ResponsivePair(
-            spacing: gap,
-            first: AdaptiveDashboardPanel(
-              desktopHeight: 350,
-              child: _IdeaStatusMixSection(analytics: analytics),
+          AdaptiveDashboardPanel(
+            desktopHeight: 380,
+            child: PaymentOperationsWidget(
+              pendingPayments: analytics.pendingPayments,
+              submittedIdeas: analytics.submittedIdeas,
+              evaluatedIdeas: analytics.evaluatedIdeas,
+              approvedIdeas: analytics.approvedIdeas,
+              rejectedIdeas: analytics.rejectedIdeas,
+              paymentVerificationRate: analytics.paymentVerificationRate,
+              evaluationCompletionRate: analytics.evaluationCompletionRate,
             ),
-            second: AdaptiveDashboardPanel(
-              desktopHeight: 350,
-              child: DepartmentAlertsSection(alerts: analytics.alerts),
-            ),
+          ),
+          SizedBox(height: gap),
+          AdaptiveDashboardPanel(
+            desktopHeight: 350,
+            child: DepartmentAlertsSection(alerts: analytics.alerts),
           ),
           SizedBox(height: gap),
           AdaptiveDashboardPanel(
@@ -294,123 +299,113 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   }
 }
 
-class _IdeaStatusMixSection extends StatelessWidget {
-  const _IdeaStatusMixSection({required this.analytics});
+class _DepartmentListCardHeader extends StatelessWidget {
+  const _DepartmentListCardHeader({
+    required this.title,
+    required this.icon,
+    required this.iconBgColor,
+    required this.count,
+  });
 
-  final DepartmentDashboardAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Text(
-          'Idea Status Mix',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Submission, review, evaluated and decision states',
-          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-        ),
-        const SizedBox(height: 14),
-        if (ResponsiveHelper.isDesktopOrWider(context))
-          Expanded(
-            child: IdeaStatusDistributionDonut(
-              pending: analytics.pendingSubmissionIdeas,
-              submitted: analytics.submittedIdeas - analytics.underReviewIdeas,
-              underReview: analytics.underReviewIdeas,
-              evaluated: analytics.evaluatedOnlyIdeas,
-              approved: analytics.approvedIdeas,
-              rejected: analytics.rejectedIdeas,
-              centerStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-              legendTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-            ),
-          )
-        else
-          IdeaStatusDistributionDonut(
-            pending: analytics.pendingSubmissionIdeas,
-            submitted: analytics.submittedIdeas - analytics.underReviewIdeas,
-            underReview: analytics.underReviewIdeas,
-            evaluated: analytics.evaluatedOnlyIdeas,
-            approved: analytics.approvedIdeas,
-            rejected: analytics.rejectedIdeas,
-            centerStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-            legendTextStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-          ),
-      ],
-    );
-  }
-}
-
-class _UserManagementSection extends StatelessWidget {
-  const _UserManagementSection({required this.analytics});
-
-  final DepartmentDashboardAnalytics analytics;
-
-  @override
-  Widget build(BuildContext context) {
-    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
-    final grid = GridView.count(
-      padding: EdgeInsets.zero,
-      shrinkWrap: !inFixedPanel,
-      physics: inFixedPanel ? null : const NeverScrollableScrollPhysics(),
-      crossAxisCount: ResponsiveHelper.isMobile(context) ? 1 : 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: ResponsiveHelper.isMobile(context) ? 3.2 : 2.3,
-      children: <Widget>[
-        _RoleStat(label: 'Faculty', value: analytics.facultyCount, icon: AppIcons.faculty, color: const Color(0xFF6A38FF)),
-        _RoleStat(label: 'Students', value: analytics.studentCount, icon: AppIcons.student, color: const Color(0xFF0EA5E9)),
-        _RoleStat(label: 'Coordinators', value: analytics.coordinatorCount, icon: AppIcons.coordinator, color: const Color(0xFF16A34A)),
-        _RoleStat(label: 'Judges', value: analytics.judgeCount, icon: AppIcons.judges, color: const Color(0xFFEA580C)),
-        _RoleStat(label: 'Pending approvals', value: analytics.pendingApprovals, icon: AppIcons.pendingUsers, color: const Color(0xFFF59E0B)),
-      ],
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Text('User Management Snapshot', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-        const SizedBox(height: 4),
-        const Text('Quick role visibility for department operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-        const SizedBox(height: 14),
-        if (inFixedPanel) Expanded(child: grid) else grid,
-      ],
-    );
-  }
-}
-
-class _RoleStat extends StatelessWidget {
-  const _RoleStat({required this.label, required this.value, required this.icon, required this.color});
-
-  final String label;
-  final int value;
+  final String title;
   final IconData icon;
-  final Color color;
+  final Color iconBgColor;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.09),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.18)),
-      ),
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+          child: Icon(icon, size: 17, color: icon == AppIcons.problems ? const Color(0xFFEA580C) : const Color(0xFF6A38FF)),
+        ),
+        const SizedBox(width: 10),
+        Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEAF2FF),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$count',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DepartmentProblemsCard extends StatelessWidget {
+  const _DepartmentProblemsCard({required this.problems});
+
+  final List<DepartmentProblemPreview> problems;
+
+  @override
+  Widget build(BuildContext context) {
+    final int count = problems.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _DepartmentListCardHeader(
+          title: 'My Department Problems',
+          icon: AppIcons.problems,
+          iconBgColor: const Color(0xFFFFF4ED),
+          count: count,
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: count == 0
+              ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
+              : SingleChildScrollView(
+                  child: Column(
+                    children: problems
+                        .map((DepartmentProblemPreview problem) => _problemPreviewRow(context, problem))
+                        .toList(growable: false),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _problemPreviewRow(BuildContext context, DepartmentProblemPreview problem) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text('$value', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: color)),
-                Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF475569))),
-              ],
-            ),
+            child: problem.problemId.trim().isNotEmpty
+                ? ContextPill(
+                    label: problem.title,
+                    semantic: ContextPillSemantic.problem,
+                    onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId),
+                    compact: true,
+                    expandWidth: true,
+                  )
+                : Text(
+                    problem.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            AppIcons.ideas,
+            size: _DepartmentAnalyticsView._kListIconSize,
+            color: Color(0xFF4A4F73),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${problem.ideaCount}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
           ),
         ],
       ),
@@ -418,3 +413,68 @@ class _RoleStat extends StatelessWidget {
   }
 }
 
+class _DepartmentIdeasCard extends StatelessWidget {
+  const _DepartmentIdeasCard({required this.ideas});
+
+  final List<DepartmentIdeaPreview> ideas;
+
+  @override
+  Widget build(BuildContext context) {
+    final int count = ideas.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _DepartmentListCardHeader(
+          title: 'My Department Ideas',
+          icon: AppIcons.ideas,
+          iconBgColor: const Color(0xFFF2EDFF),
+          count: count,
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: count == 0
+              ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
+              : SingleChildScrollView(
+                  child: Column(
+                    children: ideas
+                        .map((DepartmentIdeaPreview idea) => _ideaPreviewRow(context, idea))
+                        .toList(growable: false),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _ideaPreviewRow(BuildContext context, DepartmentIdeaPreview idea) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: idea.ideaId.trim().isNotEmpty
+                ? ContextPill(
+                    label: idea.title,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+                    compact: true,
+                    expandWidth: true,
+                  )
+                : Text(
+                    idea.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          StatusStyles.ideaStatusIcon(
+            idea.status,
+            size: _DepartmentAnalyticsView._kListIconSize,
+          ),
+        ],
+      ),
+    );
+  }
+}
