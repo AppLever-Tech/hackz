@@ -35,17 +35,17 @@ class StudentDashboard extends StatelessWidget {
       user: user,
       bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
         if (selectedMenuIndex == 1) {
-          return IdeasListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.student, user),
-          );
-        }
-        if (selectedMenuIndex == 2) {
           return ProblemsListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.student, user),
+          );
+        }
+        if (selectedMenuIndex == 2) {
+          return IdeasListScreen(
+            key: ValueKey<int>(refreshToken),
+            currentUser: user,
+            config: IdeaRoleConfig.configFor(UserRole.student, user),
           );
         }
         if (selectedMenuIndex == 3) {

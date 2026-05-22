@@ -275,7 +275,7 @@ abstract final class DashboardCardTitleStyle {
   DashboardCardTitleStyle._();
 
   static const double fontSize = 16;
-  static const double iconSize = 16;
+  static const double iconSize = 20;
   static const double iconGap = 8;
   static const Color iconColor = Color(0xFF4B5AA9);
 
