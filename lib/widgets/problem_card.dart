@@ -52,7 +52,7 @@ class ProblemCard extends StatelessWidget {
               Expanded(
                 child: FormValueRow(
                   labelWidth: EntityCardStyles.labelWidth,
-                  label: 'Problem:',
+                  label: 'Problem',
                   child: onOpenProblem != null
                       ? EntityCardPills.workspace(
                           title,

@@ -62,7 +62,7 @@ class IdeaCard extends StatelessWidget {
         children: <Widget>[
           FormValueRow(
             labelWidth: EntityCardStyles.labelWidth,
-            label: 'Idea:',
+            label: 'Idea',
             child: onOpenIdea != null
                 ? EntityCardPills.workspace(ideaTitle, ContextPillSemantic.idea, onOpenIdea!, fullWidth: true)
                 : EntityCardPills.plainValue(ideaTitle),
@@ -70,7 +70,7 @@ class IdeaCard extends StatelessWidget {
           const SizedBox(height: 8),
           FormValueRow(
             labelWidth: EntityCardStyles.labelWidth,
-            label: 'Problem:',
+            label: 'Problem',
             child: onOpenProblem != null
                 ? EntityCardPills.workspace(problemTitle, ContextPillSemantic.problem, onOpenProblem!, fullWidth: true)
                 : EntityCardPills.plainValue(problemTitle),

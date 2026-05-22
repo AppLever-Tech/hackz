@@ -20,7 +20,9 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
-import '../../workspace/shared/entity_reference_row.dart';
+import '../../widgets/common/context_pill_theme.dart';
+import '../../widgets/common/entity_card_pills.dart';
+import '../../widgets/common/form_value_row.dart';
 import '../../workspace/workspace.dart';
 
 class StudentDashboard extends StatelessWidget {
@@ -72,6 +74,8 @@ class _StudentDashboardHome extends StatefulWidget {
 }
 
 class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
+  static const double _kDetailsChartHeight = 188;
+
   late Future<StudentDashboardVm> _future;
   final StudentDashboardService _service = StudentDashboardService();
   int _activityLimit = 8;
@@ -187,11 +191,17 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   Widget _buildStatusAndDetailsRow(StudentDashboardVm vm) {
     return ResponsivePair(
       spacing: ResponsiveHelper.dashboardSectionGap(context),
-      first: _buildStudentDetails(vm),
+      first: ChartCard(
+        title: 'Student Details',
+        child: SizedBox(
+          height: _kDetailsChartHeight,
+          child: _buildStudentDetailsContent(vm),
+        ),
+      ),
       second: ChartCard(
         title: 'Idea Status Distribution',
         child: ResponsiveChartBox(
-          desktopHeight: 188,
+          desktopHeight: _kDetailsChartHeight,
           child: IdeaStatusDistributionDonut(
             pending: vm.pendingIdeas,
             submitted: vm.submittedIdeas,
@@ -205,53 +215,69 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildStudentDetails(StudentDashboardVm vm) {
-    return ChartCard(
-      title: 'Student Details',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _detailRow(icon: AppIcons.student, label: 'Student', value: vm.studentName),
-          const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.departments, label: 'Department', value: vm.department),
-          const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.teams,
-            label: 'Team',
-            value: vm.team.teamName.isEmpty ? '-' : vm.team.teamName,
+  Widget _buildStudentDetailsContent(StudentDashboardVm vm) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        FormValueRow(
+          labelWidth: EntityCardStyles.labelWidth,
+          label: 'Student',
+          child: _userWorkspaceValue(
+            name: vm.studentName,
+            userId: vm.studentId,
+            icon: AppIcons.student,
           ),
-          const SizedBox(height: 8),
-          EntityReferenceRow(
-            leadingIcon: AppIcons.faculty,
-            label: 'Mentor',
-            value: vm.mentorName,
-            workspaceEntityLabel: 'user',
-            onOpenWorkspace: vm.mentorId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openUser(context, vm.mentorId),
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: EntityCardStyles.labelWidth,
+          label: 'Mentor',
+          child: _userWorkspaceValue(
+            name: vm.mentorName,
+            userId: vm.mentorId,
+            icon: AppIcons.faculty,
           ),
-          EntityReferenceRow(
-            leadingIcon: AppIcons.departments,
-            label: 'Dept Admin',
-            value: vm.departmentAdminName,
-            workspaceEntityLabel: 'user',
-            onOpenWorkspace: vm.departmentAdminId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openUser(context, vm.departmentAdminId),
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: EntityCardStyles.labelWidth,
+          label: 'Dept Admin',
+          child: _userWorkspaceValue(
+            name: vm.departmentAdminName,
+            userId: vm.departmentAdminId,
+            icon: AppIcons.departments,
           ),
-          EntityReferenceRow(
-            leadingIcon: AppIcons.organizations,
-            label: 'College Admin',
-            value: vm.collegeAdminName,
-            workspaceEntityLabel: 'user',
-            onOpenWorkspace: vm.collegeAdminId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openUser(context, vm.collegeAdminId),
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: EntityCardStyles.labelWidth,
+          label: 'College Admin',
+          child: _userWorkspaceValue(
+            name: vm.collegeAdminName,
+            userId: vm.collegeAdminId,
+            icon: AppIcons.organizations,
           ),
-          const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.organizations, label: 'Organization', value: vm.organizationName),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _userWorkspaceValue({
+    required String name,
+    required String userId,
+    required IconData icon,
+  }) {
+    final String display = name.trim().isEmpty ? '—' : name.trim();
+    if (userId.trim().isEmpty) {
+      return EntityCardPills.plainValue(display);
+    }
+    return EntityCardPills.workspace(
+      display,
+      ContextPillSemantic.user,
+      () => WorkspaceNavigator.openUser(context, userId),
+      fullWidth: true,
+      icon: icon,
     );
   }
 
@@ -292,40 +318,6 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _detailRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    final String display = value.trim().isEmpty ? '-' : value;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        SizedBox(
-          width: 22,
-          child: Icon(icon, size: 16, color: const Color(0xFF57629A)),
-        ),
-        const SizedBox(width: 6),
-        SizedBox(
-          width: 110,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF4B556A), fontWeight: FontWeight.w600),
-          ),
-        ),
-        const Text(': ', style: TextStyle(fontSize: 13, color: Color(0xFF4B556A))),
-        Expanded(
-          child: Text(
-            display,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF111827), fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
     );
   }
 

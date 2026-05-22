@@ -8,27 +8,40 @@ class FormValueRow extends StatelessWidget {
     required this.child,
     this.label,
     this.labelStyle = EntityCardStyles.fieldLabel,
+    this.labelAlignment = Alignment.centerRight,
+    this.labelGap = EntityCardStyles.labelGap,
   });
 
   final double labelWidth;
   final String? label;
   final Widget child;
   final TextStyle labelStyle;
+  final Alignment labelAlignment;
+  final double labelGap;
 
   @override
   Widget build(BuildContext context) {
+    final bool hasLabel = label != null && label!.trim().isNotEmpty;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         SizedBox(
           width: labelWidth,
-          child: label == null
-              ? const SizedBox.shrink()
-              : Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(label!, style: labelStyle),
-                ),
+          child: hasLabel
+              ? Align(
+                  alignment: labelAlignment,
+                  child: Text(
+                    label!,
+                    style: labelStyle,
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
+        if (hasLabel) SizedBox(width: labelGap),
         Expanded(
           child: Align(
             alignment: Alignment.centerLeft,
@@ -41,7 +54,8 @@ class FormValueRow extends StatelessWidget {
 }
 
 abstract final class EntityCardStyles {
-  static const double labelWidth = 72;
+  static const double labelWidth = 80;
+  static const double labelGap = 8;
 
   static const TextStyle fieldLabel = TextStyle(
     fontSize: 11,
