@@ -112,4 +112,7 @@ abstract final class ContextPillMetrics {
     if (isUserOrJudge) return fitMaxWidthUserJudge;
     return compact ? fitMaxWidthDefault : 320;
   }
+
+  /// Inset for pills in clipped dashboard lists (hover scale, border, glow).
+  static const EdgeInsets clippedListPadding = EdgeInsets.fromLTRB(8, 4, 6, 4);
 }

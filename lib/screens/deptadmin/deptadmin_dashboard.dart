@@ -10,7 +10,6 @@ import '../../utils/problem_role_config.dart';
 import '../../widgets/deptadmin/department_alerts_section.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/deptadmin/department_trend_chart.dart';
-import '../../widgets/deptadmin/payment_operations_widget.dart';
 import '../../widgets/deptadmin/recent_department_activity_card.dart';
 import '../../widgets/common/dashboard_trend_chart_layout.dart';
 import '../../widgets/deptadmin/user_distribution_widget.dart';
@@ -174,8 +173,8 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   final ValueChanged<DepartmentAnalyticsTimeframe> onTrendChanged;
   final ValueChanged<DepartmentAnalyticsTimeframe> onActivityChanged;
 
-  static const int _kUsersByRoleFlex = 35;
-  static const int _kTrendChartFlex = 65;
+  static const int _kNarrowPanelFlex = 35;
+  static const int _kWidePanelFlex = 65;
   /// Title block (≈50) + donut row (132); trend card uses [DashboardTrendChartLayout.trendCardContentHeight].
   static const double _kUsersByRoleContentHeight = 50 + 132;
 
@@ -183,7 +182,9 @@ class _DepartmentAnalyticsView extends StatelessWidget {
     final double trendHeight = DashboardTrendChartLayout.trendCardContentHeight;
     return trendHeight > _kUsersByRoleContentHeight ? trendHeight : _kUsersByRoleContentHeight;
   }
+
   static const double _kProblemsIdeasRowHeight = 252;
+  static const double _kAlertsActivityRowHeight = 390;
   static const double _kListIconSize = 18;
 
   @override
@@ -233,11 +234,27 @@ class _DepartmentAnalyticsView extends StatelessWidget {
           ),
           SizedBox(height: gap),
           SizedBox(
+            height: _kProblemsIdeasRowHeight,
+            child: ResponsivePair(
+              spacing: gap,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              first: AdaptiveDashboardPanel(
+                desktopHeight: _kProblemsIdeasRowHeight,
+                child: _DepartmentProblemsCard(problems: analytics.departmentProblems),
+              ),
+              second: AdaptiveDashboardPanel(
+                desktopHeight: _kProblemsIdeasRowHeight,
+                child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas),
+              ),
+            ),
+          ),
+          SizedBox(height: gap),
+          SizedBox(
             height: _kUsersTrendRowHeight,
             child: ResponsivePair(
               spacing: gap,
-              firstFlex: _kUsersByRoleFlex,
-              secondFlex: _kTrendChartFlex,
+              firstFlex: _kNarrowPanelFlex,
+              secondFlex: _kWidePanelFlex,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
                 desktopHeight: _kUsersTrendRowHeight,
@@ -259,45 +276,24 @@ class _DepartmentAnalyticsView extends StatelessWidget {
           ),
           SizedBox(height: gap),
           SizedBox(
-            height: _kProblemsIdeasRowHeight,
+            height: _kAlertsActivityRowHeight,
             child: ResponsivePair(
               spacing: gap,
+              firstFlex: _kNarrowPanelFlex,
+              secondFlex: _kWidePanelFlex,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kProblemsIdeasRowHeight,
-                child: _DepartmentProblemsCard(problems: analytics.departmentProblems),
+                desktopHeight: _kAlertsActivityRowHeight,
+                child: DepartmentAlertsSection(alerts: analytics.alerts),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kProblemsIdeasRowHeight,
-                child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas),
+                desktopHeight: _kAlertsActivityRowHeight,
+                child: RecentDepartmentActivityCard(
+                  events: analytics.recentActivity,
+                  selectedTimeframe: activityTimeframe,
+                  onTimeframeChanged: onActivityChanged,
+                ),
               ),
-            ),
-          ),
-          SizedBox(height: gap),
-          AdaptiveDashboardPanel(
-            desktopHeight: 380,
-            child: PaymentOperationsWidget(
-              pendingPayments: analytics.pendingPayments,
-              submittedIdeas: analytics.submittedIdeas,
-              evaluatedIdeas: analytics.evaluatedIdeas,
-              approvedIdeas: analytics.approvedIdeas,
-              rejectedIdeas: analytics.rejectedIdeas,
-              paymentVerificationRate: analytics.paymentVerificationRate,
-              evaluationCompletionRate: analytics.evaluationCompletionRate,
-            ),
-          ),
-          SizedBox(height: gap),
-          AdaptiveDashboardPanel(
-            desktopHeight: 350,
-            child: DepartmentAlertsSection(alerts: analytics.alerts),
-          ),
-          SizedBox(height: gap),
-          AdaptiveDashboardPanel(
-            desktopHeight: 390,
-            child: RecentDepartmentActivityCard(
-              events: analytics.recentActivity,
-              selectedTimeframe: activityTimeframe,
-              onTimeframeChanged: onActivityChanged,
             ),
           ),
         ],
@@ -370,6 +366,7 @@ class _DepartmentProblemsCard extends StatelessWidget {
           child: count == 0
               ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
               : SingleChildScrollView(
+                  padding: ContextPillMetrics.clippedListPadding,
                   child: Column(
                     children: problems
                         .map((DepartmentProblemPreview problem) => _problemPreviewRow(context, problem))
@@ -442,6 +439,7 @@ class _DepartmentIdeasCard extends StatelessWidget {
           child: count == 0
               ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
               : SingleChildScrollView(
+                  padding: ContextPillMetrics.clippedListPadding,
                   child: Column(
                     children: ideas
                         .map((DepartmentIdeaPreview idea) => _ideaPreviewRow(context, idea))
