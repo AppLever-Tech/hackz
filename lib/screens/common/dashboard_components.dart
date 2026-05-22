@@ -277,8 +277,8 @@ abstract final class DashboardCardTitleStyle {
   DashboardCardTitleStyle._();
 
   static const double fontSize = 16;
-  static const double iconSize = 20;
-  static const double iconGap = 8;
+  static const double iconSize = 18;
+  static const double iconGap = 6;
   static const Color iconColor = Color(0xFF4B5AA9);
 
   static const TextStyle textStyle = TextStyle(
@@ -291,11 +291,14 @@ abstract final class DashboardCardTitleStyle {
   /// Matches [TimeFrameFilter.barHeight] so title + filter share one row without clipping.
   static const double headerRowHeight = TimeFrameFilter.barHeight;
 
-  static const double headerSpacing = 6;
+  static const double headerSpacing = 3;
   static const double compactBodyHeight = 168;
 
   /// When the card is narrower than this, stack the timeframe filter under the title.
-  static const double headerStackBreakpoint = 560;
+  static const double headerStackBreakpoint = 480;
+
+  /// Gap between title and a right-aligned [TimeFrameFilter] in [DashboardCardHeaderRow].
+  static const double headerTrailingGap = 12;
 }
 
 /// Icon + title row for dashboard cards.
@@ -355,13 +358,14 @@ class DashboardCardHeaderRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool stack = constraints.maxWidth < stackBelowWidth;
+        final Widget alignedTrailing = _alignTrailingTimeframe(trailing!);
         if (stack) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               titlePart,
-              const SizedBox(height: 8),
-              trailing!,
+              const SizedBox(height: 4),
+              alignedTrailing,
             ],
           );
         }
@@ -369,20 +373,23 @@ class DashboardCardHeaderRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Expanded(child: titlePart),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: TimeFrameFilter.barHeight,
-                  child: trailing!,
-                ),
-              ),
-            ),
+            const SizedBox(width: DashboardCardTitleStyle.headerTrailingGap),
+            Flexible(child: alignedTrailing),
           ],
         );
       },
+    );
+  }
+
+  /// Right-aligns timeframe chips in card headers (row + stacked layouts).
+  static Widget _alignTrailingTimeframe(Widget trailing) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: double.infinity,
+        height: TimeFrameFilter.barHeight,
+        child: trailing,
+      ),
     );
   }
 }
@@ -427,7 +434,12 @@ class ChartCard extends StatelessWidget {
               );
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.fromLTRB(
+        14,
+        trailing != null ? 8 : 14,
+        14,
+        14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(16),

@@ -94,7 +94,7 @@ class _FacultyDashboardHome extends StatefulWidget {
 class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   static const double _kDashboardIconSize = 18;
   static const double _kFacultyChartHeight = 200;
-  static const double _kChartHeaderSpacing = 6;
+  static const double _kChartHeaderSpacing = DashboardCardTitleStyle.headerSpacing;
   _FacultyDashboardVm? _vm;
   Object? _loadError;
   bool _loading = true;
@@ -803,16 +803,27 @@ class _SubmissionTrendChart extends StatelessWidget {
 class _SubmissionTrendLegend extends StatelessWidget {
   const _SubmissionTrendLegend();
 
+  static const TextStyle _labelStyle = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w600,
+    color: Color(0xFF64748B),
+  );
+
   @override
   Widget build(BuildContext context) {
     return const Wrap(
       alignment: WrapAlignment.end,
-      spacing: 12,
-      runSpacing: 6,
+      spacing: 10,
+      runSpacing: 4,
       children: <Widget>[
-        _LegendItem(icon: AppIcons.problems, color: Color(0xFF6A38FF), label: 'Problems'),
-        _LegendItem(icon: AppIcons.submissions, color: StatusStyles.underReview, label: 'Ideas Submitted'),
-        _LegendItem(icon: AppIcons.teams, color: Color(0xFF16A34A), label: 'Teams Created'),
+        _LegendItem(icon: AppIcons.problems, color: Color(0xFF6A38FF), label: 'Problems', labelStyle: _labelStyle),
+        _LegendItem(
+          icon: AppIcons.submissions,
+          color: StatusStyles.underReview,
+          label: 'Ideas Submitted',
+          labelStyle: _labelStyle,
+        ),
+        _LegendItem(icon: AppIcons.teams, color: Color(0xFF16A34A), label: 'Teams Created', labelStyle: _labelStyle),
       ],
     );
   }
@@ -844,39 +855,35 @@ class _MultiLineTimeSeriesChart extends StatelessWidget {
     if (series.isEmpty || labels.isEmpty || !hasData) {
       return Center(child: Text(emptyLabel));
     }
+    final int maxValue = series
+        .expand((line) => line.values.values)
+        .fold<int>(1, (int peak, int value) => value > peak ? value : peak);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Expanded(
-          child: Row(
-            children: <Widget>[
-              const RotatedBox(
-                quarterTurns: 3,
-                child: Text('Count', style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87))),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: CustomPaint(
-                  painter: _MultiLineTimeSeriesPainter(series: series),
-                  child: Container(),
-                ),
-              ),
-            ],
+          child: CustomPaint(
+            painter: _MultiLineTimeSeriesPainter(series: series, maxValue: maxValue),
+            child: Container(),
           ),
         ),
         const SizedBox(height: 6),
-        Row(
-          children: labels
-              .map(
-                (label) => Expanded(
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
+        Padding(
+          padding: const EdgeInsets.only(left: _MultiLineTimeSeriesPainter.yAxisWidth),
+          child: Row(
+            children: labels
+                .map(
+                  (label) => Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                    ),
                   ),
-                ),
-              )
-              .toList(growable: false),
+                )
+                .toList(growable: false),
+          ),
         ),
       ],
     );
@@ -884,78 +891,111 @@ class _MultiLineTimeSeriesChart extends StatelessWidget {
 }
 
 class _MultiLineTimeSeriesPainter extends CustomPainter {
-  const _MultiLineTimeSeriesPainter({required this.series});
+  const _MultiLineTimeSeriesPainter({
+    required this.series,
+    required this.maxValue,
+  });
+
+  static const double yAxisWidth = 32;
 
   final List<_TrendSeries> series;
+  final int maxValue;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = const Color(0xFFE8ECF6)
-      ..strokeWidth = 1;
-    for (int i = 1; i < 5; i++) {
-      final y = size.height * i / 5;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    if (series.isEmpty || series.first.values.isEmpty) {
+      return;
     }
 
-    final allValues = series.expand((line) => line.values.values).toList(growable: false);
-    if (allValues.isEmpty) return;
-    final maxV = allValues.fold<int>(1, (a, b) => a > b ? a : b).toDouble();
-    final count = series.first.values.length;
-    final dx = count == 1 ? 0.0 : size.width / (count - 1);
+    final Rect plot = Rect.fromLTWH(
+      yAxisWidth,
+      4,
+      size.width - yAxisWidth - 4,
+      size.height - 8,
+    );
+    if (plot.width <= 0 || plot.height <= 0) {
+      return;
+    }
+
+    final Paint grid = Paint()
+      ..color = const Color(0xFFE8ECF6)
+      ..strokeWidth = 1;
+    for (int i = 0; i <= 4; i++) {
+      final double y = plot.top + plot.height * i / 4;
+      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
+    }
+
+    final int peak = maxValue < 1 ? 1 : maxValue;
+    final int count = series.first.values.length;
+    final double dx = count == 1 ? 0.0 : plot.width / (count - 1);
+
     Offset pointAt(int index, int value) {
-      final x = count == 1 ? size.width / 2 : dx * index;
-      final y = size.height - ((value / maxV) * (size.height - 8)) - 4;
+      final double x = count == 1 ? plot.center.dx : plot.left + dx * index;
+      final double y = plot.bottom - (value / peak) * plot.height;
       return Offset(x, y);
     }
 
-    for (final trend in series) {
-      final values = trend.values.values.toList(growable: false);
+    for (final _TrendSeries trend in series) {
+      final List<int> values = trend.values.values.toList(growable: false);
       if (values.isEmpty) continue;
-      final line = Paint()
+      final Paint line = Paint()
         ..color = trend.color
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
-      final path = Path()..moveTo(pointAt(0, values[0]).dx, pointAt(0, values[0]).dy);
+      final Path path = Path()..moveTo(pointAt(0, values[0]).dx, pointAt(0, values[0]).dy);
       for (int i = 1; i < count; i++) {
-        final p = pointAt(i, values[i]);
+        final Offset p = pointAt(i, values[i]);
         path.lineTo(p.dx, p.dy);
       }
       canvas.drawPath(path, line);
 
-      final dot = Paint()..color = trend.color;
+      final Paint dot = Paint()..color = trend.color;
       for (int i = 0; i < count; i++) {
-        final p = pointAt(i, values[i]);
+        final Offset p = pointAt(i, values[i]);
         canvas.drawCircle(p, 3.2, dot);
       }
+    }
+
+    final TextPainter labelPainter = TextPainter(textDirection: TextDirection.ltr);
+    const TextStyle axisStyle = TextStyle(fontSize: 10, color: Color(0xFF64748B));
+    for (int i = 0; i <= 4; i++) {
+      final int tick = (peak * (4 - i) / 4).round();
+      final double y = plot.top + plot.height * i / 4;
+      labelPainter.text = TextSpan(text: '$tick', style: axisStyle);
+      labelPainter.layout();
+      labelPainter.paint(canvas, Offset(yAxisWidth - labelPainter.width - 4, y - labelPainter.height / 2));
     }
   }
 
   @override
   bool shouldRepaint(covariant _MultiLineTimeSeriesPainter oldDelegate) =>
-      oldDelegate.series != series;
+      oldDelegate.series != series || oldDelegate.maxValue != maxValue;
 }
 
 class _LegendItem extends StatelessWidget {
-  static const double _kIconSize = 18;
+  static const double _kIconSize = 14;
 
   const _LegendItem({
     required this.icon,
     required this.color,
     required this.label,
+    this.labelStyle = const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
   });
+
   final IconData icon;
   final Color color;
   final String label;
+  final TextStyle labelStyle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Icon(icon, size: _kIconSize, color: color),
-        const SizedBox(width: 6),
-        Text(label),
+        const SizedBox(width: 5),
+        Text(label, style: labelStyle),
       ],
     );
   }
