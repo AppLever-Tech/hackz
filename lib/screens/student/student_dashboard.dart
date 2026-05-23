@@ -18,7 +18,10 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
+import '../../widgets/common/dashboard_panel_column.dart';
+import '../../widgets/common/dashboard_scrollable_list_layout.dart';
 import '../../widgets/common/entity_card_pills.dart';
+import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/common/form_value_row.dart';
 import '../../workspace/workspace.dart';
 
@@ -78,7 +81,6 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   late Future<StudentDashboardVm> _future;
   final StudentDashboardService _service = StudentDashboardService();
-  int _activityLimit = 8;
 
   @override
   void initState() {
@@ -187,19 +189,14 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildDetailsAndTeamRow(StudentDashboardVm vm) {
-    final double spacing = ResponsiveHelper.dashboardSectionGap(context);
-    final Widget pair = ResponsivePair(
-      spacing: spacing,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      first: _buildMyDetailsCard(vm),
-      second: StudentTeamOverviewCard(vm: vm, compact: true),
-    );
-    if (MediaQuery.sizeOf(context).width < ResponsiveBreakpoints.tablet) {
-      return pair;
-    }
-    return SizedBox(
+    return ResponsiveDashboardPairRow(
       height: _kStudentDetailsRowHeight,
-      child: pair,
+      pair: ResponsivePair(
+        spacing: ResponsiveHelper.dashboardSectionGap(context),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        first: _buildMyDetailsCard(vm),
+        second: StudentTeamOverviewCard(vm: vm, compact: true),
+      ),
     );
   }
 
@@ -231,9 +228,9 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildIdeasAndActivityRow(StudentDashboardVm vm) {
-    return SizedBox(
+    return ResponsiveDashboardPairRow(
       height: _kDashboardPanelHeight,
-      child: ResponsivePair(
+      pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         first: _StudentMyIdeasCard(vm: vm),
@@ -309,54 +306,40 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildRecentActivity(StudentDashboardVm vm) {
-    final visible = vm.activities.take(_activityLimit).toList(growable: false);
     return SectionContainer(
-      child: Column(
+      child: DashboardPanelColumn(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+        headers: <Widget>[
           const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
           const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-          Expanded(
-            child: visible.isEmpty
-                ? const Align(
-                    alignment: Alignment.topLeft,
-                    child: Text('No recent activity.'),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        ...visible.map(
-                          (StudentActivityItem a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Icon(a.icon, size: _kDashboardIconSize, color: const Color(0xFF4B5AA9)),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(a.text)),
-                                Text(
-                                  _formatDate(a.at),
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (_activityLimit < vm.activities.length)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => setState(() => _activityLimit += 8),
-                              child: const Text('Load More'),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-          ),
         ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: vm.activities.length,
+          rowStride: DashboardScrollableListLayout.compactRowStride,
+          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+          empty: const Align(
+            alignment: Alignment.topLeft,
+            child: Text('No recent activity.'),
+          ),
+          itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
+        ),
       ),
+    );
+  }
+
+  Widget _activityRow(StudentActivityItem activity) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(activity.icon, size: _kDashboardIconSize, color: const Color(0xFF4B5AA9)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(activity.text)),
+        Text(
+          _formatDate(activity.at),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+        ),
+      ],
     );
   }
 
@@ -374,9 +357,9 @@ class _StudentMyIdeasCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final int count = vm.ideaCards.length;
     return SectionContainer(
-      child: Column(
+      child: DashboardPanelColumn(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+        headers: <Widget>[
           Row(
             children: <Widget>[
               Container(
@@ -403,18 +386,16 @@ class _StudentMyIdeasCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: count == 0
-                ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
-                : SingleChildScrollView(
-                    child: Column(
-                      children: vm.ideaCards
-                          .map((StudentIdeaItem item) => _ideaPreviewRow(context, item))
-                          .toList(growable: false),
-                    ),
-                  ),
-          ),
         ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: count,
+          rowStride: DashboardScrollableListLayout.compactRowStride,
+          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+          empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+          itemBuilder: (BuildContext context, int index) =>
+              _ideaPreviewRow(context, vm.ideaCards[index]),
+        ),
       ),
     );
   }
@@ -422,34 +403,31 @@ class _StudentMyIdeasCard extends StatelessWidget {
   Widget _ideaPreviewRow(BuildContext context, StudentIdeaItem item) {
     final String title =
         item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: item.idea.ideaId.trim().isNotEmpty
-                ? ContextPill(
-                    label: title,
-                    semantic: ContextPillSemantic.idea,
-                    onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                    compact: true,
-                  )
-                : Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-                  ),
-          ),
-          const SizedBox(width: 8),
-          StatusStyles.ideaStatusIcon(
-            item.idea.status,
-            size: _StudentDashboardHomeState._kDashboardIconSize,
-          ),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Align(
+          alignment: Alignment.centerLeft,
+          child: item.idea.ideaId.trim().isNotEmpty
+              ? ContextPill(
+                  label: title,
+                  semantic: ContextPillSemantic.idea,
+                  onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                  compact: true,
+                )
+              : Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                ),
+        ),
+        const SizedBox(width: 8),
+        StatusStyles.ideaStatusIcon(
+          item.idea.status,
+          size: _StudentDashboardHomeState._kDashboardIconSize,
+        ),
+      ],
     );
   }
 }

@@ -21,6 +21,7 @@ import '../../widgets/sysadmin/platform_alerts_section.dart';
 import '../../widgets/sysadmin/platform_distribution_chart.dart';
 import '../../widgets/sysadmin/platform_metric_card.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -133,6 +134,9 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
   PlatformAnalyticsTimeframe _trendTimeframe = PlatformAnalyticsTimeframe.currentWeek;
   PlatformAnalyticsTimeframe _activityTimeframe = PlatformAnalyticsTimeframe.currentWeek;
 
+  static const double _kDistributionRowHeight = 236;
+  static const double _kAlertsActivityRowHeight = 380;
+
   @override
   Widget build(BuildContext context) {
     final SysAdminDashboardAnalytics data = widget.data;
@@ -190,40 +194,46 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
             second: SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity)),
           ),
           SizedBox(height: gap),
-          ResponsivePair(
-            spacing: gap,
-            first: AdaptiveDashboardPanel(
-              desktopHeight: 236,
-              child: PlatformDistributionChart(
-                title: 'Users by Role',
-                subtitle: 'Operational identity mix across the platform',
-                segments: data.usersByRole,
+          ResponsiveDashboardPairRow(
+            height: _kDistributionRowHeight,
+            pair: ResponsivePair(
+              spacing: gap,
+              first: AdaptiveDashboardPanel(
+                desktopHeight: _kDistributionRowHeight,
+                child: PlatformDistributionChart(
+                  title: 'Users by Role',
+                  subtitle: 'Operational identity mix across the platform',
+                  segments: data.usersByRole,
+                ),
               ),
-            ),
-            second: AdaptiveDashboardPanel(
-              desktopHeight: 236,
-              child: PlatformDistributionChart(
-                title: 'Idea Status Mix',
-                subtitle: 'Submission lifecycle distribution',
-                segments: data.ideaStatusDistribution,
+              second: AdaptiveDashboardPanel(
+                desktopHeight: _kDistributionRowHeight,
+                child: PlatformDistributionChart(
+                  title: 'Idea Status Mix',
+                  subtitle: 'Submission lifecycle distribution',
+                  segments: data.ideaStatusDistribution,
+                ),
               ),
             ),
           ),
           SizedBox(height: gap),
-          ResponsivePair(
-            spacing: gap,
-            first: AdaptiveDashboardPanel(
-              desktopHeight: 380,
-              child: PlatformAlertsSection(alerts: data.alerts),
-            ),
-            second: AdaptiveDashboardPanel(
-              desktopHeight: 380,
-              child: RecentPlatformActivityCard(
-                events: data.recentActivity,
-                selectedTimeframe: _activityTimeframe,
-                onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
-                  setState(() => _activityTimeframe = timeframe);
-                },
+          ResponsiveDashboardPairRow(
+            height: _kAlertsActivityRowHeight,
+            pair: ResponsivePair(
+              spacing: gap,
+              first: AdaptiveDashboardPanel(
+                desktopHeight: _kAlertsActivityRowHeight,
+                child: PlatformAlertsSection(alerts: data.alerts),
+              ),
+              second: AdaptiveDashboardPanel(
+                desktopHeight: _kAlertsActivityRowHeight,
+                child: RecentPlatformActivityCard(
+                  events: data.recentActivity,
+                  selectedTimeframe: _activityTimeframe,
+                  onTimeframeChanged: (PlatformAnalyticsTimeframe timeframe) {
+                    setState(() => _activityTimeframe = timeframe);
+                  },
+                ),
               ),
             ),
           ),

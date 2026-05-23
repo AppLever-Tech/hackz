@@ -12,6 +12,8 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
+import '../../widgets/common/dashboard_panel_column.dart';
+import '../../widgets/common/dashboard_scrollable_list_layout.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../widgets/responsive/responsive_multi_column.dart';
@@ -61,7 +63,6 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   static const double _kActivityIconSize = 18;
   final JudgeDashboardService _service = JudgeDashboardService();
   late Future<JudgeDashboardVm> _future;
-  int _activityLimit = 8;
 
   @override
   void initState() {
@@ -281,42 +282,39 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
   }
 
   Widget _buildRecentActivity(JudgeDashboardVm vm) {
-    final visible = vm.activities.take(_activityLimit).toList(growable: false);
     return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+      child: DashboardPanelColumn(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        headers: <Widget>[
           const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
           const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-          if (visible.isEmpty)
-            const Text('No recent activity.')
-          else
-            ...visible.map(
-              (a) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: <Widget>[
-                    Icon(a.icon, size: _kActivityIconSize, color: const Color(0xFF4B5AA9)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(a.text)),
-                    Text(
-                      formatDateTime(a.at),
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (_activityLimit < vm.activities.length)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => setState(() => _activityLimit += 8),
-                child: const Text('Load More'),
-              ),
-            ),
         ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: vm.activities.length,
+          rowStride: DashboardScrollableListLayout.compactRowStride,
+          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+          empty: const Align(
+            alignment: Alignment.topLeft,
+            child: Text('No recent activity.'),
+          ),
+          itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
+        ),
       ),
+    );
+  }
+
+  Widget _activityRow(JudgeActivityItem activity) {
+    return Row(
+      children: <Widget>[
+        Icon(activity.icon, size: _kActivityIconSize, color: const Color(0xFF4B5AA9)),
+        const SizedBox(width: 8),
+        Expanded(child: Text(activity.text)),
+        Text(
+          formatDateTime(activity.at),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+        ),
+      ],
     );
   }
 

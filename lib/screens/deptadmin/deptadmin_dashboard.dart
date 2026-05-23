@@ -20,7 +20,10 @@ import '../common/problems_list_screen.dart';
 import 'judges_panel.dart';
 import 'manage_users_screen.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../widgets/common/dashboard_panel_column.dart';
+import '../../widgets/common/dashboard_scrollable_list_layout.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
+import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -233,9 +236,9 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ],
           ),
           SizedBox(height: gap),
-          SizedBox(
+          ResponsiveDashboardPairRow(
             height: _kProblemsIdeasRowHeight,
-            child: ResponsivePair(
+            pair: ResponsivePair(
               spacing: gap,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
@@ -249,9 +252,9 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ),
           ),
           SizedBox(height: gap),
-          SizedBox(
+          ResponsiveDashboardPairRow(
             height: _kUsersTrendRowHeight,
-            child: ResponsivePair(
+            pair: ResponsivePair(
               spacing: gap,
               firstFlex: _kNarrowPanelFlex,
               secondFlex: _kWidePanelFlex,
@@ -275,9 +278,9 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ),
           ),
           SizedBox(height: gap),
-          SizedBox(
+          ResponsiveDashboardPairRow(
             height: _kAlertsActivityRowHeight,
-            child: ResponsivePair(
+            pair: ResponsivePair(
               spacing: gap,
               firstFlex: _kNarrowPanelFlex,
               secondFlex: _kWidePanelFlex,
@@ -352,9 +355,9 @@ class _DepartmentProblemsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int count = problems.length;
-    return Column(
+    return DashboardPanelColumn(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
+      headers: <Widget>[
         _DepartmentListCardHeader(
           title: 'My Department Problems',
           icon: AppIcons.problems,
@@ -362,57 +365,52 @@ class _DepartmentProblemsCard extends StatelessWidget {
           count: count,
         ),
         const SizedBox(height: 12),
-        Expanded(
-          child: count == 0
-              ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
-              : SingleChildScrollView(
-                  padding: ContextPillMetrics.clippedListPadding,
-                  child: Column(
-                    children: problems
-                        .map((DepartmentProblemPreview problem) => _problemPreviewRow(context, problem))
-                        .toList(growable: false),
-                  ),
-                ),
-        ),
       ],
+      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+        expandVertically: expandVertically,
+        itemCount: count,
+        rowStride: DashboardScrollableListLayout.compactRowStride,
+        separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+        padding: ContextPillMetrics.clippedListPadding,
+        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+        itemBuilder: (BuildContext context, int index) =>
+            _problemPreviewRow(context, problems[index]),
+      ),
     );
   }
 
   Widget _problemPreviewRow(BuildContext context, DepartmentProblemPreview problem) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Expanded(
-            child: problem.problemId.trim().isNotEmpty
-                ? ContextPill(
-                    label: problem.title,
-                    semantic: ContextPillSemantic.problem,
-                    onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId),
-                    compact: true,
-                    expandWidth: true,
-                  )
-                : Text(
-                    problem.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-                  ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            AppIcons.ideas,
-            size: _DepartmentAnalyticsView._kListIconSize,
-            color: Color(0xFF4A4F73),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${problem.ideaCount}',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
-          ),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Expanded(
+          child: problem.problemId.trim().isNotEmpty
+              ? ContextPill(
+                  label: problem.title,
+                  semantic: ContextPillSemantic.problem,
+                  onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId),
+                  compact: true,
+                  expandWidth: true,
+                )
+              : Text(
+                  problem.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                ),
+        ),
+        const SizedBox(width: 8),
+        const Icon(
+          AppIcons.ideas,
+          size: _DepartmentAnalyticsView._kListIconSize,
+          color: Color(0xFF4A4F73),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${problem.ideaCount}',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
+        ),
+      ],
     );
   }
 }
@@ -425,9 +423,9 @@ class _DepartmentIdeasCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int count = ideas.length;
-    return Column(
+    return DashboardPanelColumn(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
+      headers: <Widget>[
         _DepartmentListCardHeader(
           title: 'My Department Ideas',
           icon: AppIcons.ideas,
@@ -435,28 +433,23 @@ class _DepartmentIdeasCard extends StatelessWidget {
           count: count,
         ),
         const SizedBox(height: 12),
-        Expanded(
-          child: count == 0
-              ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
-              : SingleChildScrollView(
-                  padding: ContextPillMetrics.clippedListPadding,
-                  child: Column(
-                    children: ideas
-                        .map((DepartmentIdeaPreview idea) => _ideaPreviewRow(context, idea))
-                        .toList(growable: false),
-                  ),
-                ),
-        ),
       ],
+      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+        expandVertically: expandVertically,
+        itemCount: count,
+        rowStride: DashboardScrollableListLayout.compactRowStride,
+        separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+        padding: ContextPillMetrics.clippedListPadding,
+        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+        itemBuilder: (BuildContext context, int index) => _ideaPreviewRow(context, ideas[index]),
+      ),
     );
   }
 
   Widget _ideaPreviewRow(BuildContext context, DepartmentIdeaPreview idea) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
           Expanded(
             child: idea.ideaId.trim().isNotEmpty
                 ? ContextPill(
@@ -474,12 +467,11 @@ class _DepartmentIdeasCard extends StatelessWidget {
                   ),
           ),
           const SizedBox(width: 8),
-          StatusStyles.ideaStatusIcon(
-            idea.status,
-            size: _DepartmentAnalyticsView._kListIconSize,
-          ),
-        ],
-      ),
+        StatusStyles.ideaStatusIcon(
+          idea.status,
+          size: _DepartmentAnalyticsView._kListIconSize,
+        ),
+      ],
     );
   }
 }

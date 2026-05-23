@@ -101,6 +101,15 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return _buildPill(context, constraints);
+      },
+    );
+  }
+
+  Widget _buildPill(BuildContext context, BoxConstraints constraints) {
+    final bool boundedWidth = constraints.maxWidth.isFinite;
     final ContextPillPalette palette = ContextPillTheme.paletteFor(widget.semantic);
     final String tooltipMessage = widget.tooltip ?? ContextPillTheme.workspaceTooltipFor(widget.semantic);
     final String display = widget.label.trim().isEmpty ? '—' : widget.label.trim();
@@ -114,13 +123,15 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
           semantic: widget.semantic,
         );
     final double iconGap = ContextPillMetrics.resolvedIconGap(compact: _effectiveCompact);
-    final double? maxWidth = _resolvedMaxWidth;
+    final double? themeMaxWidth = _resolvedMaxWidth;
+    final double? layoutMaxWidth = widget.expandWidth
+        ? (widget.maxWidth ?? (boundedWidth ? constraints.maxWidth : null))
+        : (themeMaxWidth ?? (boundedWidth && !_fitContent ? constraints.maxWidth : null));
     final double resolvedHeight = ContextPillMetrics.resolvedHeight(
       context: context,
       compact: _effectiveCompact,
       override: widget.height,
     );
-
     final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: _effectiveCompact);
     final Color borderColor = !interactive
         ? AppSemanticColors.metricBorder
@@ -147,7 +158,7 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       style: labelStyle,
     );
 
-    final bool constrainLabel = widget.expandWidth || maxWidth != null;
+    final bool constrainLabel = widget.expandWidth || layoutMaxWidth != null;
 
     Widget labelRow = Row(
       mainAxisSize: MainAxisSize.min,
@@ -166,12 +177,16 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       ],
     );
 
-    if (maxWidth != null) {
+    if (layoutMaxWidth != null && !widget.expandWidth) {
       labelRow = ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
+        constraints: BoxConstraints(maxWidth: layoutMaxWidth),
         child: labelRow,
       );
     }
+
+    final double pillMaxWidth = widget.expandWidth
+        ? (layoutMaxWidth ?? double.infinity)
+        : (layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity));
 
     Widget pillBody = AnimatedScale(
       scale: scale,
@@ -184,7 +199,7 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
           minHeight: resolvedHeight,
           maxHeight: resolvedHeight,
           minWidth: widget.minWidth ?? 0,
-          maxWidth: widget.expandWidth ? (widget.maxWidth ?? double.infinity) : maxWidth ?? double.infinity,
+          maxWidth: pillMaxWidth,
         ),
         decoration: BoxDecoration(
           color: surfaceColor,

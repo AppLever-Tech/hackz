@@ -11,7 +11,10 @@ import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
+import '../../widgets/common/dashboard_panel_column.dart';
+import '../../widgets/common/dashboard_scrollable_list_layout.dart';
 import '../../widgets/common/time_frame_filter.dart';
+import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -98,7 +101,6 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   _FacultyDashboardVm? _vm;
   Object? _loadError;
   bool _loading = true;
-  int _activityLimit = 8;
   _FacultyTimeframe _submissionTimeframe = _FacultyTimeframe.currentWeek;
   _FacultyTimeframe _activityTimeframe = _FacultyTimeframe.currentWeek;
 
@@ -298,9 +300,9 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildTeamsAndSubmissionsRow(_FacultyDashboardVm vm) {
-    return SizedBox(
+    return ResponsiveDashboardPairRow(
       height: _kDashboardPanelHeight,
-      child: ResponsivePair(
+      pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         firstFlex: _kKeyCardFlex,
@@ -309,32 +311,42 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
           title: 'My Teams',
           icon: AppIcons.teams,
           count: vm.teamCount,
-          teamPreview: vm.teams.take(3).toList(growable: false),
+          teamPreview: vm.teams,
         ),
         second: SectionContainer(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              DashboardCardHeaderRow(
-                title: 'Submissions Over Time',
-                icon: AppIcons.submissions,
-                trailing: TimeFrameFilter<_FacultyTimeframe>(
-                  options: _FacultyTimeframe.values,
-                  selected: _submissionTimeframe,
-                  labelBuilder: (_FacultyTimeframe option) => option.label,
-                  onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
-                ),
-              ),
-              const SizedBox(height: _kChartHeaderSpacing),
-              Expanded(
-                child: _SubmissionTrendChart(
-                  problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
-                  ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
-                  teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool boundedHeight = constraints.maxHeight.isFinite;
+              final Widget chart = _SubmissionTrendChart(
+                problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
+                ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
+                teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  DashboardCardHeaderRow(
+                    title: 'Submissions Over Time',
+                    icon: AppIcons.submissions,
+                    trailing: TimeFrameFilter<_FacultyTimeframe>(
+                      options: _FacultyTimeframe.values,
+                      selected: _submissionTimeframe,
+                      labelBuilder: (_FacultyTimeframe option) => option.label,
+                      onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
+                    ),
+                  ),
+                  const SizedBox(height: _kChartHeaderSpacing),
+                  if (boundedHeight)
+                    Expanded(child: chart)
+                  else
+                    SizedBox(
+                      height: ResponsiveHelper.chartPanelHeight(context, desktop: 180),
+                      child: chart,
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -342,9 +354,9 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildIdeasAndActivityRow(_FacultyDashboardVm vm) {
-    return SizedBox(
+    return ResponsiveDashboardPairRow(
       height: _kDashboardPanelHeight,
-      child: ResponsivePair(
+      pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         firstFlex: _kKeyCardFlex,
@@ -362,11 +374,10 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
 
   Widget _buildRecentActivity(_FacultyDashboardVm vm) {
     final filtered = vm.activities.where((a) => _isWithinTimeframe(a.time, _activityTimeframe)).toList(growable: false);
-    final visible = filtered.take(_activityLimit).toList(growable: false);
     return SectionContainer(
-      child: Column(
+      child: DashboardPanelColumn(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+        headers: <Widget>[
           DashboardCardHeaderRow(
             title: 'Recent Activity',
             icon: AppIcons.clock,
@@ -374,53 +385,37 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               options: _FacultyTimeframe.values,
               selected: _activityTimeframe,
               labelBuilder: (_FacultyTimeframe option) => option.label,
-              onChanged: (_FacultyTimeframe timeframe) => setState(() {
-                _activityTimeframe = timeframe;
-                _activityLimit = 8;
-              }),
+              onChanged: (_FacultyTimeframe timeframe) => setState(() => _activityTimeframe = timeframe),
             ),
           ),
           const SizedBox(height: 10),
-          Expanded(
-            child: visible.isEmpty
-                ? const Align(
-                    alignment: Alignment.topLeft,
-                    child: Text('No activity in this period.'),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        ...visible.map(
-                          (a) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: <Widget>[
-                                Icon(a.icon, size: _kDashboardIconSize, color: a.color),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(a.text)),
-                                Text(
-                                  _formatDate(a.time),
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (_activityLimit < filtered.length)
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => setState(() => _activityLimit += 8),
-                              child: const Text('Load More'),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-          ),
         ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: filtered.length,
+          rowStride: DashboardScrollableListLayout.compactRowStride,
+          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+          empty: const Align(
+            alignment: Alignment.topLeft,
+            child: Text('No activity in this period.'),
+          ),
+          itemBuilder: (BuildContext context, int index) => _activityRow(filtered[index]),
+        ),
       ),
+    );
+  }
+
+  Widget _activityRow(_ActivityItem activity) {
+    return Row(
+      children: <Widget>[
+        Icon(activity.icon, size: _kDashboardIconSize, color: activity.color),
+        const SizedBox(width: 8),
+        Expanded(child: Text(activity.text)),
+        Text(
+          _formatDate(activity.time),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+        ),
+      ],
     );
   }
 
@@ -635,9 +630,9 @@ class _KeyDataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionContainer(
-      child: Column(
+      child: DashboardPanelColumn(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+        headers: <Widget>[
             Row(
               children: <Widget>[
                 Container(
@@ -658,90 +653,83 @@ class _KeyDataCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Expanded(
-              child: teamPreview.isEmpty && ideaPreviews.isEmpty
-                  ? const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394))))
-                  : SingleChildScrollView(
-                      child: Column(
-                        children: title == 'My Teams'
-                            ? teamPreview.map((team) => _teamPreviewRow(context, team)).toList(growable: false)
-                            : ideaPreviews.map((idea) => _ideaPreviewRow(context, idea)).toList(growable: false),
-                      ),
-                    ),
-            ),
-          ],
+        ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: title == 'My Teams' ? teamPreview.length : ideaPreviews.length,
+          rowStride: DashboardScrollableListLayout.compactRowStride,
+          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
+          empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+          itemBuilder: (BuildContext context, int index) => title == 'My Teams'
+              ? _teamPreviewRow(context, teamPreview[index])
+              : _ideaPreviewRow(context, ideaPreviews[index]),
         ),
+      ),
     );
   }
 
   Widget _teamPreviewRow(BuildContext context, TeamModel team) {
     final String label = team.teamName.isEmpty ? team.teamId : team.teamName;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: team.teamId.trim().isNotEmpty
-                ? ContextPill(
-                    label: label,
-                    semantic: ContextPillSemantic.team,
-                    onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
-                    compact: true,
-                  )
-                : Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-                  ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            AppIcons.student,
-            size: _FacultyDashboardHomeState._kDashboardIconSize,
-            color: Color(0xFF4A4F73),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${team.studentIds.length}',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
-          ),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Align(
+          alignment: Alignment.centerLeft,
+          child: team.teamId.trim().isNotEmpty
+              ? ContextPill(
+                  label: label,
+                  semantic: ContextPillSemantic.team,
+                  onTap: () => WorkspaceNavigator.openTeam(context, team.teamId),
+                  compact: true,
+                )
+              : Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                ),
+        ),
+        const SizedBox(width: 8),
+        const Icon(
+          AppIcons.student,
+          size: _FacultyDashboardHomeState._kDashboardIconSize,
+          color: Color(0xFF4A4F73),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${team.studentIds.length}',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF4A4F73)),
+        ),
+      ],
     );
   }
 
   Widget _ideaPreviewRow(BuildContext context, _FacultyIdeaPreview idea) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: idea.ideaId.trim().isNotEmpty
-                ? ContextPill(
-                    label: idea.title,
-                    semantic: ContextPillSemantic.idea,
-                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
-                    compact: true,
-                  )
-                : Text(
-                    idea.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
-                  ),
-          ),
-          const SizedBox(width: 8),
-          StatusStyles.ideaStatusIcon(
-            idea.status,
-            size: _FacultyDashboardHomeState._kDashboardIconSize,
-          ),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Align(
+          alignment: Alignment.centerLeft,
+          child: idea.ideaId.trim().isNotEmpty
+              ? ContextPill(
+                  label: idea.title,
+                  semantic: ContextPillSemantic.idea,
+                  onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+                  compact: true,
+                )
+              : Text(
+                  idea.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w700),
+                ),
+        ),
+        const SizedBox(width: 8),
+        StatusStyles.ideaStatusIcon(
+          idea.status,
+          size: _FacultyDashboardHomeState._kDashboardIconSize,
+        ),
+      ],
     );
   }
 

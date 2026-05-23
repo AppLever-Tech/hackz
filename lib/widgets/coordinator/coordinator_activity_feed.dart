@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
+import '../common/dashboard_panel_column.dart';
+import '../common/dashboard_scrollable_list_layout.dart';
 import 'coordinator_panel_card.dart';
 
 class CoordinatorActivityFeed extends StatelessWidget {
@@ -11,53 +12,59 @@ class CoordinatorActivityFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
-    final list = activities.isEmpty
-        ? const Center(child: Text('No coordinator activity yet.'))
-        : ListView.separated(
-            padding: EdgeInsets.zero,
-            shrinkWrap: !inFixedPanel,
-            physics: inFixedPanel ? null : const NeverScrollableScrollPhysics(),
-            itemCount: activities.length.clamp(0, 8).toInt(),
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final activity = activities[index];
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(color: activity.tint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                    child: Icon(activity.icon, size: 18, color: activity.tint),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(activity.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 2),
-                        Text(activity.subtitle.isEmpty ? _dateLabel(activity.when) : '${activity.subtitle} - ${_dateLabel(activity.when)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-
+    final int itemCount = activities.length.clamp(0, 8).toInt();
     return CoordinatorPanelCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+      child: DashboardPanelColumn(
+        headers: <Widget>[
           const Text('Recent Coordinator Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
           const SizedBox(height: 4),
           const Text('Recent verification and validation operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
-          if (inFixedPanel) Expanded(child: list) else list,
         ],
+        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+          expandVertically: expandVertically,
+          itemCount: itemCount,
+          rowStride: DashboardScrollableListLayout.activityRowStride,
+          separatorHeight: 10,
+          empty: const Center(child: Text('No coordinator activity yet.')),
+          itemBuilder: (BuildContext context, int index) => _activityRow(activities[index]),
+        ),
       ),
+    );
+  }
+
+  Widget _activityRow(CoordinatorActivityItem activity) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(color: activity.tint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+          child: Icon(activity.icon, size: 18, color: activity.tint),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                activity.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                activity.subtitle.isEmpty ? _dateLabel(activity.when) : '${activity.subtitle} - ${_dateLabel(activity.when)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -69,4 +76,3 @@ class CoordinatorActivityFeed extends StatelessWidget {
     return 'Just now';
   }
 }
-

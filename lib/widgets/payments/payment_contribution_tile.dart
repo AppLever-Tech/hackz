@@ -51,13 +51,11 @@ class PaymentContributionTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         if (onOpenWorkspace != null)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: ContextPill(
-                              label: item.ideaTitle,
-                              semantic: ContextPillSemantic.payment,
-                              onTap: onOpenWorkspace!,
-                            ),
+                          ContextPill(
+                            label: item.ideaTitle,
+                            semantic: ContextPillSemantic.payment,
+                            onTap: onOpenWorkspace!,
+                            expandWidth: true,
                           )
                         else
                           Text(
@@ -68,14 +66,12 @@ class PaymentContributionTile extends StatelessWidget {
                           ),
                         const SizedBox(height: 6),
                         if (onOpenProblem != null)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: ContextPill(
-                              label: item.problemTitle,
-                              semantic: ContextPillSemantic.problem,
-                              onTap: onOpenProblem!,
-                              compact: true,
-                            ),
+                          ContextPill(
+                            label: item.problemTitle,
+                            semantic: ContextPillSemantic.problem,
+                            onTap: onOpenProblem!,
+                            compact: true,
+                            expandWidth: true,
                           )
                         else
                           Text(

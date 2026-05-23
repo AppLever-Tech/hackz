@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
+import '../common/dashboard_panel_column.dart';
+import '../common/dashboard_scrollable_list_layout.dart';
 import '../common/time_frame_filter.dart';
 
 class RecentPlatformActivityCard extends StatelessWidget {
@@ -18,18 +19,14 @@ class RecentPlatformActivityCard extends StatelessWidget {
   final PlatformAnalyticsTimeframe selectedTimeframe;
   final ValueChanged<PlatformAnalyticsTimeframe> onTimeframeChanged;
 
-  static const int _kScrollAfterRows = 5;
-  static const double _kRowStride = 60;
-
   @override
   Widget build(BuildContext context) {
     final List<PlatformActivityEvent> filtered = events
         .where((PlatformActivityEvent event) => SysAdminDashboardService.isWithinTimeframe(event.when, selectedTimeframe))
         .take(8)
         .toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
+    return DashboardPanelColumn(
+      headers: <Widget>[
         DashboardCardHeaderRow(
           title: 'Recent Platform Activity',
           icon: AppIcons.clock,
@@ -46,43 +43,15 @@ class RecentPlatformActivityCard extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
-        _buildActivityList(context, filtered),
       ],
-    );
-  }
-
-  Widget _buildActivityList(BuildContext context, List<PlatformActivityEvent> filtered) {
-    final bool inFixedPanel = ResponsiveHelper.isDesktopOrWider(context);
-    if (filtered.isEmpty) {
-      const Widget empty = SizedBox(height: 130, child: Center(child: Text('No platform events for this timeframe')));
-      return inFixedPanel ? const Expanded(child: empty) : empty;
-    }
-
-    final int visibleRows = filtered.length > _kScrollAfterRows ? _kScrollAfterRows : filtered.length;
-    final double listHeight = visibleRows * _kRowStride;
-    final Widget list = ListView.separated(
-      padding: EdgeInsets.zero,
-      shrinkWrap: !inFixedPanel,
-      physics: filtered.length > _kScrollAfterRows || !inFixedPanel
-          ? const AlwaysScrollableScrollPhysics()
-          : const NeverScrollableScrollPhysics(),
-      itemCount: filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
-    );
-
-    if (!inFixedPanel) {
-      return list;
-    }
-
-    return Expanded(
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          height: listHeight,
-          width: double.infinity,
-          child: list,
-        ),
+      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+        expandVertically: expandVertically,
+        itemCount: filtered.length,
+        rowStride: DashboardScrollableListLayout.activityRowStride,
+        separatorHeight: DashboardScrollableListLayout.activitySeparatorHeight,
+        emptyHeight: 72,
+        empty: const Center(child: Text('No platform events for this timeframe')),
+        itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
       ),
     );
   }

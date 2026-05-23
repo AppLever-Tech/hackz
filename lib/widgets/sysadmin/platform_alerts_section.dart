@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/sysadmin_dashboard_service.dart';
+import '../common/dashboard_panel_column.dart';
+import '../common/dashboard_scrollable_list_layout.dart';
 
 class PlatformAlertsSection extends StatelessWidget {
   const PlatformAlertsSection({
@@ -12,9 +14,8 @@ class PlatformAlertsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
+    return DashboardPanelColumn(
+      headers: <Widget>[
         const Text(
           'Platform Alerts',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
@@ -25,42 +26,49 @@ class PlatformAlertsSection extends StatelessWidget {
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 14),
-        ...alerts.map((PlatformAlert alert) {
-          final _AlertStyle style = _style(alert.severity);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: style.background,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: style.border),
-            ),
-            child: Row(
+      ],
+      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
+        expandVertically: expandVertically,
+        itemCount: alerts.length,
+        rowStride: DashboardScrollableListLayout.alertRowStride,
+        separatorHeight: DashboardScrollableListLayout.alertSeparatorHeight,
+        itemBuilder: (BuildContext context, int index) => _alertCard(alerts[index]),
+      ),
+    );
+  }
+
+  Widget _alertCard(PlatformAlert alert) {
+    final _AlertStyle style = _style(alert.severity);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: style.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: style.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(style.icon, size: 20, color: style.foreground),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(style.icon, size: 20, color: style.foreground),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        alert.title,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: style.foreground),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        alert.message,
-                        style: const TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF475569)),
-                      ),
-                    ],
-                  ),
+                Text(
+                  alert.title,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: style.foreground),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  alert.message,
+                  style: const TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF475569)),
                 ),
               ],
             ),
-          );
-        }),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
