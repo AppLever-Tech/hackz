@@ -20,8 +20,8 @@ import '../../widgets/sysadmin/participation_trend_chart.dart';
 import '../../widgets/sysadmin/platform_alerts_section.dart';
 import '../../widgets/sysadmin/platform_distribution_chart.dart';
 import '../../widgets/sysadmin/platform_metric_card.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -134,9 +134,6 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
   PlatformAnalyticsTimeframe _trendTimeframe = PlatformAnalyticsTimeframe.currentWeek;
   PlatformAnalyticsTimeframe _activityTimeframe = PlatformAnalyticsTimeframe.currentWeek;
 
-  static const double _kDistributionRowHeight = 236;
-  static const double _kAlertsActivityRowHeight = 380;
-
   @override
   Widget build(BuildContext context) {
     final SysAdminDashboardAnalytics data = widget.data;
@@ -194,12 +191,12 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
             second: SectionContainer(child: OrganizationAnalyticsChart(points: data.organizationActivity)),
           ),
           SizedBox(height: gap),
-          ResponsiveDashboardPairRow(
-            height: _kDistributionRowHeight,
+          DashboardPairRow(
+            height: DashboardLayoutTokens.pairRowDistribution,
             pair: ResponsivePair(
               spacing: gap,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kDistributionRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowDistribution,
                 child: PlatformDistributionChart(
                   title: 'Users by Role',
                   subtitle: 'Operational identity mix across the platform',
@@ -207,7 +204,7 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
                 ),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kDistributionRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowDistribution,
                 child: PlatformDistributionChart(
                   title: 'Idea Status Mix',
                   subtitle: 'Submission lifecycle distribution',
@@ -217,16 +214,16 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
             ),
           ),
           SizedBox(height: gap),
-          ResponsiveDashboardPairRow(
-            height: _kAlertsActivityRowHeight,
+          DashboardPairRow(
+            height: DashboardLayoutTokens.pairRowAlertsActivity,
             pair: ResponsivePair(
               spacing: gap,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kAlertsActivityRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowAlertsActivity,
                 child: PlatformAlertsSection(alerts: data.alerts),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kAlertsActivityRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowAlertsActivity,
                 child: RecentPlatformActivityCard(
                   events: data.recentActivity,
                   selectedTimeframe: _activityTimeframe,

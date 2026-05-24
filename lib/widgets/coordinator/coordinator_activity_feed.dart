@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/coordinator_dashboard_service.dart';
-import '../common/dashboard_panel_column.dart';
-import '../common/dashboard_scrollable_list_layout.dart';
+import '../common/dashboard_card/dashboard_card_layout.dart';
 import 'coordinator_panel_card.dart';
 
 class CoordinatorActivityFeed extends StatelessWidget {
@@ -14,21 +13,18 @@ class CoordinatorActivityFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     final int itemCount = activities.length.clamp(0, 8).toInt();
     return CoordinatorPanelCard(
-      child: DashboardPanelColumn(
-        headers: <Widget>[
-          const Text('Recent Coordinator Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          const SizedBox(height: 4),
-          const Text('Recent verification and validation operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+      child: DashboardListCard(
+        preset: DashboardListPreset.activity,
+        separatorHeight: 10,
+        headers: const <Widget>[
+          Text('Recent Coordinator Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          SizedBox(height: DashboardLayoutTokens.titleSubtitleGap),
+          Text('Recent verification and validation operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: itemCount,
-          rowStride: DashboardScrollableListLayout.activityRowStride,
-          separatorHeight: 10,
-          empty: const Center(child: Text('No coordinator activity yet.')),
-          itemBuilder: (BuildContext context, int index) => _activityRow(activities[index]),
-        ),
+        empty: const Center(child: Text('No coordinator activity yet.')),
+        itemCount: itemCount,
+        itemBuilder: (BuildContext context, int index) => _activityRow(activities[index]),
       ),
     );
   }

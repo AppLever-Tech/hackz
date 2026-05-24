@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/department_dashboard_service.dart';
-import '../common/dashboard_panel_column.dart';
-import '../common/dashboard_scrollable_list_layout.dart';
+import '../common/dashboard_card/dashboard_card_layout.dart';
 import '../common/time_frame_filter.dart';
 
 class RecentDepartmentActivityCard extends StatelessWidget {
@@ -25,9 +24,11 @@ class RecentDepartmentActivityCard extends StatelessWidget {
         .where((event) => DepartmentDashboardService.isWithinTimeframe(event.when, selectedTimeframe))
         .take(12)
         .toList(growable: false);
-    return DashboardPanelColumn(
-      headers: <Widget>[
-        DashboardCardHeaderRow(
+    return DashboardListCard(
+      preset: DashboardListPreset.departmentActivity,
+      empty: const Center(child: Text('No activity in this period')),
+      headers: DashboardCardHeaders.timedList(
+        headerRow: DashboardCardHeaderRow(
           title: 'Recent Department Activity',
           icon: AppIcons.clock,
           trailing: TimeFrameFilter<DepartmentAnalyticsTimeframe>(
@@ -37,18 +38,10 @@ class RecentDepartmentActivityCard extends StatelessWidget {
             onChanged: onTimeframeChanged,
           ),
         ),
-        const SizedBox(height: 4),
-        Text('${selectedTimeframe.label} operational updates', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-        const SizedBox(height: 14),
-      ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: filtered.length,
-        rowStride: DashboardScrollableListLayout.departmentActivityRowStride,
-        separatorHeight: DashboardScrollableListLayout.departmentActivitySeparatorHeight,
-        empty: const Center(child: Text('No activity in this period')),
-        itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
+        subtitle: '${selectedTimeframe.label} operational updates',
       ),
+      itemCount: filtered.length,
+      itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
     );
   }
 

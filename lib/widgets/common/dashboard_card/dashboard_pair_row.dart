@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_breakpoints.dart';
-import 'responsive_columns.dart';
+import '../../../responsive/responsive_breakpoints.dart';
+import '../../responsive/responsive_columns.dart';
 
-/// Wraps a [ResponsivePair] with a fixed height only when the pair lays out
-/// side-by-side (available width at or above [breakpoint]).
-///
-/// Uses [LayoutBuilder] width — not [MediaQuery] — so sidebar layouts do not
-/// apply a fixed height while the pair is still stacking vertically.
-class ResponsiveDashboardPairRow extends StatelessWidget {
-  const ResponsiveDashboardPairRow({
+/// Wraps a [ResponsivePair] with a fixed height only when the pair lays out side-by-side.
+class DashboardPairRow extends StatelessWidget {
+  const DashboardPairRow({
     super.key,
     required this.height,
     required this.pair,

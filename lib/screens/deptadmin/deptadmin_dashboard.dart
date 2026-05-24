@@ -11,7 +11,6 @@ import '../../widgets/deptadmin/department_alerts_section.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/deptadmin/department_trend_chart.dart';
 import '../../widgets/deptadmin/recent_department_activity_card.dart';
-import '../../widgets/common/dashboard_trend_chart_layout.dart';
 import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -20,10 +19,8 @@ import '../common/problems_list_screen.dart';
 import 'judges_panel.dart';
 import 'manage_users_screen.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/common/dashboard_panel_column.dart';
-import '../../widgets/common/dashboard_scrollable_list_layout.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -176,18 +173,6 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   final ValueChanged<DepartmentAnalyticsTimeframe> onTrendChanged;
   final ValueChanged<DepartmentAnalyticsTimeframe> onActivityChanged;
 
-  static const int _kNarrowPanelFlex = 35;
-  static const int _kWidePanelFlex = 65;
-  /// Title block (≈50) + donut row (132); trend card uses [DashboardTrendChartLayout.trendCardContentHeight].
-  static const double _kUsersByRoleContentHeight = 50 + 132;
-
-  static double get _kUsersTrendRowHeight {
-    final double trendHeight = DashboardTrendChartLayout.trendCardContentHeight;
-    return trendHeight > _kUsersByRoleContentHeight ? trendHeight : _kUsersByRoleContentHeight;
-  }
-
-  static const double _kProblemsIdeasRowHeight = 252;
-  static const double _kAlertsActivityRowHeight = 390;
   static const double _kListIconSize = 18;
 
   @override
@@ -236,31 +221,31 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ],
           ),
           SizedBox(height: gap),
-          ResponsiveDashboardPairRow(
-            height: _kProblemsIdeasRowHeight,
+          DashboardPairRow(
+            height: DashboardLayoutTokens.pairRowList,
             pair: ResponsivePair(
               spacing: gap,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kProblemsIdeasRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowList,
                 child: _DepartmentProblemsCard(problems: analytics.departmentProblems),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kProblemsIdeasRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowList,
                 child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas),
               ),
             ),
           ),
           SizedBox(height: gap),
-          ResponsiveDashboardPairRow(
-            height: _kUsersTrendRowHeight,
+          DashboardPairRow(
+            height: DashboardLayoutTokens.usersTrendRowHeight(),
             pair: ResponsivePair(
               spacing: gap,
-              firstFlex: _kNarrowPanelFlex,
-              secondFlex: _kWidePanelFlex,
+              firstFlex: DashboardLayoutTokens.narrowPanelFlex,
+              secondFlex: DashboardLayoutTokens.widePanelFlex,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kUsersTrendRowHeight,
+                desktopHeight: DashboardLayoutTokens.usersTrendRowHeight(),
                 child: UserDistributionWidget(
                   title: 'Users by Role',
                   subtitle: 'Active role mix plus pending onboarding queue',
@@ -268,7 +253,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 ),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kUsersTrendRowHeight,
+                desktopHeight: DashboardLayoutTokens.usersTrendRowHeight(),
                 child: DepartmentTrendChart(
                   points: analytics.trendFor(trendTimeframe),
                   selectedTimeframe: trendTimeframe,
@@ -278,19 +263,19 @@ class _DepartmentAnalyticsView extends StatelessWidget {
             ),
           ),
           SizedBox(height: gap),
-          ResponsiveDashboardPairRow(
-            height: _kAlertsActivityRowHeight,
+          DashboardPairRow(
+            height: DashboardLayoutTokens.pairRowAlertsActivityDept,
             pair: ResponsivePair(
               spacing: gap,
-              firstFlex: _kNarrowPanelFlex,
-              secondFlex: _kWidePanelFlex,
+              firstFlex: DashboardLayoutTokens.narrowPanelFlex,
+              secondFlex: DashboardLayoutTokens.widePanelFlex,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
-                desktopHeight: _kAlertsActivityRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowAlertsActivityDept,
                 child: DepartmentAlertsSection(alerts: analytics.alerts),
               ),
               second: AdaptiveDashboardPanel(
-                desktopHeight: _kAlertsActivityRowHeight,
+                desktopHeight: DashboardLayoutTokens.pairRowAlertsActivityDept,
                 child: RecentDepartmentActivityCard(
                   events: analytics.recentActivity,
                   selectedTimeframe: activityTimeframe,
@@ -305,48 +290,6 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   }
 }
 
-class _DepartmentListCardHeader extends StatelessWidget {
-  const _DepartmentListCardHeader({
-    required this.title,
-    required this.icon,
-    required this.iconBgColor,
-    required this.count,
-  });
-
-  final String title;
-  final IconData icon;
-  final Color iconBgColor;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-          child: Icon(icon, size: 17, color: icon == AppIcons.problems ? const Color(0xFFEA580C) : const Color(0xFF6A38FF)),
-        ),
-        const SizedBox(width: 10),
-        Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF2FF),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            '$count',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _DepartmentProblemsCard extends StatelessWidget {
   const _DepartmentProblemsCard({required this.problems});
 
@@ -355,27 +298,23 @@ class _DepartmentProblemsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int count = problems.length;
-    return DashboardPanelColumn(
+    return DashboardListCard(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      preset: DashboardListPreset.compact,
+      padding: ContextPillMetrics.clippedListPadding,
       headers: <Widget>[
-        _DepartmentListCardHeader(
+        DashboardIconCountHeader(
           title: 'My Department Problems',
           icon: AppIcons.problems,
           iconBgColor: const Color(0xFFFFF4ED),
+          iconColor: const Color(0xFFEA580C),
           count: count,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
       ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: count,
-        rowStride: DashboardScrollableListLayout.compactRowStride,
-        separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-        padding: ContextPillMetrics.clippedListPadding,
-        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
-        itemBuilder: (BuildContext context, int index) =>
-            _problemPreviewRow(context, problems[index]),
-      ),
+      itemCount: count,
+      empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+      itemBuilder: (BuildContext context, int index) => _problemPreviewRow(context, problems[index]),
     );
   }
 
@@ -423,26 +362,21 @@ class _DepartmentIdeasCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int count = ideas.length;
-    return DashboardPanelColumn(
+    return DashboardListCard(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      preset: DashboardListPreset.compact,
+      padding: ContextPillMetrics.clippedListPadding,
       headers: <Widget>[
-        _DepartmentListCardHeader(
+        DashboardIconCountHeader(
           title: 'My Department Ideas',
           icon: AppIcons.ideas,
-          iconBgColor: const Color(0xFFF2EDFF),
           count: count,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
       ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: count,
-        rowStride: DashboardScrollableListLayout.compactRowStride,
-        separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-        padding: ContextPillMetrics.clippedListPadding,
-        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
-        itemBuilder: (BuildContext context, int index) => _ideaPreviewRow(context, ideas[index]),
-      ),
+      itemCount: count,
+      empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+      itemBuilder: (BuildContext context, int index) => _ideaPreviewRow(context, ideas[index]),
     );
   }
 

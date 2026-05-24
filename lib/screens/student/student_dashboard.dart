@@ -18,10 +18,8 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
 import '../common/problems_list_screen.dart';
-import '../../widgets/common/dashboard_panel_column.dart';
-import '../../widgets/common/dashboard_scrollable_list_layout.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/entity_card_pills.dart';
-import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../../widgets/common/form_value_row.dart';
 import '../../workspace/workspace.dart';
 
@@ -74,9 +72,6 @@ class _StudentDashboardHome extends StatefulWidget {
 }
 
 class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
-  static const double _kDashboardPanelHeight = 252;
-  /// Compact row for My Details + My Team on wide layouts (equal card heights).
-  static const double _kStudentDetailsRowHeight = 200;
   static const double _kDashboardIconSize = 18;
 
   late Future<StudentDashboardVm> _future;
@@ -189,8 +184,8 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildDetailsAndTeamRow(StudentDashboardVm vm) {
-    return ResponsiveDashboardPairRow(
-      height: _kStudentDetailsRowHeight,
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.studentDetailsRowHeight,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -203,33 +198,27 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   Widget _buildMyDetailsCard(StudentDashboardVm vm) {
     final Widget details = _buildStudentDetailsContent(vm);
     return SectionContainer(
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          final bool boundedHeight = constraints.maxHeight.isFinite;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const DashboardCardTitle(title: 'My Details', icon: AppIcons.student),
-              const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-              if (boundedHeight)
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: details,
-                  ),
-                )
-              else
-                details,
-            ],
-          );
+      child: DashboardBoundedBody(
+        headers: const <Widget>[
+          DashboardCardTitle(title: 'My Details', icon: AppIcons.student),
+          SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+        ],
+        bodyBuilder: ({required bool expandVertically}) {
+          if (expandVertically) {
+            return SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: details,
+            );
+          }
+          return details;
         },
       ),
     );
   }
 
   Widget _buildIdeasAndActivityRow(StudentDashboardVm vm) {
-    return ResponsiveDashboardPairRow(
-      height: _kDashboardPanelHeight,
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.pairRowList,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -307,23 +296,19 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   Widget _buildRecentActivity(StudentDashboardVm vm) {
     return SectionContainer(
-      child: DashboardPanelColumn(
+      child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        headers: <Widget>[
-          const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
-          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+        preset: DashboardListPreset.compact,
+        headers: const <Widget>[
+          DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
+          SizedBox(height: DashboardCardTitleStyle.headerSpacing),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: vm.activities.length,
-          rowStride: DashboardScrollableListLayout.compactRowStride,
-          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-          empty: const Align(
-            alignment: Alignment.topLeft,
-            child: Text('No recent activity.'),
-          ),
-          itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
+        itemCount: vm.activities.length,
+        empty: const Align(
+          alignment: Alignment.topLeft,
+          child: Text('No recent activity.'),
         ),
+        itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
       ),
     );
   }
@@ -357,45 +342,16 @@ class _StudentMyIdeasCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final int count = vm.ideaCards.length;
     return SectionContainer(
-      child: DashboardPanelColumn(
+      child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        preset: DashboardListPreset.compact,
         headers: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(color: Color(0xFFF2EDFF), shape: BoxShape.circle),
-                child: const Icon(AppIcons.ideas, size: 17, color: Color(0xFF6A38FF)),
-              ),
-              const SizedBox(width: 10),
-              const Flexible(child: Text('My Ideas', style: TextStyle(fontWeight: FontWeight.w800))),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF2FF),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$count',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC)),
-                ),
-              ),
-              const Spacer(),
-            ],
-          ),
-          const SizedBox(height: 12),
+          DashboardIconCountHeader(title: 'My Ideas', icon: AppIcons.ideas, count: count),
+          const SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: count,
-          rowStride: DashboardScrollableListLayout.compactRowStride,
-          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-          empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
-          itemBuilder: (BuildContext context, int index) =>
-              _ideaPreviewRow(context, vm.ideaCards[index]),
-        ),
+        itemCount: count,
+        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+        itemBuilder: (BuildContext context, int index) => _ideaPreviewRow(context, vm.ideaCards[index]),
       ),
     );
   }

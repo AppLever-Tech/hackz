@@ -12,8 +12,7 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
-import '../../widgets/common/dashboard_panel_column.dart';
-import '../../widgets/common/dashboard_scrollable_list_layout.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../widgets/responsive/responsive_multi_column.dart';
@@ -283,23 +282,19 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
 
   Widget _buildRecentActivity(JudgeDashboardVm vm) {
     return SectionContainer(
-      child: DashboardPanelColumn(
+      child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        headers: <Widget>[
-          const DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
-          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+        preset: DashboardListPreset.compact,
+        headers: const <Widget>[
+          DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
+          SizedBox(height: DashboardCardTitleStyle.headerSpacing),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: vm.activities.length,
-          rowStride: DashboardScrollableListLayout.compactRowStride,
-          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-          empty: const Align(
-            alignment: Alignment.topLeft,
-            child: Text('No recent activity.'),
-          ),
-          itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
+        itemCount: vm.activities.length,
+        empty: const Align(
+          alignment: Alignment.topLeft,
+          child: Text('No recent activity.'),
         ),
+        itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
       ),
     );
   }

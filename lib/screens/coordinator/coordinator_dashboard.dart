@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/coordinator/coordinator_activity_feed.dart';
 import '../../widgets/coordinator/coordinator_panel_card.dart';
 import '../../widgets/coordinator/department_operational_snapshot.dart';
@@ -193,7 +194,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
               ResponsivePair(
                 spacing: gap,
                 first: AdaptiveDashboardPanel(
-                  desktopHeight: 380,
+                  desktopHeight: DashboardLayoutTokens.coordinatorTrendRow,
                   child: VerificationTrendChart(
                     points: analytics.trendFor(_timeframe),
                     selectedTimeframe: _timeframe,
@@ -201,7 +202,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                   ),
                 ),
                 second: AdaptiveDashboardPanel(
-                  desktopHeight: 380,
+                  desktopHeight: DashboardLayoutTokens.coordinatorTrendRow,
                   child: SubmissionWorkflowFunnel(steps: analytics.workflow),
                 ),
               ),
@@ -222,7 +223,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                     _EscalationsPanel(alerts: analytics.escalations),
                     SizedBox(height: gap),
                     AdaptiveDashboardPanel(
-                      desktopHeight: 245,
+                      desktopHeight: DashboardLayoutTokens.coordinatorSnapshotPanel,
                       child: DepartmentOperationalSnapshot(snapshot: analytics.snapshot),
                     ),
                   ],
@@ -230,7 +231,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
               ),
               SizedBox(height: gap),
               AdaptiveDashboardPanel(
-                desktopHeight: 360,
+                desktopHeight: DashboardLayoutTokens.coordinatorActivityPanel,
                 child: CoordinatorActivityFeed(activities: analytics.recentActivity),
               ),
             ],
