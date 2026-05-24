@@ -20,6 +20,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
+import '../common/problem_statements_table_screen.dart';
 import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
@@ -51,13 +52,20 @@ class FacultyDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 3) {
+          return ProblemStatementsTableScreen(
+            key: ValueKey<int>(refreshToken),
+            currentUser: user,
+            config: ProblemRoleConfig.configFor(UserRole.faculty, user),
+          );
+        }
+        if (selectedMenuIndex == 4) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.faculty, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 5) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
