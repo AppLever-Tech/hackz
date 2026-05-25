@@ -18,7 +18,7 @@ import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
-import '../collegeadmin/problem_create_screen.dart';
+import '../problems/authoring/problem_authoring_workspace.dart';
 import 'app_dialog_template.dart';
 import 'dashboard_components.dart';
 
@@ -171,7 +171,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   @override
   Widget build(BuildContext context) {
     if (_showCreateProblem || _editingProblem != null) {
-      return ProblemCreateScreen(
+      return ProblemAuthoringWorkspace(
         currentUser: widget.currentUser,
         initialProblem: _editingProblem,
         embedded: true,
