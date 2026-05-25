@@ -66,7 +66,7 @@ class EvaluationJudgeSection extends StatelessWidget {
                       ),
               ),
               Text(
-                '${judge.overallScore.toStringAsFixed(1)} / 10',
+                '${judge.overallScore.toStringAsFixed(1)} / ${vm.scoringScale}',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4338CA)),
               ),
             ],
@@ -76,16 +76,22 @@ class EvaluationJudgeSection extends StatelessWidget {
             'Evaluated ${formatDateTime(judge.evaluatedAt)}',
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: <Widget>[
-              _miniChip('Innovation', judge.innovation),
-              _miniChip('Feasibility', judge.feasibility),
-              _miniChip('Impact', judge.impact),
-            ],
-          ),
+          if (judge.criteria.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: <Widget>[
+                for (final EvaluationCriterionScore c in judge.criteria)
+                  _miniChip(c.label, c.value, c.maxValue),
+              ],
+            ),
+          ],
+          if (judge.criterionComments.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            for (final MapEntry<String, String> e in judge.criterionComments.entries)
+              _commentLine(judge, e.key, e.value),
+          ],
           if (judge.remarks.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
             Text(
@@ -100,7 +106,7 @@ class EvaluationJudgeSection extends StatelessWidget {
     );
   }
 
-  static Widget _miniChip(String label, int value) {
+  static Widget _miniChip(String label, double value, int max) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -108,8 +114,30 @@ class EvaluationJudgeSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        '$label $value/10',
+        '$label ${value.toStringAsFixed(value == value.roundToDouble() ? 0 : 1)}/$max',
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4338CA)),
+      ),
+    );
+  }
+
+  static Widget _commentLine(EvaluationJudgeEntry judge, String criterionId, String comment) {
+    String label = criterionId;
+    for (final EvaluationCriterionScore c in judge.criteria) {
+      if (c.criterionId == criterionId) {
+        label = c.label;
+        break;
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 11.5, height: 1.35, color: Color(0xFF475569)),
+          children: <InlineSpan>[
+            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+            TextSpan(text: comment.trim()),
+          ],
+        ),
       ),
     );
   }

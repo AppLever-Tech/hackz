@@ -2,23 +2,33 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../features/evaluations/models/evaluation_criterion.dart';
+import '../../features/evaluations/models/evaluation_template.dart';
+import '../../features/evaluations/services/evaluation_templates_service.dart';
+import '../../features/evaluations/widgets/criterion_score_card.dart';
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../models/attachment_model.dart';
 import '../../models/idea_model.dart';
 import '../../models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../models/team_model.dart';
 import '../../models/user_model.dart';
+import '../../screens/common/app_dialog_template.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_query_service.dart';
 import '../../utils/judge_evaluation_feedback_codec.dart';
 import '../../utils/judge_evaluation_service.dart';
-import '../../screens/common/app_dialog_template.dart';
 import '../attachment_viewer.dart';
 import '../responsive/responsive_dialog_actions.dart';
-import 'judge_score_grid.dart';
 
-/// Premium evaluation dialog — shared by judge workspace and ideas list (judge path).
+/// Template-driven evaluation dialog — shared by judge workspace and ideas
+/// list (judge path).
+///
+/// Renders the org's default [EvaluationTemplate] dynamically. The judge
+/// scores each criterion; the **overall** is the auto-computed weighted
+/// average displayed live. Per-criterion comments are shown only for
+/// criteria with `commentsEnabled: true`. Overall feedback is optional.
 class EvaluateIdeaDialog extends StatefulWidget {
   const EvaluateIdeaDialog({
     super.key,
@@ -61,41 +71,94 @@ class EvaluateIdeaDialog extends StatefulWidget {
 }
 
 class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
-  late int _overall;
-  late int _innovation;
-  late int _feasibility;
-  late int _impact;
-  late String _recommendation;
-  late TextEditingController _remarks;
+  late Future<void> _settingsFuture;
+  EvaluationTemplate? _template;
+  final Map<String, int> _scores = <String, int>{};
+  final Map<String, String> _comments = <String, String>{};
+  late TextEditingController _overallRemarks;
   bool _saving = false;
   ProblemModel? _problem;
   bool _loadingProblem = false;
 
-  static const List<String> _recValues = <String>['none', 'advance', 'revise', 'reject'];
-
   @override
   void initState() {
     super.initState();
-    final existing = widget.latestJudgeScore;
-    final raw = existing?.score ?? 5;
-    _overall = raw.round().clamp(1, 10);
-    final decoded = existing != null ? JudgeEvaluationFeedbackCodec.tryDecode(existing.feedback) : null;
-    _innovation = decoded?.innovation ?? 5;
-    _feasibility = decoded?.feasibility ?? 5;
-    _impact = decoded?.impact ?? 5;
-    _recommendation = decoded?.recommendation ?? 'none';
-    if (!_recValues.contains(_recommendation)) _recommendation = 'none';
-    _remarks = TextEditingController(text: JudgeEvaluationFeedbackCodec.displayRemarks(existing?.feedback ?? ''));
+    _overallRemarks = TextEditingController();
     _problem = widget.problem;
+    _settingsFuture = _initialize();
     if (_problem == null && widget.idea.problemId.trim().isNotEmpty) {
       _loadProblem();
     }
   }
 
+  Future<void> _initialize() async {
+    await OrgSettingsService.instance.ensureLoaded(orgId: widget.judge.orgId);
+    final EvaluationTemplate template = _resolveTemplateForExistingScore();
+    _hydrateForTemplate(template);
+  }
+
+  EvaluationTemplate _resolveTemplateForExistingScore() {
+    final ScoreModel? existing = widget.latestJudgeScore;
+    if (existing != null && existing.templateId.trim().isNotEmpty) {
+      return EvaluationTemplatesService.resolveTemplate(existing.templateId);
+    }
+    return EvaluationTemplatesService.defaultTemplate;
+  }
+
+  void _hydrateForTemplate(EvaluationTemplate template) {
+    final ScoreModel? existing = widget.latestJudgeScore;
+    final JudgeEvaluationDecodedFeedback? legacy = existing == null
+        ? null
+        : JudgeEvaluationFeedbackCodec.tryDecode(existing.feedback);
+
+    _scores.clear();
+    _comments.clear();
+
+    for (final EvaluationCriterion c in template.orderedCriteria) {
+      int? seed;
+      if (existing != null) {
+        final double? saved = existing.criteriaScores[c.criterionId];
+        if (saved != null) {
+          seed = saved.round().clamp(c.minScore, c.maxScore);
+        } else if (legacy != null) {
+          // Legacy v1 records used three fixed dimensions; reuse them when the
+          // template happens to share the same criterion ids.
+          switch (c.criterionId) {
+            case 'innovation':
+              seed = legacy.innovation.clamp(c.minScore, c.maxScore);
+              break;
+            case 'feasibility':
+              seed = legacy.feasibility.clamp(c.minScore, c.maxScore);
+              break;
+            case 'impact':
+              seed = legacy.impact.clamp(c.minScore, c.maxScore);
+              break;
+          }
+        }
+      }
+      _scores[c.criterionId] = seed ?? ((c.minScore + c.maxScore) ~/ 2);
+      if (c.commentsEnabled) {
+        final String existingComment = existing?.criteriaComments[c.criterionId] ?? '';
+        if (existingComment.isNotEmpty) {
+          _comments[c.criterionId] = existingComment;
+        }
+      }
+    }
+
+    final String existingRemarks = existing == null
+        ? ''
+        : JudgeEvaluationFeedbackCodec.displayRemarks(existing.feedback);
+    _overallRemarks.text = existingRemarks;
+    if (mounted) setState(() => _template = template);
+  }
+
   Future<void> _loadProblem() async {
     setState(() => _loadingProblem = true);
     try {
-      final doc = await FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc(widget.idea.problemId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzProblems)
+          .doc(widget.idea.problemId)
+          .get();
       if (doc.exists && doc.data() != null && mounted) {
         setState(() => _problem = ProblemModel.fromMap(doc.id, doc.data()!));
       }
@@ -106,7 +169,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
 
   @override
   void dispose() {
-    _remarks.dispose();
+    _overallRemarks.dispose();
     super.dispose();
   }
 
@@ -117,7 +180,9 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     );
     if (!mounted) return;
     if (list.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No attachments for this idea.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No attachments for this idea.')),
+      );
       return;
     }
     await showAppDialog<void>(
@@ -127,7 +192,18 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     );
   }
 
+  double _liveOverall() {
+    final EvaluationTemplate? t = _template;
+    if (t == null) return 0;
+    final Map<String, double> doubles = <String, double>{
+      for (final MapEntry<String, int> e in _scores.entries) e.key: e.value.toDouble(),
+    };
+    return t.computeOverall(doubles);
+  }
+
   Future<void> _save() async {
+    final EvaluationTemplate? template = _template;
+    if (template == null) return;
     if (widget.idea.status == IdeaStatus.pendingSubmission) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This idea is pending payment verification before it can be evaluated.')),
@@ -136,15 +212,20 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     }
     setState(() => _saving = true);
     try {
+      final Map<String, double> scores = <String, double>{
+        for (final MapEntry<String, int> e in _scores.entries) e.key: e.value.toDouble(),
+      };
+      final Map<String, String> comments = <String, String>{
+        for (final MapEntry<String, String> e in _comments.entries)
+          if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+      };
       await JudgeEvaluationService.saveEvaluation(
         judge: widget.judge,
         idea: widget.idea,
-        overallScore: _overall,
-        innovation: _innovation,
-        feasibility: _feasibility,
-        impact: _impact,
-        recommendation: _recommendation,
-        remarks: _remarks.text,
+        template: template,
+        criteriaScores: scores,
+        criteriaComments: comments,
+        overallFeedback: _overallRemarks.text,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -156,101 +237,257 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     }
   }
 
+  String _weightLabel(EvaluationCriterion criterion, EvaluationTemplate template) {
+    double total = 0;
+    for (final EvaluationCriterion c in template.criteria) {
+      if (c.weight > 0) total += c.weight;
+    }
+    if (total <= 0) return '—';
+    final double pct = (criterion.weight / total) * 100;
+    if (pct >= 10) return '${pct.toStringAsFixed(0)}%';
+    return '${pct.toStringAsFixed(1)}%';
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final teamName = (widget.team?.teamName ?? '').trim().isNotEmpty
+        ? widget.team!.teamName.trim()
+        : widget.idea.teamId;
+    final problemLine = (_problem?.title ?? widget.idea.problemTitle).trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          widget.idea.ideaTitle.trim().isNotEmpty
+              ? widget.idea.ideaTitle.trim()
+              : widget.idea.problemNumber,
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          problemLine.isEmpty ? 'Problem' : problemLine,
+          style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+        ),
+        Row(
+          children: <Widget>[
+            const Icon(AppIcons.teams, size: 14, color: Color(0xFF94A3B8)),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(teamName, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
+            ),
+          ],
+        ),
+        if (_loadingProblem) const LinearProgressIndicator(minHeight: 2),
+      ],
+    );
+  }
+
+  Widget _buildOverallStrip(BuildContext context, EvaluationTemplate template) {
+    final ThemeData theme = Theme.of(context);
+    final double overall = _liveOverall();
+    final int scale = template.scoringScale;
+    final Color accent = JudgeScoreGridHueLookup.forOverall(overall, scale);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: <Color>[
+            accent.withValues(alpha: 0.14),
+            accent.withValues(alpha: 0.06),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(AppIcons.insights, color: accent, size: 22),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  template.templateName,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF334155),
+                    letterSpacing: 0.4,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  'Weighted overall (auto-computed)',
+                  style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            overall.toStringAsFixed(1),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: accent,
+              height: 1,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 2),
+            child: Text(
+              '/ $scale',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 40),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, EvaluationTemplate template) {
+    final ThemeData theme = Theme.of(context);
+    final List<EvaluationCriterion> ordered = template.orderedCriteria;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _buildHeader(context),
+        const SizedBox(height: 12),
+        _buildOverallStrip(context, template),
+        const SizedBox(height: 12),
+        if ((template.description ?? '').trim().isNotEmpty) ...<Widget>[
+          Text(
+            template.description!.trim(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Text(
+          'Criteria',
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF475569),
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 6),
+        for (final EvaluationCriterion c in ordered)
+          CriterionScoreCard(
+            criterion: c,
+            value: _scores[c.criterionId],
+            readOnly: widget.readOnly,
+            onChanged: (int v) => setState(() => _scores[c.criterionId] = v),
+            weightLabel: _weightLabel(c, template),
+            comment: _comments[c.criterionId],
+            onCommentChanged: c.commentsEnabled
+                ? (String s) => _comments[c.criterionId] = s
+                : null,
+          ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _overallRemarks,
+          enabled: !widget.readOnly,
+          maxLines: 3,
+          minLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Overall feedback (optional)',
+            alignLabelWithHint: true,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: _previewAttachments,
+          icon: const Icon(AppIcons.attachments, size: 18),
+          label: const Text('Preview attachments'),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final teamName = (widget.team?.teamName ?? '').trim().isNotEmpty ? widget.team!.teamName.trim() : widget.idea.teamId;
-    final problemLine = (_problem?.title ?? widget.idea.problemTitle).trim();
-    final formBody = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                widget.idea.ideaTitle.trim().isNotEmpty ? widget.idea.ideaTitle.trim() : widget.idea.problemNumber,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                problemLine.isEmpty ? 'Problem' : problemLine,
-                style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
-              ),
-              Row(
-                children: <Widget>[
-                  const Icon(AppIcons.teams, size: 14, color: Color(0xFF94A3B8)),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(teamName, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
-                  ),
-                ],
-              ),
-              if (_loadingProblem) const LinearProgressIndicator(minHeight: 2),
-              const SizedBox(height: 16),
-              JudgeScoreGrid(
-                label: 'Overall',
-                selectedValue: _overall,
-                onChanged: (v) => setState(() => _overall = v),
-                hint: 'Tap 1–10 for holistic score',
-              ),
-              const SizedBox(height: 18),
-              Text('Criteria', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF475569))),
-              const SizedBox(height: 8),
-              JudgeScoreGrid(label: 'Innovation', compact: true, selectedValue: _innovation, onChanged: (v) => setState(() => _innovation = v)),
-              const SizedBox(height: 8),
-              JudgeScoreGrid(label: 'Feasibility', compact: true, selectedValue: _feasibility, onChanged: (v) => setState(() => _feasibility = v)),
-              const SizedBox(height: 8),
-              JudgeScoreGrid(label: 'Impact', compact: true, selectedValue: _impact, onChanged: (v) => setState(() => _impact = v)),
-              const SizedBox(height: 16),
-              Text('Recommendation', style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: _recommendation,
-                decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
-                items: const <DropdownMenuItem<String>>[
-                  DropdownMenuItem(value: 'none', child: Text('No recommendation')),
-                  DropdownMenuItem(value: 'advance', child: Text('Advance / strong merit')),
-                  DropdownMenuItem(value: 'revise', child: Text('Request revisions')),
-                  DropdownMenuItem(value: 'reject', child: Text('Not recommended')),
-                ],
-                onChanged: (v) => setState(() => _recommendation = v ?? 'none'),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: _remarks,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Remarks & feedback',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _previewAttachments,
-                icon: const Icon(AppIcons.attachments, size: 18),
-                label: const Text('Preview attachments'),
-              ),
-            ],
-          );
-
+    final ThemeData theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text('Evaluate submission', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: 12),
-        formBody,
+        FutureBuilder<void>(
+          future: _settingsFuture,
+          builder: (BuildContext context, AsyncSnapshot<void> snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return _buildLoading();
+            }
+            final EvaluationTemplate? t = _template;
+            if (t == null) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'No evaluation template configured.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFF64748B)),
+                ),
+              );
+            }
+            return _buildBody(context, t);
+          },
+        ),
         const SizedBox(height: 16),
         ResponsiveDialogActions(
           children: <Widget>[
             if (widget.readOnly)
               TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
             else ...<Widget>[
-              TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-              FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? 'Saving…' : 'Submit evaluation')),
+              TextButton(
+                onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: (_saving || _template == null) ? null : _save,
+                child: Text(_saving ? 'Saving…' : 'Submit evaluation'),
+              ),
             ],
           ],
         ),
       ],
     );
+  }
+}
+
+/// Internal hue helper that mirrors [JudgeScoreGrid]'s color ramp at any scale.
+class JudgeScoreGridHueLookup {
+  JudgeScoreGridHueLookup._();
+
+  static Color forOverall(double value, int scale) {
+    if (scale <= 1) return const Color(0xFF6366F1);
+    final double t = (value / scale).clamp(0.0, 1.0);
+    return Color.lerp(const Color(0xFFDC2626), const Color(0xFF16A34A), t)!;
   }
 }

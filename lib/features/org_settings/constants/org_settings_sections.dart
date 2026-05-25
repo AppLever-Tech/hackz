@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 
+/// Section key for the evaluation templates editor. Unlike the others, this
+/// section is not backed by `OrgSettingDefinition` entries — the dashboard
+/// special-cases it to render the templates editor pane.
+const String kOrgSettingsEvaluationTemplatesSectionKey = 'evaluationTemplates';
+
+/// Display title for the evaluation templates pseudo-section.
+const String kOrgSettingsEvaluationTemplatesSectionTitle = 'Evaluation templates';
+
 /// Stable section ordering for the org settings dashboard.
 const List<String> kOrgSettingsSectionOrder = <String>[
   'team',
@@ -11,6 +19,7 @@ const List<String> kOrgSettingsSectionOrder = <String>[
   'userAuth',
   'leaderboard',
   'upload',
+  kOrgSettingsEvaluationTemplatesSectionKey,
 ];
 
 IconData orgSettingsSectionIcon(String sectionKey) {
@@ -29,6 +38,8 @@ IconData orgSettingsSectionIcon(String sectionKey) {
       return AppIcons.leaderboard;
     case 'upload':
       return AppIcons.attachments;
+    case kOrgSettingsEvaluationTemplatesSectionKey:
+      return AppIcons.scoring;
     default:
       return AppIcons.settings;
   }

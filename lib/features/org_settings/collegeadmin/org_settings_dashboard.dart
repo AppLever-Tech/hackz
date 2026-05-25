@@ -5,6 +5,7 @@ import '../../../constants/app_icons.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
 import '../constants/default_org_settings.dart';
 import '../constants/org_settings_sections.dart';
 import '../models/org_setting_definition.dart';
@@ -29,6 +30,7 @@ class _SectionVm {
     required this.icon,
     required this.groupOrder,
     required this.byGroup,
+    this.isEvaluationTemplates = false,
   });
 
   final String sectionKey;
@@ -36,6 +38,11 @@ class _SectionVm {
   final IconData icon;
   final List<String> groupOrder;
   final Map<String, List<OrgSettingDefinition>> byGroup;
+
+  /// True for the evaluation templates pseudo-section, which the right pane
+  /// renders with [EvaluationTemplatesEditorPane] instead of the standard
+  /// per-definition rows.
+  final bool isEvaluationTemplates;
 }
 
 List<_SectionVm> _computeSectionViewModels() {
@@ -45,6 +52,19 @@ List<_SectionVm> _computeSectionViewModels() {
   }
   final List<_SectionVm> out = <_SectionVm>[];
   for (final String sectionKey in kOrgSettingsSectionOrder) {
+    if (sectionKey == kOrgSettingsEvaluationTemplatesSectionKey) {
+      out.add(
+        _SectionVm(
+          sectionKey: sectionKey,
+          title: kOrgSettingsEvaluationTemplatesSectionTitle,
+          icon: orgSettingsSectionIcon(sectionKey),
+          groupOrder: const <String>[],
+          byGroup: const <String, List<OrgSettingDefinition>>{},
+          isEvaluationTemplates: true,
+        ),
+      );
+      continue;
+    }
     final List<OrgSettingDefinition>? defs = bySection[sectionKey];
     if (defs == null || defs.isEmpty) continue;
     final List<String> groupOrder = <String>[];
@@ -648,23 +668,31 @@ class _OrgSettingsRightPane extends StatelessWidget {
     }
 
     final bool globalSearch = searchQuery.isNotEmpty;
-    final List<Widget> bodyChildren =
-        globalSearch ? _buildGlobalSearchBody(settingsLeftIndent) : _buildSectionModeBody(s, settingsLeftIndent);
 
-    final Widget scrollContent = bodyChildren.isEmpty
-        ? Center(
-            child: Text(
-              globalSearch ? 'No settings match your search.' : 'No settings in this section.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          )
-        : ListView(
-            padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
-            children: bodyChildren,
-          );
+    final Widget contentArea;
+    if (!globalSearch && s.isEvaluationTemplates) {
+      contentArea = const Padding(
+        padding: EdgeInsets.fromLTRB(8, 6, 8, 8),
+        child: EvaluationTemplatesEditorPane(),
+      );
+    } else {
+      final List<Widget> bodyChildren =
+          globalSearch ? _buildGlobalSearchBody(settingsLeftIndent) : _buildSectionModeBody(s, settingsLeftIndent);
+      contentArea = bodyChildren.isEmpty
+          ? Center(
+              child: Text(
+                globalSearch ? 'No settings match your search.' : 'No settings in this section.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+              children: bodyChildren,
+            );
+    }
 
     return Container(
       decoration: cardDecoration,
@@ -703,7 +731,7 @@ class _OrgSettingsRightPane extends StatelessWidget {
             ),
           ),
           Divider(height: 1, thickness: 1, color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
-          Expanded(child: scrollContent),
+          Expanded(child: contentArea),
         ],
       ),
     );

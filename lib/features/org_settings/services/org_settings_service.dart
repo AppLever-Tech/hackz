@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../utils/firestore_utils.dart';
+import '../../evaluations/constants/default_evaluation_templates.dart';
 import '../constants/default_org_settings.dart';
 import '../constants/org_setting_keys.dart';
 import '../models/org_setting_definition.dart';
@@ -30,12 +31,21 @@ class OrgSettingsService extends ChangeNotifier {
   /// Doc id for the single per-org settings document.
   static const String orgSettingsDocId = 'org_settings';
 
+  /// Top-level field on the org_settings document that holds the list of
+  /// evaluation templates (`features/evaluations`). Stored as opaque maps —
+  /// the evaluations feature owns typed encoding/decoding.
+  static const String evaluationTemplatesField = 'evaluationTemplates';
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   final Map<String, dynamic> _valuesByKey = <String, dynamic>{};
   final Map<String, OrgSettingDefinition> _defByKey = <String, OrgSettingDefinition>{
     for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) d.key: d,
   };
+
+  /// Raw evaluation template maps, ordered as stored in Firestore. Consumers
+  /// (`features/evaluations`) decode these into typed templates.
+  final List<Map<String, dynamic>> _evaluationTemplatesRaw = <Map<String, dynamic>>[];
 
   String? _orgId;
   bool _loading = false;
@@ -49,11 +59,17 @@ class OrgSettingsService extends ChangeNotifier {
 
   Map<String, dynamic> get valuesSnapshot => Map<String, dynamic>.unmodifiable(_valuesByKey);
 
+  /// Read-only snapshot of evaluation template maps. Consumers should decode
+  /// via `EvaluationTemplate.fromMap` from `features/evaluations`.
+  List<Map<String, dynamic>> get evaluationTemplatesRaw =>
+      List<Map<String, dynamic>>.unmodifiable(_evaluationTemplatesRaw);
+
   OrgSettingDefinition? definitionFor(String key) => _defByKey[key];
 
   /// Clears in-memory cache (call on logout).
   void clearCache() {
     _valuesByKey.clear();
+    _evaluationTemplatesRaw.clear();
     _orgId = null;
     _error = null;
     _loading = false;
@@ -133,6 +149,7 @@ class OrgSettingsService extends ChangeNotifier {
         'schemaVersion': kOrgSettingsSchemaVersion,
         'updatedAt': FieldValue.serverTimestamp(),
         'settings': defaultOrgSettingsFirestoreEntries(),
+        evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
       });
     });
   }
@@ -144,6 +161,7 @@ class OrgSettingsService extends ChangeNotifier {
     }
     final data = snap.data()!;
     _applySettingsArray(data['settings']);
+    _applyEvaluationTemplatesArray(data[evaluationTemplatesField]);
 
     final List<Map<String, dynamic>> missing = <Map<String, dynamic>>[];
     for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) {
@@ -161,7 +179,27 @@ class OrgSettingsService extends ChangeNotifier {
       await _persistFullSettingsArray();
     }
 
+    // Lazy bootstrap of evaluation templates for orgs that pre-date the
+    // feature. We don't merge per-template (that's a destructive operation
+    // managed by College Admins) — we only ensure the array exists.
+    if (_evaluationTemplatesRaw.isEmpty) {
+      _evaluationTemplatesRaw
+        ..clear()
+        ..addAll(defaultEvaluationTemplatesFirestoreEntries());
+      await _persistEvaluationTemplatesArray();
+    }
+
     _normalizeDependentDefaults();
+  }
+
+  void _applyEvaluationTemplatesArray(Object? raw) {
+    _evaluationTemplatesRaw.clear();
+    if (raw is! List) return;
+    for (final Object? item in raw) {
+      if (item is Map) {
+        _evaluationTemplatesRaw.add(Map<String, dynamic>.from(item));
+      }
+    }
   }
 
   void _applySettingsArray(Object? raw) {
@@ -253,6 +291,47 @@ class OrgSettingsService extends ChangeNotifier {
 
   String? weightsHint() => OrgSettingsValidators.weightsBalanceHint(_valuesByKey);
 
+  /// Replaces the evaluation templates list, optimistically updates the
+  /// cache, persists to Firestore. Returns an error string on failure.
+  ///
+  /// Templates are passed as raw maps (Firestore shape) — the caller in
+  /// `features/evaluations` owns serialization from typed [EvaluationTemplate]s.
+  Future<String?> updateEvaluationTemplates(
+    List<Map<String, dynamic>> templates,
+  ) async {
+    if (_orgId == null || _orgId!.isEmpty) return 'Org settings not loaded.';
+
+    final List<Map<String, dynamic>> previous =
+        List<Map<String, dynamic>>.from(_evaluationTemplatesRaw);
+    _evaluationTemplatesRaw
+      ..clear()
+      ..addAll(templates.map((Map<String, dynamic> m) => Map<String, dynamic>.from(m)));
+    notifyListeners();
+
+    try {
+      await _persistEvaluationTemplatesArray();
+    } catch (e) {
+      _evaluationTemplatesRaw
+        ..clear()
+        ..addAll(previous);
+      notifyListeners();
+      return e.toString();
+    }
+    return null;
+  }
+
+  Future<void> _persistEvaluationTemplatesArray() async {
+    await _configRef.set(
+      <String, dynamic>{
+        'schemaVersion': kOrgSettingsSchemaVersion,
+        'updatedAt': FieldValue.serverTimestamp(),
+        evaluationTemplatesField:
+            _evaluationTemplatesRaw.map((Map<String, dynamic> m) => Map<String, dynamic>.from(m)).toList(growable: false),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
   /// One-shot seed for a freshly created organization. Writes the default
   /// settings document if it doesn't already exist. Best-effort: callers can
   /// also rely on lazy bootstrap inside [ensureLoaded].
@@ -276,6 +355,7 @@ class OrgSettingsService extends ChangeNotifier {
           'schemaVersion': kOrgSettingsSchemaVersion,
           'updatedAt': FieldValue.serverTimestamp(),
           'settings': defaultOrgSettingsFirestoreEntries(),
+          evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
         });
       });
     } catch (e) {

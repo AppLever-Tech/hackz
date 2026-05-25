@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../features/evaluations/models/evaluation_criterion.dart';
+import '../../features/evaluations/models/evaluation_template.dart';
+import '../../features/evaluations/services/evaluation_templates_service.dart';
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/problem_model.dart';
@@ -16,11 +20,15 @@ enum EvaluationWorkspaceScope { singleJudge, ideaAggregate }
 
 class EvaluationCriterionScore {
   const EvaluationCriterionScore({
+    required this.criterionId,
     required this.label,
     required this.value,
     required this.maxValue,
   });
 
+  /// Stable id of the source criterion. May be empty for legacy aggregate
+  /// rollups that only have label/value/max.
+  final String criterionId;
   final String label;
   final double value;
   final int maxValue;
@@ -33,11 +41,11 @@ class EvaluationJudgeEntry {
     required this.judgeName,
     required this.overallScore,
     required this.evaluatedAt,
-    required this.innovation,
-    required this.feasibility,
-    required this.impact,
+    required this.criteria,
+    required this.criterionComments,
     required this.recommendation,
     required this.remarks,
+    required this.templateName,
   });
 
   final String scoreId;
@@ -45,11 +53,18 @@ class EvaluationJudgeEntry {
   final String judgeName;
   final double overallScore;
   final DateTime evaluatedAt;
-  final int innovation;
-  final int feasibility;
-  final int impact;
+
+  /// Per-criterion mini scores authored by this judge.
+  final List<EvaluationCriterionScore> criteria;
+
+  /// Optional per-criterion comments (criterionId → comment).
+  final Map<String, String> criterionComments;
+
+  /// Recommendation pulled from legacy v1 codec; `'none'` for new records.
   final String recommendation;
+
   final String remarks;
+  final String templateName;
 }
 
 class EvaluationWorkspaceViewModel {
@@ -72,6 +87,8 @@ class EvaluationWorkspaceViewModel {
     required this.normalizedScore,
     required this.rankingContribution,
     required this.reviewCompletionLabel,
+    required this.scoringScale,
+    required this.templateName,
   });
 
   final String evaluationId;
@@ -92,6 +109,13 @@ class EvaluationWorkspaceViewModel {
   final double normalizedScore;
   final double rankingContribution;
   final String reviewCompletionLabel;
+
+  /// Overall scoring scale (e.g. 10). Used by UI to show `X / N`.
+  final int scoringScale;
+
+  /// Display name of the source template ("Mixed" when judges used different
+  /// templates in an aggregate view).
+  final String templateName;
 
   EvaluationJudgeEntry? get primaryJudge =>
       judgeEntries.isEmpty ? null : judgeEntries.first;
@@ -124,6 +148,8 @@ abstract final class EvaluationWorkspaceLoader {
       throw StateError('Score is not linked to an idea');
     }
 
+    await OrgSettingsService.instance.ensureLoaded(orgId: score.orgId);
+
     final FirebaseFirestore db = FirebaseFirestore.instance;
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
         await db.collection(FirestoreUtils.hkzIdeas).doc(ideaId).get();
@@ -137,7 +163,9 @@ abstract final class EvaluationWorkspaceLoader {
         ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
         : userDisplayName(judge);
 
-    final _ParsedScore parsed = _parseScore(score, judgeName);
+    final EvaluationTemplate template =
+        EvaluationTemplatesService.resolveTemplate(score.templateId);
+    final _ParsedScore parsed = _parseScore(score, judgeName, template);
     final _IdeaContext ctx = await _loadIdeaContext(idea);
     final PaymentModel? payment = await _loadPayment(db, ideaId);
 
@@ -168,6 +196,8 @@ abstract final class EvaluationWorkspaceLoader {
       normalizedScore: normalized,
       rankingContribution: composite,
       reviewCompletionLabel: '1 of 1 review complete',
+      scoringScale: template.scoringScale,
+      templateName: template.templateName,
     );
   }
 
@@ -183,6 +213,8 @@ abstract final class EvaluationWorkspaceLoader {
 
     final IdeaModel idea = IdeaModel.fromMap(ideaDoc.id, ideaDoc.data()!);
     final String orgId = idea.orgId.trim();
+
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
 
     final QuerySnapshot<Map<String, dynamic>> scoresSnap = orgId.isEmpty
         ? await db.collection(FirestoreUtils.hkzScores).limit(0).get()
@@ -205,39 +237,58 @@ abstract final class EvaluationWorkspaceLoader {
     final PaymentModel? payment = await _loadPayment(db, ideaId);
 
     final List<EvaluationJudgeEntry> judges = <EvaluationJudgeEntry>[];
-    int innovSum = 0;
-    int feasSum = 0;
-    int impactSum = 0;
-    int criteriaCount = 0;
     final List<String> allStrengths = <String>[];
     final List<String> allImprovements = <String>[];
     final List<String> recommendations = <String>[];
+    // Aggregator: criterionId → (label, max, sum, count). Last seen label/max wins.
+    final Map<String, _CriterionAccumulator> agg = <String, _CriterionAccumulator>{};
+    final Set<String> usedTemplateIds = <String>{};
 
     for (final ScoreModel score in scores) {
       final UserModel? judge = await FirestoreUtils.fetchUser(score.judgeId.trim());
       final String judgeName = judge == null
           ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
           : userDisplayName(judge);
-      final _ParsedScore parsed = _parseScore(score, judgeName);
+      final EvaluationTemplate scoreTemplate =
+          EvaluationTemplatesService.resolveTemplate(score.templateId);
+      usedTemplateIds.add(scoreTemplate.templateId);
+      final _ParsedScore parsed = _parseScore(score, judgeName, scoreTemplate);
       judges.add(parsed.entry);
-      innovSum += parsed.entry.innovation;
-      feasSum += parsed.entry.feasibility;
-      impactSum += parsed.entry.impact;
-      criteriaCount++;
       allStrengths.addAll(parsed.strengths);
       allImprovements.addAll(parsed.improvements);
       if (parsed.recommendationLabel != 'No recommendation') {
         recommendations.add('${parsed.entry.judgeName}: ${parsed.recommendationLabel}');
       }
+      for (final EvaluationCriterionScore c in parsed.criteria) {
+        final _CriterionAccumulator? prev = agg[c.criterionId.isEmpty ? c.label : c.criterionId];
+        final String key = c.criterionId.isEmpty ? c.label : c.criterionId;
+        if (prev == null) {
+          agg[key] = _CriterionAccumulator(
+            label: c.label,
+            maxValue: c.maxValue,
+            sum: c.value,
+            count: 1,
+          );
+        } else {
+          agg[key] = _CriterionAccumulator(
+            label: c.label,
+            maxValue: c.maxValue,
+            sum: prev.sum + c.value,
+            count: prev.count + 1,
+          );
+        }
+      }
     }
 
     final double avgScore = scores.map((ScoreModel s) => s.score).reduce((double a, double b) => a + b) / scores.length;
-    final int n = criteriaCount == 0 ? 1 : criteriaCount;
-    final List<EvaluationCriterionScore> criteria = <EvaluationCriterionScore>[
-      EvaluationCriterionScore(label: 'Innovation', value: innovSum / n, maxValue: 10),
-      EvaluationCriterionScore(label: 'Feasibility', value: feasSum / n, maxValue: 10),
-      EvaluationCriterionScore(label: 'Impact', value: impactSum / n, maxValue: 10),
-    ];
+    final List<EvaluationCriterionScore> criteria = agg.entries
+        .map((MapEntry<String, _CriterionAccumulator> e) => EvaluationCriterionScore(
+              criterionId: e.key,
+              label: e.value.label,
+              value: e.value.count == 0 ? 0 : e.value.sum / e.value.count,
+              maxValue: e.value.maxValue,
+            ))
+        .toList(growable: false);
 
     final double normalized = _ranking.normalizedEvaluation(avgScore);
     final double composite = _ranking.compositeIdeaScore(
@@ -246,6 +297,12 @@ abstract final class EvaluationWorkspaceLoader {
       problem: ctx.problem,
       payment: payment,
     );
+
+    // Use the first judge's template's scale (they should all be on the same
+    // org scale today); "Mixed" name when judges used different templates.
+    final EvaluationTemplate dominant =
+        EvaluationTemplatesService.resolveTemplate(scores.first.templateId);
+    final String templateName = usedTemplateIds.length > 1 ? 'Mixed templates' : dominant.templateName;
 
     return EvaluationWorkspaceViewModel(
       evaluationId: ideaId,
@@ -268,6 +325,8 @@ abstract final class EvaluationWorkspaceLoader {
       normalizedScore: normalized,
       rankingContribution: composite,
       reviewCompletionLabel: '${scores.length} review${scores.length == 1 ? '' : 's'} recorded',
+      scoringScale: dominant.scoringScale,
+      templateName: templateName,
     );
   }
 
@@ -305,25 +364,88 @@ abstract final class EvaluationWorkspaceLoader {
     return null;
   }
 
-  static _ParsedScore _parseScore(ScoreModel score, String judgeName) {
-    final JudgeEvaluationDecodedFeedback? decoded =
+  static _ParsedScore _parseScore(
+    ScoreModel score,
+    String judgeName,
+    EvaluationTemplate template,
+  ) {
+    // Build the per-criterion list. New records have structured
+    // `score.criteriaScores`; legacy v1 records get their three known fields
+    // mapped onto the template's matching criterion ids.
+    final Map<String, double> effectiveScores = <String, double>{};
+    if (score.criteriaScores.isNotEmpty) {
+      effectiveScores.addAll(score.criteriaScores);
+    }
+    final JudgeEvaluationDecodedFeedback? legacy =
         JudgeEvaluationFeedbackCodec.tryDecode(score.feedback);
-    final int innovation = decoded?.innovation ?? score.score.round().clamp(1, 10);
-    final int feasibility = decoded?.feasibility ?? score.score.round().clamp(1, 10);
-    final int impact = decoded?.impact ?? score.score.round().clamp(1, 10);
-    final String remarks = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback);
-    final String rec = decoded?.recommendation ?? 'none';
+    if (effectiveScores.isEmpty && legacy != null) {
+      void seedLegacy(String id, int v) {
+        if (!effectiveScores.containsKey(id)) effectiveScores[id] = v.toDouble();
+      }
+
+      for (final EvaluationCriterion c in template.criteria) {
+        switch (c.criterionId) {
+          case 'innovation':
+            seedLegacy(c.criterionId, legacy.innovation);
+            break;
+          case 'feasibility':
+            seedLegacy(c.criterionId, legacy.feasibility);
+            break;
+          case 'impact':
+            seedLegacy(c.criterionId, legacy.impact);
+            break;
+        }
+      }
+    }
+
+    final List<EvaluationCriterionScore> criteria = <EvaluationCriterionScore>[];
+    for (final EvaluationCriterion c in template.orderedCriteria) {
+      if (!effectiveScores.containsKey(c.criterionId)) continue;
+      final double v = effectiveScores[c.criterionId]!
+          .clamp(c.minScore.toDouble(), c.maxScore.toDouble());
+      criteria.add(
+        EvaluationCriterionScore(
+          criterionId: c.criterionId,
+          label: c.title,
+          value: v,
+          maxValue: c.maxScore,
+        ),
+      );
+    }
+
+    // Also surface any criterion the score carries that the (resolved)
+    // template no longer contains — happens when admins remove criteria after
+    // historical scores were recorded.
+    final Set<String> renderedIds = criteria.map((c) => c.criterionId).toSet();
+    for (final MapEntry<String, double> e in effectiveScores.entries) {
+      if (renderedIds.contains(e.key)) continue;
+      criteria.add(
+        EvaluationCriterionScore(
+          criterionId: e.key,
+          label: e.key,
+          value: e.value,
+          maxValue: template.scoringScale,
+        ),
+      );
+    }
+
+    final String remarks = legacy != null
+        ? JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback)
+        : score.feedback.trim();
+    final String rec = legacy?.recommendation ?? 'none';
     final String recLabel = _recommendationLabel(rec);
 
     final List<String> strengths = <String>[];
     final List<String> improvements = <String>[];
 
-    if (innovation >= 7) strengths.add('Strong innovation signal ($innovation/10)');
-    if (feasibility >= 7) strengths.add('Solid feasibility ($feasibility/10)');
-    if (impact >= 7) strengths.add('High impact potential ($impact/10)');
-    if (innovation < 6) improvements.add('Innovation may need more differentiation ($innovation/10)');
-    if (feasibility < 6) improvements.add('Feasibility requires refinement ($feasibility/10)');
-    if (impact < 6) improvements.add('Impact narrative could be stronger ($impact/10)');
+    for (final EvaluationCriterionScore c in criteria) {
+      final double pct = c.maxValue <= 0 ? 0 : c.value / c.maxValue;
+      if (pct >= 0.7) {
+        strengths.add('${c.label}: ${c.value.toStringAsFixed(1)}/${c.maxValue}');
+      } else if (pct < 0.5) {
+        improvements.add('${c.label}: ${c.value.toStringAsFixed(1)}/${c.maxValue}');
+      }
+    }
 
     if (rec == 'revise') improvements.add('Judge requested revisions');
     if (rec == 'reject') improvements.add('Not recommended at this stage');
@@ -340,17 +462,13 @@ abstract final class EvaluationWorkspaceLoader {
         judgeName: judgeName,
         overallScore: score.score,
         evaluatedAt: score.createdAt,
-        innovation: innovation,
-        feasibility: feasibility,
-        impact: impact,
+        criteria: criteria,
+        criterionComments: Map<String, String>.from(score.criteriaComments),
         recommendation: rec,
         remarks: remarks,
+        templateName: template.templateName,
       ),
-      criteria: <EvaluationCriterionScore>[
-        EvaluationCriterionScore(label: 'Innovation', value: innovation.toDouble(), maxValue: 10),
-        EvaluationCriterionScore(label: 'Feasibility', value: feasibility.toDouble(), maxValue: 10),
-        EvaluationCriterionScore(label: 'Impact', value: impact.toDouble(), maxValue: 10),
-      ],
+      criteria: criteria,
       strengths: strengths,
       improvements: improvements,
       recommendationLabel: recLabel,
@@ -407,4 +525,18 @@ class _ParsedScore {
   final List<String> strengths;
   final List<String> improvements;
   final String recommendationLabel;
+}
+
+class _CriterionAccumulator {
+  const _CriterionAccumulator({
+    required this.label,
+    required this.maxValue,
+    required this.sum,
+    required this.count,
+  });
+
+  final String label;
+  final int maxValue;
+  final double sum;
+  final int count;
 }
