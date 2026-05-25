@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../features/requests/faculty/team_change_workspace.dart';
 import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/team_model.dart';
@@ -15,7 +16,6 @@ import '../../widgets/faculty/team_workspace_card.dart';
 import '../../workspace/workspace.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../responsive/responsive_breakpoints.dart';
 import '../../responsive/responsive_helper.dart';
 
 class TeamsScreen extends StatefulWidget {
@@ -29,6 +29,8 @@ class TeamsScreen extends StatefulWidget {
 
 class _TeamsScreenState extends State<TeamsScreen> {
   late Future<FacultyTeamsWorkspaceData> _future;
+  TeamModel? _teamChangeTarget;
+  FacultyTeamInsight? _teamChangeInsight;
 
   @override
   void initState() {
@@ -45,18 +47,33 @@ class _TeamsScreenState extends State<TeamsScreen> {
     });
   }
 
-  Future<void> _openTeamDialog(FacultyTeamsWorkspaceData data, {TeamModel? team}) async {
-    if (team == null && !FacultyTeamsService.canCreateTeam(data.teams)) return;
+  Future<void> _openCreateTeamDialog(FacultyTeamsWorkspaceData data) async {
+    if (!FacultyTeamsService.canCreateTeam(data.teams)) return;
     final result = await showTeamCreationWorkspace(
       context: context,
       currentUser: widget.user,
       existingTeams: data.teams,
       departmentStudents: data.students,
-      initialTeam: team,
+      initialTeam: null,
     );
     if (result == TeamFormDialogAction.saved && mounted) {
       _refresh();
     }
+  }
+
+  void _openTeamChangeWorkspace(TeamModel team, FacultyTeamInsight insight) {
+    setState(() {
+      _teamChangeTarget = team;
+      _teamChangeInsight = insight;
+    });
+  }
+
+  void _closeTeamChangeWorkspace({bool refresh = false}) {
+    setState(() {
+      _teamChangeTarget = null;
+      _teamChangeInsight = null;
+    });
+    if (refresh) _refresh();
   }
 
   Future<void> _disableTeam(TeamModel team) async {
@@ -99,6 +116,26 @@ class _TeamsScreenState extends State<TeamsScreen> {
         }
         final data = snapshot.data;
         if (data == null) return const Center(child: Text('No team data available.'));
+
+        if (_teamChangeTarget != null) {
+          return TeamChangeWorkspace(
+            faculty: widget.user,
+            team: _teamChangeTarget!,
+            departmentStudents: data.students,
+            hasEvaluation:
+                TeamChangeWorkspaceController.hasEvaluation(_teamChangeInsight ?? data.insightsByTeamId[_teamChangeTarget!.teamId] ??
+                    FacultyTeamInsight(
+                      team: _teamChangeTarget!,
+                      ideas: const <IdeaModel>[],
+                      paymentStatuses: const <PaymentRecordStatus>[],
+                      evaluationCount: 0,
+                    )),
+            embedded: true,
+            onBack: () => _closeTeamChangeWorkspace(),
+            onSubmitted: () => _closeTeamChangeWorkspace(refresh: true),
+          );
+        }
+
         final teams = data.teams;
         final canCreate = FacultyTeamsService.canCreateTeam(teams);
 
@@ -121,17 +158,26 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     _CreateTeamCta(
                       canCreate: canCreate,
                       teamCount: teams.length,
-                      onCreate: () => _openTeamDialog(data),
+                      onCreate: () => _openCreateTeamDialog(data),
                     ),
                     const SizedBox(height: 14),
                     if (teams.isEmpty)
-                      _EmptyTeamsState(onCreate: canCreate ? () => _openTeamDialog(data) : null)
+                      _EmptyTeamsState(onCreate: canCreate ? () => _openCreateTeamDialog(data) : null)
                     else
                       _TeamGrid(
                         teams: teams,
                         data: data,
                         mentorName: '${widget.user.firstName} ${widget.user.lastName}'.trim(),
-                        onEdit: (team) => _openTeamDialog(data, team: team),
+                        onEdit: (team) {
+                          final FacultyTeamInsight insight = data.insightsByTeamId[team.teamId] ??
+                              FacultyTeamInsight(
+                                team: team,
+                                ideas: const <IdeaModel>[],
+                                paymentStatuses: const <PaymentRecordStatus>[],
+                                evaluationCount: 0,
+                              );
+                          _openTeamChangeWorkspace(team, insight);
+                        },
                         onViewIdeas: (insight) => _viewIdeas(insight),
                         onDisable: _disableTeam,
                       ),

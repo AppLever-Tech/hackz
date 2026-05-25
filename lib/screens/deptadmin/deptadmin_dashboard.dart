@@ -25,6 +25,7 @@ import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
+import '../../features/requests/deptadmin/requests_workspace_screen.dart';
 import 'payments_screen.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
@@ -76,6 +77,12 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 6) {
+          return RequestsWorkspaceScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 7) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

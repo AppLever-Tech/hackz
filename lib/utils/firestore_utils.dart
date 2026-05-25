@@ -31,6 +31,8 @@ class FirestoreUtils {
   static const String hkzUserAuthMirror = 'hkzUserAuthMirror';
   static const String hkzTeams = 'hkzTeams';
   static const String hkzAttachments = 'hkzAttachments';
+  /// Generic workflow / approval requests (team changes, future payment / idea / extension approvals).
+  static const String hkzRequests = 'hkzRequests';
   /// Single-doc platform configuration for SysAdmin (`config`).
   static const String hkzPlatformSettings = 'hkzPlatformSettings';
 

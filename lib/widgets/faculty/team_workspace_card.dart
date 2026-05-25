@@ -67,9 +67,9 @@ class TeamWorkspaceCard extends StatelessWidget {
                 actions: <CardOverflowMenuAction>[
                   CardOverflowMenuAction(
                     value: 'edit',
-                    icon: AppIcons.edit,
-                    label: 'Edit Team',
-                    enabled: !insight.isLocked && !isInactive,
+                    icon: Icons.published_with_changes_rounded,
+                    label: 'Request Team Change',
+                    enabled: !isInactive,
                   ),
                   const CardOverflowMenuAction(
                     value: 'view',

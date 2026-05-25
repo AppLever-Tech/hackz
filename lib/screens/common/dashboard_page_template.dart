@@ -203,6 +203,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Judges Panel', icon: AppIcons.judges),
             DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
+            DashboardMenuItem(label: 'Requests', icon: Icons.inbox_rounded),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],

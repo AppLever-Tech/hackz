@@ -15,6 +15,7 @@ class TeamStudentSelector extends StatefulWidget {
     required this.maxSelection,
     this.enabled = true,
     this.searchThreshold = 6,
+    this.initiallyExpanded,
   });
 
   static const double listMaxHeight = 200;
@@ -25,6 +26,13 @@ class TeamStudentSelector extends StatefulWidget {
   final int maxSelection;
   final bool enabled;
   final int searchThreshold;
+
+  /// Optional override for the initial expanded state of the inline picker.
+  /// When `null` (default) the picker auto-opens only when nothing is selected
+  /// yet — which matches the create-team UX. Pass `true` in flows like
+  /// "Request Team Change" where the team already has members but the user
+  /// still needs the picker visible to add/swap students.
+  final bool? initiallyExpanded;
 
   @override
   State<TeamStudentSelector> createState() => _TeamStudentSelectorState();
@@ -37,7 +45,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
   @override
   void initState() {
     super.initState();
-    _expanded = widget.selectedIds.isEmpty;
+    _expanded = widget.initiallyExpanded ?? widget.selectedIds.isEmpty;
   }
 
   bool get _showSearch => widget.students.length > widget.searchThreshold;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/requests/widgets/team_change_history_timeline.dart';
 import '../../responsive/responsive_helper.dart';
 import 'team_activity_section.dart';
 import 'team_ideas_section.dart';
@@ -35,6 +36,8 @@ class TeamWorkspaceBody extends StatelessWidget {
         TeamIdeasSection(vm: vm),
         const SizedBox(height: 14),
         TeamActivitySection(items: vm.recentActivity),
+        const SizedBox(height: 14),
+        TeamChangeHistoryTimeline(teamId: vm.team.teamId),
       ],
     );
   }
