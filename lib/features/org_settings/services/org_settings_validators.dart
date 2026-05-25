@@ -1,40 +1,40 @@
-import '../constants/platform_setting_keys.dart';
-import '../models/enums/platform_setting_value_type.dart';
-import '../models/platform_setting_definition.dart';
+import '../constants/org_setting_keys.dart';
+import '../models/enums/org_setting_value_type.dart';
+import '../models/org_setting_definition.dart';
 
-/// Shared validation and coercion for platform settings (no magic numbers in UI).
-abstract final class PlatformSettingsValidators {
-  PlatformSettingsValidators._();
+/// Shared validation and coercion for org settings (no magic numbers in UI).
+abstract final class OrgSettingsValidators {
+  OrgSettingsValidators._();
 
   static const int maxFormatExtensionsPerList = 24;
   static const int maxExtensionTokenLength = 12;
 
   static String? validateAndCoerce(
-    PlatformSettingDefinition def,
+    OrgSettingDefinition def,
     Object? raw,
     void Function(Object? coerced) onCoerce,
   ) {
     switch (def.type) {
-      case PlatformSettingValueType.boolean:
+      case OrgSettingValueType.boolean:
         final bool? v = _asBool(raw);
         if (v == null) return 'Must be true or false.';
         onCoerce(v);
         return null;
-      case PlatformSettingValueType.integer:
+      case OrgSettingValueType.integer:
         final int? v = _asInt(raw);
         if (v == null) return 'Must be a whole number.';
         if (def.min != null && v < def.min!) return 'Must be at least ${def.min}.';
         if (def.max != null && v > def.max!) return 'Must be at most ${def.max}.';
         onCoerce(v);
         return null;
-      case PlatformSettingValueType.double:
+      case OrgSettingValueType.double:
         final double? v = _asDouble(raw);
         if (v == null) return 'Must be a number.';
         if (def.min != null && v < def.min!) return 'Must be at least ${def.min}.';
         if (def.max != null && v > def.max!) return 'Must be at most ${def.max}.';
         onCoerce(v);
         return null;
-      case PlatformSettingValueType.stringList:
+      case OrgSettingValueType.stringList:
         final List<String>? list = _asStringList(raw);
         if (list == null) return 'Must be a list of extensions.';
         if (list.length > maxFormatExtensionsPerList) {
@@ -55,8 +55,8 @@ abstract final class PlatformSettingsValidators {
 
   /// Leaderboard weights: optional soft check (inform UI; still allow save).
   static String? weightsBalanceHint(Map<String, dynamic> valuesByKey) {
-    final double j = _asDouble(valuesByKey[PlatformSettingKeys.judgeScoreWeight]) ?? 0;
-    final double i = _asDouble(valuesByKey[PlatformSettingKeys.innovationScoreWeight]) ?? 0;
+    final double j = _asDouble(valuesByKey[OrgSettingKeys.judgeScoreWeight]) ?? 0;
+    final double i = _asDouble(valuesByKey[OrgSettingKeys.innovationScoreWeight]) ?? 0;
     final double sum = j + i;
     if ((sum - 1.0).abs() > 0.05) {
       return 'Judge and innovation weights sum to ${sum.toStringAsFixed(2)}; consider balancing near 1.00.';

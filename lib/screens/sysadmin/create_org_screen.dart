@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
 import '../../utils/firestore_utils.dart';
@@ -60,7 +61,7 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
     }
     setState(() => _busy = true);
     try {
-      await FirestoreUtils.upsertOrganization(
+      final String orgId = await FirestoreUtils.upsertOrganization(
         OrganizationModel(
           id: '',
           name: name,
@@ -71,6 +72,7 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
           createdAt: DateTime.now(),
         ),
       );
+      await OrgSettingsService.seedFor(orgId);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {

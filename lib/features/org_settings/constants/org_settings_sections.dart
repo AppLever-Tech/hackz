@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'app_icons.dart';
+import '../../../constants/app_icons.dart';
 
-/// Stable section ordering for the SysAdmin platform settings dashboard.
-const List<String> kPlatformSettingsSectionOrder = <String>[
+/// Stable section ordering for the org settings dashboard.
+const List<String> kOrgSettingsSectionOrder = <String>[
   'team',
   'idea',
   'problem',
@@ -13,7 +13,7 @@ const List<String> kPlatformSettingsSectionOrder = <String>[
   'upload',
 ];
 
-IconData platformSettingsSectionIcon(String sectionKey) {
+IconData orgSettingsSectionIcon(String sectionKey) {
   switch (sectionKey) {
     case 'team':
       return AppIcons.teams;

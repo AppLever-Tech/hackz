@@ -1,8 +1,9 @@
-import 'enums/platform_setting_value_type.dart';
+import 'enums/org_setting_value_type.dart';
 
-/// Metadata for one platform rule (defaults + UI hints). Values at runtime come from Firestore.
-class PlatformSettingDefinition {
-  const PlatformSettingDefinition({
+/// Metadata for one org-scoped rule (defaults + UI hints).
+/// Runtime values live in Firestore at `hkzOrganizations/{orgId}/settings/org_settings`.
+class OrgSettingDefinition {
+  const OrgSettingDefinition({
     required this.key,
     required this.displayName,
     required this.type,
@@ -21,7 +22,7 @@ class PlatformSettingDefinition {
 
   final String key;
   final String displayName;
-  final PlatformSettingValueType type;
+  final OrgSettingValueType type;
   final Object? defaultValue;
   final String sectionKey;
   final String sectionTitle;
@@ -32,7 +33,7 @@ class PlatformSettingDefinition {
   final num? max;
   final num? step;
 
-  /// For [PlatformSettingValueType.boolean] toggles shown as two-option chips (optional).
+  /// For [OrgSettingValueType.boolean] toggles shown as two-option chips (optional).
   final List<String>? segmentLabels;
   final List<String>? segmentValues;
 }

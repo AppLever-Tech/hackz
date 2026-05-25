@@ -1,25 +1,25 @@
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
-import '../../constants/default_platform_settings.dart';
-import '../../constants/platform_settings_sections.dart';
-import '../../models/platform_setting_definition.dart';
-import '../../models/user_model.dart';
-import '../../utils/platform_settings_service.dart';
-import '../../widgets/platformsettings/platform_setting_value_tile.dart';
-import '../../widgets/platformsettings/settings_group_widget.dart';
-import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/user_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../constants/default_org_settings.dart';
+import '../constants/org_settings_sections.dart';
+import '../models/org_setting_definition.dart';
+import '../services/org_settings_service.dart';
+import '../widgets/org_setting_value_tile.dart';
+import '../widgets/settings_group_widget.dart';
 
-/// SysAdmin: centralized platform rules (`hkzPlatformSettings/config`).
-class PlatformSettingsDashboard extends StatefulWidget {
-  const PlatformSettingsDashboard({super.key, required this.user});
+/// College Admin: org-scoped rules (`hkzOrganizations/{orgId}/settings/org_settings`).
+class OrgSettingsDashboard extends StatefulWidget {
+  const OrgSettingsDashboard({super.key, required this.user});
 
   final UserModel user;
 
   @override
-  State<PlatformSettingsDashboard> createState() => _PlatformSettingsDashboardState();
+  State<OrgSettingsDashboard> createState() => _OrgSettingsDashboardState();
 }
 
 class _SectionVm {
@@ -35,33 +35,33 @@ class _SectionVm {
   final String title;
   final IconData icon;
   final List<String> groupOrder;
-  final Map<String, List<PlatformSettingDefinition>> byGroup;
+  final Map<String, List<OrgSettingDefinition>> byGroup;
 }
 
 List<_SectionVm> _computeSectionViewModels() {
-  final Map<String, List<PlatformSettingDefinition>> bySection = <String, List<PlatformSettingDefinition>>{};
-  for (final PlatformSettingDefinition d in defaultPlatformSettingDefinitions) {
-    bySection.putIfAbsent(d.sectionKey, () => <PlatformSettingDefinition>[]).add(d);
+  final Map<String, List<OrgSettingDefinition>> bySection = <String, List<OrgSettingDefinition>>{};
+  for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) {
+    bySection.putIfAbsent(d.sectionKey, () => <OrgSettingDefinition>[]).add(d);
   }
   final List<_SectionVm> out = <_SectionVm>[];
-  for (final String sectionKey in kPlatformSettingsSectionOrder) {
-    final List<PlatformSettingDefinition>? defs = bySection[sectionKey];
+  for (final String sectionKey in kOrgSettingsSectionOrder) {
+    final List<OrgSettingDefinition>? defs = bySection[sectionKey];
     if (defs == null || defs.isEmpty) continue;
     final List<String> groupOrder = <String>[];
-    for (final PlatformSettingDefinition d in defs) {
+    for (final OrgSettingDefinition d in defs) {
       if (!groupOrder.contains(d.groupKey)) {
         groupOrder.add(d.groupKey);
       }
     }
-    final Map<String, List<PlatformSettingDefinition>> byGroup = <String, List<PlatformSettingDefinition>>{};
-    for (final PlatformSettingDefinition d in defs) {
-      byGroup.putIfAbsent(d.groupKey, () => <PlatformSettingDefinition>[]).add(d);
+    final Map<String, List<OrgSettingDefinition>> byGroup = <String, List<OrgSettingDefinition>>{};
+    for (final OrgSettingDefinition d in defs) {
+      byGroup.putIfAbsent(d.groupKey, () => <OrgSettingDefinition>[]).add(d);
     }
     out.add(
       _SectionVm(
         sectionKey: sectionKey,
         title: defs.first.sectionTitle,
-        icon: platformSettingsSectionIcon(sectionKey),
+        icon: orgSettingsSectionIcon(sectionKey),
         groupOrder: groupOrder,
         byGroup: byGroup,
       ),
@@ -70,7 +70,7 @@ List<_SectionVm> _computeSectionViewModels() {
   return out;
 }
 
-bool _definitionMatchesQuery(PlatformSettingDefinition d, String sectionTitle, String groupTitle, String q) {
+bool _definitionMatchesQuery(OrgSettingDefinition d, String sectionTitle, String groupTitle, String q) {
   if (q.isEmpty) return true;
   return d.displayName.toLowerCase().contains(q) ||
       (d.description ?? '').toLowerCase().contains(q) ||
@@ -79,7 +79,7 @@ bool _definitionMatchesQuery(PlatformSettingDefinition d, String sectionTitle, S
       sectionTitle.toLowerCase().contains(q);
 }
 
-class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
+class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
   late Future<void> _loadFuture;
   final TextEditingController _searchController = TextEditingController();
   final List<_SectionVm> _sections = _computeSectionViewModels();
@@ -87,10 +87,12 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
   final Map<String, Object?> _draft = <String, Object?>{};
   bool _saving = false;
 
+  String get _orgId => widget.user.orgId;
+
   @override
   void initState() {
     super.initState();
-    _loadFuture = PlatformSettingsService.instance.ensureLoaded();
+    _loadFuture = OrgSettingsService.instance.ensureLoaded(orgId: _orgId);
     if (_sections.isNotEmpty) {
       _selectedSectionKey = _sections.first.sectionKey;
     }
@@ -105,7 +107,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
 
   void _retry() {
     setState(() {
-      _loadFuture = PlatformSettingsService.instance.ensureLoaded(force: true);
+      _loadFuture = OrgSettingsService.instance.ensureLoaded(orgId: _orgId, force: true);
     });
   }
 
@@ -120,8 +122,8 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
 
   String get _searchQuery => _searchController.text.trim().toLowerCase();
 
-  Object? _resolvedValue(PlatformSettingDefinition d) {
-    final PlatformSettingsService svc = PlatformSettingsService.instance;
+  Object? _resolvedValue(OrgSettingDefinition d) {
+    final OrgSettingsService svc = OrgSettingsService.instance;
     if (_draft.containsKey(d.key)) {
       return _draft[d.key];
     }
@@ -135,9 +137,9 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
   }
 
   bool _valueEqualsBaseline(String key, Object? draftValue) {
-    final PlatformSettingsService svc = PlatformSettingsService.instance;
+    final OrgSettingsService svc = OrgSettingsService.instance;
     final Object? baseline = svc.valuesSnapshot[key];
-    return _platformSettingsValueEquals(draftValue, baseline);
+    return _orgSettingsValueEquals(draftValue, baseline);
   }
 
   bool get _hasDirtyDraft {
@@ -151,7 +153,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
 
   Future<void> _saveDraft() async {
     if (!_hasDirtyDraft || _saving) return;
-    final PlatformSettingsService svc = PlatformSettingsService.instance;
+    final OrgSettingsService svc = OrgSettingsService.instance;
     final List<String> keysToSave = _draft.keys.where((String k) => !_valueEqualsBaseline(k, _draft[k])).toList(growable: false);
     if (keysToSave.isEmpty) return;
 
@@ -177,7 +179,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
     if (firstError != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(firstError)));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Platform settings saved.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Org settings saved.')));
     }
   }
 
@@ -208,7 +210,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
     final searchField = TextField(
       controller: _searchController,
       decoration: InputDecoration(
-        hintText: 'Search all platform settings',
+        hintText: 'Search all org settings',
         prefixIcon: Icon(AppIcons.search, size: 20, color: cs.onSurfaceVariant),
         filled: true,
         fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.35),
@@ -301,13 +303,13 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
                 ),
               );
 
-        final Widget leftNav = _PlatformSettingsLeftNav(
+        final Widget leftNav = _OrgSettingsLeftNav(
           sections: _sections,
           selectedKey: _selectedSectionKey,
           onSelect: (String key) => setState(() => _selectedSectionKey = key),
         );
 
-        final Widget rightPane = _PlatformSettingsRightPane(
+        final Widget rightPane = _OrgSettingsRightPane(
           sections: _sections,
           selectedSection: _selectedSection,
           searchQuery: _searchQuery,
@@ -357,7 +359,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final PlatformSettingsService svc = PlatformSettingsService.instance;
+        final OrgSettingsService svc = OrgSettingsService.instance;
         if (svc.lastError != null) {
           return Center(
             child: Column(
@@ -366,7 +368,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
                 Icon(AppIcons.settings, size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(height: 12),
                 Text(
-                  'Could not load platform settings',
+                  'Could not load org settings',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
@@ -418,7 +420,7 @@ class _PlatformSettingsDashboardState extends State<PlatformSettingsDashboard> {
   }
 }
 
-bool _platformSettingsValueEquals(Object? a, Object? b) {
+bool _orgSettingsValueEquals(Object? a, Object? b) {
   if (a is List && b is List) {
     return listEquals(
       a.map((Object? e) => e.toString()).toList(growable: false),
@@ -428,8 +430,8 @@ bool _platformSettingsValueEquals(Object? a, Object? b) {
   return a == b;
 }
 
-class _PlatformSettingsLeftNav extends StatelessWidget {
-  const _PlatformSettingsLeftNav({
+class _OrgSettingsLeftNav extends StatelessWidget {
+  const _OrgSettingsLeftNav({
     required this.sections,
     required this.selectedKey,
     required this.onSelect,
@@ -448,7 +450,7 @@ class _PlatformSettingsLeftNav extends StatelessWidget {
       itemBuilder: (BuildContext context, int index) {
         final _SectionVm s = sections[index];
         final bool selected = s.sectionKey == selectedKey;
-        return _PlatformSettingsNavTile(
+        return _OrgSettingsNavTile(
           title: s.title,
           icon: s.icon,
           selected: selected,
@@ -459,8 +461,8 @@ class _PlatformSettingsLeftNav extends StatelessWidget {
   }
 }
 
-class _PlatformSettingsNavTile extends StatelessWidget {
-  const _PlatformSettingsNavTile({
+class _OrgSettingsNavTile extends StatelessWidget {
+  const _OrgSettingsNavTile({
     required this.title,
     required this.icon,
     required this.selected,
@@ -544,8 +546,8 @@ class _PlatformSettingsNavTile extends StatelessWidget {
   }
 }
 
-class _PlatformSettingsRightPane extends StatelessWidget {
-  const _PlatformSettingsRightPane({
+class _OrgSettingsRightPane extends StatelessWidget {
+  const _OrgSettingsRightPane({
     required this.sections,
     required this.selectedSection,
     required this.searchQuery,
@@ -560,29 +562,29 @@ class _PlatformSettingsRightPane extends StatelessWidget {
   final String searchQuery;
   final BoxDecoration cardDecoration;
   final double settingsLeftIndent;
-  final Object? Function(PlatformSettingDefinition) resolvedValue;
+  final Object? Function(OrgSettingDefinition) resolvedValue;
   final void Function(String key, Object? coerced) onDraftCoerced;
 
   List<Widget> _buildSectionModeBody(_SectionVm s, double settingsLeftIndent) {
-    final Map<String, List<PlatformSettingDefinition>> byGroup = <String, List<PlatformSettingDefinition>>{};
+    final Map<String, List<OrgSettingDefinition>> byGroup = <String, List<OrgSettingDefinition>>{};
     for (final String gk in s.groupOrder) {
-      final List<PlatformSettingDefinition>? group = s.byGroup[gk];
+      final List<OrgSettingDefinition>? group = s.byGroup[gk];
       if (group == null) continue;
-      byGroup[gk] = List<PlatformSettingDefinition>.from(group);
+      byGroup[gk] = List<OrgSettingDefinition>.from(group);
     }
 
     final List<Widget> blocks = <Widget>[];
     for (final String gk in s.groupOrder) {
-      final List<PlatformSettingDefinition>? defs = byGroup[gk];
+      final List<OrgSettingDefinition>? defs = byGroup[gk];
       if (defs == null || defs.isEmpty) continue;
       blocks.add(
         SettingsGroupWidget(
           title: defs.first.groupTitle,
           children: <Widget>[
-            for (final PlatformSettingDefinition d in defs)
+            for (final OrgSettingDefinition d in defs)
               Padding(
                 padding: EdgeInsets.only(left: settingsLeftIndent),
-                child: PlatformSettingValueTile(
+                child: OrgSettingValueTile(
                   definition: d,
                   persistImmediately: false,
                   resolvedValue: resolvedValue(d),
@@ -605,21 +607,21 @@ class _PlatformSettingsRightPane extends StatelessWidget {
     final List<Widget> blocks = <Widget>[];
     for (final _SectionVm sec in sections) {
       for (final String gk in sec.groupOrder) {
-        final List<PlatformSettingDefinition>? group = sec.byGroup[gk];
+        final List<OrgSettingDefinition>? group = sec.byGroup[gk];
         if (group == null) continue;
         final String groupTitle = group.first.groupTitle;
-        final List<PlatformSettingDefinition> matched = group
-            .where((PlatformSettingDefinition d) => _definitionMatchesQuery(d, sec.title, groupTitle, q))
+        final List<OrgSettingDefinition> matched = group
+            .where((OrgSettingDefinition d) => _definitionMatchesQuery(d, sec.title, groupTitle, q))
             .toList(growable: false);
         if (matched.isEmpty) continue;
         blocks.add(
           SettingsGroupWidget(
             title: '${sec.title} — $groupTitle',
             children: <Widget>[
-              for (final PlatformSettingDefinition d in matched)
+              for (final OrgSettingDefinition d in matched)
                 Padding(
                   padding: EdgeInsets.only(left: settingsLeftIndent),
-                  child: PlatformSettingValueTile(
+                  child: OrgSettingValueTile(
                     definition: d,
                     persistImmediately: false,
                     resolvedValue: resolvedValue(d),
@@ -642,7 +644,7 @@ class _PlatformSettingsRightPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final _SectionVm? s = selectedSection;
     if (s == null) {
-      return const Center(child: Text('No platform setting sections defined.'));
+      return const Center(child: Text('No org setting sections defined.'));
     }
 
     final bool globalSearch = searchQuery.isNotEmpty;

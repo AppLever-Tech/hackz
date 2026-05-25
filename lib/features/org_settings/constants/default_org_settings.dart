@@ -1,22 +1,23 @@
-import '../models/enums/platform_setting_value_type.dart';
-import '../models/platform_setting_definition.dart';
-import 'platform_setting_keys.dart';
+import '../models/enums/org_setting_value_type.dart';
+import '../models/org_setting_definition.dart';
+import 'org_setting_keys.dart';
 
-/// Dart source of truth for platform defaults.
+/// Dart source of truth for org-setting defaults.
 ///
-/// Bootstrap writes [defaultPlatformSettingsFirestoreEntries] to
-/// `hkzPlatformSettings/config` when the document is missing; runtime values
-/// are read from Firestore and merged with any new keys from this list.
-const int kPlatformSettingsSchemaVersion = 1;
+/// Bootstrap writes [defaultOrgSettingsFirestoreEntries] to
+/// `hkzOrganizations/{orgId}/settings/org_settings` when the document is missing;
+/// runtime values are read from Firestore and merged with any new keys from
+/// this list.
+const int kOrgSettingsSchemaVersion = 1;
 
-List<PlatformSettingDefinition> get defaultPlatformSettingDefinitions => _defs;
+List<OrgSettingDefinition> get defaultOrgSettingDefinitions => _defs;
 
-final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
+final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   // —— Team ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.minStudentsPerTeam,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.minStudentsPerTeam,
     displayName: 'Minimum students per team',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 2,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
@@ -27,10 +28,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 20,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxStudentsPerTeam,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxStudentsPerTeam,
     displayName: 'Maximum students per team',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 5,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
@@ -41,10 +42,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 30,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxTeamsPerFaculty,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxTeamsPerFaculty,
     displayName: 'Maximum teams per faculty',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 8,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
@@ -55,30 +56,30 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 50,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowPendingSubmissionTeamEdit,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowPendingSubmissionTeamEdit,
     displayName: 'Allow team edits while submission is pending',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
     groupKey: 'edit',
     groupTitle: 'Edit rules',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.freezeTeamAfterSubmitted,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.freezeTeamAfterSubmitted,
     displayName: 'Freeze team after idea submitted',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: false,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
     groupKey: 'edit',
     groupTitle: 'Edit rules',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowStudentSwitchAfterRejection,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowStudentSwitchAfterRejection,
     displayName: 'Allow student to switch team after rejection',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
@@ -87,10 +88,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— Idea ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxIdeasPerProblem,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxIdeasPerProblem,
     displayName: 'Max ideas per problem',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 3,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
@@ -100,30 +101,30 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 20,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowIdeaResubmissionAfterRejection,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowIdeaResubmissionAfterRejection,
     displayName: 'Allow resubmission after rejection',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
     groupKey: 'submission',
     groupTitle: 'Submission rules',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.requirePaymentBeforeSubmission,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requirePaymentBeforeSubmission,
     displayName: 'Require payment before submission',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: false,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
     groupKey: 'submission',
     groupTitle: 'Submission rules',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.minJudgesPerIdea,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.minJudgesPerIdea,
     displayName: 'Minimum judges per idea',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 2,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
@@ -133,10 +134,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 10,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxJudgesPerIdea,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxJudgesPerIdea,
     displayName: 'Maximum judges per idea',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 5,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
@@ -146,10 +147,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 15,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.showJudgeCommentsToStudents,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.showJudgeCommentsToStudents,
     displayName: 'Show judge comments to students',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
@@ -158,20 +159,20 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— Problem ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.requireProblemCategoryTheme,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requireProblemCategoryTheme,
     displayName: 'Require category / theme on problems',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'problem',
     sectionTitle: 'Problem rules',
     groupKey: 'general',
     groupTitle: 'Problem setup',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxProblemAttachments,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxProblemAttachments,
     displayName: 'Max attachments per problem',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 5,
     sectionKey: 'problem',
     sectionTitle: 'Problem rules',
@@ -181,10 +182,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 20,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowCrossDepartmentSubmissions,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowCrossDepartmentSubmissions,
     displayName: 'Allow cross-department submissions',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: false,
     sectionKey: 'problem',
     sectionTitle: 'Problem rules',
@@ -193,30 +194,30 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— Payment ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.coordinatorApprovalRequired,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.coordinatorApprovalRequired,
     displayName: 'Coordinator approval required',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'payment',
     sectionTitle: 'Payment rules',
     groupKey: 'general',
     groupTitle: 'Verification',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.requirePaymentScreenshot,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requirePaymentScreenshot,
     displayName: 'Require payment screenshot',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'payment',
     sectionTitle: 'Payment rules',
     groupKey: 'general',
     groupTitle: 'Verification',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.requirePaymentAmount,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requirePaymentAmount,
     displayName: 'Require payment amount',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'payment',
     sectionTitle: 'Payment rules',
@@ -225,10 +226,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— User / auth ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.accessCodeLength,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.accessCodeLength,
     displayName: 'Access code length (digits)',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 6,
     sectionKey: 'userAuth',
     sectionTitle: 'User & access',
@@ -238,20 +239,20 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 12,
     step: 1,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.requireAccessCode,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requireAccessCode,
     displayName: 'Require access code to register',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'userAuth',
     sectionTitle: 'User & access',
     groupKey: 'access',
     groupTitle: 'Access codes',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowDuplicateMobile,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowDuplicateMobile,
     displayName: 'Allow duplicate mobile numbers',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: false,
     sectionKey: 'userAuth',
     sectionTitle: 'User & access',
@@ -260,20 +261,20 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— Leaderboard ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.enableLeaderboard,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.enableLeaderboard,
     displayName: 'Enable leaderboard',
-    type: PlatformSettingValueType.boolean,
+    type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'leaderboard',
     sectionTitle: 'Leaderboard rules',
     groupKey: 'general',
     groupTitle: 'Visibility & scoring',
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.judgeScoreWeight,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.judgeScoreWeight,
     displayName: 'Judge score weight',
-    type: PlatformSettingValueType.double,
+    type: OrgSettingValueType.double,
     defaultValue: 0.6,
     sectionKey: 'leaderboard',
     sectionTitle: 'Leaderboard rules',
@@ -284,10 +285,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 1,
     step: 0.05,
   ),
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.innovationScoreWeight,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.innovationScoreWeight,
     displayName: 'Innovation score weight',
-    type: PlatformSettingValueType.double,
+    type: OrgSettingValueType.double,
     defaultValue: 0.4,
     sectionKey: 'leaderboard',
     sectionTitle: 'Leaderboard rules',
@@ -300,10 +301,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
   ),
 
   // —— Upload ——
-  const PlatformSettingDefinition(
-    key: PlatformSettingKeys.maxUploadSizeMB,
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxUploadSizeMB,
     displayName: 'Max upload size (MB)',
-    type: PlatformSettingValueType.integer,
+    type: OrgSettingValueType.integer,
     defaultValue: 25,
     sectionKey: 'upload',
     sectionTitle: 'Upload rules',
@@ -313,10 +314,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     max: 500,
     step: 1,
   ),
-  PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowedImageFormats,
+  OrgSettingDefinition(
+    key: OrgSettingKeys.allowedImageFormats,
     displayName: 'Allowed image formats',
-    type: PlatformSettingValueType.stringList,
+    type: OrgSettingValueType.stringList,
     defaultValue: <String>['jpg', 'jpeg', 'png', 'webp'],
     sectionKey: 'upload',
     sectionTitle: 'Upload rules',
@@ -324,20 +325,20 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
     groupTitle: 'Limits & formats',
     description: 'Extensions without dot, lowercase.',
   ),
-  PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowedDocumentFormats,
+  OrgSettingDefinition(
+    key: OrgSettingKeys.allowedDocumentFormats,
     displayName: 'Allowed document formats',
-    type: PlatformSettingValueType.stringList,
+    type: OrgSettingValueType.stringList,
     defaultValue: <String>['pdf', 'doc', 'docx'],
     sectionKey: 'upload',
     sectionTitle: 'Upload rules',
     groupKey: 'general',
     groupTitle: 'Limits & formats',
   ),
-  PlatformSettingDefinition(
-    key: PlatformSettingKeys.allowedVideoFormats,
+  OrgSettingDefinition(
+    key: OrgSettingKeys.allowedVideoFormats,
     displayName: 'Allowed video formats',
-    type: PlatformSettingValueType.stringList,
+    type: OrgSettingValueType.stringList,
     defaultValue: <String>['mp4', 'webm'],
     sectionKey: 'upload',
     sectionTitle: 'Upload rules',
@@ -347,10 +348,10 @@ final List<PlatformSettingDefinition> _defs = <PlatformSettingDefinition>[
 ];
 
 /// Firestore `settings` array entries: `{ key, displayName, value }`.
-List<Map<String, dynamic>> defaultPlatformSettingsFirestoreEntries() {
-  return defaultPlatformSettingDefinitions
+List<Map<String, dynamic>> defaultOrgSettingsFirestoreEntries() {
+  return defaultOrgSettingDefinitions
       .map(
-        (PlatformSettingDefinition d) => <String, dynamic>{
+        (OrgSettingDefinition d) => <String, dynamic>{
           'key': d.key,
           'displayName': d.displayName,
           'value': d.defaultValue,

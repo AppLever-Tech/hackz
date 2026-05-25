@@ -1,4 +1,4 @@
-enum PlatformSettingValueType {
+enum OrgSettingValueType {
   boolean,
   integer,
   double,

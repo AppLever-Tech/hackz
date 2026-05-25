@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../models/enums/platform_setting_value_type.dart';
-import '../../models/platform_setting_definition.dart';
-import '../../utils/platform_settings_service.dart';
-import '../../utils/platform_settings_validators.dart';
+import '../models/enums/org_setting_value_type.dart';
+import '../models/org_setting_definition.dart';
+import '../services/org_settings_service.dart';
+import '../services/org_settings_validators.dart';
 import 'settings_number_stepper.dart';
 import 'settings_slider_tile.dart';
 import 'settings_string_list_tile.dart';
 import 'settings_switch_tile.dart';
 import 'settings_tile.dart';
 
-class PlatformSettingValueTile extends StatefulWidget {
-  const PlatformSettingValueTile({
+class OrgSettingValueTile extends StatefulWidget {
+  const OrgSettingValueTile({
     super.key,
     required this.definition,
     this.persistImmediately = true,
@@ -24,21 +24,21 @@ class PlatformSettingValueTile extends StatefulWidget {
           'onLocalCoerced is required when persistImmediately is false',
         );
 
-  final PlatformSettingDefinition definition;
+  final OrgSettingDefinition definition;
   final bool persistImmediately;
   final Object? resolvedValue;
   final void Function(Object? coerced)? onLocalCoerced;
 
   @override
-  State<PlatformSettingValueTile> createState() => _PlatformSettingValueTileState();
+  State<OrgSettingValueTile> createState() => _OrgSettingValueTileState();
 }
 
-class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
+class _OrgSettingValueTileState extends State<OrgSettingValueTile> {
   bool _busy = false;
 
   Future<void> _persist(Object? value) async {
     setState(() => _busy = true);
-    final String? err = await PlatformSettingsService.instance.updateValue(widget.definition.key, value);
+    final String? err = await OrgSettingsService.instance.updateValue(widget.definition.key, value);
     setState(() => _busy = false);
     if (!mounted) return;
     if (err != null) {
@@ -47,9 +47,9 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
   }
 
   void _applyLocalOrPersist(Object? value) {
-    final PlatformSettingDefinition d = widget.definition;
+    final OrgSettingDefinition d = widget.definition;
     Object? coerced;
-    final String? err = PlatformSettingsValidators.validateAndCoerce(d, value, (c) => coerced = c);
+    final String? err = OrgSettingsValidators.validateAndCoerce(d, value, (c) => coerced = c);
     if (err != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
       return;
@@ -62,11 +62,11 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
   }
 
   Object? _rawForDisplay() {
-    final PlatformSettingDefinition d = widget.definition;
+    final OrgSettingDefinition d = widget.definition;
     if (!widget.persistImmediately) {
-      return widget.resolvedValue ?? PlatformSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
+      return widget.resolvedValue ?? OrgSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
     }
-    return PlatformSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
+    return OrgSettingsService.instance.valuesSnapshot[d.key] ?? d.defaultValue;
   }
 
   int _sliderDivisions(double min, double max, double step) {
@@ -77,11 +77,11 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
 
   @override
   Widget build(BuildContext context) {
-    final PlatformSettingDefinition d = widget.definition;
+    final OrgSettingDefinition d = widget.definition;
     final Object? raw = _rawForDisplay();
 
     switch (d.type) {
-      case PlatformSettingValueType.boolean:
+      case OrgSettingValueType.boolean:
         final bool v = raw is bool ? raw : (d.defaultValue as bool);
         return SettingsSwitchTile(
           title: d.displayName,
@@ -90,7 +90,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
           loading: _busy,
           onChanged: (bool next) => _applyLocalOrPersist(next),
         );
-      case PlatformSettingValueType.integer:
+      case OrgSettingValueType.integer:
         final int min = (d.min ?? 0).toInt();
         final int max = (d.max ?? 999).toInt();
         final int step = (d.step ?? 1).toInt().clamp(1, max);
@@ -108,7 +108,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
             onChanged: (int next) => _applyLocalOrPersist(next),
           ),
         );
-      case PlatformSettingValueType.double:
+      case OrgSettingValueType.double:
         final double min = (d.min ?? 0).toDouble();
         final double max = (d.max ?? 1).toDouble();
         final double step = (d.step ?? 0.05).toDouble();
@@ -128,7 +128,7 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
             _applyLocalOrPersist(snapped.clamp(min, max));
           },
         );
-      case PlatformSettingValueType.stringList:
+      case OrgSettingValueType.stringList:
         final List<String> list = raw is List
             ? raw.map((e) => e.toString()).toList(growable: false)
             : List<String>.from(
@@ -142,12 +142,12 @@ class _PlatformSettingValueTileState extends State<PlatformSettingValueTile> {
           onCommit: (List<String> next) async {
             if (widget.persistImmediately) {
               setState(() => _busy = true);
-              final String? err = await PlatformSettingsService.instance.updateValue(d.key, next);
+              final String? err = await OrgSettingsService.instance.updateValue(d.key, next);
               setState(() => _busy = false);
               return err;
             }
             Object? coerced;
-            final String? validationErr = PlatformSettingsValidators.validateAndCoerce(d, next, (c) => coerced = c);
+            final String? validationErr = OrgSettingsValidators.validateAndCoerce(d, next, (c) => coerced = c);
             if (validationErr != null) return validationErr;
             widget.onLocalCoerced?.call(coerced);
             return null;

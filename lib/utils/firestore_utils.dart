@@ -33,8 +33,6 @@ class FirestoreUtils {
   static const String hkzAttachments = 'hkzAttachments';
   /// Generic workflow / approval requests (team changes, future payment / idea / extension approvals).
   static const String hkzRequests = 'hkzRequests';
-  /// Single-doc platform configuration for SysAdmin (`config`).
-  static const String hkzPlatformSettings = 'hkzPlatformSettings';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);
@@ -332,12 +330,16 @@ class FirestoreUtils {
     return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
 
-  static Future<void> upsertOrganization(OrganizationModel org) async {
+  /// Returns the resolved organization id (newly generated for inserts or
+  /// the existing id for edits). Callers can chain post-create work such as
+  /// seeding per-org settings.
+  static Future<String> upsertOrganization(OrganizationModel org) async {
     final docRef = org.id.isEmpty
         ? _db.collection(hkzOrganizations).doc()
         : _db.collection(hkzOrganizations).doc(org.id);
     final payload = org.copyWith(id: docRef.id).toMap();
     await docRef.set(payload, SetOptions(merge: true));
+    return docRef.id;
   }
 
   static Future<void> deleteOrganization(String orgId) async {

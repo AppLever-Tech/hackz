@@ -5,6 +5,7 @@ import '../../constants/app_icons.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
+import '../../features/org_settings/collegeadmin/org_settings_dashboard.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../utils/problem_role_config.dart';
@@ -89,6 +90,12 @@ class CollegeAdminDashboard extends StatelessWidget {
         }
         if (selectedMenuIndex == 4) {
           return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 5) {
+          return OrgSettingsDashboard(
             key: ValueKey<int>(refreshToken),
             user: user,
           );

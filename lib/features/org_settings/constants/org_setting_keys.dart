@@ -1,6 +1,7 @@
-/// Centralized Firestore keys for `hkzPlatformSettings/config`.
-abstract final class PlatformSettingKeys {
-  PlatformSettingKeys._();
+/// Centralized keys for the per-org settings document.
+/// Stored under `hkzOrganizations/{orgId}/settings/org_settings`.
+abstract final class OrgSettingKeys {
+  OrgSettingKeys._();
 
   // Team — formation
   static const String minStudentsPerTeam = 'minStudentsPerTeam';

@@ -7,8 +7,8 @@ import '../../models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../utils/faculty_teams_service.dart';
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../utils/judge_evaluation_service.dart';
-import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/responsive/responsive_dashboard_layout.dart';
 import '../../workspace/workspace.dart';
@@ -93,7 +93,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   }
 
   Future<void> _logout(BuildContext context) async {
-    PlatformSettingsService.instance.clearCache();
+    OrgSettingsService.instance.clearCache();
     SysAdminDashboardService.clearCache();
     DepartmentDashboardService.clearCache();
     FacultyTeamsService.clearCache();
@@ -179,7 +179,6 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
-            DashboardMenuItem(label: 'Platform settings', icon: AppIcons.platformSettings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -191,6 +190,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
+            DashboardMenuItem(label: 'Org Settings', icon: AppIcons.orgSettings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
