@@ -31,6 +31,7 @@ class ProblemWorkspaceViewModel {
     required this.verifiedPayments,
     required this.totalPayments,
     required this.topIdeas,
+    required this.allIdeas,
     required this.coordinatorCount,
     required this.judgeCount,
   });
@@ -53,6 +54,7 @@ class ProblemWorkspaceViewModel {
   final int verifiedPayments;
   final int totalPayments;
   final List<ProblemIdeaPreview> topIdeas;
+  final List<ProblemIdeaPreview> allIdeas;
   final int coordinatorCount;
   final int judgeCount;
 }
@@ -152,7 +154,7 @@ abstract final class ProblemWorkspaceLoader {
     final int evaluatedIdeas = ideas.where((IdeaModel i) => scoresByIdea[i.ideaId]?.isNotEmpty == true).length;
     final int verifiedPayments = payments.where((PaymentModel p) => p.status == PaymentRecordStatus.verified).length;
 
-    final List<ProblemIdeaPreview> topIdeas = ideas.take(5).map((IdeaModel idea) {
+    final List<ProblemIdeaPreview> allIdeas = ideas.map((IdeaModel idea) {
       final UserModel? creator = usersById[idea.createdBy];
       final List<ScoreModel> sc = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
       final double? avg = sc.isEmpty ? null : sc.map((ScoreModel e) => e.score).reduce((double a, double b) => a + b) / sc.length;
@@ -163,6 +165,8 @@ abstract final class ProblemWorkspaceLoader {
         avgScore: avg,
       );
     }).toList(growable: false);
+
+    final List<ProblemIdeaPreview> topIdeas = allIdeas.take(5).toList(growable: false);
 
     final String dept = model.departmentCode.trim().toUpperCase();
     final int coordinators =
@@ -193,6 +197,7 @@ abstract final class ProblemWorkspaceLoader {
       verifiedPayments: verifiedPayments,
       totalPayments: payments.length,
       topIdeas: topIdeas,
+      allIdeas: allIdeas,
       coordinatorCount: coordinators,
       judgeCount: judges,
     );

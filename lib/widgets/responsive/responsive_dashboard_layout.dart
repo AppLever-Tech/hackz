@@ -15,6 +15,7 @@ class ResponsiveDashboardLayout extends StatefulWidget {
     required this.onLogout,
     required this.header,
     required this.body,
+    this.panelOverlay,
   });
 
   final List<DashboardMenuItem> primaryMenus;
@@ -24,6 +25,9 @@ class ResponsiveDashboardLayout extends StatefulWidget {
   final VoidCallback onLogout;
   final Widget header;
   final Widget body;
+
+  /// Covers the entire main panel (header + body), e.g. problem statement details.
+  final Widget? panelOverlay;
 
   @override
   State<ResponsiveDashboardLayout> createState() => _ResponsiveDashboardLayoutState();
@@ -96,7 +100,7 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
       header = _MobileMenuHeaderRow(onOpenMenu: onOpenMenu, child: header);
     }
 
-    return Container(
+    final Widget panel = Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(radius),
@@ -114,6 +118,30 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
           ],
         ),
       ),
+    );
+
+    final Widget? overlay = widget.panelOverlay;
+    if (overlay == null) {
+      return panel;
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        panel,
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(radius),
+            child: Material(
+              color: Colors.white,
+              child: Padding(
+                padding: innerPadding,
+                child: overlay,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

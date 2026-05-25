@@ -4,9 +4,16 @@ import '../../constants/app_icons.dart';
 import 'problem_workspace.dart';
 
 class ProblemSummarySection extends StatelessWidget {
-  const ProblemSummarySection({super.key, required this.vm});
+  const ProblemSummarySection({
+    super.key,
+    required this.vm,
+    this.showMetaChips = true,
+    this.prominentDescription = false,
+  });
 
   final ProblemWorkspaceViewModel vm;
+  final bool showMetaChips;
+  final bool prominentDescription;
 
   @override
   Widget build(BuildContext context) {
@@ -20,23 +27,30 @@ class ProblemSummarySection extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.15),
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            _chip(AppIcons.problems, p.problemNumber.trim().isEmpty ? p.problemId : p.problemNumber),
-            _chip(AppIcons.departments, p.departmentDisplayName),
-            _chip(p.isActive ? AppIcons.statusApproved : AppIcons.statusInactive, p.isActive ? 'Active' : 'Inactive'),
-          ],
-        ),
+        if (showMetaChips) ...<Widget>[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              _chip(AppIcons.problems, p.problemNumber.trim().isEmpty ? p.problemId : p.problemNumber),
+              _chip(AppIcons.departments, p.departmentDisplayName),
+              _chip(p.isActive ? AppIcons.statusApproved : AppIcons.statusInactive, p.isActive ? 'Active' : 'Inactive'),
+            ],
+          ),
+        ],
         if (desc.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 10),
+          SizedBox(height: prominentDescription ? 12 : 10),
           Text(
             desc,
-            maxLines: 5,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF334155), fontWeight: FontWeight.w500),
+            maxLines: prominentDescription ? null : 5,
+            overflow: prominentDescription ? TextOverflow.visible : TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: prominentDescription ? 16 : 13,
+              height: prominentDescription ? 1.55 : 1.4,
+              color: const Color(0xFF1E293B),
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ],
       ],

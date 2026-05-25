@@ -20,7 +20,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
-import '../common/problem_statement/problem_statements_table_screen.dart';
+import '../common/problem_statements/problem_statements_table_screen.dart';
 import '../common/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
