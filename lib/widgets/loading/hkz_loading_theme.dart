@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 
 /// Visual tokens for Hackz async loading overlays.
 abstract final class HkzLoadingTheme {

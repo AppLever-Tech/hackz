@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../theme/auth_theme.dart';
+import '../../../core/theme/auth_theme.dart';
 import 'landing_pipeline_data.dart';
 
 /// Role pills arranged on an orbit around the Hackz logo (no connector lines).

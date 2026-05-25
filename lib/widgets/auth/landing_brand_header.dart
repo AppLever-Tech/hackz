@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 
 /// Logo and ambient brand shapes for mobile landing / auth entry.
 class LandingBrandHeader extends StatelessWidget {

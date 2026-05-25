@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../common/auth_page_layout.dart';
 import 'auth_gate.dart';
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 import '../../utils/auth_utils.dart';
 
 class OtpScreen extends StatefulWidget {

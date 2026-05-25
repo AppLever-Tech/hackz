@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/auth_theme.dart';
+import '../../../core/theme/auth_theme.dart';
 
 /// Full-page gradient shell with grid lines and radial glows (no images).
 class LandingBackgroundShell extends StatelessWidget {

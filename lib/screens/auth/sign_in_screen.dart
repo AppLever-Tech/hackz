@@ -5,7 +5,6 @@ import '../../models/enums/account_workspace_phase.dart';
 import '../../models/user_model.dart';
 import '../common/auth_page_layout.dart';
 import '../common/phone_number_field.dart';
-import '../../theme/auth_theme.dart';
 import '../../widgets/auth/auth_feature_strip.dart';
 import '../../utils/auth_utils.dart';
 import '../../utils/common_helpers.dart';

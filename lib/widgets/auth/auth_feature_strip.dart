@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 
 /// Horizontal feature highlights on the sign-in screen (matches landing palette).
 class AuthFeatureStrip extends StatelessWidget {

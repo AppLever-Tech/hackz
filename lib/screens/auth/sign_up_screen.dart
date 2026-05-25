@@ -8,7 +8,7 @@ import '../../models/department_model.dart';
 import '../../models/user_model.dart';
 import '../../constants/app_icons.dart';
 import '../common/auth_page_layout.dart';
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 import '../common/email_field.dart';
 import '../common/phone_number_field.dart';
 import 'otp_screen.dart';
