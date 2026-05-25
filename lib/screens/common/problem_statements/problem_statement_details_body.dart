@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+
+import '../../../constants/app_icons.dart';
+import '../../../widgets/common/rich_tabs.dart';
+import '../../../workspace/problem/problem_workspace_loader.dart';
+import 'lifecycle_tab.dart';
+import 'problem_details_tab.dart';
+import 'submitted_idea_tab.dart';
+
+/// Tabbed body for the problem statement details pane.
+class ProblemStatementDetailsBody extends StatelessWidget {
+  const ProblemStatementDetailsBody({
+    super.key,
+    required this.vm,
+    required this.onBack,
+  });
+
+  final ProblemWorkspaceViewModel vm;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final String psNumber = vm.problem.problemNumber.trim();
+    final String category = vm.problem.category.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              IconButton(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to Problem Statements',
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.all(8),
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              ),
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    if (psNumber.isNotEmpty)
+                      _MetaChip(
+                        icon: AppIcons.problems,
+                        label: 'PS #$psNumber',
+                        color: const Color(0xFF6A38FF),
+                      ),
+                    _MetaChip(
+                      icon: AppIcons.departments,
+                      label: vm.problem.departmentDisplayName.trim().isEmpty
+                          ? '—'
+                          : vm.problem.departmentDisplayName.trim(),
+                      color: const Color(0xFF475569),
+                    ),
+                    if (category.isNotEmpty)
+                      _MetaChip(
+                        icon: AppIcons.orgType,
+                        label: category,
+                        color: const Color(0xFF0EA5E9),
+                      ),
+                    _MetaChip(
+                      icon: vm.problem.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
+                      label: vm.problem.isActive ? 'Active' : 'Inactive',
+                      color: vm.problem.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: RichTabs(
+              tabs: <RichTabItem>[
+                const RichTabItem('Problem Details'),
+                RichTabItem('Submitted Ideas', count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length),
+                const RichTabItem('Problem Lifecycle'),
+              ],
+              children: <Widget>[
+                ProblemDetailsTab(vm: vm),
+                SubmittedIdeaTab(vm: vm),
+                LifecycleTab(vm: vm),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
