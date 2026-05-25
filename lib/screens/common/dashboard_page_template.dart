@@ -13,6 +13,8 @@ import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/responsive/responsive_dashboard_layout.dart';
 import '../../workspace/workspace.dart';
 import '../auth/landing_screen.dart';
+import 'dashboard_chrome_controller.dart';
+import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
@@ -36,6 +38,13 @@ class DashboardPageTemplate extends StatefulWidget {
 class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   int _refreshToken = 0;
   int _selectedPrimaryMenuIndex = 0;
+  final DashboardChromeController _chromeController = DashboardChromeController();
+
+  @override
+  void dispose() {
+    _chromeController.dispose();
+    super.dispose();
+  }
 
   String _roleDisplayName(UserRole role) {
     switch (role) {
@@ -113,28 +122,41 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
     final IconData selectedMenuIcon = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].icon;
 
-    return ResponsiveDashboardLayout(
-      primaryMenus: menuConfig.primaryMenus,
-      secondaryMenus: menuConfig.secondaryMenus,
-      selectedPrimaryIndex: _selectedPrimaryMenuIndex,
-      onPrimaryMenuSelected: (int index) {
-        if (index != _selectedPrimaryMenuIndex) {
-          WorkspaceController.instance.close();
-        }
-        setState(() => _selectedPrimaryMenuIndex = index);
-      },
-      onLogout: () => _logout(context),
-      header: TopHeaderWidget(
-        title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
-        titleIcon: selectedMenuIcon,
-        subtitle: isDashboardTab ? roleName : '',
-        dateText: longDate,
-        onRefresh: () => setState(() => _refreshToken++),
-      ),
-      body: widget.bodyBuilder(
-        context,
-        _refreshToken,
-        _selectedPrimaryMenuIndex,
+    return DashboardChromeScope(
+      controller: _chromeController,
+      child: ListenableBuilder(
+        listenable: _chromeController,
+        builder: (BuildContext context, Widget? child) {
+          return ResponsiveDashboardLayout(
+            primaryMenus: menuConfig.primaryMenus,
+            secondaryMenus: menuConfig.secondaryMenus,
+            selectedPrimaryIndex: _selectedPrimaryMenuIndex,
+            onPrimaryMenuSelected: (int index) {
+              if (index != _selectedPrimaryMenuIndex) {
+                WorkspaceController.instance.close();
+                _chromeController.clearOverlay();
+              }
+              setState(() => _selectedPrimaryMenuIndex = index);
+            },
+            onLogout: () => _logout(context),
+            header: TopHeaderWidget(
+              title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
+              titleIcon: selectedMenuIcon,
+              subtitle: isDashboardTab ? roleName : '',
+              dateText: longDate,
+              onRefresh: () {
+                _chromeController.clearOverlay();
+                setState(() => _refreshToken++);
+              },
+            ),
+            body: widget.bodyBuilder(
+              context,
+              _refreshToken,
+              _selectedPrimaryMenuIndex,
+            ),
+            panelOverlay: _chromeController.overlay,
+          );
+        },
       ),
     );
   }
@@ -191,6 +213,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
             DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
+            DashboardMenuItem(label: 'Problem Statements', icon: Icons.table_rows_outlined),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],

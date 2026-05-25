@@ -20,7 +20,7 @@ class ProblemMetadataSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text('Metadata', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+        const Text('Other Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
         _row(AppIcons.organizations, 'Organization', vm.organizationName),
         _row(AppIcons.departments, 'Department', p.departmentDisplayName),
