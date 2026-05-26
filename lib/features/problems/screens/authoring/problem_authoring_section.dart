@@ -23,6 +23,11 @@ class AuthoringSectionStatus {
 }
 
 /// Premium expandable section card used in the problem authoring workspace.
+///
+/// Also drives read-only problem detail panes (see `ProblemSummarySection`).
+/// Set [collapsible] to `false` for blocks that should always be open and
+/// don't show the chevron / aren't tappable — e.g. the always-visible
+/// "Description" header on the problem details surface.
 class ProblemAuthoringSection extends StatelessWidget {
   const ProblemAuthoringSection({
     super.key,
@@ -36,6 +41,7 @@ class ProblemAuthoringSection extends StatelessWidget {
     required this.onToggle,
     required this.child,
     this.headerHint,
+    this.collapsible = true,
   });
 
   final String title;
@@ -52,8 +58,87 @@ class ProblemAuthoringSection extends StatelessWidget {
   /// for the first time. Optional.
   final String? headerHint;
 
+  /// When `false`, the header is non-interactive, no chevron is shown, and
+  /// the body is always visible. Kept default `true` so existing authoring
+  /// call-sites remain unchanged.
+  final bool collapsible;
+
   @override
   Widget build(BuildContext context) {
+    final bool effectiveExpanded = !collapsible || expanded;
+    final Widget header = Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 19, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF64748B),
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          AuthoringStatusChip(status: status),
+          if (collapsible) ...<Widget>[
+            const SizedBox(width: 6),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: const Duration(milliseconds: 220),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final Widget bodyContent = Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (headerHint != null) ...<Widget>[
+            _AuthoringSectionHint(text: headerHint!),
+            const SizedBox(height: 12),
+          ],
+          child,
+        ],
+      ),
+    );
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeInOut,
@@ -61,13 +146,14 @@ class ProblemAuthoringSection extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: expanded ? const Color(0xFFD9D3FF) : const Color(0xFFE6EAF3),
-          width: expanded ? 1.4 : 1,
+          color: effectiveExpanded ? const Color(0xFFD9D3FF) : const Color(0xFFE6EAF3),
+          width: effectiveExpanded ? 1.4 : 1,
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: const Color(0xFF273B6A).withValues(alpha: expanded ? 0.10 : 0.05),
-            blurRadius: expanded ? 18 : 10,
+            color: const Color(0xFF273B6A)
+                .withValues(alpha: effectiveExpanded ? 0.10 : 0.05),
+            blurRadius: effectiveExpanded ? 18 : 10,
             offset: const Offset(0, 6),
           ),
         ],
@@ -75,86 +161,25 @@ class ProblemAuthoringSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: iconBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, size: 19, color: iconColor),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            color: Color(0xFF64748B),
-                            height: 1.35,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  AuthoringStatusChip(status: status),
-                  const SizedBox(width: 6),
-                  AnimatedRotation(
-                    turns: expanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 220),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 220),
-            sizeCurve: Curves.easeInOutCubic,
-            crossFadeState:
-                expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            firstChild: const SizedBox(width: double.infinity),
-            secondChild: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (headerHint != null) ...<Widget>[
-                    _AuthoringSectionHint(text: headerHint!),
-                    const SizedBox(height: 12),
-                  ],
-                  child,
-                ],
-              ),
-            ),
-          ),
+          if (collapsible)
+            InkWell(
+              onTap: onToggle,
+              borderRadius: BorderRadius.circular(20),
+              child: header,
+            )
+          else
+            header,
+          if (collapsible)
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 220),
+              sizeCurve: Curves.easeInOutCubic,
+              crossFadeState:
+                  expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+              firstChild: const SizedBox(width: double.infinity),
+              secondChild: bodyContent,
+            )
+          else
+            bodyContent,
         ],
       ),
     );
