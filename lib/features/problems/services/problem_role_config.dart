@@ -1,6 +1,6 @@
-import '../models/enums/user_role.dart';
+import '../../../models/enums/user_role.dart';
+import '../../../models/user_model.dart';
 import '../models/problem_list_config.dart';
-import '../models/user_model.dart';
 
 class ProblemRoleConfig {
   ProblemRoleConfig._();

@@ -2,17 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../constants/problem_constants.dart';
-import '../../../models/attachment_model.dart';
-import '../../../models/enums/user_role.dart';
-import '../../../models/problem_model.dart';
-import '../../../models/user_model.dart';
-import '../../../responsive/responsive_helper.dart';
-import '../../../utils/attachment_service.dart';
-import '../../../utils/firestore_utils.dart';
-import '../../../utils/problem_utils.dart';
-import '../../../widgets/attachment_upload_preview.dart';
+import '../../../../constants/app_icons.dart';
+import '../../../../models/attachment_model.dart';
+import '../../../../models/enums/user_role.dart';
+import '../../../../models/user_model.dart';
+import '../../../../responsive/responsive_helper.dart';
+import '../../../../utils/attachment_service.dart';
+import '../../../../utils/firestore_utils.dart';
+import '../../../../widgets/attachment_upload_preview.dart';
+import '../../../org_settings/constants/org_setting_keys.dart';
+import '../../../org_settings/services/org_settings_service.dart';
+import '../../constants/problem_constants.dart';
+import '../../models/problem_model.dart';
+import '../../services/problem_utils.dart';
+import '../../validators/problem_authoring_validators.dart';
 import 'problem_authoring_inputs.dart';
 import 'problem_authoring_section.dart';
 
@@ -45,6 +48,9 @@ enum _AuthoringSectionId {
   innovationContext,
   expectedOutcomes,
   constraints,
+  submissionControls,
+  teamRules,
+  techStack,
   classification,
   resources,
   attachments,
@@ -91,6 +97,24 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   // Section 7 - Attachments
   final List<PlatformFile> _attachments = <PlatformFile>[];
 
+  // Submission Controls (org-scoped — prefilled from OrgSettings on init).
+  final TextEditingController _maxIdeasController = TextEditingController();
+  DateTime? _ideaSubmissionDeadline;
+
+  // Team Rules (org-scoped overrides per-problem).
+  int? _minTeamSize;
+  int? _maxTeamSize;
+
+  // Tech Stack (free chip input).
+  List<String> _preferredTechStack = <String>[];
+
+  // Org-level bounds cached after settings load — used for stepper limits and
+  // validation. Default values match the org-settings defaults so the
+  // workspace stays usable even if the settings load fails.
+  int _orgMaxAllowedIdeas = 50;
+  int _orgMinTeamSize = 1;
+  int _orgMaxTeamSize = 30;
+
   // Workspace state
   bool _isActive = true;
   bool _isLoadingDepartments = true;
@@ -110,6 +134,13 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   static const List<String> _technologySuggestions = <String>[
     'AI/ML', 'IoT', 'GIS', 'Robotics', 'Cloud', 'Blockchain',
     'AR/VR', 'Mobile', 'Data Science', 'Cybersecurity',
+  ];
+  // Same shape as the suggested-technologies catalog above but used by the
+  // dedicated "Preferred tech stack" section. Kept separate so authors can
+  // mix-and-match without the lists colliding when both are edited.
+  static const List<String> _techStackSuggestions = <String>[
+    'Flutter', 'AI/ML', 'IoT', 'Cloud', 'Cybersecurity',
+    'Mobile', 'Web', 'Data Science', 'AR/VR', 'Blockchain',
   ];
 
   @override
@@ -141,11 +172,51 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       _contactController.text = p.contactInformation;
       _referenceLinks = List<String>.from(p.referenceLinks);
       _isActive = p.isActive;
+
+      // Section 8 — Submission Controls / Team Rules / Tech Stack.
+      if (p.maxIdeasAllowed != null) {
+        _maxIdeasController.text = p.maxIdeasAllowed.toString();
+      }
+      _ideaSubmissionDeadline = p.ideaSubmissionDeadline;
+      _minTeamSize = p.minTeamSize;
+      _maxTeamSize = p.maxTeamSize;
+      _preferredTechStack = List<String>.from(p.preferredTechStack);
     }
     for (final c in _allControllers) {
       c.addListener(_onAnyControllerChanged);
     }
     _loadDepartments();
+    _loadOrgSettingsBounds();
+  }
+
+  /// Reads submission-control + team-size bounds from `OrgSettingsService` so
+  /// the new sections can prefill defaults and validate against the org caps.
+  ///
+  /// Existing problems keep their already-saved override; new problems get
+  /// the org `defaultMaxIdeasPerProblem` prefilled into the input.
+  Future<void> _loadOrgSettingsBounds() async {
+    try {
+      await OrgSettingsService.instance.ensureLoaded(orgId: widget.currentUser.orgId);
+      if (!mounted) return;
+      final Map<String, dynamic> values = OrgSettingsService.instance.valuesSnapshot;
+      final int defMax = (values[OrgSettingKeys.defaultMaxIdeasPerProblem] as num?)?.toInt() ?? 50;
+      final int maxAllowed = (values[OrgSettingKeys.maxAllowedIdeasPerProblem] as num?)?.toInt() ?? 50;
+      final int orgMinTeam = (values[OrgSettingKeys.minStudentsPerTeam] as num?)?.toInt() ?? 1;
+      final int orgMaxTeam = (values[OrgSettingKeys.maxStudentsPerTeam] as num?)?.toInt() ?? 30;
+      setState(() {
+        _orgMaxAllowedIdeas = maxAllowed;
+        _orgMinTeamSize = orgMinTeam;
+        _orgMaxTeamSize = orgMaxTeam;
+        // Prefill `max ideas allowed` only on create — never override an
+        // existing per-problem value.
+        if (!_isEdit && _maxIdeasController.text.trim().isEmpty) {
+          _maxIdeasController.text = defMax.toString();
+        }
+      });
+    } catch (_) {
+      // Safe fallback values are already in place; suppress to avoid blocking
+      // the authoring flow on settings-load hiccups.
+    }
   }
 
   @override
@@ -175,6 +246,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         _youtubeController,
         _datasetController,
         _contactController,
+        _maxIdeasController,
       ];
 
   void _onAnyControllerChanged() {
@@ -280,6 +352,25 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         total: 1,
       );
 
+  AuthoringSectionStatus _submissionControlsStatus() {
+    int filled = 0;
+    if (_filled(_maxIdeasController.text)) filled++;
+    if (_ideaSubmissionDeadline != null) filled++;
+    return AuthoringSectionStatus(completed: filled, total: 2);
+  }
+
+  AuthoringSectionStatus _teamRulesStatus() {
+    int filled = 0;
+    if (_minTeamSize != null) filled++;
+    if (_maxTeamSize != null) filled++;
+    return AuthoringSectionStatus(completed: filled, total: 2);
+  }
+
+  AuthoringSectionStatus _techStackStatus() => AuthoringSectionStatus(
+        completed: _preferredTechStack.isEmpty ? 0 : 1,
+        total: 1,
+      );
+
   bool get _canPublish {
     if (_isSubmitting || _isLoadingDepartments) return false;
     if (!_filled(_titleController.text)) return false;
@@ -314,6 +405,28 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
 
   Future<void> _publish() async {
     if (!_canPublish) return;
+
+    // Centralized publish-time validation for the new submission-control,
+    // team-rules, and tech-stack fields. Returns early with a snackbar on
+    // the first violation so we don't fall back to a generic Firestore
+    // error later in the save path.
+    final int? maxIdeasValue = int.tryParse(_maxIdeasController.text.trim());
+    final List<String?> errors = <String?>[
+      ProblemAuthoringValidators.validateMaxIdeasAllowed(maxIdeasValue, _orgMaxAllowedIdeas),
+      ProblemAuthoringValidators.validateDeadline(_ideaSubmissionDeadline),
+      ProblemAuthoringValidators.validateTeamSize(
+        min: _minTeamSize,
+        max: _maxTeamSize,
+        orgMin: _orgMinTeamSize,
+        orgMax: _orgMaxTeamSize,
+      ),
+    ];
+    final String? firstError = errors.firstWhere((String? e) => e != null, orElse: () => null);
+    if (firstError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(firstError)));
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final problemNumber = _isEdit
@@ -369,6 +482,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         datasetLink: _datasetController.text.trim(),
         referenceLinks: _referenceLinks,
         contactInformation: _contactController.text.trim(),
+        maxIdeasAllowed: maxIdeasValue,
+        ideaSubmissionDeadline: _ideaSubmissionDeadline,
+        minTeamSize: _minTeamSize,
+        maxTeamSize: _maxTeamSize,
+        preferredTechStack: _preferredTechStack,
       );
 
       if (_isEdit) {
@@ -613,6 +731,46 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                     ),
                     const SizedBox(height: 12),
                     _buildSection(
+                      id: _AuthoringSectionId.submissionControls,
+                      title: 'Submission Controls',
+                      subtitle: 'Idea cap and submission deadline',
+                      icon: AppIcons.ideas,
+                      iconBg: const Color(0xFFEEF6FF),
+                      iconColor: const Color(0xFF1D4ED8),
+                      status: _submissionControlsStatus(),
+                      child: _buildSubmissionControls(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSection(
+                      id: _AuthoringSectionId.teamRules,
+                      title: 'Team Rules',
+                      subtitle: 'Minimum and maximum team size',
+                      icon: AppIcons.teams,
+                      iconBg: const Color(0xFFFFF1E5),
+                      iconColor: const Color(0xFFEA580C),
+                      status: _teamRulesStatus(),
+                      child: _buildTeamRules(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSection(
+                      id: _AuthoringSectionId.techStack,
+                      title: 'Preferred Tech Stack',
+                      subtitle: 'Technologies you\u2019d like to see in submissions',
+                      icon: AppIcons.insights,
+                      iconBg: const Color(0xFFF6F0FF),
+                      iconColor: const Color(0xFF7C3AED),
+                      status: _techStackStatus(),
+                      child: AuthoringChipInput(
+                        label: 'Preferred technologies',
+                        hint: 'Add a technology and press Enter',
+                        values: _preferredTechStack,
+                        suggestions: _techStackSuggestions,
+                        enabled: !_isSubmitting,
+                        onChanged: (next) => setState(() => _preferredTechStack = next),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSection(
                       id: _AuthoringSectionId.classification,
                       title: 'Classification',
                       subtitle: 'Department, category, theme, and tags',
@@ -728,6 +886,52 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       expanded: _expanded.contains(id),
       onToggle: () => _toggleSection(id),
       child: child,
+    );
+  }
+
+  Widget _buildSubmissionControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AuthoringPairRow(
+          first: AuthoringTextField(
+            controller: _maxIdeasController,
+            label: 'Max ideas allowed',
+            hint: 'e.g. 50 (org limit: $_orgMaxAllowedIdeas)',
+            prefixIcon: AppIcons.ideas,
+            enabled: !_isSubmitting,
+            keyboardType: const TextInputType.numberWithOptions(decimal: false, signed: false),
+          ),
+          second: AuthoringDeadlinePickerField(
+            value: _ideaSubmissionDeadline,
+            enabled: !_isSubmitting,
+            onChanged: (DateTime? next) => setState(() => _ideaSubmissionDeadline = next),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeamRules() {
+    return AuthoringPairRow(
+      first: AuthoringNumberStepperField(
+        label: 'Minimum team size',
+        value: _minTeamSize,
+        min: _orgMinTeamSize,
+        max: _orgMaxTeamSize,
+        placeholderHint: 'Org default: $_orgMinTeamSize',
+        enabled: !_isSubmitting,
+        onChanged: (int? v) => setState(() => _minTeamSize = v),
+      ),
+      second: AuthoringNumberStepperField(
+        label: 'Maximum team size',
+        value: _maxTeamSize,
+        min: _orgMinTeamSize,
+        max: _orgMaxTeamSize,
+        placeholderHint: 'Org default: $_orgMaxTeamSize',
+        enabled: !_isSubmitting,
+        onChanged: (int? v) => setState(() => _maxTeamSize = v),
+      ),
     );
   }
 

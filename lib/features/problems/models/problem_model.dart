@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'department_model.dart';
+import '../../../models/department_model.dart';
 
 class ProblemModel {
   const ProblemModel({
@@ -36,6 +36,11 @@ class ProblemModel {
     this.datasetLink = '',
     this.referenceLinks = const <String>[],
     this.contactInformation = '',
+    this.maxIdeasAllowed,
+    this.ideaSubmissionDeadline,
+    this.minTeamSize,
+    this.maxTeamSize,
+    this.preferredTechStack = const <String>[],
   });
 
   final String problemId;
@@ -79,6 +84,21 @@ class ProblemModel {
   final List<String> referenceLinks;
   final String contactInformation;
 
+  /// Submission controls — when `null`, the org-level default applies.
+  /// `maxIdeasAllowed` caps the total number of ideas submitted against this
+  /// problem; `ideaSubmissionDeadline` cuts off submissions after the given
+  /// instant.
+  final int? maxIdeasAllowed;
+  final DateTime? ideaSubmissionDeadline;
+
+  /// Team rules — when `null`, the org-level team-size bounds apply.
+  final int? minTeamSize;
+  final int? maxTeamSize;
+
+  /// Free-text chip list — tech stacks the problem author would like to see
+  /// in submitted ideas (e.g. "Flutter", "AI/ML", "IoT").
+  final List<String> preferredTechStack;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'problemId': problemId,
@@ -112,6 +132,12 @@ class ProblemModel {
       'datasetLink': datasetLink,
       'referenceLinks': referenceLinks,
       'contactInformation': contactInformation,
+      'maxIdeasAllowed': maxIdeasAllowed,
+      'ideaSubmissionDeadline':
+          ideaSubmissionDeadline == null ? null : Timestamp.fromDate(ideaSubmissionDeadline!),
+      'minTeamSize': minTeamSize,
+      'maxTeamSize': maxTeamSize,
+      'preferredTechStack': preferredTechStack,
     };
   }
 
@@ -160,6 +186,11 @@ class ProblemModel {
       datasetLink: str('datasetLink'),
       referenceLinks: stringList('referenceLinks'),
       contactInformation: str('contactInformation'),
+      maxIdeasAllowed: (map['maxIdeasAllowed'] as num?)?.toInt(),
+      ideaSubmissionDeadline: (map['ideaSubmissionDeadline'] as Timestamp?)?.toDate(),
+      minTeamSize: (map['minTeamSize'] as num?)?.toInt(),
+      maxTeamSize: (map['maxTeamSize'] as num?)?.toInt(),
+      preferredTechStack: stringList('preferredTechStack'),
     );
   }
 

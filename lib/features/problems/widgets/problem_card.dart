@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/common/form_value_row.dart';
 import '../models/problem_model.dart';
-import '../screens/common/dashboard_components.dart';
-import 'common/entity_card_pills.dart';
-import 'common/context_pill_theme.dart';
-import 'common/form_value_row.dart';
+import '../validators/problem_submission_validators.dart';
+import 'problem_submission_status_pill.dart';
 
 class ProblemCard extends StatelessWidget {
   const ProblemCard({
@@ -18,6 +20,7 @@ class ProblemCard extends StatelessWidget {
     this.canDelete = false,
     this.onEdit,
     this.onDelete,
+    this.gate,
   });
 
   final ProblemModel problem;
@@ -28,6 +31,12 @@ class ProblemCard extends StatelessWidget {
   final bool canDelete;
   final ValueChanged<ProblemModel>? onEdit;
   final ValueChanged<ProblemModel>? onDelete;
+
+  /// Submission-control snapshot computed by the host list screen. When
+  /// non-null, drives the in-card status indicator and Submit button states;
+  /// when null, the card renders without these affordances (backward
+  /// compatible with consumers that haven't been migrated).
+  final IdeaSubmissionGate? gate;
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +93,11 @@ class ProblemCard extends StatelessWidget {
               ],
             ],
           ),
-          if (showSubmitIdea && onSubmitIdea != null) ...<Widget>[
+          if (showSubmitIdea) ...<Widget>[
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: onSubmitIdea,
-                icon: const Icon(AppIcons.ideas, size: 18),
-                label: const Text('Submit Idea'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 36),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+              child: _buildSubmitButton(),
             ),
           ],
         ],
@@ -128,12 +129,16 @@ class ProblemCard extends StatelessWidget {
     required String theme,
     required List<String> tags,
   }) {
+    final IdeaSubmissionGate? g = gate;
     final List<Widget> pills = <Widget>[
       EntityCardPills.meta(department, icon: AppIcons.departments),
       EntityCardPills.meta(category, icon: AppIcons.orgType),
       EntityCardPills.meta(theme, icon: AppIcons.insights),
+      // Submission status pill is placed up-front so it stays visible when the
+      // tag list pushes the meta row into horizontal scroll.
+      if (g != null) ProblemSubmissionStatusPill(gate: g),
       ...tags.map((String tag) => EntityCardPills.meta(tag)),
-      if (tags.isEmpty) EntityCardPills.meta('No tags'),
+      if (tags.isEmpty && g == null) EntityCardPills.meta('No tags'),
     ];
 
     return SingleChildScrollView(
@@ -143,6 +148,51 @@ class ProblemCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: _spacedMetaPills(pills),
+      ),
+    );
+  }
+
+  /// Renders the Submit button in one of three states keyed off [gate]:
+  ///   * open / no-gate            → enabled "Submit Idea" (existing behaviour)
+  ///   * limitReached              → disabled "Idea Limit Reached"
+  ///   * deadlinePassed / inactive → disabled "Submission Closed"
+  ///
+  /// When [onSubmitIdea] is null the button is rendered disabled regardless
+  /// of gate state (mirrors the previous behaviour for callers that don't
+  /// supply a handler).
+  Widget _buildSubmitButton() {
+    final IdeaSubmissionGate? g = gate;
+    final bool defaultDisabled = onSubmitIdea == null;
+    String label = 'Submit Idea';
+    IconData icon = AppIcons.ideas;
+    bool disabled = defaultDisabled;
+
+    if (g != null) {
+      switch (g.state) {
+        case IdeaSubmissionGateState.open:
+          // Keep defaults.
+          break;
+        case IdeaSubmissionGateState.limitReached:
+          label = 'Idea Limit Reached';
+          icon = Icons.block_rounded;
+          disabled = true;
+          break;
+        case IdeaSubmissionGateState.deadlinePassed:
+        case IdeaSubmissionGateState.inactive:
+          label = 'Submission Closed';
+          icon = Icons.lock_outline_rounded;
+          disabled = true;
+          break;
+      }
+    }
+
+    return FilledButton.icon(
+      onPressed: disabled ? null : onSubmitIdea,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 36),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

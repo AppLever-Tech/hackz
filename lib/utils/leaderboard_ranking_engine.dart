@@ -1,6 +1,6 @@
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
-import '../models/problem_model.dart';
+import '../features/problems/models/problem_model.dart';
 
 /// Extensible weighted ranking for innovation leaderboard showcase.
 /// Default: 70% evaluation, 20% innovation/completeness, 10% submission & payment completeness.

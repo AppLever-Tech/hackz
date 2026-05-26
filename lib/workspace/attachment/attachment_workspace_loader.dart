@@ -4,7 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../models/attachment_model.dart';
 import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
-import '../../models/problem_model.dart';
+import '../../features/problems/models/problem_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/common_helpers.dart';

@@ -2,25 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/attachment_model.dart';
-import '../../models/problem_list_config.dart';
-import '../../models/problem_model.dart';
-import '../../models/enums/user_role.dart';
-import '../../models/user_model.dart';
-import '../../utils/attachment_service.dart';
-import '../../utils/firestore_utils.dart';
-import '../../utils/problem_query_service.dart';
-import '../../widgets/problem_card.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
-import '../../widgets/faculty/innovation_submission_workspace.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
-import '../problems/authoring/problem_authoring_workspace.dart';
-import 'app_dialog_template.dart';
-import 'dashboard_components.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/attachment_model.dart';
+import '../../../models/enums/user_role.dart';
+import '../../../models/user_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../utils/attachment_service.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../widgets/faculty/innovation_submission_workspace.dart';
+import '../../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../workspace/workspace.dart';
+import '../../org_settings/constants/org_setting_keys.dart';
+import '../../org_settings/services/org_settings_service.dart';
+import '../models/problem_list_config.dart';
+import '../models/problem_model.dart';
+import '../services/problem_query_service.dart';
+import '../validators/problem_submission_validators.dart';
+import '../widgets/problem_card.dart';
+import 'authoring/problem_authoring_workspace.dart';
 
 class ProblemsListScreen extends StatefulWidget {
   const ProblemsListScreen({
@@ -43,6 +46,8 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   Future<ProblemListQueryResult>? _problemsFuture;
   List<ProblemModel> _lastLoaded = <ProblemModel>[];
   ProblemDashboardMetrics _metrics = ProblemDashboardMetrics.empty;
+  Map<String, int> _ideaCountByProblemId = <String, int>{};
+  int _orgDefaultMaxIdeas = 50;
 
   bool _showFilters = false;
   bool? _statusFilter;
@@ -60,7 +65,27 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
         ? ProblemSortType.newest
         : widget.config.enabledSorts.first;
     _loadProblems();
+    _loadOrgDefaultMaxIdeas();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  /// Reads the org-scoped default-max-ideas setting so the per-problem
+  /// submission gate can fall back to it when a problem doesn't specify its
+  /// own cap. The widget keeps the previous value if the load fails so the
+  /// list stays interactive.
+  Future<void> _loadOrgDefaultMaxIdeas() async {
+    try {
+      await OrgSettingsService.instance.ensureLoaded(orgId: widget.config.orgId);
+      if (!mounted) return;
+      final Map<String, dynamic> values = OrgSettingsService.instance.valuesSnapshot;
+      final int defMax =
+          (values[OrgSettingKeys.defaultMaxIdeasPerProblem] as num?)?.toInt() ?? 50;
+      if (defMax != _orgDefaultMaxIdeas) {
+        setState(() => _orgDefaultMaxIdeas = defMax);
+      }
+    } catch (_) {
+      // Default of 50 already applied; leave silent.
+    }
   }
 
   @override
@@ -106,10 +131,16 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
   }
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
+    final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
+      problem: problem,
+      submittedCount: _ideaCountByProblemId[problem.problemId] ?? 0,
+      orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
+    );
     final created = await showInnovationSubmissionWorkspace(
       context: context,
       currentUser: widget.currentUser,
       problem: problem,
+      gate: gate,
     );
     if (created == true && mounted) _loadProblems();
   }
@@ -192,11 +223,12 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
             ProblemListQueryResult(
               items: _lastLoaded,
               metrics: _metrics,
-              ideaCountByProblemId: const <String, int>{},
+              ideaCountByProblemId: _ideaCountByProblemId,
             );
         final problems = result.items;
         _lastLoaded = problems;
         _metrics = result.metrics;
+        _ideaCountByProblemId = result.ideaCountByProblemId;
 
         final allDepartments = problems
             .map((p) => p.departmentDisplayName.trim())
@@ -220,6 +252,11 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                 itemBuilder: (context, index) {
                   final problem = problems[index];
                   final canEditProblem = _canEditProblem(problem);
+                  final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
+                    problem: problem,
+                    submittedCount: _ideaCountByProblemId[problem.problemId] ?? 0,
+                    orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: ProblemCard(
@@ -227,6 +264,9 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                       problem: problem,
                       onOpenProblem: () => WorkspaceNavigator.openProblem(context, problem.problemId),
                       showSubmitIdea: widget.config.canSubmitIdea && problem.isActive,
+                      // The card disables the Submit button itself when the
+                      // gate is closed; keep the callback wired in all cases
+                      // so the disabled label/state can be rendered correctly.
                       onSubmitIdea: widget.config.canSubmitIdea && problem.isActive
                           ? () => _openSubmitIdea(problem)
                           : null,
@@ -234,6 +274,7 @@ class _ProblemsListScreenState extends State<ProblemsListScreen> {
                       canDelete: widget.config.canToggleActive,
                       onEdit: canEditProblem ? _openEditProblem : null,
                       onDelete: widget.config.canToggleActive ? _deleteProblem : null,
+                      gate: gate,
                     ),
                   );
                 },

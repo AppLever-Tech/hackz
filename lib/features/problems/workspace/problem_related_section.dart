@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/idea_model.dart';
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/idea_model.dart';
+import '../../../widgets/common/context_pill.dart';
+import '../../../widgets/common/context_pill_theme.dart';
 import 'problem_workspace_loader.dart';
 
 class ProblemRelatedSection extends StatelessWidget {

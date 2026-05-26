@@ -616,3 +616,218 @@ class AuthoringPairRow extends StatelessWidget {
     );
   }
 }
+
+/// Compact date-picker surface used by the Submission Controls section.
+///
+/// Renders as a tappable pill with the same outlined-input visual language as
+/// the other Authoring* inputs. Tapping opens the native [showDatePicker];
+/// clearing the value is exposed via the trailing close button.
+class AuthoringDeadlinePickerField extends StatelessWidget {
+  const AuthoringDeadlinePickerField({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.label = 'Idea submission deadline',
+    this.hint = 'Pick a date',
+    this.enabled = true,
+  });
+
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+  final String label;
+  final String hint;
+  final bool enabled;
+
+  static String _format(DateTime dt) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${dt.year}-${two(dt.month)}-${two(dt.day)}';
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final DateTime now = DateTime.now();
+    final DateTime initial = value ?? now.add(const Duration(days: 7));
+    final DateTime picked = initial.isBefore(now) ? now : initial;
+    final DateTime? result = await showDatePicker(
+      context: context,
+      initialDate: picked,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 5, now.month, now.day),
+    );
+    if (result != null) onChanged(result);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasValue = value != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: enabled ? () => _pick(context) : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFCFDFF),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: <Widget>[
+                const Icon(Icons.event_outlined, size: 18, color: Color(0xFF64748B)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hasValue ? _format(value!) : hint,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: hasValue ? FontWeight.w700 : FontWeight.w500,
+                      color: hasValue ? const Color(0xFF1E293B) : Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+                if (hasValue)
+                  GestureDetector(
+                    onTap: enabled ? () => onChanged(null) : null,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 6),
+                      child: Icon(Icons.close_rounded, size: 16, color: Color(0xFF94A3B8)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Compact +/- stepper used by the Team Rules section.
+///
+/// `value == null` renders as a placeholder ("Use org default") so authors
+/// can leave the field unset and inherit org-level limits. Tapping +/-
+/// initialises from [min] / a sensible mid-point.
+class AuthoringNumberStepperField extends StatelessWidget {
+  const AuthoringNumberStepperField({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.placeholderHint = '',
+    this.enabled = true,
+  });
+
+  final String label;
+  final int? value;
+  final int min;
+  final int max;
+  final ValueChanged<int?> onChanged;
+  final String placeholderHint;
+  final bool enabled;
+
+  void _step(int delta) {
+    final int base = value ?? min;
+    final int next = (base + delta).clamp(min, max);
+    onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasValue = value != null;
+    final bool canDec = enabled && hasValue && value! > min;
+    final bool canInc = enabled && (!hasValue || value! < max);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 44,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFDFF),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: <Widget>[
+              _StepButton(
+                icon: Icons.remove_rounded,
+                enabled: canDec,
+                onPressed: canDec ? () => _step(-1) : null,
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    hasValue ? '$value' : (placeholderHint.isEmpty ? '—' : placeholderHint),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: hasValue ? FontWeight.w800 : FontWeight.w500,
+                      color: hasValue ? const Color(0xFF1E293B) : Colors.grey.shade500,
+                    ),
+                  ),
+                ),
+              ),
+              _StepButton(
+                icon: Icons.add_rounded,
+                enabled: canInc,
+                onPressed: canInc ? () => _step(1) : null,
+              ),
+              if (hasValue)
+                GestureDetector(
+                  onTap: enabled ? () => onChanged(null) : null,
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 8, left: 2),
+                    child: Icon(Icons.close_rounded, size: 14, color: Color(0xFF94A3B8)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, required this.enabled, required this.onPressed});
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? const Color(0xFF4338CA) : const Color(0xFFCBD5E1),
+        ),
+      ),
+    );
+  }
+}

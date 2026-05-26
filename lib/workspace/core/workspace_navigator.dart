@@ -5,7 +5,7 @@ import '../attachment/attachment_workspace.dart';
 import '../idea/idea_workspace.dart';
 import '../evaluation/evaluation_workspace.dart';
 import '../payment/payment_workspace.dart';
-import '../problem/problem_workspace.dart';
+import '../../features/problems/workspace/problem_workspace.dart';
 import '../team/team_workspace.dart';
 import '../user/user_workspace.dart';
 import 'workspace_controller.dart';

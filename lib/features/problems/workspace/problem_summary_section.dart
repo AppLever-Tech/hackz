@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
 import 'problem_workspace.dart';
 
 class ProblemSummarySection extends StatelessWidget {

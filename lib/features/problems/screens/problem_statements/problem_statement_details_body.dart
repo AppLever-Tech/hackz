@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../widgets/common/rich_tabs.dart';
-import '../../../workspace/problem/problem_workspace_loader.dart';
+import '../../../../constants/app_icons.dart';
+import '../../../../widgets/common/rich_tabs.dart';
+import '../../workspace/problem_workspace_loader.dart';
 import 'lifecycle_tab.dart';
 import 'problem_details_tab.dart';
 import 'submitted_idea_tab.dart';

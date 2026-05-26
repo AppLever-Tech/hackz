@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/status_styles.dart';
-import '../../../models/idea_model.dart';
-import '../../../utils/common_helpers.dart';
-import '../../../workspace/problem/problem_workspace_loader.dart';
-import '../dashboard_components.dart';
+import '../../../../constants/status_styles.dart';
+import '../../../../models/idea_model.dart';
+import '../../../../screens/common/dashboard_components.dart';
+import '../../../../utils/common_helpers.dart';
+import '../../workspace/problem_workspace_loader.dart';
 
 /// Ideas table styled like [ProblemStatementsTableScreen].
 class SubmittedIdeasTable extends StatelessWidget {

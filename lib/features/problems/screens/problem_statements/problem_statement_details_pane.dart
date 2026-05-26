@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/problem_model.dart';
-import '../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../workspace/problem/problem_workspace_loader.dart';
+import '../../../../constants/app_icons.dart';
+import '../../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../models/problem_model.dart';
+import '../../workspace/problem_workspace_loader.dart';
 import 'problem_statement_details_body.dart';
 
 /// Fills the dashboard main content area with problem statement details (replaces the table).

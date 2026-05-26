@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/common_helpers.dart';
-import '../core/workspace_attachments_panel.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../workspace/core/workspace_attachments_panel.dart';
 import 'problem_metadata_section.dart';
 import 'problem_related_section.dart';
 import 'problem_stats_section.dart';

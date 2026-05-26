@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../models/attachment_model.dart';
-import '../../models/idea_model.dart';
-import '../../models/organization_model.dart';
-import '../../models/payment_model.dart';
-import '../../models/problem_model.dart';
-import '../../models/score_model.dart';
-import '../../models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
-import '../core/workspace_attachment_counts.dart';
+import '../../../models/attachment_model.dart';
+import '../../../models/idea_model.dart';
+import '../../../models/organization_model.dart';
+import '../../../models/payment_model.dart';
+import '../../../models/score_model.dart';
+import '../../../models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../workspace/core/workspace_attachment_counts.dart';
+import '../models/problem_model.dart';
 
 class ProblemWorkspaceViewModel {
   const ProblemWorkspaceViewModel({

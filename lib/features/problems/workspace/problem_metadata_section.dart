@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../utils/common_helpers.dart';
+import '../../../constants/app_icons.dart';
+import '../../../utils/common_helpers.dart';
 import 'problem_workspace.dart';
 
 class ProblemMetadataSection extends StatelessWidget {

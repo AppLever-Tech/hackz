@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../workspace/problem/problem_stats_section.dart';
-import '../../../workspace/workspace.dart';
-import '../dashboard_components.dart';
+import '../../../../constants/app_icons.dart';
+import '../../../../screens/common/dashboard_components.dart';
+import '../../../../workspace/workspace.dart';
+import '../../workspace/problem_stats_section.dart';
 import 'submitted_ideas_table.dart';
 
 /// Submitted Ideas tab for [ProblemStatementDetailsScreen].

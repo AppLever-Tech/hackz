@@ -4,7 +4,7 @@ import '../core/workspace_host.dart';
 import '../core/workspace_route.dart';
 import '../evaluation/evaluation_workspace.dart';
 import '../payment/payment_workspace.dart';
-import '../problem/problem_workspace.dart';
+import '../../features/problems/workspace/problem_workspace.dart';
 import '../team/team_workspace.dart';
 import 'idea_workspace_body.dart';
 import 'idea_workspace_loader.dart';

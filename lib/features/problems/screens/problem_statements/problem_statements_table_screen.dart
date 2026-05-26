@@ -2,17 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/problem_list_config.dart';
-import '../../../models/problem_model.dart';
-import '../../../models/user_model.dart';
-import '../../../utils/problem_query_service.dart';
-import '../../../widgets/faculty/innovation_submission_workspace.dart';
-import '../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../responsive/responsive_helper.dart';
-import '../../../workspace/workspace.dart';
-import '../dashboard_chrome_scope.dart';
-import '../dashboard_components.dart';
+import '../../../../constants/app_icons.dart';
+import '../../../../models/user_model.dart';
+import '../../../../responsive/responsive_helper.dart';
+import '../../../../screens/common/dashboard_chrome_scope.dart';
+import '../../../../screens/common/dashboard_components.dart';
+import '../../../../widgets/faculty/innovation_submission_workspace.dart';
+import '../../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../../workspace/workspace.dart';
+import '../../../org_settings/constants/org_setting_keys.dart';
+import '../../../org_settings/services/org_settings_service.dart';
+import '../../models/problem_list_config.dart';
+import '../../models/problem_model.dart';
+import '../../services/problem_query_service.dart';
+import '../../validators/problem_submission_validators.dart';
 import 'problem_statement_details_pane.dart';
 
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
@@ -37,6 +40,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   Future<ProblemListQueryResult>? _problemsFuture;
   List<ProblemModel> _lastLoaded = <ProblemModel>[];
   Map<String, int> _ideaCountByProblemId = <String, int>{};
+  int _orgDefaultMaxIdeas = 50;
   ProblemSortType _sort = ProblemSortType.newest;
 
   static const List<_TableColumn> _columns = <_TableColumn>[
@@ -56,7 +60,25 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         ? ProblemSortType.newest
         : widget.config.enabledSorts.first;
     _loadProblems();
+    _loadOrgDefaultMaxIdeas();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  /// Reads org-scoped default-max-ideas so the submission gate can resolve
+  /// when a problem doesn't carry its own per-problem override.
+  Future<void> _loadOrgDefaultMaxIdeas() async {
+    try {
+      await OrgSettingsService.instance.ensureLoaded(orgId: widget.config.orgId);
+      if (!mounted) return;
+      final Map<String, dynamic> values = OrgSettingsService.instance.valuesSnapshot;
+      final int defMax =
+          (values[OrgSettingKeys.defaultMaxIdeasPerProblem] as num?)?.toInt() ?? 50;
+      if (defMax != _orgDefaultMaxIdeas) {
+        setState(() => _orgDefaultMaxIdeas = defMax);
+      }
+    } catch (_) {
+      // Fallback already applied.
+    }
   }
 
   @override
@@ -88,10 +110,16 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   }
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
+    final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
+      problem: problem,
+      submittedCount: _ideaCountByProblemId[problem.problemId] ?? 0,
+      orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
+    );
     final created = await showInnovationSubmissionWorkspace(
       context: context,
       currentUser: widget.currentUser,
       problem: problem,
+      gate: gate,
     );
     if (created == true && mounted) _loadProblems();
   }

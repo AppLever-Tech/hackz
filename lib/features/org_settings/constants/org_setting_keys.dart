@@ -28,6 +28,13 @@ abstract final class OrgSettingKeys {
   static const String maxProblemAttachments = 'maxProblemAttachments';
   static const String allowCrossDepartmentSubmissions = 'allowCrossDepartmentSubmissions';
 
+  // Problem — submission limits
+  // Default prefilled into the authoring "Max Ideas Allowed" field on new
+  // problems. The hard upper bound the College Admin will accept when
+  // authoring a problem; the field cannot exceed this.
+  static const String defaultMaxIdeasPerProblem = 'defaultMaxIdeasPerProblem';
+  static const String maxAllowedIdeasPerProblem = 'maxAllowedIdeasPerProblem';
+
   // Payment
   static const String coordinatorApprovalRequired = 'coordinatorApprovalRequired';
   static const String requirePaymentScreenshot = 'requirePaymentScreenshot';
