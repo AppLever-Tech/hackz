@@ -100,7 +100,7 @@ class ProblemQueryService {
       orgId: params.config.orgId,
       hasAttachments: params.hasAttachments,
     );
-    items = _applySort(items, params.sortType);
+    items = _applySort(items, params.sortType, ideaCountByProblemId);
 
     return ProblemListQueryResult(
       items: items,
@@ -200,7 +200,11 @@ class ProblemQueryService {
     }).toList(growable: false);
   }
 
-  static List<ProblemModel> _applySort(List<ProblemModel> items, ProblemSortType sortType) {
+  static List<ProblemModel> _applySort(
+    List<ProblemModel> items,
+    ProblemSortType sortType,
+    Map<String, int> ideaCountByProblemId,
+  ) {
     final sorted = List<ProblemModel>.from(items);
     switch (sortType) {
       case ProblemSortType.newest:
@@ -210,8 +214,59 @@ class ProblemQueryService {
       case ProblemSortType.titleAZ:
         sorted.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
       case ProblemSortType.department:
-        sorted.sort((a, b) => a.departmentCode.toLowerCase().compareTo(b.departmentCode.toLowerCase()));
+        sorted.sort((a, b) =>
+            a.departmentCode.toLowerCase().compareTo(b.departmentCode.toLowerCase()));
+      case ProblemSortType.category:
+        sorted.sort((a, b) =>
+            a.category.toLowerCase().compareTo(b.category.toLowerCase()));
+      case ProblemSortType.psNumber:
+        // Natural-ish sort: pad each PS # to a fixed length so "PS-2" precedes
+        // "PS-10". Fall back to a plain compare when the value is empty.
+        sorted.sort((a, b) {
+          final String pa = a.problemNumber.trim().toLowerCase();
+          final String pb = b.problemNumber.trim().toLowerCase();
+          return _naturalCompare(pa, pb);
+        });
+      case ProblemSortType.ideasCount:
+        // Highest submission count first; ties broken by newest createdAt so
+        // active problems float above stale ones.
+        sorted.sort((a, b) {
+          final int ca = ideaCountByProblemId[a.problemId] ?? 0;
+          final int cb = ideaCountByProblemId[b.problemId] ?? 0;
+          if (ca != cb) return cb.compareTo(ca);
+          return b.createdAt.compareTo(a.createdAt);
+        });
+      case ProblemSortType.deadline:
+        // Closest upcoming deadline first; problems without a deadline are
+        // pushed to the tail (treated as +infinity).
+        sorted.sort((a, b) {
+          final DateTime? da = a.ideaSubmissionDeadline;
+          final DateTime? db = b.ideaSubmissionDeadline;
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return da.compareTo(db);
+        });
     }
     return sorted;
+  }
+
+  /// Lightweight natural-order compare so identifiers like "PS-2" sort
+  /// before "PS-10". Splits the strings into alternating digit/non-digit
+  /// runs and compares numerically when both sides are digit-only.
+  static int _naturalCompare(String a, String b) {
+    final RegExp re = RegExp(r'(\d+|\D+)');
+    final List<String> pa = re.allMatches(a).map((m) => m.group(0)!).toList();
+    final List<String> pb = re.allMatches(b).map((m) => m.group(0)!).toList();
+    final int len = pa.length < pb.length ? pa.length : pb.length;
+    for (int i = 0; i < len; i++) {
+      final String sa = pa[i];
+      final String sb = pb[i];
+      final int? na = int.tryParse(sa);
+      final int? nb = int.tryParse(sb);
+      final int cmp = (na != null && nb != null) ? na.compareTo(nb) : sa.compareTo(sb);
+      if (cmp != 0) return cmp;
+    }
+    return pa.length.compareTo(pb.length);
   }
 }

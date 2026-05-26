@@ -15,7 +15,7 @@ import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
-import '../../features/problems/screens/problems_list_screen.dart';
+import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import 'judges_panel.dart';
 import 'manage_users_screen.dart';
 import '../../responsive/responsive_helper.dart';
@@ -51,7 +51,7 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return ProblemsListScreen(
+          return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.departmentAdmin, user),

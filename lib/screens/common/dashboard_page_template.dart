@@ -213,8 +213,7 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
-            DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
-            DashboardMenuItem(label: 'Problem Statements', icon: Icons.table_rows_outlined),
+            DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],

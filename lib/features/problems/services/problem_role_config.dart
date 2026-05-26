@@ -25,8 +25,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
             ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.departmentAdmin:
@@ -47,7 +51,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
+            ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.faculty:
@@ -67,7 +76,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
+            ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.student:
@@ -87,7 +101,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
+            ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.coordinator:
@@ -107,7 +126,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
+            ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.judge:
@@ -128,8 +152,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
             ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
       case UserRole.sysAdmin:
@@ -150,8 +178,12 @@ class ProblemRoleConfig {
           enabledSorts: const <ProblemSortType>{
             ProblemSortType.newest,
             ProblemSortType.oldest,
+            ProblemSortType.psNumber,
             ProblemSortType.titleAZ,
             ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
           },
         );
     }

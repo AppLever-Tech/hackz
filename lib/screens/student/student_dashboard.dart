@@ -17,7 +17,7 @@ import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/ideas_list_screen.dart';
-import '../../features/problems/screens/problems_list_screen.dart';
+import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/entity_card_pills.dart';
 import '../../widgets/common/form_value_row.dart';
@@ -34,7 +34,7 @@ class StudentDashboard extends StatelessWidget {
       user: user,
       bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
         if (selectedMenuIndex == 1) {
-          return ProblemsListScreen(
+          return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.student, user),

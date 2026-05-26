@@ -10,6 +10,10 @@ enum ProblemSortType {
   oldest,
   titleAZ,
   department,
+  category,
+  psNumber,
+  ideasCount,
+  deadline,
 }
 
 class ProblemListConfig {

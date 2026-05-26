@@ -62,6 +62,23 @@ List<String> sortUserIdsByDisplayName(Iterable<String> userIds, Map<String, Stri
   return sorted;
 }
 
+/// Full English month names indexed `month - 1`, shared by the long-form and
+/// day-month-year display helpers below.
+const List<String> kMonthNames = <String>[
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 /// Long form: "Monday, January 5, 2026" (app shell / headers).
 String formatLongDisplayDate(DateTime date) {
   const weekdays = <String>[
@@ -73,21 +90,13 @@ String formatLongDisplayDate(DateTime date) {
     'Saturday',
     'Sunday',
   ];
-  const months = <String>[
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+  return '${weekdays[date.weekday - 1]}, ${kMonthNames[date.month - 1]} ${date.day}, ${date.year}';
+}
+
+/// Day-month-year format: "30 June 2026" — used for human-friendly deadlines
+/// and similar single-line dates where the time component would be noise.
+String formatDayMonthYear(DateTime date) {
+  return '${date.day} ${kMonthNames[date.month - 1]} ${date.year}';
 }
 
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm

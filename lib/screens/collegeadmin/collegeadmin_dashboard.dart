@@ -13,7 +13,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
-import '../../features/problems/screens/problems_list_screen.dart';
+import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
@@ -75,7 +75,7 @@ class CollegeAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return ProblemsListScreen(
+          return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.collegeAdmin, user),

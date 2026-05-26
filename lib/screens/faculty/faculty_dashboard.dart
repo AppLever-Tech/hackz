@@ -19,7 +19,6 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import '../../features/problems/screens/problems_list_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
@@ -43,27 +42,20 @@ class FacultyDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return ProblemsListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: ProblemRoleConfig.configFor(UserRole.faculty, user),
-          );
-        }
-        if (selectedMenuIndex == 3) {
           return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.faculty, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 3) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.faculty, user),
           );
         }
-        if (selectedMenuIndex == 5) {
+        if (selectedMenuIndex == 4) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
