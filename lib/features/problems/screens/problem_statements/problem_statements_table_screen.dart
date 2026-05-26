@@ -29,6 +29,12 @@ import '../../widgets/problem_metrics_row.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
 
+/// Fixed gap inserted between the PS # cell and the Title cell so the
+/// compact problem context pill doesn't visually butt up against the
+/// adjacent problem title. Used by both the header and data rows so column
+/// alignment stays pixel-perfect.
+const double _kPsTitleGap = 12;
+
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
 class ProblemStatementsTableScreen extends StatefulWidget {
   const ProblemStatementsTableScreen({
@@ -80,7 +86,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     _TableColumn(label: 'Category', flex: 2, minWidth: 76),
     _TableColumn(label: 'Theme', flex: 3, minWidth: 96),
     _TableColumn(label: 'Ideas', flex: 2, minWidth: 76, align: TextAlign.center),
-    _TableColumn(label: 'Deadline', flex: 3, minWidth: 124, align: TextAlign.center),
+    _TableColumn(label: 'Deadline', flex: 2, minWidth: 92, align: TextAlign.center),
     _TableColumn(label: '', flex: 1, minWidth: 56, align: TextAlign.end),
   ];
 
@@ -698,23 +704,26 @@ class _TableHeaderRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
-        children: columns
-            .map(
-              (col) => Expanded(
-                flex: col.flex,
-                child: Text(
-                  col.label.toUpperCase(),
-                  textAlign: col.align,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                    color: Color(0xFF475569),
-                  ),
+        children: <Widget>[
+          for (int i = 0; i < columns.length; i++) ...<Widget>[
+            // Mirror the 12 px PS # / Title gap used in [_TableDataRow] so
+            // header labels stay aligned over their cells.
+            if (i == 1) const SizedBox(width: _kPsTitleGap),
+            Expanded(
+              flex: columns[i].flex,
+              child: Text(
+                columns[i].label.toUpperCase(),
+                textAlign: columns[i].align,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: Color(0xFF475569),
                 ),
               ),
-            )
-            .toList(growable: false),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -761,9 +770,16 @@ class _TableDataRow extends StatelessWidget {
         problem.category.trim().isEmpty ? '—' : problem.category.trim();
     final String theme = problem.theme.trim().isEmpty ? '—' : problem.theme.trim();
     final String ideasLabel = '${gate.submittedCount}/${gate.effectiveMaxIdeas}';
-    final String deadline = problem.ideaSubmissionDeadline == null
-        ? '—'
-        : formatDayMonthYear(problem.ideaSubmissionDeadline!);
+
+    // Two-line deadline: day-month on the first line, year on the second.
+    // Keeps the column narrow while still rendering the full date.
+    String deadlineDayMonth = '—';
+    String deadlineYear = '';
+    if (problem.ideaSubmissionDeadline != null) {
+      final DateTime d = problem.ideaSubmissionDeadline!;
+      deadlineDayMonth = '${d.day} ${kMonthNames[d.month - 1]}';
+      deadlineYear = '${d.year}';
+    }
 
     return Material(
       color: striped ? const Color(0xFFF8FAFC) : const Color(0xFFFCFDFF),
@@ -796,6 +812,9 @@ class _TableDataRow extends StatelessWidget {
                 ],
               ),
             ),
+            // Visual breathing room between the PS # pill and the problem
+            // title so adjacent rows don't read like a single run-on cell.
+            const SizedBox(width: _kPsTitleGap),
             Expanded(
               flex: columns[1].flex,
               child: InkWell(
@@ -868,14 +887,32 @@ class _TableDataRow extends StatelessWidget {
             ),
             Expanded(
               flex: columns[6].flex,
-              child: Text(
-                deadline,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF475569),
-                  fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    deadlineDayMonth,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF475569),
+                      height: 1.2,
+                      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  if (deadlineYear.isNotEmpty)
+                    Text(
+                      deadlineYear,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        height: 1.2,
+                        fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+                      ),
+                    ),
+                ],
               ),
             ),
             Expanded(
@@ -889,7 +926,6 @@ class _TableDataRow extends StatelessWidget {
                   canEdit: canEdit,
                   canDelete: canDelete,
                   onSubmitIdea: onSubmitIdea,
-                  onOpenProblem: onOpenProblem,
                   onOpenDetails: onOpenDetails,
                   onEdit: onEdit,
                   onDelete: onDelete,
@@ -940,7 +976,6 @@ class _ProblemRowActionsMenu extends StatelessWidget {
     required this.canEdit,
     required this.canDelete,
     required this.onSubmitIdea,
-    required this.onOpenProblem,
     required this.onOpenDetails,
     required this.onEdit,
     required this.onDelete,
@@ -952,7 +987,6 @@ class _ProblemRowActionsMenu extends StatelessWidget {
   final bool canEdit;
   final bool canDelete;
   final VoidCallback onSubmitIdea;
-  final VoidCallback onOpenProblem;
   final VoidCallback onOpenDetails;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -969,11 +1003,6 @@ class _ProblemRowActionsMenu extends StatelessWidget {
           label: 'Submit Idea',
           enabled: submitEnabled,
         ),
-      const CardOverflowMenuAction(
-        value: 'open',
-        icon: Icons.open_in_new_rounded,
-        label: 'Open Problem',
-      ),
       const CardOverflowMenuAction(
         value: 'details',
         icon: AppIcons.preview,
@@ -1002,8 +1031,6 @@ class _ProblemRowActionsMenu extends StatelessWidget {
         switch (value) {
           case 'submit':
             onSubmitIdea();
-          case 'open':
-            onOpenProblem();
           case 'details':
             onOpenDetails();
           case 'edit':
