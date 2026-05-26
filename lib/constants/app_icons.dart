@@ -23,6 +23,10 @@ class AppIcons {
   static const IconData chevronLeft = Icons.chevron_left_rounded;
   static const IconData chevronRight = Icons.chevron_right_rounded;
 
+  // Shared list dashboard chrome (list/table view switcher).
+  static const IconData viewList = Icons.view_list_rounded;
+  static const IconData viewTable = Icons.table_rows_rounded;
+
   // Shared domain icons
   static const IconData dashboard = Icons.grid_view_rounded;
   static const IconData organizations = Icons.apartment_outlined;
