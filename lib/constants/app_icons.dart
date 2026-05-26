@@ -18,6 +18,11 @@ class AppIcons {
   static const IconData edit = Icons.edit_outlined;
   static const IconData remove = Icons.close_rounded;
 
+  // Navigation chrome (mobile drawer toggle + collapsible side rail).
+  static const IconData menu = Icons.menu_rounded;
+  static const IconData chevronLeft = Icons.chevron_left_rounded;
+  static const IconData chevronRight = Icons.chevron_right_rounded;
+
   // Shared domain icons
   static const IconData dashboard = Icons.grid_view_rounded;
   static const IconData organizations = Icons.apartment_outlined;

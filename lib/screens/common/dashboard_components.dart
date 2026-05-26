@@ -17,6 +17,15 @@ final BoxDecoration kDashboardCardDecoration = BoxDecoration(
 );
 
 /// Shared nav tree for desktop sidebar, tablet rail, and mobile drawer.
+///
+/// Brand row layout (when [showBranding] is true):
+///  * expanded — `[logo] HACKZ … [chevron-left]`
+///  * compact  — `[logo] [chevron-right]`
+///
+/// When [onToggleCollapse] is null (e.g. inside the mobile drawer), the
+/// chevron is hidden and the row falls back to logo-only / logo + title.
+///
+/// A 1 px divider follows the brand block to separate it from the menu items.
 class DashboardNavigationPanel extends StatelessWidget {
   const DashboardNavigationPanel({
     super.key,
@@ -27,6 +36,7 @@ class DashboardNavigationPanel extends StatelessWidget {
     this.onLogout,
     this.compact = false,
     this.showBranding = true,
+    this.onToggleCollapse,
   });
 
   final List<DashboardMenuItem> primaryMenus;
@@ -37,6 +47,11 @@ class DashboardNavigationPanel extends StatelessWidget {
   final bool compact;
   final bool showBranding;
 
+  /// When non-null, a chevron toggle is rendered in the brand row.
+  /// `compact == true` shows `chevron-right` (expand); `false` shows
+  /// `chevron-left` (collapse).
+  final VoidCallback? onToggleCollapse;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -45,31 +60,10 @@ class DashboardNavigationPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           if (showBranding) ...<Widget>[
-            compact
-                ? Center(
-                    child: Image.asset(
-                      'assets/images/hackz_logo.png',
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.contain,
-                    ),
-                  )
-                : Row(
-                    children: <Widget>[
-                      Image.asset(
-                        'assets/images/hackz_logo.png',
-                        width: 34,
-                        height: 34,
-                        fit: BoxFit.contain,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'HACKZ',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-            SizedBox(height: compact ? 12 : 18),
+            _buildBrandRow(),
+            SizedBox(height: compact ? 10 : 14),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB)),
+            SizedBox(height: compact ? 10 : 14),
           ],
           for (int index = 0; index < primaryMenus.length; index++)
             _NavItem(
@@ -91,38 +85,77 @@ class DashboardNavigationPanel extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildBrandRow() {
+    final Widget logo = Image.asset(
+      'assets/images/hackz_logo.png',
+      width: compact ? 30 : 34,
+      height: compact ? 30 : 34,
+      fit: BoxFit.contain,
+    );
+
+    final Widget? toggleButton = onToggleCollapse == null
+        ? null
+        : _BrandToggleButton(
+            collapsed: compact,
+            onPressed: onToggleCollapse!,
+          );
+
+    if (compact) {
+      // 72 px rail (minus 8+8 horizontal padding ⇒ 56 px content). Logo + tiny
+      // chevron fit on one row when a toggle is provided; otherwise center
+      // the logo for visual balance.
+      if (toggleButton == null) {
+        return Center(child: logo);
+      }
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[logo, toggleButton],
+      );
+    }
+
+    return Row(
+      children: <Widget>[
+        logo,
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text(
+            'HACKZ',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          ),
+        ),
+        if (toggleButton != null) toggleButton,
+      ],
+    );
+  }
 }
 
-class SidebarWidget extends StatelessWidget {
-  const SidebarWidget({
-    super.key,
-    required this.primaryMenus,
-    this.secondaryMenus = const <DashboardMenuItem>[],
-    this.selectedPrimaryIndex = 0,
-    this.onPrimaryMenuTap,
-    this.onLogout,
+class _BrandToggleButton extends StatelessWidget {
+  const _BrandToggleButton({
+    required this.collapsed,
+    required this.onPressed,
   });
 
-  final List<DashboardMenuItem> primaryMenus;
-  final List<DashboardMenuItem> secondaryMenus;
-  final int selectedPrimaryIndex;
-  final ValueChanged<int>? onPrimaryMenuTap;
-  final VoidCallback? onLogout;
+  final bool collapsed;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: ResponsiveHelper.expandedSidebarWidth(context),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: DashboardNavigationPanel(
-        primaryMenus: primaryMenus,
-        secondaryMenus: secondaryMenus,
-        selectedPrimaryIndex: selectedPrimaryIndex,
-        onPrimaryMenuTap: onPrimaryMenuTap,
-        onLogout: onLogout,
+    return Tooltip(
+      message: collapsed ? 'Expand menu' : 'Collapse menu',
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        // Horizontal padding kept tight (2 px) so the compact rail's brand
+        // row fits inside its 56 px content width: logo 30 + toggle 24 = 54.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          child: Icon(
+            collapsed ? AppIcons.chevronRight : AppIcons.chevronLeft,
+            size: 20,
+            color: const Color(0xFF64748B),
+          ),
+        ),
       ),
     );
   }
