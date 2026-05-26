@@ -16,6 +16,8 @@ import '../../models/problem_list_config.dart';
 import '../../models/problem_model.dart';
 import '../../services/problem_query_service.dart';
 import '../../validators/problem_submission_validators.dart';
+import '../../widgets/problem_filters_panel.dart';
+import '../../widgets/problem_metrics_row.dart';
 import 'problem_statement_details_pane.dart';
 
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
@@ -39,9 +41,19 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
   Future<ProblemListQueryResult>? _problemsFuture;
   List<ProblemModel> _lastLoaded = <ProblemModel>[];
+  ProblemDashboardMetrics _metrics = ProblemDashboardMetrics.empty;
   Map<String, int> _ideaCountByProblemId = <String, int>{};
   int _orgDefaultMaxIdeas = 50;
   ProblemSortType _sort = ProblemSortType.newest;
+
+  // Mirrors the filter state in `ProblemsListScreen` so the same
+  // [ProblemFiltersPanel] / [ProblemActiveFiltersRow] widgets can drive both
+  // screens. Defaults to "no filter" (i.e. show everything).
+  bool _showFilters = false;
+  bool? _statusFilter;
+  bool? _hasAttachments;
+  Set<String> _departmentFilters = <String>{};
+  Set<String> _tagFilters = <String>{};
 
   static const List<_TableColumn> _columns = <_TableColumn>[
     _TableColumn(label: 'PS #', flex: 2, minWidth: 72),
@@ -100,14 +112,30 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           config: widget.config,
           search: _searchController.text,
           sortType: _sort,
-          statusFilter: null,
-          departmentFilters: const <String>{},
-          tagFilters: const <String>{},
-          hasAttachments: null,
+          statusFilter: _statusFilter,
+          departmentFilters: _departmentFilters,
+          tagFilters: _tagFilters,
+          hasAttachments: _hasAttachments,
         ),
       );
     });
   }
+
+  void _clearAllFilters() {
+    setState(() {
+      _statusFilter = null;
+      _hasAttachments = null;
+      _departmentFilters = <String>{};
+      _tagFilters = <String>{};
+    });
+    _loadProblems();
+  }
+
+  bool get _hasAnyActiveFilter =>
+      _departmentFilters.isNotEmpty ||
+      _tagFilters.isNotEmpty ||
+      _statusFilter != null ||
+      _hasAttachments != null;
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
     final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
@@ -156,12 +184,30 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         final ProblemListQueryResult result = snapshot.data ??
             ProblemListQueryResult(
               items: _lastLoaded,
-              metrics: ProblemDashboardMetrics.empty,
+              metrics: _metrics,
               ideaCountByProblemId: _ideaCountByProblemId,
             );
         final problems = result.items;
         _lastLoaded = problems;
+        _metrics = result.metrics;
         _ideaCountByProblemId = result.ideaCountByProblemId;
+
+        // Filter facets come from the currently loaded page only — matches
+        // the cards-based list screen behaviour so the two surfaces stay
+        // visually consistent.
+        final allDepartments = problems
+            .map((p) => p.departmentDisplayName.trim())
+            .where((d) => d.isNotEmpty)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+        final allTags = problems
+            .expand((p) => p.tags)
+            .map((t) => t.trim())
+            .where((t) => t.isNotEmpty)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -187,16 +233,69 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             final content = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                ProblemMetricsRow(metrics: _metrics),
+                const SizedBox(height: 12),
                 _buildToolbar(context),
-                const SizedBox(height: 14),
-                Text(
-                  '${problems.length} problem statement${problems.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF64748B),
+                const SizedBox(height: 12),
+                AnimatedCrossFade(
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: ProblemFiltersPanel(
+                    enabledFilters: widget.config.enabledFilters,
+                    allDepartments: allDepartments,
+                    allTags: allTags,
+                    departmentFilters: _departmentFilters,
+                    tagFilters: _tagFilters,
+                    statusFilter: _statusFilter,
+                    hasAttachments: _hasAttachments,
+                    onDepartmentToggle: (d, selected) => setState(() {
+                      if (selected) {
+                        _departmentFilters.add(d);
+                      } else {
+                        _departmentFilters.remove(d);
+                      }
+                    }),
+                    onTagToggle: (t, selected) => setState(() {
+                      if (selected) {
+                        _tagFilters.add(t);
+                      } else {
+                        _tagFilters.remove(t);
+                      }
+                    }),
+                    onStatusChange: (next) => setState(() => _statusFilter = next),
+                    onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
+                    onClearAll: _clearAllFilters,
+                    onApply: _loadProblems,
                   ),
+                  crossFadeState: _showFilters
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 220),
                 ),
+                if (_hasAnyActiveFilter) ...<Widget>[
+                  const SizedBox(height: 12),
+                  ProblemActiveFiltersRow(
+                    departmentFilters: _departmentFilters,
+                    tagFilters: _tagFilters,
+                    statusFilter: _statusFilter,
+                    hasAttachments: _hasAttachments,
+                    onRemoveDepartment: (d) {
+                      setState(() => _departmentFilters.remove(d));
+                      _loadProblems();
+                    },
+                    onRemoveTag: (t) {
+                      setState(() => _tagFilters.remove(t));
+                      _loadProblems();
+                    },
+                    onClearStatus: () {
+                      setState(() => _statusFilter = null);
+                      _loadProblems();
+                    },
+                    onClearAttachments: () {
+                      setState(() => _hasAttachments = null);
+                      _loadProblems();
+                    },
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (hasBoundedHeight)
                   Expanded(child: tableBody)
@@ -214,40 +313,74 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
   Widget _buildToolbar(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
+    final searchField = TextField(
+      controller: _searchController,
+      onSubmitted: (_) => _loadProblems(),
+      decoration: InputDecoration(
+        hintText: 'Search problem number, title, department, tags…',
+        prefixIcon: const Icon(AppIcons.search),
+        isDense: true,
+        filled: true,
+        fillColor: const Color(0xFFFCFDFF),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
+        ),
+      ),
+    );
+
+    final filterButton = OutlinedButton.icon(
+      onPressed: () => setState(() => _showFilters = !_showFilters),
+      icon: const Icon(Icons.tune, size: 18),
+      label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
+      style: _outlinedToolbarStyle(context),
+    );
+
+    final sortButton = _buildSortButton(context);
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          searchField,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[filterButton, sortButton],
+          ),
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            onSubmitted: (_) => _loadProblems(),
-            decoration: InputDecoration(
-              hintText: 'Search problem number, title, department, tags…',
-              prefixIcon: const Icon(AppIcons.search),
-              isDense: true,
-              filled: true,
-              fillColor: const Color(0xFFFCFDFF),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
-              ),
-            ),
-          ),
-        ),
+        Expanded(child: searchField),
         const SizedBox(width: 8),
-        _buildSortButton(context),
+        filterButton,
+        const SizedBox(width: 8),
+        sortButton,
       ],
     );
   }
+
+  ButtonStyle _outlinedToolbarStyle(BuildContext context) => OutlinedButton.styleFrom(
+        minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        foregroundColor: const Color(0xFF334155),
+        backgroundColor: const Color(0xFFFCFDFF),
+        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
+      );
 
   Widget _buildSortButton(BuildContext context) {
     return MenuAnchor(
@@ -273,13 +406,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           },
           icon: const Icon(Icons.swap_vert, size: 18),
           label: Text(_sortLabel(_sort)),
-          style: OutlinedButton.styleFrom(
-            minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            foregroundColor: const Color(0xFF334155),
-            backgroundColor: const Color(0xFFFCFDFF),
-            side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
-          ),
+          style: _outlinedToolbarStyle(context),
         );
       },
     );
