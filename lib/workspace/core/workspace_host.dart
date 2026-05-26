@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'workspace_container.dart';
 import 'workspace_controller.dart';
@@ -66,7 +67,7 @@ class _WorkspaceHostState extends State<WorkspaceHost>
     _present.addStatusListener((AnimationStatus status) {
       if (status == AnimationStatus.dismissed ||
           status == AnimationStatus.completed) {
-        setState(() {});
+        _safeSetState();
       }
     });
     final CurvedAnimation curved =
@@ -93,12 +94,35 @@ class _WorkspaceHostState extends State<WorkspaceHost>
   }
 
   void _onControllerChanged() {
+    if (!mounted) return;
     if (_controller.isOpen) {
       _present.forward();
     } else {
       _present.reverse();
     }
-    setState(() {});
+    _safeSetState();
+  }
+
+  /// Defers [setState] to the next frame when called while the framework is
+  /// already in the build/layout phase.
+  ///
+  /// Workspace routes synchronously mutate the controller during their
+  /// `initState` (e.g. `_WorkspaceRouteBody._prepare` calling
+  /// `controller.updateTop(...)` to swap the header into the loading state).
+  /// Those notifications travel back to this host while it is still building
+  /// the very subtree that triggered them. Calling [setState] in that window
+  /// throws `setState() called during build` on Android and aborts the
+  /// current frame on web (where the cascading exception freezes the UI).
+  void _safeSetState() {
+    if (!mounted) return;
+    final SchedulerPhase phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    } else {
+      setState(() {});
+    }
   }
 
   bool get _showWorkspaceLayer =>
@@ -113,15 +137,16 @@ class _WorkspaceHostState extends State<WorkspaceHost>
         children: <Widget>[
           widget.child,
           if (_showWorkspaceLayer)
-            IgnorePointer(
-              // After [close], stop intercepting taps while the panel fades out.
+            // `_WorkspaceLayer` returns a `Positioned` at its root, so it must
+            // be a direct child of this `Stack`. The "stop intercepting taps
+            // while fading out" behaviour is implemented internally by the
+            // layer via an `IgnorePointer` wrapped around the panel content.
+            _WorkspaceLayer(
+              controller: _controller,
+              fade: _fade,
+              panelSlide: _panelSlide,
+              sheetSlide: _sheetSlide,
               ignoring: !_controller.isOpen,
-              child: _WorkspaceLayer(
-                controller: _controller,
-                fade: _fade,
-                panelSlide: _panelSlide,
-                sheetSlide: _sheetSlide,
-              ),
             ),
         ],
       ),
@@ -136,12 +161,21 @@ class _WorkspaceLayer extends StatelessWidget {
     required this.fade,
     required this.panelSlide,
     required this.sheetSlide,
+    required this.ignoring,
   });
 
   final WorkspaceController controller;
   final Animation<double> fade;
   final Animation<Offset> panelSlide;
   final Animation<Offset> sheetSlide;
+
+  /// Whether the panel should stop intercepting taps. Used by [WorkspaceHost]
+  /// to disable hits while the panel fades out after a `close()`.
+  ///
+  /// Applied *inside* the [Positioned] (around the panel content) — wrapping
+  /// the [Positioned] itself in an [IgnorePointer] would break the
+  /// [Stack]/[Positioned] parent-data contract.
+  final bool ignoring;
 
   /// Local [Overlay] so header tooltips work; scoped to the panel, not the whole app.
   static Widget _panelOverlayShell({
@@ -178,16 +212,19 @@ class _WorkspaceLayer extends StatelessWidget {
         right: 0,
         bottom: 0,
         height: sheetHeight,
-        child: FadeTransition(
-          opacity: fade,
-          child: SlideTransition(
-            position: sheetSlide,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: SizedBox(
-                width: panelWidth,
-                height: sheetHeight,
-                child: panel,
+        child: IgnorePointer(
+          ignoring: ignoring,
+          child: FadeTransition(
+            opacity: fade,
+            child: SlideTransition(
+              position: sheetSlide,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: SizedBox(
+                  width: panelWidth,
+                  height: sheetHeight,
+                  child: panel,
+                ),
               ),
             ),
           ),
@@ -200,20 +237,23 @@ class _WorkspaceLayer extends StatelessWidget {
       top: 0,
       bottom: 0,
       width: panelWidth + desktopPanelTrailingPadding,
-      child: FadeTransition(
-        opacity: fade,
-        child: SlideTransition(
-          position: panelSlide,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: panelWidth,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 8, desktopPanelTrailingPadding, 8),
-                  child: SizedBox(
-                    height: MediaQuery.sizeOf(context).height - 16,
-                    child: panel,
+      child: IgnorePointer(
+        ignoring: ignoring,
+        child: FadeTransition(
+          opacity: fade,
+          child: SlideTransition(
+            position: panelSlide,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                width: panelWidth,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 8, desktopPanelTrailingPadding, 8),
+                    child: SizedBox(
+                      height: MediaQuery.sizeOf(context).height - 16,
+                      child: panel,
+                    ),
                   ),
                 ),
               ),
