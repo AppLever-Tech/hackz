@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../core/workspace_host.dart';
-import '../core/workspace_route.dart';
-import '../idea/idea_workspace.dart';
-import '../user/user_workspace.dart';
+import '../../../workspace/core/workspace_host.dart';
+import '../../../workspace/core/workspace_route.dart';
+import '../../../workspace/idea/idea_workspace.dart';
+import '../../../workspace/user/user_workspace.dart';
 import 'team_workspace_body.dart';
 import 'team_workspace_loader.dart';
 

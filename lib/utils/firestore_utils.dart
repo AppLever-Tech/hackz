@@ -8,7 +8,7 @@ import '../models/enums/organization_type.dart';
 import '../models/enums/user_status.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
-import '../models/team_model.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'common_helpers.dart';
 

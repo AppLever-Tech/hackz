@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../models/attachment_model.dart';
-import '../models/department_model.dart';
+import '../../../models/attachment_model.dart';
+import '../../../models/department_model.dart';
 import '../models/enums/team_status.dart';
-import '../models/idea_model.dart';
-import '../models/payment_model.dart';
-import '../features/problems/models/problem_model.dart';
+import '../../../models/idea_model.dart';
+import '../../../models/payment_model.dart';
+import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
-import '../models/user_model.dart';
-import 'attachment_service.dart';
-import 'common_helpers.dart';
-import 'firestore_utils.dart';
+import '../../../models/user_model.dart';
+import '../../../utils/attachment_service.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
 import 'team_service.dart';
 
 class FacultyTeamInsight {

@@ -8,7 +8,7 @@ import '../../utils/idea_role_config.dart';
 import '../../features/problems/services/problem_role_config.dart';
 import '../../utils/student_dashboard_service.dart';
 import '../../utils/common_helpers.dart';
-import '../../widgets/student_team_overview_card.dart';
+import '../../features/team/widgets/student_team_overview_card.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';

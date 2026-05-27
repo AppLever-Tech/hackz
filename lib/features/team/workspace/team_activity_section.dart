@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/common_helpers.dart';
+import '../../../utils/common_helpers.dart';
 import 'team_workspace_loader.dart';
 
 class TeamActivitySection extends StatelessWidget {

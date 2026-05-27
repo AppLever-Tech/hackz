@@ -5,7 +5,7 @@ import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/idea_model.dart';
-import '../../models/team_model.dart';
+import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
@@ -23,7 +23,7 @@ import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import 'teams_screen.dart';
+import '../../features/team/screens/teams_screen.dart';
 
 class FacultyDashboard extends StatelessWidget {
   const FacultyDashboard({super.key, required this.user});

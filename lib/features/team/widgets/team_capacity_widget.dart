@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
 
 class TeamCapacityWidget extends StatelessWidget {
   const TeamCapacityWidget({

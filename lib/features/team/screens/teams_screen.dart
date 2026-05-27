@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/requests/faculty/team_change_workspace.dart';
-import '../../models/idea_model.dart';
-import '../../models/payment_model.dart';
-import '../../models/team_model.dart';
-import '../../models/user_model.dart';
-import '../../utils/faculty_teams_service.dart';
-import '../common/app_dialog_template.dart';
-import '../common/dashboard_components.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/faculty/team_capacity_widget.dart';
-import '../../widgets/faculty/team_creation_workspace.dart';
-import '../../widgets/faculty/team_workspace_card.dart';
-import '../../workspace/workspace.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../../constants/app_icons.dart';
+import '../../requests/faculty/team_change_workspace.dart';
+import '../../../models/idea_model.dart';
+import '../../../models/payment_model.dart';
+import '../models/team_model.dart';
+import '../../../models/user_model.dart';
+import '../services/faculty_teams_service.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../widgets/team_capacity_widget.dart';
+import 'team_creation_workspace.dart';
+import '../widgets/team_workspace_card.dart';
+import '../../../workspace/workspace.dart';
+import '../../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../responsive/responsive_helper.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key, required this.user});

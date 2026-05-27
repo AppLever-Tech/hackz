@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/team_model.dart';
+import '../../team/models/team_model.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../utils/faculty_teams_service.dart';
-import '../../../widgets/faculty/team_student_selector.dart';
+import '../../team/services/faculty_teams_service.dart';
+import '../../team/widgets/team_student_selector.dart';
 import '../../../workspace/workspace.dart';
 import '../models/team_change_request.dart';
 import '../models/workflow_request.dart';

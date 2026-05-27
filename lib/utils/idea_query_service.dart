@@ -7,7 +7,7 @@ import '../models/idea_list_config.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/score_model.dart';
-import '../models/team_model.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
 import 'role_visibility_helpers.dart';

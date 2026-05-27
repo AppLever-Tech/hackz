@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/team_model.dart';
+import '../../features/team/models/team_model.dart';
 import '../../responsive/responsive_helper.dart';
 import '../common/context_pill_theme.dart';
 import '../common/entity_card_pills.dart';

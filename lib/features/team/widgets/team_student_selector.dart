@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../workspace/workspace.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../workspace/workspace.dart';
 
 /// Searchable inline student picker with selected user workspace pills.
 class TeamStudentSelector extends StatefulWidget {

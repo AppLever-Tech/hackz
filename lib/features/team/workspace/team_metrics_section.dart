@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../constants/app_icons.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import 'team_workspace_loader.dart';
 
 class TeamMetricsSection extends StatelessWidget {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/team_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/faculty_teams_service.dart';
-import '../../workspace/workspace.dart';
-import '../common/card_overflow_menu.dart';
+import '../../../constants/app_icons.dart';
+import '../models/team_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/faculty_teams_service.dart';
+import '../../../workspace/workspace.dart';
+import '../../../widgets/common/card_overflow_menu.dart';
 import 'team_idea_summary_widget.dart';
 
 class TeamWorkspaceCard extends StatelessWidget {

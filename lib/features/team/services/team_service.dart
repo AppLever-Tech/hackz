@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/idea_model.dart';
-import '../features/problems/models/problem_model.dart';
+import '../../../models/idea_model.dart';
+import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
-import '../models/user_model.dart';
+import '../../../models/user_model.dart';
 import '../models/enums/team_status.dart';
-import 'firestore_utils.dart';
+import '../../../utils/firestore_utils.dart';
 
 class TeamRuleException implements Exception {
   TeamRuleException(this.message);

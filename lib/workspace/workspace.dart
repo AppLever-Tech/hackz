@@ -24,5 +24,5 @@ export 'idea/idea_workspace.dart';
 export 'payment/payment_workspace.dart';
 export 'evaluation/evaluation_workspace.dart';
 export '../features/problems/workspace/problem_workspace.dart';
-export 'team/team_workspace.dart';
+export '../features/team/workspace/team_workspace.dart';
 export 'user/user_workspace.dart';

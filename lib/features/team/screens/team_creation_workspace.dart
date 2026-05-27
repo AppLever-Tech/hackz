@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/team_model.dart';
-import '../../models/user_model.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../screens/common/app_dialog_template.dart';
-import '../../screens/common/dashboard_components.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/faculty_teams_service.dart';
-import '../../utils/team_service.dart';
-import '../../workspace/workspace.dart';
-import 'team_student_selector.dart';
+import '../../../constants/app_icons.dart';
+import '../models/team_model.dart';
+import '../../../models/user_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/faculty_teams_service.dart';
+import '../services/team_service.dart';
+import '../../../workspace/workspace.dart';
+import '../widgets/team_student_selector.dart';
 
 enum TeamFormDialogAction { none, saved }
 

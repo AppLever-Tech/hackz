@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/enums/team_status.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/faculty_teams_service.dart';
+import '../../../constants/app_icons.dart';
+import '../models/enums/team_status.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/faculty_teams_service.dart';
 
 class TeamIdeaSummaryWidget extends StatelessWidget {
   const TeamIdeaSummaryWidget({

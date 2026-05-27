@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/department_model.dart';
-import '../../models/enums/team_status.dart';
-import '../../models/idea_model.dart';
-import '../../models/payment_model.dart';
-import '../../models/score_model.dart';
-import '../../models/team_model.dart';
-import '../../models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/department_model.dart';
+import '../models/enums/team_status.dart';
+import '../../../models/idea_model.dart';
+import '../../../models/payment_model.dart';
+import '../../../models/score_model.dart';
+import '../models/team_model.dart';
+import '../../../models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
 
 class TeamMemberPreview {
   const TeamMemberPreview({

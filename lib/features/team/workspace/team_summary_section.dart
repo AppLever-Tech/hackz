@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/enums/team_status.dart';
-import '../../utils/common_helpers.dart';
+import '../../../constants/app_icons.dart';
+import '../models/enums/team_status.dart';
+import '../../../utils/common_helpers.dart';
 import 'team_workspace_loader.dart';
 
 class TeamSummarySection extends StatelessWidget {

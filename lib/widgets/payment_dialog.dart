@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../models/idea_model.dart';
 import '../models/attachment_model.dart';
 import '../models/payment_model.dart';
-import '../models/team_model.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import '../utils/attachment_service.dart';
 import '../utils/firestore_utils.dart';

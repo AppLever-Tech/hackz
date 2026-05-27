@@ -6,7 +6,7 @@ import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
-import '../../utils/faculty_teams_service.dart';
+import '../../features/team/services/faculty_teams_service.dart';
 import '../../features/org_settings/services/org_settings_service.dart';
 import '../../utils/judge_evaluation_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';

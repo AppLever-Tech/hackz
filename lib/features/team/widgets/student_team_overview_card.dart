@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
 import '../models/enums/team_status.dart';
-import '../models/user_model.dart';
-import '../utils/common_helpers.dart' show formatDateTime, sortUsersByDisplayName;
-import '../utils/student_dashboard_service.dart';
-import '../screens/common/dashboard_components.dart';
-import '../workspace/workspace.dart';
+import '../../../models/user_model.dart';
+import '../../../utils/common_helpers.dart' show formatDateTime, sortUsersByDisplayName;
+import '../../../utils/student_dashboard_service.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../workspace/workspace.dart';
 
 /// Student dashboard team panel — layout aligned with faculty [TeamWorkspaceCard].
 class StudentTeamOverviewCard extends StatelessWidget {
