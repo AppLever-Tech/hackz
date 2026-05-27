@@ -24,8 +24,6 @@ class ProblemMetadataSection extends StatelessWidget {
         const SizedBox(height: 10),
         _row(AppIcons.organizations, 'Organization', vm.organizationName),
         _row(AppIcons.departments, 'Department', p.departmentDisplayName),
-        _row(AppIcons.info, 'Category', vm.category),
-        _row(AppIcons.insights, 'Theme', vm.theme),
         if (vm.difficulty.isNotEmpty) _row(AppIcons.statusUnderReview, 'Difficulty', vm.difficulty),
         if (vm.priority.isNotEmpty) _row(AppIcons.pendingUsers, 'Priority', vm.priority),
         _row(
@@ -35,30 +33,6 @@ class ProblemMetadataSection extends StatelessWidget {
           onTap: onOpenCreator,
         ),
         _row(AppIcons.clock, 'Created', formatDateTime(p.createdAt)),
-        if (vm.tags.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: vm.tags
-                .take(10)
-                .map(
-                  (t) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Text(
-                      t,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ],
       ],
     );
   }

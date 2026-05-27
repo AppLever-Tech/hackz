@@ -426,30 +426,38 @@ class _DetailValueBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final String trimmed = value.trim();
     if (trimmed.isEmpty) return const SizedBox.shrink();
+    final bool compact = MediaQuery.sizeOf(context).width < 900;
+    final double labelWidth = compact ? 170 : 220;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.3,
-              height: 1.2,
+          SizedBox(
+            width: labelWidth,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF64748B),
+                letterSpacing: 0.3,
+                height: 1.2,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            trimmed,
-            softWrap: true,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF1E293B),
-              height: 1.45,
-              fontWeight: FontWeight.w500,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              trimmed,
+              softWrap: true,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF1E293B),
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

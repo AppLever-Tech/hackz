@@ -150,8 +150,12 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ..sort();
 
         final Widget tableWidget = ideas.isEmpty
-            ? const Center(
-                child: Text('No ideas found for the selected criteria.'),
+            ? _EmptyIdeasState(
+                onClearSearch: () {
+                  if (_searchController.text.trim().isEmpty) return;
+                  _searchController.clear();
+                  _loadIdeas();
+                },
               )
             : DataTableView<IdeaListItem>(
                 items: ideas,
@@ -631,4 +635,41 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
   bool get _hasAnyActiveFilter =>
       _statusFilters.isNotEmpty || _problemFilters.isNotEmpty || _departmentFilters.isNotEmpty;
+}
+
+class _EmptyIdeasState extends StatelessWidget {
+  const _EmptyIdeasState({required this.onClearSearch});
+
+  final VoidCallback onClearSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        padding: const EdgeInsets.all(28),
+        decoration: kDashboardCardDecoration,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(AppIcons.ideas, size: 40, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            const Text(
+              'No ideas found',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Try adjusting your search or check back later.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            TextButton(onPressed: onClearSearch, child: const Text('Clear search')),
+          ],
+        ),
+      ),
+    );
+  }
 }
