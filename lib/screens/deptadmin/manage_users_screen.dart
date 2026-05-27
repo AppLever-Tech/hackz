@@ -14,7 +14,7 @@ import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
-import '../../widgets/filter_pill.dart';
+import '../../shared/inputs/filter_pill.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../widgets/common/context_pill.dart';

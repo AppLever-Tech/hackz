@@ -5,7 +5,7 @@ import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
-import '../../widgets/filter_pill.dart';
+import '../../shared/inputs/filter_pill.dart';
 import '../../widgets/payments/payment_contribution_tile.dart';
 import '../../widgets/payments/payment_detail_pane.dart';
 import '../../widgets/payments/payment_summary_card.dart';

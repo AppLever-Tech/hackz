@@ -9,9 +9,9 @@ import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import 'app_dialog_template.dart';
 import '../../widgets/responsive/responsive_dialog_actions.dart';
-import 'email_field.dart';
-import 'phone_number_field.dart';
-import 'read_only_field.dart';
+import '../../shared/inputs/email_field.dart';
+import '../../shared/inputs/phone_number_field.dart';
+import '../../shared/inputs/read_only_field.dart';
 
 Future<bool> showCreateUserDialog({
   required BuildContext context,
