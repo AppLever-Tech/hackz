@@ -13,6 +13,7 @@ import '../../utils/firestore_utils.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../shared/inputs/filter_pill.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
@@ -238,7 +239,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     await Clipboard.setData(ClipboardData(text: _inviteCode));
     if (!mounted) return;
     setState(() => _copied = true);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied')));
+    FeedbackService.showInfo(
+      context,
+      title: 'Copied',
+      message: 'Invite code copied.',
+    );
     Future<void>.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _copied = false);
     });
@@ -292,7 +297,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     await batch.commit();
     if (mounted) {
       await _loadAll();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invite code regenerated')));
+      FeedbackService.showSuccess(
+        context,
+        title: 'Invite code regenerated',
+        message: 'A new invite code is now active.',
+      );
     }
   }
 

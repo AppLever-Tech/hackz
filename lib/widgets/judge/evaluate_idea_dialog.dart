@@ -13,6 +13,7 @@ import '../../features/problems/models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
@@ -180,8 +181,10 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     );
     if (!mounted) return;
     if (list.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No attachments for this idea.')),
+      FeedbackService.showInfo(
+        context,
+        title: 'No attachments',
+        message: 'No attachments for this idea.',
       );
       return;
     }
@@ -205,8 +208,10 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     final EvaluationTemplate? template = _template;
     if (template == null) return;
     if (widget.idea.status == IdeaStatus.pendingSubmission) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This idea is pending payment verification before it can be evaluated.')),
+      FeedbackService.showWarning(
+        context,
+        title: 'Evaluation blocked',
+        message: 'This idea is pending payment verification before it can be evaluated.',
       );
       return;
     }
@@ -231,7 +236,11 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      FeedbackService.showError(
+        context,
+        title: 'Failed to save evaluation',
+        message: '$e',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

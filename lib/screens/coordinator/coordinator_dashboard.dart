@@ -5,6 +5,7 @@ import '../../models/enums/user_role.dart';
 import '../../models/attachment_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
@@ -137,7 +138,11 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
   Future<void> _verify(PaymentModel payment) async {
     await CoordinatorDashboardService.verifyPayment(payment: payment, coordinator: widget.user);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment verified.')));
+    FeedbackService.showSuccess(
+      context,
+      title: 'Payment verified',
+      message: 'Payment verified.',
+    );
     _refresh(force: true);
   }
 
@@ -166,7 +171,11 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
     if (remarks == null) return;
     await CoordinatorDashboardService.rejectPayment(payment: payment, coordinator: widget.user, remarks: remarks.isEmpty ? null : remarks);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment rejected.')));
+    FeedbackService.showInfo(
+      context,
+      title: 'Payment rejected',
+      message: 'Payment rejected.',
+    );
     _refresh(force: true);
   }
 

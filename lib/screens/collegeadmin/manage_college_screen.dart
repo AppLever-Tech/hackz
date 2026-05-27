@@ -10,7 +10,7 @@ import '../common/app_dialog_template.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../workspace/workspace.dart';
 
@@ -65,27 +65,14 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     required String adminUserId,
     required String adminName,
   }) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ResponsiveAlertDialog(
-          title: const Text('Remove department admin?'),
-          widthPreset: DialogWidthPreset.compact,
-          content: Text('Remove $adminName from this department?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Remove'),
-            ),
-          ],
-        );
-      },
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Remove department admin?',
+      message: 'Remove $adminName from this department?',
+      confirmLabel: 'Remove',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     final departmentId = ((dept['id'] as String?) ?? '').trim();
     if (departmentId.isEmpty || adminUserId.trim().isEmpty) return;
@@ -103,10 +90,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     final String name = ((dept['name'] as String?) ?? 'this department').trim();
     if (departmentId.isEmpty) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This department cannot be deleted because it has no department record.'),
-        ),
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot delete department',
+        message: 'This department cannot be deleted because it has no department record.',
       );
       return;
     }
@@ -130,28 +117,14 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     }
     warning.write('\n\nThis cannot be undone.');
 
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ResponsiveAlertDialog(
-          title: const Text('Delete department?'),
-          widthPreset: DialogWidthPreset.compact,
-          content: Text(warning.toString()),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete department?',
+      message: warning.toString(),
+      confirmLabel: 'Delete',
+      dangerConfirm: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       if (hasAdmin) {
@@ -167,8 +140,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       setState(() {});
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not delete department: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'Delete failed',
+        message: 'Could not delete department: $e',
       );
     }
   }
@@ -189,8 +164,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   ? customDepartmentController.text.trim()
                   : selectedDepartment.trim();
               if (departmentName.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select or enter a department')),
+                FeedbackService.showWarning(
+                  context,
+                  title: 'Department required',
+                  message: 'Please select or enter a department',
                 );
                 return;
               }
@@ -209,8 +186,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                 Navigator.of(context).pop(true);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not add department: $e')),
+                  FeedbackService.showError(
+                    context,
+                    title: 'Could not add department',
+                    message: '$e',
                   );
                 }
               } finally {

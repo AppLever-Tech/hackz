@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
 import '../constants/default_org_settings.dart';
@@ -197,9 +198,17 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
     });
     if (!mounted) return;
     if (firstError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(firstError)));
+      FeedbackService.showError(
+        context,
+        title: 'Save failed',
+        message: firstError,
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Org settings saved.')));
+      FeedbackService.showSuccess(
+        context,
+        title: 'Saved',
+        message: 'Org settings saved.',
+      );
     }
   }
 
@@ -207,7 +216,11 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
     if (!_hasDirtyDraft) return;
     setState(_draft.clear);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Changes discarded.')));
+      FeedbackService.showInfo(
+        context,
+        title: 'Draft cleared',
+        message: 'Changes discarded.',
+      );
     }
   }
 

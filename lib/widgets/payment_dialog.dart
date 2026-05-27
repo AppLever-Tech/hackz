@@ -9,6 +9,7 @@ import '../models/attachment_model.dart';
 import '../models/payment_model.dart';
 import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
+import '../shared/feedback/feedback.dart';
 import '../utils/attachment_service.dart';
 import '../utils/firestore_utils.dart';
 import '../screens/common/app_dialog_template.dart';
@@ -153,7 +154,11 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       if (!mounted) return;
       final message = _formatSubmitError(e);
       setState(() => _errorMessage = message);
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
+      FeedbackService.showError(
+        context,
+        title: 'Payment submission failed',
+        message: message,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

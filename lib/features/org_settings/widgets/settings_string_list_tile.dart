@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/feedback/feedback.dart';
 import 'settings_tile.dart';
 
 class SettingsStringListTile extends StatefulWidget {
@@ -35,7 +36,11 @@ class _SettingsStringListTileState extends State<SettingsStringListTile> {
     final String? err = await widget.onCommit(next);
     if (!mounted) return;
     if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid format',
+        message: err,
+      );
     }
   }
 

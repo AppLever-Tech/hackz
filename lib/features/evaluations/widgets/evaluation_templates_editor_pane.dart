@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../../org_settings/widgets/settings_group_widget.dart';
 import '../../org_settings/widgets/settings_number_stepper.dart';
 import '../../org_settings/widgets/settings_switch_tile.dart';
@@ -102,7 +103,11 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
   Future<void> _save() async {
     final String? validation = _validate();
     if (validation != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(validation)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Template validation failed',
+        message: validation,
+      );
       return;
     }
     setState(() => _saving = true);
@@ -113,10 +118,16 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
     if (!mounted) return;
     setState(() => _saving = false);
     if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      FeedbackService.showError(
+        context,
+        title: 'Save failed',
+        message: err,
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Evaluation templates saved.')),
+      FeedbackService.showSuccess(
+        context,
+        title: 'Saved',
+        message: 'Evaluation templates saved.',
       );
       _resetFromService();
     }
@@ -152,8 +163,10 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
 
   void _deleteTemplate(_TemplateDraft target) {
     if (_drafts.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('At least one template is required.')),
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot delete template',
+        message: 'At least one template is required.',
       );
       return;
     }

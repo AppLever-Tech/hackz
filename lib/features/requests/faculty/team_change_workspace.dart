@@ -4,6 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../../team/models/team_model.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../../../utils/common_helpers.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/widgets/team_student_selector.dart';
@@ -168,18 +169,26 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
       );
       await TeamChangeRequestService.submit(request);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Team change request submitted for approval.')),
+      FeedbackService.showSuccess(
+        context,
+        title: 'Request submitted',
+        message: 'Team change request submitted for approval.',
       );
       widget.onSubmitted?.call();
       _handleBack();
     } on WorkflowRequestException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Unable to submit request',
+        message: e.message,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'Submit failed',
+        message: '$e',
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

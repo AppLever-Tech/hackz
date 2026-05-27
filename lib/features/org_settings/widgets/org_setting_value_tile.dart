@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/feedback/feedback.dart';
 import '../models/enums/org_setting_value_type.dart';
 import '../models/org_setting_definition.dart';
 import '../services/org_settings_service.dart';
@@ -42,7 +43,11 @@ class _OrgSettingValueTileState extends State<OrgSettingValueTile> {
     setState(() => _busy = false);
     if (!mounted) return;
     if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      FeedbackService.showError(
+        context,
+        title: 'Setting update failed',
+        message: err,
+      );
     }
   }
 
@@ -51,7 +56,11 @@ class _OrgSettingValueTileState extends State<OrgSettingValueTile> {
     Object? coerced;
     final String? err = OrgSettingsValidators.validateAndCoerce(d, value, (c) => coerced = c);
     if (err != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid value',
+        message: err,
+      );
       return;
     }
     if (widget.persistImmediately) {

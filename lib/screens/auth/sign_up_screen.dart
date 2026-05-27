@@ -7,6 +7,7 @@ import '../../models/enums/user_status.dart';
 import '../../models/department_model.dart';
 import '../../models/user_model.dart';
 import '../../constants/app_icons.dart';
+import '../../shared/feedback/feedback.dart';
 import '../common/auth_page_layout.dart';
 import '../../core/theme/auth_theme.dart';
 import '../../shared/inputs/email_field.dart';
@@ -128,8 +129,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         !isValidEmailInput(_emailController.text) ||
         !isValidPhoneInput(_phoneController.text) ||
         _accessCodeRaw.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields correctly')),
+      FeedbackService.showWarning(
+        context,
+        title: 'Missing details',
+        message: 'Please fill all required fields correctly',
       );
       return;
     }
@@ -140,8 +143,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final rawCode = _accessCodeRaw.trim();
       if (!RegExp(r'^\d{6}$').hasMatch(rawCode)) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Access code must be a 6-digit code.')),
+        FeedbackService.showWarning(
+          context,
+          title: 'Invalid access code',
+          message: 'Access code must be a 6-digit code.',
         );
         return;
       }
@@ -186,7 +191,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   if (!mounted) return;
                   final createdUser = user.copyWith(userId: userId);
                   final navigator = Navigator.of(context);
-                  final messenger = ScaffoldMessenger.of(context);
                   navigator.pushAndRemoveUntil(
                     MaterialPageRoute(
                       builder: (routeContext) => AccountStatusWorkspace(
@@ -203,10 +207,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     (_) => false,
                   );
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Registration submitted. Use Sign In anytime to track approval status.'),
-                    ),
+                  FeedbackService.showSuccess(
+                    context,
+                    title: 'Registration submitted',
+                    message: 'Use Sign In anytime to track approval status.',
                   );
                 },
                 navigateToAuthGateOnVerified: false,
@@ -217,8 +221,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign up failed: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'Sign up failed',
+        message: '$e',
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

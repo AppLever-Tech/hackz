@@ -6,6 +6,7 @@ import '../../../models/idea_model.dart';
 import '../../../models/payment_model.dart';
 import '../models/team_model.dart';
 import '../../../models/user_model.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../screens/common/dashboard_components.dart';
@@ -14,7 +15,6 @@ import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';
 import '../widgets/team_workspace_card.dart';
 import '../../../workspace/workspace.dart';
-import '../../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../../widgets/responsive/responsive_metric_grid.dart';
 import '../../../responsive/responsive_helper.dart';
 
@@ -77,19 +77,14 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Future<void> _disableTeam(TeamModel team) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => ResponsiveAlertDialog(
-        title: const Text('Disable team?'),
-        widthPreset: DialogWidthPreset.compact,
-        content: Text('This will mark ${team.teamName} inactive and release assigned students.'),
-        actions: <Widget>[
-          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Disable')),
-        ],
-      ),
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Disable team?',
+      message: 'This will mark ${team.teamName} inactive and release assigned students.',
+      confirmLabel: 'Disable',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     await FacultyTeamsService.disableTeam(team);
     if (mounted) _refresh();
   }

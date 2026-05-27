@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/feedback/feedback.dart';
 import '../common/auth_page_layout.dart';
 import 'auth_gate.dart';
 import '../../core/theme/auth_theme.dart';
@@ -57,8 +58,10 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Future<void> _verifyOtp() async {
     if (_otpValue.length != _otpLength) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter complete OTP')),
+      FeedbackService.showWarning(
+        context,
+        title: 'OTP required',
+        message: 'Enter complete OTP',
       );
       return;
     }
@@ -77,8 +80,10 @@ class _OtpScreenState extends State<OtpScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP verification failed: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'OTP verification failed',
+        message: '$e',
       );
     } finally {
       if (mounted) {

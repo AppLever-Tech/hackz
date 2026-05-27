@@ -6,8 +6,8 @@ import '../../../../constants/app_icons.dart';
 import '../../../../models/attachment_model.dart';
 import '../../../../models/enums/user_role.dart';
 import '../../../../models/user_model.dart';
-import '../../../../responsive/responsive_dialog.dart';
 import '../../../../responsive/responsive_helper.dart';
+import '../../../../shared/feedback/feedback.dart';
 import '../../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../../screens/common/dashboard_components.dart';
 import '../../../../utils/attachment_service.dart';
@@ -16,7 +16,6 @@ import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/common/card_overflow_menu.dart';
 import '../../../../widgets/faculty/innovation_submission_workspace.dart';
 import '../../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../../../workspace/workspace.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
@@ -201,19 +200,14 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   }
 
   Future<void> _deleteProblem(ProblemModel problem) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => ResponsiveAlertDialog(
-        title: const Text('Delete Problem'),
-        widthPreset: DialogWidthPreset.compact,
-        content: const Text('Delete this problem permanently?'),
-        actions: <Widget>[
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete')),
-        ],
-      ),
+    final bool shouldDelete = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete Problem',
+      message: 'Delete this problem permanently?',
+      confirmLabel: 'Delete',
+      dangerConfirm: true,
     );
-    if (shouldDelete != true) return;
+    if (!shouldDelete) return;
     await AttachmentService.deactivateEntityAttachments(
       entityType: AttachmentEntityType.problem,
       entityId: problem.problemId,

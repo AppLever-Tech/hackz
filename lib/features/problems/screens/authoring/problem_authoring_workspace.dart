@@ -7,6 +7,7 @@ import '../../../../models/attachment_model.dart';
 import '../../../../models/enums/user_role.dart';
 import '../../../../models/user_model.dart';
 import '../../../../responsive/responsive_helper.dart';
+import '../../../../shared/feedback/feedback.dart';
 import '../../../../utils/attachment_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/attachment_upload_preview.dart';
@@ -423,7 +424,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
     ];
     final String? firstError = errors.firstWhere((String? e) => e != null, orElse: () => null);
     if (firstError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(firstError)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Validation failed',
+        message: firstError,
+      );
       return;
     }
 
@@ -505,8 +510,10 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to publish problem: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'Unable to publish problem',
+        message: '$e',
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

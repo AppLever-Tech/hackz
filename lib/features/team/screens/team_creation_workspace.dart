@@ -4,6 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../models/team_model.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
@@ -122,7 +123,11 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     final String? nameError = _duplicateTeamNameError(trimmedName);
     if (nameError != null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(nameError)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Team name invalid',
+        message: nameError,
+      );
       return;
     }
 
@@ -140,7 +145,11 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
       Navigator.of(context).pop(TeamFormDialogAction.saved);
     } on TeamRuleException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot save team',
+        message: e.message,
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -8,6 +8,7 @@ import '../../features/problems/validators/problem_submission_validators.dart';
 import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../features/team/services/faculty_teams_service.dart';
@@ -124,8 +125,10 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     // pill instead of dropping the user into a generic Firestore failure.
     final IdeaSubmissionGate? g = widget.gate;
     if (g != null && !g.canSubmit) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(describeBlockedReason(g))),
+      FeedbackService.showWarning(
+        context,
+        title: 'Submission blocked',
+        message: describeBlockedReason(g),
       );
       return;
     }
@@ -161,10 +164,18 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       Navigator.of(context).pop(true);
     } on TeamRuleException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot submit innovation',
+        message: e.message,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submit failed: $e')));
+      FeedbackService.showError(
+        context,
+        title: 'Submit failed',
+        message: '$e',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

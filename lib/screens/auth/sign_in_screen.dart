@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/enums/account_workspace_phase.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../common/auth_page_layout.dart';
 import '../../shared/inputs/phone_number_field.dart';
 import '../../widgets/auth/auth_feature_strip.dart';
@@ -115,8 +116,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _onSignIn() async {
     if (!isValidPhoneInput(_phoneController.text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid 10-digit phone number')),
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid phone number',
+        message: 'Enter a valid 10-digit phone number',
       );
       return;
     }
@@ -127,8 +130,10 @@ class _SignInScreenState extends State<SignInScreen> {
       await _sendOtpAndOpen(phone);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sign in failed: $e')),
+      FeedbackService.showError(
+        context,
+        title: 'Sign in failed',
+        message: '$e',
       );
     } finally {
       if (mounted) {

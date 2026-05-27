@@ -4,6 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_dialog.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../../workspace/workspace.dart';
@@ -61,8 +62,10 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       }
       if (!mounted) return;
       widget.onActionComplete(updated);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${request.type.label} approved.')),
+      FeedbackService.showSuccess(
+        context,
+        title: 'Request approved',
+        message: '${request.type.label} approved.',
       );
     });
   }
@@ -91,8 +94,10 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       }
       if (!mounted) return;
       widget.onActionComplete(updated);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${request.type.label} rejected.')),
+      FeedbackService.showInfo(
+        context,
+        title: 'Request rejected',
+        message: '${request.type.label} rejected.',
       );
     });
   }
@@ -103,10 +108,18 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       await action();
     } on WorkflowRequestException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Action blocked',
+        message: e.message,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Action failed: $e')));
+      FeedbackService.showError(
+        context,
+        title: 'Action failed',
+        message: '$e',
+      );
     } finally {
       if (mounted) setState(() => _processing = false);
     }
@@ -581,23 +594,12 @@ class _AuditTile extends StatelessWidget {
 }
 
 Future<bool?> _confirmApprove(BuildContext context, WorkflowRequest request) {
-  return showDialog<bool>(
-    context: context,
-    builder: (BuildContext ctx) => ResponsiveAlertDialog(
-      title: Text('Approve ${request.type.label.toLowerCase()}?'),
-      widthPreset: DialogWidthPreset.compact,
-      content: Text(
-        'This will apply ${request.summary.isEmpty ? 'the proposed changes' : request.summary} to the active record.',
-      ),
-      actions: <Widget>[
-        OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-        FilledButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF047857)),
-          child: const Text('Approve'),
-        ),
-      ],
-    ),
+  return FeedbackService.showConfirmation(
+    context,
+    title: 'Approve ${request.type.label.toLowerCase()}?',
+    message: 'This will apply ${request.summary.isEmpty ? 'the proposed changes' : request.summary} to the active record.',
+    confirmLabel: 'Approve',
+    cancelLabel: 'Cancel',
   );
 }
 

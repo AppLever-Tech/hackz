@@ -343,7 +343,27 @@ class FirestoreUtils {
   }
 
   static Future<void> deleteOrganization(String orgId) async {
-    await _db.collection(hkzOrganizations).doc(orgId).delete();
+    final normalizedOrgId = orgId.trim();
+    if (normalizedOrgId.isEmpty) return;
+    final orgRef = _db.collection(hkzOrganizations).doc(normalizedOrgId);
+
+    // Firestore does not cascade subcollection deletes when deleting a parent doc.
+    // Clean known org-scoped subcollections first.
+    await _deleteSubcollectionDocs(orgRef.collection('settings'));
+
+    await orgRef.delete();
+  }
+
+  static Future<void> _deleteSubcollectionDocs(
+    CollectionReference<Map<String, dynamic>> collectionRef,
+  ) async {
+    final snapshot = await collectionRef.get();
+    if (snapshot.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   static Future<void> deleteUser(String userId) async {

@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/firestore_utils.dart';
-import '../common/app_dialog_template.dart';
 import '../common/create_user_dialog.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
 
 class EditOrgScreen extends StatefulWidget {
   const EditOrgScreen({
@@ -75,8 +74,10 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
         _addressController.text.trim().isEmpty ||
         _websiteController.text.trim().isEmpty ||
         _contactController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill organization details')),
+      FeedbackService.showWarning(
+        context,
+        title: 'Missing details',
+        message: 'Please fill organization details',
       );
       return;
     }
@@ -91,8 +92,10 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
         ),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Organization updated successfully')),
+      FeedbackService.showSuccess(
+        context,
+        title: 'Saved',
+        message: 'Organization updated successfully',
       );
       if (widget.embedded) {
         widget.onOrganizationsChanged?.call();
@@ -103,27 +106,14 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
   }
 
   Future<void> _deleteOrganization() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ResponsiveAlertDialog(
-          title: const Text('Delete organization?'),
-          widthPreset: DialogWidthPreset.compact,
-          content: Text('This will remove "${widget.organization.name}".'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete organization?',
+      message: 'This will remove "${widget.organization.name}".',
+      confirmLabel: 'Delete',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     setState(() => _isDeleting = true);
     try {
@@ -143,27 +133,14 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
   Future<void> _removeCollegeAdmin(UserModel admin) async {
     final adminId = admin.userId.trim();
     if (adminId.isEmpty) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ResponsiveAlertDialog(
-          title: const Text('Remove college admin?'),
-          widthPreset: DialogWidthPreset.compact,
-          content: Text('Remove ${admin.firstName} ${admin.lastName} from this organization?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Remove'),
-            ),
-          ],
-        );
-      },
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Remove college admin?',
+      message: 'Remove ${admin.firstName} ${admin.lastName} from this organization?',
+      confirmLabel: 'Remove',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     await FirestoreUtils.deleteUser(adminId);
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';
 import '../../shared/inputs/filter_pill.dart';
@@ -283,7 +284,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   Future<void> _openPaymentDetail(BuildContext context, DepartmentPaymentsWorkspace workspace, DepartmentPaymentContribution item) async {
     final DepartmentPaymentDetail? detail = workspace.detailFor(item.payment.paymentId);
     if (detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment details are not available.')));
+      FeedbackService.showInfo(
+        context,
+        title: 'Payment details',
+        message: 'Payment details are not available.',
+      );
       return;
     }
     await showAppDialog<void>(

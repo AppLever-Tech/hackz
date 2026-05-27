@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/attachment_model.dart';
 import '../../models/user_model.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/judge_evaluation_service.dart';
 import '../../widgets/attachment_viewer.dart';
@@ -92,7 +93,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     );
     if (!mounted) return;
     if (list.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No attachments for this idea.')));
+      FeedbackService.showInfo(
+        context,
+        title: 'No attachments',
+        message: 'No attachments for this idea.',
+      );
       return;
     }
     await showAppDialog<void>(

@@ -9,7 +9,7 @@ import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import 'organization_dialog.dart';
-import 'edit_org_screen.dart';
+import '../../features/sysadmin/sysadmin.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../shared/inputs/filter_pill.dart';
@@ -252,7 +252,7 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
   OrganizationType? _typeFilter;
 
   List<OrganizationModel> _allOrgs = <OrganizationModel>[];
-  OrganizationModel? _editingOrg;
+  Map<String, OrgOperationalData> _operationalByOrgId = <String, OrgOperationalData>{};
   bool _loading = true;
   String? _fetchError;
 
@@ -277,9 +277,11 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
     });
     try {
       final list = await widget.loadOrganizations();
+      final operational = await OrgManagementService.loadOperationalData(list);
       if (!mounted) return;
       setState(() {
         _allOrgs = list;
+        _operationalByOrgId = operational;
         _loading = false;
       });
     } catch (e) {
@@ -312,16 +314,6 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
     }
     if (_fetchError != null) {
       return Text('Unable to load organizations: $_fetchError');
-    }
-
-    if (_editingOrg != null) {
-      return EditOrgScreen(
-        key: ValueKey<String>(_editingOrg!.id),
-        organization: _editingOrg!,
-        embedded: true,
-        onBack: () => setState(() => _editingOrg = null),
-        onOrganizationsChanged: _refreshList,
-      );
     }
 
     final organizations = _allOrgs;
@@ -401,73 +393,10 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
                 ],
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const <BoxShadow>[
-                    BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 4)),
-                  ],
-                ),
-                child: Column(
-                  children: filtered.isEmpty
-                      ? const <Widget>[Text('No organizations available')]
-                      : filtered
-                          .map(
-                            (OrganizationModel org) => Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE8ECFF),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(
-                                      AppIcons.forOrganizationType(org.type),
-                                      size: 22,
-                                      color: const Color(0xFF2E43C6),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      '${org.name}\n${org.address}\n${org.website}\n${org.contact}',
-                                      style: const TextStyle(height: 1.35),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      org.type.displayName,
-                                      textAlign: TextAlign.end,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade800,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Edit',
-                                    onPressed: () => setState(() => _editingOrg = org),
-                                    icon: const Icon(Icons.edit_outlined),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                ),
+              OrganizationManagementGrid(
+                organizations: filtered,
+                operationalByOrgId: _operationalByOrgId,
+                onOrganizationChanged: _refreshList,
               ),
             ],
           ),
