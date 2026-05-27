@@ -51,8 +51,16 @@ class TeamService {
     required List<UserModel> departmentStudents,
     TeamModel? editingTeam,
   }) async {
-    if (teamName.trim().isEmpty) {
+    final String trimmedName = teamName.trim();
+    if (trimmedName.isEmpty) {
       throw TeamRuleException('Team name is required.');
+    }
+    final String normalizedName = trimmedName.toLowerCase();
+    for (final TeamModel team in existingTeams) {
+      if (editingTeam != null && team.teamId == editingTeam.teamId) continue;
+      if (team.teamName.trim().toLowerCase() == normalizedName) {
+        throw TeamRuleException('A team with this name already exists. Choose a different name.');
+      }
     }
     if (selectedStudentIds.length < 2 || selectedStudentIds.length > 4) {
       throw TeamRuleException('Team size must be between 2 and 4 students.');

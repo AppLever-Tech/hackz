@@ -91,12 +91,46 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     return count >= FacultyTeamsService.minStudentsPerTeam && count <= FacultyTeamsService.maxStudentsPerTeam;
   }
 
+  /// Trims only leading/trailing whitespace; internal spaces are preserved.
+  String _trimTeamName(String raw) => raw.trim();
+
+  /// Returns a user-facing error when [trimmedName] matches another team
+  /// (case-insensitive, ignoring leading/trailing spaces on stored names).
+  String? _duplicateTeamNameError(String trimmedName) {
+    if (trimmedName.isEmpty) return 'Team name is required.';
+    final String normalized = trimmedName.toLowerCase();
+    final String editingTeamId = widget.initialTeam?.teamId ?? '';
+    for (final TeamModel team in widget.existingTeams) {
+      if (team.teamId == editingTeamId) continue;
+      if (team.teamName.trim().toLowerCase() == normalized) {
+        return 'A team with this name already exists. Choose a different name.';
+      }
+    }
+    return null;
+  }
+
   Future<void> _save() async {
+    final String trimmedName = _trimTeamName(_nameController.text);
+    if (trimmedName != _nameController.text) {
+      _nameController.value = _nameController.value.copyWith(
+        text: trimmedName,
+        selection: TextSelection.collapsed(offset: trimmedName.length),
+        composing: TextRange.empty,
+      );
+    }
+
+    final String? nameError = _duplicateTeamNameError(trimmedName);
+    if (nameError != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(nameError)));
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       await FacultyTeamsService.saveTeam(
         faculty: widget.currentUser,
-        teamName: _nameController.text.trim(),
+        teamName: trimmedName,
         studentIds: _selectedStudentIds,
         existingTeams: widget.existingTeams,
         departmentStudents: widget.departmentStudents,

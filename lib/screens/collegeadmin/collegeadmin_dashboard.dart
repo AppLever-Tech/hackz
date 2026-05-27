@@ -33,6 +33,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       FirestoreUtils.getProblemStatementsByCollege(user.orgId),
       FirestoreUtils.getOrganizations(),
       FirestoreUtils.getCollegeIdeaActivityTrend(user.orgId),
+      FirestoreUtils.getIdeaCountsByDepartmentCode(user.orgId),
     ]);
     final organizations = results[3] as List<OrganizationModel>;
     final org = organizations.where((o) => o.id == user.orgId).cast<OrganizationModel?>().firstWhere(
@@ -45,6 +46,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       'problems': results[2] as List<Map<String, dynamic>>,
       'org': org,
       'ideaActivity': results[4] as List<Map<String, dynamic>>,
+      'ideasByDept': results[5] as Map<String, int>,
     };
   }
 
@@ -128,12 +130,7 @@ class CollegeAdminDashboard extends StatelessWidget {
             final int totalIdeas = stats['totalIdeas'] as int? ?? 0;
             final double activePct = totalUsers == 0 ? 0 : (activeUsers / totalUsers);
             final int activationPercent = (activePct * 100).round();
-            final ideasByDept = <String, int>{};
-            for (final d in departments) {
-              final key = ((d['code'] as String?) ?? (d['name'] as String?) ?? '').trim();
-              if (key.isEmpty) continue;
-              ideasByDept[key] = (d['totalIdeas'] as int?) ?? 0;
-            }
+            final ideasByDept = data['ideasByDept'] as Map<String, int>? ?? <String, int>{};
             final problemsByDept = <String, int>{};
             for (final p in problems) {
               final key = ((p['departmentCode'] as String?) ?? (p['department'] as String?) ?? '').trim();
@@ -305,7 +302,6 @@ class CollegeAdminDashboard extends StatelessWidget {
                       else
                         ...departments.map(
                           (dept) {
-                            final ideas = (dept['totalIdeas'] as int?) ?? 0;
                             final faculty = (dept['facultyCount'] as int?) ?? 0;
                             final students = (dept['studentCount'] as int?) ?? 0;
                             final admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
@@ -371,11 +367,6 @@ class CollegeAdminDashboard extends StatelessWidget {
                                             icon: AppIcons.student,
                                             label: '$students',
                                             tooltip: 'Students',
-                                          ),
-                                          _DepartmentMetricPill(
-                                            icon: AppIcons.ideas,
-                                            label: '$ideas',
-                                            tooltip: 'Ideas',
                                           ),
                                         ],
                                       ),

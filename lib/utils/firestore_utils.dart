@@ -352,7 +352,6 @@ class FirestoreUtils {
 
   static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(String orgId) async {
     final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
-    final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
     final departmentsSnapshot = await _db
         .collection(hkzDepartments)
         .where('orgId', isEqualTo: orgId)
@@ -374,7 +373,6 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'studentCount': 0,
-          'totalIdeas': 0,
         },
       );
       current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
@@ -404,7 +402,6 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'studentCount': 0,
-          'totalIdeas': 0,
         },
       );
       current['totalUsers'] = (current['totalUsers'] as int) + 1;
@@ -423,24 +420,6 @@ class FirestoreUtils {
       );
     }
 
-    for (final i in ideasSnapshot.docs) {
-      final data = i.data();
-      final departmentCode = IdeaDepartmentHelpers.teamDeptFromMap(data);
-      if (departmentCode.isEmpty) continue;
-      final department = DepartmentModel.byCode(departmentCode)?.name ?? departmentCode;
-      final current = map.putIfAbsent(
-        department,
-        () => <String, dynamic>{
-          'name': department,
-          'code': departmentCode,
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'totalIdeas': 0,
-        },
-      );
-      current['totalIdeas'] = (current['totalIdeas'] as int) + 1;
-    }
-
     for (final entry in map.entries) {
       final row = entry.value;
       final adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
@@ -454,6 +433,18 @@ class FirestoreUtils {
     final result = map.values.toList(growable: false);
     result.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
     return result;
+  }
+
+  /// Idea totals keyed by department code — used by analytics charts, not manage-college.
+  static Future<Map<String, int>> getIdeaCountsByDepartmentCode(String orgId) async {
+    final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
+    final Map<String, int> counts = <String, int>{};
+    for (final doc in ideasSnapshot.docs) {
+      final String departmentCode = IdeaDepartmentHelpers.teamDeptFromMap(doc.data());
+      if (departmentCode.isEmpty) continue;
+      counts[departmentCode] = (counts[departmentCode] ?? 0) + 1;
+    }
+    return counts;
   }
 
   static Future<Map<String, dynamic>> getCollegeStats(String orgId) async {
@@ -602,6 +593,14 @@ class FirestoreUtils {
       'adminUserId': null,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  static Future<void> deleteDepartment({required String departmentId}) async {
+    final String id = departmentId.trim();
+    if (id.isEmpty) {
+      throw StateError('Department record id is required to delete a department.');
+    }
+    await _db.collection(hkzDepartments).doc(id).delete();
   }
 
   static Future<void> addProblemStatement({
