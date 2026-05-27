@@ -9,6 +9,7 @@ import '../../../../models/user_model.dart';
 import '../../../../responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
 import '../../../../utils/attachment_service.dart';
+import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/attachment_upload_preview.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
@@ -182,12 +183,25 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       _minTeamSize = p.minTeamSize;
       _maxTeamSize = p.maxTeamSize;
       _preferredTechStack = List<String>.from(p.preferredTechStack);
+    } else {
+      _ideaSubmissionDeadline = _oneMonthFrom(DateTime.now());
     }
     for (final c in _allControllers) {
       c.addListener(_onAnyControllerChanged);
     }
     _loadDepartments();
     _loadOrgSettingsBounds();
+  }
+
+  DateTime _oneMonthFrom(DateTime base) {
+    final int year = base.month == 12 ? base.year + 1 : base.year;
+    final int month = base.month == 12 ? 1 : base.month + 1;
+    final DateTime firstOfNextNextMonth = month == 12
+        ? DateTime(year + 1, 1, 1)
+        : DateTime(year, month + 1, 1);
+    final int maxDayInTargetMonth = firstOfNextNextMonth.subtract(const Duration(days: 1)).day;
+    final int day = base.day <= maxDayInTargetMonth ? base.day : maxDayInTargetMonth;
+    return DateTime(year, month, day, base.hour, base.minute);
   }
 
   /// Reads submission-control + team-size bounds from `OrgSettingsService` so
@@ -598,6 +612,17 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                     ),
                     const SizedBox(height: 12),
                     _buildSection(
+                      id: _AuthoringSectionId.classification,
+                      title: 'Classification',
+                      subtitle: 'Department, category, theme, and tags',
+                      icon: AppIcons.orgType,
+                      iconBg: const Color(0xFFE6F8EF),
+                      iconColor: const Color(0xFF047857),
+                      status: _classificationStatus(),
+                      child: _buildClassification(),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSection(
                       id: _AuthoringSectionId.innovationContext,
                       title: 'Innovation Context',
                       subtitle: 'Background, impact, and stakeholders',
@@ -778,17 +803,6 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                     ),
                     const SizedBox(height: 12),
                     _buildSection(
-                      id: _AuthoringSectionId.classification,
-                      title: 'Classification',
-                      subtitle: 'Department, category, theme, and tags',
-                      icon: AppIcons.orgType,
-                      iconBg: const Color(0xFFE6F8EF),
-                      iconColor: const Color(0xFF047857),
-                      status: _classificationStatus(),
-                      child: _buildClassification(),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSection(
                       id: _AuthoringSectionId.resources,
                       title: 'Resources & Contact',
                       subtitle: 'Supporting links and how to reach the author',
@@ -897,6 +911,10 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   }
 
   Widget _buildSubmissionControls() {
+    final DateTime? deadline = _ideaSubmissionDeadline;
+    final String defaultWindowText = deadline != null
+        ? 'Default deadline: one month from now (${formatDayMonthYear(deadline)})'
+        : 'Default deadline: one month from now';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -913,6 +931,15 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
             value: _ideaSubmissionDeadline,
             enabled: !_isSubmitting,
             onChanged: (DateTime? next) => setState(() => _ideaSubmissionDeadline = next),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          defaultWindowText,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
           ),
         ),
       ],
@@ -1293,9 +1320,23 @@ class _AuthoringHero extends StatelessWidget {
               color: Color(0xFF0F172A),
               height: 1.15,
             ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
+            decoration: InputDecoration(
               isDense: true,
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.82),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD4DDF1)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD4DDF1)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
+              ),
               hintText: 'What innovation challenge are you creating?',
               hintStyle: TextStyle(
                 fontSize: 24,
