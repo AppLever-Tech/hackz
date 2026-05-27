@@ -14,6 +14,7 @@ class DataTableColumn<T> {
     this.minWidth,
     this.align = Alignment.centerLeft,
     this.sortKey,
+    this.gapAfter,
   });
 
   /// Header label shown in the table head.
@@ -40,4 +41,7 @@ class DataTableColumn<T> {
   final String? sortKey;
 
   bool get sortable => sortKey != null;
+
+  /// Optional horizontal gap inserted after this column (header + body).
+  final double? gapAfter;
 }

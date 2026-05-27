@@ -3,19 +3,21 @@ import 'package:flutter/material.dart';
 import '../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
 import '../models/idea_model.dart';
-import '../models/payment_model.dart';
 import '../utils/idea_query_service.dart';
+import 'common/card_overflow_menu.dart';
+import 'common/context_pill.dart';
 import 'common/context_pill_theme.dart';
 import 'common/entity_card_pills.dart';
 import 'data_view/data_table_column.dart';
 
-/// Action bundle for [IdeaTableColumns]. Mirrors the callbacks already wired
-/// into `IdeaCard` so the table view stays behaviorally identical to the list
-/// view — just laid out differently.
+const double _kLeadingColumnGap = 12;
+
+/// Action bundle for [IdeaTableColumns].
 class IdeaTableActions {
   const IdeaTableActions({
     required this.onOpenIdea,
     required this.onOpenTeam,
+    required this.onOpenProblem,
     required this.onOpenPayment,
     required this.onOpenEvaluation,
     required this.onOpenAttachments,
@@ -25,6 +27,7 @@ class IdeaTableActions {
 
   final void Function(IdeaListItem item) onOpenIdea;
   final void Function(IdeaListItem item) onOpenTeam;
+  final void Function(IdeaListItem item) onOpenProblem;
   final void Function(IdeaListItem item) onOpenPayment;
   final void Function(IdeaListItem item) onOpenEvaluation;
   final void Function(IdeaListItem item) onOpenAttachments;
@@ -33,10 +36,6 @@ class IdeaTableActions {
 }
 
 /// Per-feature column factory for the Ideas dashboard.
-///
-/// Sortable header keys (`'newest'`, `'status'`, `'score'`) match the screen's
-/// `IdeaSortType` so the toolbar sort menu and the table header taps share a
-/// single source of truth (`_sort`).
 abstract final class IdeaTableColumns {
   static List<DataTableColumn<IdeaListItem>> build({
     required IdeaListConfig config,
@@ -48,6 +47,7 @@ abstract final class IdeaTableColumns {
         label: 'Idea',
         flex: 5,
         minWidth: 220,
+        gapAfter: _kLeadingColumnGap,
         sortKey: enabledSorts.contains(IdeaSortType.newest) ? 'newest' : null,
         cell: (BuildContext context, IdeaListItem item) {
           final String title = item.idea.ideaTitle.trim().isEmpty
@@ -65,6 +65,7 @@ abstract final class IdeaTableColumns {
         label: 'Team',
         flex: 3,
         minWidth: 140,
+        gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) {
           final String teamLabel =
               item.teamName.trim().isEmpty ? 'Team' : item.teamName.trim();
@@ -82,25 +83,17 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Problem',
-        flex: 4,
-        minWidth: 180,
-        cell: (BuildContext context, IdeaListItem item) =>
-            _ProblemCell(idea: item.idea),
-      ),
-      DataTableColumn<IdeaListItem>(
-        label: 'Dept',
         flex: 2,
-        minWidth: 90,
-        cell: (BuildContext context, IdeaListItem item) {
-          final String dept = item.idea.teamDepartmentCode.trim();
-          if (dept.isEmpty) return const _MutedDash();
-          return _MutedTag(label: dept, icon: AppIcons.departments);
-        },
+        minWidth: 100,
+        gapAfter: _kLeadingColumnGap,
+        cell: (BuildContext context, IdeaListItem item) =>
+            _ProblemIdPill(item: item, onOpenProblem: () => actions.onOpenProblem(item)),
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Status',
         flex: 3,
         minWidth: 140,
+        gapAfter: _kLeadingColumnGap,
         sortKey: enabledSorts.contains(IdeaSortType.status) ? 'status' : null,
         cell: (BuildContext context, IdeaListItem item) =>
             _StatusCell(status: item.idea.status),
@@ -125,69 +118,19 @@ abstract final class IdeaTableColumns {
         },
       ),
       DataTableColumn<IdeaListItem>(
-        label: 'Payment',
-        flex: 3,
-        minWidth: 140,
-        cell: (BuildContext context, IdeaListItem item) {
-          final PaymentModel? payment = item.payment;
-          final Widget paymentLabel = _PaymentCell(payment: payment);
-          if (payment == null) return paymentLabel;
-          return InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => actions.onOpenPayment(item),
-            child: paymentLabel,
-          );
-        },
-      ),
-      DataTableColumn<IdeaListItem>(
-        label: 'Files',
+        label: '',
         flex: 1,
-        minWidth: 90,
+        minWidth: 56,
         align: Alignment.center,
-        cell: (BuildContext context, IdeaListItem item) {
-          if (item.attachmentCount <= 0) return const _MutedDash();
-          return InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () => actions.onOpenAttachments(item),
-            child: _AttachmentsBadge(count: item.attachmentCount),
-          );
-        },
-      ),
-      DataTableColumn<IdeaListItem>(
-        label: 'Actions',
-        flex: 2,
-        minWidth: 110,
-        align: Alignment.centerRight,
-        cell: (BuildContext context, IdeaListItem item) {
-          final bool showPay =
-              config.canUploadPayment && item.canUploadPayment && item.team != null;
-          final bool canEval =
-              config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
-          if (!showPay && !canEval) return const _MutedDash();
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (showPay)
-                _ActionIconButton(
-                  icon: AppIcons.payments,
-                  tooltip: 'Upload payment',
-                  onPressed: () => actions.onUploadPayment(item),
-                ),
-              if (canEval)
-                _ActionIconButton(
-                  icon: AppIcons.scoring,
-                  tooltip: 'Evaluate',
-                  onPressed: () => actions.onEvaluate(item),
-                ),
-            ],
-          );
-        },
+        cell: (BuildContext context, IdeaListItem item) => _IdeaRowActionsMenu(
+          item: item,
+          config: config,
+          actions: actions,
+        ),
       ),
     ];
   }
 
-  /// Mirrors `_IdeasListScreenState._canOpenEvaluation` so the score column's
-  /// click affordance matches the list view's evaluation pill.
   static bool canOpenEvaluation(IdeaListItem item) {
     if (item.score != null) return true;
     return item.idea.status == IdeaStatus.evaluated ||
@@ -196,38 +139,129 @@ abstract final class IdeaTableColumns {
   }
 }
 
-class _ProblemCell extends StatelessWidget {
-  const _ProblemCell({required this.idea});
-  final IdeaModel idea;
+class _ProblemIdPill extends StatelessWidget {
+  const _ProblemIdPill({
+    required this.item,
+    required this.onOpenProblem,
+  });
+
+  final IdeaListItem item;
+  final VoidCallback onOpenProblem;
 
   @override
   Widget build(BuildContext context) {
+    final IdeaModel idea = item.idea;
+    final String problemId = idea.problemId.trim();
     final String number = idea.problemNumber.trim();
-    final String title = idea.problemTitle.trim();
-    if (number.isEmpty && title.isEmpty) return const _MutedDash();
-    final String label = number.isEmpty
-        ? title
-        : title.isEmpty
-            ? number
-            : '$number  $title';
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        const Icon(AppIcons.problems, size: 14, color: Color(0xFF64748B)),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: Color(0xFF334155),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+    final String label = number.isNotEmpty ? number : problemId;
+    if (label.isEmpty) return const _MutedDash();
+    return ContextPill(
+      label: label,
+      semantic: ContextPillSemantic.problem,
+      onTap: problemId.isEmpty ? () {} : onOpenProblem,
+      compact: true,
+      fitContent: true,
+      enabled: problemId.isNotEmpty,
+    );
+  }
+}
+
+/// Row-level ⋮ menu — same [CardOverflowMenuButton] styling as problem statements.
+class _IdeaRowActionsMenu extends StatelessWidget {
+  const _IdeaRowActionsMenu({
+    required this.item,
+    required this.config,
+    required this.actions,
+  });
+
+  final IdeaListItem item;
+  final IdeaListConfig config;
+  final IdeaTableActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showPay =
+        config.canUploadPayment && item.canUploadPayment && item.team != null;
+    final bool canEval =
+        config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
+    final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+    final bool hasAttachments = item.attachmentCount > 0;
+    final bool hasPayment = item.payment != null;
+    final bool canEvalView = IdeaTableColumns.canOpenEvaluation(item);
+
+    final List<CardOverflowMenuAction> menuActions = <CardOverflowMenuAction>[
+      const CardOverflowMenuAction(
+        value: 'idea',
+        icon: AppIcons.preview,
+        label: 'View Idea',
+      ),
+      if (teamId.isNotEmpty)
+        const CardOverflowMenuAction(
+          value: 'team',
+          icon: AppIcons.teams,
+          label: 'Open Team',
         ),
-      ],
+      if (item.idea.problemId.trim().isNotEmpty)
+        const CardOverflowMenuAction(
+          value: 'problem',
+          icon: AppIcons.problems,
+          label: 'Open Problem',
+        ),
+      if (canEval)
+        const CardOverflowMenuAction(
+          value: 'evaluate',
+          icon: AppIcons.scoring,
+          label: 'Evaluate',
+        ),
+      if (showPay)
+        const CardOverflowMenuAction(
+          value: 'upload_payment',
+          icon: AppIcons.payments,
+          label: 'Upload Payment',
+        ),
+      if (hasAttachments)
+        const CardOverflowMenuAction(
+          value: 'attachments',
+          icon: AppIcons.attachments,
+          label: 'View Attachments',
+        ),
+      if (hasPayment)
+        const CardOverflowMenuAction(
+          value: 'payment',
+          icon: AppIcons.payments,
+          label: 'View Payment',
+        ),
+      if (canEvalView)
+        const CardOverflowMenuAction(
+          value: 'evaluation',
+          icon: AppIcons.statusEvaluated,
+          label: 'View Evaluation',
+        ),
+    ];
+
+    return CardOverflowMenuButton(
+      tooltip: 'Idea actions',
+      actions: menuActions,
+      onSelected: (String value) {
+        switch (value) {
+          case 'idea':
+            actions.onOpenIdea(item);
+          case 'team':
+            actions.onOpenTeam(item);
+          case 'problem':
+            actions.onOpenProblem(item);
+          case 'evaluate':
+            actions.onEvaluate(item);
+          case 'upload_payment':
+            actions.onUploadPayment(item);
+          case 'attachments':
+            actions.onOpenAttachments(item);
+          case 'payment':
+            actions.onOpenPayment(item);
+          case 'evaluation':
+            actions.onOpenEvaluation(item);
+        }
+      },
     );
   }
 }
@@ -312,123 +346,6 @@ class _ScoreChip extends StatelessWidget {
   }
 }
 
-class _PaymentCell extends StatelessWidget {
-  const _PaymentCell({required this.payment});
-  final PaymentModel? payment;
-
-  @override
-  Widget build(BuildContext context) {
-    final ({IconData icon, Color color, String label}) v = _resolve(payment);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(v.icon, size: 14, color: v.color),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            v.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: v.color,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  static ({IconData icon, Color color, String label}) _resolve(PaymentModel? p) {
-    if (p == null) {
-      return (
-        icon: AppIcons.payments,
-        color: const Color(0xFF94A3B8),
-        label: 'No payment',
-      );
-    }
-    return switch (p.status) {
-      PaymentRecordStatus.pending => (
-          icon: AppIcons.statusUnderReview,
-          color: const Color(0xFFEA580C),
-          label: 'Pending',
-        ),
-      PaymentRecordStatus.verified => (
-          icon: AppIcons.statusApproved,
-          color: const Color(0xFF059669),
-          label: 'Verified',
-        ),
-      PaymentRecordStatus.rejected => (
-          icon: AppIcons.statusRejected,
-          color: const Color(0xFFDC2626),
-          label: 'Rejected',
-        ),
-    };
-  }
-}
-
-class _AttachmentsBadge extends StatelessWidget {
-  const _AttachmentsBadge({required this.count});
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(AppIcons.attachments, size: 12, color: Color(0xFF1D4ED8)),
-          const SizedBox(width: 4),
-          Text(
-            '$count',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1D4ED8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MutedTag extends StatelessWidget {
-  const _MutedTag({required this.label, required this.icon});
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(icon, size: 12, color: const Color(0xFF64748B)),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF475569),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _MutedDash extends StatelessWidget {
   const _MutedDash();
 
@@ -441,30 +358,6 @@ class _MutedDash extends StatelessWidget {
         color: Color(0xFF94A3B8),
         fontWeight: FontWeight.w600,
       ),
-    );
-  }
-}
-
-class _ActionIconButton extends StatelessWidget {
-  const _ActionIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
     );
   }
 }

@@ -93,12 +93,14 @@ class DataTableView<T> extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: <Widget>[
-          for (int i = 0; i < columns.length; i++)
+          for (int i = 0; i < columns.length; i++) ...<Widget>[
             _wrapCellSlot(
               column: columns[i],
               fixedWidths: fixedWidths,
               child: _headerCell(columns[i]),
             ),
+            if (_gapAfter(columns[i]) > 0) SizedBox(width: _gapAfter(columns[i])),
+          ],
         ],
       ),
     );
@@ -172,7 +174,7 @@ class DataTableView<T> extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: <Widget>[
-              for (int i = 0; i < columns.length; i++)
+              for (int i = 0; i < columns.length; i++) ...<Widget>[
                 _wrapCellSlot(
                   column: columns[i],
                   fixedWidths: fixedWidths,
@@ -181,6 +183,8 @@ class DataTableView<T> extends StatelessWidget {
                     child: columns[i].cell(context, row),
                   ),
                 ),
+                if (_gapAfter(columns[i]) > 0) SizedBox(width: _gapAfter(columns[i])),
+              ],
             ],
           ),
         );
@@ -203,6 +207,8 @@ class DataTableView<T> extends StatelessWidget {
       },
     );
   }
+
+  double _gapAfter(DataTableColumn<T> column) => column.gapAfter ?? 0;
 
   Widget _wrapCellSlot({
     required DataTableColumn<T> column,

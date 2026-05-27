@@ -8,10 +8,7 @@ import '../../models/idea_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/idea_query_service.dart';
 import '../../utils/role_visibility_helpers.dart';
-import '../../widgets/data_view/list_table_scaffold.dart';
-import '../../widgets/data_view/view_mode.dart';
-import '../../widgets/data_view/view_mode_switcher.dart';
-import '../../widgets/idea_card.dart';
+import '../../widgets/data_view/data_table_view.dart';
 import '../../widgets/idea_table_columns.dart';
 import '../../widgets/payment_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
@@ -48,7 +45,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Set<String> _problemFilters = <String>{};
   Set<String> _departmentFilters = <String>{};
   IdeaSortType _sort = IdeaSortType.newest;
-  DataViewMode _viewMode = DataViewMode.list;
 
   @override
   void initState() {
@@ -153,12 +149,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             .toList(growable: false)
           ..sort();
 
-        final Widget listWidget = ideas.isEmpty
+        final Widget tableWidget = ideas.isEmpty
             ? const Center(
                 child: Text('No ideas found for the selected criteria.'),
               )
-            : ListTableScaffold<IdeaListItem>(
-                mode: _viewMode,
+            : DataTableView<IdeaListItem>(
                 items: ideas,
                 columns: IdeaTableColumns.build(
                   config: widget.config,
@@ -166,41 +161,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                 ),
                 onSort: _onTableSort,
                 activeSortKey: _activeSortKey,
-                listBuilder: (List<IdeaListItem> rows) => ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: rows.length,
-                  itemBuilder: (context, index) {
-                    final item = rows[index];
-                    final showPay = widget.config.canUploadPayment && item.canUploadPayment;
-                    final canEval = widget.config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: IdeaCard(
-                        key: ValueKey(item.idea.ideaId),
-                        item: item,
-                        onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                        onOpenTeam: () {
-                          final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
-                          if (teamId.isEmpty) return;
-                          WorkspaceNavigator.openTeam(context, teamId);
-                        },
-                        onOpenPayment: item.payment == null
-                            ? null
-                            : () => WorkspaceNavigator.openPayment(context, item.payment!.paymentId),
-                        onOpenEvaluation: _canOpenEvaluation(item)
-                            ? () => WorkspaceNavigator.openEvaluation(context, item.idea.ideaId)
-                            : null,
-                        onOpenAttachments: item.attachmentCount > 0
-                            ? () => _openAttachments(context, item)
-                            : null,
-                        showEvaluate: canEval,
-                        onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
-                        showUploadPayment: showPay,
-                        onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
-                      ),
-                    );
-                  },
-                ),
               );
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -227,9 +187,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                 ],
                 const SizedBox(height: 12),
                 if (hasBoundedHeight)
-                  Expanded(child: listWidget)
+                  Expanded(child: tableWidget)
                 else
-                  SizedBox(height: 420, child: listWidget),
+                  SizedBox(height: 420, child: tableWidget),
               ],
             );
 
@@ -240,15 +200,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  bool _canOpenEvaluation(IdeaListItem item) {
-    if (item.score != null) return true;
-    return item.idea.status == IdeaStatus.evaluated ||
-        item.idea.status == IdeaStatus.approved ||
-        item.idea.status == IdeaStatus.underReview;
-  }
-
-  /// Bundle of row callbacks shared between the list cards and the table cells
-  /// so both views drive the same workspace/dialog flows.
+  /// Row action callbacks wired into table cells (workspace + dialogs).
   IdeaTableActions _ideaTableActions() {
     return IdeaTableActions(
       onOpenIdea: (IdeaListItem item) =>
@@ -257,6 +209,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
         if (teamId.isEmpty) return;
         WorkspaceNavigator.openTeam(context, teamId);
+      },
+      onOpenProblem: (IdeaListItem item) {
+        final String problemId = item.idea.problemId.trim();
+        if (problemId.isEmpty) return;
+        WorkspaceNavigator.openProblem(context, problemId);
       },
       onOpenPayment: (IdeaListItem item) {
         final payment = item.payment;
@@ -372,14 +329,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
     final sortButton = _buildSortButton(context);
 
-    final viewModeSwitcher = ViewModeSwitcher(
-      mode: _viewMode,
-      onChanged: (DataViewMode next) {
-        if (next == _viewMode) return;
-        setState(() => _viewMode = next);
-      },
-    );
-
     final searchField = TextField(
       controller: _searchController,
       onSubmitted: (_) => _loadIdeas(),
@@ -414,7 +363,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             children: <Widget>[
               filterButton,
               sortButton,
-              viewModeSwitcher,
             ],
           ),
         ],
@@ -429,8 +377,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         filterButton,
         const SizedBox(width: 8),
         sortButton,
-        const SizedBox(width: 8),
-        viewModeSwitcher,
       ],
     );
   }
