@@ -26,6 +26,7 @@ class CriterionScoreCard extends StatelessWidget {
     this.readOnly = false,
     this.comment,
     this.onCommentChanged,
+    this.ownershipBadge,
   });
 
   final EvaluationCriterion criterion;
@@ -46,6 +47,7 @@ class CriterionScoreCard extends StatelessWidget {
   final String? comment;
 
   final ValueChanged<String>? onCommentChanged;
+  final String? ownershipBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +107,24 @@ class CriterionScoreCard extends StatelessWidget {
                   style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: const Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+              if ((ownershipBadge ?? '').trim().isNotEmpty) ...<Widget>[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Text(
+                    ownershipBadge!.trim(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF64748B),
+                    ),
                   ),
                 ),
               ],

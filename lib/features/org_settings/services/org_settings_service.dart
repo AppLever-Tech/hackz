@@ -35,6 +35,8 @@ class OrgSettingsService extends ChangeNotifier {
   /// evaluation templates (`features/evaluations`). Stored as opaque maps —
   /// the evaluations feature owns typed encoding/decoding.
   static const String evaluationTemplatesField = 'evaluationTemplates';
+  static const String departmentEvaluationExtensionsField =
+      'departmentEvaluationExtensions';
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -46,6 +48,8 @@ class OrgSettingsService extends ChangeNotifier {
   /// Raw evaluation template maps, ordered as stored in Firestore. Consumers
   /// (`features/evaluations`) decode these into typed templates.
   final List<Map<String, dynamic>> _evaluationTemplatesRaw = <Map<String, dynamic>>[];
+  final Map<String, dynamic> _departmentEvaluationExtensionsRaw =
+      <String, dynamic>{};
 
   String? _orgId;
   bool _loading = false;
@@ -63,6 +67,8 @@ class OrgSettingsService extends ChangeNotifier {
   /// via `EvaluationTemplate.fromMap` from `features/evaluations`.
   List<Map<String, dynamic>> get evaluationTemplatesRaw =>
       List<Map<String, dynamic>>.unmodifiable(_evaluationTemplatesRaw);
+  Map<String, dynamic> get departmentEvaluationExtensionsRaw =>
+      Map<String, dynamic>.unmodifiable(_departmentEvaluationExtensionsRaw);
 
   OrgSettingDefinition? definitionFor(String key) => _defByKey[key];
 
@@ -70,6 +76,7 @@ class OrgSettingsService extends ChangeNotifier {
   void clearCache() {
     _valuesByKey.clear();
     _evaluationTemplatesRaw.clear();
+    _departmentEvaluationExtensionsRaw.clear();
     _orgId = null;
     _error = null;
     _loading = false;
@@ -150,6 +157,7 @@ class OrgSettingsService extends ChangeNotifier {
         'updatedAt': FieldValue.serverTimestamp(),
         'settings': defaultOrgSettingsFirestoreEntries(),
         evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
+        departmentEvaluationExtensionsField: <String, dynamic>{},
       });
     });
   }
@@ -162,6 +170,7 @@ class OrgSettingsService extends ChangeNotifier {
     final data = snap.data()!;
     _applySettingsArray(data['settings']);
     _applyEvaluationTemplatesArray(data[evaluationTemplatesField]);
+    _applyDepartmentEvaluationExtensions(data[departmentEvaluationExtensionsField]);
 
     final List<Map<String, dynamic>> missing = <Map<String, dynamic>>[];
     for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) {
@@ -200,6 +209,15 @@ class OrgSettingsService extends ChangeNotifier {
         _evaluationTemplatesRaw.add(Map<String, dynamic>.from(item));
       }
     }
+  }
+
+  void _applyDepartmentEvaluationExtensions(Object? raw) {
+    _departmentEvaluationExtensionsRaw.clear();
+    if (raw is! Map) return;
+    raw.forEach((Object? key, Object? value) {
+      if (key is! String) return;
+      _departmentEvaluationExtensionsRaw[key.trim().toUpperCase()] = value;
+    });
   }
 
   void _applySettingsArray(Object? raw) {
@@ -332,6 +350,36 @@ class OrgSettingsService extends ChangeNotifier {
     );
   }
 
+  Future<String?> updateDepartmentEvaluationExtensions(
+    Map<String, dynamic> next,
+  ) async {
+    if (_orgId == null || _orgId!.isEmpty) return 'Org settings not loaded.';
+    final Map<String, dynamic> previous =
+        Map<String, dynamic>.from(_departmentEvaluationExtensionsRaw);
+    _departmentEvaluationExtensionsRaw
+      ..clear()
+      ..addAll(next.map((k, v) => MapEntry(k.trim().toUpperCase(), v)));
+    notifyListeners();
+    try {
+      await _configRef.set(
+        <String, dynamic>{
+          'schemaVersion': kOrgSettingsSchemaVersion,
+          'updatedAt': FieldValue.serverTimestamp(),
+          departmentEvaluationExtensionsField:
+              Map<String, dynamic>.from(_departmentEvaluationExtensionsRaw),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      _departmentEvaluationExtensionsRaw
+        ..clear()
+        ..addAll(previous);
+      notifyListeners();
+      return e.toString();
+    }
+    return null;
+  }
+
   /// One-shot seed for a freshly created organization. Writes the default
   /// settings document if it doesn't already exist. Best-effort: callers can
   /// also rely on lazy bootstrap inside [ensureLoaded].
@@ -356,6 +404,7 @@ class OrgSettingsService extends ChangeNotifier {
           'updatedAt': FieldValue.serverTimestamp(),
           'settings': defaultOrgSettingsFirestoreEntries(),
           evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
+          departmentEvaluationExtensionsField: <String, dynamic>{},
         });
       });
     } catch (e) {

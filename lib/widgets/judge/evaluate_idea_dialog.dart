@@ -100,8 +100,17 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
 
   EvaluationTemplate _resolveTemplateForExistingScore() {
     final ScoreModel? existing = widget.latestJudgeScore;
+    final String problemDept = widget.idea.problemDepartmentCode.trim().toUpperCase();
+    final bool isDepartmentScoped = problemDept.isNotEmpty;
     if (existing != null && existing.templateId.trim().isNotEmpty) {
-      return EvaluationTemplatesService.resolveTemplate(existing.templateId);
+      return EvaluationTemplatesService.resolveTemplate(
+        existing.templateId,
+        departmentCode: isDepartmentScoped ? problemDept : null,
+        includeDepartmentExtensions: isDepartmentScoped,
+      );
+    }
+    if (isDepartmentScoped) {
+      return EvaluationTemplatesService.defaultTemplateForDepartment(problemDept);
     }
     return EvaluationTemplatesService.defaultTemplate;
   }
@@ -413,6 +422,9 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
             readOnly: widget.readOnly,
             onChanged: (int v) => setState(() => _scores[c.criterionId] = v),
             weightLabel: _weightLabel(c, template),
+            ownershipBadge: c.sourceType == EvaluationCriterionSourceType.department
+                ? 'Department specific'
+                : null,
             comment: _comments[c.criterionId],
             onCommentChanged: c.commentsEnabled
                 ? (String s) => _comments[c.criterionId] = s

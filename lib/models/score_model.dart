@@ -22,6 +22,8 @@ class ScoreModel {
     this.templateId = '',
     this.criteriaScores = const <String, double>{},
     this.criteriaComments = const <String, String>{},
+    this.rawScore,
+    this.normalizedScore,
   });
 
   final String scoreId;
@@ -44,6 +46,8 @@ class ScoreModel {
   /// has `commentsEnabled: true` are expected to populate this map; other
   /// keys are dropped on the read side.
   final Map<String, String> criteriaComments;
+  final double? rawScore;
+  final double? normalizedScore;
 
   bool get hasStructuredCriteria => criteriaScores.isNotEmpty;
 
@@ -60,6 +64,8 @@ class ScoreModel {
       'templateId': templateId,
       'criteriaScores': criteriaScores,
       'criteriaComments': criteriaComments,
+      'rawScore': rawScore,
+      'normalizedScore': normalizedScore,
     };
   }
 
@@ -78,6 +84,8 @@ class ScoreModel {
       templateId: ((map['templateId'] as String?) ?? '').trim(),
       criteriaScores: _decodeNumMap(map['criteriaScores']),
       criteriaComments: _decodeStringMap(map['criteriaComments']),
+      rawScore: (map['rawScore'] as num?)?.toDouble(),
+      normalizedScore: (map['normalizedScore'] as num?)?.toDouble(),
     );
   }
 
@@ -93,6 +101,8 @@ class ScoreModel {
     String? templateId,
     Map<String, double>? criteriaScores,
     Map<String, String>? criteriaComments,
+    double? rawScore,
+    double? normalizedScore,
   }) {
     return ScoreModel(
       scoreId: scoreId ?? this.scoreId,
@@ -106,6 +116,8 @@ class ScoreModel {
       templateId: templateId ?? this.templateId,
       criteriaScores: criteriaScores ?? this.criteriaScores,
       criteriaComments: criteriaComments ?? this.criteriaComments,
+      rawScore: rawScore ?? this.rawScore,
+      normalizedScore: normalizedScore ?? this.normalizedScore,
     );
   }
 }

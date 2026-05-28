@@ -1,5 +1,6 @@
 import '../../org_settings/services/org_settings_service.dart';
 import '../constants/default_evaluation_templates.dart';
+import '../models/evaluation_criterion.dart';
 import '../models/evaluation_template.dart';
 
 /// Typed read/write facade over the evaluation templates list stored inside
@@ -11,6 +12,7 @@ import '../models/evaluation_template.dart';
 /// in lock-step.
 abstract final class EvaluationTemplatesService {
   EvaluationTemplatesService._();
+  static const String _criteriaField = 'criteria';
 
   /// Decodes the current raw template list from [OrgSettingsService] into
   /// typed [EvaluationTemplate]s.
@@ -44,13 +46,48 @@ abstract final class EvaluationTemplatesService {
     return defaultEvaluationTemplates.first;
   }
 
+  static EvaluationTemplate defaultTemplateForDepartment(String departmentCode) {
+    final EvaluationTemplate base = defaultTemplate;
+    final List<EvaluationCriterion> extensions =
+        departmentExtensionCriteriaForTemplate(
+      departmentCode: departmentCode,
+      templateId: base.templateId,
+    );
+    return base.withDepartmentExtensions(
+      departmentCode: departmentCode,
+      extensions: extensions,
+    );
+  }
+
   /// Looks up a template by id. Falls back to [defaultTemplate] when not
   /// found so legacy/orphan score documents still render gracefully.
-  static EvaluationTemplate resolveTemplate(String? templateId) {
+  static EvaluationTemplate resolveTemplate(
+    String? templateId, {
+    String? departmentCode,
+    bool includeDepartmentExtensions = true,
+  }) {
     final String id = (templateId ?? '').trim();
-    if (id.isEmpty) return defaultTemplate;
+    final String dept = (departmentCode ?? '').trim().toUpperCase();
+    if (id.isEmpty) {
+      if (includeDepartmentExtensions && dept.isNotEmpty) {
+        return defaultTemplateForDepartment(dept);
+      }
+      return defaultTemplate;
+    }
     for (final EvaluationTemplate t in templates) {
-      if (t.templateId == id) return t;
+      if (t.templateId == id) {
+        if (!includeDepartmentExtensions || dept.isEmpty) return t;
+        return t.withDepartmentExtensions(
+          departmentCode: dept,
+          extensions: departmentExtensionCriteriaForTemplate(
+            departmentCode: dept,
+            templateId: t.templateId,
+          ),
+        );
+      }
+    }
+    if (includeDepartmentExtensions && dept.isNotEmpty) {
+      return defaultTemplateForDepartment(dept);
     }
     return defaultTemplate;
   }
@@ -65,6 +102,66 @@ abstract final class EvaluationTemplatesService {
     return OrgSettingsService.instance.updateEvaluationTemplates(
       normalized.map((EvaluationTemplate t) => t.toMap()).toList(growable: false),
     );
+  }
+
+  static List<EvaluationCriterion> departmentExtensionCriteriaForTemplate({
+    required String departmentCode,
+    required String templateId,
+  }) {
+    final String dept = departmentCode.trim().toUpperCase();
+    final String id = templateId.trim();
+    if (dept.isEmpty || id.isEmpty) return const <EvaluationCriterion>[];
+    final Object? deptNode =
+        OrgSettingsService.instance.departmentEvaluationExtensionsRaw[dept];
+    if (deptNode is! Map) return const <EvaluationCriterion>[];
+    final Object? templateNode = deptNode[id];
+    if (templateNode is! Map) return const <EvaluationCriterion>[];
+    final Object? rawCriteria = templateNode[_criteriaField];
+    if (rawCriteria is! List) return const <EvaluationCriterion>[];
+    final List<EvaluationCriterion> parsed = <EvaluationCriterion>[];
+    for (final Object? item in rawCriteria) {
+      if (item is! Map) continue;
+      final EvaluationCriterion c =
+          EvaluationCriterion.fromMap(Map<String, dynamic>.from(item)).copyWith(
+        sourceType: EvaluationCriterionSourceType.department,
+        ownerDepartmentCode: dept,
+      );
+      if (c.criterionId.trim().isEmpty) continue;
+      parsed.add(c);
+    }
+    parsed.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    return parsed;
+  }
+
+  static Future<String?> saveDepartmentExtensionCriteria({
+    required String departmentCode,
+    required String templateId,
+    required List<EvaluationCriterion> criteria,
+  }) async {
+    final String dept = departmentCode.trim().toUpperCase();
+    final String id = templateId.trim();
+    if (dept.isEmpty) return 'Missing department code.';
+    if (id.isEmpty) return 'Missing template id.';
+    final Map<String, dynamic> root = Map<String, dynamic>.from(
+      OrgSettingsService.instance.departmentEvaluationExtensionsRaw,
+    );
+    final Map<String, dynamic> deptNode = root[dept] is Map
+        ? Map<String, dynamic>.from(root[dept] as Map)
+        : <String, dynamic>{};
+    deptNode[id] = <String, dynamic>{
+      _criteriaField: criteria
+          .map((EvaluationCriterion c) => c
+              .copyWith(
+                sourceType: EvaluationCriterionSourceType.department,
+                ownerDepartmentCode: dept,
+              )
+              .toMap())
+          .toList(growable: false),
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    root[dept] = deptNode;
+    return OrgSettingsService.instance
+        .updateDepartmentEvaluationExtensions(root);
   }
 
   /// Normalizes a list so exactly one template carries `isDefault: true`.

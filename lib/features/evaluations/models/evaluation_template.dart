@@ -48,6 +48,46 @@ class EvaluationTemplate {
     return list;
   }
 
+  List<EvaluationCriterion> get orgCriteria => orderedCriteria
+      .where((EvaluationCriterion c) =>
+          c.sourceType == EvaluationCriterionSourceType.org)
+      .toList(growable: false);
+
+  List<EvaluationCriterion> get departmentExtensionCriteria => orderedCriteria
+      .where((EvaluationCriterion c) =>
+          c.sourceType == EvaluationCriterionSourceType.department)
+      .toList(growable: false);
+
+  EvaluationTemplate withDepartmentExtensions({
+    required String departmentCode,
+    required List<EvaluationCriterion> extensions,
+  }) {
+    final String dept = departmentCode.trim().toUpperCase();
+    if (dept.isEmpty || extensions.isEmpty) return this;
+    final Set<String> existing = <String>{
+      for (final EvaluationCriterion c in criteria) c.criterionId,
+    };
+    final List<EvaluationCriterion> additions = <EvaluationCriterion>[];
+    int nextOrder = criteria.isEmpty
+        ? 1
+        : criteria
+                .map((EvaluationCriterion c) => c.displayOrder)
+                .reduce((int a, int b) => a > b ? a : b) +
+            1;
+    for (final EvaluationCriterion c in extensions) {
+      if (existing.contains(c.criterionId)) continue;
+      additions.add(c.copyWith(
+        sourceType: EvaluationCriterionSourceType.department,
+        ownerDepartmentCode:
+            c.ownerDepartmentCode.trim().isEmpty ? dept : c.ownerDepartmentCode,
+        displayOrder: c.displayOrder <= 0 ? nextOrder : c.displayOrder,
+      ));
+      nextOrder++;
+    }
+    if (additions.isEmpty) return this;
+    return copyWith(criteria: <EvaluationCriterion>[...criteria, ...additions]);
+  }
+
   /// Weight-normalized score in `[0, scoringScale]`. Returns `0` when no
   /// criterion is scored. Unknown criterion ids in [criteriaScores] are
   /// ignored.

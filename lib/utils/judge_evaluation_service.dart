@@ -77,6 +77,9 @@ abstract final class JudgeEvaluationService {
     }
 
     final double overall = template.computeOverall(cleanedScores);
+    final double normalized = template.scoringScale <= 0
+        ? 0
+        : ((overall / template.scoringScale) * 100).clamp(0.0, 100.0);
     final col = _db.collection(FirestoreUtils.hkzScores);
     final existing = await col
         .where('ideaId', isEqualTo: idea.ideaId)
@@ -95,6 +98,8 @@ abstract final class JudgeEvaluationService {
       templateId: template.templateId,
       criteriaScores: cleanedScores,
       criteriaComments: cleanedComments,
+      rawScore: overall,
+      normalizedScore: normalized,
     );
     if (existing.docs.isEmpty) {
       final doc = col.doc();
