@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../../models/user_model.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
@@ -227,15 +228,7 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
   static const double _kSettingsLeftIndent = 12;
 
   BoxDecoration _settingsCardDecoration(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-    return BoxDecoration(
-      color: cs.surface,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFE8ECF8), width: 1.2),
-      boxShadow: const <BoxShadow>[
-        BoxShadow(color: Color(0x0C000000), blurRadius: 14, offset: Offset(0, 6)),
-      ],
-    );
+    return kDashboardCardDecoration;
   }
 
   Widget _buildToolbar(BuildContext context) {
@@ -627,7 +620,7 @@ class _OrgSettingsRightPane extends StatelessWidget {
           ],
         ),
       );
-      blocks.add(const SizedBox(height: 8));
+      blocks.add(const SizedBox(height: 6));
     }
     if (blocks.isNotEmpty) {
       blocks.removeLast();
@@ -664,7 +657,7 @@ class _OrgSettingsRightPane extends StatelessWidget {
             ],
           ),
         );
-        blocks.add(const SizedBox(height: 8));
+        blocks.add(const SizedBox(height: 6));
       }
     }
     if (blocks.isNotEmpty) {
@@ -702,7 +695,7 @@ class _OrgSettingsRightPane extends StatelessWidget {
               ),
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 6),
               children: bodyChildren,
             );
     }
@@ -721,12 +714,13 @@ class _OrgSettingsRightPane extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.45),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE4E9F5)),
                   ),
                   child: Icon(
                     globalSearch ? AppIcons.search : s.icon,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     size: 22,
                   ),
                 ),

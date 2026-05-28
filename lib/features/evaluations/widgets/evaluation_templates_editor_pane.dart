@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../../../constants/brand_colors.dart';
 import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../org_settings/widgets/settings_group_widget.dart';
 import '../../org_settings/widgets/settings_number_stepper.dart';
@@ -355,7 +357,27 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
     return <Widget>[
       SettingsGroupWidget(
         title: 'Template details',
+        showBorderTitle: false,
         children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Expanded(
+                child: Text(
+                  'Template details',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () => _deleteTemplate(selected),
+                icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                label: const Text('Delete template', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
           _textRow(
             label: 'Name',
             value: selected.templateName,
@@ -397,23 +419,47 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
                     label: const Text('Make default'),
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => _deleteTemplate(selected),
-                icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
-                label: const Text('Delete template', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w800)),
-              ),
-            ),
-          ),
         ],
       ),
       const SizedBox(height: 10),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: BrandColors.primaryActionFill,
+            foregroundColor: BrandColors.onPrimaryActionFill,
+          ),
+          onPressed: () {
+            _updateSelected((d) {
+              final Set<String> taken = <String>{
+                for (final _CriterionDraft c in d.criteria) c.criterionId,
+              };
+              final String id = _suggestUniqueId('criterion', taken);
+              final List<_CriterionDraft> next = List<_CriterionDraft>.from(d.criteria);
+              next.add(
+                _CriterionDraft(
+                  criterionId: id,
+                  title: 'New criterion',
+                  description: '',
+                  weight: 1,
+                  minScore: 1,
+                  maxScore: d.scoringScale,
+                  commentsEnabled: false,
+                  displayOrder: next.length + 1,
+                ),
+              );
+              return d.copyWith(criteria: next);
+            });
+          },
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Add criterion'),
+        ),
+      ),
+      const SizedBox(height: 8),
       SettingsGroupWidget(
         title: 'Criteria',
         children: <Widget>[
+          const SizedBox(height: 6),
           for (int i = 0; i < selected.criteria.length; i++)
             _CriterionEditorCard(
               criterion: selected.criteria[i],
@@ -455,36 +501,6 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
                       });
                     },
             ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                _updateSelected((d) {
-                  final Set<String> taken = <String>{
-                    for (final _CriterionDraft c in d.criteria) c.criterionId,
-                  };
-                  final String id = _suggestUniqueId('criterion', taken);
-                  final List<_CriterionDraft> next = List<_CriterionDraft>.from(d.criteria);
-                  next.add(
-                    _CriterionDraft(
-                      criterionId: id,
-                      title: 'New criterion',
-                      description: '',
-                      weight: 1,
-                      minScore: 1,
-                      maxScore: d.scoringScale,
-                      commentsEnabled: false,
-                      displayOrder: next.length + 1,
-                    ),
-                  );
-                  return d.copyWith(criteria: next);
-                });
-              },
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add criterion'),
-            ),
-          ),
         ],
       ),
     ];
@@ -580,10 +596,8 @@ class _CriterionEditorCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(10, 8, 8, 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+      decoration: kDashboardCardDecoration.copyWith(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

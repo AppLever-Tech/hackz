@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../constants/brand_colors.dart';
+
 /// Brand-filled action style aligned with [FilledButton] / “Create Team”.
 abstract final class ProblemWorkflowActionStyles {
   ProblemWorkflowActionStyles._();
 
-  static const Color brandFill = Color(0xFF6A38FF);
-  static const Color brandOnFill = Colors.white;
+  static const Color brandFill = BrandColors.primaryActionFill;
+  static const Color brandOnFill = BrandColors.onPrimaryActionFill;
 
   static ButtonStyle brandFilledButtonStyle({double minHeight = 36}) {
     return FilledButton.styleFrom(
