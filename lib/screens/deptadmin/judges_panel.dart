@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../features/evaluations/workspaces/evaluation_assignment_details_pane.dart';
 import '../../constants/status_styles.dart';
 import '../../models/department_model.dart';
 import '../../models/enums/organization_type.dart';
@@ -13,6 +14,7 @@ import '../../utils/firestore_utils.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../screens/common/dashboard_chrome_scope.dart';
 import '../../workspace/workspace.dart';
 import '../common/create_user_dialog.dart';
 
@@ -112,6 +114,17 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
     if (mounted) {
       _refresh();
     }
+  }
+
+  void _openAssignmentWorkspace() {
+    WorkspaceController.instance.close();
+    final chrome = DashboardChromeScope.of(context);
+    chrome.showOverlay(
+      EvaluationAssignmentDetailsPane(
+        user: widget.user,
+        onBack: chrome.clearOverlay,
+      ),
+    );
   }
 
   Widget _buildMetricChips(_JudgesPanelData data) {
@@ -270,10 +283,21 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
             SizedBox(height: gap),
             Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: _addJudge,
-                icon: const Icon(AppIcons.add, size: 16),
-                label: const Text('Add Judge'),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  FilledButton.icon(
+                    onPressed: _addJudge,
+                    icon: const Icon(AppIcons.add, size: 16),
+                    label: const Text('Add Judge'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _openAssignmentWorkspace,
+                    icon: const Icon(AppIcons.scoring, size: 16),
+                    label: const Text('Evaluation Assignments'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

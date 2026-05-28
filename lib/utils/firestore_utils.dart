@@ -33,6 +33,10 @@ class FirestoreUtils {
   static const String hkzAttachments = 'hkzAttachments';
   /// Generic workflow / approval requests (team changes, future payment / idea / extension approvals).
   static const String hkzRequests = 'hkzRequests';
+  /// Problem-level evaluation assignment grouping.
+  static const String hkzEvaluationGroups = 'hkzEvaluationGroups';
+  /// Idea-to-judge evaluation assignments (supports many judges per idea).
+  static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);

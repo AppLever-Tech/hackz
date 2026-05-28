@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../features/evaluations/models/evaluation_template.dart';
 import '../models/attachment_model.dart';
 import '../models/enums/user_role.dart';
@@ -11,7 +12,6 @@ import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
 import 'judge_evaluation_feedback_codec.dart';
-import 'role_visibility_helpers.dart';
 
 /// Centralized judge-scoped evaluation queries and persistence.
 abstract final class JudgeEvaluationService {
@@ -47,8 +47,12 @@ abstract final class JudgeEvaluationService {
     if (idea.status == IdeaStatus.pendingSubmission) {
       throw StateError('Idea is pending payment verification.');
     }
-    if (!RoleVisibilityHelpers.ideaVisibleToUser(idea, judge)) {
-      throw StateError('Idea is not visible to this judge.');
+    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: judge.orgId,
+      judgeId: judge.userId,
+    );
+    if (!assignedIdeaIds.contains(idea.ideaId)) {
+      throw StateError('Idea is not assigned to this judge.');
     }
     if (template.criteria.isEmpty) {
       throw StateError('Evaluation template has no criteria.');
@@ -162,9 +166,13 @@ abstract final class JudgeEvaluationService {
       paymentByIdeaId[p.ideaId] = p;
     }
 
+    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: judge.orgId,
+      judgeId: judge.userId,
+    );
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where((idea) => RoleVisibilityHelpers.ideaVisibleToUser(idea, judge))
+        .where((idea) => assignedIdeaIds.contains(idea.ideaId))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -185,7 +193,7 @@ abstract final class JudgeEvaluationService {
     final evaluatedIdeaIds = scoresByIdea.keys.toSet();
 
     bool judgeMayEvaluate(IdeaModel idea) {
-      if (!RoleVisibilityHelpers.ideaVisibleToUser(idea, judge)) return false;
+      if (!assignedIdeaIds.contains(idea.ideaId)) return false;
       if (idea.status == IdeaStatus.pendingSubmission) return false;
       final pay = paymentByIdeaId[idea.ideaId];
       if (pay != null && pay.status != PaymentRecordStatus.verified && pay.status != PaymentRecordStatus.rejected) {

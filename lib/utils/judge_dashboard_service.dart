@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 
 import '../constants/app_icons.dart';
+import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../models/idea_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';
@@ -9,7 +10,6 @@ import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
-import 'role_visibility_helpers.dart';
 
 class JudgeDashboardService {
   JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
@@ -43,9 +43,13 @@ class JudgeDashboardService {
             UserModel.fromMap(d.data()),
     };
 
+    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: judge.orgId,
+      judgeId: judge.userId,
+    );
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where((idea) => RoleVisibilityHelpers.ideaVisibleToUser(idea, judge))
+        .where((idea) => assignedIdeaIds.contains(idea.ideaId))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -55,8 +59,9 @@ class JudgeDashboardService {
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    final assignedIdeaIds = scopedIdeas.map((i) => i.ideaId).toSet();
-    final judgeScoresForAssigned = scoresByJudge.where((s) => assignedIdeaIds.contains(s.ideaId)).toList(growable: false);
+    final Set<String> scopedIdeaIds = scopedIdeas.map((i) => i.ideaId).toSet();
+    final judgeScoresForAssigned =
+        scoresByJudge.where((s) => scopedIdeaIds.contains(s.ideaId)).toList(growable: false);
 
     final scoresByIdea = <String, List<ScoreModel>>{};
     for (final score in judgeScoresForAssigned) {
