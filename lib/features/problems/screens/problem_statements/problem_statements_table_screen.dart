@@ -25,6 +25,7 @@ import '../../services/problem_query_service.dart';
 import '../../validators/problem_submission_validators.dart';
 import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
+import '../../widgets/problem_workflow_action_pill.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
 
@@ -33,6 +34,7 @@ import 'problem_statement_details_pane.dart';
 /// adjacent problem title. Used by both the header and data rows so column
 /// alignment stays pixel-perfect.
 const double _kPsTitleGap = 12;
+const double _kDeptCategoryGap = 12;
 
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
 class ProblemStatementsTableScreen extends StatefulWidget {
@@ -86,7 +88,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     _TableColumn(label: 'Theme', flex: 3, minWidth: 96),
     _TableColumn(label: 'Ideas', flex: 2, minWidth: 76, align: TextAlign.center),
     _TableColumn(label: 'Deadline', flex: 2, minWidth: 92, align: TextAlign.center),
-    _TableColumn(label: '', flex: 1, minWidth: 56, align: TextAlign.end),
+    _TableColumn(label: 'Actions', flex: 3, minWidth: 180, align: TextAlign.end),
   ];
 
   @override
@@ -301,7 +303,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final tableMinWidth = _columns.fold<double>(0, (sum, c) => sum + c.minWidth) + 32;
+            final tableMinWidth =
+                _columns.fold<double>(0, (sum, c) => sum + c.minWidth) + 32 + _kPsTitleGap + _kDeptCategoryGap;
 
             final tableBody = problems.isEmpty
                 ? _EmptyTableState(onClearSearch: () {
@@ -703,6 +706,7 @@ class _TableHeaderRow extends StatelessWidget {
             // Mirror the 12 px PS # / Title gap used in [_TableDataRow] so
             // header labels stay aligned over their cells.
             if (i == 1) const SizedBox(width: _kPsTitleGap),
+            if (i == 3) const SizedBox(width: _kDeptCategoryGap),
             Expanded(
               flex: columns[i].flex,
               child: Text(
@@ -842,6 +846,7 @@ class _TableDataRow extends StatelessWidget {
                 style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
               ),
             ),
+            const SizedBox(width: _kDeptCategoryGap),
             Expanded(
               flex: columns[3].flex,
               child: Text(
@@ -913,7 +918,7 @@ class _TableDataRow extends StatelessWidget {
               flex: columns[7].flex,
               child: Align(
                 alignment: Alignment.centerRight,
-                child: _ProblemRowActionsMenu(
+                child: _ProblemRowActionArea(
                   problem: problem,
                   gate: gate,
                   canSubmitIdea: canSubmitIdea,
@@ -962,8 +967,8 @@ class _ActiveStatusDot extends StatelessWidget {
 /// **Submit Idea** first; everyone else sees the workspace / details /
 /// authoring actions in order. Destructive Delete is always last with a
 /// divider above it.
-class _ProblemRowActionsMenu extends StatelessWidget {
-  const _ProblemRowActionsMenu({
+class _ProblemRowActionArea extends StatelessWidget {
+  const _ProblemRowActionArea({
     required this.problem,
     required this.gate,
     required this.canSubmitIdea,
@@ -989,14 +994,8 @@ class _ProblemRowActionsMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool showSubmit = canSubmitIdea;
     final bool submitEnabled = showSubmit && problem.isActive && gate.canSubmit;
+    final bool isClosed = showSubmit && !submitEnabled;
     final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
-      if (showSubmit)
-        CardOverflowMenuAction(
-          value: 'submit',
-          icon: AppIcons.ideas,
-          label: 'Submit Idea',
-          enabled: submitEnabled,
-        ),
       const CardOverflowMenuAction(
         value: 'details',
         icon: AppIcons.preview,
@@ -1017,22 +1016,45 @@ class _ProblemRowActionsMenu extends StatelessWidget {
         ),
     ];
 
-    return CardOverflowMenuButton(
-      tooltip: 'Problem actions',
-      dividersBefore: const <String>{'delete'},
-      actions: actions,
-      onSelected: (String value) {
-        switch (value) {
-          case 'submit':
-            onSubmitIdea();
-          case 'details':
-            onOpenDetails();
-          case 'edit':
-            onEdit?.call();
-          case 'delete':
-            onDelete?.call();
-        }
-      },
+    return Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: ResponsiveHelper.isMobile(context) ? 4 : 6,
+      runSpacing: 4,
+      children: <Widget>[
+        if (showSubmit && submitEnabled)
+          ProblemWorkflowActionPill(
+            label: 'Idea',
+            showPlusPrefix: true,
+            contentIcon: AppIcons.ideas,
+            semantic: ProblemWorkflowPillSemantic.filledBrand,
+            onTap: onSubmitIdea,
+            tooltip: 'Submit idea',
+          ),
+        if (isClosed)
+          const ProblemWorkflowActionPill(
+            label: 'Closed',
+            icon: AppIcons.statusInactive,
+            semantic: ProblemWorkflowPillSemantic.closed,
+            enabled: false,
+            tooltip: 'Submissions closed',
+          ),
+        CardOverflowMenuButton(
+          tooltip: 'Problem actions',
+          dividersBefore: const <String>{'delete'},
+          actions: actions,
+          onSelected: (String value) {
+            switch (value) {
+              case 'details':
+                onOpenDetails();
+              case 'edit':
+                onEdit?.call();
+              case 'delete':
+                onDelete?.call();
+            }
+          },
+        ),
+      ],
     );
   }
 }
