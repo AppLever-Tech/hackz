@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/attachment_model.dart';
+import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
 import '../../models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
@@ -353,16 +355,26 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
     var list = results[0] as List<PaymentModel>;
     list = _scopePayments(list);
     final teamById = results[1] as Map<String, String>;
-    final studentIds = list.map((p) => p.paidByStudentId).where((e) => e.isNotEmpty).toSet();
-    final names = <String, String>{};
-    for (final id in studentIds) {
-      final u = await FirestoreUtils.fetchUser(id);
-      names[id] = u == null ? id : '${u.firstName} ${u.lastName}'.trim().isEmpty ? id : '${u.firstName} ${u.lastName}'.trim();
+    final Set<String> ideaIds =
+        list.map((PaymentModel p) => p.ideaId.trim()).where((String id) => id.isNotEmpty).toSet();
+    final Map<String, String> ideaTitleById = <String, String>{};
+    if (ideaIds.isNotEmpty) {
+      final QuerySnapshot<Map<String, dynamic>> ideaSnap = await FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzIdeas)
+          .where('orgId', isEqualTo: widget.user.orgId)
+          .get();
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in ideaSnap.docs) {
+        if (!ideaIds.contains(doc.id)) continue;
+        final IdeaModel idea = IdeaModel.fromMap(doc.id, doc.data());
+        final String title = idea.ideaTitle.trim();
+        ideaTitleById[doc.id] =
+            title.isNotEmpty ? title : (idea.problemNumber.trim().isNotEmpty ? idea.problemNumber.trim() : doc.id);
+      }
     }
     return _CoordinatorPaymentsData(
       payments: list,
       teamNameById: teamById,
-      studentNameById: names,
+      ideaTitleById: ideaTitleById,
     );
   }
 
@@ -481,9 +493,9 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
         return RichTabs(
           spacingAfterBar: 10,
           tabs: <RichTabItem>[
-            RichTabItem('Pending', count: pending.isEmpty ? null : pending.length),
-            RichTabItem('Verified', count: verified.isEmpty ? null : verified.length),
-            RichTabItem('Rejected', count: rejected.isEmpty ? null : rejected.length),
+            RichTabItem('Pending', count: pending.isEmpty ? null : pending.length, prominentCount: true),
+            RichTabItem('Verified', count: verified.isEmpty ? null : verified.length, prominentCount: true),
+            RichTabItem('Rejected', count: rejected.isEmpty ? null : rejected.length, prominentCount: true),
           ],
           children: <Widget>[
             _buildList(pending, data),
@@ -502,23 +514,19 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
       itemBuilder: (context, index) {
         final p = items[index];
         final teamName = data.teamNameById[p.teamId] ?? p.teamId;
-        final student = data.studentNameById[p.paidByStudentId] ?? p.paidByStudentId;
+        final String ideaName = data.ideaTitleById[p.ideaId] ?? p.problemNumber;
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: CoordinatorPaymentCard(
             payment: p,
-            problemNumber: p.problemNumber,
-            onOpenProblem: p.problemId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openProblem(context, p.problemId),
             teamName: teamName,
-            studentName: student,
-            onOpenStudent: p.paidByStudentId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openUser(context, p.paidByStudentId),
+            ideaName: ideaName,
             onOpenTeam: p.teamId.trim().isEmpty
                 ? null
                 : () => WorkspaceNavigator.openTeam(context, p.teamId),
+            onOpenIdea: p.ideaId.trim().isEmpty
+                ? null
+                : () => WorkspaceNavigator.openIdea(context, p.ideaId),
             onOpenPayment: () => WorkspaceNavigator.openPayment(context, p.paymentId),
             onViewScreenshot: () => _viewShot(p),
             onApprove: () => _approve(p),
@@ -534,10 +542,10 @@ class _CoordinatorPaymentsData {
   const _CoordinatorPaymentsData({
     required this.payments,
     required this.teamNameById,
-    required this.studentNameById,
+    required this.ideaTitleById,
   });
 
   final List<PaymentModel> payments;
   final Map<String, String> teamNameById;
-  final Map<String, String> studentNameById;
+  final Map<String, String> ideaTitleById;
 }
