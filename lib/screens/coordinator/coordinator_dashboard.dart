@@ -11,23 +11,18 @@ import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/coordinator/coordinator_activity_feed.dart';
-import '../../widgets/coordinator/coordinator_panel_card.dart';
-import '../../widgets/coordinator/department_operational_snapshot.dart';
-import '../../widgets/coordinator/escalation_alert_card.dart';
-import '../../widgets/coordinator/operational_metric_card.dart';
 import '../../widgets/coordinator/payment_queue_card.dart';
 import '../../widgets/coordinator/submission_workflow_funnel.dart';
 import '../../widgets/coordinator/verification_trend_chart.dart';
 import 'coordinator_payment_card.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_page_template.dart';
+import '../common/dashboard_components.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../widgets/attachment_viewer.dart';
-import '../../responsive/responsive_breakpoints.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
@@ -79,7 +74,8 @@ class _CoordinatorSummaryView extends StatefulWidget {
 }
 
 class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
-  CoordinatorDashboardTimeframe _timeframe = CoordinatorDashboardTimeframe.currentWeek;
+  CoordinatorDashboardTimeframe _trendTimeframe = CoordinatorDashboardTimeframe.currentWeek;
+  CoordinatorDashboardTimeframe _activityTimeframe = CoordinatorDashboardTimeframe.currentWeek;
   late Future<CoordinatorDashboardAnalytics> _future;
 
   @override
@@ -196,123 +192,61 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _CoordinatorHero(onRefresh: () => _refresh(force: true)),
-              SizedBox(height: gap),
               _OperationalMetricGrid(analytics: analytics),
               SizedBox(height: gap),
-              ResponsivePair(
-                spacing: gap,
-                first: AdaptiveDashboardPanel(
-                  desktopHeight: DashboardLayoutTokens.coordinatorTrendRow,
-                  child: VerificationTrendChart(
-                    points: analytics.trendFor(_timeframe),
-                    selectedTimeframe: _timeframe,
-                    onTimeframeChanged: (timeframe) => setState(() => _timeframe = timeframe),
+              DashboardPairRow(
+                height: DashboardLayoutTokens.coordinatorChartsRowHeight(
+                  analytics.workflow.length,
+                ),
+                pair: ResponsivePair(
+                  spacing: gap,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  first: SectionContainer(
+                    child: VerificationTrendChart(
+                      points: analytics.trendFor(_trendTimeframe),
+                      selectedTimeframe: _trendTimeframe,
+                      onTimeframeChanged: (CoordinatorDashboardTimeframe timeframe) {
+                        setState(() => _trendTimeframe = timeframe);
+                      },
+                    ),
+                  ),
+                  second: SectionContainer(
+                    child: SubmissionWorkflowFunnel(steps: analytics.workflow),
                   ),
                 ),
-                second: AdaptiveDashboardPanel(
-                  desktopHeight: DashboardLayoutTokens.coordinatorTrendRow,
-                  child: SubmissionWorkflowFunnel(steps: analytics.workflow),
-                ),
               ),
               SizedBox(height: gap),
-              ResponsivePair(
-                spacing: gap,
-                firstFlex: 2,
-                secondFlex: 1,
-                first: _PaymentVerificationQueue(
-                  items: analytics.pendingQueue,
-                  onVerify: _verify,
-                  onReject: _reject,
-                  onViewProof: _viewProof,
-                  onOpenProblem: (payment) => WorkspaceNavigator.openProblem(context, payment.problemId),
+              DashboardPairRow(
+                height: DashboardLayoutTokens.coordinatorQueueActivityRowHeight(
+                  analytics.pendingQueue.length,
                 ),
-                second: Column(
-                  children: <Widget>[
-                    _EscalationsPanel(alerts: analytics.escalations),
-                    SizedBox(height: gap),
-                    AdaptiveDashboardPanel(
-                      desktopHeight: DashboardLayoutTokens.coordinatorSnapshotPanel,
-                      child: DepartmentOperationalSnapshot(snapshot: analytics.snapshot),
+                pair: ResponsivePair(
+                  spacing: gap,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  first: SectionContainer(
+                    child: _PaymentVerificationQueue(
+                      items: analytics.pendingQueue,
+                      onVerify: _verify,
+                      onReject: _reject,
+                      onViewProof: _viewProof,
+                      onOpenIdea: (payment) => WorkspaceNavigator.openIdea(context, payment.ideaId),
                     ),
-                  ],
+                  ),
+                  second: SectionContainer(
+                    child: CoordinatorActivityFeed(
+                      activities: analytics.recentActivity,
+                      selectedTimeframe: _activityTimeframe,
+                      onTimeframeChanged: (CoordinatorDashboardTimeframe timeframe) {
+                        setState(() => _activityTimeframe = timeframe);
+                      },
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: gap),
-              AdaptiveDashboardPanel(
-                desktopHeight: DashboardLayoutTokens.coordinatorActivityPanel,
-                child: CoordinatorActivityFeed(activities: analytics.recentActivity),
               ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _CoordinatorHero extends StatelessWidget {
-  const _CoordinatorHero({required this.onRefresh});
-
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: <Color>[Color(0xFFEEF2FF), Color(0xFFF8FAFC)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFDDE6FF)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final textBlock = const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text('Coordinator Operations Control Center', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-              SizedBox(height: 4),
-              Text('Monitor payment verification, submission readiness and delayed actions in one compact workspace.', style: TextStyle(fontSize: 13, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
-            ],
-          );
-          final icon = Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-            child: const Icon(AppIcons.verification, color: Color(0xFF4F46E5), size: 26),
-          );
-          final refreshButton = OutlinedButton.icon(
-            onPressed: onRefresh,
-            icon: const Icon(AppIcons.refresh, size: 16),
-            label: const Text('Refresh'),
-          );
-          if (constraints.maxWidth < ResponsiveBreakpoints.mobile) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                icon,
-                const SizedBox(height: 12),
-                textBlock,
-                const SizedBox(height: 12),
-                refreshButton,
-              ],
-            );
-          }
-          return Row(
-            children: <Widget>[
-              icon,
-              const SizedBox(width: 14),
-              Expanded(child: textBlock),
-              const SizedBox(width: 12),
-              refreshButton,
-            ],
-          );
-        },
-      ),
     );
   }
 }
@@ -326,10 +260,30 @@ class _OperationalMetricGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return ResponsiveMetricGrid(
       chips: <DashboardMetricChipData>[
-        OperationalMetricCard(value: '${analytics.pendingPayments}', label: 'Pending Payments', icon: AppIcons.pendingUsers, iconBgColor: const Color(0xFFFFF7ED), footnote: 'Payments waiting for coordinator verification').toChipData(),
-        OperationalMetricCard(value: '${analytics.verifiedPaymentsToday}', label: 'Verified Today', icon: AppIcons.verification, iconBgColor: const Color(0xFFE8FAF1), footnote: 'Payments verified since midnight').toChipData(),
-        OperationalMetricCard(value: '${analytics.ideasAwaitingValidation}', label: 'Payments Awaiting Validation', icon: AppIcons.submissions, iconBgColor: const Color(0xFFEFF6FF), footnote: 'Submitted payments waiting for coordinator review').toChipData(),
-        OperationalMetricCard(value: '${analytics.rejectedPayments}', label: 'Rejected Payments', icon: AppIcons.statusRejected, iconBgColor: const Color(0xFFFDECEC), footnote: 'Payment submissions rejected by coordinators').toChipData(),
+        DashboardMetricChipData.single(
+          label: 'Pending Payments',
+          value: '${analytics.pendingPayments}',
+          color: const Color(0xFFEA580C),
+          icon: AppIcons.pendingUsers,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Verified Today',
+          value: '${analytics.verifiedPaymentsToday}',
+          color: const Color(0xFF16A34A),
+          icon: AppIcons.verification,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Payments Awaiting Validation',
+          value: '${analytics.ideasAwaitingValidation}',
+          color: const Color(0xFF0EA5E9),
+          icon: AppIcons.submissions,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Rejected Payments',
+          value: '${analytics.rejectedPayments}',
+          color: const Color(0xFFDC2626),
+          icon: AppIcons.statusRejected,
+        ),
       ],
     );
   }
@@ -341,85 +295,43 @@ class _PaymentVerificationQueue extends StatelessWidget {
     required this.onVerify,
     required this.onReject,
     required this.onViewProof,
-    required this.onOpenProblem,
+    this.onOpenIdea,
   });
 
   final List<PaymentQueueItem> items;
   final ValueChanged<PaymentModel> onVerify;
   final ValueChanged<PaymentModel> onReject;
   final ValueChanged<PaymentModel> onViewProof;
-  final ValueChanged<PaymentModel> onOpenProblem;
+  final ValueChanged<PaymentModel>? onOpenIdea;
 
   @override
   Widget build(BuildContext context) {
-    final fixedHeight = ResponsiveHelper.fixedPanelHeight(context, 560);
-  final listBody = items.isEmpty
-        ? const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('No pending payment verifications.')),
-          )
-        : ListView.separated(
-            shrinkWrap: fixedHeight == null,
-            physics: fixedHeight == null ? const NeverScrollableScrollPhysics() : null,
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return PaymentQueueCard(
-                item: item,
-                onVerify: () => onVerify(item.payment),
-                onReject: () => onReject(item.payment),
-                onViewProof: () => onViewProof(item.payment),
-                onOpenProblem: item.payment.problemId.trim().isEmpty
-                    ? null
-                    : () => onOpenProblem(item.payment),
-              );
-            },
-          );
-
-    return CoordinatorPanelCard(
-      height: fixedHeight,
-      backgroundColor: const Color(0xFFFCFDFF),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text('Pending Verification Queue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          const SizedBox(height: 4),
-          const Text('Prioritized payment reviews with proof and overdue signals', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-          const SizedBox(height: 14),
-          if (fixedHeight != null) Expanded(child: listBody) else listBody,
-        ],
+    return DashboardListCard(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      preset: DashboardListPreset.compact,
+      rowStride: DashboardLayoutTokens.listPaymentQueueRowStride,
+      separatorHeight: 8,
+      headers: DashboardCardHeaders.sectionTitle(
+        title: 'Pending Verification Queue',
+        subtitle: 'Prioritized payment reviews with proof and overdue signals',
       ),
-    );
-  }
-}
-
-class _EscalationsPanel extends StatelessWidget {
-  const _EscalationsPanel({required this.alerts});
-
-  final List<CoordinatorEscalation> alerts;
-
-  @override
-  Widget build(BuildContext context) {
-    final fixedHeight = ResponsiveHelper.fixedPanelHeight(context, 300);
-    final listBody = ListView.separated(
-      shrinkWrap: fixedHeight == null,
-      physics: fixedHeight == null ? const NeverScrollableScrollPhysics() : null,
-      itemCount: alerts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => EscalationAlertCard(alert: alerts[index]),
-    );
-
-    return CoordinatorPanelCard(
-      height: fixedHeight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text('Escalations / Delayed Actions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          const SizedBox(height: 12),
-          if (fixedHeight != null) Expanded(child: listBody) else listBody,
-        ],
+      itemCount: items.length,
+      empty: const Align(
+        alignment: Alignment.topLeft,
+        child: Text('No pending payment verifications.'),
       ),
+      itemBuilder: (BuildContext context, int index) {
+        final PaymentQueueItem item = items[index];
+        return PaymentQueueCard(
+          item: item,
+          onVerify: () => onVerify(item.payment),
+          onReject: () => onReject(item.payment),
+          onViewProof: () => onViewProof(item.payment),
+          onOpenIdea: item.ideaId.trim().isEmpty
+              ? null
+              : () => onOpenIdea?.call(item.payment),
+        );
+      },
     );
   }
 }

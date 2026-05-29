@@ -53,7 +53,8 @@ class PaymentQueueItem {
   const PaymentQueueItem({
     required this.payment,
     required this.teamName,
-    required this.problemName,
+    required this.ideaId,
+    required this.ideaName,
     required this.hasProof,
     required this.isOverdue,
     required this.submittedAt,
@@ -61,25 +62,12 @@ class PaymentQueueItem {
 
   final PaymentModel payment;
   final String teamName;
-  final String problemName;
+  final String ideaId;
+  final String ideaName;
   final bool hasProof;
   final bool isOverdue;
   final DateTime submittedAt;
 }
-
-class CoordinatorEscalation {
-  const CoordinatorEscalation({
-    required this.title,
-    required this.message,
-    required this.severity,
-  });
-
-  final String title;
-  final String message;
-  final CoordinatorEscalationSeverity severity;
-}
-
-enum CoordinatorEscalationSeverity { info, warning, critical }
 
 class CoordinatorActivityItem {
   const CoordinatorActivityItem({
@@ -97,20 +85,6 @@ class CoordinatorActivityItem {
   final Color tint;
 }
 
-class DepartmentOperationalSnapshotVm {
-  const DepartmentOperationalSnapshotVm({
-    required this.ideasAwaitingPayment,
-    required this.blockedTeams,
-    required this.verificationCompletion,
-    required this.activeSubmissionWindow,
-  });
-
-  final int ideasAwaitingPayment;
-  final int blockedTeams;
-  final double verificationCompletion;
-  final String activeSubmissionWindow;
-}
-
 class CoordinatorDashboardAnalytics {
   const CoordinatorDashboardAnalytics({
     required this.pendingPayments,
@@ -120,8 +94,6 @@ class CoordinatorDashboardAnalytics {
     required this.trendsByTimeframe,
     required this.workflow,
     required this.pendingQueue,
-    required this.escalations,
-    required this.snapshot,
     required this.recentActivity,
   });
 
@@ -132,8 +104,6 @@ class CoordinatorDashboardAnalytics {
   final Map<CoordinatorDashboardTimeframe, List<CoordinatorTrendPoint>> trendsByTimeframe;
   final List<SubmissionWorkflowStep> workflow;
   final List<PaymentQueueItem> pendingQueue;
-  final List<CoordinatorEscalation> escalations;
-  final DepartmentOperationalSnapshotVm snapshot;
   final List<CoordinatorActivityItem> recentActivity;
 
   List<CoordinatorTrendPoint> trendFor(CoordinatorDashboardTimeframe timeframe) {
@@ -153,6 +123,22 @@ class CoordinatorDashboardService {
   static void clearCache() {
     _cache.clear();
     _cacheAt.clear();
+  }
+
+  static bool isWithinTimeframe(DateTime when, CoordinatorDashboardTimeframe timeframe) {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    switch (timeframe) {
+      case CoordinatorDashboardTimeframe.currentWeek:
+        final DateTime start = today.subtract(Duration(days: today.weekday - 1));
+        return !when.isBefore(start) && when.isBefore(start.add(const Duration(days: 7)));
+      case CoordinatorDashboardTimeframe.lastMonth:
+        return !when.isBefore(today.subtract(const Duration(days: 30)));
+      case CoordinatorDashboardTimeframe.lastSixMonths:
+        return !when.isBefore(DateTime(today.year, today.month - 5, 1));
+      case CoordinatorDashboardTimeframe.all:
+        return true;
+    }
   }
 
   static String _cacheKey(UserModel user) => '${user.orgId}::${user.departmentCode.trim().toUpperCase()}';
@@ -224,7 +210,8 @@ class CoordinatorDashboardService {
           return PaymentQueueItem(
             payment: payment,
             teamName: teamNameById[payment.teamId] ?? payment.teamId,
-            problemName: idea?.problemTitle.trim().isNotEmpty == true ? idea!.problemTitle : (payment.problemNumber.isEmpty ? payment.problemId : payment.problemNumber),
+            ideaId: payment.ideaId,
+            ideaName: _ideaLabel(idea, payment),
             hasProof: hasProof,
             isOverdue: now.difference(payment.createdAt) > _overdueThreshold,
             submittedAt: payment.createdAt,
@@ -235,13 +222,10 @@ class CoordinatorDashboardService {
 
     final pendingPayments = pendingQueue.length;
     final rejectedPayments = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
-    final verifiedPayments = payments.where((payment) => payment.status == PaymentRecordStatus.verified).length;
     final ideasAwaitingValidation = ideas.where((idea) {
       final payment = paymentByIdea[idea.ideaId];
       return idea.status == IdeaStatus.pendingSubmission && payment != null && payment.status == PaymentRecordStatus.pending;
     }).length;
-    final ideasAwaitingPayment = ideas.where((idea) => idea.status == IdeaStatus.pendingSubmission && paymentByIdea[idea.ideaId] == null).length;
-    final blockedTeams = payments.where((payment) => payment.status != PaymentRecordStatus.verified).map((payment) => payment.teamId).where((id) => id.isNotEmpty).toSet().length;
 
     final analytics = CoordinatorDashboardAnalytics(
       pendingPayments: pendingPayments,
@@ -253,13 +237,6 @@ class CoordinatorDashboardService {
       },
       workflow: _buildWorkflow(ideas, payments, paymentOnly: !RoleVisibilityHelpers.canViewIdeas(UserRole.fromCode(user.role))),
       pendingQueue: pendingQueue,
-      escalations: _buildEscalations(pendingQueue, payments),
-      snapshot: DepartmentOperationalSnapshotVm(
-        ideasAwaitingPayment: ideasAwaitingPayment,
-        blockedTeams: blockedTeams,
-        verificationCompletion: payments.isEmpty ? 0.0 : verifiedPayments / payments.length,
-        activeSubmissionWindow: pendingPayments == 0 ? 'Clear' : '$pendingPayments payments in queue',
-      ),
       recentActivity: _buildActivity(payments, scores),
     );
 
@@ -281,6 +258,17 @@ class CoordinatorDashboardService {
   static Future<_FirestoreDocs> _fetchOrg(String collection, String orgId) async {
     final snap = await _db.collection(collection).where('orgId', isEqualTo: orgId).get();
     return snap.docs;
+  }
+
+  static String _ideaLabel(IdeaModel? idea, PaymentModel payment) {
+    if (idea != null) {
+      final String title = idea.ideaTitle.trim();
+      if (title.isNotEmpty) return title;
+      if (idea.problemNumber.trim().isNotEmpty) return idea.problemNumber.trim();
+    }
+    if (payment.problemNumber.trim().isNotEmpty) return payment.problemNumber.trim();
+    if (payment.ideaId.trim().isNotEmpty) return payment.ideaId.trim();
+    return 'Idea not mapped';
   }
 
   static List<SubmissionWorkflowStep> _buildWorkflow(
@@ -309,27 +297,6 @@ class CoordinatorDashboardService {
       SubmissionWorkflowStep(label: 'Payment Approved', count: approved, color: const Color(0xFF16A34A)),
       SubmissionWorkflowStep(label: 'Officially Submitted', count: official, color: const Color(0xFF0891B2)),
     ];
-  }
-
-  static List<CoordinatorEscalation> _buildEscalations(List<PaymentQueueItem> queue, List<PaymentModel> payments) {
-    final overdue = queue.where((item) => item.isOverdue).length;
-    final missingProof = queue.where((item) => !item.hasProof).length;
-    final rejected = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
-    final repeated = <String, int>{};
-    for (final payment in payments.where((payment) => payment.status == PaymentRecordStatus.rejected)) {
-      repeated[payment.ideaId] = (repeated[payment.ideaId] ?? 0) + 1;
-    }
-    final repeatedCount = repeated.values.where((count) => count > 1).length;
-    final alerts = <CoordinatorEscalation>[
-      if (overdue > 0) CoordinatorEscalation(title: 'Delayed payment reviews', message: '$overdue payments have been pending for more than 48 hours.', severity: CoordinatorEscalationSeverity.critical),
-      if (missingProof > 0) CoordinatorEscalation(title: 'Missing proof uploads', message: '$missingProof pending payments do not have a screenshot or attachment.', severity: CoordinatorEscalationSeverity.warning),
-      if (rejected > 0) CoordinatorEscalation(title: 'Failed verifications', message: '$rejected payments were rejected and may need follow-up.', severity: CoordinatorEscalationSeverity.warning),
-      if (repeatedCount > 0) CoordinatorEscalation(title: 'Repeated resubmissions', message: '$repeatedCount submissions have repeated payment rejection history.', severity: CoordinatorEscalationSeverity.critical),
-    ];
-    if (alerts.isEmpty) {
-      alerts.add(const CoordinatorEscalation(title: 'Queue health looks clear', message: 'No escalation thresholds are currently crossed.', severity: CoordinatorEscalationSeverity.info));
-    }
-    return alerts;
   }
 
   static List<CoordinatorActivityItem> _buildActivity(List<PaymentModel> payments, _FirestoreDocs scores) {

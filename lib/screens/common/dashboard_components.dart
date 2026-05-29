@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../responsive/responsive_layout.dart';
 import '../../widgets/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
@@ -166,7 +165,8 @@ class TopHeaderWidget extends StatelessWidget {
     super.key,
     required this.title,
     this.titleIcon,
-    required this.subtitle,
+    this.subtitle = '',
+    this.subtitleWidget,
     required this.dateText,
     required this.onRefresh,
   });
@@ -174,123 +174,73 @@ class TopHeaderWidget extends StatelessWidget {
   final String title;
   final IconData? titleIcon;
   final String subtitle;
+  final Widget? subtitleWidget;
   final String dateText;
   final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveLayout(
-      builder: (BuildContext context, ScreenSize screenSize) {
-        if (screenSize == ScreenSize.mobile) {
-          return _buildMobileHeader(context);
-        }
-        return _buildDesktopHeader(context);
-      },
-    );
-  }
-
-  Widget _buildMobileHeader(BuildContext context) {
-    final titleSize = ResponsiveHelper.titleFontSize(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
-            _actionButtons(compact: true),
-          ],
-        ),
-        if (subtitle.trim().isNotEmpty && ResponsiveHelper.showHeaderSubtitle(context)) ...<Widget>[
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildDesktopHeader(BuildContext context) {
-    final titleSize = ResponsiveHelper.titleFontSize(context);
-    final showDate = ResponsiveHelper.showHeaderDate(context);
-
-    if (screenSizeIsCompactTablet(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
-              _actionButtons(compact: false),
-            ],
-          ),
-          if (showDate) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              dateText,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ],
-      );
-    }
+    final double titleSize = ResponsiveHelper.titleFontSize(context);
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final bool showDate = ResponsiveHelper.showHeaderDate(context);
+    final Widget? subtitle = _subtitle(context);
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Expanded(child: _titleBlock(context, titleSize, maxLines: 2)),
-        if (showDate)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, right: 4),
-            child: Text(
-              dateText,
-              style: TextStyle(
-                color: Colors.grey.shade700,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+        Expanded(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (titleIcon != null) ...<Widget>[
+                Icon(
+                  titleIcon,
+                  size: titleSize >= 24 ? 24 : 20,
+                  color: const Color(0xFF334155),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
+                ),
               ),
+              if (subtitle != null) ...<Widget>[
+                const SizedBox(width: 10),
+                subtitle,
+              ],
+            ],
+          ),
+        ),
+        if (showDate) ...<Widget>[
+          Text(
+            dateText,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: compact ? 13 : 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        _actionButtons(compact: false),
+          const SizedBox(width: 4),
+        ],
+        _actionButtons(compact: compact),
       ],
     );
   }
 
-  bool screenSizeIsCompactTablet(BuildContext context) {
-    return ResponsiveHelper.isTablet(context);
-  }
-
-  Widget _titleBlock(BuildContext context, double titleSize, {required int maxLines}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            if (titleIcon != null) ...<Widget>[
-              Icon(titleIcon, size: titleSize >= 24 ? 24 : 20, color: const Color(0xFF334155)),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                maxLines: maxLines,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        if (subtitle.trim().isNotEmpty && ResponsiveHelper.showHeaderSubtitle(context)) ...<Widget>[
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(color: Colors.grey.shade600, fontSize: ResponsiveHelper.isTablet(context) ? 14 : 15),
-          ),
-        ],
-      ],
+  Widget? _subtitle(BuildContext context) {
+    if (!ResponsiveHelper.showHeaderSubtitle(context)) return null;
+    if (subtitleWidget != null) return subtitleWidget;
+    if (subtitle.trim().isEmpty) return null;
+    return Text(
+      subtitle,
+      style: TextStyle(
+        color: Colors.grey.shade600,
+        fontSize: ResponsiveHelper.isTablet(context) ? 14 : 15,
+      ),
     );
   }
 

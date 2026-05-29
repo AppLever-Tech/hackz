@@ -10,9 +10,55 @@ abstract final class DashboardLayoutTokens {
   static const double studentDetailsRowHeight = 200;
 
   // Coordinator dashboard panels.
-  static const double coordinatorTrendRow = 380;
-  static const double coordinatorActivityPanel = 360;
-  static const double coordinatorSnapshotPanel = 245;
+  static const double listPaymentQueueRowStride = 128;
+
+  /// [SectionContainer] default padding (14 × 2).
+  static const double sectionContainerVerticalPadding = 28;
+
+  static const double coordinatorPanelHeightBuffer = 8;
+
+  /// Trend chart body: stacked header + subtitle/legend wrap + chart (no card padding).
+  static double get coordinatorTrendPanelHeight =>
+      DashboardTrendChartLayout.stackedHeaderBlockHeight +
+      DashboardTrendChartLayout.headerToSubtitleGap +
+      DashboardTrendChartLayout.subtitleLineEstimate +
+      6 +
+      DashboardTrendChartLayout.legendRowEstimate +
+      DashboardTrendChartLayout.subtitleToChartGap +
+      DashboardTrendChartLayout.chartBoxHeight +
+      DashboardTrendChartLayout.trendCardHeightBuffer +
+      coordinatorPanelHeightBuffer;
+
+  static double coordinatorFunnelMinHeight(int stepCount) {
+    final int steps = stepCount < 1 ? 1 : stepCount;
+    return DashboardTrendChartLayout.cardHeaderRowHeight +
+        DashboardTrendChartLayout.headerToSubtitleGap +
+        DashboardTrendChartLayout.subtitleLineEstimate +
+        DashboardTrendChartLayout.subtitleToChartGap +
+        steps * 30 +
+        (steps - 1) * 12 +
+        coordinatorPanelHeightBuffer;
+  }
+
+  static double coordinatorChartsRowHeight(int funnelStepCount) {
+    final double funnel =
+        coordinatorFunnelMinHeight(funnelStepCount) + sectionContainerVerticalPadding;
+    final double trend = coordinatorTrendPanelHeight + sectionContainerVerticalPadding;
+    return trend > funnel ? trend : funnel;
+  }
+
+  static double coordinatorQueueActivityRowHeight(int queueItemCount) {
+    if (queueItemCount == 0) {
+      return pairRowAlertsActivity;
+    }
+    const double headerBlock = 17 + titleSubtitleGap + 12 + bodyTopGap;
+    final int visible = queueItemCount > listMaxVisibleRows ? listMaxVisibleRows : queueItemCount;
+    final double listHeight = visible * listPaymentQueueRowStride +
+        (visible > 1 ? (visible - 1) * listCompactSeparator : 0);
+    final double needed =
+        headerBlock + listHeight + sectionContainerVerticalPadding + coordinatorPanelHeightBuffer;
+    return needed > pairRowAlertsActivity ? needed : pairRowAlertsActivity;
+  }
 
   // ResponsivePair flex weights.
   static const int narrowPanelFlex = 35;

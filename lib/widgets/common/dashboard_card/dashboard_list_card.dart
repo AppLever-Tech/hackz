@@ -12,6 +12,7 @@ class DashboardListCard extends StatelessWidget {
     required this.itemCount,
     required this.itemBuilder,
     this.preset = DashboardListPreset.compact,
+    this.rowStride,
     this.separatorHeight,
     this.padding = EdgeInsets.zero,
     this.empty,
@@ -23,6 +24,7 @@ class DashboardListCard extends StatelessWidget {
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final DashboardListPreset preset;
+  final double? rowStride;
   final double? separatorHeight;
   final EdgeInsetsGeometry padding;
   final Widget? empty;
@@ -38,6 +40,7 @@ class DashboardListCard extends StatelessWidget {
         expandVertically: expandVertically,
         itemCount: itemCount,
         preset: preset,
+        rowStride: rowStride,
         separatorHeight: separatorHeight,
         padding: padding,
         empty: empty,

@@ -1,31 +1,57 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
+import '../../screens/common/dashboard_components.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../common/dashboard_card/dashboard_card_layout.dart';
-import 'coordinator_panel_card.dart';
+import '../common/time_frame_filter.dart';
 
 class CoordinatorActivityFeed extends StatelessWidget {
-  const CoordinatorActivityFeed({super.key, required this.activities});
+  const CoordinatorActivityFeed({
+    super.key,
+    required this.activities,
+    required this.selectedTimeframe,
+    required this.onTimeframeChanged,
+  });
 
   final List<CoordinatorActivityItem> activities;
+  final CoordinatorDashboardTimeframe selectedTimeframe;
+  final ValueChanged<CoordinatorDashboardTimeframe> onTimeframeChanged;
 
   @override
   Widget build(BuildContext context) {
-    final int itemCount = activities.length.clamp(0, 8).toInt();
-    return CoordinatorPanelCard(
-      child: DashboardListCard(
-        preset: DashboardListPreset.activity,
-        separatorHeight: 10,
-        headers: const <Widget>[
-          Text('Recent Coordinator Activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          SizedBox(height: DashboardLayoutTokens.titleSubtitleGap),
-          Text('Recent verification and validation operations', style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
-          SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
-        ],
-        empty: const Center(child: Text('No coordinator activity yet.')),
-        itemCount: itemCount,
-        itemBuilder: (BuildContext context, int index) => _activityRow(activities[index]),
+    final List<CoordinatorActivityItem> filtered = activities
+        .where(
+          (CoordinatorActivityItem item) =>
+              CoordinatorDashboardService.isWithinTimeframe(item.when, selectedTimeframe),
+        )
+        .toList(growable: false);
+
+    return DashboardListCard(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      preset: DashboardListPreset.activity,
+      headers: DashboardCardHeaders.timedList(
+        headerRow: DashboardCardHeaderRow(
+          title: 'Recent Activity',
+          icon: AppIcons.clock,
+          stackBelowWidth: 360,
+          trailing: TimeFrameFilter<CoordinatorDashboardTimeframe>(
+            options: CoordinatorDashboardTimeframe.values,
+            selected: selectedTimeframe,
+            labelBuilder: (CoordinatorDashboardTimeframe option) => option.label,
+            onChanged: onTimeframeChanged,
+            endPadding: 14,
+          ),
+        ),
+        subtitle: '${selectedTimeframe.label} verification and validation operations',
+        gapBeforeBody: DashboardLayoutTokens.activityHeaderGap,
       ),
+      empty: const Align(
+        alignment: Alignment.topLeft,
+        child: Text('No activity in this period.'),
+      ),
+      itemCount: filtered.length,
+      itemBuilder: (BuildContext context, int index) => _activityRow(filtered[index]),
     );
   }
 
@@ -36,7 +62,10 @@ class CoordinatorActivityFeed extends StatelessWidget {
         Container(
           width: 34,
           height: 34,
-          decoration: BoxDecoration(color: activity.tint.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: activity.tint.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Icon(activity.icon, size: 18, color: activity.tint),
         ),
         const SizedBox(width: 10),
@@ -48,14 +77,25 @@ class CoordinatorActivityFeed extends StatelessWidget {
                 activity.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
-                activity.subtitle.isEmpty ? _dateLabel(activity.when) : '${activity.subtitle} - ${_dateLabel(activity.when)}',
-                maxLines: 1,
+                activity.subtitle.isEmpty
+                    ? _relativeTime(activity.when)
+                    : '${activity.subtitle} · ${_relativeTime(activity.when)}',
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                ),
               ),
             ],
           ),
@@ -64,11 +104,11 @@ class CoordinatorActivityFeed extends StatelessWidget {
     );
   }
 
-  static String _dateLabel(DateTime date) {
-    final diff = DateTime.now().difference(date);
+  static String _relativeTime(DateTime when) {
+    final Duration diff = DateTime.now().difference(when);
     if (diff.inDays > 0) return '${diff.inDays}d ago';
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
-    return 'Just now';
+    return 'just now';
   }
 }

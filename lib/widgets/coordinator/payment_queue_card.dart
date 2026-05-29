@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/coordinator_dashboard_service.dart';
-import '../../workspace/shared/entity_reference_row.dart';
+import '../../workspace/workspace.dart';
 
 class PaymentQueueCard extends StatelessWidget {
   const PaymentQueueCard({
@@ -11,87 +11,124 @@ class PaymentQueueCard extends StatelessWidget {
     required this.onVerify,
     required this.onReject,
     required this.onViewProof,
-    this.onOpenProblem,
+    this.onOpenIdea,
   });
 
   final PaymentQueueItem item;
   final VoidCallback onVerify;
   final VoidCallback onReject;
   final VoidCallback onViewProof;
-  final VoidCallback? onOpenProblem;
+  final VoidCallback? onOpenIdea;
+
+  static const ButtonStyle _actionButtonStyle = ButtonStyle(
+    visualDensity: VisualDensity.standard,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    padding: WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+    minimumSize: WidgetStatePropertyAll<Size>(Size(0, 36)),
+    textStyle: WidgetStatePropertyAll<TextStyle>(
+      TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final payment = item.payment;
+    final String teamLabel = item.teamName.isEmpty ? 'Unnamed team' : item.teamName;
+    final String ideaLabel = item.ideaName.isEmpty ? 'Idea not mapped' : item.ideaName;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: item.isOverdue ? const Color(0xFFFCA5A5) : const Color(0xFFE2E8F0)),
-        boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x10273B6A), blurRadius: 18, offset: Offset(0, 10))],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: item.isOverdue ? const Color(0xFFFCA5A5) : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(14)),
-                child: const Icon(AppIcons.payments, color: Color(0xFFEA580C), size: 20),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(AppIcons.teams, color: Color(0xFFEA580C), size: 17),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(item.teamName.isEmpty ? 'Unnamed team' : item.teamName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-                    const SizedBox(height: 3),
-                    EntityReferenceRow(
-                      value: item.problemName.isEmpty ? 'Problem not mapped' : item.problemName,
-                      dense: true,
-                      workspaceEntityLabel: 'problem',
-                      onOpenWorkspace: onOpenProblem,
-                    ),
-                  ],
+                child: Text(
+                  teamLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Rs ${payment.amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+              Text(
+                '₹${payment.amount.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: -0.2,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _InfoPill(icon: AppIcons.clock, label: _relativeTime(item.submittedAt), color: const Color(0xFF475569), bg: const Color(0xFFF1F5F9)),
-              _InfoPill(icon: item.hasProof ? AppIcons.attachmentImage : AppIcons.info, label: item.hasProof ? 'Proof ready' : 'Proof missing', color: item.hasProof ? const Color(0xFF047857) : const Color(0xFFB45309), bg: item.hasProof ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED)),
-              if (item.isOverdue) const _InfoPill(icon: AppIcons.statusRejected, label: 'Overdue', color: Color(0xFFB91C1C), bg: Color(0xFFFEF2F2)),
-            ],
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: item.ideaId.trim().isEmpty || onOpenIdea == null
+                ? Text(
+                    ideaLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  )
+                : ContextPill(
+                    label: ideaLabel,
+                    semantic: ContextPillSemantic.idea,
+                    onTap: onOpenIdea!,
+                    compact: true,
+                    fitContent: true,
+                  ),
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          const SizedBox(height: 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              FilledButton.icon(
+              _TimePill(label: _relativeTime(item.submittedAt)),
+              const Spacer(),
+              FilledButton(
                 onPressed: onVerify,
-                icon: const Icon(AppIcons.statusApproved, size: 16),
-                label: const Text('Verify'),
+                style: _actionButtonStyle,
+                child: const Text('Verify'),
               ),
-              OutlinedButton.icon(
+              const SizedBox(width: 6),
+              OutlinedButton(
                 onPressed: onReject,
-                icon: const Icon(AppIcons.statusRejected, size: 16),
-                label: const Text('Reject'),
+                style: _actionButtonStyle,
+                child: const Text('Reject'),
               ),
-              TextButton.icon(
+              const SizedBox(width: 6),
+              OutlinedButton(
                 onPressed: item.hasProof ? onViewProof : null,
-                icon: const Icon(AppIcons.preview, size: 16),
-                label: const Text('View Proof'),
+                style: _actionButtonStyle,
+                child: const Text('Proof'),
               ),
             ],
           ),
@@ -100,8 +137,8 @@ class PaymentQueueCard extends StatelessWidget {
     );
   }
 
-  String _relativeTime(DateTime date) {
-    final diff = DateTime.now().difference(date);
+  static String _relativeTime(DateTime date) {
+    final Duration diff = DateTime.now().difference(date);
     if (diff.inDays > 0) return '${diff.inDays}d ago';
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
@@ -109,30 +146,32 @@ class PaymentQueueCard extends StatelessWidget {
   }
 }
 
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.bg,
-  });
+class _TimePill extends StatelessWidget {
+  const _TimePill({required this.label});
 
-  final IconData icon;
   final String label;
-  final Color color;
-  final Color bg;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w800)),
+          const Icon(AppIcons.clock, size: 12, color: Color(0xFF475569)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF475569),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

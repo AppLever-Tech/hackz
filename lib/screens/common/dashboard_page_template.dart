@@ -46,25 +46,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     super.dispose();
   }
 
-  String _roleDisplayName(UserRole role) {
-    switch (role) {
-      case UserRole.sysAdmin:
-        return 'System Administrator';
-      case UserRole.collegeAdmin:
-        return 'College Administrator';
-      case UserRole.departmentAdmin:
-        return 'Department Administrator';
-      case UserRole.faculty:
-        return 'Faculty';
-      case UserRole.judge:
-        return 'Judge';
-      case UserRole.student:
-        return 'Student';
-      case UserRole.coordinator:
-        return 'Coordinator';
-    }
-  }
-
   String _formatLongDate(DateTime date) {
     const weekdays = <String>[
       'Monday',
@@ -93,6 +74,8 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   }
 
   Future<void> _logout(BuildContext context) async {
+    WorkspaceController.instance.close();
+    _chromeController.clearOverlay();
     OrgSettingsService.instance.clearCache();
     SysAdminDashboardService.clearCache();
     DepartmentDashboardService.clearCache();
@@ -115,8 +98,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
         '${widget.user.firstName} ${widget.user.lastName}'.trim().isEmpty
             ? 'User'
             : '${widget.user.firstName} ${widget.user.lastName}'.trim();
-    final String dashboardTitle = '$fullName\'s Dashboard';
-    final String roleName = _roleDisplayName(role);
     final String longDate = _formatLongDate(DateTime.now());
     final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
@@ -140,9 +121,19 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
             },
             onLogout: () => _logout(context),
             header: TopHeaderWidget(
-              title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
+              title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
-              subtitle: isDashboardTab ? roleName : '',
+              subtitle: '',
+              subtitleWidget: isDashboardTab
+                  ? ContextPill(
+                      label: fullName,
+                      semantic: ContextPillSemantic.user,
+                      onTap: () =>
+                          WorkspaceNavigator.openUser(context, widget.user.userId),
+                      compact: true,
+                      fitContent: true,
+                    )
+                  : null,
               dateText: longDate,
               onRefresh: () {
                 _chromeController.clearOverlay();
