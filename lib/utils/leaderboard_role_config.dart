@@ -1,5 +1,5 @@
-import '../models/enums/user_role.dart';
-import '../models/user_model.dart';
+import '../features/user/models/enums/user_role.dart';
+import '../features/user/models/user_model.dart';
 
 enum LeaderboardShowcaseTab {
   teams,

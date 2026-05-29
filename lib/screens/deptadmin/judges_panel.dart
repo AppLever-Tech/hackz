@@ -6,7 +6,7 @@ import '../../constants/status_styles.dart';
 import '../../models/department_model.dart';
 import '../../models/enums/organization_type.dart';
 import '../../models/organization_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/department_dashboard_service.dart';
@@ -16,7 +16,7 @@ import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../screens/common/dashboard_chrome_scope.dart';
 import '../../workspace/workspace.dart';
-import '../common/create_user_dialog.dart';
+import '../../features/user/screens/create_user_dialog.dart';
 
 class JudgesPanelScreen extends StatefulWidget {
   const JudgesPanelScreen({super.key, required this.user});

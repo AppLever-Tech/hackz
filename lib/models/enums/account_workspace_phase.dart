@@ -1,4 +1,4 @@
-import 'user_status.dart';
+import '../../features/user/models/enums/user_status.dart';
 
 /// Onboarding / gate states for [AccountStatusWorkspace] (broader than [UserStatus] alone).
 enum AccountWorkspacePhase {

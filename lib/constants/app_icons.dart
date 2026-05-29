@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/enums/organization_type.dart';
-import '../models/enums/user_role.dart';
+import '../features/user/models/enums/user_role.dart';
 
 class AppIcons {
   AppIcons._();

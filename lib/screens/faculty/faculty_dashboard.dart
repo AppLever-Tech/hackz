@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
-import '../../models/enums/user_role.dart';
+import '../../features/user/models/enums/user_role.dart';
 import '../../models/idea_model.dart';
 import '../../features/team/models/team_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
 import '../../features/problems/services/problem_role_config.dart';

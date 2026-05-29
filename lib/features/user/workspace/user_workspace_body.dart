@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../constants/app_icons.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import 'user_activity_section.dart';
 import 'user_metadata_section.dart';
 import 'user_summary_section.dart';

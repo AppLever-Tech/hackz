@@ -3,8 +3,8 @@ import 'package:url_launcher/link.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/organization_model.dart';
-import '../../models/enums/user_role.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/enums/user_role.dart';
+import '../../features/user/models/user_model.dart';
 import '../../features/org_settings/collegeadmin/org_settings_dashboard.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';

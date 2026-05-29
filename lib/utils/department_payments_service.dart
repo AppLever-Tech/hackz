@@ -6,7 +6,7 @@ import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../features/team/models/team_model.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
 import 'idea_department_helpers.dart';

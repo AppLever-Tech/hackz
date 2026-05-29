@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/enums/user_role.dart';
+import '../features/user/models/enums/user_role.dart';
 import '../models/enums/organization_type.dart';
-import '../models/enums/user_status.dart';
+import '../features/user/models/enums/user_status.dart';
 import '../models/department_model.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
 

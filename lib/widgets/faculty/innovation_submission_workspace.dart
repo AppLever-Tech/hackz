@@ -6,7 +6,7 @@ import '../../features/team/models/enums/team_status.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../features/problems/validators/problem_submission_validators.dart';
 import '../../features/team/models/team_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';

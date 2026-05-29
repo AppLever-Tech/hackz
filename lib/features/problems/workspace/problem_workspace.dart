@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../workspace/core/workspace_host.dart';
 import '../../../workspace/core/workspace_route.dart';
 import '../../../workspace/idea/idea_workspace.dart';
-import '../../../workspace/user/user_workspace.dart';
+import '../../user/workspace/user_workspace.dart';
 import 'problem_workspace_body.dart';
 import 'problem_workspace_loader.dart';
 

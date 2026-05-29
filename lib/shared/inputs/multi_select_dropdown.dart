@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/common_helpers.dart';
 
 class MultiSelectDropdown extends StatefulWidget {

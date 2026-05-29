@@ -4,11 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/enums/account_workspace_phase.dart';
-import '../../models/enums/user_status.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/enums/user_status.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/auth_status_resolver.dart';
 import '../../utils/firestore_utils.dart';
-import '../../utils/role_utils.dart';
+import '../../features/user/services/role_utils.dart';
 import '../../workspace/workspace.dart';
 import 'landing_screen.dart';
 import '../../widgets/signup/account_status_workspace.dart';

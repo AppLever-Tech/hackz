@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
 import '../../../../models/attachment_model.dart';
-import '../../../../models/enums/user_role.dart';
-import '../../../../models/user_model.dart';
+import '../../../user/models/enums/user_role.dart';
+import '../../../user/models/user_model.dart';
 import '../../../../responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
 import '../../../../screens/common/dashboard_chrome_scope.dart';

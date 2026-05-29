@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_icons.dart';
 import '../models/department_model.dart';
-import '../models/enums/user_status.dart';
+import '../features/user/models/enums/user_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import 'firestore_utils.dart';

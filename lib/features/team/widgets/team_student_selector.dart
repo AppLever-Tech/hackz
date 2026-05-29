@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../workspace/workspace.dart';
 

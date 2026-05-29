@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../team/models/team_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../../utils/firestore_utils.dart';

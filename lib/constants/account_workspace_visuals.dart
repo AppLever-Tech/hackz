@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_icons.dart';
 import '../models/enums/account_workspace_phase.dart';
-import '../models/enums/user_status.dart';
+import '../features/user/models/enums/user_status.dart';
 
 /// Central visuals for account onboarding workspace and user-status chips (e.g. dept admin).
 abstract final class AccountWorkspaceVisuals {

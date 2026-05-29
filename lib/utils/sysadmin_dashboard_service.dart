@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../models/enums/user_status.dart';
+import '../features/user/models/enums/user_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import 'firestore_utils.dart';

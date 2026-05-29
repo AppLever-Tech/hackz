@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/enums/account_workspace_phase.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../../screens/common/dashboard_components.dart';

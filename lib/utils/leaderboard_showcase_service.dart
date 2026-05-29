@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/department_model.dart';
-import '../models/enums/user_role.dart';
+import '../features/user/models/enums/user_role.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';
 import '../features/team/models/team_model.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import 'firestore_utils.dart';
 import 'idea_department_helpers.dart';
 import 'leaderboard_ranking_engine.dart';

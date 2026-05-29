@@ -8,7 +8,7 @@ import '../../../models/idea_model.dart';
 import '../../../models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/attachment_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';

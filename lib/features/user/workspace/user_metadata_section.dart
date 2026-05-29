@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/enums/user_role.dart';
-import '../../utils/common_helpers.dart';
+import '../../../constants/app_icons.dart';
+import '../models/enums/user_role.dart';
+import '../../../utils/common_helpers.dart';
+import '../widgets/user_profile_details.dart';
 import 'user_workspace_loader.dart';
 
 /// Contact, tenure, and role-specific context (read-only).
@@ -15,6 +16,8 @@ class UserMetadataSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = vm.user;
     final List<String> roleNotes = <String>[];
+    final List<({String label, String value})> profileRows =
+        UserProfileDetails.rows(user.profile);
 
     switch (UserRole.fromCode(user.role)) {
       case UserRole.faculty:
@@ -52,6 +55,16 @@ class UserMetadataSection extends StatelessWidget {
         if (user.approvedAt != null) _row(AppIcons.verification, 'Approval', formatDateTime(user.approvedAt!)),
         if (user.approvedBy != null && user.approvedBy!.trim().isNotEmpty)
           _row(AppIcons.adminProfile, 'Approved by user ID', user.approvedBy!.trim()),
+        if (profileRows.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 6),
+          const Text(
+            'Profile',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 6),
+          for (final ({String label, String value}) row in profileRows)
+            _row(AppIcons.adminProfile, row.label, row.value),
+        ],
         for (final String note in roleNotes) ...<Widget>[
           const SizedBox(height: 10),
           Text(

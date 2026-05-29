@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../models/payment_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/department_payments_service.dart';
 import '../../utils/payment_finance_helpers.dart';

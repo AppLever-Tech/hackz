@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/problems/models/problem_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import 'innovation_submission_workspace.dart';
 
 /// @deprecated Use [showInnovationSubmissionWorkspace] from a Problem Card (problem-first flow).

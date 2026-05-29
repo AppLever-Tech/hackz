@@ -2,11 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/enums/user_role.dart';
+import '../../features/user/models/enums/user_role.dart';
 import '../../models/attachment_model.dart';
 import '../../models/idea_model.dart';
 import '../../models/payment_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/coordinator_dashboard_service.dart';

@@ -2,26 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/organization_model.dart';
-import '../../models/enums/organization_type.dart';
-import '../../models/department_model.dart';
-import '../../models/enums/user_status.dart';
-import '../../models/user_model.dart';
-import '../../constants/account_workspace_visuals.dart';
-import '../../utils/firestore_utils.dart';
-import '../common/create_user_dialog.dart';
-import '../common/dashboard_components.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../widgets/common/rich_tabs.dart';
-import '../../shared/inputs/filter_pill.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
-import '../../widgets/responsive/responsive_filter_bar.dart';
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
-import '../../workspace/workspace.dart';
-import '../common/app_dialog_template.dart';
+import '../../../constants/account_workspace_visuals.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/department_model.dart';
+import '../../../models/enums/organization_type.dart';
+import '../../../models/organization_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../shared/feedback/feedback.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../widgets/common/rich_tabs.dart';
+import '../../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../../../workspace/workspace.dart';
+import '../models/enums/user_status.dart';
+import '../models/user_model.dart';
+import 'create_user_dialog.dart';
+import '../../../shared/inputs/filter_pill.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -45,7 +43,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   UsersFilter _filter = UsersFilter.all;
-  bool _refreshing = false;
   bool _copied = false;
   List<UserModel> _allUsers = <UserModel>[];
   String _inviteCode = '';
@@ -105,8 +102,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         _inviteCode = codeSnap.docs.isEmpty ? '' : ((codeSnap.docs.first.data()['code'] as String?) ?? '').trim();
         _orgName = ((orgDoc.data()?['name'] as String?) ?? '').trim();
       });
-    } finally {
-      if (mounted) setState(() => _refreshing = false);
+    } catch (_) {
+      // Keep prior list on load failure.
     }
   }
 
@@ -140,7 +137,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           title: const Text('Select Role'),
           widthPreset: DialogWidthPreset.compact,
           content: DropdownButtonFormField<String>(
-            value: selectedRole,
+            initialValue: selectedRole,
             decoration: const InputDecoration(
               labelText: 'Role',
               border: OutlineInputBorder(),
@@ -295,14 +292,14 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       'createdAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
-    if (mounted) {
-      await _loadAll();
-      FeedbackService.showSuccess(
-        context,
-        title: 'Invite code regenerated',
-        message: 'A new invite code is now active.',
-      );
-    }
+    if (!mounted) return;
+    await _loadAll();
+    if (!mounted) return;
+    FeedbackService.showSuccess(
+      context,
+      title: 'Invite code regenerated',
+      message: 'A new invite code is now active.',
+    );
   }
 
   String _roleLabel(String role) {

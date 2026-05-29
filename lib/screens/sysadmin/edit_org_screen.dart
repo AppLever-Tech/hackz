@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/firestore_utils.dart';
-import '../common/create_user_dialog.dart';
+import '../../features/user/screens/create_user_dialog.dart';
 
 class EditOrgScreen extends StatefulWidget {
   const EditOrgScreen({

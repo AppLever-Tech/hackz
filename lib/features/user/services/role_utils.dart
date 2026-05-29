@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../../screens/collegeadmin/collegeadmin_dashboard.dart';
+import '../../../screens/coordinator/coordinator_dashboard.dart';
+import '../../../screens/deptadmin/deptadmin_dashboard.dart';
+import '../../../screens/faculty/faculty_dashboard.dart';
+import '../../../screens/judge/judge_dashboard.dart';
+import '../../../screens/student/student_dashboard.dart';
+import '../../../screens/sysadmin/sysadmin_dashboard.dart';
 import '../models/enums/user_role.dart';
 import '../models/user_model.dart';
-import '../screens/collegeadmin/collegeadmin_dashboard.dart';
-import '../screens/coordinator/coordinator_dashboard.dart';
-import '../screens/deptadmin/deptadmin_dashboard.dart';
-import '../screens/faculty/faculty_dashboard.dart';
-import '../screens/judge/judge_dashboard.dart';
-import '../screens/student/student_dashboard.dart';
-import '../screens/sysadmin/sysadmin_dashboard.dart';
 
 class RoleUtils {
   RoleUtils._();

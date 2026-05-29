@@ -7,7 +7,7 @@ import '../../../constants/app_icons.dart';
 import '../../../constants/brand_colors.dart';
 import '../../../models/idea_model.dart';
 import '../../../models/score_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../widgets/common/context_pill_theme.dart';

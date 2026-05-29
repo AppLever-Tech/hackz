@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/account_workspace_visuals.dart';
-import '../../constants/app_icons.dart';
-import '../../models/enums/user_role.dart';
-import '../../models/user_model.dart';
-import '../../utils/common_helpers.dart';
+import '../../../constants/account_workspace_visuals.dart';
+import '../../../constants/app_icons.dart';
+import '../models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/user_role_labels.dart';
+import '../widgets/user_avatar.dart';
 
 class UserSummarySection extends StatelessWidget {
   const UserSummarySection({
@@ -16,18 +17,7 @@ class UserSummarySection extends StatelessWidget {
   final UserModel user;
   final String? organizationName;
 
-  static String _roleLabel(String roleCode) {
-    final UserRole role = UserRole.fromCode(roleCode);
-    return switch (role) {
-      UserRole.student => 'Student',
-      UserRole.faculty => 'Faculty',
-      UserRole.departmentAdmin => 'Department admin',
-      UserRole.collegeAdmin => 'College admin',
-      UserRole.judge => 'Judge',
-      UserRole.coordinator => 'Coordinator',
-      UserRole.sysAdmin => 'System admin',
-    };
-  }
+  static String _roleLabel(String roleCode) => UserRoleLabels.labelForCode(roleCode);
 
   @override
   Widget build(BuildContext context) {
@@ -38,15 +28,24 @@ class UserSummarySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          name,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.4,
-            color: Color(0xFF0F172A),
-            height: 1.15,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            UserAvatar(user: user, radius: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                  color: Color(0xFF0F172A),
+                  height: 1.15,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         Wrap(

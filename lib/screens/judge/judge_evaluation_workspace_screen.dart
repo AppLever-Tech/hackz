@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/attachment_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/judge_evaluation_service.dart';

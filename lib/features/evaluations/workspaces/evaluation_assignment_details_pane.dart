@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import 'evaluation_assignment_workspace.dart';
 
 /// Fills the dashboard main content area with evaluation assignment management.

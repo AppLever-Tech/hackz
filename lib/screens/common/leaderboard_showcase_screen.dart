@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../models/enums/user_role.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/enums/user_role.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/leaderboard_role_config.dart';
-import '../../utils/role_visibility_helpers.dart';
+import '../../features/user/services/role_visibility_helpers.dart';
 import '../../utils/leaderboard_showcase_service.dart';
 import '../../widgets/leaderboard/comparative_analytics_section.dart';
 import '../../widgets/leaderboard/innovation_momentum_chart.dart';

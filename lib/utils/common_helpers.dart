@@ -1,5 +1,5 @@
 import '../models/enums/organization_type.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 
 /// Normalize phone for Firestore lookups (E.164 style).
 String normalizePhoneE164(String raw) {

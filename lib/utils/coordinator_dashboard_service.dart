@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
-import '../models/enums/user_role.dart';
+import '../features/user/models/enums/user_role.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/team/models/team_model.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import 'firestore_utils.dart';
-import 'role_visibility_helpers.dart';
+import '../features/user/services/role_visibility_helpers.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 

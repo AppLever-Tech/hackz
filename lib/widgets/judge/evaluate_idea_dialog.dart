@@ -12,7 +12,7 @@ import '../../models/idea_model.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../features/team/models/team_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';
 import '../../utils/attachment_service.dart';

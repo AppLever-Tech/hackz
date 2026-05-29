@@ -5,7 +5,7 @@ import '../../requests/faculty/team_change_workspace.dart';
 import '../../../models/idea_model.dart';
 import '../../../models/payment_model.dart';
 import '../models/team_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
 import '../../../screens/common/app_dialog_template.dart';

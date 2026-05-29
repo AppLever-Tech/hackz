@@ -9,7 +9,7 @@ import '../../models/payment_model.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../features/team/models/team_model.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/judge_evaluation_feedback_codec.dart';

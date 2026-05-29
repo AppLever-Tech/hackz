@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 
 class RoleDashboardDataView extends StatefulWidget {

@@ -1,7 +1,7 @@
-import '../models/enums/user_role.dart';
+import '../features/user/models/enums/user_role.dart';
 import '../models/idea_list_config.dart';
-import '../models/user_model.dart';
-import 'role_visibility_helpers.dart';
+import '../features/user/models/user_model.dart';
+import '../features/user/services/role_visibility_helpers.dart';
 
 class IdeaRoleConfig {
   IdeaRoleConfig._();

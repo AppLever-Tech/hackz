@@ -5,7 +5,7 @@ import '../../../models/idea_model.dart';
 import '../../../models/organization_model.dart';
 import '../../../models/payment_model.dart';
 import '../../../models/score_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../workspace/core/workspace_attachment_counts.dart';

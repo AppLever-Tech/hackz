@@ -2,8 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/enums/user_role.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/enums/user_role.dart';
+import '../../features/user/models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../features/team/services/faculty_teams_service.dart';

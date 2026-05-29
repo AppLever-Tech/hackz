@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../models/enums/account_workspace_phase.dart';
-import '../../models/user_model.dart';
+import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
 import '../common/auth_page_layout.dart';
 import '../../shared/inputs/phone_number_field.dart';
@@ -12,7 +12,7 @@ import '../../utils/common_helpers.dart';
 import 'otp_screen.dart';
 import 'sign_up_screen.dart';
 import '../../widgets/signup/account_status_workspace.dart';
-import '../../models/enums/user_status.dart';
+import '../../features/user/models/enums/user_status.dart';
 import '../../utils/firestore_utils.dart';
 import 'auth_gate.dart';
 import 'landing_screen.dart';
