@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../../../constants/brand_colors.dart';
 import '../../../models/idea_model.dart';
 import '../../../models/score_model.dart';
 import '../../../models/user_model.dart';
@@ -52,6 +53,9 @@ class _AssignmentDocVm {
 }
 
 class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWorkspace> {
+  static const double _kPaneHeaderHeight = 56;
+  static const double _kPaneToolbarRowHeight = 52;
+
   bool _loading = true;
   bool _saving = false;
   String? _selectedProblemId;
@@ -305,16 +309,56 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     await _load();
   }
 
-  int get _assignedCountForProblem {
-    final String pid = (_selectedProblemId ?? '').trim();
-    if (pid.isEmpty) return 0;
-    final Set<String> assignedIdeaIds = _ideas
-        .where((IdeaModel idea) => idea.problemId == pid)
-        .where((IdeaModel idea) =>
-            (_assignedJudgesByIdea[idea.ideaId] ?? const <String>[]).isNotEmpty)
-        .map((IdeaModel idea) => idea.ideaId)
-        .toSet();
-    return assignedIdeaIds.length;
+  bool get _allFilteredIdeasSelected {
+    final List<_IdeaRowVm> rows = _filteredIdeas;
+    return rows.isNotEmpty &&
+        rows.every((_IdeaRowVm row) => _selectedIdeaIds.contains(row.idea.ideaId));
+  }
+
+  bool? get _ideasSelectAllValue {
+    final List<_IdeaRowVm> rows = _filteredIdeas;
+    if (rows.isEmpty) return false;
+    final int selected =
+        rows.where((_IdeaRowVm row) => _selectedIdeaIds.contains(row.idea.ideaId)).length;
+    if (selected == 0) return false;
+    if (selected == rows.length) return true;
+    return null;
+  }
+
+  bool get _allJudgesSelected {
+    return _judges.isNotEmpty &&
+        _judges.every((UserModel judge) => _selectedJudgeIds.contains(judge.userId));
+  }
+
+  bool? get _judgesSelectAllValue {
+    if (_judges.isEmpty) return false;
+    if (_selectedJudgeIds.isEmpty) return false;
+    if (_selectedJudgeIds.length == _judges.length) return true;
+    return null;
+  }
+
+  void _toggleSelectAllIdeas() {
+    setState(() {
+      final Iterable<String> ids =
+          _filteredIdeas.map((_IdeaRowVm row) => row.idea.ideaId);
+      if (_allFilteredIdeasSelected) {
+        _selectedIdeaIds.removeAll(ids);
+      } else {
+        _selectedIdeaIds.addAll(ids);
+      }
+    });
+  }
+
+  void _toggleSelectAllJudges() {
+    setState(() {
+      if (_allJudgesSelected) {
+        _selectedJudgeIds.clear();
+      } else {
+        _selectedJudgeIds
+          ..clear()
+          ..addAll(_judges.map((UserModel judge) => judge.userId));
+      }
+    });
   }
 
   @override
@@ -325,6 +369,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
       return _buildMobileLayout();
     }
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SizedBox(width: 300, child: _buildLeftPanel()),
         const SizedBox(width: 10),
@@ -337,12 +382,13 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
 
   Widget _buildMobileLayout() {
     return ListView(
+      padding: const EdgeInsets.only(bottom: 16),
       children: <Widget>[
         _buildLeftPanel(),
-        const SizedBox(height: 10),
-        _buildRightPanel(),
-        const SizedBox(height: 10),
-        SizedBox(height: 540, child: _buildCenterPanel()),
+        const SizedBox(height: 12),
+        SizedBox(height: 520, child: _buildCenterPanel()),
+        const SizedBox(height: 12),
+        SizedBox(height: 420, child: _buildRightPanel()),
       ],
     );
   }
@@ -350,138 +396,267 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   Widget _buildLeftPanel() {
     final ProblemModel? selectedProblem = _selectedProblem;
     final List<_IdeaRowVm> rows = _filteredIdeas;
-    final int evaluated = rows.where((_IdeaRowVm r) => r.latestScore != null).length;
     final int assigned = rows.where((_IdeaRowVm r) => r.assignedJudgeIds.isNotEmpty).length;
     final int total = rows.length;
-    final double progress = total == 0 ? 0 : evaluated / total;
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: kDashboardCardDecoration,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Row(
-            children: <Widget>[
-              Icon(AppIcons.problems, size: 18, color: Color(0xFF4F46E5)),
-              SizedBox(width: 6),
-              Text(
-                'Problem Summary',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-              ),
-            ],
+          _panelHeader(
+            icon: AppIcons.problems,
+            title: 'Problem Summary',
           ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _selectedProblemId,
-            isExpanded: true,
-            items: _problems
-                .map((ProblemModel p) => DropdownMenuItem<String>(
-                      value: p.problemId,
-                      child: Text(
-                        p.title.isEmpty ? p.problemId : p.title,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ))
-                .toList(growable: false),
-            onChanged: (String? value) {
-              setState(() {
-                _selectedProblemId = value;
-                _selectedIdeaIds.clear();
-                _visibleCount = _pageSize;
-              });
-            },
+          _panelToolbarRow(
+            child: DropdownButtonFormField<String>(
+              initialValue: _selectedProblemId,
+              isExpanded: true,
+              decoration: _compactRoundedFieldDecoration(hintText: 'Select problem'),
+              items: _problems
+                  .map((ProblemModel p) => DropdownMenuItem<String>(
+                        value: p.problemId,
+                        child: Text(
+                          p.title.isEmpty ? p.problemId : p.title,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ))
+                  .toList(growable: false),
+              onChanged: (String? value) {
+                setState(() {
+                  _selectedProblemId = value;
+                  _selectedIdeaIds.clear();
+                  _visibleCount = _pageSize;
+                });
+              },
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            selectedProblem?.title.isNotEmpty == true
-                ? selectedProblem!.title
-                : 'Select a problem',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          _metricLine('Total ideas', '$total'),
-          _metricLine('Assigned ideas', '$assigned'),
-          _metricLine('Unassigned ideas', '${math.max(0, total - assigned)}'),
-          _metricLine('Evaluated ideas', '$evaluated'),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(value: progress),
-          const SizedBox(height: 4),
-          Text(
-            'Evaluation progress ${(progress * 100).toStringAsFixed(0)}%',
-            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: <Widget>[
-              FilterChip(
-                label: const Text('Unassigned'),
-                selected: _onlyUnassigned,
-                onSelected: (bool v) => setState(() => _onlyUnassigned = v),
+          _panelToolbarDivider,
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(
+                    selectedProblem?.title.isNotEmpty == true
+                        ? selectedProblem!.title
+                        : 'Select a problem',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _summaryStatTile('Total ideas', '$total', const Color(0xFFEEF2FF), const Color(0xFF4F46E5)),
+                  const SizedBox(height: 6),
+                  _summaryStatTile('Assigned', '$assigned', const Color(0xFFECFDF5), const Color(0xFF16A34A)),
+                  const SizedBox(height: 6),
+                  _summaryStatTile(
+                    'Unassigned',
+                    '${math.max(0, total - assigned)}',
+                    const Color(0xFFFFF7ED),
+                    const Color(0xFFEA580C),
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  const SizedBox(height: 14),
+                  _sectionLabel('Default Filters'),
+                  _filterCheckboxRow(
+                    label: 'Show unassigned only',
+                    value: _onlyUnassigned,
+                    onChanged: (bool value) => setState(() => _onlyUnassigned = value),
+                  ),
+                  _filterCheckboxRow(
+                    label: 'Score pending only',
+                    value: _onlyPendingScore,
+                    onChanged: (bool value) => setState(() => _onlyPendingScore = value),
+                  ),
+                ],
               ),
-              FilterChip(
-                label: const Text('Score pending'),
-                selected: _onlyPendingScore,
-                onSelected: (bool v) => setState(() => _onlyPendingScore = v),
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.select_all, size: 16),
-                label: const Text('Select all'),
-                onPressed: () {
-                  setState(() {
-                    _selectedIdeaIds
-                      ..clear()
-                      ..addAll(rows.map((_IdeaRowVm e) => e.idea.ideaId));
-                  });
-                },
-              ),
-              ActionChip(
-                label: const Text('Select filtered'),
-                onPressed: () {
-                  setState(() {
-                    _selectedIdeaIds
-                      ..clear()
-                      ..addAll(_filteredIdeas.map((_IdeaRowVm e) => e.idea.ideaId));
-                  });
-                },
-              ),
-              ActionChip(
-                label: const Text('Select unassigned'),
-                onPressed: () {
-                  setState(() {
-                    _selectedIdeaIds
-                      ..clear()
-                      ..addAll(_filteredIdeas
-                          .where((_IdeaRowVm e) => e.assignedJudgeIds.isEmpty)
-                          .map((_IdeaRowVm e) => e.idea.ideaId));
-                  });
-                },
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.clear, size: 16),
-                label: const Text('Clear selection'),
-                onPressed: () => setState(() => _selectedIdeaIds.clear()),
-              ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _metricLine(String label, String value) {
+  static const Divider _panelToolbarDivider =
+      Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0));
+
+  static InputDecoration _compactRoundedFieldDecoration({String? hintText}) {
+    return InputDecoration(
+      hintText: hintText,
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: Color(0xFFCBD5E1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: Color(0xFF94A3B8), width: 1.3),
+      ),
+    );
+  }
+
+  Widget _panelToolbarRow({required Widget child}) {
+    return SizedBox(
+      height: _kPaneToolbarRowHeight,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Center(child: child),
+      ),
+    );
+  }
+
+  Widget _inlineSelectAllControl({
+    required bool? value,
+    required VoidCallback onToggle,
+    required String label,
+  }) {
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                tristate: true,
+                value: value,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                onChanged: (_) => onToggle(),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _panelHeader({required IconData icon, required String title, Widget? trailing}) {
+    return Container(
+      height: _kPaneHeaderHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFE9EEF7),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+          color: Color(0xFF64748B),
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryStatTile(String label, String value, Color bg, Color accent) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.2)),
+      ),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Text(label,
-                style:
-                    const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: accent),
+            ),
           ),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: accent),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _filterCheckboxRow({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: <Widget>[
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: value,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  onChanged: (bool? checked) => onChanged(checked ?? false),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -489,52 +664,74 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   Widget _buildCenterPanel() {
     final List<_IdeaRowVm> rows = _filteredIdeas;
     final int visible = math.min(_visibleCount, rows.length);
+    final String selectionLabel = '${_selectedIdeaIds.length} selected';
     return Container(
       decoration: kDashboardCardDecoration,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+          _panelHeader(icon: AppIcons.ideas, title: 'Ideas'),
+          _panelToolbarRow(
             child: Row(
               children: <Widget>[
-                const Icon(AppIcons.ideas, size: 18, color: Color(0xFF4F46E5)),
-                const SizedBox(width: 6),
-                const Text(
-                  'Ideas',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                _inlineSelectAllControl(
+                  value: _ideasSelectAllValue,
+                  onToggle: _toggleSelectAllIdeas,
+                  label: 'Select all',
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      hintText: 'Search idea/team/problem',
-                      prefixIcon: Icon(AppIcons.search, size: 18),
-                    ),
+                    decoration: _compactRoundedFieldDecoration(
+                      hintText: 'Search idea, team, or problem',
+                    ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
                     onChanged: (String v) => setState(() => _search = v),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  selectionLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          _panelToolbarDivider,
           Expanded(
-            child: ListView.builder(
-              itemCount: visible + (visible < rows.length ? 1 : 0),
-              itemBuilder: (BuildContext context, int index) {
-                if (index == visible && visible < rows.length) {
-                  return TextButton(
-                    onPressed: () {
-                      setState(() => _visibleCount += _pageSize);
+            child: rows.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No ideas match the current filters.',
+                      style: TextStyle(color: Color(0xFF64748B)),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    itemCount: visible + (visible < rows.length ? 1 : 0),
+                    itemBuilder: (BuildContext context, int index) {
+                      if (index == visible && visible < rows.length) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4, bottom: 8),
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() => _visibleCount += _pageSize);
+                            },
+                            child: Text('Load more (${rows.length - visible} remaining)'),
+                          ),
+                        );
+                      }
+                      final _IdeaRowVm row = rows[index];
+                      final bool selected = _selectedIdeaIds.contains(row.idea.ideaId);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _ideaRow(row, selected),
+                      );
                     },
-                    child: Text('Load more (${rows.length - visible} remaining)'),
-                  );
-                }
-                final _IdeaRowVm row = rows[index];
-                final bool selected = _selectedIdeaIds.contains(row.idea.ideaId);
-                return _ideaRow(row, selected);
-              },
-            ),
+                  ),
           ),
         ],
       ),
@@ -546,155 +743,240 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
         (row.team?.teamName ?? row.idea.teamId).trim().isEmpty
             ? row.idea.teamId
             : (row.team?.teamName ?? row.idea.teamId).trim();
-    return InkWell(
-      onTap: () {
-        setState(() {
-          if (selected) {
-            _selectedIdeaIds.remove(row.idea.ideaId);
-          } else {
-            _selectedIdeaIds.add(row.idea.ideaId);
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF0F5FF) : null,
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade200),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Checkbox(
-              value: selected,
-              onChanged: (_) => setState(() {
-                if (selected) {
-                  _selectedIdeaIds.remove(row.idea.ideaId);
-                } else {
-                  _selectedIdeaIds.add(row.idea.ideaId);
-                }
-              }),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            if (selected) {
+              _selectedIdeaIds.remove(row.idea.ideaId);
+            } else {
+              _selectedIdeaIds.add(row.idea.ideaId);
+            }
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
+              width: selected ? 1.4 : 1,
             ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    row.idea.ideaTitle.isEmpty
-                        ? row.idea.problemNumber
-                        : row.idea.ideaTitle,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: Color(0xFF0F172A),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: selected,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  onChanged: (_) => setState(() {
+                    if (selected) {
+                      _selectedIdeaIds.remove(row.idea.ideaId);
+                    } else {
+                      _selectedIdeaIds.add(row.idea.ideaId);
+                    }
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      row.idea.ideaTitle.isEmpty
+                          ? row.idea.problemNumber
+                          : row.idea.ideaTitle,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '$teamName • ${row.idea.problemDepartmentCode} • ${row.idea.status.value}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: row.assignedJudgeIds
-                        .map((String judgeId) {
+                    const SizedBox(height: 4),
+                    Text(
+                      '$teamName • ${row.idea.problemDepartmentCode} • ${row.idea.status.value}',
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                    if (row.assignedJudgeIds.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: row.assignedJudgeIds.map((String judgeId) {
                           final UserModel? judge = _judges.cast<UserModel?>().firstWhere(
                                 (UserModel? u) => u?.userId == judgeId,
                                 orElse: () => null,
                               );
                           final String label = judge == null
                               ? judgeId
-                              : ('${judge.firstName} ${judge.lastName}'
-                                          .trim()
-                                          .isEmpty
-                                      ? judge.userId
-                                      : '${judge.firstName} ${judge.lastName}'
-                                          .trim());
+                              : ('${judge.firstName} ${judge.lastName}'.trim().isEmpty
+                                  ? judge.userId
+                                  : '${judge.firstName} ${judge.lastName}'.trim());
                           return InputChip(
-                            label: Text(label),
+                            label: Text(label, style: const TextStyle(fontSize: 11)),
                             visualDensity: VisualDensity.compact,
+                            backgroundColor: const Color(0xFFEFF6FF),
+                            side: const BorderSide(color: Color(0xFFBFDBFE)),
                             onDeleted: () =>
                                 _removeAssignment(ideaId: row.idea.ideaId, judgeId: judgeId),
                           );
-                        })
-                        .toList(growable: false),
-                  ),
-                ],
+                        }).toList(growable: false),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              row.latestScore == null
-                  ? '—'
-                  : row.latestScore!.score.toStringAsFixed(1),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  row.latestScore == null
+                      ? '—'
+                      : row.latestScore!.score.toStringAsFixed(1),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildRightPanel() {
+    final String selectionLabel = '${_selectedJudgeIds.length} selected';
     return Container(
       decoration: kDashboardCardDecoration,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+          _panelHeader(
+            icon: AppIcons.judges,
+            title: 'Judge Assignment',
+            trailing: FilledButton.icon(
+              onPressed: _saving ? null : _assignSelected,
+              style: FilledButton.styleFrom(
+                backgroundColor: BrandColors.primaryActionFill,
+                foregroundColor: BrandColors.onPrimaryActionFill,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.assignment_turned_in_outlined, size: 16),
+              label: const Text('Assign'),
+            ),
+          ),
+          _panelToolbarRow(
             child: Row(
               children: <Widget>[
-                const Icon(AppIcons.judges, size: 18, color: Color(0xFF4F46E5)),
-                const SizedBox(width: 6),
-                const Expanded(
-                  child: Text(
-                    'Judge Assignment',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                  ),
+                _inlineSelectAllControl(
+                  value: _judgesSelectAllValue,
+                  onToggle: _toggleSelectAllJudges,
+                  label: 'Select all',
                 ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: _saving ? null : _assignSelected,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.assignment_turned_in_outlined, size: 16),
-                  label: const Text('Assign selected'),
+                const Spacer(),
+                Text(
+                  selectionLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          _panelToolbarDivider,
           Expanded(
-            child: ListView.builder(
-              itemCount: _judges.length,
-              itemBuilder: (BuildContext context, int index) {
-                final UserModel judge = _judges[index];
-                final String judgeName =
-                    '${judge.firstName} ${judge.lastName}'.trim().isEmpty
-                        ? judge.userId
-                        : '${judge.firstName} ${judge.lastName}'.trim();
-                final int workload = _workloadByJudge[judge.userId] ?? 0;
-                final bool selected = _selectedJudgeIds.contains(judge.userId);
-                final int selectedIdeaCount = _selectedIdeaIds.length;
-                final EvaluationAssignmentConflict? sampledConflict =
-                    selectedIdeaCount == 1
-                        ? _conflictForSingleSelection(judge.userId)
-                        : null;
-                return CheckboxListTile(
+            child: _judges.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No judges found for this organization.',
+                      style: TextStyle(color: Color(0xFF64748B)),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    itemCount: _judges.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _judgeRow(_judges[index]),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _judgeRow(UserModel judge) {
+    final String judgeName = '${judge.firstName} ${judge.lastName}'.trim().isEmpty
+        ? judge.userId
+        : '${judge.firstName} ${judge.lastName}'.trim();
+    final int workload = _workloadByJudge[judge.userId] ?? 0;
+    final bool selected = _selectedJudgeIds.contains(judge.userId);
+    final EvaluationAssignmentConflict? sampledConflict =
+        _selectedIdeaIds.length == 1 ? _conflictForSingleSelection(judge.userId) : null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            if (selected) {
+              _selectedJudgeIds.remove(judge.userId);
+            } else {
+              _selectedJudgeIds.add(judge.userId);
+            }
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
                   value: selected,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
                   onChanged: (bool? v) {
                     setState(() {
                       if (v == true) {
@@ -704,29 +986,37 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                       }
                     });
                   },
-                  title: Text(
-                    judgeName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      judgeName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  subtitle: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: <Widget>[
-                      _workloadPill('$workload ideas'),
-                      if (sampledConflict != null && sampledConflict.isConflict)
-                        _conflictPill(sampledConflict.reasons.join(', ')),
-                    ],
-                  ),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                );
-              },
-            ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: <Widget>[
+                        _workloadPill('$workload ideas'),
+                        if (sampledConflict != null && sampledConflict.isConflict)
+                          _conflictPill(sampledConflict.reasons.join(', ')),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
