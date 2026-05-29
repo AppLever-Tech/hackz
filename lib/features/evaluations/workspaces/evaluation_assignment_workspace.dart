@@ -10,6 +10,9 @@ import '../../../models/score_model.dart';
 import '../../../models/user_model.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../../../workspace/core/workspace_navigator.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';
@@ -55,6 +58,8 @@ class _AssignmentDocVm {
 class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWorkspace> {
   static const double _kPaneHeaderHeight = 56;
   static const double _kPaneToolbarRowHeight = 52;
+  /// Checkbox (24) + gap before pill content — aligns row-2 chips with row-1 pill.
+  static const double _kListRowPillInset = 32;
 
   bool _loading = true;
   bool _saving = false;
@@ -425,6 +430,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                 setState(() {
                   _selectedProblemId = value;
                   _selectedIdeaIds.clear();
+                  _selectedJudgeIds.clear();
                   _visibleCount = _pageSize;
                 });
               },
@@ -738,37 +744,74 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
+  void _toggleIdeaSelection(String ideaId, {required bool selected}) {
+    setState(() {
+      if (selected) {
+        _selectedIdeaIds.remove(ideaId);
+      } else {
+        _selectedIdeaIds.add(ideaId);
+      }
+    });
+  }
+
+  void _toggleJudgeSelection(String judgeId, {required bool selected}) {
+    setState(() {
+      if (selected) {
+        _selectedJudgeIds.remove(judgeId);
+      } else {
+        _selectedJudgeIds.add(judgeId);
+      }
+    });
+  }
+
+  String _ideaDisplayTitle(_IdeaRowVm row) {
+    final String title = row.idea.ideaTitle.trim();
+    if (title.isNotEmpty) return title;
+    return row.idea.problemNumber.trim().isEmpty ? row.idea.ideaId : row.idea.problemNumber.trim();
+  }
+
+  String _judgeDisplayName(UserModel judge) {
+    final String name = '${judge.firstName} ${judge.lastName}'.trim();
+    return name.isEmpty ? judge.userId : name;
+  }
+
+  String _assignmentStatLabel(int assignedJudgeCount) {
+    if (assignedJudgeCount == 0) return 'Unassigned';
+    if (assignedJudgeCount == 1) return '1 judge';
+    return '$assignedJudgeCount judges';
+  }
+
+  void _openIdeaWorkspace(String ideaId) {
+    final String id = ideaId.trim();
+    if (id.isEmpty) return;
+    WorkspaceNavigator.openIdea(context, id);
+  }
+
+  void _openUserWorkspace(String userId) {
+    final String id = userId.trim();
+    if (id.isEmpty) return;
+    WorkspaceNavigator.openUser(context, id);
+  }
+
   Widget _ideaRow(_IdeaRowVm row, bool selected) {
-    final String teamName =
-        (row.team?.teamName ?? row.idea.teamId).trim().isEmpty
-            ? row.idea.teamId
-            : (row.team?.teamName ?? row.idea.teamId).trim();
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            if (selected) {
-              _selectedIdeaIds.remove(row.idea.ideaId);
-            } else {
-              _selectedIdeaIds.add(row.idea.ideaId);
-            }
-          });
-        },
+    final String ideaTitle = _ideaDisplayTitle(row);
+    final int assignedCount = row.assignedJudgeIds.length;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
-              width: selected ? 1.4 : 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        border: Border.all(
+          color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
+          width: selected ? 1.4 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               SizedBox(
                 width: 24,
@@ -777,83 +820,51 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                   value: selected,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
-                  onChanged: (_) => setState(() {
-                    if (selected) {
-                      _selectedIdeaIds.remove(row.idea.ideaId);
-                    } else {
-                      _selectedIdeaIds.add(row.idea.ideaId);
-                    }
-                  }),
+                  onChanged: (_) =>
+                      _toggleIdeaSelection(row.idea.ideaId, selected: selected),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      row.idea.ideaTitle.isEmpty
-                          ? row.idea.problemNumber
-                          : row.idea.ideaTitle,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        color: Color(0xFF0F172A),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$teamName • ${row.idea.problemDepartmentCode} • ${row.idea.status.value}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                    ),
-                    if (row.assignedJudgeIds.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: row.assignedJudgeIds.map((String judgeId) {
-                          final UserModel? judge = _judges.cast<UserModel?>().firstWhere(
-                                (UserModel? u) => u?.userId == judgeId,
-                                orElse: () => null,
-                              );
-                          final String label = judge == null
-                              ? judgeId
-                              : ('${judge.firstName} ${judge.lastName}'.trim().isEmpty
-                                  ? judge.userId
-                                  : '${judge.firstName} ${judge.lastName}'.trim());
-                          return InputChip(
-                            label: Text(label, style: const TextStyle(fontSize: 11)),
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: const Color(0xFFEFF6FF),
-                            side: const BorderSide(color: Color(0xFFBFDBFE)),
-                            onDeleted: () =>
-                                _removeAssignment(ideaId: row.idea.ideaId, judgeId: judgeId),
-                          );
-                        }).toList(growable: false),
-                      ),
-                    ],
-                  ],
+                child: EntityCardPills.workspace(
+                  ideaTitle,
+                  ContextPillSemantic.idea,
+                  () => _openIdeaWorkspace(row.idea.ideaId),
+                  fullWidth: true,
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  row.latestScore == null
-                      ? '—'
-                      : row.latestScore!.score.toStringAsFixed(1),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
-                ),
+              IgnorePointer(
+                child: EntityCardPills.meta(_assignmentStatLabel(assignedCount)),
               ),
             ],
           ),
-        ),
+          if (row.assignedJudgeIds.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: _kListRowPillInset),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: row.assignedJudgeIds.map((String judgeId) {
+                  final UserModel? judge = _judges.cast<UserModel?>().firstWhere(
+                        (UserModel? u) => u?.userId == judgeId,
+                        orElse: () => null,
+                      );
+                  final String label = judge == null ? judgeId : _judgeDisplayName(judge);
+                  return InputChip(
+                    label: Text(label, style: const TextStyle(fontSize: 11)),
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor: const Color(0xFFEFF6FF),
+                    side: const BorderSide(color: Color(0xFFBFDBFE)),
+                    onDeleted: () =>
+                        _removeAssignment(ideaId: row.idea.ideaId, judgeId: judgeId),
+                  );
+                }).toList(growable: false),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -935,88 +946,52 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   Widget _judgeRow(UserModel judge) {
-    final String judgeName = '${judge.firstName} ${judge.lastName}'.trim().isEmpty
-        ? judge.userId
-        : '${judge.firstName} ${judge.lastName}'.trim();
+    final String judgeName = _judgeDisplayName(judge);
     final int workload = _workloadByJudge[judge.userId] ?? 0;
     final bool selected = _selectedJudgeIds.contains(judge.userId);
     final EvaluationAssignmentConflict? sampledConflict =
         _selectedIdeaIds.length == 1 ? _conflictForSingleSelection(judge.userId) : null;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            if (selected) {
-              _selectedJudgeIds.remove(judge.userId);
-            } else {
-              _selectedJudgeIds.add(judge.userId);
-            }
-          });
-        },
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
-              width: selected ? 1.4 : 1,
+        border: Border.all(
+          color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
+          width: selected ? 1.4 : 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: selected,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              onChanged: (_) => _toggleJudgeSelection(judge.userId, selected: selected),
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  value: selected,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  onChanged: (bool? v) {
-                    setState(() {
-                      if (v == true) {
-                        _selectedJudgeIds.add(judge.userId);
-                      } else {
-                        _selectedJudgeIds.remove(judge.userId);
-                      }
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      judgeName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: <Widget>[
-                        _workloadPill('$workload ideas'),
-                        if (sampledConflict != null && sampledConflict.isConflict)
-                          _conflictPill(sampledConflict.reasons.join(', ')),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(width: 8),
+          Expanded(
+            child: EntityCardPills.workspace(
+              judgeName,
+              ContextPillSemantic.judge,
+              () => _openUserWorkspace(judge.userId),
+              fullWidth: true,
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          _workloadPill('$workload ideas'),
+          if (sampledConflict != null && sampledConflict.isConflict) ...<Widget>[
+            const SizedBox(width: 6),
+            _conflictPill(sampledConflict.reasons.join(', ')),
+          ],
+        ],
       ),
     );
   }
