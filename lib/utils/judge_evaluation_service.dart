@@ -1,16 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../features/evaluations/models/evaluation_template.dart';
 import '../models/attachment_model.dart';
 import '../models/enums/user_role.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
-import '../models/problem_model.dart';
+import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';
-import '../models/team_model.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
 import 'judge_evaluation_feedback_codec.dart';
-import 'role_visibility_helpers.dart';
 
 /// Centralized judge-scoped evaluation queries and persistence.
 abstract final class JudgeEvaluationService {
@@ -24,16 +25,21 @@ abstract final class JudgeEvaluationService {
 
   static bool _isJudge(UserModel user) => UserRole.fromCode(user.role) == UserRole.judge;
 
-  /// Persists score + structured feedback and marks idea evaluated when appropriate.
+  /// Persists a template-driven evaluation.
+  ///
+  /// The overall score (`ScoreModel.score`) is **always** the
+  /// weight-normalized average computed by [template.computeOverall] — judges
+  /// can no longer override it manually. Per-criterion answers live on
+  /// [ScoreModel.criteriaScores]; per-criterion comments (only for criteria
+  /// with `commentsEnabled: true`) live on [ScoreModel.criteriaComments];
+  /// overall remarks live on [ScoreModel.feedback].
   static Future<void> saveEvaluation({
     required UserModel judge,
     required IdeaModel idea,
-    required int overallScore,
-    required int innovation,
-    required int feasibility,
-    required int impact,
-    required String recommendation,
-    required String remarks,
+    required EvaluationTemplate template,
+    required Map<String, double> criteriaScores,
+    Map<String, String> criteriaComments = const <String, String>{},
+    String overallFeedback = '',
   }) async {
     if (!_isJudge(judge)) {
       throw StateError('Only judges can save evaluations.');
@@ -41,16 +47,43 @@ abstract final class JudgeEvaluationService {
     if (idea.status == IdeaStatus.pendingSubmission) {
       throw StateError('Idea is pending payment verification.');
     }
-    if (!RoleVisibilityHelpers.ideaVisibleToUser(idea, judge)) {
-      throw StateError('Idea is not visible to this judge.');
-    }
-    final feedback = JudgeEvaluationFeedbackCodec.compose(
-      innovation: innovation,
-      feasibility: feasibility,
-      impact: impact,
-      recommendation: recommendation,
-      remarks: remarks,
+    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: judge.orgId,
+      judgeId: judge.userId,
     );
+    if (!assignedIdeaIds.contains(idea.ideaId)) {
+      throw StateError('Idea is not assigned to this judge.');
+    }
+    if (template.criteria.isEmpty) {
+      throw StateError('Evaluation template has no criteria.');
+    }
+
+    // Filter the maps down to the template's own criterion ids and drop
+    // out-of-range values. Comments are kept only for criteria that allow them.
+    final Set<String> allowedIds = <String>{
+      for (final c in template.criteria) c.criterionId,
+    };
+    final Set<String> commentEnabledIds = <String>{
+      for (final c in template.criteria)
+        if (c.commentsEnabled) c.criterionId,
+    };
+    final Map<String, double> cleanedScores = <String, double>{};
+    for (final entry in criteriaScores.entries) {
+      if (!allowedIds.contains(entry.key)) continue;
+      cleanedScores[entry.key] = entry.value;
+    }
+    final Map<String, String> cleanedComments = <String, String>{};
+    for (final entry in criteriaComments.entries) {
+      if (!commentEnabledIds.contains(entry.key)) continue;
+      final String trimmed = entry.value.trim();
+      if (trimmed.isEmpty) continue;
+      cleanedComments[entry.key] = trimmed;
+    }
+
+    final double overall = template.computeOverall(cleanedScores);
+    final double normalized = template.scoringScale <= 0
+        ? 0
+        : ((overall / template.scoringScale) * 100).clamp(0.0, 100.0);
     final col = _db.collection(FirestoreUtils.hkzScores);
     final existing = await col
         .where('ideaId', isEqualTo: idea.ideaId)
@@ -61,11 +94,16 @@ abstract final class JudgeEvaluationService {
       scoreId: existing.docs.isEmpty ? '' : existing.docs.first.id,
       ideaId: idea.ideaId,
       judgeId: judge.userId,
-      score: overallScore.toDouble(),
-      feedback: feedback,
+      score: overall,
+      feedback: overallFeedback.trim(),
       createdAt: DateTime.now(),
       orgId: judge.orgId,
       departmentCode: idea.problemDepartmentCode,
+      templateId: template.templateId,
+      criteriaScores: cleanedScores,
+      criteriaComments: cleanedComments,
+      rawScore: overall,
+      normalizedScore: normalized,
     );
     if (existing.docs.isEmpty) {
       final doc = col.doc();
@@ -128,9 +166,13 @@ abstract final class JudgeEvaluationService {
       paymentByIdeaId[p.ideaId] = p;
     }
 
+    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: judge.orgId,
+      judgeId: judge.userId,
+    );
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where((idea) => RoleVisibilityHelpers.ideaVisibleToUser(idea, judge))
+        .where((idea) => assignedIdeaIds.contains(idea.ideaId))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -151,7 +193,7 @@ abstract final class JudgeEvaluationService {
     final evaluatedIdeaIds = scoresByIdea.keys.toSet();
 
     bool judgeMayEvaluate(IdeaModel idea) {
-      if (!RoleVisibilityHelpers.ideaVisibleToUser(idea, judge)) return false;
+      if (!assignedIdeaIds.contains(idea.ideaId)) return false;
       if (idea.status == IdeaStatus.pendingSubmission) return false;
       final pay = paymentByIdeaId[idea.ideaId];
       if (pay != null && pay.status != PaymentRecordStatus.verified && pay.status != PaymentRecordStatus.rejected) {
@@ -190,9 +232,12 @@ abstract final class JudgeEvaluationService {
         }
       }
       final title = match == null ? s.ideaId : _ideaTitle(match);
-      final decoded = JudgeEvaluationFeedbackCodec.tryDecode(s.feedback);
-      final excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(s.feedback);
-      final hasContent = excerpt.isNotEmpty || decoded != null;
+      // New template-driven records put plain remarks straight into
+      // `feedback`; legacy v1 records prefix it with the codec marker.
+      final String excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(s.feedback);
+      final bool hasStructured = s.hasStructuredCriteria ||
+          JudgeEvaluationFeedbackCodec.tryDecode(s.feedback) != null;
+      final bool hasContent = excerpt.isNotEmpty || hasStructured;
       if (!hasContent) continue;
       feedbackRows.add(
         JudgeEvaluationFeedbackRow(
@@ -201,9 +246,9 @@ abstract final class JudgeEvaluationService {
           evaluatedAt: s.createdAt,
           overallScore: s.score,
           remarksExcerpt: excerpt.isEmpty
-              ? (decoded != null ? 'Criteria scores recorded' : '—')
+              ? (hasStructured ? 'Criteria scores recorded' : '—')
               : (excerpt.length > 160 ? '${excerpt.substring(0, 157)}…' : excerpt),
-          hasStructuredCriteria: decoded != null,
+          hasStructuredCriteria: hasStructured,
         ),
       );
     }
@@ -269,7 +314,8 @@ abstract final class JudgeEvaluationService {
     final problem = problemsById[idea.problemId];
     final teamName = (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName.trim();
     final problemTitle = (problem?.title ?? idea.problemTitle).trim().isEmpty ? idea.problemId : (problem?.title ?? idea.problemTitle).trim();
-    final hasFb = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback).trim().isNotEmpty;
+    final String overallRemarks = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback);
+    final bool hasFb = overallRemarks.isNotEmpty || score.criteriaComments.isNotEmpty;
     return JudgeEvaluationEvaluatedRow(
       idea: idea,
       teamName: teamName,
@@ -392,17 +438,3 @@ class JudgeEvaluationFeedbackRow {
   final bool hasStructuredCriteria;
 }
 
-extension _JudgeScoreCopy on ScoreModel {
-  ScoreModel copyWith({String? scoreId}) {
-    return ScoreModel(
-      scoreId: scoreId ?? this.scoreId,
-      ideaId: ideaId,
-      judgeId: judgeId,
-      score: score,
-      feedback: feedback,
-      createdAt: createdAt,
-      orgId: orgId,
-      departmentCode: departmentCode,
-    );
-  }
-}

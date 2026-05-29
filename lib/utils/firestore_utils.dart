@@ -7,8 +7,8 @@ import '../models/organization_model.dart';
 import '../models/enums/organization_type.dart';
 import '../models/enums/user_status.dart';
 import '../models/payment_model.dart';
-import '../models/problem_model.dart';
-import '../models/team_model.dart';
+import '../features/problems/models/problem_model.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'common_helpers.dart';
 
@@ -31,8 +31,12 @@ class FirestoreUtils {
   static const String hkzUserAuthMirror = 'hkzUserAuthMirror';
   static const String hkzTeams = 'hkzTeams';
   static const String hkzAttachments = 'hkzAttachments';
-  /// Single-doc platform configuration for SysAdmin (`config`).
-  static const String hkzPlatformSettings = 'hkzPlatformSettings';
+  /// Generic workflow / approval requests (team changes, future payment / idea / extension approvals).
+  static const String hkzRequests = 'hkzRequests';
+  /// Problem-level evaluation assignment grouping.
+  static const String hkzEvaluationGroups = 'hkzEvaluationGroups';
+  /// Idea-to-judge evaluation assignments (supports many judges per idea).
+  static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);
@@ -330,16 +334,40 @@ class FirestoreUtils {
     return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
 
-  static Future<void> upsertOrganization(OrganizationModel org) async {
+  /// Returns the resolved organization id (newly generated for inserts or
+  /// the existing id for edits). Callers can chain post-create work such as
+  /// seeding per-org settings.
+  static Future<String> upsertOrganization(OrganizationModel org) async {
     final docRef = org.id.isEmpty
         ? _db.collection(hkzOrganizations).doc()
         : _db.collection(hkzOrganizations).doc(org.id);
     final payload = org.copyWith(id: docRef.id).toMap();
     await docRef.set(payload, SetOptions(merge: true));
+    return docRef.id;
   }
 
   static Future<void> deleteOrganization(String orgId) async {
-    await _db.collection(hkzOrganizations).doc(orgId).delete();
+    final normalizedOrgId = orgId.trim();
+    if (normalizedOrgId.isEmpty) return;
+    final orgRef = _db.collection(hkzOrganizations).doc(normalizedOrgId);
+
+    // Firestore does not cascade subcollection deletes when deleting a parent doc.
+    // Clean known org-scoped subcollections first.
+    await _deleteSubcollectionDocs(orgRef.collection('settings'));
+
+    await orgRef.delete();
+  }
+
+  static Future<void> _deleteSubcollectionDocs(
+    CollectionReference<Map<String, dynamic>> collectionRef,
+  ) async {
+    final snapshot = await collectionRef.get();
+    if (snapshot.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   static Future<void> deleteUser(String userId) async {
@@ -348,7 +376,6 @@ class FirestoreUtils {
 
   static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(String orgId) async {
     final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
-    final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
     final departmentsSnapshot = await _db
         .collection(hkzDepartments)
         .where('orgId', isEqualTo: orgId)
@@ -370,7 +397,6 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'studentCount': 0,
-          'totalIdeas': 0,
         },
       );
       current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
@@ -400,7 +426,6 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'studentCount': 0,
-          'totalIdeas': 0,
         },
       );
       current['totalUsers'] = (current['totalUsers'] as int) + 1;
@@ -419,24 +444,6 @@ class FirestoreUtils {
       );
     }
 
-    for (final i in ideasSnapshot.docs) {
-      final data = i.data();
-      final departmentCode = IdeaDepartmentHelpers.teamDeptFromMap(data);
-      if (departmentCode.isEmpty) continue;
-      final department = DepartmentModel.byCode(departmentCode)?.name ?? departmentCode;
-      final current = map.putIfAbsent(
-        department,
-        () => <String, dynamic>{
-          'name': department,
-          'code': departmentCode,
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'totalIdeas': 0,
-        },
-      );
-      current['totalIdeas'] = (current['totalIdeas'] as int) + 1;
-    }
-
     for (final entry in map.entries) {
       final row = entry.value;
       final adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
@@ -450,6 +457,18 @@ class FirestoreUtils {
     final result = map.values.toList(growable: false);
     result.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
     return result;
+  }
+
+  /// Idea totals keyed by department code — used by analytics charts, not manage-college.
+  static Future<Map<String, int>> getIdeaCountsByDepartmentCode(String orgId) async {
+    final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
+    final Map<String, int> counts = <String, int>{};
+    for (final doc in ideasSnapshot.docs) {
+      final String departmentCode = IdeaDepartmentHelpers.teamDeptFromMap(doc.data());
+      if (departmentCode.isEmpty) continue;
+      counts[departmentCode] = (counts[departmentCode] ?? 0) + 1;
+    }
+    return counts;
   }
 
   static Future<Map<String, dynamic>> getCollegeStats(String orgId) async {
@@ -598,6 +617,14 @@ class FirestoreUtils {
       'adminUserId': null,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  static Future<void> deleteDepartment({required String departmentId}) async {
+    final String id = departmentId.trim();
+    if (id.isEmpty) {
+      throw StateError('Department record id is required to delete a department.');
+    }
+    await _db.collection(hkzDepartments).doc(id).delete();
   }
 
   static Future<void> addProblemStatement({

@@ -7,7 +7,8 @@ import '../models/idea_list_config.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../models/score_model.dart';
-import '../models/team_model.dart';
+import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../features/team/models/team_model.dart';
 import '../models/user_model.dart';
 import 'firestore_utils.dart';
 import 'role_visibility_helpers.dart';
@@ -111,7 +112,18 @@ class IdeaQueryService {
         .toList(growable: false);
 
     final List<IdeaModel> deptScoped = _applyDepartmentScope(allIdeas, params);
+    Set<String>? judgeAssignedIdeaIds;
+    if (params.viewer != null && UserRole.fromCode(params.viewer!.role) == UserRole.judge) {
+      judgeAssignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+        orgId: params.config.orgId,
+        judgeId: params.viewer!.userId,
+      );
+    }
+
     var ideas = _applyIdeaFilters(allIdeas, params);
+    if (judgeAssignedIdeaIds != null) {
+      ideas = ideas.where((IdeaModel idea) => judgeAssignedIdeaIds!.contains(idea.ideaId)).toList(growable: false);
+    }
     final teamsById = await _fetchTeamsById(
       orgId: params.config.orgId,
       teamIds: ideas.map((e) => e.teamId),

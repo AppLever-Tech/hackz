@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_icons.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
 import 'dashboard_scrollable_body.dart';
 
-/// Adaptive dashboard shell: drawer (mobile), collapsible rail (tablet), sidebar (desktop).
+/// Adaptive dashboard shell shared by every role.
+///
+/// Layout per breakpoint:
+///  * mobile  → hidden behind a [Drawer], toggled by the leading menu icon.
+///  * tablet  → collapsible side rail. Collapsed by default.
+///  * desktop → collapsible side rail. Collapsed by default.
+///  * wide    → collapsible side rail. Expanded by default.
+///
+/// The rail uses [DashboardNavigationPanel] in `compact: true` mode when
+/// collapsed and `compact: false` when expanded, so the visual treatment is
+/// identical to the existing tablet rail (no new decoration helpers).
+///
+/// State: a single `bool? _railOverride` tracks the user's explicit choice.
+/// When `null`, the effective expanded state follows the breakpoint default
+/// — meaning resizing the browser without ever toggling re-applies the
+/// breakpoint default. After the first toggle, the user's choice is sticky
+/// for the remainder of the session.
 class ResponsiveDashboardLayout extends StatefulWidget {
   const ResponsiveDashboardLayout({
     super.key,
@@ -35,7 +52,24 @@ class ResponsiveDashboardLayout extends StatefulWidget {
 
 class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _tabletRailExpanded = false;
+
+  /// User's explicit collapsed/expanded choice. `null` means "follow the
+  /// breakpoint default". Set by [_toggleRail].
+  bool? _railOverride;
+
+  /// Default expanded state for a given screen size. Wide screens default to
+  /// expanded; everything narrower defaults to collapsed (mobile is unused —
+  /// it routes through the drawer).
+  bool _defaultExpandedFor(ScreenSize size) => size == ScreenSize.wide;
+
+  bool _isExpanded(ScreenSize size) =>
+      _railOverride ?? _defaultExpandedFor(size);
+
+  void _toggleRail(ScreenSize size) {
+    setState(() {
+      _railOverride = !_isExpanded(size);
+    });
+  }
 
   void _selectMenu(int index) {
     widget.onPrimaryMenuSelected(index);
@@ -51,7 +85,11 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
     widget.onLogout();
   }
 
-  Widget _navigationPanel({required bool compact, required bool inDrawer}) {
+  Widget _navigationPanel({
+    required bool compact,
+    required bool inDrawer,
+    VoidCallback? onToggleCollapse,
+  }) {
     return DashboardNavigationPanel(
       primaryMenus: widget.primaryMenus,
       secondaryMenus: widget.secondaryMenus,
@@ -59,36 +97,30 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
       onPrimaryMenuTap: _selectMenu,
       onLogout: _handleLogout,
       compact: compact,
-      showBranding: !compact || inDrawer,
+      // Always show the brand block — on the rail it carries the collapse
+      // toggle even when compact; in the drawer it's the standard header.
+      showBranding: true,
+      onToggleCollapse: onToggleCollapse,
     );
   }
 
   Widget? _buildSidebar(BuildContext context, ScreenSize screenSize) {
-    switch (screenSize) {
-      case ScreenSize.mobile:
-        return null;
-      case ScreenSize.tablet:
-        return _TabletSidebarRail(
-          expanded: _tabletRailExpanded,
-          onToggle: () => setState(() => _tabletRailExpanded = !_tabletRailExpanded),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: _navigationPanel(compact: !_tabletRailExpanded, inDrawer: false),
-          ),
-        );
-      case ScreenSize.desktop:
-      case ScreenSize.wide:
-        return SidebarWidget(
-          primaryMenus: widget.primaryMenus,
-          secondaryMenus: widget.secondaryMenus,
-          selectedPrimaryIndex: widget.selectedPrimaryIndex,
-          onPrimaryMenuTap: widget.onPrimaryMenuSelected,
-          onLogout: _handleLogout,
-        );
-    }
+    if (screenSize == ScreenSize.mobile) return null;
+    final bool expanded = _isExpanded(screenSize);
+    return _CollapsibleSidebarRail(
+      expanded: expanded,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: _navigationPanel(
+          compact: !expanded,
+          inDrawer: false,
+          onToggleCollapse: () => _toggleRail(screenSize),
+        ),
+      ),
+    );
   }
 
   Widget _mainCard(BuildContext context, {VoidCallback? onOpenMenu}) {
@@ -214,7 +246,7 @@ class _MobileMenuHeaderRow extends StatelessWidget {
       children: <Widget>[
         IconButton(
           onPressed: onOpenMenu,
-          icon: const Icon(Icons.menu_rounded),
+          icon: const Icon(AppIcons.menu),
           tooltip: 'Open menu',
           visualDensity: VisualDensity.compact,
           padding: EdgeInsets.zero,
@@ -227,49 +259,32 @@ class _MobileMenuHeaderRow extends StatelessWidget {
   }
 }
 
-class _TabletSidebarRail extends StatelessWidget {
-  const _TabletSidebarRail({
+/// Tablet/desktop/wide rail. Animates between
+/// [ResponsiveHelper.compactSidebarWidth] and
+/// [ResponsiveHelper.expandedSidebarWidth] using a 200 ms cubic curve.
+///
+/// The collapse toggle now lives inside [DashboardNavigationPanel]'s brand
+/// row, so this widget is just an animating width container around the
+/// navigation panel.
+class _CollapsibleSidebarRail extends StatelessWidget {
+  const _CollapsibleSidebarRail({
     required this.expanded,
-    required this.onToggle,
     required this.child,
   });
 
   final bool expanded;
-  final VoidCallback onToggle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final width = expanded ? ResponsiveHelper.expandedSidebarWidth(context) : ResponsiveHelper.compactSidebarWidth;
-    return SizedBox(
-      width: width,
-      child: Column(
-        children: <Widget>[
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              width: width,
-              child: child,
-            ),
-          ),
-          Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: onToggle,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Icon(
-                  expanded ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    final double width = expanded
+        ? ResponsiveHelper.expandedSidebarWidth(context)
+        : ResponsiveHelper.compactSidebarWidth;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.centerLeft,
+      child: SizedBox(width: width, child: child),
     );
   }
 }

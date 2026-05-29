@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/sysadmin_dashboard_service.dart';
-import '../common/dashboard_panel_column.dart';
-import '../common/dashboard_scrollable_list_layout.dart';
+import '../common/dashboard_card/dashboard_card_layout.dart';
 
 class PlatformAlertsSection extends StatelessWidget {
   const PlatformAlertsSection({
@@ -14,26 +13,15 @@ class PlatformAlertsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardPanelColumn(
-      headers: <Widget>[
-        const Text(
-          'Platform Alerts',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Operational signals that may need attention',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        const SizedBox(height: 14),
-      ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: alerts.length,
-        rowStride: DashboardScrollableListLayout.alertRowStride,
-        separatorHeight: DashboardScrollableListLayout.alertSeparatorHeight,
-        itemBuilder: (BuildContext context, int index) => _alertCard(alerts[index]),
+    return DashboardListCard(
+      preset: DashboardListPreset.alert,
+      headers: DashboardCardHeaders.sectionTitle(
+        title: 'Platform Alerts',
+        subtitle: 'Operational signals that may need attention',
+        subtitleColor: Colors.grey.shade600,
       ),
+      itemCount: alerts.length,
+      itemBuilder: (BuildContext context, int index) => _alertCard(alerts[index]),
     );
   }
 

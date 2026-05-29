@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/organization_type.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/firestore_utils.dart';
 
 class CreateOrganizationDialogForm extends StatefulWidget {
@@ -9,12 +11,14 @@ class CreateOrganizationDialogForm extends StatefulWidget {
     super.key,
     this.organizationType,
     this.asDialog = false,
+    this.initialOrganization,
   });
 
   /// When `null` and [asDialog] is true, the form shows a type selector (unified labels).
   /// When non-null, legacy labels and no type dropdown.
   final OrganizationType? organizationType;
   final bool asDialog;
+  final OrganizationModel? initialOrganization;
 
   @override
   State<CreateOrganizationDialogForm> createState() => _CreateOrganizationDialogFormState();
@@ -27,6 +31,7 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   final _contactController = TextEditingController();
   bool _busy = false;
   late OrganizationType _selectedType;
+  late final bool _isEdit;
 
   bool get _unifiedDialog => widget.asDialog && widget.organizationType == null;
 
@@ -37,7 +42,12 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.organizationType ?? OrganizationType.college;
+    _isEdit = widget.initialOrganization != null;
+    _selectedType = widget.initialOrganization?.type ?? widget.organizationType ?? OrganizationType.college;
+    _nameController.text = widget.initialOrganization?.name ?? '';
+    _addressController.text = widget.initialOrganization?.address ?? '';
+    _websiteController.text = widget.initialOrganization?.website ?? '';
+    _contactController.text = widget.initialOrganization?.contact ?? '';
   }
 
   @override
@@ -60,17 +70,28 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
     }
     setState(() => _busy = true);
     try {
-      await FirestoreUtils.upsertOrganization(
-        OrganizationModel(
-          id: '',
+      final String orgId = await FirestoreUtils.upsertOrganization(
+        (widget.initialOrganization ??
+                OrganizationModel(
+                  id: '',
+                  name: '',
+                  type: _effectiveType,
+                  address: '',
+                  website: '',
+                  contact: '',
+                  createdAt: DateTime.now(),
+                ))
+            .copyWith(
           name: name,
           type: _effectiveType,
           address: address,
           website: website,
           contact: contact,
-          createdAt: DateTime.now(),
         ),
       );
+      if (!_isEdit) {
+        await OrgSettingsService.seedFor(orgId);
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -81,8 +102,10 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   }
 
   void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+    FeedbackService.showInfo(
+      context,
+      title: 'Organization',
+      message: msg,
     );
   }
 
@@ -169,7 +192,9 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
 
   Widget _formBody() {
     final bool unified = _unifiedDialog;
-    final String title = unified ? 'New Organization' : 'New ${_legacyDisplayType.toLowerCase()}';
+    final String title = _isEdit
+        ? (unified ? 'Edit Organization' : 'Edit ${_legacyDisplayType.toLowerCase()}')
+        : (unified ? 'New Organization' : 'New ${_legacyDisplayType.toLowerCase()}');
     final String nameLabel = unified ? 'Organization name' : '$_legacyDisplayType name';
     final String nameHint = unified ? 'Enter organization name' : 'Enter $_legacyDisplayType name';
 
@@ -253,7 +278,7 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
             FilledButton(
               onPressed: _busy ? null : _submit,
               style: _compactButtonStyle(),
-              child: Text(_busy ? 'Creating...' : 'Create'),
+              child: Text(_busy ? (_isEdit ? 'Saving...' : 'Creating...') : (_isEdit ? 'Save' : 'Create')),
             ),
           ],
         ),

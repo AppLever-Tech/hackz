@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/auth_theme.dart';
+import '../../../core/theme/auth_theme.dart';
 
 /// Compact premium innovation milestone for the sequential journey grid.
 class InnovationMilestoneNode extends StatefulWidget {

@@ -6,9 +6,9 @@ import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
-import '../../utils/faculty_teams_service.dart';
+import '../../features/team/services/faculty_teams_service.dart';
+import '../../features/org_settings/services/org_settings_service.dart';
 import '../../utils/judge_evaluation_service.dart';
-import '../../utils/platform_settings_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/responsive/responsive_dashboard_layout.dart';
 import '../../workspace/workspace.dart';
@@ -46,25 +46,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     super.dispose();
   }
 
-  String _roleDisplayName(UserRole role) {
-    switch (role) {
-      case UserRole.sysAdmin:
-        return 'System Administrator';
-      case UserRole.collegeAdmin:
-        return 'College Administrator';
-      case UserRole.departmentAdmin:
-        return 'Department Administrator';
-      case UserRole.faculty:
-        return 'Faculty';
-      case UserRole.judge:
-        return 'Judge';
-      case UserRole.student:
-        return 'Student';
-      case UserRole.coordinator:
-        return 'Coordinator';
-    }
-  }
-
   String _formatLongDate(DateTime date) {
     const weekdays = <String>[
       'Monday',
@@ -93,7 +74,9 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   }
 
   Future<void> _logout(BuildContext context) async {
-    PlatformSettingsService.instance.clearCache();
+    WorkspaceController.instance.close();
+    _chromeController.clearOverlay();
+    OrgSettingsService.instance.clearCache();
     SysAdminDashboardService.clearCache();
     DepartmentDashboardService.clearCache();
     FacultyTeamsService.clearCache();
@@ -115,8 +98,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
         '${widget.user.firstName} ${widget.user.lastName}'.trim().isEmpty
             ? 'User'
             : '${widget.user.firstName} ${widget.user.lastName}'.trim();
-    final String dashboardTitle = '$fullName\'s Dashboard';
-    final String roleName = _roleDisplayName(role);
     final String longDate = _formatLongDate(DateTime.now());
     final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
@@ -140,9 +121,19 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
             },
             onLogout: () => _logout(context),
             header: TopHeaderWidget(
-              title: isDashboardTab ? dashboardTitle : selectedMenuTitle,
+              title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
-              subtitle: isDashboardTab ? roleName : '',
+              subtitle: '',
+              subtitleWidget: isDashboardTab
+                  ? ContextPill(
+                      label: fullName,
+                      semantic: ContextPillSemantic.user,
+                      onTap: () =>
+                          WorkspaceNavigator.openUser(context, widget.user.userId),
+                      compact: true,
+                      fitContent: true,
+                    )
+                  : null,
               dateText: longDate,
               onRefresh: () {
                 _chromeController.clearOverlay();
@@ -179,7 +170,6 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
-            DashboardMenuItem(label: 'Platform settings', icon: AppIcons.platformSettings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -191,6 +181,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
+            DashboardMenuItem(label: 'Org Settings', icon: AppIcons.orgSettings),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -201,8 +192,10 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Manage Department', icon: AppIcons.departments),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
+            DashboardMenuItem(label: 'Evaluation Extensions', icon: AppIcons.scoring),
             DashboardMenuItem(label: 'Judges Panel', icon: AppIcons.judges),
             DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
+            DashboardMenuItem(label: 'Requests', icon: Icons.inbox_rounded),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],
@@ -212,8 +205,7 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
-            DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
-            DashboardMenuItem(label: 'Problem Statements', icon: Icons.table_rows_outlined),
+            DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],

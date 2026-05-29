@@ -18,6 +18,15 @@ class AppIcons {
   static const IconData edit = Icons.edit_outlined;
   static const IconData remove = Icons.close_rounded;
 
+  // Navigation chrome (mobile drawer toggle + collapsible side rail).
+  static const IconData menu = Icons.menu_rounded;
+  static const IconData chevronLeft = Icons.chevron_left_rounded;
+  static const IconData chevronRight = Icons.chevron_right_rounded;
+
+  // Shared list dashboard chrome (list/table view switcher).
+  static const IconData viewList = Icons.view_list_rounded;
+  static const IconData viewTable = Icons.table_rows_rounded;
+
   // Shared domain icons
   static const IconData dashboard = Icons.grid_view_rounded;
   static const IconData organizations = Icons.apartment_outlined;
@@ -31,7 +40,7 @@ class AppIcons {
   static const IconData pendingUsers = Icons.how_to_reg_outlined;
   static const IconData payments = Icons.payments_outlined;
   static const IconData settings = Icons.settings_outlined;
-  static const IconData platformSettings = Icons.tune_rounded;
+  static const IconData orgSettings = Icons.tune_rounded;
   static const IconData scoring = Icons.score_outlined;
   static const IconData leaderboard = Icons.leaderboard_outlined;
   static const IconData submissions = Icons.upload_file_outlined;

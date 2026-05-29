@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -7,11 +9,35 @@ import '../../models/user_model.dart';
 import '../../utils/auth_status_resolver.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/role_utils.dart';
+import '../../workspace/workspace.dart';
 import 'landing_screen.dart';
 import '../../widgets/signup/account_status_workspace.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late final StreamSubscription<User?> _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user == null) {
+        WorkspaceController.instance.close();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

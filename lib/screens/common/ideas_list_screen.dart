@@ -8,7 +8,8 @@ import '../../models/idea_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/idea_query_service.dart';
 import '../../utils/role_visibility_helpers.dart';
-import '../../widgets/idea_card.dart';
+import '../../widgets/data_view/data_table_view.dart';
+import '../../widgets/idea_table_columns.dart';
 import '../../widgets/payment_dialog.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
@@ -148,44 +149,22 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             .toList(growable: false)
           ..sort();
 
-        final listWidget = ideas.isEmpty
-            ? const Center(
-                child: Text('No ideas found for the selected criteria.'),
-              )
-            : ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: ideas.length,
-                itemBuilder: (context, index) {
-                  final item = ideas[index];
-                  final showPay = widget.config.canUploadPayment && item.canUploadPayment;
-                  final canEval = widget.config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: IdeaCard(
-                      key: ValueKey(item.idea.ideaId),
-                      item: item,
-                      onOpenIdea: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
-                      onOpenTeam: () {
-                        final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
-                        if (teamId.isEmpty) return;
-                        WorkspaceNavigator.openTeam(context, teamId);
-                      },
-                      onOpenPayment: item.payment == null
-                          ? null
-                          : () => WorkspaceNavigator.openPayment(context, item.payment!.paymentId),
-                      onOpenEvaluation: _canOpenEvaluation(item)
-                          ? () => WorkspaceNavigator.openEvaluation(context, item.idea.ideaId)
-                          : null,
-                      onOpenAttachments: item.attachmentCount > 0
-                          ? () => _openAttachments(context, item)
-                          : null,
-                      showEvaluate: canEval,
-                      onEvaluate: canEval ? () => _openEvaluateDialog(item) : null,
-                      showUploadPayment: showPay,
-                      onUploadPayment: showPay && item.team != null ? () => _openUploadPayment(item) : null,
-                    ),
-                  );
+        final Widget tableWidget = ideas.isEmpty
+            ? _EmptyIdeasState(
+                onClearSearch: () {
+                  if (_searchController.text.trim().isEmpty) return;
+                  _searchController.clear();
+                  _loadIdeas();
                 },
+              )
+            : DataTableView<IdeaListItem>(
+                items: ideas,
+                columns: IdeaTableColumns.build(
+                  config: widget.config,
+                  actions: _ideaTableActions(),
+                ),
+                onSort: _onTableSort,
+                activeSortKey: _activeSortKey,
               );
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -212,9 +191,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                 ],
                 const SizedBox(height: 12),
                 if (hasBoundedHeight)
-                  Expanded(child: listWidget)
+                  Expanded(child: tableWidget)
                 else
-                  SizedBox(height: 420, child: listWidget),
+                  SizedBox(height: 420, child: tableWidget),
               ],
             );
 
@@ -225,11 +204,68 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  bool _canOpenEvaluation(IdeaListItem item) {
-    if (item.score != null) return true;
-    return item.idea.status == IdeaStatus.evaluated ||
-        item.idea.status == IdeaStatus.approved ||
-        item.idea.status == IdeaStatus.underReview;
+  /// Row action callbacks wired into table cells (workspace + dialogs).
+  IdeaTableActions _ideaTableActions() {
+    return IdeaTableActions(
+      onOpenIdea: (IdeaListItem item) =>
+          WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+      onOpenTeam: (IdeaListItem item) {
+        final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+        if (teamId.isEmpty) return;
+        WorkspaceNavigator.openTeam(context, teamId);
+      },
+      onOpenProblem: (IdeaListItem item) {
+        final String problemId = item.idea.problemId.trim();
+        if (problemId.isEmpty) return;
+        WorkspaceNavigator.openProblem(context, problemId);
+      },
+      onOpenPayment: (IdeaListItem item) {
+        final payment = item.payment;
+        if (payment == null) return;
+        WorkspaceNavigator.openPayment(context, payment.paymentId);
+      },
+      onOpenEvaluation: (IdeaListItem item) =>
+          WorkspaceNavigator.openEvaluation(context, item.idea.ideaId),
+      onOpenAttachments: (IdeaListItem item) => _openAttachments(context, item),
+      onEvaluate: (IdeaListItem item) => _openEvaluateDialog(item),
+      onUploadPayment: (IdeaListItem item) => _openUploadPayment(item),
+    );
+  }
+
+  /// `_sort` is the single source of truth — the sort menu and the table
+  /// header both mutate it through here.
+  String? get _activeSortKey {
+    switch (_sort) {
+      case IdeaSortType.newest:
+      case IdeaSortType.oldest:
+        return 'newest';
+      case IdeaSortType.status:
+        return 'status';
+      case IdeaSortType.score:
+        return 'score';
+    }
+  }
+
+  void _onTableSort(String sortKey) {
+    IdeaSortType? next;
+    switch (sortKey) {
+      case 'newest':
+        // Tapping the active "Idea" header flips newest <-> oldest;
+        // tapping it from another sort jumps to newest.
+        next = _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
+        break;
+      case 'status':
+        next = IdeaSortType.status;
+        break;
+      case 'score':
+        next = IdeaSortType.score;
+        break;
+    }
+    if (next == null) return;
+    if (!widget.config.enabledSorts.contains(next)) return;
+    if (next == _sort) return;
+    setState(() => _sort = next!);
+    _loadIdeas();
   }
 
   void _openAttachments(BuildContext context, IdeaListItem item) {
@@ -599,4 +635,41 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
 
   bool get _hasAnyActiveFilter =>
       _statusFilters.isNotEmpty || _problemFilters.isNotEmpty || _departmentFilters.isNotEmpty;
+}
+
+class _EmptyIdeasState extends StatelessWidget {
+  const _EmptyIdeasState({required this.onClearSearch});
+
+  final VoidCallback onClearSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 360),
+        padding: const EdgeInsets.all(28),
+        decoration: kDashboardCardDecoration,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(AppIcons.ideas, size: 40, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            const Text(
+              'No ideas found',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Try adjusting your search or check back later.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            TextButton(onPressed: onClearSearch, child: const Text('Clear search')),
+          ],
+        ),
+      ),
+    );
+  }
 }

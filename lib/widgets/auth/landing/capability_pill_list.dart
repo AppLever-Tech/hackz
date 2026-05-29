@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/auth_theme.dart';
+import '../../../core/theme/auth_theme.dart';
 import 'landing_pipeline_data.dart';
 
 /// Stacked capability pills: icon + title + caption per row.

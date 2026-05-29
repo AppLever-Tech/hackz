@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../features/evaluations/workspaces/evaluation_assignment_details_pane.dart';
 import '../../constants/status_styles.dart';
 import '../../models/department_model.dart';
 import '../../models/enums/organization_type.dart';
 import '../../models/organization_model.dart';
 import '../../models/user_model.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../screens/common/dashboard_chrome_scope.dart';
 import '../../workspace/workspace.dart';
-import '../common/app_dialog_template.dart';
 import '../common/create_user_dialog.dart';
 
 class JudgesPanelScreen extends StatefulWidget {
@@ -101,23 +102,29 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
     final String displayName = '${judge.firstName} ${judge.lastName}'.trim().isEmpty
         ? judge.phone
         : '${judge.firstName} ${judge.lastName}'.trim();
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => ResponsiveAlertDialog(
-        title: const Text('Delete user?'),
-        widthPreset: DialogWidthPreset.compact,
-        content: Text('This will remove $displayName from this department.'),
-        actions: <Widget>[
-          OutlinedButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Delete')),
-        ],
-      ),
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete user?',
+      message: 'This will remove $displayName from this department.',
+      confirmLabel: 'Delete',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     await FirestoreUtils.deleteUser(judge.userId);
     if (mounted) {
       _refresh();
     }
+  }
+
+  void _openAssignmentWorkspace() {
+    WorkspaceController.instance.close();
+    final chrome = DashboardChromeScope.of(context);
+    chrome.showOverlay(
+      EvaluationAssignmentDetailsPane(
+        user: widget.user,
+        onBack: chrome.clearOverlay,
+      ),
+    );
   }
 
   Widget _buildMetricChips(_JudgesPanelData data) {
@@ -276,10 +283,21 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
             SizedBox(height: gap),
             Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: _addJudge,
-                icon: const Icon(AppIcons.add, size: 16),
-                label: const Text('Add Judge'),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  FilledButton.icon(
+                    onPressed: _addJudge,
+                    icon: const Icon(AppIcons.add, size: 16),
+                    label: const Text('Add Judge'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _openAssignmentWorkspace,
+                    icon: const Icon(AppIcons.scoring, size: 16),
+                    label: const Text('Evaluation Assignments'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

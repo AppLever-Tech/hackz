@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/auth_theme.dart';
+import '../../core/theme/auth_theme.dart';
 
 /// Full-screen auth-gradient shell with safe area (no scroll — child manages layout).
 class MobileLandingShell extends StatelessWidget {

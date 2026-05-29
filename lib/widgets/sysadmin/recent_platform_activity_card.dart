@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
-import '../common/dashboard_panel_column.dart';
-import '../common/dashboard_scrollable_list_layout.dart';
+import '../common/dashboard_card/dashboard_card_layout.dart';
 import '../common/time_frame_filter.dart';
 
 class RecentPlatformActivityCard extends StatelessWidget {
@@ -25,9 +24,12 @@ class RecentPlatformActivityCard extends StatelessWidget {
         .where((PlatformActivityEvent event) => SysAdminDashboardService.isWithinTimeframe(event.when, selectedTimeframe))
         .take(8)
         .toList(growable: false);
-    return DashboardPanelColumn(
-      headers: <Widget>[
-        DashboardCardHeaderRow(
+    return DashboardListCard(
+      preset: DashboardListPreset.activity,
+      emptyHeight: DashboardLayoutTokens.listActivityEmptyHeight,
+      empty: const Center(child: Text('No platform events for this timeframe')),
+      headers: DashboardCardHeaders.timedList(
+        headerRow: DashboardCardHeaderRow(
           title: 'Recent Platform Activity',
           icon: AppIcons.clock,
           trailing: TimeFrameFilter<PlatformAnalyticsTimeframe>(
@@ -37,22 +39,11 @@ class RecentPlatformActivityCard extends StatelessWidget {
             onChanged: onTimeframeChanged,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          '${selectedTimeframe.label} operational events across the ecosystem',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-        ),
-        const SizedBox(height: 14),
-      ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: filtered.length,
-        rowStride: DashboardScrollableListLayout.activityRowStride,
-        separatorHeight: DashboardScrollableListLayout.activitySeparatorHeight,
-        emptyHeight: 72,
-        empty: const Center(child: Text('No platform events for this timeframe')),
-        itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
+        subtitle: '${selectedTimeframe.label} operational events across the ecosystem',
+        subtitleColor: Colors.grey.shade600,
       ),
+      itemCount: filtered.length,
+      itemBuilder: (BuildContext context, int index) => _eventRow(filtered[index]),
     );
   }
 

@@ -10,8 +10,9 @@ import '../common/app_dialog_template.dart';
 import '../common/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../workspace/workspace.dart';
 
 class ManageCollegeScreen extends StatefulWidget {
   const ManageCollegeScreen({super.key, required this.user});
@@ -64,27 +65,14 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     required String adminUserId,
     required String adminName,
   }) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return ResponsiveAlertDialog(
-          title: const Text('Remove department admin?'),
-          widthPreset: DialogWidthPreset.compact,
-          content: Text('Remove $adminName from this department?'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Remove'),
-            ),
-          ],
-        );
-      },
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Remove department admin?',
+      message: 'Remove $adminName from this department?',
+      confirmLabel: 'Remove',
+      dangerConfirm: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     final departmentId = ((dept['id'] as String?) ?? '').trim();
     if (departmentId.isEmpty || adminUserId.trim().isEmpty) return;
@@ -95,6 +83,69 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       'departmentCode': '',
     });
     if (mounted) setState(() {});
+  }
+
+  Future<void> _deleteDepartment(Map<String, dynamic> dept) async {
+    final String departmentId = ((dept['id'] as String?) ?? '').trim();
+    final String name = ((dept['name'] as String?) ?? 'this department').trim();
+    if (departmentId.isEmpty) {
+      if (!mounted) return;
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot delete department',
+        message: 'This department cannot be deleted because it has no department record.',
+      );
+      return;
+    }
+
+    final int facultyCount = (dept['facultyCount'] as int?) ?? 0;
+    final int studentCount = (dept['studentCount'] as int?) ?? 0;
+    final String adminUserId = ((dept['adminUserId'] as String?) ?? '').trim();
+    final bool hasUsers = facultyCount > 0 || studentCount > 0;
+    final bool hasAdmin = adminUserId.isNotEmpty;
+
+    final StringBuffer warning = StringBuffer('Delete "$name"?');
+    if (hasUsers || hasAdmin) {
+      warning.write('\n\nThis removes the department record from your college.');
+      final List<String> parts = <String>[];
+      if (facultyCount > 0) parts.add('$facultyCount faculty');
+      if (studentCount > 0) parts.add('$studentCount students');
+      if (hasAdmin) parts.add('the assigned department admin');
+      if (parts.isNotEmpty) {
+        warning.write(' ${parts.join(', ')} will remain in the college but are no longer tied to this department entry.');
+      }
+    }
+    warning.write('\n\nThis cannot be undone.');
+
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete department?',
+      message: warning.toString(),
+      confirmLabel: 'Delete',
+      dangerConfirm: true,
+    );
+    if (!confirmed) return;
+
+    try {
+      if (hasAdmin) {
+        await FirestoreUtils.clearDepartmentAdmin(departmentId: departmentId);
+        await FirestoreUtils.updateUser(adminUserId, <String, dynamic>{
+          'role': 'FAC',
+          'department': '',
+          'departmentCode': '',
+        });
+      }
+      await FirestoreUtils.deleteDepartment(departmentId: departmentId);
+      if (!mounted) return;
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Delete failed',
+        message: 'Could not delete department: $e',
+      );
+    }
   }
 
   Future<void> _showAddDepartmentDialog() async {
@@ -113,8 +164,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   ? customDepartmentController.text.trim()
                   : selectedDepartment.trim();
               if (departmentName.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please select or enter a department')),
+                FeedbackService.showWarning(
+                  context,
+                  title: 'Department required',
+                  message: 'Please select or enter a department',
                 );
                 return;
               }
@@ -133,8 +186,10 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                 Navigator.of(context).pop(true);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Could not add department: $e')),
+                  FeedbackService.showError(
+                    context,
+                    title: 'Could not add department',
+                    message: '$e',
                   );
                 }
               } finally {
@@ -326,6 +381,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                         adminUserId: adminUserId,
                         adminName: adminName,
                       ),
+                      onDelete: () => _deleteDepartment(dept),
                     );
                   },
                 )
@@ -338,7 +394,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
-                    mainAxisExtent: 168,
+                    mainAxisExtent: 148,
                   ),
                   itemBuilder: (BuildContext context, int index) {
                     final dept = departments[index];
@@ -351,6 +407,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                         adminUserId: adminUserId,
                         adminName: adminName,
                       ),
+                      onDelete: () => _deleteDepartment(dept),
                     );
                   },
                 ),
@@ -367,139 +424,117 @@ class _DepartmentCard extends StatelessWidget {
     required this.department,
     required this.onAddAdmin,
     required this.onRemoveAdmin,
+    required this.onDelete,
   });
 
   final Map<String, dynamic> department;
   final VoidCallback onAddAdmin;
   final void Function(String adminUserId, String adminName) onRemoveAdmin;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final name = (department['name'] as String?) ?? '-';
-    final admin = (department['departmentAdmin'] as String?)?.trim().isNotEmpty == true
+    final String name = (department['name'] as String?) ?? '-';
+    final String admin = (department['departmentAdmin'] as String?)?.trim().isNotEmpty == true
         ? (department['departmentAdmin'] as String).trim()
-        : 'Not Assigned';
-    final adminUserId = ((department['adminUserId'] as String?) ?? '').trim();
-    final facultyCount = (department['facultyCount'] as int?) ?? 0;
-    final studentCount = (department['studentCount'] as int?) ?? 0;
-    final totalIdeas = (department['totalIdeas'] as int?) ?? 0;
-    final hasAdmin = adminUserId.isNotEmpty && admin != 'Not Assigned';
+        : '';
+    final String adminUserId = ((department['adminUserId'] as String?) ?? '').trim();
+    final String departmentId = ((department['id'] as String?) ?? '').trim();
+    final int facultyCount = (department['facultyCount'] as int?) ?? 0;
+    final int studentCount = (department['studentCount'] as int?) ?? 0;
+    final bool hasAdmin = adminUserId.isNotEmpty && admin.isNotEmpty && admin != '-';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: kDashboardCardDecoration,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: 38,
-                height: 38,
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF4F0FF),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE8ECF8)),
                 ),
-                child: const Tooltip(
-                  message: 'Department',
-                  child: Icon(AppIcons.departments, size: 20, color: Color(0xFF6A38FF)),
-                ),
+                child: const Icon(AppIcons.departments, size: 17, color: Color(0xFF6A38FF)),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   name,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, height: 1.2),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, height: 1.15),
                 ),
               ),
+              if (departmentId.isNotEmpty)
+                Tooltip(
+                  message: 'Delete department',
+                  child: InkWell(
+                    onTap: onDelete,
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(AppIcons.remove, size: 17, color: Color(0xFFDC2626)),
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              hasAdmin
-                  ? Row(
-                      children: <Widget>[
-                        const Tooltip(
-                          message: 'Department admin',
-                          child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF57629A)),
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            admin,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Remove department admin',
-                          onPressed: () => onRemoveAdmin(adminUserId, admin),
-                          icon: const Icon(AppIcons.remove, size: 15, color: Colors.redAccent),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      children: <Widget>[
-                        const Tooltip(
-                          message: 'Department admin',
-                          child: Icon(AppIcons.adminProfile, size: 17, color: Color(0xFF94A3B8)),
-                        ),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Text(
-                            'No admin assigned',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Add department admin',
-                          onPressed: onAddAdmin,
-                          icon: const Icon(AppIcons.add, size: 18, color: Color(0xFF6A38FF)),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        ),
-                      ],
+          const SizedBox(height: 6),
+          if (hasAdmin)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Flexible(
+                  child: ContextPill(
+                    label: admin,
+                    semantic: ContextPillSemantic.user,
+                    icon: AppIcons.adminProfile,
+                    onTap: () => WorkspaceNavigator.openUser(context, adminUserId),
+                    compact: true,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Tooltip(
+                  message: 'Remove department admin',
+                  child: InkWell(
+                    onTap: () => onRemoveAdmin(adminUserId, admin),
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(AppIcons.remove, size: 15, color: Color(0xFFDC2626)),
                     ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  _DepartmentCountChip(
-                    icon: AppIcons.faculty,
-                    count: facultyCount,
-                    tooltip: 'Faculty count',
                   ),
-                  _DepartmentCountChip(
-                    icon: AppIcons.student,
-                    count: studentCount,
-                    tooltip: 'Student count',
-                  ),
-                  _DepartmentCountChip(
-                    icon: AppIcons.ideas,
-                    count: totalIdeas,
-                    tooltip: 'Ideas count',
-                  ),
-                ],
+                ),
+              ],
+            )
+          else
+            FilledButton.icon(
+              onPressed: onAddAdmin,
+              icon: const Icon(AppIcons.add, size: 15),
+              label: const Text('Add Department admin'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: const Color(0xFF6A38FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-            ],
+            ),
+          const SizedBox(height: 6),
+          _DepartmentCountsChip(
+            facultyCount: facultyCount,
+            studentCount: studentCount,
           ),
         ],
       ),
@@ -507,44 +542,88 @@ class _DepartmentCard extends StatelessWidget {
   }
 }
 
-class _DepartmentCountChip extends StatelessWidget {
-  const _DepartmentCountChip({
-    required this.icon,
-    required this.count,
-    required this.tooltip,
+/// Single-line chip: faculty and student counts with icon, label, and bold count.
+class _DepartmentCountsChip extends StatelessWidget {
+  const _DepartmentCountsChip({
+    required this.facultyCount,
+    required this.studentCount,
   });
 
-  final IconData icon;
-  final int count;
-  final String tooltip;
+  final int facultyCount;
+  final int studentCount;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFCFDFF),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFD9E2F5), width: 1.1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, size: 17, color: const Color(0xFF57629A)),
-            const SizedBox(width: 6),
-            Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCFDFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD9E2F5)),
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _DepartmentCountSegment(
+            icon: AppIcons.faculty,
+            label: 'Faculty',
+            count: facultyCount,
+          ),
+          Container(
+            width: 1,
+            height: 14,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: const Color(0xFFE2E8F0),
+          ),
+          _DepartmentCountSegment(
+            icon: AppIcons.student,
+            label: 'Students',
+            count: studentCount,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DepartmentCountSegment extends StatelessWidget {
+  const _DepartmentCountSegment({
+    required this.icon,
+    required this.label,
+    required this.count,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 14, color: const Color(0xFF57629A)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+            height: 1,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$count',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+            height: 1,
+          ),
+        ),
+      ],
     );
   }
 }

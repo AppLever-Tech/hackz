@@ -54,8 +54,13 @@ class EvaluationSummarySection extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '${vm.totalScore.toStringAsFixed(1)} / 10',
+                '${vm.totalScore.toStringAsFixed(1)} / ${vm.scoringScale}',
                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.05),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                vm.templateName,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFCBD5E1), letterSpacing: 0.3),
               ),
               const SizedBox(height: 4),
               Text(
@@ -110,7 +115,7 @@ class EvaluationSummarySection extends StatelessWidget {
           headline: vm.primaryJudge?.judgeName ?? '—',
           detail: vm.primaryJudge == null
               ? 'No judge linked'
-              : 'Score ${vm.primaryJudge!.overallScore.toStringAsFixed(1)} / 10',
+              : 'Score ${vm.primaryJudge!.overallScore.toStringAsFixed(1)} / ${vm.scoringScale}',
           semantic: ContextPillSemantic.judge,
           onOpenWorkspace: vm.primaryJudge == null
               ? null

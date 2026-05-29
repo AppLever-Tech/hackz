@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/auth_theme.dart';
+import '../../../core/theme/auth_theme.dart';
 
 /// Shared centered title + subtitle for landing sections.
 class LandingSectionHeader extends StatelessWidget {

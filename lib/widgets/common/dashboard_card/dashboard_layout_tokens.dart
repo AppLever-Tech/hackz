@@ -1,0 +1,107 @@
+import '../dashboard_trend_chart_layout.dart';
+
+/// Central layout constants for role dashboard cards and pair rows.
+abstract final class DashboardLayoutTokens {
+  // Pair-row heights (side-by-side desktop layout only; see [DashboardPairRow]).
+  static const double pairRowList = 252;
+  static const double pairRowAlertsActivity = 380;
+  static const double pairRowAlertsActivityDept = 390;
+  static const double pairRowDistribution = 236;
+  static const double studentDetailsRowHeight = 200;
+
+  // Coordinator dashboard panels.
+  static const double listPaymentQueueRowStride = 128;
+
+  /// [SectionContainer] default padding (14 × 2).
+  static const double sectionContainerVerticalPadding = 28;
+
+  static const double coordinatorPanelHeightBuffer = 8;
+
+  /// Trend chart body: stacked header + subtitle/legend wrap + chart (no card padding).
+  static double get coordinatorTrendPanelHeight =>
+      DashboardTrendChartLayout.stackedHeaderBlockHeight +
+      DashboardTrendChartLayout.headerToSubtitleGap +
+      DashboardTrendChartLayout.subtitleLineEstimate +
+      6 +
+      DashboardTrendChartLayout.legendRowEstimate +
+      DashboardTrendChartLayout.subtitleToChartGap +
+      DashboardTrendChartLayout.chartBoxHeight +
+      DashboardTrendChartLayout.trendCardHeightBuffer +
+      coordinatorPanelHeightBuffer;
+
+  static double coordinatorFunnelMinHeight(int stepCount) {
+    final int steps = stepCount < 1 ? 1 : stepCount;
+    return DashboardTrendChartLayout.cardHeaderRowHeight +
+        DashboardTrendChartLayout.headerToSubtitleGap +
+        DashboardTrendChartLayout.subtitleLineEstimate +
+        DashboardTrendChartLayout.subtitleToChartGap +
+        steps * 30 +
+        (steps - 1) * 12 +
+        coordinatorPanelHeightBuffer;
+  }
+
+  static double coordinatorChartsRowHeight(int funnelStepCount) {
+    final double funnel =
+        coordinatorFunnelMinHeight(funnelStepCount) + sectionContainerVerticalPadding;
+    final double trend = coordinatorTrendPanelHeight + sectionContainerVerticalPadding;
+    return trend > funnel ? trend : funnel;
+  }
+
+  static double coordinatorQueueActivityRowHeight(int queueItemCount) {
+    if (queueItemCount == 0) {
+      return pairRowAlertsActivity;
+    }
+    const double headerBlock = 17 + titleSubtitleGap + 12 + bodyTopGap;
+    final int visible = queueItemCount > listMaxVisibleRows ? listMaxVisibleRows : queueItemCount;
+    final double listHeight = visible * listPaymentQueueRowStride +
+        (visible > 1 ? (visible - 1) * listCompactSeparator : 0);
+    final double needed =
+        headerBlock + listHeight + sectionContainerVerticalPadding + coordinatorPanelHeightBuffer;
+    return needed > pairRowAlertsActivity ? needed : pairRowAlertsActivity;
+  }
+
+  // ResponsivePair flex weights.
+  static const int narrowPanelFlex = 35;
+  static const int widePanelFlex = 65;
+
+  // Vertical spacing inside dashboard cards.
+  static const double titleSubtitleGap = 4;
+  static const double bodyTopGap = 14;
+  static const double iconCountHeaderGap = 12;
+  static const double chartHeaderSpacing = 10;
+  static const double activityHeaderGap = 10;
+
+  // Donut distribution cards.
+  static const double donutSizePlatform = 124;
+  static const double donutSizeDepartment = 132;
+
+  // Charts in stacked (unbounded) layouts.
+  static const double stackedChartHeight = 180;
+
+  // Dynamic lists.
+  static const int listMaxVisibleRows = 5;
+
+  static const double listCompactRowStride = 44;
+  static const double listCompactSeparator = 8;
+
+  static const double listActivityRowStride = 60;
+  static const double listActivitySeparator = 12;
+
+  static const double listDepartmentActivityRowStride = 64;
+  static const double listDepartmentActivitySeparator = 9;
+
+  static const double listAlertRowStride = 72;
+  static const double listAlertSeparator = 10;
+
+  static const double listActivityEmptyHeight = 72;
+
+  /// Deptadmin users-by-role donut block (title + 132px chart).
+  static const double usersByRoleBlockHeight = 50 + donutSizeDepartment;
+
+  static double get trendCardContentHeight => DashboardTrendChartLayout.trendCardContentHeight;
+
+  static double usersTrendRowHeight() {
+    final double trend = trendCardContentHeight;
+    return trend > usersByRoleBlockHeight ? trend : usersByRoleBlockHeight;
+  }
+}

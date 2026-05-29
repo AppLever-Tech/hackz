@@ -5,28 +5,25 @@ import '../../constants/app_icons.dart';
 import '../../constants/status_styles.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/idea_model.dart';
-import '../../models/team_model.dart';
+import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
-import '../../utils/problem_role_config.dart';
+import '../../features/problems/services/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
-import '../../widgets/common/dashboard_panel_column.dart';
-import '../../widgets/common/dashboard_scrollable_list_layout.dart';
+import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/time_frame_filter.dart';
-import '../../widgets/responsive/responsive_dashboard_pair_row.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../workspace/workspace.dart';
 import '../common/ideas_list_screen.dart';
-import '../common/problem_statements/problem_statements_table_screen.dart';
-import '../common/problems_list_screen.dart';
+import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import 'teams_screen.dart';
+import '../../features/team/screens/teams_screen.dart';
 
 class FacultyDashboard extends StatelessWidget {
   const FacultyDashboard({super.key, required this.user});
@@ -45,27 +42,20 @@ class FacultyDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return ProblemsListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: ProblemRoleConfig.configFor(UserRole.faculty, user),
-          );
-        }
-        if (selectedMenuIndex == 3) {
           return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.faculty, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 3) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.faculty, user),
           );
         }
-        if (selectedMenuIndex == 5) {
+        if (selectedMenuIndex == 4) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
@@ -102,10 +92,7 @@ class _FacultyDashboardHome extends StatefulWidget {
 
 class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   static const double _kDashboardIconSize = 18;
-  static const double _kChartHeaderSpacing = DashboardCardTitleStyle.headerSpacing;
-  static const double _kDashboardPanelHeight = 252;
-  static const int _kKeyCardFlex = 35;
-  static const int _kCompanionPanelFlex = 65;
+  static const double _kChartHeaderSpacing = DashboardLayoutTokens.chartHeaderSpacing;
   _FacultyDashboardVm? _vm;
   Object? _loadError;
   bool _loading = true;
@@ -308,13 +295,13 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildTeamsAndSubmissionsRow(_FacultyDashboardVm vm) {
-    return ResponsiveDashboardPairRow(
-      height: _kDashboardPanelHeight,
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.pairRowList,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        firstFlex: _kKeyCardFlex,
-        secondFlex: _kCompanionPanelFlex,
+        firstFlex: DashboardLayoutTokens.narrowPanelFlex,
+        secondFlex: DashboardLayoutTokens.widePanelFlex,
         first: _KeyDataCard(
           title: 'My Teams',
           icon: AppIcons.teams,
@@ -323,38 +310,25 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
         ),
         second: SectionContainer(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final bool boundedHeight = constraints.maxHeight.isFinite;
-              final Widget chart = _SubmissionTrendChart(
-                problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
-                ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
-                teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
-              );
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  DashboardCardHeaderRow(
-                    title: 'Submissions Over Time',
-                    icon: AppIcons.submissions,
-                    trailing: TimeFrameFilter<_FacultyTimeframe>(
-                      options: _FacultyTimeframe.values,
-                      selected: _submissionTimeframe,
-                      labelBuilder: (_FacultyTimeframe option) => option.label,
-                      onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
-                    ),
-                  ),
-                  const SizedBox(height: _kChartHeaderSpacing),
-                  if (boundedHeight)
-                    Expanded(child: chart)
-                  else
-                    SizedBox(
-                      height: ResponsiveHelper.chartPanelHeight(context, desktop: 180),
-                      child: chart,
-                    ),
-                ],
-              );
-            },
+          child: DashboardStackedChartBody(
+            headers: <Widget>[
+              DashboardCardHeaderRow(
+                title: 'Submissions Over Time',
+                icon: AppIcons.submissions,
+                trailing: TimeFrameFilter<_FacultyTimeframe>(
+                  options: _FacultyTimeframe.values,
+                  selected: _submissionTimeframe,
+                  labelBuilder: (_FacultyTimeframe option) => option.label,
+                  onChanged: (timeframe) => setState(() => _submissionTimeframe = timeframe),
+                ),
+              ),
+              const SizedBox(height: _kChartHeaderSpacing),
+            ],
+            chart: _SubmissionTrendChart(
+              problemSeries: _buildTimeSeries(vm.problemDates, _submissionTimeframe),
+              ideaSeries: _buildTimeSeries(vm.submissionDates, _submissionTimeframe),
+              teamSeries: _buildTimeSeries(vm.teamCreationDates, _submissionTimeframe),
+            ),
           ),
         ),
       ),
@@ -362,13 +336,13 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   }
 
   Widget _buildIdeasAndActivityRow(_FacultyDashboardVm vm) {
-    return ResponsiveDashboardPairRow(
-      height: _kDashboardPanelHeight,
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.pairRowList,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        firstFlex: _kKeyCardFlex,
-        secondFlex: _kCompanionPanelFlex,
+        firstFlex: DashboardLayoutTokens.narrowPanelFlex,
+        secondFlex: DashboardLayoutTokens.widePanelFlex,
         first: _KeyDataCard(
           title: 'My Ideas',
           icon: AppIcons.ideas,
@@ -383,8 +357,9 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
   Widget _buildRecentActivity(_FacultyDashboardVm vm) {
     final filtered = vm.activities.where((a) => _isWithinTimeframe(a.time, _activityTimeframe)).toList(growable: false);
     return SectionContainer(
-      child: DashboardPanelColumn(
+      child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        preset: DashboardListPreset.compact,
         headers: <Widget>[
           DashboardCardHeaderRow(
             title: 'Recent Activity',
@@ -396,19 +371,14 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               onChanged: (_FacultyTimeframe timeframe) => setState(() => _activityTimeframe = timeframe),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: DashboardLayoutTokens.activityHeaderGap),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: filtered.length,
-          rowStride: DashboardScrollableListLayout.compactRowStride,
-          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-          empty: const Align(
-            alignment: Alignment.topLeft,
-            child: Text('No activity in this period.'),
-          ),
-          itemBuilder: (BuildContext context, int index) => _activityRow(filtered[index]),
+        itemCount: filtered.length,
+        empty: const Align(
+          alignment: Alignment.topLeft,
+          child: Text('No activity in this period.'),
         ),
+        itemBuilder: (BuildContext context, int index) => _activityRow(filtered[index]),
       ),
     );
   }
@@ -637,41 +607,20 @@ class _KeyDataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final int itemCount = title == 'My Teams' ? teamPreview.length : ideaPreviews.length;
     return SectionContainer(
-      child: DashboardPanelColumn(
+      child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        preset: DashboardListPreset.compact,
         headers: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(color: Color(0xFFF2EDFF), shape: BoxShape.circle),
-                  child: Icon(icon, size: 17, color: Color(0xFF6A38FF)),
-                ),
-                const SizedBox(width: 10),
-                Flexible(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800))),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(999)),
-                  child: Text('$count', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF3552CC))),
-                ),
-                const Spacer(),
-              ],
-            ),
-            const SizedBox(height: 12),
+          DashboardIconCountHeader(title: title, icon: icon, count: count),
+          const SizedBox(height: DashboardLayoutTokens.iconCountHeaderGap),
         ],
-        listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-          expandVertically: expandVertically,
-          itemCount: title == 'My Teams' ? teamPreview.length : ideaPreviews.length,
-          rowStride: DashboardScrollableListLayout.compactRowStride,
-          separatorHeight: DashboardScrollableListLayout.compactSeparatorHeight,
-          empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
-          itemBuilder: (BuildContext context, int index) => title == 'My Teams'
-              ? _teamPreviewRow(context, teamPreview[index])
-              : _ideaPreviewRow(context, ideaPreviews[index]),
-        ),
+        itemCount: itemCount,
+        empty: const Center(child: Text('-', style: TextStyle(color: Color(0xFF6E7394)))),
+        itemBuilder: (BuildContext context, int index) => title == 'My Teams'
+            ? _teamPreviewRow(context, teamPreview[index])
+            : _ideaPreviewRow(context, ideaPreviews[index]),
       ),
     );
   }

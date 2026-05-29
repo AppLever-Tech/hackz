@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/department_dashboard_service.dart';
-import '../common/dashboard_panel_column.dart';
-import '../common/dashboard_scrollable_list_layout.dart';
+import '../common/dashboard_card/dashboard_card_layout.dart';
 
 class DepartmentAlertsSection extends StatelessWidget {
   const DepartmentAlertsSection({super.key, required this.alerts});
@@ -12,20 +11,14 @@ class DepartmentAlertsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardPanelColumn(
-      headers: <Widget>[
-        const Text('Pending Approvals & Alerts', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-        const SizedBox(height: 4),
-        const Text('Operational items that need department attention', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-        const SizedBox(height: 14),
-      ],
-      listBuilder: ({required bool expandVertically}) => DashboardScrollableList(
-        expandVertically: expandVertically,
-        itemCount: alerts.length,
-        rowStride: DashboardScrollableListLayout.alertRowStride,
-        separatorHeight: DashboardScrollableListLayout.alertSeparatorHeight,
-        itemBuilder: (BuildContext context, int index) => _alertCard(alerts[index]),
+    return DashboardListCard(
+      preset: DashboardListPreset.alert,
+      headers: DashboardCardHeaders.sectionTitle(
+        title: 'Pending Approvals & Alerts',
+        subtitle: 'Operational items that need department attention',
       ),
+      itemCount: alerts.length,
+      itemBuilder: (BuildContext context, int index) => _alertCard(alerts[index]),
     );
   }
 

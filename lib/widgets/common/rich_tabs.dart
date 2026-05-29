@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 /// Label for a [RichTabBar] / [RichTabs] segment.
 class RichTabItem {
-  const RichTabItem(this.label, {this.count});
+  const RichTabItem(this.label, {this.count, this.prominentCount = false});
 
   final String label;
   final int? count;
+
+  /// Larger, bolder count text (e.g. coordinator payment verification tabs).
+  final bool prominentCount;
 }
 
 /// Pill-style tab bar (scoring workspace). Requires an external [TabController].
@@ -63,7 +66,11 @@ class RichTabBar extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             '(${item.count})',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+            style: TextStyle(
+              fontSize: item.prominentCount ? 14 : 11,
+              fontWeight: item.prominentCount ? FontWeight.w900 : FontWeight.w700,
+              color: item.prominentCount ? const Color(0xFF334155) : const Color(0xFF94A3B8),
+            ),
           ),
         ],
       ),

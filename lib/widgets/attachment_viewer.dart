@@ -10,7 +10,7 @@ import '../responsive/responsive_breakpoints.dart';
 import '../responsive/responsive_dialog.dart';
 import '../responsive/responsive_helper.dart';
 import '../utils/attachment_service.dart';
-import 'network_image_compat.dart';
+import '../shared/inputs/network_image_compat.dart';
 import 'responsive/responsive_filter_bar.dart';
 
 class AttachmentPreviewRow extends StatefulWidget {

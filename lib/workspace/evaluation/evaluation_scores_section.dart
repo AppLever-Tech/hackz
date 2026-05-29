@@ -24,7 +24,16 @@ class EvaluationScoresSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        ...vm.criteria.map(_criterionBar),
+        if (vm.criteria.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              'No per-criterion data recorded for this evaluation.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+            ),
+          )
+        else
+          ...vm.criteria.map(_criterionBar),
       ],
     );
   }

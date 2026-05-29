@@ -4,14 +4,14 @@ import '../../models/user_model.dart';
 import '../../models/enums/user_status.dart';
 import '../../models/department_model.dart';
 import '../../models/organization_model.dart';
-import '../../models/enums/organization_type.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import 'app_dialog_template.dart';
 import '../../widgets/responsive/responsive_dialog_actions.dart';
-import 'email_field.dart';
-import 'phone_number_field.dart';
-import 'read_only_field.dart';
+import '../../shared/inputs/email_field.dart';
+import '../../shared/inputs/phone_number_field.dart';
+import '../../shared/inputs/read_only_field.dart';
 
 Future<bool> showCreateUserDialog({
   required BuildContext context,
@@ -88,8 +88,10 @@ Future<bool> showCreateUserDialog({
                 lastNameController.text.trim().isEmpty ||
                 !isValidEmailInput(emailController.text) ||
                 !isValidPhoneInput(phoneController.text)) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Please fill valid user details')),
+              FeedbackService.showWarning(
+                context,
+                title: 'Invalid details',
+                message: 'Please fill valid user details',
               );
               return;
             }
@@ -146,8 +148,10 @@ Future<bool> showCreateUserDialog({
               if (context.mounted) Navigator.of(context).pop(true);
             } catch (e) {
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Unable to save user: $e')),
+                FeedbackService.showError(
+                  context,
+                  title: 'Unable to save user',
+                  message: '$e',
                 );
               }
             } finally {

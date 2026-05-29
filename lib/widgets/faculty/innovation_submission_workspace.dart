@@ -2,15 +2,17 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/enums/team_status.dart';
-import '../../models/problem_model.dart';
-import '../../models/team_model.dart';
+import '../../features/team/models/enums/team_status.dart';
+import '../../features/problems/models/problem_model.dart';
+import '../../features/problems/validators/problem_submission_validators.dart';
+import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';
 import '../../screens/common/dashboard_components.dart';
-import '../../utils/faculty_teams_service.dart';
-import '../../utils/team_service.dart';
+import '../../features/team/services/faculty_teams_service.dart';
+import '../../features/team/services/team_service.dart';
 import '../../workspace/workspace.dart';
 import '../attachment_pick_field.dart';
 import '../common/entity_card_pills.dart';
@@ -18,10 +20,16 @@ import 'innovation_submission_team_selector.dart';
 import '../loading/loading.dart';
 
 /// Problem-first innovation submission workspace (launch from Problem Card only).
+///
+/// [gate] is an optional submission-control snapshot computed by the caller
+/// (typically the problems list / problem-statements table). When supplied,
+/// the workspace surfaces a defensive guard on save so a stale UI cannot
+/// bypass the cap or the deadline.
 Future<bool?> showInnovationSubmissionWorkspace({
   required BuildContext context,
   required UserModel currentUser,
   required ProblemModel problem,
+  IdeaSubmissionGate? gate,
 }) {
   return showDialog<bool>(
     context: context,
@@ -30,6 +38,7 @@ Future<bool?> showInnovationSubmissionWorkspace({
       return InnovationSubmissionWorkspace(
         currentUser: currentUser,
         problem: problem,
+        gate: gate,
       );
     },
   );
@@ -40,10 +49,12 @@ class InnovationSubmissionWorkspace extends StatefulWidget {
     super.key,
     required this.currentUser,
     required this.problem,
+    this.gate,
   });
 
   final UserModel currentUser;
   final ProblemModel problem;
+  final IdeaSubmissionGate? gate;
 
   @override
   State<InnovationSubmissionWorkspace> createState() => _InnovationSubmissionWorkspaceState();
@@ -92,18 +103,35 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   bool get _canSubmit {
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
+    final IdeaSubmissionGate? g = widget.gate;
+    final bool gateOpen = g == null || g.canSubmit;
     return !_busy &&
         !_loadingTeams &&
         _teams.isNotEmpty &&
         _selectedTeam != null &&
         title.isNotEmpty &&
         description.isNotEmpty &&
-        widget.problem.isActive;
+        widget.problem.isActive &&
+        gateOpen;
   }
 
   Future<void> _submit() async {
     final team = _selectedTeam;
     if (!_canSubmit || team == null) return;
+
+    // Defense-in-depth: re-check the gate right before save. The caller is
+    // expected to keep [widget.gate] fresh, but if the cap was hit while the
+    // dialog was open we surface a snackbar identical to the problem-card
+    // pill instead of dropping the user into a generic Firestore failure.
+    final IdeaSubmissionGate? g = widget.gate;
+    if (g != null && !g.canSubmit) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Submission blocked',
+        message: describeBlockedReason(g),
+      );
+      return;
+    }
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
     final int fileCount = _attachmentFiles.length;
@@ -136,10 +164,18 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       Navigator.of(context).pop(true);
     } on TeamRuleException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot submit innovation',
+        message: e.message,
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Submit failed: $e')));
+      FeedbackService.showError(
+        context,
+        title: 'Submit failed',
+        message: '$e',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

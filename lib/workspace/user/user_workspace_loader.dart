@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/idea_model.dart';
 import '../../models/score_model.dart';
-import '../../models/team_model.dart';
+import '../../features/team/models/team_model.dart';
 import '../../models/user_model.dart';
 import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';

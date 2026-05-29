@@ -5,14 +5,15 @@ import '../../constants/app_icons.dart';
 import '../../models/organization_model.dart';
 import '../../models/enums/user_role.dart';
 import '../../models/user_model.dart';
+import '../../features/org_settings/collegeadmin/org_settings_dashboard.dart';
 import '../../utils/firestore_utils.dart';
 import '../../utils/idea_role_config.dart';
-import '../../utils/problem_role_config.dart';
+import '../../features/problems/services/problem_role_config.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../common/ideas_list_screen.dart';
-import '../common/problems_list_screen.dart';
+import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
@@ -32,6 +33,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       FirestoreUtils.getProblemStatementsByCollege(user.orgId),
       FirestoreUtils.getOrganizations(),
       FirestoreUtils.getCollegeIdeaActivityTrend(user.orgId),
+      FirestoreUtils.getIdeaCountsByDepartmentCode(user.orgId),
     ]);
     final organizations = results[3] as List<OrganizationModel>;
     final org = organizations.where((o) => o.id == user.orgId).cast<OrganizationModel?>().firstWhere(
@@ -44,6 +46,7 @@ class CollegeAdminDashboard extends StatelessWidget {
       'problems': results[2] as List<Map<String, dynamic>>,
       'org': org,
       'ideaActivity': results[4] as List<Map<String, dynamic>>,
+      'ideasByDept': results[5] as Map<String, int>,
     };
   }
 
@@ -74,7 +77,7 @@ class CollegeAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return ProblemsListScreen(
+          return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.collegeAdmin, user),
@@ -89,6 +92,12 @@ class CollegeAdminDashboard extends StatelessWidget {
         }
         if (selectedMenuIndex == 4) {
           return LeaderboardShowcaseScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 5) {
+          return OrgSettingsDashboard(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
@@ -121,12 +130,7 @@ class CollegeAdminDashboard extends StatelessWidget {
             final int totalIdeas = stats['totalIdeas'] as int? ?? 0;
             final double activePct = totalUsers == 0 ? 0 : (activeUsers / totalUsers);
             final int activationPercent = (activePct * 100).round();
-            final ideasByDept = <String, int>{};
-            for (final d in departments) {
-              final key = ((d['code'] as String?) ?? (d['name'] as String?) ?? '').trim();
-              if (key.isEmpty) continue;
-              ideasByDept[key] = (d['totalIdeas'] as int?) ?? 0;
-            }
+            final ideasByDept = data['ideasByDept'] as Map<String, int>? ?? <String, int>{};
             final problemsByDept = <String, int>{};
             for (final p in problems) {
               final key = ((p['departmentCode'] as String?) ?? (p['department'] as String?) ?? '').trim();
@@ -298,7 +302,6 @@ class CollegeAdminDashboard extends StatelessWidget {
                       else
                         ...departments.map(
                           (dept) {
-                            final ideas = (dept['totalIdeas'] as int?) ?? 0;
                             final faculty = (dept['facultyCount'] as int?) ?? 0;
                             final students = (dept['studentCount'] as int?) ?? 0;
                             final admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
@@ -364,11 +367,6 @@ class CollegeAdminDashboard extends StatelessWidget {
                                             icon: AppIcons.student,
                                             label: '$students',
                                             tooltip: 'Students',
-                                          ),
-                                          _DepartmentMetricPill(
-                                            icon: AppIcons.ideas,
-                                            label: '$ideas',
-                                            tooltip: 'Ideas',
                                           ),
                                         ],
                                       ),
