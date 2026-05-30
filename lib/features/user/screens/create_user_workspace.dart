@@ -1,13 +1,14 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../constants/app_icons.dart';
 import '../../../models/organization_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../shared/inputs/email_field.dart';
 import '../../../shared/inputs/phone_number_field.dart';
-import '../../../shared/inputs/read_only_field.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/enums/judge_type.dart';
@@ -28,6 +29,8 @@ import '../services/user_service.dart';
 import '../widgets/user_form_section.dart';
 import '../widgets/user_profile_photo_field.dart';
 import '../widgets/user_tags_field.dart';
+
+enum _UserFormField { firstName, lastName, email, phone, roles }
 
 Future<bool> showCreateUserWorkspace({
   required BuildContext context,
@@ -107,6 +110,12 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   List<String> _evaluationDomains = <String>[];
   JudgeType? _judgeType;
   bool _saving = false;
+  String _deptDisplayName = '';
+  Map<_UserFormField, String> _fieldErrors = <_UserFormField, String>{};
+
+  static const Color _errorAccent = Color(0xFFBE123C);
+  static const Color _errorBorder = Color(0xFFFECACA);
+  static const Color _errorFill = Color(0xFFFFF7F7);
 
   bool get _roleLocked => widget.roleCode != null && widget.roleCode!.trim().isNotEmpty;
 
@@ -153,6 +162,69 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     _judgeType = profile?.judgeProfile?.judgeType;
     _deptAdminDesignationController.text = profile?.departmentAdminProfile?.officeDesignation ?? '';
     _collegeAdminDesignationController.text = profile?.collegeAdminProfile?.officeDesignation ?? '';
+
+    _deptDisplayName = widget.department.trim().isNotEmpty
+        ? widget.department.trim()
+        : (user?.department.trim() ?? '');
+
+    _firstNameController.addListener(() => _clearFieldError(_UserFormField.firstName));
+    _lastNameController.addListener(() => _clearFieldError(_UserFormField.lastName));
+    _emailController.addListener(() => _clearFieldError(_UserFormField.email));
+    _phoneController.addListener(() => _clearFieldError(_UserFormField.phone));
+  }
+
+  void _clearFieldError(_UserFormField field) {
+    if (_fieldErrors.remove(field) != null && mounted) {
+      setState(() {});
+    }
+  }
+
+  String? _errorFor(_UserFormField field) => _fieldErrors[field];
+
+  Map<_UserFormField, String> _collectValidationErrors() {
+    final Map<_UserFormField, String> errors = <_UserFormField, String>{};
+
+    if (_firstNameController.text.trim().isEmpty) {
+      errors[_UserFormField.firstName] = 'First name is required.';
+    }
+    if (_lastNameController.text.trim().isEmpty) {
+      errors[_UserFormField.lastName] = 'Last name is required.';
+    }
+
+    final String email = _emailController.text.trim();
+    if (email.isEmpty) {
+      errors[_UserFormField.email] = 'Email is required.';
+    } else if (!isValidEmailInput(email)) {
+      errors[_UserFormField.email] = 'Enter a valid email address.';
+    }
+
+    if (!widget.isEdit) {
+      final String digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+      if (digits.isEmpty) {
+        errors[_UserFormField.phone] = 'Phone number is required.';
+      } else if (!isValidPhoneInput(_phoneController.text)) {
+        errors[_UserFormField.phone] = 'Enter a valid 10-digit phone number.';
+      }
+    }
+
+    if (_selectedRoles.isEmpty) {
+      errors[_UserFormField.roles] = 'Select at least one role.';
+    }
+
+    return errors;
+  }
+
+  bool _validateForm() {
+    final Map<_UserFormField, String> errors = _collectValidationErrors();
+    setState(() => _fieldErrors = errors);
+    if (errors.isEmpty) return true;
+
+    FeedbackService.showWarning(
+      context,
+      title: 'Check required fields',
+      message: errors.values.join('\n'),
+    );
+    return false;
   }
 
   @override
@@ -172,20 +244,48 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     super.dispose();
   }
 
-  InputDecoration _fieldDecoration(String hint, {bool readOnly = false}) {
+  InputDecoration _fieldDecoration(
+    String hint, {
+    bool readOnly = false,
+    IconData? prefixIcon,
+    String? errorText,
+  }) {
+    final bool hasError = errorText != null && errorText.isNotEmpty;
+    final Color idleBorder = readOnly ? const Color(0xFFD2C8EC) : Colors.grey.shade300;
+    final Color fillColor = hasError
+        ? _errorFill
+        : (readOnly ? const Color(0xFFF2F0F8) : Colors.white);
+
     return InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: readOnly ? const Color(0xFFF2F0F8) : Colors.white,
+      fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      prefixIcon: prefixIcon == null
+          ? null
+          : Icon(prefixIcon, size: 20, color: hasError ? _errorAccent.withValues(alpha: 0.75) : const Color(0xFF64748B)),
+      errorText: hasError ? errorText : null,
+      errorStyle: const TextStyle(fontSize: 11, color: _errorAccent, height: 1.25, fontWeight: FontWeight.w500),
+      errorMaxLines: 2,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: readOnly ? const Color(0xFFD2C8EC) : Colors.grey.shade300),
+        borderSide: BorderSide(color: hasError ? _errorBorder : idleBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
+        borderSide: BorderSide(
+          color: hasError ? const Color(0xFFF87171) : const Color(0xFF6A38FF),
+          width: 1.6,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _errorBorder),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.6),
       ),
     );
   }
@@ -229,18 +329,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   }
 
   Future<void> _save() async {
-    if (_firstNameController.text.trim().isEmpty ||
-        _lastNameController.text.trim().isEmpty ||
-        !isValidEmailInput(_emailController.text) ||
-        (!widget.isEdit && !isValidPhoneInput(_phoneController.text)) ||
-        _selectedRoles.isEmpty) {
-      FeedbackService.showWarning(
-        context,
-        title: 'Invalid details',
-        message: 'Please complete required identity and organization fields.',
-      );
-      return;
-    }
+    if (!_validateForm()) return;
 
     setState(() => _saving = true);
     try {
@@ -373,9 +462,9 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Expanded(child: _buildLeftColumn(context)),
+                  Expanded(flex: 5, child: _buildLeftColumn(context)),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildRightColumn(context)),
+                  Expanded(flex: 6, child: _buildRightColumn(context)),
                 ],
               )
             else ...<Widget>[
@@ -390,173 +479,289 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   }
 
   Widget _buildLeftColumn(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        UserFormSection(
-          title: 'Identity',
-          subtitle: 'Profile photo and contact details',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              UserProfilePhotoField(
-                displayName: '${_firstNameController.text} ${_lastNameController.text}',
-                localFile: _photoFile,
-                remoteUrl: _remotePhotoUrl ?? _remoteThumbUrl,
-                enabled: !_saving,
-                onPick: _pickPhoto,
-                onClear: () => setState(() {
-                  _photoFile = null;
-                  _remotePhotoUrl = null;
-                  _remoteThumbUrl = null;
-                }),
-              ),
-              const SizedBox(height: 12),
-              _labeledField('First name', TextField(controller: _firstNameController, decoration: _fieldDecoration('First name'))),
-              const SizedBox(height: 10),
-              _labeledField('Last name', TextField(controller: _lastNameController, decoration: _fieldDecoration('Last name'))),
-              const SizedBox(height: 10),
-              _labeledField('Email', EmailField(controller: _emailController, decoration: _fieldDecoration('Email'))),
-              const SizedBox(height: 10),
-              _labeledField(
-                'Phone',
-                widget.isEdit
-                    ? ReadOnlyField(value: normalizePhoneE164(_phoneController.text), hintText: 'Phone')
-                    : PhoneNumberField(controller: _phoneController, decoration: _fieldDecoration('Phone number')),
-              ),
-            ],
+    return UserFormSection(
+      title: 'Identity',
+      subtitle: 'Profile photo and contact details',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          UserProfilePhotoField(
+            displayName: '${_firstNameController.text} ${_lastNameController.text}',
+            localFile: _photoFile,
+            remoteUrl: _remotePhotoUrl ?? _remoteThumbUrl,
+            enabled: !_saving,
+            onPick: _pickPhoto,
+            onClear: () => setState(() {
+              _photoFile = null;
+              _remotePhotoUrl = null;
+              _remoteThumbUrl = null;
+            }),
           ),
-        ),
-        const SizedBox(height: 10),
-        if (UserProfileRules.needsProfessional(_selectedRoles)) ...<Widget>[
-          UserFormSection(
-            title: 'Professional information',
-            subtitle: 'Applicable for faculty and judges',
-            child: Column(
-              children: <Widget>[
-                _labeledField('Company', TextField(controller: _companyController, decoration: _fieldDecoration('Company'))),
-                const SizedBox(height: 10),
-                _labeledField('Designation', TextField(controller: _designationController, decoration: _fieldDecoration('Designation'))),
-                const SizedBox(height: 10),
-                _labeledField('Years of experience', TextField(controller: _yearsController, keyboardType: TextInputType.number, decoration: _fieldDecoration('Years'))),
-                const SizedBox(height: 10),
-                UserTagsField(label: 'Expertise areas', values: _expertiseAreas, enabled: !_saving, onChanged: (List<String> v) => setState(() => _expertiseAreas = v)),
-              ],
+          const SizedBox(height: 12),
+          _labeledField(
+            'First name',
+            TextField(
+              controller: _firstNameController,
+              decoration: _fieldDecoration('First name', errorText: _errorFor(_UserFormField.firstName)),
             ),
+            required: true,
           ),
           const SizedBox(height: 10),
-        ],
-        if (UserProfileRules.needsStudent(_selectedRoles)) ...<Widget>[
-          UserFormSection(
-            title: 'Student information',
-            child: Column(
-              children: <Widget>[
-                _labeledField('Program', TextField(controller: _programController, decoration: _fieldDecoration('Program'))),
-                const SizedBox(height: 10),
-                _labeledField('Year of study', TextField(controller: _yearOfStudyController, decoration: _fieldDecoration('Year'))),
-                const SizedBox(height: 10),
-                UserTagsField(label: 'Skills', values: _skills, enabled: !_saving, onChanged: (List<String> v) => setState(() => _skills = v)),
-              ],
+          _labeledField(
+            'Last name',
+            TextField(
+              controller: _lastNameController,
+              decoration: _fieldDecoration('Last name', errorText: _errorFor(_UserFormField.lastName)),
             ),
+            required: true,
           ),
           const SizedBox(height: 10),
+          _labeledField(
+            'Email',
+            EmailField(
+              controller: _emailController,
+              decoration: _fieldDecoration('Email', prefixIcon: AppIcons.email, errorText: _errorFor(_UserFormField.email)),
+            ),
+            required: true,
+          ),
+          const SizedBox(height: 10),
+          _labeledField(
+            'Phone',
+            widget.isEdit
+                ? _readOnlyIconField(
+                    value: normalizePhoneE164(_phoneController.text),
+                    hint: 'Phone',
+                    icon: AppIcons.phone,
+                  )
+                : PhoneNumberField(
+                    controller: _phoneController,
+                    decoration: _fieldDecoration(
+                      'Phone number',
+                      prefixIcon: AppIcons.phone,
+                      errorText: _errorFor(_UserFormField.phone),
+                    ),
+                  ),
+            required: !widget.isEdit,
+          ),
+          if (_deptDisplayName.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            _labeledField(
+              'Department',
+              _readOnlyIconField(
+                value: _deptDisplayName,
+                hint: 'Department',
+                icon: AppIcons.departments,
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
   Widget _buildRightColumn(BuildContext context) {
+    return _buildRolesCard(context);
+  }
+
+  Widget _buildRolesCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: kDashboardCardDecoration.copyWith(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (!_roleLocked && !widget.isEdit) _buildRolePicker() else _roleReadOnlyChip(),
+          ..._buildRoleProfileSections(),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildRoleProfileSections() {
+    final List<Widget> sections = <Widget>[];
+
+    if (UserProfileRules.needsProfessional(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.adminProfile,
+          title: 'Professional information',
+          subtitle: 'Applicable for faculty and judges',
+          children: <Widget>[
+            _labeledField('Company', TextField(controller: _companyController, decoration: _fieldDecoration('Company'))),
+            const SizedBox(height: 10),
+            _labeledField('Designation', TextField(controller: _designationController, decoration: _fieldDecoration('Designation'))),
+            const SizedBox(height: 10),
+            _labeledField(
+              'Years of experience',
+              TextField(controller: _yearsController, keyboardType: TextInputType.number, decoration: _fieldDecoration('Years')),
+            ),
+            const SizedBox(height: 10),
+            UserTagsField(
+              label: 'Expertise areas',
+              values: _expertiseAreas,
+              enabled: !_saving,
+              onChanged: (List<String> v) => setState(() => _expertiseAreas = v),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (UserProfileRules.needsStudent(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.student,
+          title: 'Student information',
+          children: <Widget>[
+            _labeledField('Program', TextField(controller: _programController, decoration: _fieldDecoration('Program'))),
+            const SizedBox(height: 10),
+            _labeledField('Year of study', TextField(controller: _yearOfStudyController, decoration: _fieldDecoration('Year'))),
+            const SizedBox(height: 10),
+            UserTagsField(label: 'Skills', values: _skills, enabled: !_saving, onChanged: (List<String> v) => setState(() => _skills = v)),
+          ],
+        ),
+      );
+    }
+
+    if (UserProfileRules.needsFaculty(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.faculty,
+          title: 'Faculty information',
+          children: <Widget>[
+            _labeledField('Specialization', TextField(controller: _specializationController, decoration: _fieldDecoration('Specialization'))),
+            const SizedBox(height: 10),
+            UserTagsField(
+              label: 'Research interests',
+              values: _researchInterests,
+              enabled: !_saving,
+              onChanged: (List<String> v) => setState(() => _researchInterests = v),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (UserProfileRules.needsJudge(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.judges,
+          title: 'Judge information',
+          children: <Widget>[
+            _labeledField(
+              'Judge type',
+              DropdownButtonFormField<JudgeType>(
+                initialValue: _judgeType,
+                decoration: _fieldDecoration('Select judge type'),
+                items: JudgeType.values
+                    .map(
+                      (JudgeType t) => DropdownMenuItem<JudgeType>(
+                        value: t,
+                        child: Text(t.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _saving ? null : (JudgeType? v) => setState(() => _judgeType = v),
+              ),
+            ),
+            const SizedBox(height: 10),
+            UserTagsField(
+              label: 'Evaluation domains',
+              values: _evaluationDomains,
+              enabled: !_saving,
+              onChanged: (List<String> v) => setState(() => _evaluationDomains = v),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (UserProfileRules.needsDepartmentAdmin(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.departments,
+          title: 'Department admin information',
+          children: <Widget>[
+            _labeledField(
+              'Office designation',
+              TextField(controller: _deptAdminDesignationController, decoration: _fieldDecoration('HOD, Professor, etc.')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (UserProfileRules.needsCollegeAdmin(_selectedRoles)) {
+      sections.add(
+        _profileBlock(
+          icon: AppIcons.organizations,
+          title: 'College admin information',
+          children: <Widget>[
+            _labeledField(
+              'Office designation',
+              TextField(controller: _collegeAdminDesignationController, decoration: _fieldDecoration('Principal, Dean, etc.')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return sections;
+  }
+
+  Widget _profileBlock({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required List<Widget> children,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        UserFormSection(
-          title: 'Organization',
-          subtitle: 'Roles, org scope, and account status',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (!_roleLocked && !widget.isEdit) _buildRolePicker() else _roleReadOnlyChip(),
-              const SizedBox(height: 10),
-              _labeledField('Organization', ReadOnlyField(value: widget.organization.name.isEmpty ? widget.organization.id : widget.organization.name)),
-              const SizedBox(height: 10),
-              if (widget.department.trim().isNotEmpty)
-                _labeledField('Department', ReadOnlyField(value: widget.department)),
-              const SizedBox(height: 10),
-              _labeledField(
-                'Status',
-                DropdownButtonFormField<UserStatus>(
-                  initialValue: _selectedStatus,
-                  decoration: _fieldDecoration('Status'),
-                  items: UserStatus.values
-                      .map(
-                        (UserStatus s) => DropdownMenuItem<UserStatus>(
-                          value: s,
-                          child: Text(s.value),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: _saving ? null : (UserStatus? v) => setState(() => _selectedStatus = v ?? _selectedStatus),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (UserProfileRules.needsFaculty(_selectedRoles)) ...<Widget>[
-          UserFormSection(
-            title: 'Faculty information',
-            child: Column(
-              children: <Widget>[
-                _labeledField('Specialization', TextField(controller: _specializationController, decoration: _fieldDecoration('Specialization'))),
-                const SizedBox(height: 10),
-                UserTagsField(label: 'Research interests', values: _researchInterests, enabled: !_saving, onChanged: (List<String> v) => setState(() => _researchInterests = v)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        if (UserProfileRules.needsJudge(_selectedRoles)) ...<Widget>[
-          UserFormSection(
-            title: 'Judge information',
-            child: Column(
-              children: <Widget>[
-                _labeledField(
-                  'Judge type',
-                  DropdownButtonFormField<JudgeType>(
-                    initialValue: _judgeType,
-                    decoration: _fieldDecoration('Select judge type'),
-                    items: JudgeType.values
-                        .map(
-                          (JudgeType t) => DropdownMenuItem<JudgeType>(
-                            value: t,
-                            child: Text(t.label),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _saving ? null : (JudgeType? v) => setState(() => _judgeType = v),
+        const SizedBox(height: 14),
+        const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB)),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, size: 18, color: const Color(0xFF4B5AA9)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
                   ),
-                ),
-                const SizedBox(height: 10),
-                UserTagsField(label: 'Evaluation domains', values: _evaluationDomains, enabled: !_saving, onChanged: (List<String> v) => setState(() => _evaluationDomains = v)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        if (UserProfileRules.needsDepartmentAdmin(_selectedRoles) || UserProfileRules.needsCollegeAdmin(_selectedRoles))
-          UserFormSection(
-            title: 'Admin information',
-            child: Column(
-              children: <Widget>[
-                if (UserProfileRules.needsDepartmentAdmin(_selectedRoles)) ...<Widget>[
-                  _labeledField('Department office designation', TextField(controller: _deptAdminDesignationController, decoration: _fieldDecoration('HOD, Professor, etc.'))),
-                  const SizedBox(height: 10),
+                  if (subtitle != null) ...<Widget>[
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                  ],
                 ],
-                if (UserProfileRules.needsCollegeAdmin(_selectedRoles))
-                  _labeledField('College office designation', TextField(controller: _collegeAdminDesignationController, decoration: _fieldDecoration('Principal, Dean, etc.'))),
-              ],
+              ),
             ),
-          ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _roleChipLabel(String code) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(AppIcons.forUserRoleCode(code), size: 16, color: const Color(0xFF475569)),
+        const SizedBox(width: 6),
+        Text(UserRoleLabels.labelForCode(code)),
       ],
     );
   }
@@ -566,51 +771,120 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         .map((String e) => e.trim())
         .where((String e) => e.isNotEmpty)
         .toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Text('Roles', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: options.map((String code) {
-            final bool selected = _selectedRoles.contains(code);
-            return FilterChip(
-              label: Text(UserRoleLabels.labelForCode(code)),
-              selected: selected,
-              onSelected: _saving
-                  ? null
-                  : (bool value) => setState(() {
-                        if (value) {
-                          _selectedRoles.add(code);
-                        } else if (_selectedRoles.length > 1) {
-                          _selectedRoles.remove(code);
-                        }
-                      }),
-            );
-          }).toList(growable: false),
-        ),
-      ],
-    );
-  }
+    final String? rolesError = _errorFor(_UserFormField.roles);
+    final bool hasRolesError = rolesError != null;
 
-  Widget _roleReadOnlyChip() {
-    final String code = _selectedRoles.first;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Chip(
-        label: Text(UserRoleLabels.labelForCode(code)),
-        backgroundColor: const Color(0xFFF5F3FF),
+    return Container(
+      width: double.infinity,
+      padding: hasRolesError ? const EdgeInsets.all(10) : EdgeInsets.zero,
+      decoration: hasRolesError
+          ? BoxDecoration(
+              color: _errorFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _errorBorder),
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _fieldLabel('Roles', required: true),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: options.map((String code) {
+              final bool selected = _selectedRoles.contains(code);
+              return FilterChip(
+                label: _roleChipLabel(code),
+                selected: selected,
+                showCheckmark: false,
+                selectedColor: const Color(0xFFEEF2FF),
+                side: BorderSide(
+                  color: hasRolesError
+                      ? _errorBorder
+                      : (selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0)),
+                ),
+                onSelected: _saving
+                    ? null
+                    : (bool value) => setState(() {
+                          _clearFieldError(_UserFormField.roles);
+                          if (value) {
+                            _selectedRoles.add(code);
+                          } else if (_selectedRoles.length > 1) {
+                            _selectedRoles.remove(code);
+                          }
+                        }),
+              );
+            }).toList(growable: false),
+          ),
+          if (hasRolesError) ...<Widget>[
+            const SizedBox(height: 6),
+            Text(
+              rolesError,
+              style: const TextStyle(fontSize: 11, color: _errorAccent, fontWeight: FontWeight.w500, height: 1.25),
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _labeledField(String label, Widget field) {
+  Widget _roleReadOnlyChip() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _selectedRoles.map((String code) {
+        return Chip(
+          label: _roleChipLabel(code),
+          backgroundColor: const Color(0xFFF5F3FF),
+          side: const BorderSide(color: Color(0xFFE9D5FF)),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+        );
+      }).toList(growable: false),
+    );
+  }
+
+  Widget _readOnlyIconField({
+    required String value,
+    required String hint,
+    required IconData icon,
+    String? errorText,
+  }) {
+    return InputDecorator(
+      decoration: _fieldDecoration(hint, readOnly: true, prefixIcon: icon, errorText: errorText),
+      child: Text(
+        value.isEmpty ? hint : value,
+        style: TextStyle(
+          color: value.isEmpty ? const Color(0xFF7A7FA3) : const Color(0xFF202658),
+          fontWeight: value.isEmpty ? FontWeight.w400 : FontWeight.w500,
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  Widget _fieldLabel(String label, {bool required = false}) {
+    return Text.rich(
+      TextSpan(
+        text: label,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF334155)),
+        children: required
+            ? const <TextSpan>[
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: _errorAccent, fontWeight: FontWeight.w700),
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+
+  Widget _labeledField(String label, Widget field, {bool required = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+        _fieldLabel(label, required: required),
         const SizedBox(height: 6),
         field,
       ],
