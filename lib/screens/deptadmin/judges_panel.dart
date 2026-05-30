@@ -123,6 +123,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       EvaluationAssignmentDetailsPane(
         user: widget.user,
         onBack: chrome.clearOverlay,
+        backTooltip: 'Back to Judges Panel',
       ),
     );
   }

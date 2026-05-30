@@ -20,9 +20,20 @@ import '../assignments/models/evaluation_assignment_conflict.dart';
 import '../assignments/services/evaluation_assignment_service.dart';
 
 class EvaluationAssignmentWorkspace extends StatefulWidget {
-  const EvaluationAssignmentWorkspace({super.key, required this.user});
+  const EvaluationAssignmentWorkspace({
+    super.key,
+    required this.user,
+    this.problemId,
+    this.ideaId,
+  });
 
   final UserModel user;
+
+  /// When set, locks the problem selector to this problem (e.g. from problem dashboard).
+  final String? problemId;
+
+  /// When set, locks problem + ideas list to this idea only (e.g. from idea dashboard).
+  final String? ideaId;
 
   @override
   State<EvaluationAssignmentWorkspace> createState() =>
@@ -84,9 +95,20 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
 
   String get _orgId => widget.user.orgId;
 
+  String get _lockedIdeaId => (widget.ideaId ?? '').trim();
+
+  String get _lockedProblemId => (widget.problemId ?? '').trim();
+
+  bool get _ideaScopeLocked => _lockedIdeaId.isNotEmpty;
+
+  bool get _problemScopeLocked => _ideaScopeLocked || _lockedProblemId.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
+    if (_lockedProblemId.isNotEmpty && !_ideaScopeLocked) {
+      _selectedProblemId = _lockedProblemId;
+    }
     _load();
   }
 
@@ -185,6 +207,33 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
       );
 
       if (!mounted) return;
+      String? nextProblemId = _selectedProblemId;
+      final Set<String> nextSelectedIdeas = Set<String>.from(_selectedIdeaIds);
+
+      if (_ideaScopeLocked) {
+        IdeaModel? lockedIdea;
+        for (final IdeaModel idea in ideas) {
+          if (idea.ideaId == _lockedIdeaId) {
+            lockedIdea = idea;
+            break;
+          }
+        }
+        if (lockedIdea != null) {
+          nextProblemId = lockedIdea.problemId;
+          nextSelectedIdeas
+            ..clear()
+            ..add(_lockedIdeaId);
+        } else {
+          nextProblemId = null;
+          nextSelectedIdeas.clear();
+        }
+      } else if (_lockedProblemId.isNotEmpty) {
+        nextProblemId = _lockedProblemId;
+        nextSelectedIdeas.clear();
+      } else {
+        nextProblemId = nextProblemId ?? (problems.isEmpty ? null : problems.first.problemId);
+      }
+
       setState(() {
         _problems = problems;
         _ideas = ideas;
@@ -194,8 +243,10 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
         _assignedJudgesByIdea = assignedByIdea;
         _assignmentDocs = assignmentDocs;
         _workloadByJudge = workload;
-        _selectedProblemId = _selectedProblemId ??
-            (_problems.isEmpty ? null : _problems.first.problemId);
+        _selectedProblemId = nextProblemId;
+        _selectedIdeaIds
+          ..clear()
+          ..addAll(nextSelectedIdeas);
         _loading = false;
         _visibleCount = _pageSize;
       });
@@ -214,8 +265,10 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     final String selectedProblem = (_selectedProblemId ?? '').trim();
     final String q = _search.trim().toLowerCase();
     final List<_IdeaRowVm> rows = _ideas
-        .where((IdeaModel idea) =>
-            selectedProblem.isEmpty || idea.problemId == selectedProblem)
+        .where((IdeaModel idea) {
+          if (_ideaScopeLocked && idea.ideaId != _lockedIdeaId) return false;
+          return selectedProblem.isEmpty || idea.problemId == selectedProblem;
+        })
         .map(_buildIdeaRowVm)
         .where((_IdeaRowVm row) {
       if (_onlyUnassigned && row.assignedJudgeIds.isNotEmpty) return false;
@@ -343,6 +396,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   void _toggleSelectAllIdeas() {
+    if (_ideaScopeLocked) return;
     setState(() {
       final Iterable<String> ids =
           _filteredIdeas.map((_IdeaRowVm row) => row.idea.ideaId);
@@ -413,28 +467,30 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
             title: 'Problem Summary',
           ),
           _panelToolbarRow(
-            child: DropdownButtonFormField<String>(
-              initialValue: _selectedProblemId,
-              isExpanded: true,
-              decoration: _compactRoundedFieldDecoration(hintText: 'Select problem'),
-              items: _problems
-                  .map((ProblemModel p) => DropdownMenuItem<String>(
-                        value: p.problemId,
-                        child: Text(
-                          p.title.isEmpty ? p.problemId : p.title,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ))
-                  .toList(growable: false),
-              onChanged: (String? value) {
-                setState(() {
-                  _selectedProblemId = value;
-                  _selectedIdeaIds.clear();
-                  _selectedJudgeIds.clear();
-                  _visibleCount = _pageSize;
-                });
-              },
-            ),
+            child: _problemScopeLocked
+                ? _lockedProblemField(selectedProblem)
+                : DropdownButtonFormField<String>(
+                    initialValue: _selectedProblemId,
+                    isExpanded: true,
+                    decoration: _compactRoundedFieldDecoration(hintText: 'Select problem'),
+                    items: _problems
+                        .map((ProblemModel p) => DropdownMenuItem<String>(
+                              value: p.problemId,
+                              child: Text(
+                                p.title.isEmpty ? p.problemId : p.title,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(growable: false),
+                    onChanged: (String? value) {
+                      setState(() {
+                        _selectedProblemId = value;
+                        _selectedIdeaIds.clear();
+                        _selectedJudgeIds.clear();
+                        _visibleCount = _pageSize;
+                      });
+                    },
+                  ),
           ),
           _panelToolbarDivider,
           Expanded(
@@ -483,6 +539,28 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _lockedProblemField(ProblemModel? selectedProblem) {
+    final String label = selectedProblem?.title.trim().isNotEmpty == true
+        ? selectedProblem!.title.trim()
+        : (_selectedProblemId ?? 'Problem');
+    return InputDecorator(
+      decoration: _compactRoundedFieldDecoration(hintText: 'Problem').copyWith(
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+          color: Color(0xFF334155),
+        ),
       ),
     );
   }
@@ -680,20 +758,36 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           _panelToolbarRow(
             child: Row(
               children: <Widget>[
-                _inlineSelectAllControl(
-                  value: _ideasSelectAllValue,
-                  onToggle: _toggleSelectAllIdeas,
-                  label: 'Select all',
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    decoration: _compactRoundedFieldDecoration(
-                      hintText: 'Search idea, team, or problem',
-                    ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
-                    onChanged: (String v) => setState(() => _search = v),
+                if (!_ideaScopeLocked) ...<Widget>[
+                  _inlineSelectAllControl(
+                    value: _ideasSelectAllValue,
+                    onToggle: _toggleSelectAllIdeas,
+                    label: 'Select all',
                   ),
-                ),
+                  const SizedBox(width: 8),
+                ],
+                if (!_ideaScopeLocked)
+                  Expanded(
+                    child: TextField(
+                      decoration: _compactRoundedFieldDecoration(
+                        hintText: 'Search idea, team, or problem',
+                      ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
+                      onChanged: (String v) => setState(() => _search = v),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Text(
+                      _filteredIdeas.isEmpty ? 'Idea not found' : _ideaDisplayTitle(_filteredIdeas.first),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
                 const SizedBox(width: 8),
                 Text(
                   selectionLabel,
@@ -745,6 +839,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   void _toggleIdeaSelection(String ideaId, {required bool selected}) {
+    if (_ideaScopeLocked) return;
     setState(() {
       if (selected) {
         _selectedIdeaIds.remove(ideaId);
@@ -820,8 +915,9 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                   value: selected,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
-                  onChanged: (_) =>
-                      _toggleIdeaSelection(row.idea.ideaId, selected: selected),
+                  onChanged: _ideaScopeLocked
+                      ? null
+                      : (_) => _toggleIdeaSelection(row.idea.ideaId, selected: selected),
                 ),
               ),
               const SizedBox(width: 8),

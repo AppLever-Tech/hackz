@@ -9,10 +9,16 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
     super.key,
     required this.user,
     required this.onBack,
+    this.problemId,
+    this.ideaId,
+    this.backTooltip = 'Back',
   });
 
   final UserModel user;
   final VoidCallback onBack;
+  final String? problemId;
+  final String? ideaId;
+  final String backTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +31,18 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
             child: IconButton(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded),
-              tooltip: 'Back to Judges Panel',
+              tooltip: backTooltip,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.all(8),
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ),
           Expanded(
-            child: EvaluationAssignmentWorkspace(user: user),
+            child: EvaluationAssignmentWorkspace(
+              user: user,
+              problemId: problemId,
+              ideaId: ideaId,
+            ),
           ),
         ],
       ),
