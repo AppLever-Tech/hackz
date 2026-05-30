@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../models/enums/account_workspace_phase.dart';
 import '../../features/user/models/user_model.dart';
-import '../../utils/common_helpers.dart';
 import '../../utils/firestore_utils.dart';
 import '../../screens/common/dashboard_components.dart';
 import 'approval_timeline_vm.dart';
@@ -69,11 +68,11 @@ class _AccountStatusWorkspaceState extends State<AccountStatusWorkspace> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  TopHeaderWidget(
+                  DashboardPageHeader(
                     title: 'Account status',
                     titleIcon: AppIcons.pendingUsers,
-                    subtitle: 'Hackz onboarding workspace',
-                    dateText: formatLongDisplayDate(DateTime.now()),
+                    user: widget.user,
+                    onLogout: widget.onSignOut,
                     onRefresh: _onRefresh,
                   ),
                   const SizedBox(height: 16),

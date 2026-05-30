@@ -29,7 +29,6 @@ class ResponsiveDashboardLayout extends StatefulWidget {
     required this.secondaryMenus,
     required this.selectedPrimaryIndex,
     required this.onPrimaryMenuSelected,
-    required this.onLogout,
     required this.header,
     required this.body,
     this.panelOverlay,
@@ -39,7 +38,6 @@ class ResponsiveDashboardLayout extends StatefulWidget {
   final List<DashboardMenuItem> secondaryMenus;
   final int selectedPrimaryIndex;
   final ValueChanged<int> onPrimaryMenuSelected;
-  final VoidCallback onLogout;
   final Widget header;
   final Widget body;
 
@@ -78,13 +76,6 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
     }
   }
 
-  void _handleLogout() {
-    if (ResponsiveHelper.isMobile(context)) {
-      Navigator.of(context).pop();
-    }
-    widget.onLogout();
-  }
-
   Widget _navigationPanel({
     required bool compact,
     required bool inDrawer,
@@ -95,7 +86,6 @@ class _ResponsiveDashboardLayoutState extends State<ResponsiveDashboardLayout> {
       secondaryMenus: widget.secondaryMenus,
       selectedPrimaryIndex: widget.selectedPrimaryIndex,
       onPrimaryMenuTap: _selectMenu,
-      onLogout: _handleLogout,
       compact: compact,
       // Always show the brand block — on the rail it carries the collapse
       // toggle even when compact; in the drawer it's the standard header.
@@ -242,7 +232,7 @@ class _MobileMenuHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         IconButton(
           onPressed: onOpenMenu,

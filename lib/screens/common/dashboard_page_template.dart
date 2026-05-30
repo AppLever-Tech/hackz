@@ -16,6 +16,7 @@ import '../auth/landing_screen.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
+import 'dashboard_session_scope.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
   const DashboardPageTemplate({
@@ -46,33 +47,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     super.dispose();
   }
 
-  String _formatLongDate(DateTime date) {
-    const weekdays = <String>[
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    const months = <String>[
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-
   Future<void> _logout(BuildContext context) async {
     WorkspaceController.instance.close();
     _chromeController.clearOverlay();
@@ -94,21 +68,19 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   Widget build(BuildContext context) {
     final UserRole role = UserRole.fromCode(widget.user.role);
     final _RoleMenuConfig menuConfig = _RoleMenuConfig.forRole(role);
-    final String fullName =
-        '${widget.user.firstName} ${widget.user.lastName}'.trim().isEmpty
-            ? 'User'
-            : '${widget.user.firstName} ${widget.user.lastName}'.trim();
-    final String longDate = _formatLongDate(DateTime.now());
-    final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
     final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
     final IconData selectedMenuIcon = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].icon;
+    final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
 
-    return DashboardChromeScope(
-      controller: _chromeController,
-      child: ListenableBuilder(
-        listenable: _chromeController,
-        builder: (BuildContext context, Widget? child) {
-          return ResponsiveDashboardLayout(
+    return DashboardSessionScope(
+      user: widget.user,
+      onLogout: () => _logout(context),
+      child: DashboardChromeScope(
+        controller: _chromeController,
+        child: ListenableBuilder(
+          listenable: _chromeController,
+          builder: (BuildContext context, Widget? child) {
+            return ResponsiveDashboardLayout(
             primaryMenus: menuConfig.primaryMenus,
             secondaryMenus: menuConfig.secondaryMenus,
             selectedPrimaryIndex: _selectedPrimaryMenuIndex,
@@ -119,22 +91,12 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               }
               setState(() => _selectedPrimaryMenuIndex = index);
             },
-            onLogout: () => _logout(context),
-            header: TopHeaderWidget(
+            header: DashboardPageHeader(
               title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
-              subtitle: '',
-              subtitleWidget: isDashboardTab
-                  ? ContextPill(
-                      label: fullName,
-                      semantic: ContextPillSemantic.user,
-                      onTap: () =>
-                          WorkspaceNavigator.openUser(context, widget.user.userId),
-                      compact: true,
-                      fitContent: true,
-                    )
-                  : null,
-              dateText: longDate,
+              user: widget.user,
+              onLogout: () => _logout(context),
+              onUserTap: () => WorkspaceNavigator.openUser(context, widget.user.userId),
               onRefresh: () {
                 _chromeController.clearOverlay();
                 setState(() => _refreshToken++);
@@ -145,9 +107,10 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               _refreshToken,
               _selectedPrimaryMenuIndex,
             ),
-            panelOverlay: _chromeController.overlay,
-          );
-        },
+              panelOverlay: _chromeController.overlay,
+            );
+          },
+        ),
       ),
     );
   }

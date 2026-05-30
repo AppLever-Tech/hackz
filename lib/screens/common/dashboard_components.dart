@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../features/user/models/user_model.dart';
+import '../../features/user/widgets/user_avatar.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../widgets/common/context_pill.dart';
+import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
@@ -32,7 +36,6 @@ class DashboardNavigationPanel extends StatelessWidget {
     this.secondaryMenus = const <DashboardMenuItem>[],
     this.selectedPrimaryIndex = 0,
     this.onPrimaryMenuTap,
-    this.onLogout,
     this.compact = false,
     this.showBranding = true,
     this.onToggleCollapse,
@@ -42,7 +45,6 @@ class DashboardNavigationPanel extends StatelessWidget {
   final List<DashboardMenuItem> secondaryMenus;
   final int selectedPrimaryIndex;
   final ValueChanged<int>? onPrimaryMenuTap;
-  final VoidCallback? onLogout;
   final bool compact;
   final bool showBranding;
 
@@ -73,13 +75,6 @@ class DashboardNavigationPanel extends StatelessWidget {
               onTap: onPrimaryMenuTap == null ? null : () => onPrimaryMenuTap!(index),
             ),
           const Spacer(),
-          if (onLogout != null)
-            _NavItem(
-              label: 'Logout',
-              icon: Icons.logout,
-              compact: compact,
-              onTap: onLogout,
-            ),
         ],
       ),
     );
@@ -160,97 +155,134 @@ class _BrandToggleButton extends StatelessWidget {
   }
 }
 
-class TopHeaderWidget extends StatelessWidget {
-  const TopHeaderWidget({
+/// Shared page header: icon + title on the left; refresh, avatar, user pill, and
+/// overflow menu on the right. Used by dashboard tabs and detail-pane overlays.
+class DashboardPageHeader extends StatelessWidget {
+  const DashboardPageHeader({
     super.key,
     required this.title,
+    required this.user,
+    required this.onLogout,
     this.titleIcon,
-    this.subtitle = '',
-    this.subtitleWidget,
-    required this.dateText,
-    required this.onRefresh,
+    this.leading,
+    this.onRefresh,
+    this.onUserTap,
   });
 
   final String title;
   final IconData? titleIcon;
-  final String subtitle;
-  final Widget? subtitleWidget;
-  final String dateText;
-  final VoidCallback onRefresh;
+  final Widget? leading;
+  final UserModel user;
+  final VoidCallback? onRefresh;
+  final VoidCallback onLogout;
+  final VoidCallback? onUserTap;
 
   @override
   Widget build(BuildContext context) {
     final double titleSize = ResponsiveHelper.titleFontSize(context);
-    final bool compact = ResponsiveHelper.isMobile(context);
-    final bool showDate = ResponsiveHelper.showHeaderDate(context);
-    final Widget? subtitle = _subtitle(context);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
+        if (leading != null) ...<Widget>[
+          leading!,
+          const SizedBox(width: 2),
+        ],
+        if (titleIcon != null) ...<Widget>[
+          Icon(
+            titleIcon,
+            size: titleSize >= 24 ? 24 : 20,
+            color: const Color(0xFF334155),
+          ),
+          const SizedBox(width: 8),
+        ],
         Expanded(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (titleIcon != null) ...<Widget>[
-                Icon(
-                  titleIcon,
-                  size: titleSize >= 24 ? 24 : 20,
-                  color: const Color(0xFF334155),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
-                ),
-              ),
-              if (subtitle != null) ...<Widget>[
-                const SizedBox(width: 10),
-                subtitle,
-              ],
-            ],
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
           ),
         ),
-        if (showDate) ...<Widget>[
-          Text(
-            dateText,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontSize: compact ? 13 : 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
-        _actionButtons(compact: compact),
+        const SizedBox(width: 8),
+        _DashboardHeaderActions(
+          user: user,
+          onLogout: onLogout,
+          onRefresh: onRefresh,
+          onUserTap: onUserTap,
+        ),
       ],
     );
   }
+}
 
-  Widget? _subtitle(BuildContext context) {
-    if (!ResponsiveHelper.showHeaderSubtitle(context)) return null;
-    if (subtitleWidget != null) return subtitleWidget;
-    if (subtitle.trim().isEmpty) return null;
-    return Text(
-      subtitle,
-      style: TextStyle(
-        color: Colors.grey.shade600,
-        fontSize: ResponsiveHelper.isTablet(context) ? 14 : 15,
-      ),
-    );
-  }
+class _DashboardHeaderActions extends StatelessWidget {
+  const _DashboardHeaderActions({
+    required this.user,
+    required this.onLogout,
+    this.onRefresh,
+    this.onUserTap,
+  });
 
-  Widget _actionButtons({required bool compact}) {
-    final iconSize = compact ? 22.0 : 24.0;
-    return IconButton(
-      tooltip: 'Refresh',
-      icon: Icon(Icons.refresh, size: iconSize),
-      visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-      onPressed: onRefresh,
+  final UserModel user;
+  final VoidCallback onLogout;
+  final VoidCallback? onRefresh;
+  final VoidCallback? onUserTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final double iconSize = compact ? 20 : 22;
+    final double avatarRadius = compact ? 14 : 16;
+    final bool showUserPill = MediaQuery.sizeOf(context).width >= 340;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (onRefresh != null)
+          IconButton(
+            tooltip: 'Refresh',
+            icon: Icon(Icons.refresh, size: iconSize),
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            onPressed: onRefresh,
+          ),
+        UserAvatar(user: user, radius: avatarRadius),
+        SizedBox(width: compact ? 6 : 8),
+        if (showUserPill) ...<Widget>[
+          ContextPill(
+            label: user.displayName,
+            semantic: ContextPillSemantic.user,
+            onTap: onUserTap ?? () {},
+            compact: true,
+            fitContent: true,
+            enabled: onUserTap != null,
+          ),
+          SizedBox(width: compact ? 4 : 6),
+        ],
+        PopupMenuButton<String>(
+          tooltip: 'Account',
+          icon: Icon(Icons.more_vert, size: iconSize),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onSelected: (String value) {
+            if (value == 'logout') onLogout();
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              value: 'logout',
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.logout, size: 20),
+                  SizedBox(width: 10),
+                  Text('Logout'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

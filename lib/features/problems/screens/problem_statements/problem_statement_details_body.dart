@@ -12,11 +12,9 @@ class ProblemStatementDetailsBody extends StatelessWidget {
   const ProblemStatementDetailsBody({
     super.key,
     required this.vm,
-    required this.onBack,
   });
 
   final ProblemWorkspaceViewModel vm;
-  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -27,24 +25,12 @@ class ProblemStatementDetailsBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              IconButton(
-                onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back to Problem Statements',
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
                     if (psNumber.isNotEmpty)
                       _MetaChip(
                         icon: AppIcons.problems,
@@ -69,9 +55,6 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                       label: vm.problem.isActive ? 'Active' : 'Inactive',
                       color: vm.problem.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
                     ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),

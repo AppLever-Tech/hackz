@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../constants/app_icons.dart';
 import '../../user/models/user_model.dart';
 import '../../../screens/common/dashboard_chrome_scope.dart';
-import '../../../workspace/core/workspace_controller.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../../screens/common/dashboard_session_scope.dart';
+import '../../../workspace/workspace.dart';
 import 'evaluation_assignment_workspace.dart';
 
 /// Opens the scoped assignment workspace as a dashboard overlay.
@@ -45,13 +48,19 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = DashboardSessionScope.of(context);
+
     return SizedBox.expand(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
+          DashboardPageHeader(
+            title: 'Evaluation Assignments',
+            titleIcon: AppIcons.judges,
+            user: session.user,
+            onLogout: session.onLogout,
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            leading: IconButton(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded),
               tooltip: backTooltip,
@@ -60,6 +69,7 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
           ),
+          const SizedBox(height: 8),
           Expanded(
             child: EvaluationAssignmentWorkspace(
               user: user,

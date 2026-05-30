@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
+import '../../../../screens/common/dashboard_components.dart';
+import '../../../../screens/common/dashboard_session_scope.dart';
 import '../../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../../workspace/workspace.dart';
 import '../../models/problem_model.dart';
-import '../../workspace/problem_workspace_loader.dart';
 import 'problem_statement_details_body.dart';
 
 /// Fills the dashboard main content area with problem statement details (replaces the table).
@@ -36,17 +38,49 @@ class _ProblemStatementDetailsPaneState extends State<ProblemStatementDetailsPan
     });
   }
 
+  String _headerTitle([ProblemWorkspaceViewModel? vm]) {
+    final String fromVm = vm?.problem.title.trim() ?? '';
+    if (fromVm.isNotEmpty) return fromVm;
+    final String fromProblem = widget.problem.title.trim();
+    if (fromProblem.isNotEmpty) return fromProblem;
+    return 'Problem Statement';
+  }
+
+  Widget _backLeading() {
+    return IconButton(
+      onPressed: widget.onBack,
+      icon: const Icon(Icons.arrow_back_rounded),
+      tooltip: 'Back to Problem Statements',
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.all(8),
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final DashboardSessionScope session = DashboardSessionScope.of(context);
+
     return SizedBox.expand(
       child: FutureBuilder<ProblemWorkspaceViewModel>(
         future: _loadFuture,
         builder: (BuildContext context, AsyncSnapshot<ProblemWorkspaceViewModel> snapshot) {
+          final Widget header = DashboardPageHeader(
+            title: _headerTitle(snapshot.data),
+            titleIcon: AppIcons.problems,
+            user: session.user,
+            onLogout: session.onLogout,
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onRefresh: _reload,
+            leading: _backLeading(),
+          );
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _DetailsBackButton(onPressed: widget.onBack),
+                header,
+                const SizedBox(height: 8),
                 const Expanded(
                   child: Center(child: HkzProgressIndicator(size: 36)),
                 ),
@@ -57,7 +91,8 @@ class _ProblemStatementDetailsPaneState extends State<ProblemStatementDetailsPan
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _DetailsBackButton(onPressed: widget.onBack),
+                header,
+                const SizedBox(height: 8),
                 Expanded(
                   child: Center(
                     child: Column(
@@ -82,32 +117,17 @@ class _ProblemStatementDetailsPaneState extends State<ProblemStatementDetailsPan
             );
           }
 
-          return ProblemStatementDetailsBody(
-            vm: snapshot.data!,
-            onBack: widget.onBack,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              header,
+              const SizedBox(height: 8),
+              Expanded(
+                child: ProblemStatementDetailsBody(vm: snapshot.data!),
+              ),
+            ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _DetailsBackButton extends StatelessWidget {
-  const _DetailsBackButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: const Icon(Icons.arrow_back_rounded),
-        tooltip: 'Back to Problem Statements',
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.all(8),
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       ),
     );
   }
