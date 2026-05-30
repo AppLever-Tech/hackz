@@ -576,7 +576,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (!_roleLocked && !widget.isEdit) _buildRolePicker() else _roleReadOnlyChip(),
+          if (!_roleLocked) _buildRolePicker() else _roleReadOnlyChip(),
           ..._buildRoleProfileSections(),
         ],
       ),

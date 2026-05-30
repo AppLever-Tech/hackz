@@ -11,6 +11,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     required this.searchHint,
     this.filtersExpanded = false,
     this.onToggleFilters,
+    this.leading = const <Widget>[],
     this.trailing = const <Widget>[],
     this.filterLabel,
     this.onSearchSubmitted,
@@ -21,6 +22,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
   final String searchHint;
   final bool filtersExpanded;
   final VoidCallback? onToggleFilters;
+  final List<Widget> leading;
   final List<Widget> trailing;
   final String? filterLabel;
   final VoidCallback? onSearchSubmitted;
@@ -66,6 +68,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          if (leading.isNotEmpty) ...<Widget>[
+            Wrap(spacing: 8, runSpacing: 8, children: leading),
+            const SizedBox(height: 8),
+          ],
           searchField,
           if (trailing.isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
@@ -82,6 +88,9 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        ...leading.expand(
+          (Widget w) => <Widget>[w, const SizedBox(width: 8)],
+        ),
         Expanded(child: searchField),
         if (trailing.isNotEmpty) ...<Widget>[
           const SizedBox(width: 8),

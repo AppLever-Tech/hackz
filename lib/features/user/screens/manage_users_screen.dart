@@ -9,12 +9,14 @@ import '../../../models/enums/organization_type.dart';
 import '../../../models/organization_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
-import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../widgets/common/rich_tabs.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../widgets/deptadmin/department_access_code_bar.dart';
+import '../../../widgets/deptadmin/department_metric_card.dart';
 import '../../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../../../widgets/responsive/responsive_metric_grid.dart';
 import '../../../workspace/workspace.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
@@ -25,12 +27,10 @@ class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
     super.key,
     required this.user,
-    this.initialTabIndex = 0,
     this.initialUsersFilter = UsersFilter.all,
   });
 
   final UserModel user;
-  final int initialTabIndex;
   final UsersFilter initialUsersFilter;
 
   @override
@@ -39,14 +39,12 @@ class ManageUsersScreen extends StatefulWidget {
 
 enum UsersFilter { all, faculty, students, coordinators, pending, rejected }
 
-class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _ManageUsersScreenState extends State<ManageUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   UsersFilter _filter = UsersFilter.all;
   bool _copied = false;
   List<UserModel> _allUsers = <UserModel>[];
   String _inviteCode = '';
-  String _orgName = '';
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -62,14 +60,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   void initState() {
     super.initState();
     _filter = widget.initialUsersFilter;
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex.clamp(0, 1));
     _searchController.addListener(() => setState(() {}));
     _loadAll();
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -92,15 +88,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
-      final orgDoc = await FirebaseFirestore.instance
-          .collection(FirestoreUtils.hkzOrganizations)
-          .doc(widget.user.orgId)
-          .get();
       if (!mounted) return;
       setState(() {
         _allUsers = users;
         _inviteCode = codeSnap.docs.isEmpty ? '' : ((codeSnap.docs.first.data()['code'] as String?) ?? '').trim();
-        _orgName = ((orgDoc.data()?['name'] as String?) ?? '').trim();
       });
     } catch (_) {
       // Keep prior list on load failure.
@@ -124,6 +115,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           },
         );
       },
+    );
+    if (changed && mounted) _loadAll();
+  }
+
+  Future<void> _openEditUser(UserModel user) async {
+    final changed = await showCreateUserDialog(
+      context: context,
+      roleOptions: const <String>['FAC', 'STU', 'COO'],
+      organization: _organization,
+      department: widget.user.department,
+      initialUser: user,
     );
     if (changed && mounted) _loadAll();
   }
@@ -351,114 +353,37 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     };
   }
 
-  Widget _overviewLine(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, size: 20, color: const Color(0xFF5F6684)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 15, height: 1.35, color: Color(0xFF1E293B)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverviewTab() {
-    final deptName = DepartmentModel.byCode(widget.user.departmentCode)?.name ?? widget.user.departmentCode;
-    final adminName = '${widget.user.firstName} ${widget.user.lastName}'.trim();
-    final collegeDisplay = _orgName.isEmpty ? widget.user.orgId : _orgName;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SectionContainer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _overviewLine(AppIcons.departments, deptName),
-                _overviewLine(AppIcons.organizations, collegeDisplay),
-                _overviewLine(AppIcons.adminProfile, adminName.isEmpty ? '—' : adminName),
-                _overviewLine(AppIcons.phone, widget.user.phone),
-                _overviewLine(AppIcons.email, widget.user.email),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SectionContainer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Text(
-                  'Access Code',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, _) {
-                    final codeField = Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          const Icon(AppIcons.key, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _inviteCode.isEmpty ? 'No active invite code' : _formatCode(_inviteCode),
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                    final actions = <Widget>[
-                      OutlinedButton.icon(
-                        onPressed: _inviteCode.isEmpty ? null : _copyInviteCode,
-                        icon: Icon(_copied ? AppIcons.copied : AppIcons.copy, size: 16),
-                        label: Text(_copied ? 'Copied' : 'Copy'),
-                      ),
-                      IconButton(
-                        tooltip: 'Regenerate code',
-                        onPressed: _regenerateInviteCode,
-                        icon: const Icon(AppIcons.refresh),
-                      ),
-                    ];
-                    if (ResponsiveHelper.isMobile(context)) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          codeField,
-                          const SizedBox(height: 8),
-                          ResponsiveWrapToolbar(children: actions),
-                        ],
-                      );
-                    }
-                    return Row(
-                      children: <Widget>[
-                        Expanded(child: codeField),
-                        const SizedBox(width: 8),
-                        ...actions,
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  List<DashboardMetricChipData> _userMetricChips() {
+    return <DashboardMetricChipData>[
+      DepartmentMetricCard(
+        value: '${_countForFilter(UsersFilter.faculty)}',
+        label: 'Faculty',
+        icon: AppIcons.faculty,
+        iconBgColor: const Color(0xFFEAF2FF),
+        tooltip: 'Active faculty in this department.',
+      ).toChipData(),
+      DepartmentMetricCard(
+        value: '${_countForFilter(UsersFilter.students)}',
+        label: 'Students',
+        icon: AppIcons.student,
+        iconBgColor: const Color(0xFFF2EDFF),
+        tooltip: 'Active students in this department.',
+      ).toChipData(),
+      DepartmentMetricCard(
+        value: '${_countForFilter(UsersFilter.coordinators)}',
+        label: 'Coordinators',
+        icon: AppIcons.coordinator,
+        iconBgColor: const Color(0xFFE9FAF0),
+        tooltip: 'Active coordinators in this department.',
+      ).toChipData(),
+      DepartmentMetricCard(
+        value: '${_countForFilter(UsersFilter.pending)}',
+        label: 'Pending Users',
+        icon: AppIcons.pendingUsers,
+        iconBgColor: const Color(0xFFFFF7E6),
+        tooltip: 'Users awaiting department approval.',
+      ).toChipData(),
+    ];
   }
 
   Widget _metaDot() {
@@ -544,6 +469,16 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     return line;
   }
 
+  Widget _editIconButton(UserModel u) {
+    return IconButton(
+      tooltip: 'Edit user',
+      onPressed: () => _openEditUser(u),
+      icon: const Icon(AppIcons.edit, size: 20),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
+
   Widget _userRowTrailing(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
     if (isPending) {
@@ -551,6 +486,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
+            _editIconButton(u),
             IconButton(
               tooltip: 'Approve',
               onPressed: () => _approve(u),
@@ -571,6 +507,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          _editIconButton(u),
           TextButton(
             onPressed: () => _approve(u),
             style: TextButton.styleFrom(
@@ -592,12 +529,18 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         ],
       );
     }
-    return IconButton(
-      tooltip: 'Delete user',
-      onPressed: () => _deleteUser(u),
-      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _editIconButton(u),
+        IconButton(
+          tooltip: 'Delete user',
+          onPressed: () => _deleteUser(u),
+          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
+      ],
     );
   }
 
@@ -657,28 +600,63 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Widget _filterPill(UsersFilter filter, IconData icon, String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterPill(
-        selected: _filter == filter,
-        icon: icon,
-        label: label,
-        count: _countForFilter(filter),
-        onTap: () => setState(() => _filter = filter),
-      ),
+    return FilterPill(
+      selected: _filter == filter,
+      icon: icon,
+      label: label,
+      count: _countForFilter(filter),
+      onTap: () => setState(() => _filter = filter),
     );
   }
 
-  Widget _buildUsersTab() {
-    final users = _filteredUsers();
+  Widget _buildUserList(List<UserModel> users) {
+    if (users.isEmpty) {
+      return const Center(child: Text('No users match the selected filter.'));
+    }
+
+    if (_filter != UsersFilter.all) {
+      return ListView(
+        padding: const EdgeInsets.only(bottom: 12),
+        children: users.map(_userRow).toList(growable: false),
+      );
+    }
+
     final pending = _section(users, status: UserStatus.pendingApproval);
     final faculty = _section(users, role: 'FAC');
     final students = _section(users, role: 'STU');
     final coordinators = _section(users, role: 'COO');
     final rejected = _section(users, status: UserStatus.rejected);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 12),
       children: <Widget>[
+        _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
+        _roleAccordion(title: 'Faculty', count: faculty.length, users: faculty),
+        _roleAccordion(title: 'Students', count: students.length, users: students),
+        _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
+        _roleAccordion(title: 'Rejected Users', count: rejected.length, users: rejected, highlighted: true),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double gap = ResponsiveHelper.dashboardSectionGap(context);
+    final List<UserModel> users = _filteredUsers();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        ResponsiveMetricGrid(chips: _userMetricChips()),
+        SizedBox(height: gap),
+        DepartmentAccessCodeBar(
+          displayCode: _formatCode(_inviteCode),
+          rawCode: _inviteCode,
+          copied: _copied,
+          onCopy: _copyInviteCode,
+          onRegenerate: _regenerateInviteCode,
+        ),
+        SizedBox(height: gap),
         ResponsiveFilterChipRow(
           children: <Widget>[
             _filterPill(UsersFilter.all, AppIcons.users, 'All'),
@@ -694,7 +672,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           searchController: _searchController,
           searchHint: 'Search users',
           showFilterButton: false,
-          trailing: <Widget>[
+          leading: <Widget>[
             FilledButton.icon(
               onPressed: _openCreateUser,
               icon: const Icon(AppIcons.add, size: 16),
@@ -703,54 +681,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           ],
         ),
         const SizedBox(height: 10),
-        Expanded(
-          child: users.isEmpty
-              ? const Center(child: Text('No users match the selected filter.'))
-              : ListView(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  children: <Widget>[
-                    _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
-                    _roleAccordion(title: 'Faculty', count: faculty.length, users: faculty),
-                    _roleAccordion(title: 'Students', count: students.length, users: students),
-                    _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
-                    _roleAccordion(
-                      title: 'Rejected Users',
-                      count: rejected.length,
-                      users: rejected,
-                      highlighted: true,
-                    ),
-                  ],
-                ),
-        ),
+        Expanded(child: _buildUserList(users)),
       ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          RichTabBar(
-            controller: _tabController,
-            tabs: const <RichTabItem>[
-              RichTabItem('Overview'),
-              RichTabItem('Users'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: <Widget>[
-                _buildOverviewTab(),
-                _buildUsersTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
