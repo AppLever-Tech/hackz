@@ -1,10 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-/// Column descriptor used by [DataTableView] / [ListTableScaffold].
+/// Column descriptor used by [DataTableView].
 ///
 /// Per-feature factories (e.g. `IdeaTableColumns.build(...)`) construct a list
-/// of these and pass it to the shared scaffold; cells are still rendered with
-/// each feature's existing pills/chips/buttons.
+/// of these; cells are rendered with each feature's existing pills/chips/buttons.
 @immutable
 class DataTableColumn<T> {
   const DataTableColumn({

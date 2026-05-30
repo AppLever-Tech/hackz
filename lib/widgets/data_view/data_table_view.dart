@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'data_table_column.dart';
 
-/// Compact, theme-matched tabular view used internally by [ListTableScaffold].
+/// Compact, theme-matched tabular view for list dashboards (e.g. ideas list).
 ///
 /// * Sticky header row with sort affordances (`onSort` is fired with the
 ///   column's `sortKey` when the header is tapped).
