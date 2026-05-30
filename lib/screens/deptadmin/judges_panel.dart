@@ -14,7 +14,6 @@ import '../../utils/firestore_utils.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../screens/common/dashboard_chrome_scope.dart';
 import '../../workspace/workspace.dart';
 import '../../features/user/screens/create_user_dialog.dart';
 
@@ -117,14 +116,10 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   }
 
   void _openAssignmentWorkspace() {
-    WorkspaceController.instance.close();
-    final chrome = DashboardChromeScope.of(context);
-    chrome.showOverlay(
-      EvaluationAssignmentDetailsPane(
-        user: widget.user,
-        onBack: chrome.clearOverlay,
-        backTooltip: 'Back to Judges Panel',
-      ),
+    showEvaluationAssignmentPane(
+      context,
+      user: widget.user,
+      backTooltip: 'Back to Judges Panel',
     );
   }
 

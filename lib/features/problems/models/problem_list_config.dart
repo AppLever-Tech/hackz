@@ -22,6 +22,7 @@ class ProblemListConfig {
     required this.canEdit,
     required this.canToggleActive,
     required this.canSubmitIdea,
+    required this.canAssignJudge,
     required this.restrictToDepartment,
     required this.orgId,
     required this.departmentCode,
@@ -33,6 +34,7 @@ class ProblemListConfig {
   final bool canEdit;
   final bool canToggleActive;
   final bool canSubmitIdea;
+  final bool canAssignJudge;
   final bool restrictToDepartment;
   final String orgId;
   final String departmentCode;

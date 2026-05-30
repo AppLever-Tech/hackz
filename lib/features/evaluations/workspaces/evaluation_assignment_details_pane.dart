@@ -1,7 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../../user/models/user_model.dart';
+import '../../../screens/common/dashboard_chrome_scope.dart';
+import '../../../workspace/core/workspace_controller.dart';
 import 'evaluation_assignment_workspace.dart';
+
+/// Opens the scoped assignment workspace as a dashboard overlay.
+void showEvaluationAssignmentPane(
+  BuildContext context, {
+  required UserModel user,
+  String? problemId,
+  String? ideaId,
+  required String backTooltip,
+}) {
+  WorkspaceController.instance.close();
+  final chrome = DashboardChromeScope.of(context);
+  chrome.showOverlay(
+    EvaluationAssignmentDetailsPane(
+      user: user,
+      problemId: problemId,
+      ideaId: ideaId,
+      onBack: chrome.clearOverlay,
+      backTooltip: backTooltip,
+    ),
+  );
+}
 
 /// Fills the dashboard main content area with evaluation assignment management.
 class EvaluationAssignmentDetailsPane extends StatelessWidget {

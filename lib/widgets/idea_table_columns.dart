@@ -23,6 +23,7 @@ class IdeaTableActions {
     required this.onOpenAttachments,
     required this.onEvaluate,
     required this.onUploadPayment,
+    this.onAssignJudge,
   });
 
   final void Function(IdeaListItem item) onOpenIdea;
@@ -33,6 +34,7 @@ class IdeaTableActions {
   final void Function(IdeaListItem item) onOpenAttachments;
   final void Function(IdeaListItem item) onEvaluate;
   final void Function(IdeaListItem item) onUploadPayment;
+  final void Function(IdeaListItem item)? onAssignJudge;
 }
 
 /// Per-feature column factory for the Ideas dashboard.
@@ -195,6 +197,12 @@ class _IdeaRowActionsMenu extends StatelessWidget {
         icon: AppIcons.preview,
         label: 'View Idea',
       ),
+      if (config.canAssignJudge && actions.onAssignJudge != null)
+        const CardOverflowMenuAction(
+          value: 'assign_judge',
+          icon: AppIcons.judges,
+          label: 'Assign Judge',
+        ),
       if (teamId.isNotEmpty)
         const CardOverflowMenuAction(
           value: 'team',
@@ -246,6 +254,8 @@ class _IdeaRowActionsMenu extends StatelessWidget {
         switch (value) {
           case 'idea':
             actions.onOpenIdea(item);
+          case 'assign_judge':
+            actions.onAssignJudge?.call(item);
           case 'team':
             actions.onOpenTeam(item);
           case 'problem':

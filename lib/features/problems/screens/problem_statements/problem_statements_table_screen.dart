@@ -28,6 +28,7 @@ import '../../widgets/problem_metrics_row.dart';
 import '../../widgets/problem_workflow_action_pill.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
+import '../../../evaluations/workspaces/evaluation_assignment_details_pane.dart';
 
 /// Fixed gap inserted between the PS # cell and the Title cell so the
 /// compact problem context pill doesn't visually butt up against the
@@ -234,6 +235,15 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     if (created == true && mounted) _loadProblems();
   }
 
+  void _openAssignJudge(ProblemModel problem) {
+    showEvaluationAssignmentPane(
+      context,
+      user: widget.currentUser,
+      problemId: problem.problemId,
+      backTooltip: 'Back to Problems',
+    );
+  }
+
   void _openDetails(ProblemModel problem) {
     WorkspaceController.instance.close();
     final chrome = DashboardChromeScope.of(context);
@@ -318,11 +328,13 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     columns: _columns,
                     minWidth: tableMinWidth,
                     canSubmitIdea: widget.config.canSubmitIdea,
+                    canAssignJudge: widget.config.canAssignJudge,
                     canDelete: widget.config.canToggleActive,
                     canEditFor: _canEditProblem,
                     onOpenProblem: (problem) => WorkspaceNavigator.openProblem(context, problem.problemId),
                     onOpenDetails: _openDetails,
                     onSubmitIdea: _openSubmitIdea,
+                    onAssignJudge: _openAssignJudge,
                     onEditProblem: _openEditProblem,
                     onDeleteProblem: _deleteProblem,
                   );
@@ -590,11 +602,13 @@ class _ProblemStatementsTable extends StatelessWidget {
     required this.columns,
     required this.minWidth,
     required this.canSubmitIdea,
+    required this.canAssignJudge,
     required this.canDelete,
     required this.canEditFor,
     required this.onOpenProblem,
     required this.onOpenDetails,
     required this.onSubmitIdea,
+    required this.onAssignJudge,
     required this.onEditProblem,
     required this.onDeleteProblem,
   });
@@ -605,11 +619,13 @@ class _ProblemStatementsTable extends StatelessWidget {
   final List<_TableColumn> columns;
   final double minWidth;
   final bool canSubmitIdea;
+  final bool canAssignJudge;
   final bool canDelete;
   final bool Function(ProblemModel problem) canEditFor;
   final ValueChanged<ProblemModel> onOpenProblem;
   final ValueChanged<ProblemModel> onOpenDetails;
   final ValueChanged<ProblemModel> onSubmitIdea;
+  final ValueChanged<ProblemModel> onAssignJudge;
   final ValueChanged<ProblemModel> onEditProblem;
   final ValueChanged<ProblemModel> onDeleteProblem;
 
@@ -651,11 +667,13 @@ class _ProblemStatementsTable extends StatelessWidget {
                         striped: index.isOdd,
                         gate: gate,
                         canSubmitIdea: canSubmitIdea,
+                        canAssignJudge: canAssignJudge,
                         canEdit: canEdit,
                         canDelete: canDelete,
                         onOpenProblem: () => onOpenProblem(problem),
                         onOpenDetails: () => onOpenDetails(problem),
                         onSubmitIdea: () => onSubmitIdea(problem),
+                        onAssignJudge: canAssignJudge ? () => onAssignJudge(problem) : null,
                         onEdit: canEdit ? () => onEditProblem(problem) : null,
                         onDelete: canDelete ? () => onDeleteProblem(problem) : null,
                       );
@@ -734,11 +752,13 @@ class _TableDataRow extends StatelessWidget {
     required this.striped,
     required this.gate,
     required this.canSubmitIdea,
+    required this.canAssignJudge,
     required this.canEdit,
     required this.canDelete,
     required this.onOpenProblem,
     required this.onOpenDetails,
     required this.onSubmitIdea,
+    required this.onAssignJudge,
     required this.onEdit,
     required this.onDelete,
   });
@@ -748,11 +768,13 @@ class _TableDataRow extends StatelessWidget {
   final bool striped;
   final IdeaSubmissionGate gate;
   final bool canSubmitIdea;
+  final bool canAssignJudge;
   final bool canEdit;
   final bool canDelete;
   final VoidCallback onOpenProblem;
   final VoidCallback onOpenDetails;
   final VoidCallback onSubmitIdea;
+  final VoidCallback? onAssignJudge;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -922,10 +944,12 @@ class _TableDataRow extends StatelessWidget {
                   problem: problem,
                   gate: gate,
                   canSubmitIdea: canSubmitIdea,
+                  canAssignJudge: canAssignJudge,
                   canEdit: canEdit,
                   canDelete: canDelete,
                   onSubmitIdea: onSubmitIdea,
                   onOpenDetails: onOpenDetails,
+                  onAssignJudge: onAssignJudge,
                   onEdit: onEdit,
                   onDelete: onDelete,
                 ),
@@ -972,10 +996,12 @@ class _ProblemRowActionArea extends StatelessWidget {
     required this.problem,
     required this.gate,
     required this.canSubmitIdea,
+    required this.canAssignJudge,
     required this.canEdit,
     required this.canDelete,
     required this.onSubmitIdea,
     required this.onOpenDetails,
+    required this.onAssignJudge,
     required this.onEdit,
     required this.onDelete,
   });
@@ -983,10 +1009,12 @@ class _ProblemRowActionArea extends StatelessWidget {
   final ProblemModel problem;
   final IdeaSubmissionGate gate;
   final bool canSubmitIdea;
+  final bool canAssignJudge;
   final bool canEdit;
   final bool canDelete;
   final VoidCallback onSubmitIdea;
   final VoidCallback onOpenDetails;
+  final VoidCallback? onAssignJudge;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -1001,6 +1029,12 @@ class _ProblemRowActionArea extends StatelessWidget {
         icon: AppIcons.preview,
         label: 'View Details',
       ),
+      if (canAssignJudge && onAssignJudge != null)
+        const CardOverflowMenuAction(
+          value: 'assign_judge',
+          icon: AppIcons.judges,
+          label: 'Assign Judge',
+        ),
       if (canEdit && onEdit != null)
         const CardOverflowMenuAction(
           value: 'edit',
@@ -1047,6 +1081,8 @@ class _ProblemRowActionArea extends StatelessWidget {
             switch (value) {
               case 'details':
                 onOpenDetails();
+              case 'assign_judge':
+                onAssignJudge?.call();
               case 'edit':
                 onEdit?.call();
               case 'delete':

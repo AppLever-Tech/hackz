@@ -17,6 +17,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: true,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
@@ -37,6 +38,7 @@ class IdeaRoleConfig {
           canEvaluate: true,
           canViewStatus: true,
           canUploadPayment: false,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
@@ -52,6 +54,26 @@ class IdeaRoleConfig {
           },
         );
       case UserRole.collegeAdmin:
+        return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
+          canCreateIdea: false,
+          canEvaluate: false,
+          canViewStatus: true,
+          canUploadPayment: false,
+          canAssignJudge: false,
+          ideaDepartmentScope: scope,
+          orgId: user.orgId,
+          departmentCode: user.departmentCode,
+          enabledFilters: const <IdeaFilterType>{
+            IdeaFilterType.status,
+            IdeaFilterType.problem,
+          },
+          enabledSorts: const <IdeaSortType>{
+            IdeaSortType.newest,
+            IdeaSortType.oldest,
+            IdeaSortType.status,
+          },
+        );
       case UserRole.departmentAdmin:
         return IdeaListConfig(
           canViewIdeas: canViewIdeas,
@@ -59,6 +81,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
+          canAssignJudge: true,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
@@ -79,6 +102,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: true,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
@@ -99,6 +123,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
@@ -121,6 +146,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: false,
           canUploadPayment: false,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,

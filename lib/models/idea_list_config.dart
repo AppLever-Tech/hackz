@@ -20,6 +20,7 @@ class IdeaListConfig {
     required this.canEvaluate,
     required this.canViewStatus,
     required this.canUploadPayment,
+    required this.canAssignJudge,
     required this.ideaDepartmentScope,
     required this.orgId,
     required this.departmentCode,
@@ -32,6 +33,7 @@ class IdeaListConfig {
   final bool canEvaluate;
   final bool canViewStatus;
   final bool canUploadPayment;
+  final bool canAssignJudge;
   final IdeaDepartmentScope ideaDepartmentScope;
   final String orgId;
   final String departmentCode;
