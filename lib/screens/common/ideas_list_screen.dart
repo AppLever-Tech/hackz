@@ -243,8 +243,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  /// `_sort` is the single source of truth — the sort menu and the table
-  /// header both mutate it through here.
+  /// `_sort` is the single source of truth — table headers mutate it here.
   String? get _activeSortKey {
     switch (_sort) {
       case IdeaSortType.newest:
@@ -342,8 +341,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       style: _toolbarButtonStyle(context),
     );
 
-    final sortButton = _buildSortButton(context);
-
     final searchField = TextField(
       controller: _searchController,
       onSubmitted: (_) => _loadIdeas(),
@@ -377,7 +374,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             runSpacing: 8,
             children: <Widget>[
               filterButton,
-              sortButton,
             ],
           ),
         ],
@@ -390,51 +386,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         Expanded(child: searchField),
         const SizedBox(width: 8),
         filterButton,
-        const SizedBox(width: 8),
-        sortButton,
       ],
-    );
-  }
-
-  Widget _buildSortButton(BuildContext context) {
-    const order = <IdeaSortType>[
-      IdeaSortType.newest,
-      IdeaSortType.oldest,
-      IdeaSortType.status,
-      IdeaSortType.score,
-    ];
-    final availableSorts =
-        order.where((IdeaSortType sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
-
-    return MenuAnchor(
-      style: const MenuStyle(
-        visualDensity: VisualDensity.compact,
-      ),
-      menuChildren: availableSorts
-          .map(
-            (IdeaSortType sort) => MenuItemButton(
-              onPressed: () {
-                setState(() => _sort = sort);
-                _loadIdeas();
-              },
-              child: Text(_sortLabel(sort)),
-            ),
-          )
-          .toList(growable: false),
-      builder: (BuildContext context, MenuController controller, Widget? child) {
-        return OutlinedButton.icon(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          icon: const Icon(Icons.swap_vert),
-          label: Text(_sortLabel(_sort)),
-          style: _toolbarButtonStyle(context),
-        );
-      },
     );
   }
 
@@ -595,19 +547,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         ),
       ],
     );
-  }
-
-  String _sortLabel(IdeaSortType type) {
-    switch (type) {
-      case IdeaSortType.newest:
-        return 'Newest';
-      case IdeaSortType.oldest:
-        return 'Oldest';
-      case IdeaSortType.status:
-        return 'Status';
-      case IdeaSortType.score:
-        return 'Score';
-    }
   }
 
   IconData _statusIcon(IdeaStatus status) {
