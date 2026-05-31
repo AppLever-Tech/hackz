@@ -28,6 +28,7 @@ import '../services/user_role_labels.dart';
 import '../services/user_service.dart';
 import '../widgets/user_form_section.dart';
 import '../widgets/user_profile_photo_field.dart';
+import '../../../shared/inputs/hackz_select_field.dart';
 import '../widgets/user_tags_field.dart';
 
 enum _UserFormField { firstName, lastName, email, phone, roles }
@@ -288,6 +289,19 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.6),
       ),
     );
+  }
+
+  static IconData _judgeTypeIcon(JudgeType type) {
+    switch (type) {
+      case JudgeType.internal:
+        return Icons.corporate_fare_outlined;
+      case JudgeType.external:
+        return Icons.public_outlined;
+      case JudgeType.industry:
+        return Icons.factory_outlined;
+      case JudgeType.academic:
+        return Icons.school_outlined;
+    }
   }
 
   Future<void> _pickPhoto() async {
@@ -656,18 +670,15 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
           children: <Widget>[
             _labeledField(
               'Judge type',
-              DropdownButtonFormField<JudgeType>(
-                initialValue: _judgeType,
-                decoration: _fieldDecoration('Select judge type'),
-                items: JudgeType.values
-                    .map(
-                      (JudgeType t) => DropdownMenuItem<JudgeType>(
-                        value: t,
-                        child: Text(t.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _saving ? null : (JudgeType? v) => setState(() => _judgeType = v),
+              HackzSelectField<JudgeType>(
+                value: _judgeType,
+                hint: 'Select judge type',
+                prefixIcon: AppIcons.judges,
+                options: JudgeType.values,
+                labelBuilder: (JudgeType type) => type.label,
+                iconBuilder: _judgeTypeIcon,
+                enabled: !_saving,
+                onChanged: (JudgeType type) => setState(() => _judgeType = type),
               ),
             ),
             const SizedBox(height: 10),
