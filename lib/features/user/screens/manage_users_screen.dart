@@ -17,7 +17,7 @@ import '../../../widgets/deptadmin/department_metric_card.dart';
 import '../../../widgets/responsive/responsive_alert_dialog.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
 import '../../../widgets/responsive/responsive_metric_grid.dart';
-import '../../../workspace/workspace.dart';
+import '../../../shared/workspace/user_list_identity_lead.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import 'create_user_dialog.dart';
@@ -409,21 +409,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Widget _userDetailsLine(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
     final isRejected = u.status == UserStatus.rejected;
-    final String name = '${u.firstName} ${u.lastName}'.trim().isEmpty ? u.phone : '${u.firstName} ${u.lastName}'.trim();
     final String email = u.email.trim().isEmpty ? '—' : u.email.trim();
     final String phone = u.phone.trim().isEmpty ? '—' : u.phone.trim();
     final String typeLabel = isPending ? 'Pending approval' : _roleLabel(u.role);
     final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No reason recorded' : u.rejectionReason!.trim();
 
     final List<Widget> segments = <Widget>[
-      ContextPill(
-        label: name,
-        semantic: ContextPillSemantic.user,
-        icon: AppIcons.forUserRoleCode(u.role),
-        onTap: () => WorkspaceNavigator.openUser(context, u.userId),
-        compact: true,
-        fitContent: true,
-      ),
+      UserListIdentityLead(user: u),
       _metaDot(),
       _inlineMeta(email),
       _metaDot(),

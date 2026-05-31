@@ -4,8 +4,6 @@ import '../../constants/app_icons.dart';
 import '../../features/user/models/user_model.dart';
 import '../../shared/workspace/user_workspace_avatar.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
 import '../../shared/menus/hackz_popup_menu.dart';
 import '../../widgets/common/time_frame_filter.dart';
 
@@ -235,7 +233,6 @@ class _DashboardHeaderActions extends StatelessWidget {
     final bool compact = ResponsiveHelper.isMobile(context);
     final double iconSize = compact ? 20 : 22;
     final double avatarRadius = compact ? 14 : 16;
-    final bool showUserPill = MediaQuery.sizeOf(context).width >= 340;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -255,18 +252,7 @@ class _DashboardHeaderActions extends StatelessWidget {
           onTap: onUserTap ?? () {},
           enabled: onUserTap != null,
         ),
-        SizedBox(width: compact ? 6 : 8),
-        if (showUserPill) ...<Widget>[
-          ContextPill(
-            label: user.displayName,
-            semantic: ContextPillSemantic.user,
-            onTap: onUserTap ?? () {},
-            compact: true,
-            fitContent: true,
-            enabled: onUserTap != null,
-          ),
-          SizedBox(width: compact ? 4 : 6),
-        ],
+        SizedBox(width: compact ? 4 : 6),
         HackzPopupMenuButton(
           tooltip: 'Account',
           actions: const <HackzMenuAction>[

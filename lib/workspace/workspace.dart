@@ -17,6 +17,7 @@ export 'shared/entity_reference_row.dart';
 export 'shared/entity_reference_tile.dart';
 export '../core/theme/app_semantic_colors.dart';
 export '../shared/workspace/context_launch_surface.dart';
+export '../shared/workspace/user_list_identity_lead.dart';
 export '../shared/workspace/user_workspace_avatar.dart';
 export '../widgets/common/context_pill.dart';
 export '../widgets/common/context_pill_group.dart';

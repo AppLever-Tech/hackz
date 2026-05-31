@@ -14,7 +14,7 @@ import '../../utils/firestore_utils.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/deptadmin/department_metric_card.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
+import '../../shared/workspace/user_list_identity_lead.dart';
 import '../../features/user/screens/create_user_dialog.dart';
 
 class JudgesPanelScreen extends StatefulWidget {
@@ -194,8 +194,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   }
 
   Widget _judgeDetailsLine(UserModel judge) {
-    final String name =
-        '${judge.firstName} ${judge.lastName}'.trim().isEmpty ? judge.phone : '${judge.firstName} ${judge.lastName}'.trim();
     final String email = judge.email.trim().isEmpty ? '—' : judge.email.trim();
     final String phone = judge.phone.trim().isEmpty ? '—' : judge.phone.trim();
 
@@ -203,17 +201,13 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        ContextPill(
-          label: name,
-          semantic: ContextPillSemantic.judge,
-          onTap: () => WorkspaceNavigator.openUser(context, judge.userId),
-          compact: true,
-          fitContent: true,
-        ),
+        UserListIdentityLead(user: judge),
         _metaDot(),
         _inlineMeta(email),
         _metaDot(),
         _inlineMeta(phone),
+        _metaDot(),
+        _inlineMeta('Judge'),
       ],
     );
 
