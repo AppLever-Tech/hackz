@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../features/team/models/team_model.dart';
 import '../../../../models/idea_model.dart';
+import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../models/evaluation_assignment_conflict.dart';
@@ -79,6 +80,16 @@ class EvaluationAssignmentService {
     };
   }
 
+  static const String mentorConflictReason = 'Mentor Conflict';
+
+  static bool isFacultyOnlyEvaluator(UserModel user) {
+    final bool isFaculty =
+        user.hasRoleCode(UserRole.faculty.code) || user.role.trim() == UserRole.faculty.code;
+    final bool isJudge =
+        user.hasRoleCode(UserRole.judge.code) || user.role.trim() == UserRole.judge.code;
+    return isFaculty && !isJudge;
+  }
+
   static EvaluationAssignmentConflict validateConflict({
     required UserModel judge,
     required IdeaModel idea,
@@ -89,21 +100,26 @@ class EvaluationAssignmentService {
     if (judgeId.isEmpty) {
       return const EvaluationAssignmentConflict(
         isConflict: true,
-        reasons: <String>['Invalid judge id'],
+        reasons: <String>['Invalid evaluator id'],
       );
     }
-    if (idea.createdBy.trim() == judgeId) {
-      reasons.add('Self-submitted idea');
-    }
-    final TeamModel? t = team;
-    if (t != null) {
-      if (t.mentorId.trim() == judgeId) {
-        reasons.add('Judge mentors this team');
+
+    final bool facultyOnly = isFacultyOnlyEvaluator(judge);
+    if (!facultyOnly) {
+      if (idea.createdBy.trim() == judgeId) {
+        reasons.add('Self-submitted idea');
       }
-      if (t.studentIds.contains(judgeId)) {
+      final TeamModel? t = team;
+      if (t != null && t.studentIds.contains(judgeId)) {
         reasons.add('Judge is a member of this team');
       }
     }
+
+    final TeamModel? t = team;
+    if (t != null && t.mentorId.trim() == judgeId) {
+      reasons.add(mentorConflictReason);
+    }
+
     return EvaluationAssignmentConflict(
       isConflict: reasons.isNotEmpty,
       reasons: reasons,

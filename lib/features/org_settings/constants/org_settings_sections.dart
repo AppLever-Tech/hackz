@@ -19,6 +19,7 @@ const List<String> kOrgSettingsSectionOrder = <String>[
   'userAuth',
   'leaderboard',
   'upload',
+  'evaluationSettings',
   kOrgSettingsEvaluationTemplatesSectionKey,
 ];
 
@@ -38,6 +39,8 @@ IconData orgSettingsSectionIcon(String sectionKey) {
       return AppIcons.leaderboard;
     case 'upload':
       return AppIcons.attachments;
+    case 'evaluationSettings':
+      return AppIcons.scoring;
     case kOrgSettingsEvaluationTemplatesSectionKey:
       return AppIcons.scoring;
     default:

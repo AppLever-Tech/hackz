@@ -18,6 +18,9 @@ class RoleUtils {
   }
 
   static Widget routeForRole(UserModel user) {
+    if (user.hasRoleCode(UserRole.judge.code)) {
+      return JudgeDashboard(user: user);
+    }
     switch (toEnum(user.role)) {
       case UserRole.sysAdmin:
         return SysAdminDashboard(user: user);

@@ -158,6 +158,19 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupTitle: 'Evaluation rules',
   ),
 
+  // —— Evaluation settings ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.allowFacultyAsJudges,
+    displayName: 'Allow faculty as judges',
+    type: OrgSettingValueType.boolean,
+    defaultValue: true,
+    sectionKey: 'evaluationSettings',
+    sectionTitle: 'Evaluation settings',
+    groupKey: 'general',
+    groupTitle: 'General',
+    description: 'When enabled, faculty members can be assigned as internal evaluators.',
+  ),
+
   // —— Problem ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.requireProblemCategoryTheme,

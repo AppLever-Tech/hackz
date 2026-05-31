@@ -23,6 +23,7 @@ class DashboardPageTemplate extends StatefulWidget {
     super.key,
     required this.user,
     required this.bodyBuilder,
+    this.primaryMenusOverride,
   });
 
   final UserModel user;
@@ -31,6 +32,9 @@ class DashboardPageTemplate extends StatefulWidget {
     int refreshToken,
     int selectedMenuIndex,
   ) bodyBuilder;
+
+  /// When set, replaces the role-default primary navigation items.
+  final List<DashboardMenuItem>? primaryMenusOverride;
 
   @override
   State<DashboardPageTemplate> createState() => _DashboardPageTemplateState();
@@ -68,8 +72,10 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   Widget build(BuildContext context) {
     final UserRole role = UserRole.fromCode(widget.user.role);
     final _RoleMenuConfig menuConfig = _RoleMenuConfig.forRole(role);
-    final String selectedMenuTitle = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].label;
-    final IconData selectedMenuIcon = menuConfig.primaryMenus[_selectedPrimaryMenuIndex].icon;
+    final List<DashboardMenuItem> primaryMenus =
+        widget.primaryMenusOverride ?? menuConfig.primaryMenus;
+    final String selectedMenuTitle = primaryMenus[_selectedPrimaryMenuIndex].label;
+    final IconData selectedMenuIcon = primaryMenus[_selectedPrimaryMenuIndex].icon;
     final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
 
     return DashboardSessionScope(
@@ -81,7 +87,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
           listenable: _chromeController,
           builder: (BuildContext context, Widget? child) {
             return ResponsiveDashboardLayout(
-            primaryMenus: menuConfig.primaryMenus,
+            primaryMenus: primaryMenus,
             secondaryMenus: menuConfig.secondaryMenus,
             selectedPrimaryIndex: _selectedPrimaryMenuIndex,
             onPrimaryMenuSelected: (int index) {

@@ -18,6 +18,10 @@ import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';
 import '../assignments/models/evaluation_assignment_conflict.dart';
 import '../assignments/services/evaluation_assignment_service.dart';
+import '../models/evaluator_source.dart';
+import '../services/evaluator_catalog_service.dart';
+import '../widgets/evaluator_assignment_row.dart';
+import '../widgets/evaluator_filter_chips.dart';
 
 class EvaluationAssignmentWorkspace extends StatefulWidget {
   const EvaluationAssignmentWorkspace({
@@ -76,6 +80,8 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   bool _saving = false;
   String? _selectedProblemId;
   String _search = '';
+  String _evaluatorSearch = '';
+  EvaluatorListFilter _evaluatorFilter = EvaluatorListFilter.all;
   final Set<String> _selectedIdeaIds = <String>{};
   final Set<String> _selectedJudgeIds = <String>{};
   bool _onlyUnassigned = false;
@@ -86,7 +92,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
 
   List<ProblemModel> _problems = <ProblemModel>[];
   List<IdeaModel> _ideas = <IdeaModel>[];
-  List<UserModel> _judges = <UserModel>[];
+  List<UserModel> _evaluators = <UserModel>[];
   Map<String, TeamModel> _teamsById = <String, TeamModel>{};
   Map<String, ScoreModel> _latestScoreByIdea = <String, ScoreModel>{};
   Map<String, List<String>> _assignedJudgesByIdea = <String, List<String>>{};
@@ -125,11 +131,6 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
             .where('orgId', isEqualTo: _orgId)
             .get(),
         FirebaseFirestore.instance
-            .collection(FirestoreUtils.hkzUsers)
-            .where('orgId', isEqualTo: _orgId)
-            .where('role', isEqualTo: 'JUD')
-            .get(),
-        FirebaseFirestore.instance
             .collection(FirestoreUtils.hkzTeams)
             .where('orgId', isEqualTo: _orgId)
             .get(),
@@ -148,14 +149,12 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           results[0] as QuerySnapshot<Map<String, dynamic>>;
       final QuerySnapshot<Map<String, dynamic>> ideasSnap =
           results[1] as QuerySnapshot<Map<String, dynamic>>;
-      final QuerySnapshot<Map<String, dynamic>> judgesSnap =
-          results[2] as QuerySnapshot<Map<String, dynamic>>;
       final QuerySnapshot<Map<String, dynamic>> teamsSnap =
-          results[3] as QuerySnapshot<Map<String, dynamic>>;
+          results[2] as QuerySnapshot<Map<String, dynamic>>;
       final QuerySnapshot<Map<String, dynamic>> scoresSnap =
-          results[4] as QuerySnapshot<Map<String, dynamic>>;
+          results[3] as QuerySnapshot<Map<String, dynamic>>;
       final QuerySnapshot<Map<String, dynamic>> assignmentsSnap =
-          results[5] as QuerySnapshot<Map<String, dynamic>>;
+          results[4] as QuerySnapshot<Map<String, dynamic>>;
 
       final List<ProblemModel> problems = problemsSnap.docs
           .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
@@ -166,12 +165,9 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
               IdeaModel.fromMap(doc.id, doc.data()))
           .toList(growable: false);
-      final List<UserModel> judges = judgesSnap.docs
-          .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-        final UserModel user = UserModel.fromMap(doc.data());
-        if (user.userId.trim().isNotEmpty) return user;
-        return user.copyWith(userId: doc.id);
-      }).toList(growable: false);
+      final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(
+        orgId: _orgId,
+      );
       final Map<String, TeamModel> teamsById = <String, TeamModel>{
         for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in teamsSnap.docs)
           doc.id: TeamModel.fromMap(doc.id, doc.data()),
@@ -203,7 +199,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
       final Map<String, int> workload =
           await EvaluationAssignmentService.workloadByJudge(
         orgId: _orgId,
-        judgeIds: judges.map((UserModel e) => e.userId),
+        judgeIds: evaluators.map((UserModel e) => e.userId),
       );
 
       if (!mounted) return;
@@ -237,7 +233,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
       setState(() {
         _problems = problems;
         _ideas = ideas;
-        _judges = judges;
+        _evaluators = evaluators;
         _teamsById = teamsById;
         _latestScoreByIdea = latestScoreByIdea;
         _assignedJudgesByIdea = assignedByIdea;
@@ -287,6 +283,17 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     return rows;
   }
 
+  List<UserModel> get _filteredEvaluators {
+    return _evaluators
+        .where((UserModel evaluator) {
+          if (!EvaluatorCatalogService.matchesFilter(evaluator, _evaluatorFilter)) {
+            return false;
+          }
+          return EvaluatorCatalogService.matchesSearch(evaluator, _evaluatorSearch);
+        })
+        .toList(growable: false);
+  }
+
   _IdeaRowVm _buildIdeaRowVm(IdeaModel idea) {
     return _IdeaRowVm(
       idea: idea,
@@ -309,17 +316,30 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     final List<_IdeaRowVm> selectedRows = _filteredIdeas
         .where((_IdeaRowVm row) => _selectedIdeaIds.contains(row.idea.ideaId))
         .toList(growable: false);
-    final List<UserModel> targetJudges = _judges
+    final List<UserModel> targetJudges = _evaluators
         .where((UserModel u) => _selectedJudgeIds.contains(u.userId))
         .toList(growable: false);
     if (selectedRows.isEmpty || targetJudges.isEmpty) {
       FeedbackService.showInfo(
         context,
         title: 'Nothing selected',
-        message: 'Select ideas and judges first.',
+        message: 'Select ideas and evaluators first.',
       );
       return;
     }
+
+    for (final UserModel evaluator in targetJudges) {
+      final String? conflict = _evaluatorConflictLabel(evaluator);
+      if (conflict != null) {
+        FeedbackService.showError(
+          context,
+          title: 'Assignment blocked',
+          message: '${evaluator.displayName}: $conflict',
+        );
+        return;
+      }
+    }
+
     final ProblemModel? selectedProblem = _selectedProblem;
     if (selectedProblem == null) return;
     setState(() => _saving = true);
@@ -346,7 +366,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     FeedbackService.showSuccess(
       context,
       title: 'Assigned',
-      message: 'Selected ideas were assigned to judges.',
+      message: 'Selected ideas were assigned to evaluators.',
     );
   }
 
@@ -383,15 +403,19 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     return null;
   }
 
-  bool get _allJudgesSelected {
-    return _judges.isNotEmpty &&
-        _judges.every((UserModel judge) => _selectedJudgeIds.contains(judge.userId));
+  bool get _allEvaluatorsSelected {
+    final List<UserModel> rows = _filteredEvaluators;
+    return rows.isNotEmpty &&
+        rows.every((UserModel evaluator) => _selectedJudgeIds.contains(evaluator.userId));
   }
 
-  bool? get _judgesSelectAllValue {
-    if (_judges.isEmpty) return false;
-    if (_selectedJudgeIds.isEmpty) return false;
-    if (_selectedJudgeIds.length == _judges.length) return true;
+  bool? get _evaluatorsSelectAllValue {
+    final List<UserModel> rows = _filteredEvaluators;
+    if (rows.isEmpty) return false;
+    final int selected =
+        rows.where((UserModel e) => _selectedJudgeIds.contains(e.userId)).length;
+    if (selected == 0) return false;
+    if (selected == rows.length) return true;
     return null;
   }
 
@@ -410,12 +434,16 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
 
   void _toggleSelectAllJudges() {
     setState(() {
-      if (_allJudgesSelected) {
-        _selectedJudgeIds.clear();
+      final Iterable<String> ids =
+          _filteredEvaluators.map((UserModel evaluator) => evaluator.userId);
+      if (_allEvaluatorsSelected) {
+        _selectedJudgeIds.removeAll(ids);
       } else {
-        _selectedJudgeIds
-          ..clear()
-          ..addAll(_judges.map((UserModel judge) => judge.userId));
+        for (final UserModel evaluator in _filteredEvaluators) {
+          if (_evaluatorConflictLabel(evaluator) == null) {
+            _selectedJudgeIds.add(evaluator.userId);
+          }
+        }
       }
     });
   }
@@ -850,6 +878,15 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   void _toggleJudgeSelection(String judgeId, {required bool selected}) {
+    if (!selected) {
+      final UserModel? evaluator = _evaluators.cast<UserModel?>().firstWhere(
+            (UserModel? u) => u?.userId == judgeId,
+            orElse: () => null,
+          );
+      if (evaluator != null && _evaluatorConflictLabel(evaluator) != null) {
+        return;
+      }
+    }
     setState(() {
       if (selected) {
         _selectedJudgeIds.remove(judgeId);
@@ -880,12 +917,6 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     final String id = ideaId.trim();
     if (id.isEmpty) return;
     WorkspaceNavigator.openIdea(context, id);
-  }
-
-  void _openUserWorkspace(String userId) {
-    final String id = userId.trim();
-    if (id.isEmpty) return;
-    WorkspaceNavigator.openUser(context, id);
   }
 
   Widget _ideaRow(_IdeaRowVm row, bool selected) {
@@ -943,7 +974,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                 spacing: 6,
                 runSpacing: 6,
                 children: row.assignedJudgeIds.map((String judgeId) {
-                  final UserModel? judge = _judges.cast<UserModel?>().firstWhere(
+                  final UserModel? judge = _evaluators.cast<UserModel?>().firstWhere(
                         (UserModel? u) => u?.userId == judgeId,
                         orElse: () => null,
                       );
@@ -966,6 +997,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   Widget _buildRightPanel() {
+    final List<UserModel> evaluators = _filteredEvaluators;
     final String selectionLabel = '${_selectedJudgeIds.length} selected';
     return Container(
       decoration: kDashboardCardDecoration,
@@ -974,7 +1006,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
         children: <Widget>[
           _panelHeader(
             icon: AppIcons.judges,
-            title: 'Judge Assignment',
+            title: 'Evaluators',
             trailing: FilledButton.icon(
               onPressed: _saving ? null : _assignSelected,
               style: FilledButton.styleFrom(
@@ -997,10 +1029,26 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
             ),
           ),
           _panelToolbarRow(
+            child: TextField(
+              decoration: _compactRoundedFieldDecoration(
+                hintText: 'Search name or email',
+              ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
+              onChanged: (String value) => setState(() => _evaluatorSearch = value),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: EvaluatorFilterChips(
+              selected: _evaluatorFilter,
+              onChanged: (EvaluatorListFilter filter) =>
+                  setState(() => _evaluatorFilter = filter),
+            ),
+          ),
+          _panelToolbarRow(
             child: Row(
               children: <Widget>[
                 _inlineSelectAllControl(
-                  value: _judgesSelectAllValue,
+                  value: _evaluatorsSelectAllValue,
                   onToggle: _toggleSelectAllJudges,
                   label: 'Select all',
                 ),
@@ -1018,20 +1066,20 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           ),
           _panelToolbarDivider,
           Expanded(
-            child: _judges.isEmpty
+            child: evaluators.isEmpty
                 ? const Center(
                     child: Text(
-                      'No judges found for this organization.',
+                      'No evaluators found for this organization.',
                       style: TextStyle(color: Color(0xFF64748B)),
                     ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                    itemCount: _judges.length,
+                    itemCount: evaluators.length,
                     itemBuilder: (BuildContext context, int index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: _judgeRow(_judges[index]),
+                        child: _evaluatorRow(evaluators[index]),
                       );
                     },
                   ),
@@ -1041,111 +1089,37 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
-  Widget _judgeRow(UserModel judge) {
-    final String judgeName = _judgeDisplayName(judge);
-    final int workload = _workloadByJudge[judge.userId] ?? 0;
-    final bool selected = _selectedJudgeIds.contains(judge.userId);
-    final EvaluationAssignmentConflict? sampledConflict =
-        _selectedIdeaIds.length == 1 ? _conflictForSingleSelection(judge.userId) : null;
+  Widget _evaluatorRow(UserModel evaluator) {
+    final int workload = _workloadByJudge[evaluator.userId] ?? 0;
+    final bool selected = _selectedJudgeIds.contains(evaluator.userId);
+    final String? conflictLabel = _evaluatorConflictLabel(evaluator);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected ? const Color(0xFFC4B5FD) : const Color(0xFFE2E8F0),
-          width: selected ? 1.4 : 1,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: Checkbox(
-              value: selected,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              onChanged: (_) => _toggleJudgeSelection(judge.userId, selected: selected),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: EntityCardPills.workspace(
-              judgeName,
-              ContextPillSemantic.judge,
-              () => _openUserWorkspace(judge.userId),
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: 8),
-          _workloadPill('$workload ideas'),
-          if (sampledConflict != null && sampledConflict.isConflict) ...<Widget>[
-            const SizedBox(width: 6),
-            _conflictPill(sampledConflict.reasons.join(', ')),
-          ],
-        ],
-      ),
+    return EvaluatorAssignmentRow(
+      evaluator: evaluator,
+      selected: selected,
+      workloadLabel: '$workload ideas',
+      conflictLabel: conflictLabel,
+      onToggle: () => _toggleJudgeSelection(evaluator.userId, selected: selected),
     );
   }
 
-  EvaluationAssignmentConflict? _conflictForSingleSelection(String judgeId) {
-    if (_selectedIdeaIds.length != 1) return null;
-    final String ideaId = _selectedIdeaIds.first;
-    final _IdeaRowVm? row = _filteredIdeas.cast<_IdeaRowVm?>().firstWhere(
-          (_IdeaRowVm? r) => r?.idea.ideaId == ideaId,
-          orElse: () => null,
-        );
-    final UserModel? judge = _judges.cast<UserModel?>().firstWhere(
-          (UserModel? u) => u?.userId == judgeId,
-          orElse: () => null,
-        );
-    if (row == null || judge == null) return null;
-    return EvaluationAssignmentService.validateConflict(
-      judge: judge,
-      idea: row.idea,
-      team: row.team,
-    );
-  }
-
-  Widget _workloadPill(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF1D4ED8),
-        ),
-      ),
-    );
-  }
-
-  Widget _conflictPill(String reason) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF1F2),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFFDA4AF)),
-      ),
-      child: Text(
-        reason,
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFFBE123C),
-        ),
-      ),
-    );
+  String? _evaluatorConflictLabel(UserModel evaluator) {
+    if (_selectedIdeaIds.isEmpty) return null;
+    for (final _IdeaRowVm row in _filteredIdeas) {
+      if (!_selectedIdeaIds.contains(row.idea.ideaId)) continue;
+      final EvaluationAssignmentConflict conflict =
+          EvaluationAssignmentService.validateConflict(
+        judge: evaluator,
+        idea: row.idea,
+        team: row.team,
+      );
+      if (conflict.isConflict) {
+        if (conflict.reasons.contains(EvaluationAssignmentService.mentorConflictReason)) {
+          return EvaluationAssignmentService.mentorConflictReason;
+        }
+        return conflict.reasons.first;
+      }
+    }
+    return null;
   }
 }

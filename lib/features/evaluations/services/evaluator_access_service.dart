@@ -1,0 +1,28 @@
+import '../../user/models/enums/user_role.dart';
+import '../../user/models/user_model.dart';
+import '../assignments/services/evaluation_assignment_service.dart';
+
+/// Determines whether a user should see judge-style assigned evaluation flows.
+class EvaluatorAccessService {
+  EvaluatorAccessService._();
+
+  static Future<bool> shouldShowAssignedEvaluations(UserModel user) async {
+    if (user.hasRoleCode(UserRole.judge.code)) return true;
+    if (!user.hasRoleCode(UserRole.faculty.code) &&
+        user.role.trim() != UserRole.faculty.code) {
+      return false;
+    }
+    return hasActiveAssignments(orgId: user.orgId, evaluatorId: user.userId);
+  }
+
+  static Future<bool> hasActiveAssignments({
+    required String orgId,
+    required String evaluatorId,
+  }) async {
+    final Set<String> ideaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+      orgId: orgId,
+      judgeId: evaluatorId,
+    );
+    return ideaIds.isNotEmpty;
+  }
+}

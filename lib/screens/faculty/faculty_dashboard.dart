@@ -23,47 +23,95 @@ import '../../responsive/responsive_helper.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../features/evaluations/services/evaluator_access_service.dart';
 import '../../features/team/screens/teams_screen.dart';
+import '../judge/judge_evaluation_workspace_screen.dart';
 
-class FacultyDashboard extends StatelessWidget {
+class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key, required this.user});
 
   final UserModel user;
 
   @override
+  State<FacultyDashboard> createState() => _FacultyDashboardState();
+}
+
+class _FacultyDashboardState extends State<FacultyDashboard> {
+  late Future<bool> _showAssignedEvaluationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _showAssignedEvaluationsFuture =
+        EvaluatorAccessService.shouldShowAssignedEvaluations(widget.user);
+  }
+
+  List<DashboardMenuItem> _primaryMenus(bool showAssignedEvaluations) {
+    final List<DashboardMenuItem> menus = <DashboardMenuItem>[
+      const DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
+      const DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
+      const DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
+      const DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
+    ];
+    if (showAssignedEvaluations) {
+      menus.add(
+        const DashboardMenuItem(label: 'Assigned Evaluations', icon: AppIcons.scoring),
+      );
+    }
+    menus.add(const DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard));
+    return menus;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DashboardPageTemplate(
-      user: user,
-      bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
-        if (selectedMenuIndex == 1) {
-          return TeamsScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 2) {
-          return ProblemStatementsTableScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: ProblemRoleConfig.configFor(UserRole.faculty, user),
-          );
-        }
-        if (selectedMenuIndex == 3) {
-          return IdeasListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.faculty, user),
-          );
-        }
-        if (selectedMenuIndex == 4) {
-          return LeaderboardShowcaseScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        return _FacultyDashboardHome(
-          key: ValueKey<int>(refreshToken),
-          user: user,
+    return FutureBuilder<bool>(
+      future: _showAssignedEvaluationsFuture,
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        final bool showAssignedEvaluations =
+            snapshot.data ?? widget.user.hasRoleCode(UserRole.judge.code);
+        final int leaderboardIndex = showAssignedEvaluations ? 5 : 4;
+
+        return DashboardPageTemplate(
+          user: widget.user,
+          primaryMenusOverride: _primaryMenus(showAssignedEvaluations),
+          bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
+            if (selectedMenuIndex == 1) {
+              return TeamsScreen(
+                key: ValueKey<int>(refreshToken),
+                user: widget.user,
+              );
+            }
+            if (selectedMenuIndex == 2) {
+              return ProblemStatementsTableScreen(
+                key: ValueKey<int>(refreshToken),
+                currentUser: widget.user,
+                config: ProblemRoleConfig.configFor(UserRole.faculty, widget.user),
+              );
+            }
+            if (selectedMenuIndex == 3) {
+              return IdeasListScreen(
+                key: ValueKey<int>(refreshToken),
+                currentUser: widget.user,
+                config: IdeaRoleConfig.configFor(UserRole.faculty, widget.user),
+              );
+            }
+            if (showAssignedEvaluations && selectedMenuIndex == 4) {
+              return JudgeEvaluationWorkspaceScreen(
+                key: ValueKey<int>(refreshToken),
+                user: widget.user,
+              );
+            }
+            if (selectedMenuIndex == leaderboardIndex) {
+              return LeaderboardShowcaseScreen(
+                key: ValueKey<int>(refreshToken),
+                user: widget.user,
+              );
+            }
+            return _FacultyDashboardHome(
+              key: ValueKey<int>(refreshToken),
+              user: widget.user,
+            );
+          },
         );
       },
     );
