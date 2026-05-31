@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
@@ -10,12 +12,12 @@ import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
+import '../../widgets/common/dashboard_trend_chart_layout.dart';
+import '../../widgets/common/time_frame_filter.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../widgets/responsive/responsive_multi_column.dart';
 import 'judge_evaluation_workspace_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {
@@ -49,6 +51,17 @@ class JudgeDashboard extends StatelessWidget {
   }
 }
 
+enum _JudgeDashboardTimeframe {
+  currentWeek('Current week'),
+  lastWeek('Last week'),
+  lastMonth('Last month'),
+  lastSixMonths('Last 6 months'),
+  all('All');
+
+  const _JudgeDashboardTimeframe(this.label);
+  final String label;
+}
+
 class _JudgeDashboardHome extends StatefulWidget {
   const _JudgeDashboardHome({super.key, required this.user});
 
@@ -59,9 +72,14 @@ class _JudgeDashboardHome extends StatefulWidget {
 }
 
 class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
+  static const int _kChartRowFirstFlex = 3;
+  static const int _kChartRowSecondFlex = 2;
   static const double _kActivityIconSize = 18;
+
   final JudgeDashboardService _service = JudgeDashboardService();
   late Future<JudgeDashboardVm> _future;
+  _JudgeDashboardTimeframe _timelineTimeframe = _JudgeDashboardTimeframe.currentWeek;
+  _JudgeDashboardTimeframe _activityTimeframe = _JudgeDashboardTimeframe.currentWeek;
 
   @override
   void initState() {
@@ -88,11 +106,9 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
             children: <Widget>[
               _buildSummaryCards(vm),
               SizedBox(height: gap),
-              _buildInsights(vm),
+              _buildChartsRow(context, vm, gap),
               SizedBox(height: gap),
-              _buildJudgeInfoAndWorkload(vm),
-              SizedBox(height: gap),
-              _buildRecentActivity(vm),
+              _buildOverviewAndActivityRow(context, vm, gap),
             ],
           ),
         );
@@ -131,111 +147,97 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
     );
   }
 
-  Widget _buildInsights(JudgeDashboardVm vm) {
-    return ResponsiveMultiColumn(
-      spacing: ResponsiveHelper.dashboardSectionGap(context),
-      children: <Widget>[
-        _buildStatusDistributionChart(vm),
-        _buildScoreDistributionChart(vm),
-        _buildEvaluationTimelineChart(vm),
-      ],
-    );
-  }
-
-  Widget _buildStatusDistributionChart(JudgeDashboardVm vm) {
-    return ChartCard(
-      title: 'Evaluation Status Distribution',
-      icon: AppIcons.statusEvaluated,
-      child: ResponsiveChartBox(
-        desktopHeight: 210,
-        child: _JudgeStatusDonut(
-          pending: vm.pendingDistributionCount,
-          completed: vm.completedDistributionCount,
+  Widget _buildChartsRow(BuildContext context, JudgeDashboardVm vm, double gap) {
+    final Map<String, int> timelineSeries =
+        _buildTimeSeries(vm.evaluationDates, _timelineTimeframe);
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.trendCardContentHeight +
+          DashboardLayoutTokens.sectionContainerVerticalPadding,
+      pair: ResponsivePair(
+        spacing: gap,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        firstFlex: _kChartRowFirstFlex,
+        secondFlex: _kChartRowSecondFlex,
+        first: SectionContainer(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              DashboardCardHeaderRow(
+                title: 'Evaluation Timeline',
+                icon: AppIcons.clock,
+                trailing: TimeFrameFilter<_JudgeDashboardTimeframe>(
+                  options: _JudgeDashboardTimeframe.values,
+                  selected: _timelineTimeframe,
+                  labelBuilder: (_JudgeDashboardTimeframe option) => option.label,
+                  onChanged: (_JudgeDashboardTimeframe timeframe) =>
+                      setState(() => _timelineTimeframe = timeframe),
+                ),
+              ),
+              const SizedBox(height: DashboardTrendChartLayout.headerToSubtitleGap),
+              Text(
+                '${_timelineTimeframe.label} evaluations completed',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: DashboardTrendChartLayout.subtitleToChartGap),
+              SizedBox(
+                height: DashboardTrendChartLayout.chartBoxHeight,
+                child: _JudgeEvaluationTimelineChart(series: timelineSeries),
+              ),
+              const SizedBox(height: DashboardTrendChartLayout.chartToLegendGap),
+              const _LegendDot(color: StatusStyles.evaluated, text: 'Evaluations completed'),
+            ],
+          ),
+        ),
+        second: SectionContainer(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          child: DashboardStackedChartBody(
+            headers: <Widget>[
+              const DashboardCardTitle(title: 'Score Distribution', icon: AppIcons.scoring),
+              const SizedBox(height: DashboardLayoutTokens.chartHeaderSpacing),
+            ],
+            chart: _ScoreDistributionChart(
+              lowCount: vm.lowScoreCount,
+              mediumCount: vm.mediumScoreCount,
+              highCount: vm.highScoreCount,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildScoreDistributionChart(JudgeDashboardVm vm) {
-    return ChartCard(
-      title: 'Score Distribution',
-      icon: AppIcons.scoring,
-      child: ResponsiveChartBox(
-        desktopHeight: 210,
-        child: _ScoreDistributionChart(
-          lowCount: vm.lowScoreCount,
-          mediumCount: vm.mediumScoreCount,
-          highCount: vm.highScoreCount,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEvaluationTimelineChart(JudgeDashboardVm vm) {
-    return ChartCard(
-      title: 'Evaluation Timeline',
-      icon: AppIcons.clock,
-      child: ResponsiveChartBox(
-        desktopHeight: 210,
-        child: _EvaluationTimelineChart(series: vm.evaluationTimeline),
-      ),
-    );
-  }
-
-  Widget _buildJudgeInfoAndWorkload(JudgeDashboardVm vm) {
-    return ResponsivePair(
-      spacing: ResponsiveHelper.dashboardSectionGap(context),
-      secondFlex: 2,
-      first: _buildJudgeInfoCard(vm),
-      second: _buildWorkloadOverview(vm),
-    );
-  }
-
-  Widget _buildJudgeInfoCard(JudgeDashboardVm vm) {
-    return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const DashboardCardTitle(title: 'Judge Information', icon: AppIcons.judges),
-          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-          _detailRow(icon: AppIcons.judges, label: 'Judge', value: vm.judgeName),
-          const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.organizations, label: 'Organization', value: vm.organizationName),
-          const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.departments, label: 'Expertise', value: vm.expertise),
-          const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.departments,
-            label: 'Assigned Depts',
-            value: vm.assignedDepartments.isEmpty ? '-' : vm.assignedDepartments.join(', '),
-          ),
-          const SizedBox(height: 8),
-          _detailRow(icon: AppIcons.statusEvaluated, label: 'Evaluations', value: '${vm.evaluatedIdeas}'),
-          const SizedBox(height: 8),
-          _detailRow(
-            icon: AppIcons.insights,
-            label: 'Avg Turnaround',
-            value: vm.avgTurnaroundHours == null ? '-' : '${vm.avgTurnaroundHours!.toStringAsFixed(1)} hrs',
-          ),
-        ],
+  Widget _buildOverviewAndActivityRow(BuildContext context, JudgeDashboardVm vm, double gap) {
+    return DashboardPairRow(
+      height: DashboardLayoutTokens.pairRowAlertsActivity,
+      pair: ResponsivePair(
+        spacing: gap,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        firstFlex: _kChartRowFirstFlex,
+        secondFlex: _kChartRowSecondFlex,
+        first: _buildWorkloadOverview(vm),
+        second: _buildRecentActivity(vm),
       ),
     );
   }
 
   Widget _buildWorkloadOverview(JudgeDashboardVm vm) {
     return SectionContainer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+      child: DashboardBoundedBody(
+        headers: <Widget>[
           const DashboardCardTitle(title: 'Evaluation Overview', icon: AppIcons.insights),
           const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
-          LayoutBuilder(
-            builder: (_, constraints) {
+        ],
+        bodyBuilder: ({required bool expandVertically}) {
+          return LayoutBuilder(
+            builder: (_, BoxConstraints constraints) {
               final maxWidth = constraints.maxWidth;
               final columns = (maxWidth / 240).floor().clamp(1, 2);
               const spacing = 12.0;
               final cardWidth = (maxWidth - spacing * (columns - 1)) / columns;
-              return Wrap(
+              final Widget grid = Wrap(
                 spacing: spacing,
                 runSpacing: spacing,
                 children: <Widget>[
@@ -273,28 +275,45 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
                   ),
                 ],
               );
+              if (expandVertically) {
+                return SingleChildScrollView(child: grid);
+              }
+              return grid;
             },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildRecentActivity(JudgeDashboardVm vm) {
+    final filtered = vm.activities
+        .where((JudgeActivityItem activity) => _isWithinTimeframe(activity.at, _activityTimeframe))
+        .toList(growable: false);
     return SectionContainer(
       child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         preset: DashboardListPreset.compact,
-        headers: const <Widget>[
-          DashboardCardTitle(title: 'Recent Activity', icon: AppIcons.clock),
-          SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+        headers: <Widget>[
+          DashboardCardHeaderRow(
+            title: 'Recent Activity',
+            icon: AppIcons.clock,
+            trailing: TimeFrameFilter<_JudgeDashboardTimeframe>(
+              options: _JudgeDashboardTimeframe.values,
+              selected: _activityTimeframe,
+              labelBuilder: (_JudgeDashboardTimeframe option) => option.label,
+              onChanged: (_JudgeDashboardTimeframe timeframe) =>
+                  setState(() => _activityTimeframe = timeframe),
+            ),
+          ),
+          const SizedBox(height: DashboardLayoutTokens.activityHeaderGap),
         ],
-        itemCount: vm.activities.length,
+        itemCount: filtered.length,
         empty: const Align(
           alignment: Alignment.topLeft,
-          child: Text('No recent activity.'),
+          child: Text('No activity in this period.'),
         ),
-        itemBuilder: (BuildContext context, int index) => _activityRow(vm.activities[index]),
+        itemBuilder: (BuildContext context, int index) => _activityRow(filtered[index]),
       ),
     );
   }
@@ -313,117 +332,183 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
     );
   }
 
-  Widget _detailRow({required IconData icon, required String label, required String value}) {
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 20,
-          child: Icon(icon, size: 16, color: const Color(0xFF57629A)),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 132,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF4B556A), fontWeight: FontWeight.w600),
-          ),
-        ),
-        const Text(': ', style: TextStyle(fontSize: 13, color: Color(0xFF4B556A))),
-        Expanded(
-          child: Text(
-            value.trim().isEmpty ? '-' : value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
+  static DateTime _dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+
+  Map<String, int> _buildTimeSeries(Iterable<DateTime> source, _JudgeDashboardTimeframe timeframe) {
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    late final DateTime start;
+    late final DateTime end;
+    late final int bucketCount;
+    late final Duration bucketSize;
+    switch (timeframe) {
+      case _JudgeDashboardTimeframe.currentWeek:
+        start = today.subtract(Duration(days: today.weekday - 1));
+        end = start.add(const Duration(days: 7));
+        bucketCount = 7;
+        bucketSize = const Duration(days: 1);
+        break;
+      case _JudgeDashboardTimeframe.lastWeek:
+        end = today.subtract(Duration(days: today.weekday - 1));
+        start = end.subtract(const Duration(days: 7));
+        bucketCount = 7;
+        bucketSize = const Duration(days: 1);
+        break;
+      case _JudgeDashboardTimeframe.lastMonth:
+        start = today.subtract(const Duration(days: 30));
+        end = now.add(const Duration(days: 1));
+        bucketCount = 6;
+        bucketSize = const Duration(days: 5);
+        break;
+      case _JudgeDashboardTimeframe.lastSixMonths:
+        start = DateTime(today.year, today.month - 5, 1);
+        end = now.add(const Duration(days: 1));
+        bucketCount = 6;
+        bucketSize = const Duration(days: 31);
+        break;
+      case _JudgeDashboardTimeframe.all:
+        final dates = source.toList(growable: false)..sort();
+        start = dates.isEmpty
+            ? today.subtract(const Duration(days: 180))
+            : DateTime(dates.first.year, dates.first.month, 1);
+        end = now.add(const Duration(days: 1));
+        bucketCount = 8;
+        final days = end.difference(start).inDays.clamp(1, 3650).toInt();
+        bucketSize = Duration(days: (days / bucketCount).ceil().clamp(1, 365).toInt());
+        break;
+    }
+
+    final buckets =
+        List<DateTime>.generate(bucketCount, (int i) => start.add(Duration(days: bucketSize.inDays * i)));
+    final dates = source.map(_dateOnly).toList(growable: false);
+    return <String, int>{
+      for (int i = 0; i < buckets.length; i++)
+        _bucketLabel(buckets[i], timeframe): dates.where((DateTime date) {
+          final DateTime from = _dateOnly(buckets[i]);
+          final DateTime to = _dateOnly(i == buckets.length - 1 ? end : buckets[i + 1]);
+          return !date.isBefore(from) && date.isBefore(to);
+        }).length,
+    };
+  }
+
+  bool _isWithinTimeframe(DateTime date, _JudgeDashboardTimeframe timeframe) {
+    final now = DateTime.now();
+    final today = _dateOnly(now);
+    final DateTime when = _dateOnly(date);
+    switch (timeframe) {
+      case _JudgeDashboardTimeframe.currentWeek:
+        final DateTime start = today.subtract(Duration(days: today.weekday - 1));
+        return !when.isBefore(start) && when.isBefore(start.add(const Duration(days: 7)));
+      case _JudgeDashboardTimeframe.lastWeek:
+        final DateTime currentWeekStart = today.subtract(Duration(days: today.weekday - 1));
+        final DateTime start = currentWeekStart.subtract(const Duration(days: 7));
+        return !when.isBefore(start) && when.isBefore(currentWeekStart);
+      case _JudgeDashboardTimeframe.lastMonth:
+        return !when.isBefore(today.subtract(const Duration(days: 30)));
+      case _JudgeDashboardTimeframe.lastSixMonths:
+        return !when.isBefore(DateTime(today.year, today.month - 5, 1));
+      case _JudgeDashboardTimeframe.all:
+        return true;
+    }
+  }
+
+  String _bucketLabel(DateTime date, _JudgeDashboardTimeframe timeframe) {
+    const months = <String>['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    switch (timeframe) {
+      case _JudgeDashboardTimeframe.currentWeek:
+      case _JudgeDashboardTimeframe.lastWeek:
+        const days = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return days[date.weekday - 1];
+      case _JudgeDashboardTimeframe.lastMonth:
+        return '${date.month}/${date.day}';
+      case _JudgeDashboardTimeframe.lastSixMonths:
+        return months[date.month - 1];
+      case _JudgeDashboardTimeframe.all:
+        return '${months[date.month - 1]} ${date.year % 100}';
+    }
   }
 }
 
-class _JudgeStatusDonut extends StatelessWidget {
-  const _JudgeStatusDonut({
-    required this.pending,
-    required this.completed,
-  });
+class _JudgeEvaluationTimelineChart extends StatelessWidget {
+  const _JudgeEvaluationTimelineChart({required this.series});
 
-  final int pending;
-  final int completed;
+  final Map<String, int> series;
 
   @override
   Widget build(BuildContext context) {
-    final total = (pending + completed).clamp(1, 1 << 20);
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: AspectRatio(
-            aspectRatio: 0.78,
-            child: CustomPaint(
-              painter: _JudgeStatusDonutPainter(
-                pendingPct: pending / total,
-                completedPct: completed / total,
-              ),
-              child: Center(
-                child: Text(
-                  '${pending + completed}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _LegendDot(color: StatusStyles.underReview, text: 'Pending $pending'),
-              const SizedBox(height: 6),
-              _LegendDot(color: StatusStyles.evaluated, text: 'Completed $completed'),
-            ],
-          ),
-        ),
-      ],
+    final bool isEmpty = series.values.every((int value) => value == 0);
+    if (series.isEmpty || isEmpty) {
+      return const Center(child: Text('No evaluations in this period.'));
+    }
+    return CustomPaint(
+      painter: _JudgeEvaluationTimelinePainter(series: series),
+      child: const SizedBox.expand(),
     );
   }
 }
 
-class _JudgeStatusDonutPainter extends CustomPainter {
-  const _JudgeStatusDonutPainter({
-    required this.pendingPct,
-    required this.completedPct,
-  });
+class _JudgeEvaluationTimelinePainter extends CustomPainter {
+  const _JudgeEvaluationTimelinePainter({required this.series});
 
-  final double pendingPct;
-  final double completedPct;
+  final Map<String, int> series;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final rect = Rect.fromCircle(center: center, radius: size.shortestSide * 0.31);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 13
-      ..strokeCap = StrokeCap.round;
-    double start = -1.57;
+    final List<String> labels = series.keys.toList(growable: false);
+    final List<int> values = series.values.toList(growable: false);
+    if (labels.isEmpty) return;
 
-    void arc(double value, Color color) {
-      if (value <= 0) return;
-      final sweep = 6.28318530718 * value;
-      paint.color = color;
-      canvas.drawArc(rect, start, sweep, false, paint);
-      start += sweep;
+    final Rect plot = DashboardTrendChartLayout.plotRect(size);
+    final Paint grid = Paint()
+      ..color = const Color(0xFFE8ECF8)
+      ..strokeWidth = 1;
+    for (int i = 0; i <= DashboardTrendChartLayout.yAxisTickCount; i++) {
+      final double y = DashboardTrendChartLayout.yAxisLineY(plot, i);
+      canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
     }
 
-    arc(pendingPct, StatusStyles.underReview);
-    arc(completedPct, StatusStyles.evaluated);
+    final int maxValue = math.max(1, values.fold<int>(0, math.max));
+    final Paint stroke = Paint()
+      ..color = StatusStyles.evaluated
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    final Paint dot = Paint()..color = StatusStyles.evaluated;
+    final Path path = Path();
+
+    for (int i = 0; i < values.length; i++) {
+      final double x =
+          values.length == 1 ? plot.center.dx : plot.left + (plot.width * i / (values.length - 1));
+      final double y = plot.bottom - (values[i] / maxValue) * plot.height;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+      canvas.drawCircle(Offset(x, y), 3.2, dot);
+    }
+    canvas.drawPath(path, stroke);
+
+    final TextPainter tp = TextPainter(textDirection: TextDirection.ltr);
+    for (int i = 0; i < labels.length; i++) {
+      final double x =
+          values.length == 1 ? plot.center.dx : plot.left + (plot.width * i / (values.length - 1));
+      tp.text = TextSpan(text: labels[i], style: DashboardTrendChartLayout.axisLabelStyle);
+      tp.layout();
+      tp.paint(canvas, Offset(x - tp.width / 2, plot.bottom + DashboardTrendChartLayout.xLabelGap));
+    }
+    for (int i = 0; i <= DashboardTrendChartLayout.yAxisTickCount; i++) {
+      final int value = DashboardTrendChartLayout.yAxisValue(maxValue, i);
+      final double y = DashboardTrendChartLayout.yAxisLineY(plot, i);
+      tp.text = TextSpan(text: '$value', style: DashboardTrendChartLayout.axisLabelStyle);
+      tp.layout();
+      tp.paint(canvas, Offset(0, y - tp.height / 2));
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _JudgeStatusDonutPainter oldDelegate) =>
-      oldDelegate.pendingPct != pendingPct || oldDelegate.completedPct != completedPct;
+  bool shouldRepaint(covariant _JudgeEvaluationTimelinePainter oldDelegate) =>
+      oldDelegate.series != series;
 }
 
 class _ScoreDistributionChart extends StatelessWidget {
@@ -516,7 +601,7 @@ class _ScoreBar extends StatelessWidget {
               child: Container(
                 width: 24,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.85),
+                  color: color.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -528,104 +613,6 @@ class _ScoreBar extends StatelessWidget {
       ],
     );
   }
-}
-
-class _EvaluationTimelineChart extends StatelessWidget {
-  const _EvaluationTimelineChart({required this.series});
-
-  final Map<String, int> series;
-
-  @override
-  Widget build(BuildContext context) {
-    if (series.isEmpty) {
-      return const Center(child: Text('No evaluations yet.'));
-    }
-    final labels = series.keys.toList(growable: false);
-    final values = series.values.toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const _LegendDot(color: StatusStyles.evaluated, text: 'Evaluations Completed'),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Row(
-            children: <Widget>[
-              const RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  'Count',
-                  style: TextStyle(fontSize: 11, color: Color(0xFF5A5F87)),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: CustomPaint(
-                  painter: _TimelineLinePainter(values: values),
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: <Widget>[
-            Text(labels.first, style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87))),
-            const Spacer(),
-            Text(labels.last, style: const TextStyle(fontSize: 11, color: Color(0xFF5A5F87))),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _TimelineLinePainter extends CustomPainter {
-  const _TimelineLinePainter({required this.values});
-
-  final List<int> values;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final maxVal = values.reduce((a, b) => a > b ? a : b).toDouble();
-    final safeMax = maxVal <= 0 ? 1.0 : maxVal;
-
-    final grid = Paint()
-      ..color = const Color(0xFFE8ECF6)
-      ..strokeWidth = 1;
-    for (var i = 0; i <= 4; i++) {
-      final y = size.height * (i / 4);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-    }
-
-    final path = Path();
-    for (var i = 0; i < values.length; i++) {
-      final x = values.length == 1 ? size.width / 2 : i * (size.width / (values.length - 1));
-      final y = size.height - ((values[i] / safeMax) * (size.height - 10)) - 5;
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    final line = Paint()
-      ..color = StatusStyles.evaluated
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(path, line);
-
-    final dot = Paint()..color = StatusStyles.evaluated;
-    for (var i = 0; i < values.length; i++) {
-      final x = values.length == 1 ? size.width / 2 : i * (size.width / (values.length - 1));
-      final y = size.height - ((values[i] / safeMax) * (size.height - 10)) - 5;
-      canvas.drawCircle(Offset(x, y), 3, dot);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _TimelineLinePainter oldDelegate) => oldDelegate.values != values;
 }
 
 class _LegendDot extends StatelessWidget {
@@ -736,7 +723,7 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(

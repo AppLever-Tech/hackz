@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../features/evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../features/evaluations/models/evaluation_template.dart';
 import '../models/attachment_model.dart';
@@ -170,6 +171,31 @@ abstract final class JudgeEvaluationService {
       orgId: judge.orgId,
       judgeId: judge.userId,
     );
+
+    final QuerySnapshot<Map<String, dynamic>> assignmentSnap = await _db
+        .collection(FirestoreUtils.hkzEvaluationAssignments)
+        .where('orgId', isEqualTo: judge.orgId)
+        .where('judgeId', isEqualTo: judge.userId)
+        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value)
+        .get();
+    final Map<String, String> assignmentIdByIdeaId = <String, String>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in assignmentSnap.docs) {
+      final EvaluationAssignmentModel assignment =
+          EvaluationAssignmentModel.fromMap(doc.id, doc.data());
+      if (assignment.ideaId.isEmpty) continue;
+      assignmentIdByIdeaId[assignment.ideaId] = assignment.assignmentId;
+    }
+
+    final Map<String, List<String>> judgesByIdea =
+        await EvaluationAssignmentService.assignedJudgesByIdea(
+      orgId: judge.orgId,
+      ideaIds: assignedIdeaIds,
+    );
+    final Map<String, int> assignedJudgeCountByIdeaId = <String, int>{
+      for (final MapEntry<String, List<String>> e in judgesByIdea.entries)
+        e.key: e.value.length,
+    };
+
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
         .where((idea) => assignedIdeaIds.contains(idea.ideaId))
@@ -205,7 +231,16 @@ abstract final class JudgeEvaluationService {
     final pendingIdeas = scopedIdeas.where((i) => judgeMayEvaluate(i) && !evaluatedIdeaIds.contains(i.ideaId)).toList(growable: false);
 
     final pendingRows = pendingIdeas
-        .map((idea) => _buildPendingRow(idea, teamsById, problemsById, attachmentCountByIdeaId))
+        .map(
+          (idea) => _buildPendingRow(
+            idea,
+            teamsById,
+            problemsById,
+            attachmentCountByIdeaId,
+            assignmentIdByIdeaId[idea.ideaId] ?? '',
+            assignedJudgeCountByIdeaId[idea.ideaId] ?? 0,
+          ),
+        )
         .toList(growable: false);
 
     final evaluatedRows = <JudgeEvaluationEvaluatedRow>[];
@@ -213,7 +248,16 @@ abstract final class JudgeEvaluationService {
       final list = scoresByIdea[idea.ideaId];
       if (list == null || list.isEmpty) continue;
       final score = list.first;
-      evaluatedRows.add(_buildEvaluatedRow(idea, teamsById, problemsById, score));
+      evaluatedRows.add(
+        _buildEvaluatedRow(
+          idea,
+          teamsById,
+          problemsById,
+          score,
+          assignmentIdByIdeaId[idea.ideaId] ?? '',
+          assignedJudgeCountByIdeaId[idea.ideaId] ?? 0,
+        ),
+      );
     }
     evaluatedRows.sort((a, b) => b.evaluatedAt.compareTo(a.evaluatedAt));
 
@@ -280,6 +324,8 @@ abstract final class JudgeEvaluationService {
     Map<String, TeamModel> teamsById,
     Map<String, ProblemModel> problemsById,
     Map<String, int> attachmentCountByIdeaId,
+    String assignmentId,
+    int assignedJudgeCount,
   ) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -301,6 +347,8 @@ abstract final class JudgeEvaluationService {
       submittedAt: idea.createdAt,
       reviewDueAt: due,
       priority: priority,
+      assignmentId: assignmentId,
+      assignedJudgeCount: assignedJudgeCount,
     );
   }
 
@@ -309,6 +357,8 @@ abstract final class JudgeEvaluationService {
     Map<String, TeamModel> teamsById,
     Map<String, ProblemModel> problemsById,
     ScoreModel score,
+    String assignmentId,
+    int assignedJudgeCount,
   ) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -325,6 +375,8 @@ abstract final class JudgeEvaluationService {
       status: idea.status,
       hasFeedback: hasFb,
       latestScore: score,
+      assignmentId: assignmentId,
+      assignedJudgeCount: assignedJudgeCount,
     );
   }
 
@@ -344,6 +396,16 @@ class _CacheEntry {
 }
 
 enum JudgeEvaluationPriority { high, standard }
+
+/// Judge-facing workflow status for an assigned idea row.
+enum JudgeAssignmentRowStatus {
+  assigned('Assigned'),
+  inProgress('In Progress'),
+  completed('Completed');
+
+  const JudgeAssignmentRowStatus(this.label);
+  final String label;
+}
 
 class JudgeEvaluationWorkspaceVm {
   const JudgeEvaluationWorkspaceVm({
@@ -385,6 +447,8 @@ class JudgeEvaluationPendingRow {
     required this.submittedAt,
     required this.reviewDueAt,
     required this.priority,
+    required this.assignmentId,
+    required this.assignedJudgeCount,
   });
 
   final IdeaModel idea;
@@ -396,6 +460,17 @@ class JudgeEvaluationPendingRow {
   final DateTime submittedAt;
   final DateTime reviewDueAt;
   final JudgeEvaluationPriority priority;
+  final String assignmentId;
+  final int assignedJudgeCount;
+
+  String get ideaId => idea.ideaId;
+
+  JudgeAssignmentRowStatus get workflowStatus {
+    if (idea.status == IdeaStatus.underReview) {
+      return JudgeAssignmentRowStatus.inProgress;
+    }
+    return JudgeAssignmentRowStatus.assigned;
+  }
 }
 
 class JudgeEvaluationEvaluatedRow {
@@ -408,6 +483,8 @@ class JudgeEvaluationEvaluatedRow {
     required this.status,
     required this.hasFeedback,
     required this.latestScore,
+    required this.assignmentId,
+    required this.assignedJudgeCount,
   });
 
   final IdeaModel idea;
@@ -418,6 +495,12 @@ class JudgeEvaluationEvaluatedRow {
   final IdeaStatus status;
   final bool hasFeedback;
   final ScoreModel latestScore;
+  final String assignmentId;
+  final int assignedJudgeCount;
+
+  String get ideaId => idea.ideaId;
+
+  JudgeAssignmentRowStatus get workflowStatus => JudgeAssignmentRowStatus.completed;
 }
 
 class JudgeEvaluationFeedbackRow {

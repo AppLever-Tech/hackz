@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../models/attachment_model.dart';
 import '../../features/user/models/user_model.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../utils/attachment_service.dart';
 import '../../utils/judge_evaluation_service.dart';
-import '../../widgets/attachment_viewer.dart';
 import '../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../widgets/judge/evaluation_feedback_section.dart';
 import '../../widgets/judge/evaluation_summary_strip.dart';
 import '../../widgets/judge/evaluated_idea_list.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/judge/pending_evaluation_list.dart';
+import '../../widgets/loading/hkz_progress_indicator.dart';
 import '../../workspace/workspace.dart';
 import '../common/app_dialog_template.dart';
 
@@ -25,7 +22,8 @@ class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
   State<JudgeEvaluationWorkspaceScreen> createState() => _JudgeEvaluationWorkspaceScreenState();
 }
 
-class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspaceScreen> with SingleTickerProviderStateMixin {
+class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspaceScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabs;
   Future<JudgeEvaluationWorkspaceVm>? _future;
 
@@ -70,46 +68,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     WorkspaceNavigator.openEvaluation(context, row.latestScore.scoreId);
   }
 
-  Future<void> _openEditEvaluation(JudgeEvaluationEvaluatedRow row) async {
-    final ok = await showAppDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      width: DialogWidthPreset.wide,
-      child: EvaluateIdeaDialog(
-        judge: widget.user,
-        idea: row.idea,
-        team: null,
-        problem: null,
-        latestJudgeScore: row.latestScore,
-      ),
-    );
-    if (ok == true && mounted) await _reload();
-  }
-
-  Future<void> _openAttachments(JudgeEvaluationPendingRow row) async {
-    final list = await AttachmentService.fetchActiveAttachments(
-      entityType: AttachmentEntityType.idea,
-      entityId: row.idea.ideaId,
-    );
-    if (!mounted) return;
-    if (list.isEmpty) {
-      FeedbackService.showInfo(
-        context,
-        title: 'No attachments',
-        message: 'No attachments for this idea.',
-      );
-      return;
-    }
-    await showAppDialog<void>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: AttachmentViewerDialog(title: 'Idea attachments', attachments: list, embedded: true),
-    );
-  }
-
   Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
-    // IndexedStack avoids TabBarView stacking sibling tabs on top of the active
-    // tab, which blocks row taps and overflow menus on Pending review.
     return AnimatedBuilder(
       animation: _tabs,
       builder: (BuildContext context, Widget? child) {
@@ -119,16 +78,18 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
             PendingEvaluationList(
               rows: vm.pending,
               onEvaluate: _openEvaluate,
-              onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
-              onOpenAttachments: _openAttachments,
-              onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
+              onViewDetails: (JudgeEvaluationPendingRow row) =>
+                  WorkspaceNavigator.openIdea(context, row.idea.ideaId),
+              onOpenProblem: (JudgeEvaluationPendingRow row) =>
+                  WorkspaceNavigator.openProblem(context, row.idea.problemId),
             ),
             EvaluatedIdeaList(
               rows: vm.evaluated,
               onViewEvaluation: _openViewEvaluation,
-              onEditEvaluation: _openEditEvaluation,
-              onViewDetails: (r) => WorkspaceNavigator.openIdea(context, r.idea.ideaId),
-              onOpenProblem: (r) => WorkspaceNavigator.openProblem(context, r.idea.problemId),
+              onViewDetails: (JudgeEvaluationEvaluatedRow row) =>
+                  WorkspaceNavigator.openIdea(context, row.idea.ideaId),
+              onOpenProblem: (JudgeEvaluationEvaluatedRow row) =>
+                  WorkspaceNavigator.openProblem(context, row.idea.problemId),
             ),
             EvaluationFeedbackSection(rows: vm.feedback),
           ],
@@ -137,17 +98,13 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     );
   }
 
-  Widget _buildWorkspaceBody(JudgeEvaluationWorkspaceVm vm) {
-    return _buildTabLists(vm);
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<JudgeEvaluationWorkspaceVm>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator(size: 36));
         }
         if (snapshot.hasError) {
           return Center(child: Text('Unable to load workspace: ${snapshot.error}'));
@@ -172,7 +129,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               ],
             ),
             const SizedBox(height: 12),
-            Expanded(child: _buildWorkspaceBody(vm)),
+            Expanded(child: _buildTabLists(vm)),
           ],
         );
       },

@@ -8,7 +8,6 @@ import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';
 import '../features/team/models/team_model.dart';
 import '../features/user/models/user_model.dart';
-import 'common_helpers.dart';
 import 'firestore_utils.dart';
 
 class JudgeDashboardService {
@@ -22,14 +21,12 @@ class JudgeDashboardService {
       _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: judge.orgId).get(),
       _db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: judge.orgId).get(),
       _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: judge.orgId).get(),
-      _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: judge.orgId).get(),
     ]);
 
     final ideaDocs = (results[0] as QuerySnapshot<Map<String, dynamic>>).docs;
     final scoreDocs = (results[1] as QuerySnapshot<Map<String, dynamic>>).docs;
     final teamDocs = (results[2] as QuerySnapshot<Map<String, dynamic>>).docs;
     final problemDocs = (results[3] as QuerySnapshot<Map<String, dynamic>>).docs;
-    final userDocs = (results[4] as QuerySnapshot<Map<String, dynamic>>).docs;
 
     final teamsById = <String, TeamModel>{
       for (final d in teamDocs) d.id: TeamModel.fromMap(d.id, d.data()),
@@ -37,12 +34,6 @@ class JudgeDashboardService {
     final problemsById = <String, ProblemModel>{
       for (final d in problemDocs) d.id: ProblemModel.fromMap(d.id, d.data()),
     };
-    final usersById = <String, UserModel>{
-      for (final d in userDocs)
-        (UserModel.fromMap(d.data()).userId.trim().isEmpty ? d.id : UserModel.fromMap(d.data()).userId.trim()):
-            UserModel.fromMap(d.data()),
-    };
-
     final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
       orgId: judge.orgId,
       judgeId: judge.userId,
@@ -116,17 +107,6 @@ class JudgeDashboardService {
       }
     }
 
-    final evaluationTimeline = <String, int>{};
-    for (final score in judgeScoresForAssigned) {
-      final day = _formatDayKey(score.createdAt);
-      evaluationTimeline[day] = (evaluationTimeline[day] ?? 0) + 1;
-    }
-    final sortedTimeline = <String, int>{};
-    final sortedKeys = evaluationTimeline.keys.toList()..sort();
-    for (final key in sortedKeys) {
-      sortedTimeline[key] = evaluationTimeline[key] ?? 0;
-    }
-
     final activityItems = <JudgeActivityItem>[
       ...judgeScoresForAssigned.map(
         (s) => JudgeActivityItem(
@@ -153,41 +133,20 @@ class JudgeDashboardService {
           ),
     ]..sort((a, b) => b.at.compareTo(a.at));
 
-    final judgeName = _fullName(judge);
-    final companyOrOrg = judge.orgId;
-    final expertise = judge.department.isEmpty ? judge.departmentCode : judge.department;
-    final assignedDepartments = scopedIdeas
-        .map((i) => problemsById[i.problemId]?.departmentDisplayName ?? i.problemDepartmentCode)
-        .where((d) => d.trim().isNotEmpty)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
-    final avgTurnaroundHours = _computeAverageTurnaroundHours(allIdeas: scopedIdeas, judgedItems: evaluatedItems);
-
     return JudgeDashboardVm(
-      judgeName: judgeName,
-      organizationName: companyOrOrg,
-      expertise: expertise,
-      assignedDepartments: assignedDepartments,
       assignedIdeas: scopedIdeas.length,
       evaluatedIdeas: evaluatedIdeaIds.length,
       pendingReviews: pendingIdeas.length,
       averageScoreGiven: avgScoreGiven,
-      avgTurnaroundHours: avgTurnaroundHours,
-      pendingDistributionCount: pendingIdeas.length,
-      completedDistributionCount: evaluatedIdeaIds.length,
       lowScoreCount: lowScoreCount,
       mediumScoreCount: mediumScoreCount,
       highScoreCount: highScoreCount,
-      evaluationTimeline: sortedTimeline,
+      evaluationDates: judgeScoresForAssigned.map((ScoreModel s) => s.createdAt).toList(growable: false),
       recentEvaluatedIdeas: evaluatedItems.take(5).toList(growable: false),
       highestScoredIdeas: highestScored.take(5).toList(growable: false),
       pendingEvaluations: pendingItems.take(5).toList(growable: false),
       reevaluationIdeas: reevaluationItems.take(5).toList(growable: false),
       activities: activityItems.take(40).toList(growable: false),
-      judgeEmail: judge.email,
-      judgePhone: judge.phone,
-      usersById: usersById,
     );
   }
 
@@ -238,86 +197,38 @@ class JudgeDashboardService {
     return idea.ideaId;
   }
 
-  static String _fullName(UserModel user) {
-    final full = '${user.firstName} ${user.lastName}'.trim();
-    return full.isEmpty ? user.userId : full;
-  }
-
-  static double? _computeAverageTurnaroundHours({
-    required List<IdeaModel> allIdeas,
-    required List<JudgeIdeaEvaluationItem> judgedItems,
-  }) {
-    if (judgedItems.isEmpty) return null;
-    final mapById = <String, IdeaModel>{for (final i in allIdeas) i.ideaId: i};
-    final durations = <double>[];
-    for (final item in judgedItems) {
-      final source = mapById[item.ideaId];
-      if (source == null) continue;
-      final diff = item.lastUpdated.difference(source.createdAt).inMinutes;
-      if (diff > 0) durations.add(diff / 60);
-    }
-    if (durations.isEmpty) return null;
-    final sum = durations.reduce((a, b) => a + b);
-    return sum / durations.length;
-  }
-
-  static String _formatDayKey(DateTime date) {
-    final full = formatDateTime(date);
-    final parts = full.split(' ');
-    return parts.isEmpty ? full : parts.first;
-  }
 }
 
 class JudgeDashboardVm {
   const JudgeDashboardVm({
-    required this.judgeName,
-    required this.organizationName,
-    required this.expertise,
-    required this.assignedDepartments,
     required this.assignedIdeas,
     required this.evaluatedIdeas,
     required this.pendingReviews,
     required this.averageScoreGiven,
-    required this.avgTurnaroundHours,
-    required this.pendingDistributionCount,
-    required this.completedDistributionCount,
     required this.lowScoreCount,
     required this.mediumScoreCount,
     required this.highScoreCount,
-    required this.evaluationTimeline,
+    required this.evaluationDates,
     required this.recentEvaluatedIdeas,
     required this.highestScoredIdeas,
     required this.pendingEvaluations,
     required this.reevaluationIdeas,
     required this.activities,
-    required this.judgeEmail,
-    required this.judgePhone,
-    required this.usersById,
   });
 
-  final String judgeName;
-  final String organizationName;
-  final String expertise;
-  final List<String> assignedDepartments;
   final int assignedIdeas;
   final int evaluatedIdeas;
   final int pendingReviews;
   final double? averageScoreGiven;
-  final double? avgTurnaroundHours;
-  final int pendingDistributionCount;
-  final int completedDistributionCount;
   final int lowScoreCount;
   final int mediumScoreCount;
   final int highScoreCount;
-  final Map<String, int> evaluationTimeline;
+  final List<DateTime> evaluationDates;
   final List<JudgeIdeaEvaluationItem> recentEvaluatedIdeas;
   final List<JudgeIdeaEvaluationItem> highestScoredIdeas;
   final List<JudgeIdeaEvaluationItem> pendingEvaluations;
   final List<JudgeIdeaEvaluationItem> reevaluationIdeas;
   final List<JudgeActivityItem> activities;
-  final String judgeEmail;
-  final String judgePhone;
-  final Map<String, UserModel> usersById;
 }
 
 class JudgeIdeaEvaluationItem {
