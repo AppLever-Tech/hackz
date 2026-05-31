@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_semantic_colors.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../shared/workspace/context_launch_surface.dart';
 import 'context_pill_metrics.dart';
 import 'context_pill_theme.dart';
 
 /// Interactive pill that opens a read-only contextual workspace (icon + label, no arrows).
-class ContextPill extends StatefulWidget {
+class ContextPill extends StatelessWidget {
   const ContextPill({
     super.key,
     required this.label,
@@ -44,60 +44,26 @@ class ContextPill extends StatefulWidget {
   /// Minimum width when sizing to content ([fitContent]).
   final double? minWidth;
 
-  @override
-  State<ContextPill> createState() => _ContextPillState();
-}
+  bool _fitContent(ContextPillSemantic semantic, bool? fitContent) =>
+      fitContent ?? ContextPillTheme.defaultsToFitContent(semantic);
 
-class _ContextPillState extends State<ContextPill> with SingleTickerProviderStateMixin {
-  bool _hovering = false;
-  bool _pressing = false;
-  late final AnimationController _shimmer;
-
-  @override
-  void initState() {
-    super.initState();
-    _shimmer = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2400),
-    );
-  }
-
-  @override
-  void dispose() {
-    _shimmer.dispose();
-    super.dispose();
-  }
-
-  void _setHover(bool value) {
-    if (!widget.enabled || ResponsiveHelper.isMobile(context)) return;
-    if (_hovering == value) return;
-    setState(() => _hovering = value);
-    if (value) {
-      _shimmer.repeat();
-    } else {
-      _shimmer.stop();
-    }
-  }
-
-  bool get _fitContent =>
-      widget.fitContent ?? ContextPillTheme.defaultsToFitContent(widget.semantic);
-
-  double? get _resolvedMaxWidth {
-    if (widget.maxWidth != null) return widget.maxWidth;
-    if (widget.expandWidth) return null;
-    if (_fitContent) {
+  double? _resolvedMaxWidth({
+    required bool expandWidth,
+    required bool fitContent,
+    required bool effectiveCompact,
+    required ContextPillSemantic semantic,
+    required double? maxWidth,
+  }) {
+    if (maxWidth != null) return maxWidth;
+    if (expandWidth) return null;
+    if (fitContent) {
       return ContextPillTheme.defaultFitMaxWidth(
-        compact: _effectiveCompact,
-        semantic: widget.semantic,
+        compact: effectiveCompact,
+        semantic: semantic,
       );
     }
     return null;
   }
-
-  bool get _useWorkspaceMetrics =>
-      ContextPillMetrics.isWorkspaceSemantic(widget.semantic);
-
-  bool get _effectiveCompact => widget.compact || _useWorkspaceMetrics;
 
   @override
   Widget build(BuildContext context) {
@@ -110,44 +76,44 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
 
   Widget _buildPill(BuildContext context, BoxConstraints constraints) {
     final bool boundedWidth = constraints.maxWidth.isFinite;
-    final ContextPillPalette palette = ContextPillTheme.paletteFor(widget.semantic);
-    final String tooltipMessage = widget.tooltip ?? ContextPillTheme.workspaceTooltipFor(widget.semantic);
-    final String display = widget.label.trim().isEmpty ? '—' : widget.label.trim();
-    final bool interactive = widget.enabled;
-    final bool showHoverFx = interactive && _hovering && !ResponsiveHelper.isMobile(context);
-    final double scale = !interactive ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
-    final IconData icon = widget.icon ?? ContextPillTheme.iconFor(widget.semantic);
-    final double iconSize = widget.iconSize ??
+    final String tooltipMessage = tooltip ?? ContextPillTheme.workspaceTooltipFor(semantic);
+    final String display = label.trim().isEmpty ? '—' : label.trim();
+    final bool interactive = enabled;
+    final bool fitContent = _fitContent(semantic, this.fitContent);
+    final bool useWorkspaceMetrics = ContextPillMetrics.isWorkspaceSemantic(semantic);
+    final bool effectiveCompact = compact || useWorkspaceMetrics;
+    final IconData resolvedIcon = icon ?? ContextPillTheme.iconFor(semantic);
+    final double resolvedIconSize = iconSize ??
         ContextPillMetrics.resolvedIconSize(
-          compact: _effectiveCompact,
-          semantic: widget.semantic,
+          compact: effectiveCompact,
+          semantic: semantic,
         );
-    final double iconGap = ContextPillMetrics.resolvedIconGap(compact: _effectiveCompact);
-    final double? themeMaxWidth = _resolvedMaxWidth;
-    final double? layoutMaxWidth = widget.expandWidth
-        ? (widget.maxWidth ?? (boundedWidth ? constraints.maxWidth : null))
-        : (themeMaxWidth ?? (boundedWidth && !_fitContent ? constraints.maxWidth : null));
+    final double iconGap = ContextPillMetrics.resolvedIconGap(compact: effectiveCompact);
+    final double? themeMaxWidth = _resolvedMaxWidth(
+      expandWidth: expandWidth,
+      fitContent: fitContent,
+      effectiveCompact: effectiveCompact,
+      semantic: semantic,
+      maxWidth: maxWidth,
+    );
+    final double? layoutMaxWidth = expandWidth
+        ? (maxWidth ?? (boundedWidth ? constraints.maxWidth : null))
+        : (themeMaxWidth ?? (boundedWidth && !fitContent ? constraints.maxWidth : null));
     final double resolvedHeight = ContextPillMetrics.resolvedHeight(
       context: context,
-      compact: _effectiveCompact,
-      override: widget.height,
+      compact: effectiveCompact,
+      override: height,
     );
-    final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: _effectiveCompact);
-    final Color borderColor = !interactive
-        ? AppSemanticColors.metricBorder
-        : (showHoverFx ? palette.borderHover : palette.border);
-    final Color surfaceColor = !interactive
-        ? AppSemanticColors.metricSurface
-        : (showHoverFx ? palette.surfaceHover : palette.surface);
-
+    final BorderRadius radius = ContextPillMetrics.resolvedBorderRadius(compact: effectiveCompact);
+    final ContextPillPalette palette = ContextPillTheme.paletteFor(semantic);
     final Color labelColor = interactive ? palette.text : AppSemanticColors.metricText;
     final Color iconColor = ContextPillMetrics.iconColorFor(
-      semantic: widget.semantic,
+      semantic: semantic,
       labelColor: labelColor,
     );
     final TextStyle labelStyle = ContextPillMetrics.labelStyle(
       labelColor,
-      semantic: widget.semantic,
+      semantic: semantic,
     );
 
     final Widget labelText = Text(
@@ -158,18 +124,18 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       style: labelStyle,
     );
 
-    final bool constrainLabel = widget.expandWidth || layoutMaxWidth != null;
+    final bool constrainLabel = expandWidth || layoutMaxWidth != null;
 
     Widget labelRow = Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Icon(icon, size: iconSize, color: iconColor),
+        Icon(resolvedIcon, size: resolvedIconSize, color: iconColor),
         SizedBox(width: iconGap),
         if (constrainLabel)
           Flexible(
-            fit: widget.expandWidth ? FlexFit.tight : FlexFit.loose,
+            fit: expandWidth ? FlexFit.tight : FlexFit.loose,
             child: labelText,
           )
         else
@@ -177,118 +143,45 @@ class _ContextPillState extends State<ContextPill> with SingleTickerProviderStat
       ],
     );
 
-    if (layoutMaxWidth != null && !widget.expandWidth) {
+    if (layoutMaxWidth != null && !expandWidth) {
       labelRow = ConstrainedBox(
         constraints: BoxConstraints(maxWidth: layoutMaxWidth),
         child: labelRow,
       );
     }
 
-    final double pillMaxWidth = widget.expandWidth
+    final double pillMaxWidth = expandWidth
         ? (layoutMaxWidth ?? double.infinity)
         : (layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity));
 
-    Widget pillBody = AnimatedScale(
-      scale: scale,
-      duration: const Duration(milliseconds: 140),
-      curve: Curves.easeOutCubic,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        constraints: BoxConstraints(
-          minHeight: resolvedHeight,
-          maxHeight: resolvedHeight,
-          minWidth: widget.minWidth ?? 0,
-          maxWidth: pillMaxWidth,
-        ),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: radius,
-          border: Border.all(
-            color: borderColor,
-            width: showHoverFx ? ContextPillMetrics.borderWidthHover : ContextPillMetrics.borderWidth,
-          ),
-          boxShadow: showHoverFx
-              ? <BoxShadow>[
-                  BoxShadow(color: palette.glow, blurRadius: 14, offset: const Offset(0, 4)),
-                ]
-              : null,
-        ),
-        child: ClipRRect(
-          borderRadius: radius,
-          child: Stack(
-            fit: widget.expandWidth ? StackFit.expand : StackFit.loose,
-            children: <Widget>[
-              if (showHoverFx)
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _shimmer,
-                    builder: (BuildContext context, Widget? child) {
-                      final double t = _shimmer.value;
-                      return IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment(-1.2 + t * 2.4, 0),
-                              end: Alignment(-0.6 + t * 2.4, 0),
-                              colors: <Color>[
-                                Colors.white.withValues(alpha: 0),
-                                Colors.white.withValues(alpha: 0.22),
-                                Colors.white.withValues(alpha: 0),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              if (widget.expandWidth)
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: ContextPillMetrics.resolvedPadding(context, compact: _effectiveCompact),
-                      child: labelRow,
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: ContextPillMetrics.resolvedPadding(context, compact: _effectiveCompact),
-                  child: SizedBox(
-                    height: resolvedHeight,
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: labelRow,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
+    final Widget content = expandWidth
+        ? Align(
+            alignment: Alignment.centerLeft,
+            child: labelRow,
+          )
+        : Align(
+            alignment: Alignment.centerLeft,
+            child: labelRow,
+          );
 
-    return Tooltip(
-      message: tooltipMessage,
-      preferBelow: false,
-      child: Semantics(
-        button: interactive,
-        enabled: interactive,
-        label: '$display. $tooltipMessage',
-        child: MouseRegion(
-          onEnter: (_) => _setHover(true),
-          onExit: (_) => _setHover(false),
-          cursor: interactive ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          child: GestureDetector(
-            onTapDown: interactive ? (_) => setState(() => _pressing = true) : null,
-            onTapUp: interactive ? (_) => setState(() => _pressing = false) : null,
-            onTapCancel: interactive ? () => setState(() => _pressing = false) : null,
-            onTap: interactive ? widget.onTap : null,
-            child: pillBody,
-          ),
-        ),
+    return ContextLaunchSurface(
+      semantic: semantic,
+      onTap: onTap,
+      enabled: interactive,
+      tooltip: tooltip,
+      semanticsLabel: '$display. $tooltipMessage',
+      borderRadius: radius,
+      padding: ContextPillMetrics.resolvedPadding(context, compact: effectiveCompact),
+      constraints: BoxConstraints(
+        minHeight: resolvedHeight,
+        maxHeight: resolvedHeight,
+        minWidth: minWidth ?? 0,
+        maxWidth: pillMaxWidth,
+      ),
+      child: SizedBox(
+        height: resolvedHeight,
+        width: expandWidth ? double.infinity : null,
+        child: content,
       ),
     );
   }

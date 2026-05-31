@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../features/user/models/user_model.dart';
-import '../../features/user/widgets/user_avatar.dart';
+import '../../shared/workspace/user_workspace_avatar.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/context_pill.dart';
 import '../../widgets/common/context_pill_theme.dart';
@@ -249,7 +249,12 @@ class _DashboardHeaderActions extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             onPressed: onRefresh,
           ),
-        UserAvatar(user: user, radius: avatarRadius),
+        UserWorkspaceAvatar(
+          user: user,
+          radius: avatarRadius,
+          onTap: onUserTap ?? () {},
+          enabled: onUserTap != null,
+        ),
         SizedBox(width: compact ? 6 : 8),
         if (showUserPill) ...<Widget>[
           ContextPill(
