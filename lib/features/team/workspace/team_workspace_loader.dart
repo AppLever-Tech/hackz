@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
-import '../../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../models/payment_model.dart';
 import '../../../models/score_model.dart';
 import '../models/team_model.dart';

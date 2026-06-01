@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/attachment_model.dart';
 import '../core/workspace_host.dart';
 import '../core/workspace_route.dart';
-import '../idea/idea_workspace.dart';
+import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../payment/payment_workspace.dart';
 import '../../features/problems/workspace/problem_workspace.dart';
 import 'attachment_workspace_body.dart';

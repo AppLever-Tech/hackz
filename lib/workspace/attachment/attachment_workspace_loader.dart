@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../models/attachment_model.dart';
-import '../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../models/payment_model.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../features/user/models/user_model.dart';

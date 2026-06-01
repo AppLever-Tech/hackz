@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import '../constants/app_icons.dart';
 import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';
 import '../features/team/models/team_model.dart';

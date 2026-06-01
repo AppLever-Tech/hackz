@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/user_model.dart';

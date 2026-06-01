@@ -1,4 +1,4 @@
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 

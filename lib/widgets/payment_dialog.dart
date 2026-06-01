@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/attachment_model.dart';
 import '../models/payment_model.dart';
 import '../features/team/models/team_model.dart';

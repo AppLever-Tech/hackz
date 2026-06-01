@@ -5,7 +5,7 @@ import '../features/evaluations/assignments/services/evaluation_assignment_servi
 import '../features/evaluations/models/evaluation_template.dart';
 import '../models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../widgets/loading/hkz_progress_indicator.dart';
 import '../attachment/attachment_workspace.dart';
-import '../idea/idea_workspace.dart';
+import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../evaluation/evaluation_workspace.dart';
 import '../payment/payment_workspace.dart';
 import '../../features/problems/workspace/problem_workspace.dart';

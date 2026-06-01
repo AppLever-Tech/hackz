@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../models/attachment_model.dart';
-import '../../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../organization/models/organization_model.dart';
 import '../../../models/payment_model.dart';
 import '../../../models/score_model.dart';

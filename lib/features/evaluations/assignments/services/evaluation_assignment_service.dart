@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../features/team/models/team_model.dart';
-import '../../../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';

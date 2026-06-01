@@ -4,7 +4,7 @@ import '../../features/evaluations/models/evaluation_criterion.dart';
 import '../../features/evaluations/models/evaluation_template.dart';
 import '../../features/evaluations/services/evaluation_templates_service.dart';
 import '../../features/org_settings/services/org_settings_service.dart';
-import '../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../models/payment_model.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../models/score_model.dart';

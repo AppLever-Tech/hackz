@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../services/idea_query_service.dart';
 import '../../../widgets/common/card_overflow_menu.dart';
 import '../../../widgets/common/context_pill.dart';

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/payment_model.dart';
 import '../features/team/models/team_model.dart';
 import '../features/user/models/user_model.dart';

@@ -8,7 +8,7 @@ import '../../features/evaluations/services/evaluation_templates_service.dart';
 import '../../features/evaluations/widgets/criterion_score_card.dart';
 import '../../features/org_settings/services/org_settings_service.dart';
 import '../../models/attachment_model.dart';
-import '../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../features/problems/models/problem_model.dart';
 import '../../models/score_model.dart';
 import '../../features/team/models/team_model.dart';

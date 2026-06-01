@@ -1,5 +1,5 @@
 import '../../organization/models/department_model.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 
 /// Centralized innovation vs payment department resolution for ideas.
 abstract final class IdeaDepartmentHelpers {

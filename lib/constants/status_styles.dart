@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import 'app_icons.dart';
 
 class StatusStyles {

@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../models/attachment_model.dart';
 import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
-import '../../../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';

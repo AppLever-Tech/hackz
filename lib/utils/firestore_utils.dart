@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../features/organization/models/department_model.dart';
 import '../features/idea/services/idea_department_helpers.dart';
-import '../models/idea_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../features/organization/models/organization_model.dart';
 import '../features/organization/models/enums/organization_type.dart';
 import '../features/user/models/enums/user_status.dart';
