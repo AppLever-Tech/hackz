@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/department_model.dart';
+import '../features/organization/models/department_model.dart';
 import '../features/user/models/enums/user_role.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';

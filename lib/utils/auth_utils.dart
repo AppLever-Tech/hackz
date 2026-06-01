@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../features/user/models/enums/user_role.dart';
-import '../models/enums/organization_type.dart';
+import '../features/organization/models/enums/organization_type.dart';
 import '../features/user/models/enums/user_status.dart';
-import '../models/department_model.dart';
+import '../features/organization/models/department_model.dart';
 import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';

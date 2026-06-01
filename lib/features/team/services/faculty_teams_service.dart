@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../../models/attachment_model.dart';
-import '../../../models/department_model.dart';
+import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
 import '../../../models/idea_model.dart';
 import '../../../models/payment_model.dart';

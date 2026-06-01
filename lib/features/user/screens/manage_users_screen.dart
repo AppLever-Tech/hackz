@@ -4,9 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../constants/account_workspace_visuals.dart';
 import '../../../constants/app_icons.dart';
-import '../../../models/department_model.dart';
-import '../../../models/enums/organization_type.dart';
-import '../../../models/organization_model.dart';
+import '../../organization/models/department_model.dart';
+import '../../organization/models/enums/organization_type.dart';
+import '../../organization/models/organization_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';

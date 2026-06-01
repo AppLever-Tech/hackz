@@ -1,5 +1,5 @@
-import '../../../models/enums/organization_type.dart';
-import '../../../models/organization_model.dart';
+import '../../organization/models/enums/organization_type.dart';
+import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/org_operational_data.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../features/org_settings/services/org_settings_service.dart';
-import '../../models/organization_model.dart';
-import '../../models/enums/organization_type.dart';
+import '../../features/organization/models/organization_model.dart';
+import '../../features/organization/models/enums/organization_type.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../utils/firestore_utils.dart';
 

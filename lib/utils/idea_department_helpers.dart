@@ -1,4 +1,4 @@
-import '../models/department_model.dart';
+import '../features/organization/models/department_model.dart';
 import '../models/idea_model.dart';
 
 /// Centralized innovation vs payment department resolution for ideas.

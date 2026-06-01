@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/enums/organization_type.dart';
+import '../../features/organization/models/enums/organization_type.dart';
 import '../../features/user/models/enums/user_role.dart';
-import '../../models/organization_model.dart';
+import '../../features/organization/models/organization_model.dart';
 import '../../features/user/models/user_model.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';

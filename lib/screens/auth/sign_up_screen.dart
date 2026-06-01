@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../models/enums/organization_type.dart';
+import '../../features/organization/models/enums/organization_type.dart';
 import '../../models/enums/account_workspace_phase.dart';
 import '../../features/user/models/enums/user_status.dart';
-import '../../models/department_model.dart';
+import '../../features/organization/models/department_model.dart';
 import '../../features/user/models/user_model.dart';
 import '../../constants/app_icons.dart';
 import '../../shared/feedback/feedback.dart';

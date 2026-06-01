@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/organization_model.dart';
+import '../../features/organization/models/organization_model.dart';
 import '../common/app_dialog_template.dart';
 import 'create_org_screen.dart';
 

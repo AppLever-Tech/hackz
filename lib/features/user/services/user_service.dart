@@ -1,4 +1,4 @@
-import '../../../models/department_model.dart';
+import '../../organization/models/department_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/profiles/user_profile.dart';
 import '../models/user_model.dart';

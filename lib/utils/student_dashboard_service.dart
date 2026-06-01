@@ -5,7 +5,7 @@ import '../constants/app_icons.dart';
 import '../models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
 import '../models/idea_model.dart';
-import '../models/organization_model.dart';
+import '../features/organization/models/organization_model.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../models/score_model.dart';

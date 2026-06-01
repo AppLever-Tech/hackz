@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/department_model.dart';
+import '../features/organization/models/department_model.dart';
 import 'idea_department_helpers.dart';
 import '../models/idea_model.dart';
-import '../models/organization_model.dart';
-import '../models/enums/organization_type.dart';
+import '../features/organization/models/organization_model.dart';
+import '../features/organization/models/enums/organization_type.dart';
 import '../features/user/models/enums/user_status.dart';
 import '../models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
@@ -452,6 +452,7 @@ class FirestoreUtils {
       if (admin == null) continue;
       final fullName = '${admin.firstName} ${admin.lastName}'.trim();
       row['departmentAdmin'] = fullName.isEmpty ? '-' : fullName;
+      row['adminUser'] = admin;
     }
 
     final result = map.values.toList(growable: false);

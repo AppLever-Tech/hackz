@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/enums/organization_type.dart';
+import '../../organization/models/enums/organization_type.dart';
 import 'enums/user_status.dart';
 import 'profiles/user_profile.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/organization_model.dart';
+import '../../features/organization/models/organization_model.dart';
 import '../../features/user/models/enums/user_role.dart';
 import '../../features/user/models/user_model.dart';
 import '../../features/org_settings/collegeadmin/org_settings_dashboard.dart';

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/department_model.dart';
+import '../../organization/models/department_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';

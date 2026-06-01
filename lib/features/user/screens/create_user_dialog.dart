@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/organization_model.dart';
+import '../../organization/models/organization_model.dart';
 import '../models/user_model.dart';
 import 'create_user_workspace.dart';
 

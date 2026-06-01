@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/organization_model.dart';
+import '../../organization/models/organization_model.dart';
 import '../models/org_operational_data.dart';
 import 'organization_management_card.dart';
 

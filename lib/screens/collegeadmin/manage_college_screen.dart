@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/department_model.dart';
-import '../../models/organization_model.dart';
-import '../../models/enums/organization_type.dart';
+import '../../features/organization/models/department_model.dart';
+import '../../features/organization/models/organization_model.dart';
+import '../../features/organization/models/enums/organization_type.dart';
 import '../../features/user/models/user_model.dart';
+import '../../features/user/models/enums/user_status.dart';
 import '../../utils/firestore_utils.dart';
 import '../common/app_dialog_template.dart';
 import '../../features/user/screens/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../shared/feedback/feedback.dart';
+import '../../shared/inputs/hackz_select_field.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
 import '../../workspace/workspace.dart';
 
@@ -33,6 +35,17 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         contact: '',
         createdAt: DateTime.now(),
       );
+
+  Future<void> _openEditDepartmentAdmin(Map<String, dynamic> dept, UserModel adminUser) async {
+    final changed = await showCreateUserDialog(
+      context: context,
+      roleCode: 'DADM',
+      organization: _organization,
+      department: ((dept['name'] as String?) ?? '').trim(),
+      initialUser: adminUser,
+    );
+    if (mounted && changed) setState(() {});
+  }
 
   Future<void> _openDepartmentAdminDialog(Map<String, dynamic> dept) async {
     final changed = await showCreateUserDialog(
@@ -149,9 +162,8 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   }
 
   Future<void> _showAddDepartmentDialog() async {
-    final departmentController = TextEditingController();
     final customDepartmentController = TextEditingController();
-    String selectedDepartment = '';
+    String? selectedDepartment;
     bool useCustomDepartment = false;
     bool isSaving = false;
 
@@ -162,7 +174,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
             Future<void> submit() async {
               final departmentName = useCustomDepartment
                   ? customDepartmentController.text.trim()
-                  : selectedDepartment.trim();
+                  : (selectedDepartment ?? '').trim();
               if (departmentName.isEmpty) {
                 FeedbackService.showWarning(
                   context,
@@ -193,7 +205,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   );
                 }
               } finally {
-                // Do not rebuild after pop — DropdownMenu can still touch the controller during route teardown.
                 if (!didPop && context.mounted) {
                   setState(() => isSaving = false);
                 }
@@ -252,10 +263,36 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                       TextField(
                         controller: customDepartmentController,
                         autofocus: true,
-                        decoration: const InputDecoration(
+                        enabled: !isSaving,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                        ),
+                        decoration: InputDecoration(
                           hintText: 'Enter department name',
-                          prefixIcon: Icon(AppIcons.departments),
-                          border: OutlineInputBorder(),
+                          hintStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          prefixIcon: const Icon(
+                            AppIcons.departments,
+                            size: 20,
+                            color: Color(0xFF64748B),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
+                          ),
                         ),
                         textInputAction: TextInputAction.done,
                         onSubmitted: (_) {
@@ -263,23 +300,15 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                         },
                       )
                     else
-                      DropdownMenu<String>(
-                        width: MediaQuery.sizeOf(context).width * 0.9,
-                        requestFocusOnTap: true,
-                        controller: departmentController,
-                        hintText: 'Select department',
-                        enableSearch: true,
-                        dropdownMenuEntries: DepartmentModel.masterNames
-                            .map(
-                              (name) => DropdownMenuEntry<String>(
-                                value: name,
-                                label: name,
-                              ),
-                            )
-                            .toList(growable: false),
-                        onSelected: (value) {
-                          setState(() => selectedDepartment = value ?? '');
-                        },
+                      HackzSelectField<String>(
+                        value: selectedDepartment,
+                        hint: 'Select department',
+                        prefixIcon: AppIcons.departments,
+                        enabled: !isSaving,
+                        options: DepartmentModel.masterNames,
+                        labelBuilder: (String name) => name,
+                        iconBuilder: (_) => AppIcons.departments,
+                        onChanged: (String name) => setState(() => selectedDepartment = name),
                       ),
                     const SizedBox(height: 14),
                     Row(
@@ -302,9 +331,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         },
       ),
     );
-    // Let the dialog route (and DropdownMenu overlays) finish disposing before releasing controllers.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      departmentController.dispose();
       customDepartmentController.dispose();
     });
     if (mounted && shouldRefresh == true) setState(() {});
@@ -375,6 +402,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                     return _DepartmentCard(
                       department: dept,
                       onAddAdmin: () => _openDepartmentAdminDialog(dept),
+                      onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
                       onRemoveAdmin: (String adminUserId, String adminName) =>
                           _removeDepartmentAdmin(
                         dept,
@@ -401,6 +429,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                     return _DepartmentCard(
                       department: dept,
                       onAddAdmin: () => _openDepartmentAdminDialog(dept),
+                      onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
                       onRemoveAdmin: (String adminUserId, String adminName) =>
                           _removeDepartmentAdmin(
                         dept,
@@ -423,12 +452,14 @@ class _DepartmentCard extends StatelessWidget {
   const _DepartmentCard({
     required this.department,
     required this.onAddAdmin,
+    required this.onEditAdmin,
     required this.onRemoveAdmin,
     required this.onDelete,
   });
 
   final Map<String, dynamic> department;
   final VoidCallback onAddAdmin;
+  final void Function(UserModel adminUser) onEditAdmin;
   final void Function(String adminUserId, String adminName) onRemoveAdmin;
   final VoidCallback onDelete;
 
@@ -439,10 +470,26 @@ class _DepartmentCard extends StatelessWidget {
         ? (department['departmentAdmin'] as String).trim()
         : '';
     final String adminUserId = ((department['adminUserId'] as String?) ?? '').trim();
+    final UserModel? adminUser = department['adminUser'] as UserModel?;
     final String departmentId = ((department['id'] as String?) ?? '').trim();
     final int facultyCount = (department['facultyCount'] as int?) ?? 0;
     final int studentCount = (department['studentCount'] as int?) ?? 0;
     final bool hasAdmin = adminUserId.isNotEmpty && admin.isNotEmpty && admin != '-';
+    final UserModel adminIdentity = adminUser ??
+        UserModel(
+          userId: adminUserId,
+          phone: '',
+          firstName: admin,
+          lastName: '',
+          email: '',
+          role: 'DADM',
+          orgType: null,
+          orgId: '',
+          department: name,
+          departmentCode: '',
+          status: UserStatus.active,
+          createdAt: DateTime.now(),
+        );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
@@ -471,48 +518,58 @@ class _DepartmentCard extends StatelessWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, height: 1.15),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, height: 1.15),
                 ),
               ),
               if (departmentId.isNotEmpty)
-                Tooltip(
-                  message: 'Delete department',
-                  child: InkWell(
-                    onTap: onDelete,
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(AppIcons.remove, size: 17, color: Color(0xFFDC2626)),
-                    ),
-                  ),
+                _DepartmentIconAction(
+                  icon: AppIcons.remove,
+                  tooltip: 'Delete department',
+                  destructive: true,
+                  iconSize: 17,
+                  onTap: onDelete,
                 ),
             ],
           ),
           const SizedBox(height: 6),
           if (hasAdmin)
             Row(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                Flexible(
-                  child: ContextPill(
-                    label: admin,
-                    semantic: ContextPillSemantic.user,
-                    icon: AppIcons.adminProfile,
-                    onTap: () => WorkspaceNavigator.openUser(context, adminUserId),
-                    compact: true,
-                  ),
+                UserWorkspaceAvatar(
+                  user: adminIdentity,
+                  radius: 12,
+                  ringPadding: 2,
+                  onTap: () => WorkspaceNavigator.openUser(context, adminUserId),
                 ),
-                const SizedBox(width: 2),
-                Tooltip(
-                  message: 'Remove department admin',
-                  child: InkWell(
-                    onTap: () => onRemoveAdmin(adminUserId, admin),
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(AppIcons.remove, size: 15, color: Color(0xFFDC2626)),
-                    ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: <Widget>[
+                      Text(
+                        admin,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                          height: 1.25,
+                        ),
+                      ),
+                      _DepartmentIconAction(
+                        icon: AppIcons.edit,
+                        tooltip: 'Edit department admin',
+                        onTap: () => onEditAdmin(adminUser ?? adminIdentity),
+                      ),
+                      _DepartmentIconAction(
+                        icon: AppIcons.remove,
+                        tooltip: 'Remove department admin',
+                        destructive: true,
+                        onTap: () => onRemoveAdmin(adminUserId, admin),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -624,6 +681,60 @@ class _DepartmentCountSegment extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DepartmentIconAction extends StatefulWidget {
+  const _DepartmentIconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.destructive = false,
+    this.iconSize = 15,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool destructive;
+  final double iconSize;
+
+  @override
+  State<_DepartmentIconAction> createState() => _DepartmentIconActionState();
+}
+
+class _DepartmentIconActionState extends State<_DepartmentIconAction> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color borderColor = widget.destructive ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0);
+    final Color iconColor = widget.destructive ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    final Color backgroundColor = widget.destructive ? const Color(0xFFFFF7F7) : Colors.white;
+
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: Material(
+          color: _hovering ? backgroundColor : Colors.transparent,
+          shape: CircleBorder(
+            side: BorderSide(color: _hovering ? borderColor : Colors.transparent),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTap,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: Icon(widget.icon, size: widget.iconSize, color: iconColor),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

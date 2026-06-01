@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/enums/organization_type.dart';
-import '../../../models/organization_model.dart';
+import '../../organization/models/enums/organization_type.dart';
+import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
 import '../../user/screens/create_user_dialog.dart';
 import '../../../screens/common/dashboard_components.dart';

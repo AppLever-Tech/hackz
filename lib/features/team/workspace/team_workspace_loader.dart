@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/department_model.dart';
+import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
 import '../../../models/idea_model.dart';
 import '../../../models/payment_model.dart';

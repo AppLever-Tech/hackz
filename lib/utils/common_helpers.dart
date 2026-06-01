@@ -1,4 +1,4 @@
-import '../models/enums/organization_type.dart';
+import '../features/organization/models/enums/organization_type.dart';
 import '../features/user/models/user_model.dart';
 
 /// Normalize phone for Firestore lookups (E.164 style).

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'department_model.dart';
+import '../features/organization/models/department_model.dart';
 
 enum IdeaStatus {
   pendingSubmission('pendingSubmission'),

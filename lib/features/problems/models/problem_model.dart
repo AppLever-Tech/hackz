@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/department_model.dart';
+import '../../organization/models/department_model.dart';
 
 class ProblemModel {
   const ProblemModel({
