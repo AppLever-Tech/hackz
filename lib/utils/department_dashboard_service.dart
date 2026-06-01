@@ -7,7 +7,7 @@ import '../features/user/models/enums/user_status.dart';
 import '../models/idea_model.dart';
 import '../models/payment_model.dart';
 import 'firestore_utils.dart';
-import 'idea_department_helpers.dart';
+import '../features/idea/services/idea_department_helpers.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 

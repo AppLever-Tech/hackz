@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/attachment_model.dart';
-import '../../features/team/models/enums/team_status.dart';
-import '../../models/idea_model.dart';
-import '../../features/organization/models/organization_model.dart';
-import '../../models/payment_model.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../models/score_model.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
-import '../core/workspace_attachment_counts.dart';
+import '../../../constants/app_icons.dart';
+import '../../../models/attachment_model.dart';
+import '../../team/models/enums/team_status.dart';
+import '../models/idea_model.dart';
+import '../../organization/models/organization_model.dart';
+import '../../../models/payment_model.dart';
+import '../../problems/models/problem_model.dart';
+import '../../../models/score_model.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../workspace/core/workspace_attachment_counts.dart';
 
 class IdeaWorkspaceViewModel {
   const IdeaWorkspaceViewModel({

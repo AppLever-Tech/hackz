@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/team/models/team_model.dart';
-import '../../responsive/responsive_helper.dart';
-import '../common/context_pill_theme.dart';
-import '../common/entity_card_pills.dart';
+import '../../../constants/app_icons.dart';
+import '../../team/models/team_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
 
 /// Scalable team picker for [InnovationSubmissionWorkspace].
 class InnovationSubmissionTeamSelector extends StatefulWidget {

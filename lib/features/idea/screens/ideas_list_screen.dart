@@ -2,22 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/idea_list_config.dart';
-import '../../models/idea_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/idea_query_service.dart';
-import '../../features/user/services/role_visibility_helpers.dart';
-import '../../widgets/data_view/data_table_view.dart';
-import '../../widgets/idea_table_columns.dart';
-import '../../widgets/payment_dialog.dart';
-import '../../widgets/judge/evaluate_idea_dialog.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
-import '../../features/evaluations/workspaces/evaluation_assignment_details_pane.dart';
-import 'dashboard_components.dart';
+import '../../../constants/app_icons.dart';
+import '../models/idea_list_config.dart';
+import '../models/idea_model.dart';
+import '../../user/models/user_model.dart';
+import '../services/idea_query_service.dart';
+import '../../user/services/role_visibility_helpers.dart';
+import '../../../widgets/data_view/data_table_view.dart';
+import '../widgets/idea_table_columns.dart';
+import '../../../widgets/payment_dialog.dart';
+import '../../../widgets/judge/evaluate_idea_dialog.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../widgets/responsive/responsive_metric_grid.dart';
+import 'idea_details_pane.dart';
+import '../../../workspace/workspace.dart';
+import '../../evaluations/workspaces/evaluation_assignment_details_pane.dart';
+import '../../../screens/common/dashboard_components.dart';
 
 class IdeasListScreen extends StatefulWidget {
   const IdeasListScreen({
@@ -166,6 +167,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                 ),
                 onSort: _onTableSort,
                 activeSortKey: _activeSortKey,
+                onRowTap: _openIdeaDetails,
               );
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -205,11 +207,14 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
+  void _openIdeaDetails(IdeaListItem item) {
+    showIdeaDetailsPane(context, ideaId: item.idea.ideaId);
+  }
+
   /// Row action callbacks wired into table cells (workspace + dialogs).
   IdeaTableActions _ideaTableActions() {
     return IdeaTableActions(
-      onOpenIdea: (IdeaListItem item) =>
-          WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+      onOpenIdea: _openIdeaDetails,
       onOpenTeam: (IdeaListItem item) {
         final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
         if (teamId.isEmpty) return;

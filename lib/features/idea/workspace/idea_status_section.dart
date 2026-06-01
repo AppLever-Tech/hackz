@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/status_styles.dart';
-import '../../utils/common_helpers.dart';
+import '../../../constants/status_styles.dart';
+import '../../../utils/common_helpers.dart';
 import 'idea_workspace_loader.dart';
 
 /// Read-only workflow context for the innovation proposal (no actions).

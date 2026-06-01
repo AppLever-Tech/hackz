@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../features/organization/models/department_model.dart';
-import 'idea_department_helpers.dart';
+import '../features/idea/services/idea_department_helpers.dart';
 import '../models/idea_model.dart';
 import '../features/organization/models/organization_model.dart';
 import '../features/organization/models/enums/organization_type.dart';

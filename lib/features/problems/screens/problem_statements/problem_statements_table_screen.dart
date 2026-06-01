@@ -13,7 +13,7 @@ import '../../../../screens/common/dashboard_components.dart';
 import '../../../../utils/attachment_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/data_view/data_table_view.dart';
-import '../../../../widgets/faculty/innovation_submission_workspace.dart';
+import '../../../idea/screens/innovation_submission_workspace.dart';
 import '../../../../widgets/problem_table_columns.dart';
 import '../../../../widgets/loading/hkz_progress_indicator.dart';
 import '../../../../workspace/workspace.dart';

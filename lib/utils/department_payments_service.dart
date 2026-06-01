@@ -9,7 +9,7 @@ import '../features/team/models/team_model.dart';
 import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
 import 'firestore_utils.dart';
-import 'idea_department_helpers.dart';
+import '../features/idea/services/idea_department_helpers.dart';
 import 'payment_finance_helpers.dart';
 
 typedef _Docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;

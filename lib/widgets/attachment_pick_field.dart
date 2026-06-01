@@ -99,6 +99,7 @@ class AttachmentFilesPickField extends StatelessWidget {
     this.enabled = true,
     this.label = 'Attachments',
     this.hint = 'Add files to include with this submission (images, PDFs, documents).',
+    this.allowedExtensions,
   });
 
   final List<PlatformFile> files;
@@ -106,13 +107,16 @@ class AttachmentFilesPickField extends StatelessWidget {
   final bool enabled;
   final String label;
   final String hint;
+  final List<String>? allowedExtensions;
 
   Future<void> _pick() async {
     if (!enabled) return;
+    final List<String>? extensions = allowedExtensions;
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       withData: true,
-      type: FileType.any,
+      type: extensions == null || extensions.isEmpty ? FileType.any : FileType.custom,
+      allowedExtensions: extensions == null || extensions.isEmpty ? null : extensions,
     );
     if (result == null || result.files.isEmpty) return;
     final next = List<PlatformFile>.from(files);

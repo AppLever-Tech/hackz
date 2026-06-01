@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
 import '../models/idea_model.dart';
-import '../models/payment_model.dart';
-import '../models/score_model.dart';
-import '../responsive/responsive_helper.dart';
-import '../screens/common/dashboard_components.dart';
-import '../utils/idea_query_service.dart';
-import 'common/context_pill_theme.dart';
-import 'common/entity_card_pills.dart';
-import 'common/form_value_row.dart';
+import '../../../models/payment_model.dart';
+import '../../../models/score_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../services/idea_query_service.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/common/form_value_row.dart';
 
 /// Compact contextual idea feed card (workspace pills).
 class IdeaCard extends StatelessWidget {

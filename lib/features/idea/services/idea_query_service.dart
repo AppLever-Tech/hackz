@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/attachment_model.dart';
-import '../features/organization/models/department_model.dart';
-import '../features/user/models/enums/user_role.dart';
+import '../../../models/attachment_model.dart';
+import '../../organization/models/department_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../models/idea_list_config.dart';
 import '../models/idea_model.dart';
-import '../models/payment_model.dart';
-import '../models/score_model.dart';
-import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import 'firestore_utils.dart';
-import '../features/user/services/role_visibility_helpers.dart';
+import '../../../models/payment_model.dart';
+import '../../../models/score_model.dart';
+import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../user/services/role_visibility_helpers.dart';
 
 class IdeaQueryParams {
   const IdeaQueryParams({

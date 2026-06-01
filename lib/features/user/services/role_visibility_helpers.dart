@@ -4,7 +4,7 @@ import '../../../models/payment_model.dart';
 import '../../../features/problems/models/problem_model.dart';
 import '../models/enums/user_role.dart';
 import '../models/user_model.dart';
-import '../../../utils/idea_department_helpers.dart';
+import '../../idea/services/idea_department_helpers.dart';
 
 /// How idea lists/queries apply department scoping for a role.
 enum IdeaDepartmentScope {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../constants/status_styles.dart';
-import '../../models/idea_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../widgets/common/context_pill_group.dart';
-import '../../widgets/common/context_pill_theme.dart';
+import '../../../constants/app_icons.dart';
+import '../../../constants/status_styles.dart';
+import '../models/idea_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../widgets/common/context_pill_group.dart';
+import '../../../widgets/common/context_pill_theme.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 

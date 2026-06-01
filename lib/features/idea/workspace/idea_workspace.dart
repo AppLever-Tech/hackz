@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../core/workspace_host.dart';
-import '../core/workspace_route.dart';
-import '../evaluation/evaluation_workspace.dart';
-import '../payment/payment_workspace.dart';
-import '../../features/problems/workspace/problem_workspace.dart';
-import '../../features/team/workspace/team_workspace.dart';
+import '../../../workspace/core/workspace_host.dart';
+import '../../../workspace/core/workspace_route.dart';
+import '../../../workspace/evaluation/evaluation_workspace.dart';
+import '../../../workspace/payment/payment_workspace.dart';
+import '../../problems/workspace/problem_workspace.dart';
+import '../../team/workspace/team_workspace.dart';
 import 'idea_workspace_body.dart';
 import 'idea_workspace_loader.dart';
 

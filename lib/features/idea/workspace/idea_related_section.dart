@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/common_helpers.dart';
-import '../../widgets/common/context_pill_theme.dart';
-import '../shared/entity_reference_tile.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../workspace/shared/entity_reference_tile.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 

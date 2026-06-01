@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../workspace/core/workspace_host.dart';
 import '../../../workspace/core/workspace_route.dart';
-import '../../../workspace/idea/idea_workspace.dart';
+import '../../idea/workspace/idea_workspace.dart';
 import '../../user/workspace/user_workspace.dart';
 import 'team_workspace_body.dart';
 import 'team_workspace_loader.dart';

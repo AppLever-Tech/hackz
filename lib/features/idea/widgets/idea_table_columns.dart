@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_icons.dart';
+import '../../../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
 import '../models/idea_model.dart';
-import '../utils/idea_query_service.dart';
-import 'common/card_overflow_menu.dart';
-import 'common/context_pill.dart';
-import 'common/context_pill_theme.dart';
-import 'common/entity_card_pills.dart';
-import 'data_view/data_table_column.dart';
+import '../services/idea_query_service.dart';
+import '../../../widgets/common/card_overflow_menu.dart';
+import '../../../widgets/common/context_pill.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/data_view/data_table_column.dart';
 
 const double _kLeadingColumnGap = 12;
 
@@ -55,11 +55,22 @@ abstract final class IdeaTableColumns {
           final String title = item.idea.ideaTitle.trim().isEmpty
               ? 'Untitled Idea'
               : item.idea.ideaTitle.trim();
-          return EntityCardPills.workspace(
-            title,
-            ContextPillSemantic.idea,
-            () => actions.onOpenIdea(item),
-            icon: AppIcons.ideas,
+          return InkWell(
+            onTap: () => actions.onOpenIdea(item),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4A67FF),
+                  decoration: TextDecoration.underline,
+                  decorationColor: Color(0xFF4A67FF),
+                ),
+              ),
+            ),
           );
         },
       ),

@@ -201,6 +201,8 @@ class FacultyTeamsService {
     required String ideaTitle,
     required String description,
     required List<PlatformFile> attachmentFiles,
+    String gitRepositoryUrl = '',
+    String youtubeDemoUrl = '',
   }) async {
     await TeamService.validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
     final teamDept = DepartmentModel.resolveCode(team.departmentCode);
@@ -221,6 +223,8 @@ class FacultyTeamsService {
       problemNumber: problem.problemNumber,
       problemTitle: problem.title,
       createdBy: faculty.userId,
+      gitRepositoryUrl: gitRepositoryUrl.trim(),
+      youtubeDemoUrl: youtubeDemoUrl.trim(),
     );
     final batch = _db.batch();
     batch.set(doc, idea.toMap());

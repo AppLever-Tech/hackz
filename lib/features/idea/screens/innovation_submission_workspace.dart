@@ -1,23 +1,23 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/team/models/enums/team_status.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../features/problems/validators/problem_submission_validators.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../screens/common/app_dialog_template.dart';
-import '../../screens/common/dashboard_components.dart';
-import '../../features/team/services/faculty_teams_service.dart';
-import '../../features/team/services/team_service.dart';
-import '../../workspace/workspace.dart';
-import '../attachment_pick_field.dart';
-import '../common/entity_card_pills.dart';
-import 'innovation_submission_team_selector.dart';
-import '../loading/loading.dart';
+import '../../../constants/app_icons.dart';
+import '../../team/models/enums/team_status.dart';
+import '../../problems/models/problem_model.dart';
+import '../../problems/validators/problem_submission_validators.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import '../../../screens/common/dashboard_components.dart';
+import '../../team/services/faculty_teams_service.dart';
+import '../../team/services/team_service.dart';
+import '../../../workspace/workspace.dart';
+import '../../../widgets/attachment_pick_field.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../widgets/innovation_submission_team_selector.dart';
+import '../../../widgets/loading/loading.dart';
 
 /// Problem-first innovation submission workspace (launch from Problem Card only).
 ///
@@ -61,13 +61,17 @@ class InnovationSubmissionWorkspace extends StatefulWidget {
 }
 
 class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWorkspace> {
+  static const List<String> _presentationExtensions = <String>['pdf', 'ppt', 'pptx', 'doc', 'docx'];
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _gitRepositoryController = TextEditingController();
+  final TextEditingController _youtubeDemoController = TextEditingController();
 
   List<TeamModel> _teams = <TeamModel>[];
   TeamModel? _selectedTeam;
   String? _recentTeamId;
-  List<PlatformFile> _attachmentFiles = <PlatformFile>[];
+  List<PlatformFile> _presentationFiles = <PlatformFile>[];
   bool _busy = false;
   bool _loadingTeams = true;
 
@@ -81,6 +85,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _gitRepositoryController.dispose();
+    _youtubeDemoController.dispose();
     super.dispose();
   }
 
@@ -134,7 +140,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     }
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
-    final int fileCount = _attachmentFiles.length;
+    final int fileCount = _presentationFiles.length;
     setState(() => _busy = true);
     try {
       await HkzAsyncLoader.run<void>(
@@ -156,7 +162,9 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             problem: widget.problem,
             ideaTitle: title,
             description: description,
-            attachmentFiles: _attachmentFiles,
+            attachmentFiles: _presentationFiles,
+            gitRepositoryUrl: _gitRepositoryController.text,
+            youtubeDemoUrl: _youtubeDemoController.text,
           );
         },
       );
@@ -181,8 +189,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     }
   }
 
-  Future<void> _openAttachmentsPanel() async {
-    var draft = List<PlatformFile>.from(_attachmentFiles);
+  Future<void> _openPresentationPanel() async {
+    var draft = List<PlatformFile>.from(_presentationFiles);
     await showAppDialog<void>(
       context: context,
       width: DialogWidthPreset.wide,
@@ -199,7 +207,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
-                      'Submission Attachments',
+                      'Presentation / Document',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                     ),
                   ),
@@ -211,15 +219,16 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
               ),
               const SizedBox(height: 8),
               const Text(
-                'Add supporting files for your innovation proposal. They upload when you submit.',
+                'Add a presentation or document (PPT, PPTX, PDF, DOC, DOCX). Files upload when you submit.',
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
               ),
               const SizedBox(height: 14),
               AttachmentFilesPickField(
                 files: draft,
                 enabled: !_busy,
-                label: 'Proposal files',
-                hint: 'Images, PDFs, decks, or documents that support your idea.',
+                label: 'Presentation files',
+                hint: 'Supported: PPT, PPTX, PDF, DOC, DOCX.',
+                allowedExtensions: _presentationExtensions,
                 onChanged: (next) => setModal(() => draft = next),
               ),
               const SizedBox(height: 14),
@@ -227,7 +236,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
                 alignment: Alignment.centerRight,
                 child: FilledButton(
                   onPressed: () {
-                    setState(() => _attachmentFiles = draft);
+                    setState(() => _presentationFiles = draft);
                     Navigator.of(ctx).pop();
                   },
                   child: const Text('Done'),
@@ -289,18 +298,19 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           ),
           const SizedBox(height: 12),
           _section(
-            title: 'Innovation title',
+            title: 'Title',
             child: _buildTitleField(context),
           ),
           const SizedBox(height: 12),
           _section(
-            title: 'Innovation story',
+            title: 'Description',
             child: _buildDescriptionField(context),
           ),
           const SizedBox(height: 12),
           _section(
-            title: 'Supporting files',
-            child: _buildAttachmentsSection(context),
+            title: 'Innovation Assets',
+            subtitle: 'Optional — repository, demo video, and presentation',
+            child: _buildInnovationAssetsSection(context),
           ),
         ],
       ),
@@ -485,22 +495,83 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     );
   }
 
-  Widget _buildAttachmentsSection(BuildContext context) {
-    final int count = _attachmentFiles.length;
-    final String label = count == 0 ? 'Add supporting files' : '$count file${count == 1 ? '' : 's'} attached';
+  Widget _buildInnovationAssetsSection(BuildContext context) {
+    final int count = _presentationFiles.length;
+    final String presentationLabel =
+        count == 0 ? 'Add presentation / document' : '$count file${count == 1 ? '' : 's'} attached';
 
-    return EntityCardPills.workspace(
-      label,
-      ContextPillSemantic.generic,
-      _openAttachmentsPanel,
-      icon: AppIcons.attachments,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildAssetUrlField(
+          controller: _gitRepositoryController,
+          hint: 'https://github.com/org/repo',
+          icon: Icons.code_rounded,
+          label: 'Git Repository URL',
+        ),
+        const SizedBox(height: 10),
+        _buildAssetUrlField(
+          controller: _youtubeDemoController,
+          hint: 'https://youtube.com/watch?v=...',
+          icon: Icons.play_circle_outline_rounded,
+          label: 'YouTube Demo URL',
+        ),
+        const SizedBox(height: 10),
+        EntityCardPills.workspace(
+          presentationLabel,
+          ContextPillSemantic.generic,
+          _openPresentationPanel,
+          icon: AppIcons.attachments,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssetUrlField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          enabled: !_busy,
+          keyboardType: TextInputType.url,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFFFCFDFF),
+            isDense: true,
+            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF64748B)),
+            hintText: hint,
+            hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildFooter(BuildContext context) {
     final team = _selectedTeam;
     final String teamLabel = team?.teamName ?? 'No team selected';
-    final int attachCount = _attachmentFiles.length;
+    final int attachCount = _presentationFiles.length;
     final bool ready = _canSubmit;
 
     return Container(
@@ -527,7 +598,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               _footerMeta(Icons.groups_3_outlined, teamLabel),
-              _footerMeta(AppIcons.attachments, '$attachCount attachment${attachCount == 1 ? '' : 's'}'),
+              if (attachCount > 0)
+                _footerMeta(AppIcons.attachments, '$attachCount presentation file${attachCount == 1 ? '' : 's'}'),
               _footerMeta(
                 ready ? AppIcons.statusApproved : AppIcons.statusUnderReview,
                 ready ? 'Ready to submit' : 'Complete required fields',

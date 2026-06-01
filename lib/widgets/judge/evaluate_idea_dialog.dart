@@ -17,7 +17,7 @@ import '../../shared/feedback/feedback.dart';
 import '../../screens/common/app_dialog_template.dart';
 import '../../utils/attachment_service.dart';
 import '../../utils/firestore_utils.dart';
-import '../../utils/idea_query_service.dart';
+import '../../features/idea/services/idea_query_service.dart';
 import '../../utils/judge_evaluation_feedback_codec.dart';
 import '../../utils/judge_evaluation_service.dart';
 import '../attachment_viewer.dart';
