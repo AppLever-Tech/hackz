@@ -502,7 +502,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
           UserProfilePhotoField(
             displayName: '${_firstNameController.text} ${_lastNameController.text}',
             localFile: _photoFile,
-            remoteUrl: _remotePhotoUrl ?? _remoteThumbUrl,
+            remoteUrl: _remoteThumbUrl ?? _remotePhotoUrl,
             enabled: !_saving,
             onPick: _pickPhoto,
             onClear: () => setState(() {

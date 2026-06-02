@@ -429,17 +429,13 @@ class AttachmentTile extends StatelessWidget {
                         url: previewUrl,
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        errorBuilder: (error) {
-                          debugPrint(
-                            '[AttachmentTile] Thumbnail load failed for ${attachment.attachmentId} '
-                            'url=$previewUrl error=$error',
-                          );
-                          return _ImageLoadError(
-                            title: 'Thumbnail load failed',
-                            details: '$error',
-                            type: attachment.attachmentType,
-                          );
-                        },
+                        logTag: 'AttachmentTile',
+                        logContext: 'attachmentId=${attachment.attachmentId}',
+                        errorBuilder: (error) => _ImageLoadError(
+                          title: 'Thumbnail load failed',
+                          details: '$error',
+                          type: attachment.attachmentType,
+                        ),
                       )
                     : Container(
                         width: double.infinity,
@@ -538,17 +534,13 @@ class AttachmentPreviewPane extends StatelessWidget {
           child: NetworkImageCompat(
             url: url,
             fit: BoxFit.contain,
-            errorBuilder: (error) {
-              debugPrint(
-                '[AttachmentContent] Full image load failed for ${item.attachmentId} '
-                'url=$url error=$error',
-              );
-              return _ImageLoadError(
-                title: 'Image request failed',
-                details: '$error',
-                type: item.attachmentType,
-              );
-            },
+            logTag: 'AttachmentContent',
+            logContext: 'attachmentId=${item.attachmentId}',
+            errorBuilder: (error) => _ImageLoadError(
+              title: 'Image request failed',
+              details: '$error',
+              type: item.attachmentType,
+            ),
           ),
         );
       case AttachmentType.video:
@@ -628,12 +620,9 @@ class _VideoContentState extends State<_VideoContent> {
             NetworkImageCompat(
               url: widget.thumbnailUrl!,
               fit: BoxFit.cover,
-              errorBuilder: (error) {
-                debugPrint(
-                  '[VideoContent] Thumbnail load failed url=${widget.thumbnailUrl} error=$error',
-                );
-                return const ColoredBox(color: Color(0xFFF1F4FB));
-              },
+              logTag: 'VideoContent',
+              logContext: 'thumbnail',
+              errorBuilder: (_) => const ColoredBox(color: Color(0xFFF1F4FB)),
             )
           else
             Container(color: const Color(0xFFF1F4FB)),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/inputs/network_image_compat.dart';
 import '../models/user_model.dart';
 
 /// Circular avatar for user cards, workspace headers, and assignment rows.
@@ -26,14 +27,15 @@ class UserAvatar extends StatelessWidget {
     }
 
     return ClipOval(
-      child: Image.network(
-        url,
+      child: NetworkImageCompat(
+        url: url,
         width: radius * 2,
         height: radius * 2,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) {
-          return _initialsAvatar(initials: initials, fontSize: resolvedFontSize);
-        },
+        logTag: 'UserAvatar',
+        logContext: 'userId=${user.userId}',
+        errorBuilder: (_) =>
+            _initialsAvatar(initials: initials, fontSize: resolvedFontSize),
       ),
     );
   }

@@ -4,6 +4,7 @@ import '../../constants/app_icons.dart';
 import '../../models/attachment_model.dart';
 import '../../models/payment_model.dart';
 import '../../shared/feedback/feedback.dart';
+import '../../shared/inputs/network_image_compat.dart';
 import '../../utils/payment_finance_helpers.dart';
 import '../attachment_viewer.dart';
 
@@ -87,10 +88,11 @@ class PaymentProofViewer extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 16 / 9,
-          child: Image.network(
-            url,
+          child: NetworkImageCompat(
+            url: url,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _legacyProofUrlText(url),
+            logTag: 'PaymentProof',
+            errorBuilder: (_) => _legacyProofUrlText(url),
           ),
         ),
       );

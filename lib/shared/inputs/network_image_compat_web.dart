@@ -3,6 +3,8 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
 
+import '../media/remote_image_logging.dart';
+
 class NetworkImageCompat extends StatefulWidget {
   const NetworkImageCompat({
     super.key,
@@ -10,6 +12,8 @@ class NetworkImageCompat extends StatefulWidget {
     required this.fit,
     this.width,
     this.height,
+    this.logTag,
+    this.logContext,
     this.errorBuilder,
   });
 
@@ -17,6 +21,8 @@ class NetworkImageCompat extends StatefulWidget {
   final BoxFit fit;
   final double? width;
   final double? height;
+  final String? logTag;
+  final String? logContext;
   final Widget Function(Object error)? errorBuilder;
 
   @override
@@ -26,7 +32,7 @@ class NetworkImageCompat extends StatefulWidget {
 class _NetworkImageCompatState extends State<NetworkImageCompat> {
   static final Set<String> _registeredTypes = <String>{};
   bool _hasError = false;
-  String? _errorText;
+  Object? _error;
 
   late final String _viewType;
 
@@ -42,7 +48,23 @@ class _NetworkImageCompatState extends State<NetworkImageCompat> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url || oldWidget.fit != widget.fit) {
       _hasError = false;
-      _errorText = null;
+      _error = null;
+    }
+  }
+
+  void _onImageError() {
+    const String msg = 'HTML image element failed to load';
+    logRemoteImageLoadFailure(
+      tag: widget.logTag ?? 'NetworkImageCompat',
+      url: widget.url,
+      error: msg,
+      context: widget.logContext,
+    );
+    if (mounted) {
+      setState(() {
+        _hasError = true;
+        _error = msg;
+      });
     }
   }
 
@@ -55,17 +77,10 @@ class _NetworkImageCompatState extends State<NetworkImageCompat> {
         ..style.height = '100%'
         ..style.objectFit = _cssFit(widget.fit)
         ..style.display = 'block'
+        // Let Flutter ancestors (e.g. ContextLaunchSurface) receive taps.
+        ..style.pointerEvents = 'none'
         ..draggable = false;
-      img.onError.listen((event) {
-        final msg = 'HTML image failed to load: ${widget.url}';
-        debugPrint('[NetworkImageCompatWeb] $msg');
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _errorText = msg;
-          });
-        }
-      });
+      img.onError.listen((_) => _onImageError());
       return img;
     });
     _registeredTypes.add(_viewType);
@@ -74,8 +89,11 @@ class _NetworkImageCompatState extends State<NetworkImageCompat> {
   @override
   Widget build(BuildContext context) {
     final child = _hasError
-        ? (widget.errorBuilder?.call(_errorText ?? 'Image load failed') ?? const SizedBox.shrink())
-        : HtmlElementView(viewType: _viewType);
+        ? (widget.errorBuilder?.call(_error ?? 'Image load failed') ??
+            const SizedBox.shrink())
+        : IgnorePointer(
+            child: HtmlElementView(viewType: _viewType),
+          );
 
     return SizedBox(
       width: widget.width,

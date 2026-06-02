@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../../../shared/inputs/network_image_compat.dart';
 
 /// Profile photo picker with avatar preview for user workflows.
 class UserProfilePhotoField extends StatelessWidget {
@@ -22,23 +23,14 @@ class UserProfilePhotoField extends StatelessWidget {
   final VoidCallback onClear;
   final bool enabled;
 
+  static const double _avatarRadius = 36;
+
   @override
   Widget build(BuildContext context) {
-    final String initials = _initials(displayName);
-    final String? url = (remoteUrl ?? '').trim().isNotEmpty ? remoteUrl!.trim() : null;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        CircleAvatar(
-          radius: 36,
-          backgroundColor: const Color(0xFFEEF2FF),
-          foregroundColor: const Color(0xFF4F46E5),
-          backgroundImage: _avatarImage(localFile, url),
-          child: _avatarImage(localFile, url) == null
-              ? Text(initials, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18))
-              : null,
-        ),
+        _buildPreview(),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -62,7 +54,7 @@ class UserProfilePhotoField extends StatelessWidget {
                     icon: const Icon(AppIcons.attachments, size: 16),
                     label: const Text('Upload photo'),
                   ),
-                  if (localFile != null || url != null)
+                  if (localFile != null || _remoteUrl != null)
                     TextButton(
                       onPressed: enabled ? onClear : null,
                       child: const Text('Remove'),
@@ -76,12 +68,54 @@ class UserProfilePhotoField extends StatelessWidget {
     );
   }
 
-  static ImageProvider? _avatarImage(PlatformFile? localFile, String? url) {
-    if (localFile?.bytes != null && localFile!.bytes!.isNotEmpty) {
-      return MemoryImage(localFile.bytes!);
+  String? get _remoteUrl {
+    final String trimmed = (remoteUrl ?? '').trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  Widget _buildPreview() {
+    final String initials = _initials(displayName);
+    final double size = _avatarRadius * 2;
+
+    final PlatformFile? file = localFile;
+    if (file?.bytes != null && file!.bytes!.isNotEmpty) {
+      return ClipOval(
+        child: Image.memory(
+          file.bytes!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
     }
-    if (url != null && url.isNotEmpty) return NetworkImage(url);
-    return null;
+
+    final String? url = _remoteUrl;
+    if (url != null) {
+      return ClipOval(
+        child: NetworkImageCompat(
+          url: url,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          logTag: 'UserProfilePhotoField',
+          errorBuilder: (_) => _initialsAvatar(initials),
+        ),
+      );
+    }
+
+    return _initialsAvatar(initials);
+  }
+
+  Widget _initialsAvatar(String initials) {
+    return CircleAvatar(
+      radius: _avatarRadius,
+      backgroundColor: const Color(0xFFEEF2FF),
+      foregroundColor: const Color(0xFF4F46E5),
+      child: Text(
+        initials,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+      ),
+    );
   }
 
   static String _initials(String name) {
