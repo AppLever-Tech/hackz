@@ -19,21 +19,40 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final String url = user.avatarUrl;
     final String initials = _initials(user.displayName);
+    final double resolvedFontSize = fontSize ?? (radius * 0.72);
 
+    if (url.isEmpty) {
+      return _initialsAvatar(initials: initials, fontSize: resolvedFontSize);
+    }
+
+    return ClipOval(
+      child: Image.network(
+        url,
+        width: radius * 2,
+        height: radius * 2,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return _initialsAvatar(initials: initials, fontSize: resolvedFontSize);
+        },
+      ),
+    );
+  }
+
+  Widget _initialsAvatar({
+    required String initials,
+    required double fontSize,
+  }) {
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFFEEF2FF),
       foregroundColor: const Color(0xFF4F46E5),
-      backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
-      child: url.isEmpty
-          ? Text(
-              initials,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: fontSize ?? (radius * 0.72),
-              ),
-            )
-          : null,
+      child: Text(
+        initials,
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: fontSize,
+        ),
+      ),
     );
   }
 

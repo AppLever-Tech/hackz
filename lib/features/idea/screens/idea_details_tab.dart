@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
 import '../../organization/models/department_model.dart';
+import '../../../responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../widgets/common/entity_card_pills.dart';
 import '../../../workspace/workspace.dart';
 import '../workspace/idea_workspace_loader.dart';
 import '../widgets/innovation_assets_section.dart';
@@ -24,25 +23,33 @@ class IdeaDetailsTab extends StatelessWidget {
     final String departmentName = DepartmentModel.byCode(idea.teamDepartmentCode)?.name ??
         (idea.teamDepartmentCode.trim().isEmpty ? '—' : idea.teamDepartmentCode.trim());
 
+    final bool isMobile = ResponsiveHelper.isMobile(context);
+    final double labelWidth = isMobile ? 92 : 112;
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
       children: <Widget>[
         _card(
+          context: context,
           title: 'Innovation',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
                 title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                style: TextStyle(
+                  fontSize: isMobile ? 16 : 18,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
               if (description.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Text(
                   description,
                   style: const TextStyle(
-                    fontSize: 13,
-                    height: 1.45,
+                    fontSize: 12,
+                    height: 1.4,
                     color: Color(0xFF475569),
                     fontWeight: FontWeight.w500,
                   ),
@@ -51,85 +58,107 @@ class IdeaDetailsTab extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _card(
+          context: context,
           title: 'Innovation Assets',
           child: InnovationAssetsSection(
             idea: idea,
             attachments: vm.attachments,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _card(
+          context: context,
           title: 'Team Information',
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               if (teamId.isNotEmpty)
-                ContextPillGroup(
-                  fieldLabel: 'Team',
+                _labeledContextPillRow(
+                  context: context,
+                  labelWidth: labelWidth,
+                  label: 'Team',
                   pillLabel: vm.teamName.trim().isEmpty ? teamId : vm.teamName.trim(),
                   semantic: ContextPillSemantic.team,
-                  onOpenWorkspace: () => WorkspaceNavigator.openTeam(context, teamId),
+                  onTap: () => WorkspaceNavigator.openTeam(context, teamId),
                 )
               else
-                _plainField('Team', vm.teamName),
+                _metaRow(context, labelWidth: labelWidth, label: 'Team', value: vm.teamName),
               if (vm.mentorId.trim().isNotEmpty)
-                ContextPillGroup(
-                  fieldLabel: 'Mentor',
+                _labeledContextPillRow(
+                  context: context,
+                  labelWidth: labelWidth,
+                  label: 'Mentor',
                   pillLabel: vm.mentorName.trim().isEmpty ? vm.mentorId.trim() : vm.mentorName.trim(),
                   semantic: ContextPillSemantic.user,
-                  onOpenWorkspace: () => WorkspaceNavigator.openUser(context, vm.mentorId.trim()),
+                  onTap: () => WorkspaceNavigator.openUser(context, vm.mentorId.trim()),
                 )
               else
-                _plainField('Mentor', vm.mentorName),
-              EntityCardPills.meta(departmentName, icon: AppIcons.departments),
-              EntityCardPills.meta(
-                vm.organizationName.trim().isEmpty ? '—' : vm.organizationName.trim(),
-                icon: AppIcons.organizations,
+                _metaRow(context, labelWidth: labelWidth, label: 'Mentor', value: vm.mentorName),
+              _metaRow(
+                context,
+                labelWidth: labelWidth,
+                label: 'Department',
+                value: departmentName,
+                isLast: true,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _card(
+          context: context,
           title: 'Submission Metadata',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _metaRow('Submitted by', vm.submittedByName),
-              _metaRow('Submitted on', formatDateTime(idea.createdAt)),
-              _metaRow('Status', ideaWorkspaceStatusLabel(idea.status)),
-              _contextPillRow(
+              _metaRow(context, labelWidth: labelWidth, label: 'Submitted by', value: vm.submittedByName),
+              _metaRow(
+                context,
+                labelWidth: labelWidth,
+                label: 'Submitted on',
+                value: formatDateTime(idea.createdAt),
+              ),
+              _metaRow(
+                context,
+                labelWidth: labelWidth,
+                label: 'Status',
+                value: ideaWorkspaceStatusLabel(idea.status),
+              ),
+              _labeledContextPillRow(
+                context: context,
+                labelWidth: labelWidth,
                 label: 'Evaluation',
-                child: ContextPillGroup(
-                  pillLabel: vm.evaluationProgressLabel,
-                  semantic: ContextPillSemantic.evaluation,
-                  onOpenWorkspace: () => WorkspaceNavigator.openEvaluation(context, idea.ideaId),
+                pillLabel: vm.evaluationProgressLabel,
+                semantic: ContextPillSemantic.evaluation,
+                onTap: () => WorkspaceNavigator.openEvaluation(context, idea.ideaId),
+              ),
+              if (vm.payment != null)
+                _labeledContextPillRow(
+                  context: context,
+                  labelWidth: labelWidth,
+                  label: 'Payment',
+                  pillLabel: vm.paymentStatusLabel,
+                  semantic: ContextPillSemantic.payment,
+                  onTap: () => WorkspaceNavigator.openPayment(context, vm.payment!.paymentId),
+                  isLast: true,
+                )
+              else
+                _metaRow(
+                  context,
+                  labelWidth: labelWidth,
+                  label: 'Payment',
+                  value: vm.paymentStatusLabel,
+                  isLast: true,
                 ),
-              ),
-              _contextPillRow(
-                label: 'Payment',
-                child: vm.payment != null
-                    ? ContextPillGroup(
-                        pillLabel: vm.paymentStatusLabel,
-                        semantic: ContextPillSemantic.payment,
-                        onOpenWorkspace: () =>
-                            WorkspaceNavigator.openPayment(context, vm.payment!.paymentId),
-                      )
-                    : Text(
-                        vm.paymentStatusLabel,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                      ),
-              ),
             ],
           ),
         ),
         if (vm.attachments.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _card(
+            context: context,
             title: 'All Attachments',
             child: WorkspaceAttachmentsPanel(
               attachments: vm.attachments,
@@ -141,67 +170,87 @@ class IdeaDetailsTab extends StatelessWidget {
     );
   }
 
-  static Widget _card({required String title, required Widget child}) {
+  static Widget _card({
+    required BuildContext context,
+    required String title,
+    required Widget child,
+  }) {
+    final bool isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 12, vertical: isMobile ? 8 : 10),
       decoration: kDashboardCardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
-          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+          const SizedBox(height: 6),
           child,
         ],
       ),
     );
   }
 
-  static Widget _plainField(String label, String value) {
-    return Text(
-      '$label: ${value.trim().isEmpty ? '—' : value.trim()}',
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-    );
-  }
-
-  static Widget _metaRow(String label, String value) {
+  static Widget _labeledContextPillRow({
+    required BuildContext context,
+    required double labelWidth,
+    required String label,
+    required String pillLabel,
+    required ContextPillSemantic semantic,
+    required VoidCallback onTap,
+    bool enabled = true,
+    bool isLast = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           SizedBox(
-            width: 120,
+            width: labelWidth,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
-          Expanded(
-            child: Text(
-              value.trim().isEmpty ? '—' : value.trim(),
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-            ),
+          ContextPill(
+            label: pillLabel,
+            semantic: semantic,
+            onTap: onTap,
+            enabled: enabled,
+            compact: true,
+            fitContent: true,
           ),
         ],
       ),
     );
   }
 
-  static Widget _contextPillRow({required String label, required Widget child}) {
+  static Widget _metaRow(
+    BuildContext _, {
+    required double labelWidth,
+    required String label,
+    required String value,
+    bool isLast = false,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 120,
+            width: labelWidth,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
-          Expanded(child: child),
+          Expanded(
+            child: Text(
+              value.trim().isEmpty ? '—' : value.trim(),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+            ),
+          ),
         ],
       ),
     );

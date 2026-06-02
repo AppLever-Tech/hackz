@@ -7,13 +7,13 @@ import '../../user/models/user_model.dart';
 import '../../user/screens/create_user_dialog.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../screens/sysadmin/organization_dialog.dart';
+import '../../../shared/buttons/hover_icon_action_button.dart';
 import '../../../shared/common/external_url_icon.dart';
 import '../../../shared/feedback/feedback.dart';
+import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../workspace/core/workspace_navigator.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
 import '../models/org_operational_data.dart';
 import 'org_metadata_row.dart';
 
@@ -60,6 +60,16 @@ class OrganizationManagementCard extends StatelessWidget {
       organization: organization,
     );
     if (assigned) onChanged();
+  }
+
+  Future<void> _editCollegeAdmin(BuildContext context, UserModel admin) async {
+    final changed = await showCreateUserDialog(
+      context: context,
+      roleCode: 'CADM',
+      organization: organization,
+      initialUser: admin,
+    );
+    if (changed) onChanged();
   }
 
   Future<void> _deleteOrganization(BuildContext context) async {
@@ -194,27 +204,18 @@ class OrganizationManagementCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Tooltip(
-                message: 'Edit organization',
-                child: InkWell(
-                  onTap: () => _editOrganization(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(AppIcons.edit, size: 18, color: Color(0xFF6A38FF)),
-                  ),
-                ),
+              HoverIconActionButton(
+                icon: AppIcons.edit,
+                tooltip: 'Edit organization',
+                iconSize: 18,
+                onTap: () => _editOrganization(context),
               ),
-              Tooltip(
-                message: 'Delete organization',
-                child: InkWell(
-                  onTap: () => _deleteOrganization(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(AppIcons.remove, size: 18, color: Color(0xFFDC2626)),
-                  ),
-                ),
+              HoverIconActionButton(
+                icon: AppIcons.remove,
+                tooltip: 'Delete organization',
+                destructive: true,
+                iconSize: 18,
+                onTap: () => _deleteOrganization(context),
               ),
             ],
           ),
@@ -225,6 +226,7 @@ class OrganizationManagementCard extends StatelessWidget {
             _CollegeAdminSection(
               admin: admin,
               onAssign: () => _assignCollegeAdmin(context),
+              onEdit: admin == null ? null : () => _editCollegeAdmin(context, admin),
               onRemove: admin == null ? null : () => _removeCollegeAdmin(context, admin),
             ),
           ],
@@ -270,11 +272,13 @@ class _CollegeAdminSection extends StatelessWidget {
   const _CollegeAdminSection({
     required this.admin,
     required this.onAssign,
+    this.onEdit,
     this.onRemove,
   });
 
   final UserModel? admin;
   final VoidCallback onAssign;
+  final VoidCallback? onEdit;
   final VoidCallback? onRemove;
 
   @override
@@ -295,6 +299,7 @@ class _CollegeAdminSection extends StatelessWidget {
           child: admin != null
               ? _AssignedAdminRow(
                   admin: admin!,
+                  onEdit: onEdit,
                   onRemove: onRemove,
                 )
               : _AssignAdminPrompt(onAssign: onAssign),
@@ -307,10 +312,12 @@ class _CollegeAdminSection extends StatelessWidget {
 class _AssignedAdminRow extends StatelessWidget {
   const _AssignedAdminRow({
     required this.admin,
+    this.onEdit,
     this.onRemove,
   });
 
   final UserModel admin;
+  final VoidCallback? onEdit;
   final VoidCallback? onRemove;
 
   @override
@@ -321,29 +328,40 @@ class _AssignedAdminRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
+        UserWorkspaceAvatar(
+          user: admin,
+          radius: 12,
+          ringPadding: 2,
+          onTap: userId.isNotEmpty ? () => WorkspaceNavigator.openUser(context, userId) : () {},
+          enabled: userId.isNotEmpty,
+        ),
+        const SizedBox(width: 8),
         Expanded(
-          child: ContextPill(
-            label: name,
-            semantic: ContextPillSemantic.user,
-            icon: AppIcons.adminProfile,
-            compact: true,
-            onTap: userId.isNotEmpty ? () => WorkspaceNavigator.openUser(context, userId) : () {},
-            enabled: userId.isNotEmpty,
+          child: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
           ),
         ),
+        if (onEdit != null) ...<Widget>[
+          HoverIconActionButton(
+            icon: AppIcons.edit,
+            tooltip: 'Edit college admin',
+            onTap: onEdit!,
+          ),
+          const SizedBox(width: 4),
+        ],
         if (onRemove != null)
           const SizedBox(width: 8),
         if (onRemove != null)
-          Tooltip(
-            message: 'Remove college admin',
-            child: InkWell(
-              onTap: onRemove,
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(AppIcons.remove, size: 15, color: Color(0xFFDC2626)),
-              ),
-            ),
+          HoverIconActionButton(
+            icon: AppIcons.remove,
+            tooltip: 'Remove college admin',
+            destructive: true,
+            onTap: onRemove!,
           ),
       ],
     );

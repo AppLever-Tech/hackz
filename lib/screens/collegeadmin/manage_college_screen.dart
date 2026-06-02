@@ -11,6 +11,7 @@ import '../common/app_dialog_template.dart';
 import '../../features/user/screens/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
 import '../../responsive/responsive_helper.dart';
+import '../../shared/buttons/hover_icon_action_button.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../shared/inputs/hackz_select_field.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
@@ -522,7 +523,7 @@ class _DepartmentCard extends StatelessWidget {
                 ),
               ),
               if (departmentId.isNotEmpty)
-                _DepartmentIconAction(
+                HoverIconActionButton(
                   icon: AppIcons.remove,
                   tooltip: 'Delete department',
                   destructive: true,
@@ -558,12 +559,12 @@ class _DepartmentCard extends StatelessWidget {
                           height: 1.25,
                         ),
                       ),
-                      _DepartmentIconAction(
+                      HoverIconActionButton(
                         icon: AppIcons.edit,
                         tooltip: 'Edit department admin',
                         onTap: () => onEditAdmin(adminUser ?? adminIdentity),
                       ),
-                      _DepartmentIconAction(
+                      HoverIconActionButton(
                         icon: AppIcons.remove,
                         tooltip: 'Remove department admin',
                         destructive: true,
@@ -685,56 +686,3 @@ class _DepartmentCountSegment extends StatelessWidget {
   }
 }
 
-class _DepartmentIconAction extends StatefulWidget {
-  const _DepartmentIconAction({
-    required this.icon,
-    required this.tooltip,
-    required this.onTap,
-    this.destructive = false,
-    this.iconSize = 15,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-  final bool destructive;
-  final double iconSize;
-
-  @override
-  State<_DepartmentIconAction> createState() => _DepartmentIconActionState();
-}
-
-class _DepartmentIconActionState extends State<_DepartmentIconAction> {
-  bool _hovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color borderColor = widget.destructive ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0);
-    final Color iconColor = widget.destructive ? const Color(0xFFDC2626) : const Color(0xFF64748B);
-    final Color backgroundColor = widget.destructive ? const Color(0xFFFFF7F7) : Colors.white;
-
-    return Tooltip(
-      message: widget.tooltip,
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovering = true),
-        onExit: (_) => setState(() => _hovering = false),
-        child: Material(
-          color: _hovering ? backgroundColor : Colors.transparent,
-          shape: CircleBorder(
-            side: BorderSide(color: _hovering ? borderColor : Colors.transparent),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: widget.onTap,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: Icon(widget.icon, size: widget.iconSize, color: iconColor),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

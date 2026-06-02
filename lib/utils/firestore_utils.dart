@@ -52,7 +52,7 @@ class FirestoreUtils {
   static Future<UserModel?> fetchUser(String userId) async {
     final doc = await _db.collection(hkzUsers).doc(userId).get();
     if (!doc.exists || doc.data() == null) return null;
-    return UserModel.fromMap(doc.data()!);
+    return UserModel.fromMap(doc.data()!).copyWith(userId: doc.id);
   }
 
   static Future<UserModel?> fetchUserByPhone(String phone) async {
@@ -65,7 +65,8 @@ class FirestoreUtils {
         .get();
 
     if (hkzQuery.docs.isEmpty) return null;
-    return UserModel.fromMap(hkzQuery.docs.first.data());
+    final doc = hkzQuery.docs.first;
+    return UserModel.fromMap(doc.data()).copyWith(userId: doc.id);
   }
 
   static Future<String> createUser(UserModel user) async {
@@ -171,7 +172,7 @@ class FirestoreUtils {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => UserModel.fromMap(doc.data()))
+              .map((doc) => UserModel.fromMap(doc.data()).copyWith(userId: doc.id))
               .toList(growable: false),
         );
   }
@@ -186,13 +187,10 @@ class FirestoreUtils {
         .where('role', isEqualTo: roleCode)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) {
-                final model = UserModel.fromMap(doc.data());
-                if (model.userId.isNotEmpty) return model;
-                return model.copyWith(userId: doc.id);
-              })
-              .toList(growable: false),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => UserModel.fromMap(doc.data()).copyWith(userId: doc.id))
+                  .toList(growable: false),
         );
   }
 
