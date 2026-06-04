@@ -20,8 +20,9 @@ import '../../utils/firestore_utils.dart';
 import '../../features/idea/services/idea_query_service.dart';
 import '../../utils/judge_evaluation_feedback_codec.dart';
 import '../../utils/judge_evaluation_service.dart';
-import '../attachment_viewer.dart';
+import '../common/entity_card_pills.dart';
 import '../responsive/responsive_dialog_actions.dart';
+import '../../workspace/workspace.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).
@@ -78,6 +79,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   final Map<String, String> _comments = <String, String>{};
   late TextEditingController _overallRemarks;
   bool _saving = false;
+  int _attachmentCount = 0;
   ProblemModel? _problem;
   bool _loadingProblem = false;
 
@@ -94,6 +96,11 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
 
   Future<void> _initialize() async {
     await OrgSettingsService.instance.ensureLoaded(orgId: widget.judge.orgId);
+    final List<AttachmentModel> attachments = await AttachmentService.fetchActiveAttachments(
+      entityType: AttachmentEntityType.idea,
+      entityId: widget.idea.ideaId,
+    );
+    _attachmentCount = attachments.length;
     final EvaluationTemplate template = _resolveTemplateForExistingScore();
     _hydrateForTemplate(template);
   }
@@ -183,8 +190,8 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     super.dispose();
   }
 
-  Future<void> _previewAttachments() async {
-    final list = await AttachmentService.fetchActiveAttachments(
+  Future<void> _openAttachments() async {
+    final List<AttachmentModel> list = await AttachmentService.fetchActiveAttachments(
       entityType: AttachmentEntityType.idea,
       entityId: widget.idea.ideaId,
     );
@@ -197,11 +204,16 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
       );
       return;
     }
-    await showAppDialog<void>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: AttachmentViewerDialog(title: 'Idea attachments', attachments: list, embedded: true),
-    );
+    if (list.length == 1) {
+      WorkspaceNavigator.openAttachment(context, list.first.attachmentId);
+      return;
+    }
+    WorkspaceNavigator.openIdea(context, widget.idea.ideaId);
+  }
+
+  String _attachmentPillLabel() {
+    if (_attachmentCount <= 0) return 'Attachments';
+    return '$_attachmentCount Attachment${_attachmentCount == 1 ? '' : 's'}';
   }
 
   double _liveOverall() {
@@ -443,10 +455,14 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
           ),
         ),
         const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: _previewAttachments,
-          icon: const Icon(AppIcons.attachments, size: 18),
-          label: const Text('Preview attachments'),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: EntityCardPills.workspace(
+            _attachmentPillLabel(),
+            ContextPillSemantic.generic,
+            _openAttachments,
+            icon: AppIcons.attachments,
+          ),
         ),
       ],
     );

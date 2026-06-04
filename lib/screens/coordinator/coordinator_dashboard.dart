@@ -22,7 +22,6 @@ import '../common/dashboard_page_template.dart';
 import '../common/dashboard_components.dart';
 import '../../widgets/responsive/responsive_alert_dialog.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../../widgets/attachment_viewer.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/responsive/responsive_columns.dart';
@@ -92,44 +91,24 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
     });
   }
 
-  Future<void> _viewProof(PaymentModel payment) async {
-    await showAppDialog<void>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: FutureBuilder<List<AttachmentModel>>(
-        future: AttachmentService.fetchActiveAttachments(
-          entityType: AttachmentEntityType.payment,
-          entityId: payment.paymentId,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()));
-          }
-          final attachments = snapshot.data ?? const <AttachmentModel>[];
-          if (attachments.isNotEmpty) {
-            return AttachmentViewerDialog(
-              title: 'Payment proof',
-              attachments: attachments,
-              embedded: true,
-            );
-          }
-          final url = payment.paymentProofUrl.trim();
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Text('Payment proof', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-              ),
-            ],
-          );
-        },
-      ),
+  Future<void> _openPaymentProof(PaymentModel payment) async {
+    final attachments = await AttachmentService.fetchActiveAttachments(
+      entityType: AttachmentEntityType.payment,
+      entityId: payment.paymentId,
+    );
+    if (!mounted) return;
+    if (attachments.length == 1) {
+      WorkspaceNavigator.openAttachment(context, attachments.first.attachmentId);
+      return;
+    }
+    if (attachments.isNotEmpty || payment.paymentProofUrl.trim().isNotEmpty) {
+      WorkspaceNavigator.openPayment(context, payment.paymentId);
+      return;
+    }
+    FeedbackService.showInfo(
+      context,
+      title: 'Payment proof',
+      message: 'No payment proof uploaded yet.',
     );
   }
 
@@ -230,7 +209,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                       items: analytics.pendingQueue,
                       onVerify: _verify,
                       onReject: _reject,
-                      onViewProof: _viewProof,
+                      onOpenProof: _openPaymentProof,
                       onOpenIdea: (payment) => WorkspaceNavigator.openIdea(context, payment.ideaId),
                     ),
                   ),
@@ -296,14 +275,14 @@ class _PaymentVerificationQueue extends StatelessWidget {
     required this.items,
     required this.onVerify,
     required this.onReject,
-    required this.onViewProof,
+    required this.onOpenProof,
     this.onOpenIdea,
   });
 
   final List<PaymentQueueItem> items;
   final ValueChanged<PaymentModel> onVerify;
   final ValueChanged<PaymentModel> onReject;
-  final ValueChanged<PaymentModel> onViewProof;
+  final ValueChanged<PaymentModel> onOpenProof;
   final ValueChanged<PaymentModel>? onOpenIdea;
 
   @override
@@ -328,7 +307,7 @@ class _PaymentVerificationQueue extends StatelessWidget {
           item: item,
           onVerify: () => onVerify(item.payment),
           onReject: () => onReject(item.payment),
-          onViewProof: () => onViewProof(item.payment),
+          onOpenProof: item.hasProof ? () => onOpenProof(item.payment) : null,
           onOpenIdea: item.ideaId.trim().isEmpty
               ? null
               : () => onOpenIdea?.call(item.payment),

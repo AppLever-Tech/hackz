@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/coordinator_dashboard_service.dart';
+import '../../widgets/common/entity_card_pills.dart';
 import '../../workspace/workspace.dart';
 
 class PaymentQueueCard extends StatelessWidget {
@@ -10,14 +11,14 @@ class PaymentQueueCard extends StatelessWidget {
     required this.item,
     required this.onVerify,
     required this.onReject,
-    required this.onViewProof,
+    this.onOpenProof,
     this.onOpenIdea,
   });
 
   final PaymentQueueItem item;
   final VoidCallback onVerify;
   final VoidCallback onReject;
-  final VoidCallback onViewProof;
+  final VoidCallback? onOpenProof;
   final VoidCallback? onOpenIdea;
 
   static const ButtonStyle _actionButtonStyle = ButtonStyle(
@@ -124,12 +125,15 @@ class PaymentQueueCard extends StatelessWidget {
                 style: _actionButtonStyle,
                 child: const Text('Reject'),
               ),
-              const SizedBox(width: 6),
-              OutlinedButton(
-                onPressed: item.hasProof ? onViewProof : null,
-                style: _actionButtonStyle,
-                child: const Text('Proof'),
-              ),
+              if (item.hasProof && onOpenProof != null) ...<Widget>[
+                const SizedBox(width: 6),
+                EntityCardPills.workspace(
+                  'Proof',
+                  ContextPillSemantic.generic,
+                  onOpenProof!,
+                  icon: AppIcons.attachments,
+                ),
+              ],
             ],
           ),
         ],
