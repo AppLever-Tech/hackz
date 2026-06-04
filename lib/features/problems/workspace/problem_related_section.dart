@@ -34,7 +34,6 @@ class ProblemRelatedSection extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            _summaryPill(AppIcons.departments, 'Department', vm.problem.departmentDisplayName),
             _summaryPill(AppIcons.coordinator, 'Coordinators', '${vm.coordinatorCount}'),
             _summaryPill(AppIcons.judges, 'Judges', '${vm.judgeCount}'),
           ],

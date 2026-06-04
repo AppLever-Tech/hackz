@@ -29,11 +29,16 @@ class ProblemSummarySection extends StatefulWidget {
     required this.vm,
     this.showMetaChips = true,
     this.prominentDescription = false,
+    this.workspaceSectionsOnly = false,
   });
 
   final ProblemWorkspaceViewModel vm;
   final bool showMetaChips;
   final bool prominentDescription;
+
+  /// When true (problem workspace), only the Description card is shown and
+  /// its header is collapsible. Elsewhere the description stays always open.
+  final bool workspaceSectionsOnly;
 
   @override
   State<ProblemSummarySection> createState() => _ProblemSummarySectionState();
@@ -43,6 +48,14 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
   /// Keyed by [_SectionId] enum names. Sections start collapsed so the page
   /// stays scannable; tapping the header expands them in place.
   final Set<String> _expanded = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.workspaceSectionsOnly) {
+      _expanded.add(_SectionId.description.name);
+    }
+  }
 
   void _toggle(_SectionId id) {
     final String key = id.name;
@@ -66,30 +79,37 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
     // Each section's data presence is precomputed so empty groups are
     // skipped entirely (no empty cards rendered for problems that haven't
     // been fully authored).
-    final bool hasInnovation = p.background.trim().isNotEmpty ||
+    final bool workspaceOnly = widget.workspaceSectionsOnly;
+    final bool hasInnovation = !workspaceOnly &&
+        (p.background.trim().isNotEmpty ||
         p.impact.trim().isNotEmpty ||
         p.stakeholders.trim().isNotEmpty ||
-        p.researchContext.trim().isNotEmpty;
-    final bool hasOutcomes = p.expectedSolution.trim().isNotEmpty ||
+        p.researchContext.trim().isNotEmpty);
+    final bool hasOutcomes = !workspaceOnly &&
+        (p.expectedSolution.trim().isNotEmpty ||
         p.successCriteria.trim().isNotEmpty ||
         p.expectedDeliverables.trim().isNotEmpty ||
-        p.suggestedTechnologies.isNotEmpty;
-    final bool hasConstraints = p.constraints.trim().isNotEmpty ||
+        p.suggestedTechnologies.isNotEmpty);
+    final bool hasConstraints = !workspaceOnly &&
+        (p.constraints.trim().isNotEmpty ||
         p.difficultyLevel.trim().isNotEmpty ||
         p.complexityLevel.trim().isNotEmpty ||
-        p.timeline.trim().isNotEmpty;
-    final bool hasSubmissionControls =
-        p.maxIdeasAllowed != null || p.ideaSubmissionDeadline != null;
-    final bool hasTeamRules = p.minTeamSize != null || p.maxTeamSize != null;
-    final bool hasTechStack = p.preferredTechStack.isNotEmpty;
-    final bool hasClassification = p.category.trim().isNotEmpty ||
-        p.theme.trim().isNotEmpty ||
-        p.departmentDisplayName.trim().isNotEmpty ||
-        p.tags.isNotEmpty;
-    final bool hasResources = p.youtubeLink.trim().isNotEmpty ||
+        p.timeline.trim().isNotEmpty);
+    final bool hasSubmissionControls = !workspaceOnly &&
+        (p.maxIdeasAllowed != null || p.ideaSubmissionDeadline != null);
+    final bool hasTeamRules =
+        !workspaceOnly && (p.minTeamSize != null || p.maxTeamSize != null);
+    final bool hasTechStack = !workspaceOnly && p.preferredTechStack.isNotEmpty;
+    final bool hasClassification = !workspaceOnly &&
+        (p.category.trim().isNotEmpty ||
+            p.theme.trim().isNotEmpty ||
+            p.departmentDisplayName.trim().isNotEmpty ||
+            p.tags.isNotEmpty);
+    final bool hasResources = !workspaceOnly &&
+        (p.youtubeLink.trim().isNotEmpty ||
         p.datasetLink.trim().isNotEmpty ||
         p.referenceLinks.isNotEmpty ||
-        p.contactInformation.trim().isNotEmpty;
+        p.contactInformation.trim().isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,9 +140,6 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           ),
         ],
         const SizedBox(height: 14),
-        // Description — always shown, non-collapsible. Mirrors the authoring
-        // "Core Challenge" section styling so the read surface reads as a
-        // direct view of the authoring form.
         ProblemAuthoringSection(
           title: 'Description',
           subtitle: 'What the problem is and why it matters',
@@ -130,9 +147,9 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           iconBg: const Color(0xFFFFF1E5),
           iconColor: const Color(0xFFEA580C),
           status: const AuthoringSectionStatus(completed: 0, total: 0),
-          collapsible: false,
-          expanded: true,
-          onToggle: () {},
+          collapsible: workspaceOnly,
+          expanded: workspaceOnly ? _isExpanded(_SectionId.description) : true,
+          onToggle: workspaceOnly ? () => _toggle(_SectionId.description) : () {},
           child: _DescriptionBody(
             description: desc,
             prominent: widget.prominentDescription,
@@ -367,6 +384,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
 /// Stable identifier per collapsible section so the expanded-state set stays
 /// stable across rebuilds.
 enum _SectionId {
+  description,
   innovation,
   outcomes,
   constraints,

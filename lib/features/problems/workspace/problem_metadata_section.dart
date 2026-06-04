@@ -17,15 +17,17 @@ class ProblemMetadataSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = vm.problem;
+    final String tagsText = vm.tags.isEmpty ? '' : vm.tags.join(', ');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const Text('Other Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
+        _row(AppIcons.orgType, 'Category', vm.category),
+        _row(AppIcons.insights, 'Theme', vm.theme),
+        _row(Icons.label_outline, 'Tags', tagsText),
         _row(AppIcons.organizations, 'Organization', vm.organizationName),
-        _row(AppIcons.departments, 'Department', p.departmentDisplayName),
-        if (vm.difficulty.isNotEmpty) _row(AppIcons.statusUnderReview, 'Difficulty', vm.difficulty),
-        if (vm.priority.isNotEmpty) _row(AppIcons.pendingUsers, 'Priority', vm.priority),
         _row(
           AppIcons.adminProfile,
           'Created by',
@@ -59,7 +61,7 @@ class ProblemMetadataSection extends StatelessWidget {
               onTap: onTap,
               child: Text(
                 text,
-                maxLines: 2,
+                maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
