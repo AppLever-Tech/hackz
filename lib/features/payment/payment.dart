@@ -8,7 +8,7 @@ export 'services/payment_finance_helpers.dart';
 export 'widgets/payment_contribution_tile.dart';
 export 'widgets/payment_detail_pane.dart';
 export 'widgets/payment_dialog.dart';
-export 'widgets/payment_proof_viewer.dart';
+export 'widgets/payment_proof_panel.dart';
 export 'widgets/payment_status_pill.dart';
 export 'widgets/payment_summary_card.dart';
 export 'widgets/team_contribution_section.dart';

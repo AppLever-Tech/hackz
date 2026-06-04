@@ -6,7 +6,7 @@ import 'package:hackz/screens/common/dashboard_components.dart';
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
-import 'payment_proof_viewer.dart';
+import 'payment_proof_panel.dart';
 import 'payment_status_pill.dart';
 import 'team_contribution_section.dart';
 import 'verification_timeline_widget.dart';
@@ -76,7 +76,11 @@ class PaymentDetailPane extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         _sectionPanel(
-          child: PaymentProofViewer(payment: payment, attachments: detail.proofAttachments),
+          child: PaymentProofPanel(
+            payment: payment,
+            attachments: detail.proofAttachments,
+            showDetailHeader: true,
+          ),
         ),
         const SizedBox(height: 10),
         _sectionPanel(
