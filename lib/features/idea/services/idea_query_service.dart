@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../models/idea_list_config.dart';

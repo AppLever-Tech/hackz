@@ -1,4 +1,4 @@
-import '../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 
 /// Read-only attachment totals for workspace UIs (no file names or URLs).
 class WorkspaceAttachmentCounts {

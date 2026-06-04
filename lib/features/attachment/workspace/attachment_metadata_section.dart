@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/attachment_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../widgets/attachment_viewer.dart';
+import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
+import 'package:hackz/utils/common_helpers.dart';
 import 'attachment_workspace_loader.dart';
 
 class AttachmentMetadataSection extends StatelessWidget {
@@ -35,7 +35,7 @@ class AttachmentMetadataSection extends StatelessWidget {
               _row(AppIcons.faculty, 'Uploaded by', vm.uploaderName),
               _row(AppIcons.clock, 'Uploaded', formatDateTime(a.createdAt)),
               _row(
-                AttachmentPreviewPane.typeIcon(a.attachmentType),
+                AttachmentPreviewUtils.typeIcon(a.attachmentType),
                 'Type',
                 vm.typeLabel,
               ),

@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import '../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
+import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/attachment_service.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
-import '../../widgets/attachment_viewer.dart';
+import 'package:hackz/features/problems/models/problem_model.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
+import 'package:hackz/utils/firestore_utils.dart';
 
 /// Linked entity surfaced in the attachment workspace.
 class AttachmentRelatedEntity {
@@ -42,9 +42,9 @@ class AttachmentWorkspaceViewModel {
   final String uploaderName;
   final AttachmentRelatedEntity? related;
 
-  String get typeLabel => AttachmentPreviewPane.typeLabel(attachment.attachmentType);
+  String get typeLabel => AttachmentPreviewUtils.typeLabel(attachment.attachmentType);
 
-  String get sizeLabel => AttachmentPreviewPane.formatSize(attachment.sizeInBytes);
+  String get sizeLabel => AttachmentPreviewUtils.formatSize(attachment.sizeInBytes);
 
   String get mimeLabel {
     final mime = attachment.mimeType.trim();

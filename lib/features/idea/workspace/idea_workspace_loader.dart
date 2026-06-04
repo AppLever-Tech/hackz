@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../team/models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../organization/models/organization_model.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'workspace_attachment_counts.dart';
 
 /// Read-only attachment breakdown (count per type). No preview or download actions.

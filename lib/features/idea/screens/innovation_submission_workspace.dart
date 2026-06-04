@@ -14,7 +14,7 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/services/team_service.dart';
 import '../../../workspace/workspace.dart';
-import '../../../widgets/attachment_pick_field.dart';
+import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import '../../../widgets/common/entity_card_pills.dart';
 import '../widgets/innovation_submission_team_selector.dart';
 import '../../../widgets/loading/loading.dart';

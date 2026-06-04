@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../models/attachment_model.dart';
-import '../core/workspace_host.dart';
-import '../core/workspace_route.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
-import '../../features/problems/workspace/problem_workspace.dart';
+import 'package:hackz/features/problems/workspace/problem_workspace.dart';
+import 'package:hackz/workspace/core/workspace_host.dart';
+import 'package:hackz/workspace/core/workspace_route.dart';
 import 'attachment_workspace_body.dart';
 import 'attachment_workspace_loader.dart';
 

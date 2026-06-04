@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../features/evaluations/models/evaluation_template.dart';
-import '../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';

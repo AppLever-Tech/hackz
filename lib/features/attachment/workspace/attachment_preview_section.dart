@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/attachment_viewer.dart';
+import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
+import 'package:hackz/responsive/responsive_helper.dart';
+import 'attachment_preview_pane.dart';
 import 'attachment_workspace_loader.dart';
 
 /// Premium media preview surface for a single attachment.
@@ -19,7 +20,7 @@ class AttachmentPreviewSection extends StatelessWidget {
         Row(
           children: <Widget>[
             Icon(
-              AttachmentPreviewPane.typeIcon(vm.attachment.attachmentType),
+              AttachmentPreviewUtils.typeIcon(vm.attachment.attachmentType),
               size: 18,
               color: const Color(0xFF4A67FF),
             ),

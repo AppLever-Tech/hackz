@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
-import '../../../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
 import '../../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../../screens/common/dashboard_components.dart';
-import '../../../../utils/attachment_service.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/data_view/data_table_view.dart';
 import '../../../idea/screens/innovation_submission_workspace.dart';

@@ -3,15 +3,15 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
-import '../../../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
-import '../../../../utils/attachment_service.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../../widgets/attachment_upload_preview.dart';
+import 'package:hackz/features/attachment/widgets/attachment_upload_preview.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../constants/problem_constants.dart';

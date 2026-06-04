@@ -4,7 +4,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
-import 'package:hackz/models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/utils/firestore_utils.dart';
 import 'package:hackz/workspace/core/workspace_attachment_counts.dart';

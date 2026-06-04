@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../models/attachment_model.dart';
-import '../../widgets/attachment_viewer.dart';
-import '../../widgets/common/context_pill.dart';
-import '../attachment/attachment_workspace.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
+import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
 import 'workspace_attachment_counts.dart';
 
 /// Read-only attachment list with workspace navigation per file.
@@ -56,7 +56,7 @@ class WorkspaceAttachmentsPanel extends StatelessWidget {
   Widget _fileRow(BuildContext context, AttachmentModel attachment) {
     final String label = attachment.fileName.trim().isEmpty ? 'Untitled file' : attachment.fileName.trim();
     final String meta =
-        '${AttachmentPreviewPane.typeLabel(attachment.attachmentType)} · ${AttachmentPreviewPane.formatSize(attachment.sizeInBytes)}';
+        '${AttachmentPreviewUtils.typeLabel(attachment.attachmentType)} · ${AttachmentPreviewUtils.formatSize(attachment.sizeInBytes)}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -70,7 +70,7 @@ class WorkspaceAttachmentsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Icon(
-            AttachmentPreviewPane.typeIcon(attachment.attachmentType),
+            AttachmentPreviewUtils.typeIcon(attachment.attachmentType),
             size: 18,
             color: const Color(0xFF57629A),
           ),
@@ -83,7 +83,7 @@ class WorkspaceAttachmentsPanel extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: ContextPill(
                     label: label,
-                    icon: AttachmentPreviewPane.typeIcon(attachment.attachmentType),
+                    icon: AttachmentPreviewUtils.typeIcon(attachment.attachmentType),
                     onTap: () => AttachmentWorkspace.push(context, attachment.attachmentId),
                     compact: true,
                     fitContent: true,

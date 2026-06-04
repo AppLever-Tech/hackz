@@ -12,7 +12,7 @@ export 'core/workspace_transition.dart';
 export 'core/workspace_attachment_counts.dart';
 export 'core/workspace_attachments_summary.dart';
 export 'core/workspace_attachments_panel.dart';
-export 'attachment/attachment_workspace.dart';
+export '../features/attachment/workspace/attachment_workspace.dart';
 export 'shared/entity_reference_row.dart';
 export 'shared/entity_reference_tile.dart';
 export '../core/theme/app_semantic_colors.dart';

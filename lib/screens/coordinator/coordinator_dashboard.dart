@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../features/user/models/enums/user_role.dart';
-import '../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../features/user/models/user_model.dart';
 import '../../shared/feedback/feedback.dart';
-import '../../utils/attachment_service.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/firestore_utils.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';

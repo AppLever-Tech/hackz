@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../../../models/attachment_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -9,7 +9,7 @@ import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
-import '../../../utils/attachment_service.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'team_service.dart';

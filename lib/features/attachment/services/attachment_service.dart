@@ -1,13 +1,12 @@
 import 'dart:io';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
-import '../models/attachment_model.dart';
-import 'firestore_utils.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/utils/firestore_utils.dart';
 
 class AttachmentService {
   AttachmentService._();
