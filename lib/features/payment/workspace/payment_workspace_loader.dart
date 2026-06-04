@@ -19,6 +19,7 @@ class PaymentWorkspaceViewModel {
     required this.teamName,
     required this.departmentLabel,
     required this.payerName,
+    this.payer,
     required this.verifierName,
     required this.proofAttachmentCounts,
     required this.proofAttachments,
@@ -32,6 +33,7 @@ class PaymentWorkspaceViewModel {
   final String teamName;
   final String departmentLabel;
   final String payerName;
+  final UserModel? payer;
   final String verifierName;
   final WorkspaceAttachmentCounts proofAttachmentCounts;
   final List<AttachmentModel> proofAttachments;
@@ -128,6 +130,7 @@ abstract final class PaymentWorkspaceLoader {
       teamName: teamName,
       departmentLabel: dept?.name ?? payment.departmentCode,
       payerName: payerName,
+      payer: payer,
       verifierName: verifierName,
       proofAttachmentCounts: proofAttachmentCounts,
       proofAttachments: proofAttachments,
