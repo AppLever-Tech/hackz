@@ -22,24 +22,6 @@ class IdeaRelatedSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         EntityReferenceTile(
-          category: 'Problem',
-          headline: vm.problemTitle,
-          detail: vm.problem.departmentDisplayName,
-          semantic: ContextPillSemantic.problem,
-          onOpenWorkspace: vm.problem.problemId.trim().isEmpty && vm.idea.problemId.trim().isEmpty
-              ? null
-              : () => IdeaWorkspace.openProblemFromIdea(context, vm),
-        ),
-        EntityReferenceTile(
-          category: 'Team',
-          headline: vm.teamName,
-          detail: 'Mentor · ${vm.mentorName}',
-          semantic: ContextPillSemantic.team,
-          onOpenWorkspace: vm.team.teamId.trim().isEmpty && vm.idea.teamId.trim().isEmpty
-              ? null
-              : () => IdeaWorkspace.openTeamFromIdea(context, vm),
-        ),
-        EntityReferenceTile(
           category: 'Payment',
           headline: vm.paymentStatusLabel,
           detail: vm.payment == null

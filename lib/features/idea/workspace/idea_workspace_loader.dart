@@ -13,7 +13,6 @@ import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/core/workspace_attachment_counts.dart';
 
 class IdeaWorkspaceViewModel {
   const IdeaWorkspaceViewModel({
@@ -25,6 +24,7 @@ class IdeaWorkspaceViewModel {
     required this.teamName,
     required this.mentorName,
     required this.mentorId,
+    this.mentor,
     required this.submittedByName,
     required this.payment,
     required this.scores,
@@ -32,7 +32,6 @@ class IdeaWorkspaceViewModel {
     required this.reviewerCount,
     required this.evaluationProgressLabel,
     required this.paymentStatusLabel,
-    required this.attachmentCounts,
     required this.attachments,
     required this.judgeNamesById,
   });
@@ -45,6 +44,7 @@ class IdeaWorkspaceViewModel {
   final String teamName;
   final String mentorName;
   final String mentorId;
+  final UserModel? mentor;
   final String submittedByName;
   final PaymentModel? payment;
   final List<ScoreModel> scores;
@@ -52,11 +52,8 @@ class IdeaWorkspaceViewModel {
   final int reviewerCount;
   final String evaluationProgressLabel;
   final String paymentStatusLabel;
-  final WorkspaceAttachmentCounts attachmentCounts;
   final List<AttachmentModel> attachments;
   final Map<String, String> judgeNamesById;
-
-  int get attachmentCount => attachmentCounts.totalCount;
 }
 
 abstract final class IdeaWorkspaceLoader {
@@ -183,8 +180,6 @@ abstract final class IdeaWorkspaceLoader {
         .toList(growable: false)
       ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
 
-    final WorkspaceAttachmentCounts attachmentCounts = WorkspaceAttachmentCounts.fromModels(attachments);
-
     final double? averageScore = scores.isEmpty
         ? null
         : scores.map((ScoreModel e) => e.score).reduce((double a, double b) => a + b) / scores.length;
@@ -212,6 +207,7 @@ abstract final class IdeaWorkspaceLoader {
       teamName: teamName,
       mentorName: mentorName,
       mentorId: team.mentorId.trim(),
+      mentor: mentor,
       submittedByName: submittedByName,
       payment: payment,
       scores: scores,
@@ -219,7 +215,6 @@ abstract final class IdeaWorkspaceLoader {
       reviewerCount: judgeIds.length,
       evaluationProgressLabel: _evaluationProgress(idea.status, scores.length),
       paymentStatusLabel: _paymentStatusLabel(payment?.status),
-      attachmentCounts: attachmentCounts,
       attachments: attachments,
       judgeNamesById: judgeNamesById,
     );

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../constants/status_styles.dart';
-import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../utils/common_helpers.dart';
-import '../../../widgets/common/context_pill_group.dart';
+import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../widgets/common/context_pill.dart';
 import '../../../widgets/common/context_pill_theme.dart';
+import '../../user/models/user_model.dart';
+import '../../user/workspace/user_workspace.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 
@@ -14,11 +14,19 @@ class IdeaSummarySection extends StatelessWidget {
 
   final IdeaWorkspaceViewModel vm;
 
+  static const double _labelWidth = 96;
+
   @override
   Widget build(BuildContext context) {
     final idea = vm.idea;
     final String title = idea.ideaTitle.trim().isEmpty ? 'Innovation proposal' : idea.ideaTitle.trim();
     final String desc = idea.description.trim();
+
+    final String dept = vm.problem.departmentDisplayName.trim().isEmpty
+        ? '—'
+        : vm.problem.departmentDisplayName.trim();
+    final String org = vm.organizationName.trim().isEmpty ? '—' : vm.organizationName.trim();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -72,99 +80,163 @@ class IdeaSummarySection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        _problemTitleChip(context),
-        const SizedBox(height: 8),
-        LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final double maxChipWidth = constraints.maxWidth;
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                _chip(AppIcons.teams, 'Team', vm.teamName, maxWidth: maxChipWidth),
-                _chip(AppIcons.faculty, 'Mentor', vm.mentorName, maxWidth: maxChipWidth),
-                _chip(AppIcons.organizations, 'Organization', vm.organizationName, maxWidth: maxChipWidth),
-                _statusChip(idea.status),
-                _chip(AppIcons.clock, 'Submitted', formatDateTime(idea.createdAt), maxWidth: maxChipWidth),
-              ],
-            );
-          },
+        _problemField(context),
+        const SizedBox(height: 4),
+        _teamField(context),
+        const SizedBox(height: 4),
+        _mentorField(context),
+        const SizedBox(height: 4),
+        _labeledField(
+          label: 'Department',
+          child: _iconValue(AppIcons.departments, dept),
+        ),
+        const SizedBox(height: 4),
+        _labeledField(
+          label: 'Organization',
+          child: _iconValue(AppIcons.organizations, org),
         ),
       ],
     );
   }
 
-  Widget _problemTitleChip(BuildContext context) {
+  Widget _problemField(BuildContext context) {
     final String title = vm.problemTitle.trim().isEmpty ? '—' : vm.problemTitle.trim();
     final String problemId =
         vm.problem.problemId.trim().isEmpty ? vm.idea.problemId.trim() : vm.problem.problemId.trim();
-    final bool canOpen = problemId.isNotEmpty;
 
-    if (!canOpen) {
-      return Text(
-        'Problem: $title',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-      );
-    }
-    return ContextPillGroup(
-      fieldLabel: 'Problem',
-      pillLabel: title,
-      semantic: ContextPillSemantic.problem,
-      onOpenWorkspace: () => IdeaWorkspace.openProblemFromIdea(context, vm),
-    );
-  }
-
-  static Widget _chip(IconData icon, String label, String value, {required double maxWidth}) {
-    final String text = value.trim().isEmpty ? '—' : value.trim();
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: <Widget>[
-            Icon(icon, size: 15, color: const Color(0xFF57629A)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                '$label: $text',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-              ),
+    return _labeledField(
+      label: 'Problem',
+      child: problemId.isEmpty
+          ? _plainValue(title)
+          : _contextPill(
+              label: title,
+              semantic: ContextPillSemantic.problem,
+              onTap: () => IdeaWorkspace.openProblemFromIdea(context, vm),
             ),
-          ],
-        ),
+    );
+  }
+
+  Widget _teamField(BuildContext context) {
+    final String teamName = vm.teamName.trim().isEmpty ? '—' : vm.teamName.trim();
+    final String teamId = vm.team.teamId.trim().isEmpty ? vm.idea.teamId.trim() : vm.team.teamId.trim();
+
+    return _labeledField(
+      label: 'Team',
+      child: teamId.isEmpty
+          ? _plainValue(teamName)
+          : _contextPill(
+              label: teamName,
+              semantic: ContextPillSemantic.team,
+              onTap: () => IdeaWorkspace.openTeamFromIdea(context, vm),
+            ),
+    );
+  }
+
+  Widget _mentorField(BuildContext context) {
+    final String mentorId = vm.mentorId.trim();
+    final String mentorName = vm.mentorName.trim().isEmpty ? '—' : vm.mentorName.trim();
+    final UserModel? mentor = vm.mentor;
+    final UserModel? mentorUser = canOpenMentor(mentor, mentorId) ? mentor : null;
+
+    return _labeledField(
+      label: 'Mentor',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          if (mentorUser != null)
+            UserWorkspaceAvatar(
+              user: mentorUser,
+              radius: 12,
+              ringPadding: 2,
+              onTap: () => UserWorkspace.push(context, mentorId),
+            )
+          else
+            _fallbackAvatar(mentorName),
+          const SizedBox(width: 8),
+          Expanded(child: _plainValue(mentorName)),
+        ],
       ),
     );
   }
 
-  static Widget _statusChip(IdeaStatus status) {
-    final Color color = StatusStyles.colorForIdeaStatus(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
+  Widget _labeledField({required String label, required Widget child}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(StatusStyles.iconForIdeaStatus(status), size: 15, color: color),
-          const SizedBox(width: 6),
-          Text(
-            ideaWorkspaceStatusLabel(status),
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
+          SizedBox(
+            width: _labelWidth,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: child,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  static Widget _contextPill({
+    required String label,
+    required ContextPillSemantic semantic,
+    required VoidCallback onTap,
+  }) {
+    return ContextPill(
+      label: label,
+      semantic: semantic,
+      onTap: onTap,
+      compact: true,
+      fitContent: true,
+    );
+  }
+
+  static Widget _plainValue(String value) {
+    final String text = value.trim().isEmpty ? '—' : value.trim();
+    return Text(
+      text,
+      maxLines: 4,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+    );
+  }
+
+  static Widget _iconValue(IconData icon, String value) {
+    final String text = value.trim().isEmpty ? '—' : value.trim();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 16, color: const Color(0xFF64748B)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static bool canOpenMentor(UserModel? mentor, String mentorId) =>
+      mentor != null && mentorId.isNotEmpty;
+
+  static Widget _fallbackAvatar(String displayName) {
+    final String trimmed = displayName.trim();
+    final String initial = trimmed.isEmpty || trimmed == '—' ? '?' : trimmed.substring(0, 1).toUpperCase();
+    return CircleAvatar(
+      radius: 14,
+      backgroundColor: const Color(0xFFEEF2FF),
+      foregroundColor: const Color(0xFF4F46E5),
+      child: Text(initial, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
     );
   }
 }

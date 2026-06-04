@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../responsive/responsive_helper.dart';
 import '../../../workspace/core/workspace_attachments_panel.dart';
-import 'idea_metrics_section.dart';
 import 'idea_related_section.dart';
 import 'idea_status_section.dart';
 import 'idea_summary_section.dart';
@@ -29,8 +28,6 @@ class IdeaWorkspaceBody extends StatelessWidget {
         IdeaSummarySection(vm: vm),
         const SizedBox(height: 14),
         IdeaStatusSection(vm: vm),
-        const SizedBox(height: 14),
-        IdeaMetricsSection(vm: vm),
         const SizedBox(height: 14),
         IdeaRelatedSection(vm: vm),
         const SizedBox(height: 14),
