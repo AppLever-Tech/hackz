@@ -5,7 +5,6 @@ import '../../../responsive/responsive_helper.dart';
 import 'team_activity_section.dart';
 import 'team_ideas_section.dart';
 import 'team_members_section.dart';
-import 'team_metrics_section.dart';
 import 'team_summary_section.dart';
 import 'team_workspace_loader.dart';
 
@@ -30,8 +29,6 @@ class TeamWorkspaceBody extends StatelessWidget {
         TeamSummarySection(vm: vm),
         const SizedBox(height: 14),
         TeamMembersSection(vm: vm),
-        const SizedBox(height: 14),
-        TeamMetricsSection(vm: vm),
         const SizedBox(height: 14),
         TeamIdeasSection(vm: vm),
         const SizedBox(height: 14),

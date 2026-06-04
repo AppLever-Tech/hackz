@@ -48,11 +48,9 @@ class TeamSummarySection extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: <Widget>[
-                      _chip(AppIcons.faculty, 'Mentor', vm.mentorName),
                       _chip(AppIcons.departments, 'Department', vm.departmentLabel),
                       _chip(AppIcons.clock, 'Created', formatDateTime(team.createdAt)),
                       _statusChip(team.status),
-                      _chip(AppIcons.student, 'Members', '${vm.memberCount}'),
                     ],
                   ),
                 ],

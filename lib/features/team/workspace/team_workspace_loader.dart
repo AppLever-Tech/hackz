@@ -16,14 +16,14 @@ class TeamMemberPreview {
   const TeamMemberPreview({
     required this.userId,
     required this.displayName,
-    required this.roleLabel,
     required this.isMentor,
+    this.user,
   });
 
   final String userId;
   final String displayName;
-  final String roleLabel;
   final bool isMentor;
+  final UserModel? user;
 }
 
 class TeamIdeaPreview {
@@ -60,29 +60,15 @@ class TeamWorkspaceViewModel {
   const TeamWorkspaceViewModel({
     required this.team,
     required this.departmentLabel,
-    required this.mentorName,
-    required this.mentorId,
-    required this.memberCount,
     required this.members,
     required this.ideas,
-    required this.activeIdeas,
-    required this.approvedIdeas,
-    required this.evaluatedIdeas,
-    required this.averageScore,
     required this.recentActivity,
   });
 
   final TeamModel team;
   final String departmentLabel;
-  final String mentorName;
-  final String mentorId;
-  final int memberCount;
   final List<TeamMemberPreview> members;
   final List<TeamIdeaPreview> ideas;
-  final int activeIdeas;
-  final int approvedIdeas;
-  final int evaluatedIdeas;
-  final double? averageScore;
   final List<TeamActivityItem> recentActivity;
 }
 
@@ -173,19 +159,18 @@ abstract final class TeamWorkspaceLoader {
         TeamMemberPreview(
           userId: team.mentorId.trim(),
           displayName: mentorName,
-          roleLabel: 'Mentor',
           isMentor: true,
+          user: mentor,
         ),
       ...team.studentIds.map((String studentId) {
-        final UserModel? student = usersById[studentId.trim()];
-        final String name = student == null
-            ? studentId.trim()
-            : userDisplayName(student);
+        final String id = studentId.trim();
+        final UserModel? student = usersById[id];
+        final String name = student == null ? id : userDisplayName(student);
         return TeamMemberPreview(
-          userId: studentId.trim(),
+          userId: id,
           displayName: name,
-          roleLabel: 'Student',
           isMentor: false,
+          user: student,
         );
       }),
     ];
@@ -205,34 +190,13 @@ abstract final class TeamWorkspaceLoader {
       );
     }).toList(growable: false);
 
-    final int activeIdeas = ideas
-        .where((IdeaModel i) => i.status != IdeaStatus.approved && i.status != IdeaStatus.rejected)
-        .length;
-    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.approved).length;
-    final int evaluatedIdeas = ideas.where((IdeaModel i) => (scoresByIdea[i.ideaId]?.isNotEmpty ?? false)).length;
-
-    final List<double> ideaAvgs = ideaPreviews
-        .map((TeamIdeaPreview e) => e.avgScore)
-        .whereType<double>()
-        .toList(growable: false);
-    final double? averageScore = ideaAvgs.isEmpty
-        ? null
-        : ideaAvgs.reduce((double a, double b) => a + b) / ideaAvgs.length;
-
     final List<TeamActivityItem> activity = _buildActivity(ideas, scoresByIdea, paymentByIdea);
 
     return TeamWorkspaceViewModel(
       team: team,
       departmentLabel: departmentLabel.trim().isEmpty ? '—' : departmentLabel.trim(),
-      mentorName: mentorName,
-      mentorId: team.mentorId.trim(),
-      memberCount: team.studentIds.length,
       members: members,
       ideas: ideaPreviews,
-      activeIdeas: activeIdeas,
-      approvedIdeas: approvedIdeas,
-      evaluatedIdeas: evaluatedIdeas,
-      averageScore: averageScore,
       recentActivity: activity.length <= 8 ? activity : activity.sublist(0, 8),
     );
   }
