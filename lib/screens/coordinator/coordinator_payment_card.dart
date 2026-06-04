@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../screens/common/dashboard_components.dart';
 import 'package:hackz/features/payment/services/payment_finance_helpers.dart';
 import 'package:hackz/features/payment/widgets/payment_status_pill.dart';
+import 'package:hackz/widgets/common/entity_card_pills.dart';
+
+import '../../screens/common/dashboard_components.dart';
 import '../../workspace/workspace.dart';
 
 class CoordinatorPaymentCard extends StatelessWidget {
@@ -15,7 +18,8 @@ class CoordinatorPaymentCard extends StatelessWidget {
     this.onOpenTeam,
     this.onOpenIdea,
     this.onOpenPayment,
-    required this.onViewScreenshot,
+    this.onOpenAttachments,
+    this.attachmentCount = 0,
     required this.onApprove,
     required this.onReject,
   });
@@ -26,7 +30,8 @@ class CoordinatorPaymentCard extends StatelessWidget {
   final VoidCallback? onOpenTeam;
   final VoidCallback? onOpenIdea;
   final VoidCallback? onOpenPayment;
-  final VoidCallback onViewScreenshot;
+  final VoidCallback? onOpenAttachments;
+  final int attachmentCount;
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
@@ -123,11 +128,13 @@ class CoordinatorPaymentCard extends StatelessWidget {
                   fitContent: true,
                 ),
               const Spacer(),
-              OutlinedButton.icon(
-                onPressed: payment.paymentProofUrl.isEmpty ? null : onViewScreenshot,
-                icon: const Icon(Icons.image_outlined, size: 16),
-                label: const Text('View Screenshot'),
-              ),
+              if (onOpenAttachments != null)
+                EntityCardPills.workspace(
+                  _attachmentPillLabel(attachmentCount),
+                  ContextPillSemantic.generic,
+                  onOpenAttachments!,
+                  icon: AppIcons.attachments,
+                ),
               if (pending) ...<Widget>[
                 const SizedBox(width: 8),
                 FilledButton.icon(
@@ -147,5 +154,10 @@ class CoordinatorPaymentCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _attachmentPillLabel(int count) {
+    final resolved = count > 0 ? count : 1;
+    return '$resolved Attachment${resolved == 1 ? '' : 's'}';
   }
 }

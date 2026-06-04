@@ -371,10 +371,27 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
             title.isNotEmpty ? title : (idea.problemNumber.trim().isNotEmpty ? idea.problemNumber.trim() : doc.id);
       }
     }
+    final Set<String> paymentIds = list.map((PaymentModel p) => p.paymentId).toSet();
+    final Map<String, int> attachmentCountByPaymentId = <String, int>{};
+    if (paymentIds.isNotEmpty) {
+      final QuerySnapshot<Map<String, dynamic>> attachmentSnap = await FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzAttachments)
+          .where('orgId', isEqualTo: widget.user.orgId)
+          .where('isActive', isEqualTo: true)
+          .get();
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in attachmentSnap.docs) {
+        final AttachmentModel attachment = AttachmentModel.fromMap(doc.id, doc.data());
+        if (attachment.entityType != AttachmentEntityType.payment) continue;
+        if (!paymentIds.contains(attachment.entityId)) continue;
+        attachmentCountByPaymentId[attachment.entityId] =
+            (attachmentCountByPaymentId[attachment.entityId] ?? 0) + 1;
+      }
+    }
     return _CoordinatorPaymentsData(
       payments: list,
       teamNameById: teamById,
       ideaTitleById: ideaTitleById,
+      attachmentCountByPaymentId: attachmentCountByPaymentId,
     );
   }
 
@@ -384,45 +401,36 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
     return all.where((p) => p.departmentCode.trim().toUpperCase() == dep).toList(growable: false);
   }
 
-  Future<void> _viewShot(PaymentModel payment) async {
-    await showAppDialog<void>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: FutureBuilder<List<AttachmentModel>>(
-        future: AttachmentService.fetchActiveAttachments(
-          entityType: AttachmentEntityType.payment,
-          entityId: payment.paymentId,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()));
-          }
-          final attachments = snapshot.data ?? const <AttachmentModel>[];
-          if (attachments.isNotEmpty) {
-            return AttachmentViewerDialog(
-              title: 'Payment attachments',
-              attachments: attachments,
-              embedded: true,
-            );
-          }
-          final url = payment.paymentProofUrl.trim();
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Text('Payment screenshot', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              url.isEmpty ? const Text('No payment proof uploaded.') : SelectableText(url),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Close')),
-              ),
-            ],
-          );
-        },
-      ),
+  Future<void> _openPaymentAttachments(PaymentModel payment) async {
+    final attachments = await AttachmentService.fetchActiveAttachments(
+      entityType: AttachmentEntityType.payment,
+      entityId: payment.paymentId,
     );
+    if (!mounted) return;
+    if (attachments.length == 1) {
+      WorkspaceNavigator.openAttachment(context, attachments.first.attachmentId);
+      return;
+    }
+    if (attachments.isNotEmpty || payment.paymentProofUrl.trim().isNotEmpty) {
+      WorkspaceNavigator.openPayment(context, payment.paymentId);
+      return;
+    }
+    FeedbackService.showInfo(
+      context,
+      title: 'Payment proof',
+      message: 'No payment proof uploaded yet.',
+    );
+  }
+
+  bool _hasPaymentProof(PaymentModel payment, _CoordinatorPaymentsData data) {
+    if (payment.paymentProofUrl.trim().isNotEmpty) return true;
+    return (data.attachmentCountByPaymentId[payment.paymentId] ?? 0) > 0;
+  }
+
+  int _paymentAttachmentCount(PaymentModel payment, _CoordinatorPaymentsData data) {
+    final int count = data.attachmentCountByPaymentId[payment.paymentId] ?? 0;
+    if (count > 0) return count;
+    return payment.paymentProofUrl.trim().isNotEmpty ? 1 : 0;
   }
 
   Future<void> _approve(PaymentModel p) async {
@@ -528,7 +536,8 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
                 ? null
                 : () => WorkspaceNavigator.openIdea(context, p.ideaId),
             onOpenPayment: () => WorkspaceNavigator.openPayment(context, p.paymentId),
-            onViewScreenshot: () => _viewShot(p),
+            onOpenAttachments: _hasPaymentProof(p, data) ? () => _openPaymentAttachments(p) : null,
+            attachmentCount: _paymentAttachmentCount(p, data),
             onApprove: () => _approve(p),
             onReject: () => _reject(p),
           ),
@@ -543,9 +552,11 @@ class _CoordinatorPaymentsData {
     required this.payments,
     required this.teamNameById,
     required this.ideaTitleById,
+    required this.attachmentCountByPaymentId,
   });
 
   final List<PaymentModel> payments;
   final Map<String, String> teamNameById;
   final Map<String, String> ideaTitleById;
+  final Map<String, int> attachmentCountByPaymentId;
 }
