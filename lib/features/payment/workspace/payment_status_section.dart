@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../models/payment_model.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../../widgets/payments/payment_status_pill.dart';
+import '../models/payment_model.dart';
+import '../services/payment_finance_helpers.dart';
+import '../widgets/payment_status_pill.dart';
 import 'payment_workspace_loader.dart';
 
 class PaymentStatusSection extends StatelessWidget {

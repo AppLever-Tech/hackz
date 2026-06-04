@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/payment_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../utils/department_payments_service.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../../shared/inputs/filter_pill.dart';
-import '../../widgets/payments/payment_contribution_tile.dart';
-import '../../widgets/payments/payment_detail_pane.dart';
-import '../../widgets/payments/payment_summary_card.dart';
-import '../common/app_dialog_template.dart';
-import '../../widgets/responsive/responsive_filter_bar.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/screens/common/app_dialog_template.dart';
+import 'package:hackz/shared/feedback/feedback.dart';
+import 'package:hackz/shared/inputs/filter_pill.dart';
+import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
+import 'package:hackz/widgets/responsive/responsive_filter_bar.dart';
+import 'package:hackz/widgets/responsive/responsive_metric_grid.dart';
+import 'package:hackz/workspace/workspace.dart';
+
+import '../models/payment_model.dart';
+import '../services/department_payments_service.dart';
+import '../services/payment_finance_helpers.dart';
+import '../widgets/payment_contribution_tile.dart';
+import '../widgets/payment_detail_pane.dart';
+import '../widgets/payment_summary_card.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});

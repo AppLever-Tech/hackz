@@ -5,7 +5,7 @@ import '../../../models/attachment_model.dart';
 import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../models/payment_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/user_model.dart';

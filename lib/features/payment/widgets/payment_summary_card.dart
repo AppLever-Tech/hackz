@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../dashboard/dashboard_metric_chips.dart';
+import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
 
 /// Finance metric chip data for payment operations dashboards.
 class PaymentSummaryCard {

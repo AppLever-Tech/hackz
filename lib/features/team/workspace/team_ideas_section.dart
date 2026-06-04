@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../../constants/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../models/payment_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../widgets/common/context_pill.dart';
 import '../../../widgets/common/context_pill_theme.dart';
 import 'team_workspace.dart';

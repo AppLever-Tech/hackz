@@ -27,7 +27,7 @@ import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../workspace/workspace.dart';
 import '../../features/requests/deptadmin/requests_workspace_screen.dart';
-import 'payments_screen.dart';
+import 'package:hackz/features/payment/screens/payments_screen.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
   const DeptAdminDashboard({super.key, required this.user});

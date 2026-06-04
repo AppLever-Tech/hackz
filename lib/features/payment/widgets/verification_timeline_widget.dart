@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/payment_model.dart';
-import '../../utils/payment_finance_helpers.dart';
+import 'package:hackz/constants/app_icons.dart';
+
+import '../models/payment_model.dart';
+import '../services/payment_finance_helpers.dart';
 
 class VerificationTimelineEvent {
   const VerificationTimelineEvent({

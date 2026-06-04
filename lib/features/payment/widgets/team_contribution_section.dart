@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../common/context_pill.dart';
-import '../common/context_pill_group.dart';
-import '../common/context_pill_theme.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/features/problems/models/problem_model.dart';
+import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
+import 'package:hackz/workspace/workspace.dart';
 
 class TeamContributionSection extends StatelessWidget {
   const TeamContributionSection({

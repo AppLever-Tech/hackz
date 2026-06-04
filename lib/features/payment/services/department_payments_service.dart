@@ -1,15 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/attachment_model.dart';
-import '../features/organization/models/department_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import 'package:hackz/features/idea/services/idea_department_helpers.dart';
+import 'package:hackz/features/organization/models/department_model.dart';
+import 'package:hackz/features/problems/models/problem_model.dart';
+import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/models/attachment_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
+import 'package:hackz/utils/firestore_utils.dart';
+
 import '../models/payment_model.dart';
-import '../features/problems/models/problem_model.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import 'common_helpers.dart';
-import 'firestore_utils.dart';
-import '../features/idea/services/idea_department_helpers.dart';
 import 'payment_finance_helpers.dart';
 
 typedef _Docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;

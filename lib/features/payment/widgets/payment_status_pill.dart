@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../models/payment_model.dart';
-import '../../utils/payment_finance_helpers.dart';
+import '../models/payment_model.dart';
+import '../services/payment_finance_helpers.dart';
 
 class PaymentStatusPill extends StatelessWidget {
   const PaymentStatusPill({

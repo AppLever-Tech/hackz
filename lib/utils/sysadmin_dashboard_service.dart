@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../features/user/models/enums/user_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../models/payment_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import 'firestore_utils.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;

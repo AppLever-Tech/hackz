@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/payment_model.dart';
-import '../../screens/common/dashboard_components.dart';
-import '../../utils/department_payments_service.dart';
-import '../../utils/payment_finance_helpers.dart';
+import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/screens/common/dashboard_components.dart';
+
+import '../models/payment_model.dart';
+import '../services/department_payments_service.dart';
+import '../services/payment_finance_helpers.dart';
 import 'payment_proof_viewer.dart';
 import 'payment_status_pill.dart';
 import 'team_contribution_section.dart';

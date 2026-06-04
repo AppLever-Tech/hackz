@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import 'package:hackz/responsive/responsive_helper.dart';
 import 'payment_proof_section.dart';
 import 'payment_status_section.dart';
 import 'payment_summary_section.dart';

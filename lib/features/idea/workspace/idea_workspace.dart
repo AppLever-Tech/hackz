@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../workspace/core/workspace_host.dart';
 import '../../../workspace/core/workspace_route.dart';
 import '../../../workspace/evaluation/evaluation_workspace.dart';
-import '../../../workspace/payment/payment_workspace.dart';
+import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../problems/workspace/problem_workspace.dart';
 import '../../team/workspace/team_workspace.dart';
 import 'idea_workspace_body.dart';

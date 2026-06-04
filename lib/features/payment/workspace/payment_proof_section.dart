@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../models/attachment_model.dart';
-import '../core/workspace_attachments_panel.dart';
+import 'package:hackz/models/attachment_model.dart';
+import 'package:hackz/workspace/core/workspace_attachments_panel.dart';
 import 'payment_workspace_loader.dart';
 
 class PaymentProofSection extends StatelessWidget {

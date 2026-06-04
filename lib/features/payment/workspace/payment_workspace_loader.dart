@@ -1,15 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../models/attachment_model.dart';
-import '../../features/organization/models/department_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../models/payment_model.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../core/workspace_attachment_counts.dart';
+import 'package:hackz/features/organization/models/department_model.dart';
+import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/models/attachment_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
+import 'package:hackz/utils/firestore_utils.dart';
+import 'package:hackz/workspace/core/workspace_attachment_counts.dart';
+
+import '../models/payment_model.dart';
+import '../services/payment_finance_helpers.dart';
 
 class PaymentWorkspaceViewModel {
   const PaymentWorkspaceViewModel({

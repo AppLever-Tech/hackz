@@ -24,7 +24,7 @@ export '../widgets/common/context_pill_group.dart';
 export '../widgets/common/context_pill_theme.dart';
 export '../widgets/common/context_pill_metrics.dart';
 export '../features/idea/workspace/idea_workspace.dart';
-export 'payment/payment_workspace.dart';
+export '../features/payment/workspace/payment_workspace.dart';
 export 'evaluation/evaluation_workspace.dart';
 export '../features/problems/workspace/problem_workspace.dart';
 export '../features/team/workspace/team_workspace.dart';

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../shared/entity_reference_row.dart';
+import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/workspace/shared/entity_reference_row.dart';
+
+import '../services/payment_finance_helpers.dart';
 import 'payment_workspace.dart';
 import 'payment_workspace_loader.dart';
 

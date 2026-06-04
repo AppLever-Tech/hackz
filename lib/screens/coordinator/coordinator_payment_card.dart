@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../models/payment_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../screens/common/dashboard_components.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../../widgets/payments/payment_status_pill.dart';
+import 'package:hackz/features/payment/services/payment_finance_helpers.dart';
+import 'package:hackz/features/payment/widgets/payment_status_pill.dart';
 import '../../workspace/workspace.dart';
 
 class CoordinatorPaymentCard extends StatelessWidget {

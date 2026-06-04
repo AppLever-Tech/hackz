@@ -5,17 +5,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../models/attachment_model.dart';
+import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/models/attachment_model.dart';
+import 'package:hackz/screens/common/app_dialog_template.dart';
+import 'package:hackz/shared/feedback/feedback.dart';
+import 'package:hackz/utils/attachment_service.dart';
+import 'package:hackz/utils/firestore_utils.dart';
+import 'package:hackz/widgets/attachment_pick_field.dart';
+import 'package:hackz/widgets/loading/loading.dart';
+import 'package:hackz/widgets/responsive/responsive_dialog_actions.dart';
+
 import '../models/payment_model.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import '../shared/feedback/feedback.dart';
-import '../utils/attachment_service.dart';
-import '../utils/firestore_utils.dart';
-import '../screens/common/app_dialog_template.dart';
-import 'attachment_pick_field.dart';
-import 'loading/loading.dart';
-import 'responsive/responsive_dialog_actions.dart';
 
 /// Compact student payment submission (amount + screenshot required).
 Future<bool?> showPaymentDialog({

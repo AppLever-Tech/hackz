@@ -10,7 +10,7 @@ import '../services/idea_query_service.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../../../widgets/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
-import '../../../widgets/payment_dialog.dart';
+import 'package:hackz/features/payment/widgets/payment_dialog.dart';
 import '../../../widgets/judge/evaluate_idea_dialog.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../responsive/responsive_helper.dart';

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../models/payment_model.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../../widgets/payments/verification_timeline_widget.dart';
+import 'package:hackz/constants/app_icons.dart';
+
+import '../models/payment_model.dart';
+import '../services/payment_finance_helpers.dart';
+import '../widgets/verification_timeline_widget.dart';
 import 'payment_workspace_loader.dart';
 
 class PaymentTimelineSection extends StatelessWidget {

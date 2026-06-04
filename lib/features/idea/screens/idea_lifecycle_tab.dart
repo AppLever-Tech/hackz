@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../constants/status_styles.dart';
-import '../../../models/payment_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../models/score_model.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/widgets/lifecycle_timeline.dart';

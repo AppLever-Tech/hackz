@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../screens/common/dashboard_components.dart';
-import '../../utils/department_payments_service.dart';
-import '../../utils/payment_finance_helpers.dart';
-import '../common/context_pill.dart';
-import '../common/context_pill_theme.dart';
+import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/screens/common/dashboard_components.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
+
+import '../services/department_payments_service.dart';
+import '../services/payment_finance_helpers.dart';
 import 'payment_status_pill.dart';
 
 class PaymentContributionTile extends StatelessWidget {
