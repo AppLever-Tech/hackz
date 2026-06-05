@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../features/evaluations/workspaces/evaluation_assignment_details_pane.dart';
 import '../../constants/status_styles.dart';
+import '../../features/imports/imports.dart';
 import '../../features/organization/models/department_model.dart';
 import '../../features/organization/models/enums/organization_type.dart';
 import '../../features/organization/models/organization_model.dart';
@@ -75,6 +76,22 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       judges: results[0] as List<UserModel>,
       metrics: results[1] as DepartmentDashboardAnalytics,
     );
+  }
+
+  Future<void> _importJudges() async {
+    final bool? imported = await showUserImportWorkflow(
+      context: context,
+      config: UserImportConfig(
+        actor: widget.user,
+        organizationType: widget.user.orgType ?? OrganizationType.college,
+        departmentName: widget.user.department,
+        departmentCode: DepartmentModel.resolveCode(widget.user.departmentCode),
+        allowedCsvRoles: const <String>{'JUDGE'},
+      ),
+    );
+    if (imported == true && mounted) {
+      _refresh();
+    }
   }
 
   Future<void> _addJudge() async {
@@ -281,6 +298,11 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                     onPressed: _addJudge,
                     icon: const Icon(AppIcons.add, size: 16),
                     label: const Text('Add Judge'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _importJudges,
+                    icon: const Icon(AppIcons.attachments, size: 16),
+                    label: const Text('Import Users'),
                   ),
                   OutlinedButton.icon(
                     onPressed: _openAssignmentWorkspace,

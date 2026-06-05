@@ -26,6 +26,8 @@ class UserModel {
     this.approvedBy,
     this.approvedAt,
     this.rejectionReason,
+    this.createdSource,
+    this.createdBy,
   });
 
   final String userId;
@@ -52,6 +54,8 @@ class UserModel {
   final String? approvedBy;
   final DateTime? approvedAt;
   final String? rejectionReason;
+  final String? createdSource;
+  final String? createdBy;
 
   String get displayName {
     final String full = '$firstName $lastName'.trim();
@@ -96,6 +100,8 @@ class UserModel {
       'approvedBy': approvedBy,
       'approvedAt': approvedAt == null ? null : Timestamp.fromDate(approvedAt!),
       'rejectionReason': rejectionReason,
+      if ((createdSource ?? '').trim().isNotEmpty) 'createdSource': createdSource!.trim(),
+      if ((createdBy ?? '').trim().isNotEmpty) 'createdBy': createdBy!.trim(),
     };
   }
 
@@ -131,6 +137,8 @@ class UserModel {
       approvedBy: (map['approvedBy'] as String?)?.trim(),
       approvedAt: (map['approvedAt'] as Timestamp?)?.toDate(),
       rejectionReason: (map['rejectionReason'] as String?)?.trim(),
+      createdSource: (map['createdSource'] as String?)?.trim(),
+      createdBy: (map['createdBy'] as String?)?.trim(),
     );
   }
 
@@ -169,6 +177,8 @@ class UserModel {
     String? approvedBy,
     DateTime? approvedAt,
     String? rejectionReason,
+    String? createdSource,
+    String? createdBy,
   }) {
     final List<String> nextRoles = roles ?? this.roles;
     final String nextRole = role ?? (nextRoles.isNotEmpty ? nextRoles.first : this.role);
@@ -193,6 +203,8 @@ class UserModel {
       approvedBy: approvedBy ?? this.approvedBy,
       approvedAt: approvedAt ?? this.approvedAt,
       rejectionReason: rejectionReason ?? this.rejectionReason,
+      createdSource: createdSource ?? this.createdSource,
+      createdBy: createdBy ?? this.createdBy,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../constants/account_workspace_visuals.dart';
 import '../../../constants/app_icons.dart';
+import '../../imports/imports.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
@@ -96,6 +97,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     } catch (_) {
       // Keep prior list on load failure.
     }
+  }
+
+  Future<void> _openImportUsers() async {
+    final bool? imported = await showUserImportWorkflow(
+      context: context,
+      config: UserImportConfig(
+        actor: widget.user,
+        organizationType: widget.user.orgType ?? OrganizationType.college,
+        departmentName: widget.user.department,
+        departmentCode: DepartmentModel.resolveCode(widget.user.departmentCode),
+      ),
+    );
+    if (imported == true && mounted) _loadAll();
   }
 
   Future<void> _openCreateUser() async {
@@ -669,6 +683,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
               onPressed: _openCreateUser,
               icon: const Icon(AppIcons.add, size: 16),
               label: const Text('Create User'),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _openImportUsers,
+              icon: const Icon(AppIcons.attachments, size: 16),
+              label: const Text('Import Users'),
             ),
           ],
         ),
