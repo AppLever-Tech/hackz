@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
+import '../../constants/problem_constants.dart';
+import '../../widgets/problem_source_pill.dart';
+import '../../widgets/problem_status_pill.dart';
 import '../../../../widgets/common/rich_tabs.dart';
 import '../../workspace/problem_workspace_loader.dart';
 import 'lifecycle_tab.dart';
@@ -19,7 +22,7 @@ class ProblemStatementDetailsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String psNumber = vm.problem.problemNumber.trim();
-    final String category = vm.problem.category.trim();
+    final String? category = ProblemConstants.resolveCategory(vm.problem.category.trim());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -44,17 +47,14 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                           : vm.problem.departmentDisplayName.trim(),
                       color: const Color(0xFF475569),
                     ),
-                    if (category.isNotEmpty)
+                    if (category != null)
                       _MetaChip(
                         icon: AppIcons.orgType,
                         label: category,
                         color: const Color(0xFF0EA5E9),
                       ),
-                    _MetaChip(
-                      icon: vm.problem.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
-                      label: vm.problem.isActive ? 'Active' : 'Inactive',
-                      color: vm.problem.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
-                    ),
+                    ProblemStatusPill(status: vm.problem.status, compact: false),
+                    ProblemSourcePill(createdSource: vm.problem.createdSource, compact: false),
             ],
           ),
         ),

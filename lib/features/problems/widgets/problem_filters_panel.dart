@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../imports/models/import_created_source.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../models/problem_list_config.dart';
+import '../models/problem_status.dart';
+import '../services/problem_status_helpers.dart';
 
 /// Stateless filter panel shared by the problem list and Problem Statements
 /// table screens.
 ///
 /// State lives in the parent screen; the panel just renders the per-section
-/// chip groups (department, status, tag, attachments) gated by
+/// chip groups (department, status, source, tag, attachments) gated by
 /// [ProblemListConfig.enabledFilters] and notifies the parent through
-/// [onDepartmentToggle] / [onTagToggle] / [onStatusChange] / [onAttachmentsChange].
+/// [onDepartmentToggle] / [onTagToggle] / [onStatusChange] / [onSourceChange] /
+/// [onAttachmentsChange].
 /// `Apply` and `Clear All` are also routed through callbacks so each screen
 /// owns its own load / reset flow.
 class ProblemFiltersPanel extends StatelessWidget {
@@ -21,10 +25,12 @@ class ProblemFiltersPanel extends StatelessWidget {
     required this.departmentFilters,
     required this.tagFilters,
     required this.statusFilter,
+    required this.sourceFilter,
     required this.hasAttachments,
     required this.onDepartmentToggle,
     required this.onTagToggle,
     required this.onStatusChange,
+    required this.onSourceChange,
     required this.onAttachmentsChange,
     required this.onClearAll,
     required this.onApply,
@@ -35,11 +41,13 @@ class ProblemFiltersPanel extends StatelessWidget {
   final List<String> allTags;
   final Set<String> departmentFilters;
   final Set<String> tagFilters;
-  final bool? statusFilter;
+  final ProblemStatus? statusFilter;
+  final ImportCreatedSource? sourceFilter;
   final bool? hasAttachments;
   final void Function(String department, bool selected) onDepartmentToggle;
   final void Function(String tag, bool selected) onTagToggle;
-  final void Function(bool? next) onStatusChange;
+  final void Function(ProblemStatus? next) onStatusChange;
+  final void Function(ImportCreatedSource? next) onSourceChange;
   final void Function(bool? next) onAttachmentsChange;
   final VoidCallback onClearAll;
   final VoidCallback onApply;
@@ -79,18 +87,48 @@ class ProblemFiltersPanel extends StatelessWidget {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: <Widget>[
                 ChoiceChip(
-                  label: const Text('Active'),
-                  selected: statusFilter == true,
-                  onSelected: (_) =>
-                      onStatusChange(statusFilter == true ? null : true),
+                  label: const Text('All'),
+                  selected: statusFilter == null,
+                  onSelected: (_) => onStatusChange(null),
+                ),
+                for (final ProblemStatus status in ProblemStatus.lifecycleOrder)
+                  ChoiceChip(
+                    label: Text(ProblemStatusHelpers.label(status)),
+                    selected: statusFilter == status,
+                    onSelected: (_) => onStatusChange(statusFilter == status ? null : status),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (enabledFilters.contains(ProblemFilterType.source)) ...<Widget>[
+            const Text('Source', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                ChoiceChip(
+                  label: const Text('All'),
+                  selected: sourceFilter == null,
+                  onSelected: (_) => onSourceChange(null),
                 ),
                 ChoiceChip(
-                  label: const Text('Inactive'),
-                  selected: statusFilter == false,
-                  onSelected: (_) =>
-                      onStatusChange(statusFilter == false ? null : false),
+                  label: const Text('Manual'),
+                  selected: sourceFilter == ImportCreatedSource.manual,
+                  onSelected: (_) => onSourceChange(
+                    sourceFilter == ImportCreatedSource.manual ? null : ImportCreatedSource.manual,
+                  ),
+                ),
+                ChoiceChip(
+                  label: const Text('Imported'),
+                  selected: sourceFilter == ImportCreatedSource.csvImport,
+                  onSelected: (_) => onSourceChange(
+                    sourceFilter == ImportCreatedSource.csvImport ? null : ImportCreatedSource.csvImport,
+                  ),
                 ),
               ],
             ),
@@ -164,26 +202,31 @@ class ProblemActiveFiltersRow extends StatelessWidget {
     required this.departmentFilters,
     required this.tagFilters,
     required this.statusFilter,
+    required this.sourceFilter,
     required this.hasAttachments,
     required this.onRemoveDepartment,
     required this.onRemoveTag,
     required this.onClearStatus,
+    required this.onClearSource,
     required this.onClearAttachments,
   });
 
   final Set<String> departmentFilters;
   final Set<String> tagFilters;
-  final bool? statusFilter;
+  final ProblemStatus? statusFilter;
+  final ImportCreatedSource? sourceFilter;
   final bool? hasAttachments;
   final void Function(String department) onRemoveDepartment;
   final void Function(String tag) onRemoveTag;
   final VoidCallback onClearStatus;
+  final VoidCallback onClearSource;
   final VoidCallback onClearAttachments;
 
   bool get isEmpty =>
       departmentFilters.isEmpty &&
       tagFilters.isEmpty &&
       statusFilter == null &&
+      sourceFilter == null &&
       hasAttachments == null;
 
   @override
@@ -207,8 +250,13 @@ class ProblemActiveFiltersRow extends StatelessWidget {
         ),
         if (statusFilter != null)
           InputChip(
-            label: Text(statusFilter == true ? 'Active' : 'Inactive'),
+            label: Text(ProblemStatusHelpers.label(statusFilter!)),
             onDeleted: onClearStatus,
+          ),
+        if (sourceFilter != null)
+          InputChip(
+            label: Text(ProblemStatusHelpers.sourceLabel(sourceFilter!.value)),
+            onDeleted: onClearSource,
           ),
         if (hasAttachments != null)
           InputChip(

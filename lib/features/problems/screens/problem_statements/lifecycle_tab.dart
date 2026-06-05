@@ -5,6 +5,9 @@ import '../../../../constants/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../../screens/common/dashboard_components.dart';
 import '../../../../shared/widgets/lifecycle_timeline.dart';
+import '../../models/problem_status.dart';
+import '../../services/problem_status_helpers.dart';
+import '../../widgets/problem_lifecycle_strip.dart';
 import '../../workspace/problem_workspace_loader.dart';
 
 /// Problem Lifecycle tab for [ProblemStatementDetailsScreen].
@@ -24,6 +27,13 @@ class LifecycleTab extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: kDashboardCardDecoration,
+          child: ProblemLifecycleStrip(currentStatus: vm.problem.status),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: kDashboardCardDecoration,
           child: LifecycleTimeline(
             title: 'Problem statement lifecycle',
             subtitle: '${events.length} event${events.length == 1 ? '' : 's'} tracked',
@@ -35,6 +45,7 @@ class LifecycleTab extends StatelessWidget {
   }
 
   static List<LifecycleTimelineEvent> _buildEvents(ProblemWorkspaceViewModel vm) {
+    final ProblemStatus status = vm.problem.status;
     final List<LifecycleTimelineEvent> events = <LifecycleTimelineEvent>[
       LifecycleTimelineEvent(
         title: 'Problem statement created',
@@ -44,13 +55,11 @@ class LifecycleTab extends StatelessWidget {
         color: const Color(0xFF6A38FF),
       ),
       LifecycleTimelineEvent(
-        title: vm.problem.isActive ? 'Active in catalog' : 'Marked inactive',
-        subtitle: vm.problem.isActive
-            ? 'Teams can view and submit innovations'
-            : 'New submissions may be restricted',
+        title: ProblemStatusHelpers.label(status),
+        subtitle: _statusSubtitle(status),
         when: vm.problem.updatedAt ?? vm.problem.createdAt,
-        icon: vm.problem.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
-        color: vm.problem.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
+        icon: ProblemStatusHelpers.icon(status),
+        color: ProblemStatusHelpers.color(status),
       ),
     ];
 
@@ -75,5 +84,14 @@ class LifecycleTab extends StatelessWidget {
     });
 
     return events;
+  }
+
+  static String _statusSubtitle(ProblemStatus status) {
+    return switch (status) {
+      ProblemStatus.draft => 'Awaiting review before activation',
+      ProblemStatus.active => 'Teams can view and submit innovations',
+      ProblemStatus.inactive => 'New submissions may be restricted',
+      ProblemStatus.archived => 'Removed from active catalog',
+    };
   }
 }

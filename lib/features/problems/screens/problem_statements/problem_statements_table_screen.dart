@@ -19,9 +19,13 @@ import '../../../../widgets/loading/hkz_progress_indicator.dart';
 import '../../../../workspace/workspace.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
+import '../../../imports/models/import_created_source.dart';
+import '../../../imports/screens/problems_import_entry.dart';
 import '../../models/problem_list_config.dart';
 import '../../models/problem_model.dart';
+import '../../models/problem_status.dart';
 import '../../services/problem_query_service.dart';
+import '../../services/problem_status_service.dart';
 import '../../validators/problem_submission_validators.dart';
 import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
@@ -59,10 +63,12 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   // [ProblemFiltersPanel] / [ProblemActiveFiltersRow] widgets drive both
   // this screen and the dashboard cards layout.
   bool _showFilters = false;
-  bool? _statusFilter;
+  ProblemStatus? _statusFilter;
+  ImportCreatedSource? _sourceFilter;
   bool? _hasAttachments;
   Set<String> _departmentFilters = <String>{};
   Set<String> _tagFilters = <String>{};
+  Set<String> _selectedDraftIds = <String>{};
 
   // Embedded authoring workspace toggles. When either is set, the table is
   // replaced in-place by [ProblemAuthoringWorkspace] (create or edit mode).
@@ -117,6 +123,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           search: _searchController.text,
           sortType: _sort,
           statusFilter: _statusFilter,
+          sourceFilter: _sourceFilter,
           departmentFilters: _departmentFilters,
           tagFilters: _tagFilters,
           hasAttachments: _hasAttachments,
@@ -128,9 +135,11 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   void _clearAllFilters() {
     setState(() {
       _statusFilter = null;
+      _sourceFilter = null;
       _hasAttachments = null;
       _departmentFilters = <String>{};
       _tagFilters = <String>{};
+      _selectedDraftIds = <String>{};
     });
     _loadProblems();
   }
@@ -139,6 +148,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       _departmentFilters.isNotEmpty ||
       _tagFilters.isNotEmpty ||
       _statusFilter != null ||
+      _sourceFilter != null ||
       _hasAttachments != null;
 
   Future<void> _openCreateProblem() async {
@@ -179,7 +189,69 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     return true;
   }
 
+  Future<void> _activateProblem(ProblemModel problem) async {
+    await ProblemStatusService.activate(problem.problemId);
+    if (!mounted) return;
+    setState(() => _selectedDraftIds.remove(problem.problemId));
+    _loadProblems();
+  }
+
+  Future<void> _deactivateProblem(ProblemModel problem) async {
+    await ProblemStatusService.deactivate(problem.problemId);
+    if (!mounted) return;
+    _loadProblems();
+  }
+
+  Future<void> _activateSelectedDrafts() async {
+    if (_selectedDraftIds.isEmpty) return;
+    final int count = await ProblemStatusService.activateMany(_selectedDraftIds);
+    if (!mounted) return;
+    FeedbackService.showSuccess(
+      context,
+      title: 'Problems activated',
+      message: '$count problem${count == 1 ? '' : 's'} activated.',
+    );
+    setState(() => _selectedDraftIds = <String>{});
+    _loadProblems();
+  }
+
+  void _toggleDraftSelection(ProblemModel problem, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedDraftIds.add(problem.problemId);
+      } else {
+        _selectedDraftIds.remove(problem.problemId);
+      }
+    });
+  }
+
+  Future<void> _openImportProblems() async {
+    final bool? imported = await showProblemsImportWorkflow(
+      context: context,
+      actorUserId: widget.currentUser.userId,
+      orgId: widget.config.orgId,
+      defaultDepartmentName: widget.currentUser.department.trim(),
+      defaultDepartmentCode: widget.currentUser.departmentCode,
+    );
+    if (imported == true && mounted) {
+      _loadProblems();
+    }
+  }
+
+  /// College admins may delete any draft; department admins may delete drafts
+  /// they personally authored.
+  bool _canDeleteProblem(ProblemModel problem) {
+    if (!widget.config.canDeleteDraft) return false;
+    if (problem.status != ProblemStatus.draft) return false;
+    final role = UserRole.fromCode(widget.currentUser.role);
+    if (role == UserRole.departmentAdmin) {
+      return problem.createdBy.trim() == widget.currentUser.userId.trim();
+    }
+    return role == UserRole.collegeAdmin;
+  }
+
   Future<void> _deleteProblem(ProblemModel problem) async {
+    if (!_canDeleteProblem(problem)) return;
     final bool shouldDelete = await FeedbackService.showConfirmation(
       context,
       title: 'Delete Problem',
@@ -299,6 +371,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                 : DataTableView<ProblemModel>(
                     items: problems,
                     columns: ProblemTableColumns.build(
+                      context: context,
                       config: widget.config,
                       actions: _problemTableActions(),
                     ),
@@ -322,6 +395,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     departmentFilters: _departmentFilters,
                     tagFilters: _tagFilters,
                     statusFilter: _statusFilter,
+                    sourceFilter: _sourceFilter,
                     hasAttachments: _hasAttachments,
                     onDepartmentToggle: (d, selected) => setState(() {
                       if (selected) {
@@ -338,6 +412,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                       }
                     }),
                     onStatusChange: (next) => setState(() => _statusFilter = next),
+                    onSourceChange: (next) => setState(() => _sourceFilter = next),
                     onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
                     onClearAll: _clearAllFilters,
                     onApply: _loadProblems,
@@ -353,6 +428,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     departmentFilters: _departmentFilters,
                     tagFilters: _tagFilters,
                     statusFilter: _statusFilter,
+                    sourceFilter: _sourceFilter,
                     hasAttachments: _hasAttachments,
                     onRemoveDepartment: (d) {
                       setState(() => _departmentFilters.remove(d));
@@ -364,6 +440,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     },
                     onClearStatus: () {
                       setState(() => _statusFilter = null);
+                      _loadProblems();
+                    },
+                    onClearSource: () {
+                      setState(() => _sourceFilter = null);
                       _loadProblems();
                     },
                     onClearAttachments: () {
@@ -433,6 +513,27 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           )
         : null;
 
+    final Widget? importButton = widget.config.canCreate
+        ? OutlinedButton.icon(
+            onPressed: _openImportProblems,
+            icon: const Icon(Icons.upload_file_rounded, size: 18),
+            label: const Text('Import Problems'),
+            style: _outlinedToolbarStyle(context),
+          )
+        : null;
+
+    final Widget? activateSelectedButton = widget.config.canToggleActive && _selectedDraftIds.isNotEmpty
+        ? FilledButton.icon(
+            onPressed: _activateSelectedDrafts,
+            icon: const Icon(AppIcons.statusApproved, size: 18),
+            label: Text('Activate (${_selectedDraftIds.length})'),
+            style: FilledButton.styleFrom(
+              minimumSize: Size(0, mobile ? 40 : 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          )
+        : null;
+
     if (mobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -444,6 +545,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             runSpacing: 8,
             children: <Widget>[
               if (createButton != null) createButton,
+              if (importButton != null) importButton,
+              if (activateSelectedButton != null) activateSelectedButton,
               filterButton,
             ],
           ),
@@ -456,6 +559,14 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       children: <Widget>[
         if (createButton != null) ...<Widget>[
           createButton,
+          const SizedBox(width: 8),
+        ],
+        if (importButton != null) ...<Widget>[
+          importButton,
+          const SizedBox(width: 8),
+        ],
+        if (activateSelectedButton != null) ...<Widget>[
+          activateSelectedButton,
           const SizedBox(width: 8),
         ],
         Expanded(child: searchField),
@@ -471,6 +582,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       ideaCountByProblemId: _ideaCountByProblemId,
       orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
       canEditFor: _canEditProblem,
+      canDeleteFor: _canDeleteProblem,
       onOpenProblem: (ProblemModel problem) =>
           WorkspaceNavigator.openProblem(context, problem.problemId),
       onOpenDetails: _openDetails,
@@ -478,6 +590,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       onAssignJudge: _openAssignJudge,
       onEditProblem: _openEditProblem,
       onDeleteProblem: _deleteProblem,
+      onActivateProblem: widget.config.canToggleActive ? _activateProblem : null,
+      onDeactivateProblem: widget.config.canToggleActive ? _deactivateProblem : null,
+      selectedProblemIds: _selectedDraftIds,
+      onToggleSelection: widget.config.canToggleActive ? _toggleDraftSelection : null,
     );
   }
 

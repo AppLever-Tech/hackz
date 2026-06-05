@@ -117,7 +117,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         _selectedTeam != null &&
         title.isNotEmpty &&
         description.isNotEmpty &&
-        widget.problem.isActive &&
+        widget.problem.isSubmissionOpen &&
         gateOpen;
   }
 

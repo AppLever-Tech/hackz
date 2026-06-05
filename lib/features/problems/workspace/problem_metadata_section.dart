@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../utils/common_helpers.dart';
+import '../constants/problem_constants.dart';
+import '../services/problem_status_helpers.dart';
 import 'problem_workspace.dart';
 
 class ProblemMetadataSection extends StatelessWidget {
@@ -24,8 +26,18 @@ class ProblemMetadataSection extends StatelessWidget {
       children: <Widget>[
         const Text('Other Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
-        _row(AppIcons.orgType, 'Category', vm.category),
+        _row(AppIcons.orgType, 'Category', ProblemConstants.resolveCategory(p.category) ?? '—'),
         _row(AppIcons.insights, 'Theme', vm.theme),
+        _row(
+          ProblemStatusHelpers.icon(p.status),
+          'Status',
+          ProblemStatusHelpers.label(p.status),
+        ),
+        _row(
+          ProblemStatusHelpers.sourceIcon(p.createdSource),
+          'Source',
+          ProblemStatusHelpers.sourceLabel(p.createdSource),
+        ),
         _row(Icons.label_outline, 'Tags', tagsText),
         _row(AppIcons.organizations, 'Organization', vm.organizationName),
         _row(

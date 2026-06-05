@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../imports/models/import_created_source.dart';
 import '../../organization/models/department_model.dart';
+import 'problem_status.dart';
 
 class ProblemModel {
   const ProblemModel({
@@ -16,8 +18,9 @@ class ProblemModel {
     required this.theme,
     required this.tags,
     required this.attachments,
-    required this.isActive,
+    required this.status,
     required this.createdAt,
+    this.createdSource,
     this.updatedAt,
     this.summary = '',
     this.background = '',
@@ -55,8 +58,9 @@ class ProblemModel {
   final String theme;
   final List<String> tags;
   final List<String> attachments;
-  final bool isActive;
+  final ProblemStatus status;
   final DateTime createdAt;
+  final String? createdSource;
   final DateTime? updatedAt;
 
   // Innovation context (Section 2).
@@ -99,6 +103,8 @@ class ProblemModel {
   /// in submitted ideas (e.g. "Flutter", "AI/ML", "IoT").
   final List<String> preferredTechStack;
 
+  bool get isSubmissionOpen => status == ProblemStatus.active;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'problemId': problemId,
@@ -112,9 +118,10 @@ class ProblemModel {
       'category': category,
       'theme': theme,
       'tags': tags,
-      'isActive': isActive,
+      'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
+      if ((createdSource ?? '').trim().isNotEmpty) 'createdSource': createdSource!.trim(),
       'summary': summary,
       'background': background,
       'impact': impact,
@@ -166,8 +173,9 @@ class ProblemModel {
       theme: str('theme'),
       tags: stringList('tags'),
       attachments: stringList('attachments'),
-      isActive: (map['isActive'] as bool?) ?? true,
+      status: ProblemStatus.fromRaw(str('status')),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdSource: (map['createdSource'] as String?)?.trim(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
       summary: str('summary'),
       background: str('background'),
@@ -194,5 +202,56 @@ class ProblemModel {
     );
   }
 
+  ProblemModel copyWith({
+    ProblemStatus? status,
+    String? createdSource,
+    DateTime? updatedAt,
+  }) {
+    return ProblemModel(
+      problemId: problemId,
+      problemNumber: problemNumber,
+      title: title,
+      description: description,
+      orgId: orgId,
+      orgType: orgType,
+      departmentCode: departmentCode,
+      createdBy: createdBy,
+      category: category,
+      theme: theme,
+      tags: tags,
+      attachments: attachments,
+      status: status ?? this.status,
+      createdAt: createdAt,
+      createdSource: createdSource ?? this.createdSource,
+      updatedAt: updatedAt ?? this.updatedAt,
+      summary: summary,
+      background: background,
+      impact: impact,
+      stakeholders: stakeholders,
+      researchContext: researchContext,
+      expectedSolution: expectedSolution,
+      successCriteria: successCriteria,
+      expectedDeliverables: expectedDeliverables,
+      suggestedTechnologies: suggestedTechnologies,
+      constraints: constraints,
+      difficultyLevel: difficultyLevel,
+      timeline: timeline,
+      complexityLevel: complexityLevel,
+      youtubeLink: youtubeLink,
+      datasetLink: datasetLink,
+      referenceLinks: referenceLinks,
+      contactInformation: contactInformation,
+      maxIdeasAllowed: maxIdeasAllowed,
+      ideaSubmissionDeadline: ideaSubmissionDeadline,
+      minTeamSize: minTeamSize,
+      maxTeamSize: maxTeamSize,
+      preferredTechStack: preferredTechStack,
+    );
+  }
+
   String get departmentDisplayName => DepartmentModel.byCode(departmentCode)?.name ?? departmentCode;
+
+  bool get isManual => (createdSource ?? '').trim() == ImportCreatedSource.manual.value;
+
+  bool get isImported => (createdSource ?? '').trim() == ImportCreatedSource.csvImport.value;
 }

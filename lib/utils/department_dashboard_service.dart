@@ -248,7 +248,7 @@ class DepartmentDashboardService {
     final analytics = DepartmentDashboardAnalytics(
       totalActiveUsers: activeUsers,
       pendingApprovals: pendingApprovals,
-      activeProblems: problems.where((doc) => (doc.data()['isActive'] as bool?) ?? true).length,
+      activeProblems: problems.where((doc) => (doc.data()['status'] as String?) == 'active').length,
       ideasSubmitted: ideas.length,
       facultyCount: roleCount('FAC', status: UserStatus.active),
       studentCount: roleCount('STU', status: UserStatus.active),

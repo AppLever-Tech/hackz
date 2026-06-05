@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../constants/app_icons.dart';
 import '../features/problems/models/problem_list_config.dart';
 import '../features/problems/models/problem_model.dart';
+import '../features/problems/models/problem_status.dart';
 import '../features/problems/validators/problem_submission_validators.dart';
+import '../features/problems/widgets/problem_source_pill.dart';
+import '../features/problems/widgets/problem_status_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
 import '../responsive/responsive_helper.dart';
 import '../utils/common_helpers.dart';
@@ -22,94 +25,149 @@ class ProblemTableActions {
     required this.ideaCountByProblemId,
     required this.orgDefaultMaxIdeas,
     required this.canEditFor,
+    required this.canDeleteFor,
     required this.onOpenProblem,
     required this.onOpenDetails,
     required this.onSubmitIdea,
     required this.onAssignJudge,
     required this.onEditProblem,
     required this.onDeleteProblem,
+    this.onActivateProblem,
+    this.onDeactivateProblem,
+    this.selectedProblemIds = const <String>{},
+    this.onToggleSelection,
   });
 
   final ProblemListConfig config;
   final Map<String, int> ideaCountByProblemId;
   final int orgDefaultMaxIdeas;
   final bool Function(ProblemModel problem) canEditFor;
+  final bool Function(ProblemModel problem) canDeleteFor;
   final void Function(ProblemModel problem) onOpenProblem;
   final void Function(ProblemModel problem) onOpenDetails;
   final void Function(ProblemModel problem) onSubmitIdea;
   final void Function(ProblemModel problem) onAssignJudge;
   final void Function(ProblemModel problem) onEditProblem;
   final void Function(ProblemModel problem) onDeleteProblem;
+  final void Function(ProblemModel problem)? onActivateProblem;
+  final void Function(ProblemModel problem)? onDeactivateProblem;
+  final Set<String> selectedProblemIds;
+  final void Function(ProblemModel problem, bool selected)? onToggleSelection;
 }
 
 /// Per-feature column factory for the Problem Statements dashboard.
 abstract final class ProblemTableColumns {
   static List<DataTableColumn<ProblemModel>> build({
+    required BuildContext context,
     required ProblemListConfig config,
     required ProblemTableActions actions,
   }) {
     final Set<ProblemSortType> enabledSorts = config.enabledSorts;
+    final bool showSelection = actions.onToggleSelection != null && config.canToggleActive;
+    final bool mobile = ResponsiveHelper.isMobile(context);
+
     return <DataTableColumn<ProblemModel>>[
+      if (showSelection)
+        DataTableColumn<ProblemModel>(
+          label: '',
+          flex: 1,
+          minWidth: 36,
+          align: Alignment.center,
+          cell: (BuildContext context, ProblemModel problem) {
+            if (problem.status != ProblemStatus.draft) return const SizedBox.shrink();
+            final bool selected = actions.selectedProblemIds.contains(problem.problemId);
+            return Checkbox(
+              value: selected,
+              visualDensity: VisualDensity.compact,
+              onChanged: (_) => actions.onToggleSelection?.call(problem, !selected),
+            );
+          },
+        ),
       DataTableColumn<ProblemModel>(
         label: 'PS #',
         flex: 3,
-        minWidth: 132,
+        minWidth: 112,
         gapAfter: _kPsTitleGap,
         sortKey: enabledSorts.contains(ProblemSortType.psNumber) ? 'psNumber' : null,
         cell: (BuildContext context, ProblemModel problem) {
           final String number =
               problem.problemNumber.trim().isEmpty ? '—' : problem.problemNumber.trim();
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              _ActiveStatusDot(active: problem.isActive),
-              const SizedBox(width: 6),
-              Flexible(
-                child: ContextPill(
-                  label: number,
-                  semantic: ContextPillSemantic.problem,
-                  onTap: () => actions.onOpenProblem(problem),
-                  compact: true,
-                  fitContent: true,
-                ),
-              ),
-            ],
+          return ContextPill(
+            label: number,
+            semantic: ContextPillSemantic.problem,
+            onTap: () => actions.onOpenProblem(problem),
+            compact: true,
+            fitContent: true,
           );
         },
       ),
       DataTableColumn<ProblemModel>(
         label: 'Title',
         flex: 10,
-        minWidth: 220,
+        minWidth: 180,
         sortKey: enabledSorts.contains(ProblemSortType.titleAZ) ? 'title' : null,
         cell: (BuildContext context, ProblemModel problem) {
           final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
-          return InkWell(
-            onTap: () => actions.onOpenDetails(problem),
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                title,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF4F46E5),
-                  height: 1.35,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Color(0x334F46E5),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              InkWell(
+                onTap: () => actions.onOpenDetails(problem),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                    title,
+                    maxLines: mobile ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4F46E5),
+                      height: 1.35,
+                      decoration: TextDecoration.underline,
+                      decorationColor: Color(0x334F46E5),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              if (mobile) ...<Widget>[
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: <Widget>[
+                    ProblemStatusPill(status: problem.status),
+                    ProblemSourcePill(createdSource: problem.createdSource),
+                  ],
+                ),
+              ],
+            ],
           );
         },
       ),
+      if (!mobile) ...<DataTableColumn<ProblemModel>>[
+        DataTableColumn<ProblemModel>(
+          label: 'Status',
+          flex: 2,
+          minWidth: 84,
+          align: Alignment.center,
+          cell: (BuildContext context, ProblemModel problem) => ProblemStatusPill(status: problem.status),
+        ),
+        DataTableColumn<ProblemModel>(
+          label: 'Source',
+          flex: 2,
+          minWidth: 84,
+          align: Alignment.center,
+          cell: (BuildContext context, ProblemModel problem) =>
+              ProblemSourcePill(createdSource: problem.createdSource),
+        ),
+      ],
       DataTableColumn<ProblemModel>(
         label: 'Department',
         flex: 3,
-        minWidth: 120,
+        minWidth: 100,
         gapAfter: _kDeptCategoryGap,
         sortKey: enabledSorts.contains(ProblemSortType.department) ? 'department' : null,
         cell: (BuildContext context, ProblemModel problem) {
@@ -200,12 +258,15 @@ abstract final class ProblemTableColumns {
           canSubmitIdea: actions.config.canSubmitIdea,
           canAssignJudge: actions.config.canAssignJudge,
           canEdit: actions.canEditFor(problem),
-          canDelete: actions.config.canToggleActive,
+          canManageStatus: actions.config.canToggleActive,
+          canDelete: actions.canDeleteFor(problem),
           onSubmitIdea: () => actions.onSubmitIdea(problem),
           onOpenDetails: () => actions.onOpenDetails(problem),
           onAssignJudge: actions.config.canAssignJudge ? () => actions.onAssignJudge(problem) : null,
           onEdit: actions.canEditFor(problem) ? () => actions.onEditProblem(problem) : null,
-          onDelete: actions.config.canToggleActive ? () => actions.onDeleteProblem(problem) : null,
+          onDelete: actions.canDeleteFor(problem) ? () => actions.onDeleteProblem(problem) : null,
+          onActivate: actions.onActivateProblem == null ? null : () => actions.onActivateProblem!(problem),
+          onDeactivate: actions.onDeactivateProblem == null ? null : () => actions.onDeactivateProblem!(problem),
         ),
       ),
     ];
@@ -265,25 +326,6 @@ class _DeadlineCell extends StatelessWidget {
   }
 }
 
-class _ActiveStatusDot extends StatelessWidget {
-  const _ActiveStatusDot({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color dot = active ? const Color(0xFF059669) : const Color(0xFFCBD5E1);
-    return Tooltip(
-      message: active ? 'Active' : 'Inactive',
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-      ),
-    );
-  }
-}
-
 class _ProblemRowActionArea extends StatelessWidget {
   const _ProblemRowActionArea({
     required this.problem,
@@ -291,12 +333,15 @@ class _ProblemRowActionArea extends StatelessWidget {
     required this.canSubmitIdea,
     required this.canAssignJudge,
     required this.canEdit,
+    required this.canManageStatus,
     required this.canDelete,
     required this.onSubmitIdea,
     required this.onOpenDetails,
     required this.onAssignJudge,
     required this.onEdit,
     required this.onDelete,
+    required this.onActivate,
+    required this.onDeactivate,
   });
 
   final ProblemModel problem;
@@ -304,17 +349,20 @@ class _ProblemRowActionArea extends StatelessWidget {
   final bool canSubmitIdea;
   final bool canAssignJudge;
   final bool canEdit;
+  final bool canManageStatus;
   final bool canDelete;
   final VoidCallback onSubmitIdea;
   final VoidCallback onOpenDetails;
   final VoidCallback? onAssignJudge;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onActivate;
+  final VoidCallback? onDeactivate;
 
   @override
   Widget build(BuildContext context) {
     final bool showSubmit = canSubmitIdea;
-    final bool submitEnabled = showSubmit && problem.isActive && gate.canSubmit;
+    final bool submitEnabled = showSubmit && problem.isSubmissionOpen && gate.canSubmit;
     final bool isClosed = showSubmit && !submitEnabled;
     final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
       const CardOverflowMenuAction(
@@ -349,6 +397,30 @@ class _ProblemRowActionArea extends StatelessWidget {
       spacing: ResponsiveHelper.isMobile(context) ? 4 : 6,
       runSpacing: 4,
       children: <Widget>[
+        if (canManageStatus && problem.status == ProblemStatus.draft && onActivate != null)
+          ProblemWorkflowActionPill(
+            label: 'Activate',
+            icon: AppIcons.statusApproved,
+            semantic: ProblemWorkflowPillSemantic.primary,
+            onTap: onActivate,
+            tooltip: 'Activate problem',
+          ),
+        if (canManageStatus && problem.status == ProblemStatus.active && onDeactivate != null)
+          ProblemWorkflowActionPill(
+            label: 'Deactivate',
+            icon: AppIcons.statusInactive,
+            semantic: ProblemWorkflowPillSemantic.pending,
+            onTap: onDeactivate,
+            tooltip: 'Deactivate problem',
+          ),
+        if (canManageStatus && problem.status == ProblemStatus.inactive && onActivate != null)
+          ProblemWorkflowActionPill(
+            label: 'Activate',
+            icon: AppIcons.statusApproved,
+            semantic: ProblemWorkflowPillSemantic.primary,
+            onTap: onActivate,
+            tooltip: 'Reactivate problem',
+          ),
         if (showSubmit && submitEnabled)
           ProblemWorkflowActionPill(
             label: 'Idea',

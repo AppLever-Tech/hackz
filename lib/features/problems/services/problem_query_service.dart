@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../imports/models/import_created_source.dart';
 import '../../organization/models/department_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';
+import '../models/problem_status.dart';
+import '../services/problem_status_helpers.dart';
 
 class ProblemQueryParams {
   const ProblemQueryParams({
@@ -11,6 +14,7 @@ class ProblemQueryParams {
     required this.search,
     required this.sortType,
     required this.statusFilter,
+    required this.sourceFilter,
     required this.departmentFilters,
     required this.tagFilters,
     required this.hasAttachments,
@@ -20,7 +24,8 @@ class ProblemQueryParams {
   final ProblemListConfig config;
   final String search;
   final ProblemSortType sortType;
-  final bool? statusFilter;
+  final ProblemStatus? statusFilter;
+  final ImportCreatedSource? sourceFilter;
   final Set<String> departmentFilters;
   final Set<String> tagFilters;
   final bool? hasAttachments;
@@ -154,7 +159,10 @@ class ProblemQueryService {
           return false;
         }
       }
-      if (params.statusFilter != null && problem.isActive != params.statusFilter) {
+      if (params.statusFilter != null && problem.status != params.statusFilter) {
+        return false;
+      }
+      if (!ProblemStatusHelpers.matchesSourceFilter(problem.createdSource, params.sourceFilter)) {
         return false;
       }
       if (selectedDepartmentCodes.isNotEmpty &&

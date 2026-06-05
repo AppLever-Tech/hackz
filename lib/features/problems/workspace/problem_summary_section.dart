@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../services/problem_status_helpers.dart';
 import '../../../utils/common_helpers.dart';
 import '../screens/authoring/problem_authoring_section.dart';
+import '../widgets/problem_category_chips.dart';
 import 'problem_workspace.dart';
 
 /// Read-only problem detail surface used in the workspace and the
@@ -133,8 +135,8 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
                   p.problemNumber.trim().isEmpty ? p.problemId : p.problemNumber),
               _chip(AppIcons.departments, p.departmentDisplayName),
               _chip(
-                p.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
-                p.isActive ? 'Active' : 'Inactive',
+                ProblemStatusHelpers.icon(p.status),
+                ProblemStatusHelpers.label(p.status),
               ),
             ],
           ),
@@ -316,7 +318,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _DetailValueBlock(label: 'Department', value: p.departmentDisplayName),
-                _DetailValueBlock(label: 'Category', value: p.category),
+                _DetailCategoryField(selected: p.category),
                 _DetailValueBlock(label: 'Theme', value: p.theme),
                 if (p.tags.isNotEmpty)
                   _DetailChipBlock(label: 'Tags', values: p.tags),
@@ -426,6 +428,45 @@ class _DescriptionBody extends StatelessWidget {
         height: prominent ? 1.55 : 1.45,
         color: const Color(0xFF1E293B),
         fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+}
+
+/// Label + Software/Hardware chip row for the classification section.
+class _DetailCategoryField extends StatelessWidget {
+  const _DetailCategoryField({required this.selected});
+
+  final String selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool compact = MediaQuery.sizeOf(context).width < 900;
+    final double labelWidth = compact ? 170 : 220;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: labelWidth,
+            child: const Text(
+              'Category',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF64748B),
+                letterSpacing: 0.3,
+                height: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ProblemCategoryChips(selected: selected, compact: compact),
+          ),
+        ],
       ),
     );
   }

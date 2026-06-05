@@ -12,6 +12,7 @@ class ProblemRoleConfig {
           canCreate: true,
           canEdit: true,
           canToggleActive: true,
+          canDeleteDraft: true,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
@@ -20,6 +21,7 @@ class ProblemRoleConfig {
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -39,6 +41,7 @@ class ProblemRoleConfig {
           canCreate: true,
           canEdit: true,
           canToggleActive: false,
+          canDeleteDraft: true,
           canSubmitIdea: false,
           canAssignJudge: true,
           // All problem statements should be shown for department admin, faculty, and student views.
@@ -47,6 +50,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -66,6 +70,7 @@ class ProblemRoleConfig {
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
+          canDeleteDraft: false,
           canSubmitIdea: true,
           canAssignJudge: false,
           restrictToDepartment: false,
@@ -73,6 +78,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -92,6 +98,7 @@ class ProblemRoleConfig {
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
+          canDeleteDraft: false,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
@@ -99,6 +106,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -118,6 +126,7 @@ class ProblemRoleConfig {
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
+          canDeleteDraft: false,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: true,
@@ -125,6 +134,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -144,6 +154,7 @@ class ProblemRoleConfig {
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
+          canDeleteDraft: false,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
@@ -152,6 +163,7 @@ class ProblemRoleConfig {
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },
@@ -171,6 +183,7 @@ class ProblemRoleConfig {
           canCreate: false,
           canEdit: false,
           canToggleActive: false,
+          canDeleteDraft: false,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
@@ -179,6 +192,7 @@ class ProblemRoleConfig {
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
             ProblemFilterType.status,
+            ProblemFilterType.source,
             ProblemFilterType.tags,
             ProblemFilterType.attachments,
           },

@@ -8,6 +8,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../organization/models/organization_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
+import '../../problems/models/problem_status.dart';
 import '../../../models/score_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
@@ -142,7 +143,7 @@ abstract final class IdeaWorkspaceLoader {
           theme: '',
           tags: const <String>[],
           attachments: const <String>[],
-          isActive: true,
+          status: ProblemStatus.active,
           createdAt: idea.createdAt,
         );
 

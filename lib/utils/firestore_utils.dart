@@ -729,7 +729,7 @@ class FirestoreUtils {
         .collection(hkzProblems)
         .where('orgId', isEqualTo: orgId)
         .where('departmentCode', isEqualTo: departmentCode.trim().toUpperCase())
-        .where('isActive', isEqualTo: true)
+        .where('status', isEqualTo: 'active')
         .get();
     final problems = snapshot.docs
         .map((d) => ProblemModel.fromMap(d.id, d.data()))
@@ -743,7 +743,7 @@ class FirestoreUtils {
     final snapshot = await _db
         .collection(hkzProblems)
         .where('orgId', isEqualTo: orgId)
-        .where('isActive', isEqualTo: true)
+        .where('status', isEqualTo: 'active')
         .get();
     final problems = snapshot.docs
         .map((d) => ProblemModel.fromMap(d.id, d.data()))

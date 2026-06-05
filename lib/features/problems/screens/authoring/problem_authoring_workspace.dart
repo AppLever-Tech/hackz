@@ -15,7 +15,9 @@ import 'package:hackz/features/attachment/widgets/attachment_upload_preview.dart
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../constants/problem_constants.dart';
+import '../../../imports/models/import_created_source.dart';
 import '../../models/problem_model.dart';
+import '../../models/problem_status.dart';
 import '../../services/problem_utils.dart';
 import '../../validators/problem_authoring_validators.dart';
 import 'problem_authoring_inputs.dart';
@@ -118,7 +120,6 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   int _orgMaxTeamSize = 30;
 
   // Workspace state
-  bool _isActive = true;
   bool _isLoadingDepartments = true;
   bool _isSubmitting = false;
   List<Map<String, String>> _departmentOptions = <Map<String, String>>[];
@@ -173,8 +174,6 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       _datasetController.text = p.datasetLink;
       _contactController.text = p.contactInformation;
       _referenceLinks = List<String>.from(p.referenceLinks);
-      _isActive = p.isActive;
-
       // Section 8 — Submission Controls / Team Rules / Tech Stack.
       if (p.maxIdeasAllowed != null) {
         _maxIdeasController.text = p.maxIdeasAllowed.toString();
@@ -427,6 +426,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
     // error later in the save path.
     final int? maxIdeasValue = int.tryParse(_maxIdeasController.text.trim());
     final List<String?> errors = <String?>[
+      ProblemAuthoringValidators.validateCategory(_selectedCategory),
       ProblemAuthoringValidators.validateMaxIdeasAllowed(maxIdeasValue, _orgMaxAllowedIdeas),
       ProblemAuthoringValidators.validateDeadline(_ideaSubmissionDeadline),
       ProblemAuthoringValidators.validateTeamSize(
@@ -481,8 +481,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         theme: _themeController.text.trim(),
         tags: _tags,
         attachments: const <String>[],
-        isActive: _isActive,
+        status: _isEdit ? widget.initialProblem!.status : ProblemStatus.active,
         createdAt: widget.initialProblem?.createdAt ?? DateTime.now(),
+        createdSource: _isEdit
+            ? widget.initialProblem!.createdSource
+            : ImportCreatedSource.manual.value,
         updatedAt: _isEdit ? DateTime.now() : null,
         summary: _summaryController.text.trim(),
         background: _backgroundController.text.trim(),
@@ -583,8 +586,6 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                     _AuthoringHero(
                       titleController: _titleController,
                       summaryController: _summaryController,
-                      isActive: _isActive,
-                      onActiveChanged: (v) => setState(() => _isActive = v),
                       enabled: !_isSubmitting,
                     ),
                     const SizedBox(height: 16),
@@ -1252,15 +1253,11 @@ class _AuthoringHero extends StatelessWidget {
   const _AuthoringHero({
     required this.titleController,
     required this.summaryController,
-    required this.isActive,
-    required this.onActiveChanged,
     required this.enabled,
   });
 
   final TextEditingController titleController;
   final TextEditingController summaryController;
-  final bool isActive;
-  final ValueChanged<bool> onActiveChanged;
   final bool enabled;
 
   @override
@@ -1307,7 +1304,6 @@ class _AuthoringHero extends StatelessWidget {
                   ),
                 ),
               ),
-              _ActiveSwitch(value: isActive, onChanged: enabled ? onActiveChanged : null),
             ],
           ),
           const SizedBox(height: 14),
@@ -1372,56 +1368,6 @@ class _AuthoringHero extends StatelessWidget {
             minLines: 1,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActiveSwitch extends StatelessWidget {
-  const _ActiveSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fg = value ? const Color(0xFF047857) : const Color(0xFF64748B);
-    final Color bg = value ? const Color(0xFFE6F8EF) : const Color(0xFFF1F5F9);
-    return InkWell(
-      onTap: onChanged == null ? null : () => onChanged!(!value),
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.pause_circle_outline_rounded,
-              size: 14,
-              color: fg,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              value ? 'Active' : 'Inactive',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: fg,
-                letterSpacing: 0.2,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ],
-        ),
       ),
     );
   }
