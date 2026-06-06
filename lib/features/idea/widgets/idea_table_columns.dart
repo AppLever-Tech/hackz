@@ -5,10 +5,10 @@ import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../services/idea_query_service.dart';
 import '../../../widgets/common/card_overflow_menu.dart';
-import '../../../widgets/common/context_pill.dart';
 import '../../../widgets/common/context_pill_theme.dart';
 import '../../../widgets/common/entity_card_pills.dart';
 import '../../../widgets/data_view/data_table_column.dart';
+import '../../problems/widgets/problem_context_pill.dart';
 
 const double _kLeadingColumnGap = 12;
 
@@ -165,16 +165,20 @@ class _ProblemIdPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final IdeaModel idea = item.idea;
     final String problemId = idea.problemId.trim();
-    final String number = idea.problemNumber.trim();
-    final String label = number.isNotEmpty ? number : problemId;
-    if (label.isEmpty) return const _MutedDash();
-    return ContextPill(
-      label: label,
-      semantic: ContextPillSemantic.problem,
-      onTap: problemId.isEmpty ? () {} : onOpenProblem,
+    final String label = ProblemContextPill.resolveLabel(
+      problemNumber: idea.problemNumber,
+      problemId: problemId,
+    );
+    if (label == '—') return const _MutedDash();
+    return ProblemContextPill.fromIdentifiers(
+      problemNumber: idea.problemNumber,
+      problemId: problemId,
+      onTap: onOpenProblem,
       compact: true,
       fitContent: true,
       enabled: problemId.isNotEmpty,
+      allowHoverScale: false,
+      padding: ProblemContextPill.tableCellPadding,
     );
   }
 }

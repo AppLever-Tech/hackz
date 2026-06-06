@@ -22,6 +22,7 @@ class ContextPill extends StatelessWidget {
     this.height,
     this.minWidth,
     this.iconSize,
+    this.allowHoverScale,
   });
 
   final String label;
@@ -43,6 +44,8 @@ class ContextPill extends StatelessWidget {
   final double? height;
   /// Minimum width when sizing to content ([fitContent]).
   final double? minWidth;
+  /// When false, hover avoids scale so clipped parents do not crop the pill.
+  final bool? allowHoverScale;
 
   bool _fitContent(ContextPillSemantic semantic, bool? fitContent) =>
       fitContent ?? ContextPillTheme.defaultsToFitContent(semantic);
@@ -115,6 +118,9 @@ class ContextPill extends StatelessWidget {
       labelColor,
       semantic: semantic,
     );
+    final bool tightWidth = boundedWidth && constraints.maxWidth < 168;
+    final bool resolvedAllowHoverScale =
+        allowHoverScale ?? (!tightWidth && !expandWidth);
 
     final Widget labelText = Text(
       display,
@@ -171,6 +177,7 @@ class ContextPill extends StatelessWidget {
       tooltip: tooltip,
       semanticsLabel: '$display. $tooltipMessage',
       borderRadius: radius,
+      allowHoverScale: resolvedAllowHoverScale,
       padding: ContextPillMetrics.resolvedPadding(context, compact: effectiveCompact),
       constraints: BoxConstraints(
         minHeight: resolvedHeight,

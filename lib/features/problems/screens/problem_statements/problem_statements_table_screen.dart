@@ -68,9 +68,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   bool? _hasAttachments;
   Set<String> _departmentFilters = <String>{};
   Set<String> _tagFilters = <String>{};
-  Set<String> _selectedDraftIds = <String>{};
 
-  // Embedded authoring workspace toggles. When either is set, the table is
+  // Embedded authoring workspace toggles.
   // replaced in-place by [ProblemAuthoringWorkspace] (create or edit mode).
   ProblemModel? _editingProblem;
   bool _showCreateProblem = false;
@@ -139,7 +138,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       _hasAttachments = null;
       _departmentFilters = <String>{};
       _tagFilters = <String>{};
-      _selectedDraftIds = <String>{};
     });
     _loadProblems();
   }
@@ -192,7 +190,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   Future<void> _activateProblem(ProblemModel problem) async {
     await ProblemStatusService.activate(problem.problemId);
     if (!mounted) return;
-    setState(() => _selectedDraftIds.remove(problem.problemId));
     _loadProblems();
   }
 
@@ -200,29 +197,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     await ProblemStatusService.deactivate(problem.problemId);
     if (!mounted) return;
     _loadProblems();
-  }
-
-  Future<void> _activateSelectedDrafts() async {
-    if (_selectedDraftIds.isEmpty) return;
-    final int count = await ProblemStatusService.activateMany(_selectedDraftIds);
-    if (!mounted) return;
-    FeedbackService.showSuccess(
-      context,
-      title: 'Problems activated',
-      message: '$count problem${count == 1 ? '' : 's'} activated.',
-    );
-    setState(() => _selectedDraftIds = <String>{});
-    _loadProblems();
-  }
-
-  void _toggleDraftSelection(ProblemModel problem, bool selected) {
-    setState(() {
-      if (selected) {
-        _selectedDraftIds.add(problem.problemId);
-      } else {
-        _selectedDraftIds.remove(problem.problemId);
-      }
-    });
   }
 
   Future<void> _openImportProblems() async {
@@ -522,18 +496,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           )
         : null;
 
-    final Widget? activateSelectedButton = widget.config.canToggleActive && _selectedDraftIds.isNotEmpty
-        ? FilledButton.icon(
-            onPressed: _activateSelectedDrafts,
-            icon: const Icon(AppIcons.statusApproved, size: 18),
-            label: Text('Activate (${_selectedDraftIds.length})'),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(0, mobile ? 40 : 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          )
-        : null;
-
     if (mobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -546,7 +508,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             children: <Widget>[
               if (createButton != null) createButton,
               if (importButton != null) importButton,
-              if (activateSelectedButton != null) activateSelectedButton,
               filterButton,
             ],
           ),
@@ -563,10 +524,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         ],
         if (importButton != null) ...<Widget>[
           importButton,
-          const SizedBox(width: 8),
-        ],
-        if (activateSelectedButton != null) ...<Widget>[
-          activateSelectedButton,
           const SizedBox(width: 8),
         ],
         Expanded(child: searchField),
@@ -592,8 +549,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       onDeleteProblem: _deleteProblem,
       onActivateProblem: widget.config.canToggleActive ? _activateProblem : null,
       onDeactivateProblem: widget.config.canToggleActive ? _deactivateProblem : null,
-      selectedProblemIds: _selectedDraftIds,
-      onToggleSelection: widget.config.canToggleActive ? _toggleDraftSelection : null,
     );
   }
 

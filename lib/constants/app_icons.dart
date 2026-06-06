@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../features/organization/models/enums/organization_type.dart';
+import '../features/problems/models/problem_status.dart';
 import '../features/user/models/enums/user_role.dart';
 
 class AppIcons {
@@ -68,6 +69,12 @@ class AppIcons {
   static const IconData statusRejected = Icons.cancel_rounded;
   static const IconData statusActive = Icons.circle;
   static const IconData statusInactive = Icons.circle_outlined;
+
+  /// Problem statement lifecycle status (draft → active → inactive → archived).
+  static const IconData problemStatusDraft = Icons.edit_note_rounded;
+  static const IconData problemStatusActive = Icons.check_circle_outline_rounded;
+  static const IconData problemStatusInactive = Icons.pause_circle_outline_rounded;
+  static const IconData problemStatusArchived = Icons.inventory_2_outlined;
 
   /// Account onboarding / approval timeline (signup workspace).
   static const IconData timelineRegistration = Icons.app_registration_outlined;
@@ -141,4 +148,14 @@ class AppIcons {
         return users;
     }
   }
+
+  static IconData forProblemStatus(ProblemStatus status) {
+    return switch (status) {
+      ProblemStatus.draft => problemStatusDraft,
+      ProblemStatus.active => problemStatusActive,
+      ProblemStatus.inactive => problemStatusInactive,
+      ProblemStatus.archived => problemStatusArchived,
+    };
+  }
+
 }

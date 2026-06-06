@@ -5,14 +5,11 @@ import '../features/problems/models/problem_list_config.dart';
 import '../features/problems/models/problem_model.dart';
 import '../features/problems/models/problem_status.dart';
 import '../features/problems/validators/problem_submission_validators.dart';
-import '../features/problems/widgets/problem_source_pill.dart';
-import '../features/problems/widgets/problem_status_pill.dart';
+import '../features/problems/widgets/problem_context_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
 import '../responsive/responsive_helper.dart';
 import '../utils/common_helpers.dart';
 import 'common/card_overflow_menu.dart';
-import 'common/context_pill.dart';
-import 'common/context_pill_theme.dart';
 import 'data_view/data_table_column.dart';
 
 const double _kPsTitleGap = 12;
@@ -34,8 +31,6 @@ class ProblemTableActions {
     required this.onDeleteProblem,
     this.onActivateProblem,
     this.onDeactivateProblem,
-    this.selectedProblemIds = const <String>{},
-    this.onToggleSelection,
   });
 
   final ProblemListConfig config;
@@ -51,8 +46,6 @@ class ProblemTableActions {
   final void Function(ProblemModel problem) onDeleteProblem;
   final void Function(ProblemModel problem)? onActivateProblem;
   final void Function(ProblemModel problem)? onDeactivateProblem;
-  final Set<String> selectedProblemIds;
-  final void Function(ProblemModel problem, bool selected)? onToggleSelection;
 }
 
 /// Per-feature column factory for the Problem Statements dashboard.
@@ -63,158 +56,94 @@ abstract final class ProblemTableColumns {
     required ProblemTableActions actions,
   }) {
     final Set<ProblemSortType> enabledSorts = config.enabledSorts;
-    final bool showSelection = actions.onToggleSelection != null && config.canToggleActive;
     final bool mobile = ResponsiveHelper.isMobile(context);
 
     return <DataTableColumn<ProblemModel>>[
-      if (showSelection)
-        DataTableColumn<ProblemModel>(
-          label: '',
-          flex: 1,
-          minWidth: 36,
-          align: Alignment.center,
-          cell: (BuildContext context, ProblemModel problem) {
-            if (problem.status != ProblemStatus.draft) return const SizedBox.shrink();
-            final bool selected = actions.selectedProblemIds.contains(problem.problemId);
-            return Checkbox(
-              value: selected,
-              visualDensity: VisualDensity.compact,
-              onChanged: (_) => actions.onToggleSelection?.call(problem, !selected),
-            );
-          },
-        ),
       DataTableColumn<ProblemModel>(
         label: 'PS #',
-        flex: 3,
-        minWidth: 112,
+        flex: mobile ? 2 : 3,
+        minWidth: mobile ? 96 : 112,
         gapAfter: _kPsTitleGap,
         sortKey: enabledSorts.contains(ProblemSortType.psNumber) ? 'psNumber' : null,
         cell: (BuildContext context, ProblemModel problem) {
-          final String number =
-              problem.problemNumber.trim().isEmpty ? '—' : problem.problemNumber.trim();
-          return ContextPill(
-            label: number,
-            semantic: ContextPillSemantic.problem,
+          return ProblemContextPill.fromProblem(
+            problem: problem,
             onTap: () => actions.onOpenProblem(problem),
             compact: true,
-            fitContent: true,
+            fitContent: !mobile,
+            allowHoverScale: false,
+            padding: ProblemContextPill.tableCellPadding,
           );
         },
       ),
       DataTableColumn<ProblemModel>(
         label: 'Title',
-        flex: 10,
-        minWidth: 180,
+        flex: mobile ? 8 : 10,
+        minWidth: mobile ? 140 : 180,
         sortKey: enabledSorts.contains(ProblemSortType.titleAZ) ? 'title' : null,
         cell: (BuildContext context, ProblemModel problem) {
           final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              InkWell(
-                onTap: () => actions.onOpenDetails(problem),
-                borderRadius: BorderRadius.circular(6),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    title,
-                    maxLines: mobile ? 2 : 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4F46E5),
-                      height: 1.35,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Color(0x334F46E5),
-                    ),
-                  ),
+          return InkWell(
+            onTap: () => actions.onOpenDetails(problem),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                title,
+                maxLines: mobile ? 2 : 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4F46E5),
+                  height: 1.35,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Color(0x334F46E5),
                 ),
               ),
-              if (mobile) ...<Widget>[
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: <Widget>[
-                    ProblemStatusPill(status: problem.status),
-                    ProblemSourcePill(createdSource: problem.createdSource),
-                  ],
-                ),
-              ],
-            ],
+            ),
           );
         },
       ),
       if (!mobile) ...<DataTableColumn<ProblemModel>>[
         DataTableColumn<ProblemModel>(
-          label: 'Status',
-          flex: 2,
-          minWidth: 84,
-          align: Alignment.center,
-          cell: (BuildContext context, ProblemModel problem) => ProblemStatusPill(status: problem.status),
+          label: 'Department',
+          flex: 3,
+          minWidth: 100,
+          gapAfter: _kDeptCategoryGap,
+          sortKey: enabledSorts.contains(ProblemSortType.department) ? 'department' : null,
+          cell: (BuildContext context, ProblemModel problem) {
+            final String department = problem.departmentDisplayName.trim().isEmpty
+                ? '—'
+                : problem.departmentDisplayName.trim();
+            return Text(
+              department,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+            );
+          },
         ),
         DataTableColumn<ProblemModel>(
-          label: 'Source',
+          label: 'Category',
           flex: 2,
-          minWidth: 84,
-          align: Alignment.center,
-          cell: (BuildContext context, ProblemModel problem) =>
-              ProblemSourcePill(createdSource: problem.createdSource),
+          minWidth: 76,
+          sortKey: enabledSorts.contains(ProblemSortType.category) ? 'category' : null,
+          cell: (BuildContext context, ProblemModel problem) {
+            final String category = problem.category.trim().isEmpty ? '—' : problem.category.trim();
+            return Text(
+              category,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            );
+          },
         ),
       ],
       DataTableColumn<ProblemModel>(
-        label: 'Department',
-        flex: 3,
-        minWidth: 100,
-        gapAfter: _kDeptCategoryGap,
-        sortKey: enabledSorts.contains(ProblemSortType.department) ? 'department' : null,
-        cell: (BuildContext context, ProblemModel problem) {
-          final String department = problem.departmentDisplayName.trim().isEmpty
-              ? '—'
-              : problem.departmentDisplayName.trim();
-          return Text(
-            department,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-          );
-        },
-      ),
-      DataTableColumn<ProblemModel>(
-        label: 'Category',
-        flex: 2,
-        minWidth: 76,
-        sortKey: enabledSorts.contains(ProblemSortType.category) ? 'category' : null,
-        cell: (BuildContext context, ProblemModel problem) {
-          final String category = problem.category.trim().isEmpty ? '—' : problem.category.trim();
-          return Text(
-            category,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          );
-        },
-      ),
-      DataTableColumn<ProblemModel>(
-        label: 'Theme',
-        flex: 3,
-        minWidth: 96,
-        sortKey: _newestSortKey(enabledSorts),
-        cell: (BuildContext context, ProblemModel problem) {
-          final String theme = problem.theme.trim().isEmpty ? '—' : problem.theme.trim();
-          return Text(
-            theme,
-            softWrap: true,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
-          );
-        },
-      ),
-      DataTableColumn<ProblemModel>(
         label: 'Ideas',
-        flex: 2,
-        minWidth: 76,
+        flex: mobile ? 2 : 2,
+        minWidth: mobile ? 56 : 76,
         align: Alignment.center,
         sortKey: enabledSorts.contains(ProblemSortType.ideasCount) ? 'ideas' : null,
         cell: (BuildContext context, ProblemModel problem) {
@@ -235,18 +164,19 @@ abstract final class ProblemTableColumns {
           );
         },
       ),
-      DataTableColumn<ProblemModel>(
-        label: 'Deadline',
-        flex: 2,
-        minWidth: 92,
-        align: Alignment.center,
-        sortKey: enabledSorts.contains(ProblemSortType.deadline) ? 'deadline' : null,
-        cell: (BuildContext context, ProblemModel problem) => _DeadlineCell(problem: problem),
-      ),
+      if (!mobile)
+        DataTableColumn<ProblemModel>(
+          label: 'Deadline',
+          flex: 2,
+          minWidth: 92,
+          align: Alignment.center,
+          sortKey: enabledSorts.contains(ProblemSortType.deadline) ? 'deadline' : null,
+          cell: (BuildContext context, ProblemModel problem) => _DeadlineCell(problem: problem),
+        ),
       DataTableColumn<ProblemModel>(
         label: '',
-        flex: 3,
-        minWidth: 180,
+        flex: mobile ? 4 : 3,
+        minWidth: mobile ? 120 : 180,
         align: Alignment.centerRight,
         cell: (BuildContext context, ProblemModel problem) => _ProblemRowActionArea(
           problem: problem,
@@ -270,14 +200,6 @@ abstract final class ProblemTableColumns {
         ),
       ),
     ];
-  }
-
-  static String? _newestSortKey(Set<ProblemSortType> enabledSorts) {
-    if (enabledSorts.contains(ProblemSortType.newest) ||
-        enabledSorts.contains(ProblemSortType.oldest)) {
-      return 'newest';
-    }
-    return null;
   }
 }
 
@@ -400,7 +322,7 @@ class _ProblemRowActionArea extends StatelessWidget {
         if (canManageStatus && problem.status == ProblemStatus.draft && onActivate != null)
           ProblemWorkflowActionPill(
             label: 'Activate',
-            icon: AppIcons.statusApproved,
+            icon: AppIcons.problemStatusActive,
             semantic: ProblemWorkflowPillSemantic.primary,
             onTap: onActivate,
             tooltip: 'Activate problem',
@@ -408,7 +330,7 @@ class _ProblemRowActionArea extends StatelessWidget {
         if (canManageStatus && problem.status == ProblemStatus.active && onDeactivate != null)
           ProblemWorkflowActionPill(
             label: 'Deactivate',
-            icon: AppIcons.statusInactive,
+            icon: AppIcons.problemStatusInactive,
             semantic: ProblemWorkflowPillSemantic.pending,
             onTap: onDeactivate,
             tooltip: 'Deactivate problem',
@@ -416,7 +338,7 @@ class _ProblemRowActionArea extends StatelessWidget {
         if (canManageStatus && problem.status == ProblemStatus.inactive && onActivate != null)
           ProblemWorkflowActionPill(
             label: 'Activate',
-            icon: AppIcons.statusApproved,
+            icon: AppIcons.problemStatusActive,
             semantic: ProblemWorkflowPillSemantic.primary,
             onTap: onActivate,
             tooltip: 'Reactivate problem',
@@ -433,7 +355,7 @@ class _ProblemRowActionArea extends StatelessWidget {
         if (isClosed)
           const ProblemWorkflowActionPill(
             label: 'Closed',
-            icon: AppIcons.statusInactive,
+            icon: AppIcons.problemStatusInactive,
             semantic: ProblemWorkflowPillSemantic.closed,
             enabled: false,
             tooltip: 'Submissions closed',

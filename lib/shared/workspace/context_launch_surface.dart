@@ -20,6 +20,7 @@ class ContextLaunchSurface extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.semanticsLabel,
     this.constraints,
+    this.allowHoverScale = true,
   });
 
   final Widget child;
@@ -31,6 +32,8 @@ class ContextLaunchSurface extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final String? semanticsLabel;
   final BoxConstraints? constraints;
+  /// When false, hover uses color/border/shimmer only (avoids clip in tight cells).
+  final bool allowHoverScale;
 
   @override
   State<ContextLaunchSurface> createState() => _ContextLaunchSurfaceState();
@@ -75,7 +78,9 @@ class _ContextLaunchSurfaceState extends State<ContextLaunchSurface>
         widget.tooltip ?? ContextPillTheme.workspaceTooltipFor(widget.semantic);
     final bool interactive = widget.enabled;
     final bool showHoverFx = interactive && _hovering && !ResponsiveHelper.isMobile(context);
-    final double scale = !interactive ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
+    final bool canScale = widget.allowHoverScale && interactive;
+    final double scale =
+        !canScale ? 1 : (_pressing ? 0.98 : (showHoverFx ? 1.02 : 1));
     final BorderRadius radius =
         widget.borderRadius ?? ContextPillMetrics.resolvedBorderRadius(compact: true);
     final Color borderColor = !interactive

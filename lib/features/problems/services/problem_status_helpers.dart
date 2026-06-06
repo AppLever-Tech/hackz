@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../constants/app_icons.dart';
 import '../../imports/models/import_created_source.dart';
 import '../models/problem_status.dart';
 
@@ -34,14 +35,7 @@ abstract final class ProblemStatusHelpers {
     };
   }
 
-  static IconData icon(ProblemStatus status) {
-    return switch (status) {
-      ProblemStatus.draft => Icons.edit_note_rounded,
-      ProblemStatus.active => Icons.check_circle_outline_rounded,
-      ProblemStatus.inactive => Icons.pause_circle_outline_rounded,
-      ProblemStatus.archived => Icons.inventory_2_outlined,
-    };
-  }
+  static IconData icon(ProblemStatus status) => AppIcons.forProblemStatus(status);
 
   static String sourceLabel(String? createdSource) {
     final String raw = (createdSource ?? '').trim();

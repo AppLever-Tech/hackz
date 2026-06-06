@@ -7,9 +7,9 @@ import 'data_table_column.dart';
 /// * Sticky header row with sort affordances (`onSort` is fired with the
 ///   column's `sortKey` when the header is tapped).
 /// * Alternating row tint, virtualised body via `ListView.separated`.
-/// * If the sum of column `minWidth`s exceeds the viewport, the table renders
-///   horizontally scrollable with fixed widths; otherwise columns stretch via
-///   `flex`.
+/// * If the sum of column `minWidth`s plus inter-column gaps exceeds the
+///   viewport, the table renders horizontally scrollable with fixed widths;
+///   otherwise columns stretch via `flex`.
 class DataTableView<T> extends StatelessWidget {
   const DataTableView({
     super.key,
@@ -40,45 +40,59 @@ class DataTableView<T> extends StatelessWidget {
   static const Color _activeText = Color(0xFF4A67FF);
   static const Color _mutedText = Color(0xFF94A3B8);
 
+  static const double _horizontalPadding = 24;
+
+  double _rowContentWidth() {
+    var width = 0.0;
+    for (final DataTableColumn<T> column in columns) {
+      width += column.minWidth ?? fixedWidthFallback;
+      width += _gapAfter(column);
+    }
+    return width;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final double totalMinWidth = columns.fold<double>(
-          0,
-          (double sum, DataTableColumn<T> c) => sum + (c.minWidth ?? 0),
-        );
+        final double contentWidth = _rowContentWidth();
         final bool needsHScroll =
-            totalMinWidth > 0 && totalMinWidth > constraints.maxWidth;
-        final double tableWidth = needsHScroll ? totalMinWidth : constraints.maxWidth;
-        final double? tableHeight =
-            constraints.hasBoundedHeight && constraints.maxHeight.isFinite
-                ? constraints.maxHeight
-                : null;
+            contentWidth > 0 && contentWidth + _horizontalPadding > constraints.maxWidth;
+        final double tableWidth =
+            needsHScroll ? contentWidth + _horizontalPadding : constraints.maxWidth;
 
-        final Widget table = SizedBox(
-          width: tableWidth,
-          height: tableHeight,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _border),
-            ),
-            clipBehavior: Clip.antiAlias,
+        final Widget table = DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _border),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 _buildHeader(context, fixedWidths: needsHScroll),
-                Expanded(child: _buildBody(context, fixedWidths: needsHScroll)),
+                Expanded(
+                  child: ClipRect(
+                    child: _buildBody(context, fixedWidths: needsHScroll),
+                  ),
+                ),
               ],
             ),
           ),
         );
 
+        // Let the parent Expanded supply vertical space; forcing maxHeight here
+        // can overshoot flex allocation and trigger Column overflow.
         if (!needsHScroll) return table;
+
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: table,
+          child: SizedBox(
+            width: tableWidth,
+            child: table,
+          ),
         );
       },
     );
@@ -90,8 +104,9 @@ class DataTableView<T> extends StatelessWidget {
         color: _headerBg,
         border: Border(bottom: BorderSide(color: _border)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           for (int i = 0; i < columns.length; i++) ...<Widget>[
             _wrapCellSlot(
@@ -143,7 +158,7 @@ class DataTableView<T> extends StatelessWidget {
       onTap: () => onSort!(column.sortKey!),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         child: aligned,
       ),
     );
@@ -153,7 +168,7 @@ class DataTableView<T> extends StatelessWidget {
     if (items.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
+          padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           child: Text(
             'No records found.',
             style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
@@ -171,17 +186,15 @@ class DataTableView<T> extends StatelessWidget {
         final T row = items[index];
         final Color rowBg = index.isEven ? Colors.white : _altRowBg;
         final Widget rowContent = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               for (int i = 0; i < columns.length; i++) ...<Widget>[
                 _wrapCellSlot(
                   column: columns[i],
                   fixedWidths: fixedWidths,
-                  child: Align(
-                    alignment: columns[i].align,
-                    child: columns[i].cell(context, row),
-                  ),
+                  child: columns[i].cell(context, row),
                 ),
                 if (_gapAfter(columns[i]) > 0) SizedBox(width: _gapAfter(columns[i])),
               ],
@@ -189,10 +202,7 @@ class DataTableView<T> extends StatelessWidget {
           ),
         );
 
-        Widget rowWrap = ConstrainedBox(
-          constraints: BoxConstraints(minHeight: rowMinHeight),
-          child: Container(color: rowBg, child: rowContent),
-        );
+        Widget rowWrap = Container(color: rowBg, child: rowContent);
 
         if (onRowTap != null) {
           rowWrap = Material(
@@ -215,12 +225,20 @@ class DataTableView<T> extends StatelessWidget {
     required bool fixedWidths,
     required Widget child,
   }) {
+    final Widget bounded = ClipRect(
+      child: Align(
+        alignment: column.align,
+        widthFactor: 1,
+        child: child,
+      ),
+    );
+
     if (fixedWidths) {
       return SizedBox(
         width: column.minWidth ?? fixedWidthFallback,
-        child: child,
+        child: bounded,
       );
     }
-    return Expanded(flex: column.flex, child: child);
+    return Expanded(flex: column.flex, child: bounded);
   }
 }
