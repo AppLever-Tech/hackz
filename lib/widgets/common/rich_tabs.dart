@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../responsive/responsive_helper.dart';
+
 /// Label for a [RichTabBar] / [RichTabs] segment.
 class RichTabItem {
   const RichTabItem(this.label, {this.count, this.prominentCount = false});
@@ -26,6 +28,8 @@ class RichTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool scrollable = isScrollable || ResponsiveHelper.isMobile(context);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
@@ -34,8 +38,8 @@ class RichTabBar extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       child: TabBar(
         controller: controller,
-        isScrollable: isScrollable,
-        tabAlignment: isScrollable ? TabAlignment.start : TabAlignment.fill,
+        isScrollable: scrollable,
+        tabAlignment: scrollable ? TabAlignment.start : TabAlignment.fill,
         labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         indicator: BoxDecoration(
@@ -49,29 +53,56 @@ class RichTabBar extends StatelessWidget {
         dividerColor: Colors.transparent,
         labelColor: const Color(0xFF0F172A),
         unselectedLabelColor: const Color(0xFF64748B),
-        tabs: tabs.map(_buildTab).toList(growable: false),
+        tabs: tabs.map((RichTabItem tab) => _buildTab(tab, scrollable: scrollable)).toList(growable: false),
       ),
     );
   }
 
-  Widget _buildTab(RichTabItem item) {
+  Widget _buildTab(RichTabItem item, {required bool scrollable}) {
     if (item.count == null) {
-      return Tab(text: item.label);
+      return Tab(
+        child: Text(
+          item.label,
+          maxLines: 1,
+          overflow: scrollable ? TextOverflow.visible : TextOverflow.ellipsis,
+        ),
+      );
     }
+
+    final TextStyle countStyle = TextStyle(
+      fontSize: item.prominentCount ? 14 : 11,
+      fontWeight: item.prominentCount ? FontWeight.w900 : FontWeight.w700,
+      color: item.prominentCount ? const Color(0xFF334155) : const Color(0xFF94A3B8),
+    );
+
+    if (scrollable) {
+      return Tab(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(item.label),
+            const SizedBox(width: 4),
+            Text('(${item.count})', style: countStyle),
+          ],
+        ),
+      );
+    }
+
     return Tab(
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: <Widget>[
-          Text(item.label),
-          const SizedBox(width: 4),
-          Text(
-            '(${item.count})',
-            style: TextStyle(
-              fontSize: item.prominentCount ? 14 : 11,
-              fontWeight: item.prominentCount ? FontWeight.w900 : FontWeight.w700,
-              color: item.prominentCount ? const Color(0xFF334155) : const Color(0xFF94A3B8),
+          Flexible(
+            child: Text(
+              item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ),
+          const SizedBox(width: 4),
+          Text('(${item.count})', style: countStyle),
         ],
       ),
     );

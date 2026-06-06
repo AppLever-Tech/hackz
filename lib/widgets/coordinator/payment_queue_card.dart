@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
+import '../../responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
-import '../../widgets/common/entity_card_pills.dart';
 import '../../workspace/workspace.dart';
 
 class PaymentQueueCard extends StatelessWidget {
@@ -21,24 +21,30 @@ class PaymentQueueCard extends StatelessWidget {
   final VoidCallback? onOpenProof;
   final VoidCallback? onOpenIdea;
 
-  static const ButtonStyle _actionButtonStyle = ButtonStyle(
-    visualDensity: VisualDensity.standard,
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    padding: WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
-    minimumSize: WidgetStatePropertyAll<Size>(Size(0, 36)),
-    textStyle: WidgetStatePropertyAll<TextStyle>(
-      TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-    ),
-  );
+  ButtonStyle _actionButtonStyle(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    return ButtonStyle(
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: WidgetStatePropertyAll<EdgeInsets>(
+        EdgeInsets.symmetric(horizontal: mobile ? 10 : 14, vertical: mobile ? 6 : 8),
+      ),
+      minimumSize: WidgetStatePropertyAll<Size>(Size(0, mobile ? 32 : 36)),
+      textStyle: WidgetStatePropertyAll<TextStyle>(
+        TextStyle(fontSize: mobile ? 11 : 12, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final payment = item.payment;
     final String teamLabel = item.teamName.isEmpty ? 'Unnamed team' : item.teamName;
     final String ideaLabel = item.ideaName.isEmpty ? 'Idea not mapped' : item.ideaName;
+    final bool mobile = ResponsiveHelper.isMobile(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: mobile ? 6 : 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -48,6 +54,7 @@ class PaymentQueueCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -106,38 +113,80 @@ class PaymentQueueCard extends StatelessWidget {
                     onTap: onOpenIdea!,
                     compact: true,
                     fitContent: true,
+                    allowHoverScale: false,
                   ),
           ),
           const SizedBox(height: 6),
+          _buildActionsRow(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionsRow(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final Widget verifyButton = FilledButton(
+      onPressed: onVerify,
+      style: _actionButtonStyle(context),
+      child: const Text('Verify'),
+    );
+    final Widget rejectButton = OutlinedButton(
+      onPressed: onReject,
+      style: _actionButtonStyle(context),
+      child: const Text('Reject'),
+    );
+    final Widget? proofPill = item.hasProof && onOpenProof != null
+        ? ContextPill(
+            label: 'Proof',
+            semantic: ContextPillSemantic.generic,
+            icon: AppIcons.attachments,
+            onTap: onOpenProof!,
+            compact: true,
+            fitContent: true,
+            height: mobile ? 30 : ContextPillMetrics.workspaceHeight,
+            iconSize: mobile ? 14 : null,
+            allowHoverScale: false,
+          )
+        : null;
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               _TimePill(label: _relativeTime(item.submittedAt)),
               const Spacer(),
-              FilledButton(
-                onPressed: onVerify,
-                style: _actionButtonStyle,
-                child: const Text('Verify'),
-              ),
+              if (proofPill != null) proofPill,
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: <Widget>[
+              Expanded(child: verifyButton),
               const SizedBox(width: 6),
-              OutlinedButton(
-                onPressed: onReject,
-                style: _actionButtonStyle,
-                child: const Text('Reject'),
-              ),
-              if (item.hasProof && onOpenProof != null) ...<Widget>[
-                const SizedBox(width: 6),
-                EntityCardPills.workspace(
-                  'Proof',
-                  ContextPillSemantic.generic,
-                  onOpenProof!,
-                  icon: AppIcons.attachments,
-                ),
-              ],
+              Expanded(child: rejectButton),
             ],
           ),
         ],
-      ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        _TimePill(label: _relativeTime(item.submittedAt)),
+        const Spacer(),
+        verifyButton,
+        const SizedBox(width: 6),
+        rejectButton,
+        if (proofPill != null) ...<Widget>[
+          const SizedBox(width: 6),
+          proofPill,
+        ],
+      ],
     );
   }
 

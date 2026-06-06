@@ -60,6 +60,8 @@ class DataTableView<T> extends StatelessWidget {
             contentWidth > 0 && contentWidth + _horizontalPadding > constraints.maxWidth;
         final double tableWidth =
             needsHScroll ? contentWidth + _horizontalPadding : constraints.maxWidth;
+        final bool boundedHeight =
+            constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
 
         final Widget table = DecoratedBox(
           decoration: BoxDecoration(
@@ -87,10 +89,13 @@ class DataTableView<T> extends StatelessWidget {
         // can overshoot flex allocation and trigger Column overflow.
         if (!needsHScroll) return table;
 
+        // Horizontal scroll child needs an explicit cross-axis extent so the
+        // inner Column + ListView do not expand to full content height.
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
             width: tableWidth,
+            height: boundedHeight ? constraints.maxHeight : null,
             child: table,
           ),
         );

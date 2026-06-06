@@ -301,81 +301,7 @@ class CollegeAdminDashboard extends StatelessWidget {
                         const Text('No departments configured for this college.')
                       else
                         ...departments.map(
-                          (dept) {
-                            final faculty = (dept['facultyCount'] as int?) ?? 0;
-                            final students = (dept['studentCount'] as int?) ?? 0;
-                            final admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
-                            final hasAdmin = admin.isNotEmpty && admin != '-';
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  Expanded(
-                                    child: Row(
-                                      children: <Widget>[
-                                        Container(
-                                          width: 34,
-                                          height: 34,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFE8ECFF),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: const Tooltip(
-                                            message: 'Department',
-                                            child: Icon(AppIcons.departments, size: 18, color: Color(0xFF4F46E5)),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            (dept['name'] as String?) ?? '-',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(fontWeight: FontWeight.w700),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    flex: 2,
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: Wrap(
-                                        alignment: WrapAlignment.end,
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: <Widget>[
-                                          if (hasAdmin)
-                                            _DepartmentMetricPill(
-                                              icon: AppIcons.adminProfile,
-                                              label: admin,
-                                              tooltip: 'Department admin',
-                                            ),
-                                          _DepartmentMetricPill(
-                                            icon: AppIcons.faculty,
-                                            label: '$faculty',
-                                            tooltip: 'Faculty',
-                                          ),
-                                          _DepartmentMetricPill(
-                                            icon: AppIcons.student,
-                                            label: '$students',
-                                            tooltip: 'Students',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                          (dept) => _DepartmentOverviewTile(dept: dept),
                         ),
                     ],
                   ),
@@ -445,19 +371,249 @@ class _CollegeDetailItem extends StatelessWidget {
   }
 }
 
+class _DepartmentOverviewTile extends StatelessWidget {
+  const _DepartmentOverviewTile({required this.dept});
+
+  final Map<String, dynamic> dept;
+
+  @override
+  Widget build(BuildContext context) {
+    final int faculty = (dept['facultyCount'] as int?) ?? 0;
+    final int students = (dept['studentCount'] as int?) ?? 0;
+    final String admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
+    final bool hasAdmin = admin.isNotEmpty && admin != '-';
+    final String name = (dept['name'] as String?) ?? '-';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ResponsiveHelper.isMobile(context)
+          ? _buildMobileLayout(
+              name: name,
+              admin: admin,
+              hasAdmin: hasAdmin,
+              faculty: faculty,
+              students: students,
+            )
+          : _buildDesktopLayout(
+              name: name,
+              admin: admin,
+              hasAdmin: hasAdmin,
+              faculty: faculty,
+              students: students,
+            ),
+    );
+  }
+
+  Widget _buildDesktopLayout({
+    required String name,
+    required String admin,
+    required bool hasAdmin,
+    required int faculty,
+    required int students,
+  }) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Row(
+            children: <Widget>[
+              _DepartmentIconBadge(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          flex: 2,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (hasAdmin)
+                  _DepartmentMetricPill(
+                    icon: AppIcons.adminProfile,
+                    label: admin,
+                    tooltip: 'Department admin',
+                  ),
+                _DepartmentMetricPill(
+                  icon: AppIcons.faculty,
+                  label: '$faculty',
+                  tooltip: 'Faculty',
+                ),
+                _DepartmentMetricPill(
+                  icon: AppIcons.student,
+                  label: '$students',
+                  tooltip: 'Students',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout({
+    required String name,
+    required String admin,
+    required bool hasAdmin,
+    required int faculty,
+    required int students,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            _DepartmentIconBadge(),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 1.25,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            if (hasAdmin)
+              Expanded(
+                child: _DepartmentMetricPill(
+                  icon: AppIcons.adminProfile,
+                  label: admin,
+                  tooltip: 'Department admin',
+                  shrinkLabel: true,
+                ),
+              ),
+            if (hasAdmin) const SizedBox(width: 8),
+            if (!hasAdmin) const Spacer(),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _DepartmentMetricCount(
+                  icon: AppIcons.faculty,
+                  count: faculty,
+                  tooltip: 'Faculty',
+                ),
+                const SizedBox(width: 14),
+                _DepartmentMetricCount(
+                  icon: AppIcons.student,
+                  count: students,
+                  tooltip: 'Students',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DepartmentIconBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8ECFF),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: Tooltip(
+          message: 'Department',
+          child: Icon(AppIcons.departments, size: 18, color: Color(0xFF4F46E5)),
+        ),
+      ),
+    );
+  }
+}
+
+class _DepartmentMetricCount extends StatelessWidget {
+  const _DepartmentMetricCount({
+    required this.icon,
+    required this.count,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final int count;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 16, color: const Color(0xFF57629A)),
+          const SizedBox(width: 5),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF334155),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DepartmentMetricPill extends StatelessWidget {
   const _DepartmentMetricPill({
     required this.icon,
     required this.label,
     required this.tooltip,
+    this.shrinkLabel = false,
   });
 
   final IconData icon;
   final String label;
   final String tooltip;
+  final bool shrinkLabel;
 
   @override
   Widget build(BuildContext context) {
+    final Widget labelWidget = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF334155),
+      ),
+    );
+
     return Tooltip(
       message: tooltip,
       child: Container(
@@ -468,23 +624,17 @@ class _DepartmentMetricPill extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: shrinkLabel ? MainAxisSize.max : MainAxisSize.min,
           children: <Widget>[
             Icon(icon, size: 15, color: const Color(0xFF57629A)),
             const SizedBox(width: 5),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 150),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF334155),
-                ),
+            if (shrinkLabel)
+              Expanded(child: labelWidget)
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 150),
+                child: labelWidget,
               ),
-            ),
           ],
         ),
       ),

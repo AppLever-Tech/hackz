@@ -172,35 +172,50 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final listPanel = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildMetricsRow(_metrics),
-                const SizedBox(height: 12),
-                _buildToolbar(context, maxWidth: constraints.maxWidth),
-                const SizedBox(height: 12),
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: _buildFiltersPanel(
-                    availableProblems: availableProblems,
-                    availableDepartments: availableDepartments,
-                  ),
-                  crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 220),
-                ),
-                if (_hasAnyActiveFilter) ...<Widget>[
-                  const SizedBox(height: 12),
-                  _buildActiveFiltersRow(availableProblems),
-                ],
-                const SizedBox(height: 12),
-                if (hasBoundedHeight)
-                  Expanded(child: tableWidget)
-                else
-                  SizedBox(height: 420, child: tableWidget),
-              ],
+            final bool mobile = ResponsiveHelper.isMobile(context);
+
+            final Widget header = _buildListHeader(
+              context: context,
+              maxWidth: constraints.maxWidth,
+              availableProblems: availableProblems,
+              availableDepartments: availableDepartments,
             );
 
-            return listPanel;
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: 420, child: tableWidget),
+                ],
+              );
+            }
+
+            if (mobile) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Flexible(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: header,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 5,
+                    child: tableWidget,
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: tableWidget),
+              ],
+            );
           },
         );
       },
@@ -290,6 +305,38 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       return;
     }
     WorkspaceNavigator.openIdea(context, item.idea.ideaId);
+  }
+
+  Widget _buildListHeader({
+    required BuildContext context,
+    required double maxWidth,
+    required Map<String, String> availableProblems,
+    required List<String> availableDepartments,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _buildMetricsRow(_metrics),
+        const SizedBox(height: 12),
+        _buildToolbar(context, maxWidth: maxWidth),
+        const SizedBox(height: 12),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: _buildFiltersPanel(
+            availableProblems: availableProblems,
+            availableDepartments: availableDepartments,
+          ),
+          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
+        ),
+        if (_hasAnyActiveFilter) ...<Widget>[
+          const SizedBox(height: 12),
+          _buildActiveFiltersRow(availableProblems),
+        ],
+        const SizedBox(height: 12),
+      ],
+    );
   }
 
   Widget _buildMetricsRow(IdeaDepartmentMetrics metrics) {

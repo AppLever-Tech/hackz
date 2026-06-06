@@ -156,9 +156,15 @@ class ContextPill extends StatelessWidget {
       );
     }
 
-    final double pillMaxWidth = expandWidth
-        ? (layoutMaxWidth ?? double.infinity)
-        : (layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity));
+    final double pillMaxWidth;
+    if (expandWidth) {
+      pillMaxWidth = layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity);
+    } else if (fitContent) {
+      // Shrink-wrap to label; only cap by parent when width is bounded (e.g. table cells).
+      pillMaxWidth = boundedWidth ? constraints.maxWidth : double.infinity;
+    } else {
+      pillMaxWidth = layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity);
+    }
 
     final Widget content = expandWidth
         ? Align(

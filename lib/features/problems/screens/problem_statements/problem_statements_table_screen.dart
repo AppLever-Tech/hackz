@@ -336,6 +336,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            final bool mobile = ResponsiveHelper.isMobile(context);
 
             final tableBody = problems.isEmpty
                 ? _EmptyTableState(onClearSearch: () {
@@ -353,91 +354,133 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     activeSortKey: _activeSortKey,
                   );
 
-            final content = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                ProblemMetricsRow(metrics: _metrics),
-                const SizedBox(height: 12),
-                _buildToolbar(context),
-                const SizedBox(height: 12),
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: ProblemFiltersPanel(
-                    enabledFilters: widget.config.enabledFilters,
-                    allDepartments: allDepartments,
-                    allTags: allTags,
-                    departmentFilters: _departmentFilters,
-                    tagFilters: _tagFilters,
-                    statusFilter: _statusFilter,
-                    sourceFilter: _sourceFilter,
-                    hasAttachments: _hasAttachments,
-                    onDepartmentToggle: (d, selected) => setState(() {
-                      if (selected) {
-                        _departmentFilters.add(d);
-                      } else {
-                        _departmentFilters.remove(d);
-                      }
-                    }),
-                    onTagToggle: (t, selected) => setState(() {
-                      if (selected) {
-                        _tagFilters.add(t);
-                      } else {
-                        _tagFilters.remove(t);
-                      }
-                    }),
-                    onStatusChange: (next) => setState(() => _statusFilter = next),
-                    onSourceChange: (next) => setState(() => _sourceFilter = next),
-                    onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
-                    onClearAll: _clearAllFilters,
-                    onApply: _loadProblems,
-                  ),
-                  crossFadeState: _showFilters
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 220),
-                ),
-                if (_hasAnyActiveFilter) ...<Widget>[
-                  const SizedBox(height: 12),
-                  ProblemActiveFiltersRow(
-                    departmentFilters: _departmentFilters,
-                    tagFilters: _tagFilters,
-                    statusFilter: _statusFilter,
-                    sourceFilter: _sourceFilter,
-                    hasAttachments: _hasAttachments,
-                    onRemoveDepartment: (d) {
-                      setState(() => _departmentFilters.remove(d));
-                      _loadProblems();
-                    },
-                    onRemoveTag: (t) {
-                      setState(() => _tagFilters.remove(t));
-                      _loadProblems();
-                    },
-                    onClearStatus: () {
-                      setState(() => _statusFilter = null);
-                      _loadProblems();
-                    },
-                    onClearSource: () {
-                      setState(() => _sourceFilter = null);
-                      _loadProblems();
-                    },
-                    onClearAttachments: () {
-                      setState(() => _hasAttachments = null);
-                      _loadProblems();
-                    },
-                  ),
-                ],
-                const SizedBox(height: 10),
-                if (hasBoundedHeight)
-                  Expanded(child: tableBody)
-                else
-                  SizedBox(height: 480, child: tableBody),
-              ],
+            final Widget header = _buildListHeader(
+              context: context,
+              allDepartments: allDepartments,
+              allTags: allTags,
             );
 
-            return content;
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: 480, child: tableBody),
+                ],
+              );
+            }
+
+            if (mobile) {
+              // Metrics, toolbar, and filters can exceed viewport height on mobile.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Flexible(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: header,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 5,
+                    child: tableBody,
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: tableBody),
+              ],
+            );
           },
         );
       },
+    );
+  }
+
+  Widget _buildListHeader({
+    required BuildContext context,
+    required List<String> allDepartments,
+    required List<String> allTags,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ProblemMetricsRow(metrics: _metrics),
+        const SizedBox(height: 12),
+        _buildToolbar(context),
+        const SizedBox(height: 12),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: ProblemFiltersPanel(
+            enabledFilters: widget.config.enabledFilters,
+            allDepartments: allDepartments,
+            allTags: allTags,
+            departmentFilters: _departmentFilters,
+            tagFilters: _tagFilters,
+            statusFilter: _statusFilter,
+            sourceFilter: _sourceFilter,
+            hasAttachments: _hasAttachments,
+            onDepartmentToggle: (d, selected) => setState(() {
+              if (selected) {
+                _departmentFilters.add(d);
+              } else {
+                _departmentFilters.remove(d);
+              }
+            }),
+            onTagToggle: (t, selected) => setState(() {
+              if (selected) {
+                _tagFilters.add(t);
+              } else {
+                _tagFilters.remove(t);
+              }
+            }),
+            onStatusChange: (next) => setState(() => _statusFilter = next),
+            onSourceChange: (next) => setState(() => _sourceFilter = next),
+            onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
+            onClearAll: _clearAllFilters,
+            onApply: _loadProblems,
+          ),
+          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
+        ),
+        if (_hasAnyActiveFilter) ...<Widget>[
+          const SizedBox(height: 12),
+          ProblemActiveFiltersRow(
+            departmentFilters: _departmentFilters,
+            tagFilters: _tagFilters,
+            statusFilter: _statusFilter,
+            sourceFilter: _sourceFilter,
+            hasAttachments: _hasAttachments,
+            onRemoveDepartment: (d) {
+              setState(() => _departmentFilters.remove(d));
+              _loadProblems();
+            },
+            onRemoveTag: (t) {
+              setState(() => _tagFilters.remove(t));
+              _loadProblems();
+            },
+            onClearStatus: () {
+              setState(() => _statusFilter = null);
+              _loadProblems();
+            },
+            onClearSource: () {
+              setState(() => _sourceFilter = null);
+              _loadProblems();
+            },
+            onClearAttachments: () {
+              setState(() => _hasAttachments = null);
+              _loadProblems();
+            },
+          ),
+        ],
+        const SizedBox(height: 10),
+      ],
     );
   }
 

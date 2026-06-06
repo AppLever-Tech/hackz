@@ -6,6 +6,7 @@ import 'package:hackz/features/payment/services/payment_finance_helpers.dart';
 import 'package:hackz/features/payment/widgets/payment_status_pill.dart';
 import 'package:hackz/widgets/common/entity_card_pills.dart';
 
+import '../../responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../workspace/workspace.dart';
 
@@ -116,43 +117,80 @@ class CoordinatorPaymentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          _buildFooterActions(context, pending: pending),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterActions(BuildContext context, {required bool pending}) {
+    final Widget? paymentPill = onOpenPayment == null
+        ? null
+        : ContextPill(
+            label: 'Payment details',
+            semantic: ContextPillSemantic.payment,
+            onTap: onOpenPayment!,
+            compact: true,
+            fitContent: true,
+            allowHoverScale: false,
+          );
+    final Widget? attachmentsPill = onOpenAttachments == null
+        ? null
+        : EntityCardPills.workspace(
+            _attachmentPillLabel(attachmentCount),
+            ContextPillSemantic.generic,
+            onOpenAttachments!,
+            icon: AppIcons.attachments,
+          );
+    final Widget approveButton = FilledButton.icon(
+      onPressed: onApprove,
+      icon: const Icon(Icons.check_circle_outline, size: 16),
+      label: const Text('Approve'),
+    );
+    final Widget rejectButton = OutlinedButton.icon(
+      onPressed: onReject,
+      icon: const Icon(Icons.cancel_outlined, size: 16),
+      label: const Text('Reject'),
+    );
+
+    if (ResponsiveHelper.isMobile(context) && pending) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              if (onOpenPayment != null)
-                ContextPill(
-                  label: 'Payment details',
-                  semantic: ContextPillSemantic.payment,
-                  onTap: onOpenPayment!,
-                  compact: true,
-                  fitContent: true,
-                ),
+              if (paymentPill != null) paymentPill,
               const Spacer(),
-              if (onOpenAttachments != null)
-                EntityCardPills.workspace(
-                  _attachmentPillLabel(attachmentCount),
-                  ContextPillSemantic.generic,
-                  onOpenAttachments!,
-                  icon: AppIcons.attachments,
-                ),
-              if (pending) ...<Widget>[
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: onApprove,
-                  icon: const Icon(Icons.check_circle_outline, size: 16),
-                  label: const Text('Approve'),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: onReject,
-                  icon: const Icon(Icons.cancel_outlined, size: 16),
-                  label: const Text('Reject'),
-                ),
-              ],
+              if (attachmentsPill != null) attachmentsPill,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Expanded(child: approveButton),
+              const SizedBox(width: 8),
+              Expanded(child: rejectButton),
             ],
           ),
         ],
-      ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        if (paymentPill != null) paymentPill,
+        const Spacer(),
+        if (attachmentsPill != null) attachmentsPill,
+        if (pending) ...<Widget>[
+          const SizedBox(width: 8),
+          approveButton,
+          const SizedBox(width: 8),
+          rejectButton,
+        ],
+      ],
     );
   }
 

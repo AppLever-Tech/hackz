@@ -58,12 +58,11 @@ class DashboardScrollableList extends StatelessWidget {
       return SizedBox(height: emptyHeight, child: emptyWidget);
     }
 
-    final double stride = rowStride ?? preset.rowStride;
     final double gap = separatorHeight ?? preset.separatorHeight;
-    final bool scrolls = shouldScroll(itemCount);
     final Widget list = ListView.separated(
       padding: padding,
-      physics: scrolls || expandVertically
+      shrinkWrap: !expandVertically,
+      physics: expandVertically
           ? const ClampingScrollPhysics()
           : const NeverScrollableScrollPhysics(),
       itemCount: itemCount,
@@ -75,10 +74,8 @@ class DashboardScrollableList extends StatelessWidget {
       return list;
     }
 
-    return SizedBox(
-      height: cappedListHeight(itemCount, rowStride: stride, separatorHeight: gap),
-      width: double.infinity,
-      child: list,
-    );
+    // Stacked dashboard cards (mobile): let rows use their natural height so
+    // variable-height items (e.g. payment queue cards) are not clipped.
+    return list;
   }
 }
