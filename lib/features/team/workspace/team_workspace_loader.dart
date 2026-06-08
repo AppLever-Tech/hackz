@@ -232,7 +232,7 @@ abstract final class TeamWorkspaceLoader {
 
     for (final IdeaModel idea in ideas) {
       final String title = idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim();
-      if (idea.status != IdeaStatus.pendingSubmission) {
+      if (idea.status != IdeaStatus.draft) {
         lines.add(
           TeamActivityItem(
             at: idea.createdAt,

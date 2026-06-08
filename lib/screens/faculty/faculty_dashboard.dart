@@ -498,13 +498,13 @@ class _FacultyDashboardService {
     int rejected = 0;
     for (final idea in ideas) {
       switch (idea.status) {
-        case IdeaStatus.approved:
+        case IdeaStatus.shortlisted:
           approved++;
           break;
         case IdeaStatus.rejected:
           rejected++;
           break;
-        case IdeaStatus.pendingSubmission:
+        case IdeaStatus.draft:
           break;
         default:
           submitted++;
@@ -521,7 +521,7 @@ class _FacultyDashboardService {
         final color = StatusStyles.colorForIdeaStatus(i.status);
         final text = i.status == IdeaStatus.evaluated
             ? 'Idea evaluated in ${teamNameById[i.teamId] ?? i.teamId}'
-            : i.status == IdeaStatus.underReview
+            : i.status == IdeaStatus.underEvaluation
                 ? 'Idea under review from ${teamNameById[i.teamId] ?? i.teamId}'
                 : 'Idea submitted by ${teamNameById[i.teamId] ?? i.teamId}';
         return _ActivityItem(icon: icon, color: color, text: text, time: i.createdAt);
@@ -535,7 +535,7 @@ class _FacultyDashboardService {
         ),
       ),
       ...ideas
-          .where((i) => i.status == IdeaStatus.pendingSubmission)
+          .where((i) => i.status == IdeaStatus.draft)
           .map(
             (i) => _ActivityItem(
               icon: AppIcons.payments,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../widgets/common/context_pill.dart';
 import '../../../widgets/common/context_pill_theme.dart';
@@ -124,13 +125,4 @@ class ProblemRelatedSection extends StatelessWidget {
   }
 }
 
-String _statusLabel(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => 'Pending',
-    IdeaStatus.submitted => 'Submitted',
-    IdeaStatus.underReview => 'Under review',
-    IdeaStatus.evaluated => 'Evaluated',
-    IdeaStatus.approved => 'Approved',
-    IdeaStatus.rejected => 'Rejected',
-  };
-}
+String _statusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);

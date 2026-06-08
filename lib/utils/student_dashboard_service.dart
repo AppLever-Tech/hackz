@@ -128,11 +128,11 @@ class StudentDashboardService {
       attachmentCountByEntity[key] = (attachmentCountByEntity[key] ?? 0) + 1;
     }
 
-    final pendingIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.pendingSubmission).length;
+    final pendingIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.draft).length;
     final submittedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.submitted).length;
-    final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.underReview).length;
+    final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.underEvaluation).length;
     final evaluatedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.evaluated).length;
-    final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.approved).length;
+    final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.shortlisted).length;
     final rejectedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.rejected).length;
     final approvedOrRejectedIdeas = approvedIdeas + rejectedIdeas;
 

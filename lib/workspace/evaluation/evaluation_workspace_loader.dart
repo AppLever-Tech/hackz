@@ -34,6 +34,18 @@ class EvaluationCriterionScore {
   final int maxValue;
 }
 
+class EvaluationJudgeCriteriaDetail {
+  const EvaluationJudgeCriteriaDetail({
+    required this.score,
+    required this.template,
+    required this.entry,
+  });
+
+  final ScoreModel score;
+  final EvaluationTemplate template;
+  final EvaluationJudgeEntry entry;
+}
+
 class EvaluationJudgeEntry {
   const EvaluationJudgeEntry({
     required this.scoreId,
@@ -123,6 +135,43 @@ class EvaluationWorkspaceViewModel {
 
 abstract final class EvaluationWorkspaceLoader {
   static const LeaderboardRankingEngine _ranking = LeaderboardRankingEngine();
+
+  /// Full criteria + template for one score — used by evaluation details preview.
+  static Future<EvaluationJudgeCriteriaDetail> loadJudgeCriteriaDetail(
+    String scoreId, {
+    String? departmentCode,
+  }) async {
+    final String id = scoreId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError('scoreId must be non-empty');
+    }
+
+    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final DocumentSnapshot<Map<String, dynamic>> scoreDoc =
+        await db.collection(FirestoreUtils.hkzScores).doc(id).get();
+    if (!scoreDoc.exists || scoreDoc.data() == null) {
+      throw StateError('Evaluation score not found');
+    }
+
+    final ScoreModel score = ScoreModel.fromMap(scoreDoc.id, scoreDoc.data()!);
+    await OrgSettingsService.instance.ensureLoaded(orgId: score.orgId);
+
+    final UserModel? judge = await FirestoreUtils.fetchUser(score.judgeId.trim());
+    final String judgeName = judge == null
+        ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
+        : userDisplayName(judge);
+    final EvaluationTemplate template = EvaluationTemplatesService.resolveTemplate(
+      score.templateId,
+      departmentCode: departmentCode,
+    );
+    final _ParsedScore parsed = _parseScore(score, judgeName, template);
+
+    return EvaluationJudgeCriteriaDetail(
+      score: score,
+      template: template,
+      entry: parsed.entry,
+    );
+  }
 
   static Future<EvaluationWorkspaceViewModel> load(String evaluationId) async {
     final String id = evaluationId.trim();

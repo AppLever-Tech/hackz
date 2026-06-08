@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/idea/models/enums/idea_status.dart';
 import '../features/organization/models/enums/organization_type.dart';
 import '../features/problems/models/problem_status.dart';
 import '../features/user/models/enums/user_role.dart';
@@ -53,6 +54,8 @@ class AppIcons {
   static const IconData address = Icons.location_on_outlined;
   static const IconData website = Icons.language_outlined;
   static const IconData openInNew = Icons.open_in_new_rounded;
+
+  // Attachments
   static const IconData attachments = Icons.attach_file_rounded;
   static const IconData attachmentImage = Icons.image_outlined;
   static const IconData attachmentVideo = Icons.videocam_outlined;
@@ -62,11 +65,20 @@ class AppIcons {
   static const IconData download = Icons.download_rounded;
   static const IconData preview = Icons.visibility_outlined;
   static const IconData statusPendingSubmission = Icons.hourglass_bottom_rounded;
+  // Idea status
   static const IconData statusSubmitted = Icons.send_rounded;
   static const IconData statusUnderReview = Icons.pending_rounded;
   static const IconData statusEvaluated = Icons.verified_rounded;
   static const IconData statusApproved = Icons.check_circle_rounded;
   static const IconData statusRejected = Icons.cancel_rounded;
+
+  // Idea Status
+  static const IconData statusDraft = Icons.edit_note_rounded;
+  static const IconData statusUnderEvaluation = Icons.fact_check_outlined;
+  static const IconData statusShortlisted = Icons.star_outline_rounded;
+  static const IconData statusEventAssigned = Icons.event_available_outlined;
+  static const IconData statusWinner = Icons.emoji_events_outlined;
+  static const IconData statusArchived = Icons.inventory_2_outlined;
   static const IconData statusActive = Icons.circle;
   static const IconData statusInactive = Icons.circle_outlined;
 
@@ -155,6 +167,20 @@ class AppIcons {
       ProblemStatus.active => problemStatusActive,
       ProblemStatus.inactive => problemStatusInactive,
       ProblemStatus.archived => problemStatusArchived,
+    };
+  }
+
+  static IconData forIdeaStatus(IdeaStatus status) {
+    return switch (status) {
+      IdeaStatus.draft => statusDraft,
+      IdeaStatus.submitted => statusSubmitted,
+      IdeaStatus.underEvaluation => statusUnderEvaluation,
+      IdeaStatus.evaluated => statusEvaluated,
+      IdeaStatus.shortlisted => statusShortlisted,
+      IdeaStatus.rejected => statusRejected,
+      IdeaStatus.eventAssigned => statusEventAssigned,
+      IdeaStatus.winner => statusWinner,
+      IdeaStatus.archived => statusArchived,
     };
   }
 

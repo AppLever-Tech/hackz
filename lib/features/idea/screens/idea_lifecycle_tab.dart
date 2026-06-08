@@ -6,6 +6,7 @@ import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../models/score_model.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/widgets/lifecycle_timeline.dart';
+import '../widgets/idea_lifecycle_strip.dart';
 import '../workspace/idea_workspace_loader.dart';
 
 /// Idea Lifecycle tab for [IdeaDetailsPane].
@@ -21,6 +22,13 @@ class IdeaLifecycleTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
       children: <Widget>[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: kDashboardCardDecoration,
+          child: IdeaLifecycleStrip(currentStatus: vm.idea.status),
+        ),
+        const SizedBox(height: 8),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),

@@ -5,7 +5,9 @@ import '../../utils/common_helpers.dart';
 import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../shared/entity_reference_tile.dart';
-import 'evaluation_workspace.dart';
+import 'package:hackz/features/idea/workspace/idea_workspace.dart';
+import '../../features/team/workspace/team_workspace.dart';
+import '../../features/user/workspace/user_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
 class EvaluationSummarySection extends StatelessWidget {
@@ -108,7 +110,7 @@ class EvaluationSummarySection extends StatelessWidget {
               ? 'Aggregate evaluation report'
               : 'Single judge evaluation',
           semantic: ContextPillSemantic.idea,
-          onOpenWorkspace: () => EvaluationWorkspace.openIdeaFromEvaluation(context, vm),
+          onOpenWorkspace: () => IdeaWorkspace.push(context, vm.idea.ideaId),
         ),
         EntityReferenceTile(
           category: 'Judge',
@@ -119,7 +121,7 @@ class EvaluationSummarySection extends StatelessWidget {
           semantic: ContextPillSemantic.judge,
           onOpenWorkspace: vm.primaryJudge == null
               ? null
-              : () => EvaluationWorkspace.openUserFromEvaluation(context, vm.primaryJudge!.judgeId),
+              : () => UserWorkspace.push(context, vm.primaryJudge!.judgeId),
         ),
         EntityReferenceTile(
           category: 'Team',
@@ -127,7 +129,7 @@ class EvaluationSummarySection extends StatelessWidget {
           detail: 'Innovation team context',
           semantic: ContextPillSemantic.team,
           onOpenWorkspace:
-              vm.teamId.trim().isEmpty ? null : () => EvaluationWorkspace.openTeamFromEvaluation(context, vm),
+              vm.teamId.trim().isEmpty ? null : () => TeamWorkspace.push(context, vm.teamId),
         ),
       ],
     );

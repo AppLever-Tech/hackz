@@ -228,7 +228,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   Future<void> _save() async {
     final EvaluationTemplate? template = _template;
     if (template == null) return;
-    if (widget.idea.status == IdeaStatus.pendingSubmission) {
+    if (widget.idea.status == IdeaStatus.draft) {
       FeedbackService.showWarning(
         context,
         title: 'Evaluation blocked',

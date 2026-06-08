@@ -27,10 +27,10 @@ class FacultyTeamInsight {
   final List<PaymentRecordStatus> paymentStatuses;
   final int evaluationCount;
 
-  int get submittedIdeas => ideas.where((idea) => idea.status != IdeaStatus.pendingSubmission).length;
+  int get submittedIdeas => ideas.where((idea) => idea.status != IdeaStatus.draft).length;
   bool get hasIdeas => ideas.isNotEmpty;
   bool get hasPendingPayment => paymentStatuses.any((status) => status == PaymentRecordStatus.pending);
-  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.approved);
+  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.shortlisted);
   bool get isLocked => team.status == TeamStatus.locked || hasIdeas;
 }
 
@@ -215,7 +215,7 @@ class FacultyTeamsService {
       ideaTitle: ideaTitle.trim(),
       description: description.trim(),
       files: const <String>[],
-      status: IdeaStatus.pendingSubmission,
+      status: IdeaStatus.draft,
       createdAt: DateTime.now(),
       orgId: faculty.orgId,
       teamDepartmentCode: teamDept,

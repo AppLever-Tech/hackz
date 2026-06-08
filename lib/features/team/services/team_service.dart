@@ -174,7 +174,7 @@ class TeamService {
     if (ideas.docs.isEmpty) return true;
     for (final doc in ideas.docs) {
       final status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
-      if (status != IdeaStatus.pendingSubmission) return false;
+      if (status != IdeaStatus.draft) return false;
     }
     return true;
   }

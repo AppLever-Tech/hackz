@@ -161,6 +161,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Manage Department', icon: AppIcons.departments),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
+            DashboardMenuItem(label: 'Evaluation Results', icon: AppIcons.results),
             DashboardMenuItem(label: 'Evaluation Extensions', icon: AppIcons.scoring),
             DashboardMenuItem(label: 'Judges Panel', icon: AppIcons.judges),
             DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),

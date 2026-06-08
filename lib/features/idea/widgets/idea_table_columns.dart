@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/idea_status_helpers.dart';
 import '../../../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -147,8 +148,8 @@ abstract final class IdeaTableColumns {
   static bool canOpenEvaluation(IdeaListItem item) {
     if (item.score != null) return true;
     return item.idea.status == IdeaStatus.evaluated ||
-        item.idea.status == IdeaStatus.approved ||
-        item.idea.status == IdeaStatus.underReview;
+        item.idea.status == IdeaStatus.shortlisted ||
+        item.idea.status == IdeaStatus.underEvaluation;
   }
 }
 
@@ -200,7 +201,7 @@ class _IdeaRowActionsMenu extends StatelessWidget {
     final bool showPay =
         config.canUploadPayment && item.canUploadPayment && item.team != null;
     final bool canEval =
-        config.canEvaluate && item.idea.status != IdeaStatus.pendingSubmission;
+        config.canEvaluate && item.idea.status != IdeaStatus.draft;
     final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
     final bool hasAttachments = item.attachmentCount > 0;
     final bool hasPayment = item.payment != null;
@@ -297,53 +298,27 @@ class _StatusCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color color = IdeaStatusHelpers.color(status);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(_iconFor(status), size: 14, color: _colorFor(status)),
+        Icon(IdeaStatusHelpers.icon(status), size: 14, color: color),
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            _labelFor(status),
+            IdeaStatusHelpers.label(status),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
-              color: _colorFor(status),
+              color: color,
             ),
           ),
         ),
       ],
     );
   }
-
-  static IconData _iconFor(IdeaStatus s) => switch (s) {
-        IdeaStatus.pendingSubmission => AppIcons.statusPendingSubmission,
-        IdeaStatus.submitted => AppIcons.statusSubmitted,
-        IdeaStatus.underReview => AppIcons.statusUnderReview,
-        IdeaStatus.evaluated => AppIcons.statusEvaluated,
-        IdeaStatus.approved => AppIcons.statusApproved,
-        IdeaStatus.rejected => AppIcons.statusRejected,
-      };
-
-  static Color _colorFor(IdeaStatus s) => switch (s) {
-        IdeaStatus.pendingSubmission => const Color(0xFF94A3B8),
-        IdeaStatus.submitted => const Color(0xFF7C3AED),
-        IdeaStatus.underReview => const Color(0xFFEA580C),
-        IdeaStatus.evaluated => const Color(0xFF0EA5E9),
-        IdeaStatus.approved => const Color(0xFF059669),
-        IdeaStatus.rejected => const Color(0xFFDC2626),
-      };
-
-  static String _labelFor(IdeaStatus s) => switch (s) {
-        IdeaStatus.pendingSubmission => 'Pending',
-        IdeaStatus.submitted => 'Submitted',
-        IdeaStatus.underReview => 'Under Review',
-        IdeaStatus.evaluated => 'Evaluated',
-        IdeaStatus.approved => 'Approved',
-        IdeaStatus.rejected => 'Rejected',
-      };
 }
 
 class _ScoreChip extends StatelessWidget {

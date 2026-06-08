@@ -233,12 +233,12 @@ class DepartmentDashboardService {
     }).length;
 
     final List<IdeaStatus> ideaStatuses = ideas.map((doc) => IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
-    final int pendingSubmissionIdeas = ideaStatuses.where((s) => s == IdeaStatus.pendingSubmission).length;
-    final int underReviewIdeas = ideaStatuses.where((s) => s == IdeaStatus.underReview).length;
-    final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted || s == IdeaStatus.underReview).length;
+    final int pendingSubmissionIdeas = ideaStatuses.where((s) => s == IdeaStatus.draft).length;
+    final int underReviewIdeas = ideaStatuses.where((s) => s == IdeaStatus.underEvaluation).length;
+    final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted || s == IdeaStatus.underEvaluation).length;
     final int evaluatedOnlyIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated).length;
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.approved).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.approved).length;
+    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.shortlisted).length;
+    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.shortlisted).length;
     final int rejectedIdeas = ideaStatuses.where((s) => s == IdeaStatus.rejected).length;
 
     final List<PaymentRecordStatus> paymentStatuses = payments.map((doc) => PaymentRecordStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
@@ -509,7 +509,7 @@ class DepartmentDashboardService {
     final stalled = ideas.where((doc) {
       final status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
       final created = _dateFrom(doc.data()['createdAt']);
-      return created != null && created.isBefore(cutoff) && (status == IdeaStatus.submitted || status == IdeaStatus.underReview);
+      return created != null && created.isBefore(cutoff) && (status == IdeaStatus.submitted || status == IdeaStatus.underEvaluation);
     }).length;
     if (stalled > 0) {
       alerts.add(DepartmentAlert(title: 'Stalled evaluations', message: '$stalled ideas have waited more than 7 days.', severity: DepartmentAlertSeverity.warning));

@@ -15,6 +15,7 @@ import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
+import '../../features/evaluations/screens/evaluation_results_screen.dart';
 import '../../features/evaluations/screens/department_evaluation_extensions_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import 'judges_panel.dart';
@@ -66,30 +67,36 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 4) {
-          return DepartmentEvaluationExtensionsScreen(
+          return EvaluationResultsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
         if (selectedMenuIndex == 5) {
-          return JudgesPanelScreen(
+          return DepartmentEvaluationExtensionsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
         if (selectedMenuIndex == 6) {
-          return PaymentsScreen(
+          return JudgesPanelScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
         if (selectedMenuIndex == 7) {
-          return RequestsWorkspaceScreen(
+          return PaymentsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
         if (selectedMenuIndex == 8) {
+          return RequestsWorkspaceScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 9) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

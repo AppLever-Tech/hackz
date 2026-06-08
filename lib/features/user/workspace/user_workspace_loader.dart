@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import '../../../models/score_model.dart';
 import '../models/user_model.dart';
 import '../../../utils/common_helpers.dart';
@@ -164,13 +165,4 @@ Future<List<UserActivityItem>> _scoreActivity(
   }
 }
 
-String _ideaStatusLabel(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => 'Pending submission',
-    IdeaStatus.submitted => 'Submitted',
-    IdeaStatus.underReview => 'Under review',
-    IdeaStatus.evaluated => 'Evaluated',
-    IdeaStatus.approved => 'Approved',
-    IdeaStatus.rejected => 'Rejected',
-  };
-}
+String _ideaStatusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);

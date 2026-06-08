@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
+import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../user/models/user_model.dart';
 import '../services/idea_query_service.dart';
@@ -601,39 +602,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  IconData _statusIcon(IdeaStatus status) {
-    switch (status) {
-      case IdeaStatus.pendingSubmission:
-        return AppIcons.statusSubmitted;
-      case IdeaStatus.submitted:
-        return AppIcons.submissions;
-      case IdeaStatus.underReview:
-        return AppIcons.statusUnderReview;
-      case IdeaStatus.evaluated:
-        return AppIcons.statusEvaluated;
-      case IdeaStatus.approved:
-        return AppIcons.statusApproved;
-      case IdeaStatus.rejected:
-        return AppIcons.statusRejected;
-    }
-  }
+  IconData _statusIcon(IdeaStatus status) => IdeaStatusHelpers.icon(status);
 
-  String _statusLabel(IdeaStatus status) {
-    switch (status) {
-      case IdeaStatus.pendingSubmission:
-        return 'Pending Submission';
-      case IdeaStatus.submitted:
-        return 'Submitted';
-      case IdeaStatus.underReview:
-        return 'Under Review';
-      case IdeaStatus.evaluated:
-        return 'Evaluated';
-      case IdeaStatus.approved:
-        return 'Approved';
-      case IdeaStatus.rejected:
-        return 'Rejected';
-    }
-  }
+  String _statusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);
 
   bool get _hasAnyActiveFilter =>
       _statusFilters.isNotEmpty || _problemFilters.isNotEmpty || _departmentFilters.isNotEmpty;

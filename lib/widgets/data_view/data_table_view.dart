@@ -131,40 +131,49 @@ class DataTableView<T> extends StatelessWidget {
     final Color labelColor = active ? _activeText : _headerText;
 
     final Widget label = Row(
-      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Flexible(
-          child: Text(
-            column.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: labelColor,
-              letterSpacing: 0.2,
+        Expanded(
+          child: Align(
+            alignment: column.align,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    column.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: column.align == Alignment.center ? TextAlign.center : TextAlign.start,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: labelColor,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                if (column.sortable) ...<Widget>[
+                  const SizedBox(width: 2),
+                  Icon(
+                    active ? Icons.arrow_drop_down_rounded : Icons.unfold_more_rounded,
+                    size: 14,
+                    color: active ? _activeText : _mutedText,
+                  ),
+                ],
+              ],
             ),
           ),
         ),
-        if (column.sortable) ...<Widget>[
-          const SizedBox(width: 4),
-          Icon(
-            active ? Icons.arrow_drop_down_rounded : Icons.unfold_more_rounded,
-            size: 16,
-            color: active ? _activeText : _mutedText,
-          ),
-        ],
       ],
     );
 
-    final Widget aligned = Align(alignment: column.align, child: label);
-    if (!column.sortable || onSort == null) return aligned;
+    if (!column.sortable || onSort == null) return label;
     return InkWell(
       onTap: () => onSort!(column.sortKey!),
       borderRadius: BorderRadius.circular(6),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: aligned,
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+        child: label,
       ),
     );
   }

@@ -150,7 +150,7 @@ abstract final class ProblemWorkspaceLoader {
       usersById[id] = u;
     }
 
-    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.approved).length;
+    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.shortlisted).length;
     final int evaluatedIdeas = ideas.where((IdeaModel i) => scoresByIdea[i.ideaId]?.isNotEmpty == true).length;
     final int verifiedPayments = payments.where((PaymentModel p) => p.status == PaymentRecordStatus.verified).length;
 

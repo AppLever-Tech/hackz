@@ -6,6 +6,7 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../workspace/workspace.dart';
 import '../workspace/idea_workspace_loader.dart';
+import '../widgets/idea_evaluation_results_section.dart';
 import '../widgets/innovation_assets_section.dart';
 
 /// Idea Details tab for [IdeaDetailsPane].
@@ -57,6 +58,12 @@ class IdeaDetailsTab extends StatelessWidget {
               ],
             ],
           ),
+        ),
+        const SizedBox(height: 8),
+        _card(
+          context: context,
+          title: 'Evaluation Results',
+          child: IdeaEvaluationResultsSection(idea: idea),
         ),
         const SizedBox(height: 8),
         _card(

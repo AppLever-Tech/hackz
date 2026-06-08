@@ -224,7 +224,7 @@ class CoordinatorDashboardService {
     final rejectedPayments = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
     final ideasAwaitingValidation = ideas.where((idea) {
       final payment = paymentByIdea[idea.ideaId];
-      return idea.status == IdeaStatus.pendingSubmission && payment != null && payment.status == PaymentRecordStatus.pending;
+      return idea.status == IdeaStatus.draft && payment != null && payment.status == PaymentRecordStatus.pending;
     }).length;
 
     final analytics = CoordinatorDashboardAnalytics(
@@ -289,7 +289,7 @@ class CoordinatorDashboardService {
     }
     final paymentsByIdea = <String, PaymentModel>{for (final payment in payments) payment.ideaId: payment};
     final paymentSubmitted = ideas.where((idea) => paymentsByIdea.containsKey(idea.ideaId)).length;
-    final official = ideas.where((idea) => idea.status == IdeaStatus.submitted || idea.status == IdeaStatus.underReview || idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.approved).length;
+    final official = ideas.where((idea) => idea.status == IdeaStatus.submitted || idea.status == IdeaStatus.underEvaluation || idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.shortlisted).length;
     return <SubmissionWorkflowStep>[
       SubmissionWorkflowStep(label: 'Ideas Created', count: ideas.length, color: const Color(0xFF6A38FF)),
       SubmissionWorkflowStep(label: 'Payment Submitted', count: paymentSubmitted, color: const Color(0xFF0EA5E9)),

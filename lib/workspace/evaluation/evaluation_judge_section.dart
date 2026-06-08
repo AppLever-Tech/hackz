@@ -4,7 +4,7 @@ import '../../constants/app_icons.dart';
 import '../../utils/common_helpers.dart';
 import '../../widgets/common/context_pill.dart';
 import '../../widgets/common/context_pill_theme.dart';
-import 'evaluation_workspace.dart';
+import '../../features/user/workspace/user_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
 class EvaluationJudgeSection extends StatelessWidget {
@@ -54,7 +54,7 @@ class EvaluationJudgeSection extends StatelessWidget {
                         child: ContextPill(
                           label: judge.judgeName,
                           semantic: ContextPillSemantic.judge,
-                          onTap: () => EvaluationWorkspace.openUserFromEvaluation(context, judge.judgeId),
+                          onTap: () => UserWorkspace.push(context, judge.judgeId),
                           compact: true,
                         ),
                       )

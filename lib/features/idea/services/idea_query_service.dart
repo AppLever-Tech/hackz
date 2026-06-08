@@ -201,16 +201,16 @@ class IdeaQueryService {
   ) {
     if (ideas.isEmpty) return IdeaDepartmentMetrics.empty;
     final int submitted = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
-    final int approved = ideas.where((IdeaModel i) => i.status == IdeaStatus.approved).length;
+    final int approved = ideas.where((IdeaModel i) => i.status == IdeaStatus.shortlisted).length;
     final int evaluated = ideas
         .where(
           (IdeaModel i) =>
               i.status == IdeaStatus.evaluated ||
-              i.status == IdeaStatus.approved ||
+              i.status == IdeaStatus.shortlisted ||
               scoreByIdeaId.containsKey(i.ideaId),
         )
         .length;
-    final int pending = ideas.where((IdeaModel i) => i.status == IdeaStatus.pendingSubmission).length;
+    final int pending = ideas.where((IdeaModel i) => i.status == IdeaStatus.draft).length;
     final Iterable<double> scores = scoreByIdeaId.values.map((ScoreModel s) => s.score);
     final double? avg = scores.isEmpty ? null : scores.reduce((double a, double b) => a + b) / scores.length;
     return IdeaDepartmentMetrics(
@@ -390,7 +390,7 @@ class IdeaQueryService {
     required PaymentModel? payment,
   }) {
     if (viewer == null) return false;
-    if (idea.status != IdeaStatus.pendingSubmission) return false;
+    if (idea.status != IdeaStatus.draft) return false;
     if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
     if (team == null) return false;
     final role = UserRole.fromCode(viewer.role);

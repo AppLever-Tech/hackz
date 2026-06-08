@@ -45,12 +45,15 @@ class LeaderboardRankingEngine {
   /// Submission + payment pathway completeness (0–1).
   double submissionPaymentCompleteness(IdeaModel idea, PaymentModel? payment) {
     final double submission = switch (idea.status) {
-      IdeaStatus.pendingSubmission => 0.35,
+      IdeaStatus.draft => 0.35,
       IdeaStatus.submitted => 0.72,
-      IdeaStatus.underReview => 0.82,
+      IdeaStatus.underEvaluation => 0.82,
       IdeaStatus.evaluated => 0.92,
-      IdeaStatus.approved => 1.0,
+      IdeaStatus.shortlisted => 1.0,
       IdeaStatus.rejected => 1.0,
+      IdeaStatus.eventAssigned => 1.0,
+      IdeaStatus.winner => 1.0,
+      IdeaStatus.archived => 0.5,
     };
     double pay = 0.65;
     if (payment != null) {

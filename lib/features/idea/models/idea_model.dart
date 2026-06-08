@@ -23,10 +23,20 @@ class IdeaModel {
     required this.createdBy,
     this.gitRepositoryUrl = '',
     this.youtubeDemoUrl = '',
+    this.averageScore,
+    this.highestScore,
+    this.lowestScore,
+    this.totalEvaluators = 0,
+    this.evaluationRank,
   });
 
   static const String fieldTeamDepartmentCode = 'teamDepartmentCode';
   static const String fieldProblemDepartmentCode = 'problemDepartmentCode';
+  static const String fieldAverageScore = 'averageScore';
+  static const String fieldHighestScore = 'highestScore';
+  static const String fieldLowestScore = 'lowestScore';
+  static const String fieldTotalEvaluators = 'totalEvaluators';
+  static const String fieldEvaluationRank = 'evaluationRank';
 
   final String ideaId;
   final String problemId;
@@ -44,10 +54,50 @@ class IdeaModel {
   final String createdBy;
   final String gitRepositoryUrl;
   final String youtubeDemoUrl;
+  final double? averageScore;
+  final double? highestScore;
+  final double? lowestScore;
+  final int totalEvaluators;
+  final int? evaluationRank;
 
   bool get hasGitRepository => gitRepositoryUrl.trim().isNotEmpty;
   bool get hasYoutubeDemo => youtubeDemoUrl.trim().isNotEmpty;
   bool get hasPresentationFiles => files.isNotEmpty;
+  bool get hasEvaluationAggregate => totalEvaluators > 0 && averageScore != null;
+
+  IdeaModel copyWith({
+    IdeaStatus? status,
+    double? averageScore,
+    double? highestScore,
+    double? lowestScore,
+    int? totalEvaluators,
+    int? evaluationRank,
+    bool clearEvaluationRank = false,
+  }) {
+    return IdeaModel(
+      ideaId: ideaId,
+      problemId: problemId,
+      teamId: teamId,
+      ideaTitle: ideaTitle,
+      description: description,
+      files: files,
+      status: status ?? this.status,
+      createdAt: createdAt,
+      orgId: orgId,
+      teamDepartmentCode: teamDepartmentCode,
+      problemDepartmentCode: problemDepartmentCode,
+      problemNumber: problemNumber,
+      problemTitle: problemTitle,
+      createdBy: createdBy,
+      gitRepositoryUrl: gitRepositoryUrl,
+      youtubeDemoUrl: youtubeDemoUrl,
+      averageScore: averageScore ?? this.averageScore,
+      highestScore: highestScore ?? this.highestScore,
+      lowestScore: lowestScore ?? this.lowestScore,
+      totalEvaluators: totalEvaluators ?? this.totalEvaluators,
+      evaluationRank: clearEvaluationRank ? null : (evaluationRank ?? this.evaluationRank),
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -67,6 +117,11 @@ class IdeaModel {
       'createdBy': createdBy,
       'gitRepositoryUrl': gitRepositoryUrl.trim(),
       'youtubeDemoUrl': youtubeDemoUrl.trim(),
+      if (averageScore != null) fieldAverageScore: averageScore,
+      if (highestScore != null) fieldHighestScore: highestScore,
+      if (lowestScore != null) fieldLowestScore: lowestScore,
+      fieldTotalEvaluators: totalEvaluators,
+      if (evaluationRank != null) fieldEvaluationRank: evaluationRank,
     };
   }
 
@@ -81,7 +136,7 @@ class IdeaModel {
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty)
           .toList(growable: false),
-      status: IdeaStatus.fromRaw((map['status'] as String?) ?? 'pendingSubmission'),
+      status: IdeaStatus.fromRaw((map['status'] as String?) ?? 'draft'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
       teamDepartmentCode: DepartmentModel.resolveCode((map[fieldTeamDepartmentCode] as String?) ?? ''),
@@ -91,6 +146,11 @@ class IdeaModel {
       createdBy: ((map['createdBy'] as String?) ?? '').trim(),
       gitRepositoryUrl: ((map['gitRepositoryUrl'] as String?) ?? '').trim(),
       youtubeDemoUrl: ((map['youtubeDemoUrl'] as String?) ?? '').trim(),
+      averageScore: (map[fieldAverageScore] as num?)?.toDouble(),
+      highestScore: (map[fieldHighestScore] as num?)?.toDouble(),
+      lowestScore: (map[fieldLowestScore] as num?)?.toDouble(),
+      totalEvaluators: (map[fieldTotalEvaluators] as num?)?.toInt() ?? 0,
+      evaluationRank: (map[fieldEvaluationRank] as num?)?.toInt(),
     );
   }
 }

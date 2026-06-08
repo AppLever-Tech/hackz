@@ -202,8 +202,8 @@ class SysAdminDashboardService {
     final double approvalRate = userDocs.isEmpty ? 0 : approvedUsers / userDocs.length;
 
     final List<IdeaStatus> ideaStatuses = ideaDocs.map((doc) => IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.approved).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.approved).length;
+    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.shortlisted).length;
+    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.shortlisted).length;
 
     final List<OrganizationActivityPoint> orgActivity = _buildOrganizationActivity(
       orgDocs: orgDocs,
@@ -444,7 +444,7 @@ class SysAdminDashboardService {
       final created = _dateFrom(doc.data()['createdAt']);
       return created != null &&
           created.isBefore(evaluationCutoff) &&
-          (status == IdeaStatus.submitted || status == IdeaStatus.underReview);
+          (status == IdeaStatus.submitted || status == IdeaStatus.underEvaluation);
     }).length;
     if (delayedEvaluations > 0) {
       alerts.add(PlatformAlert(
@@ -577,11 +577,11 @@ class SysAdminDashboardService {
       counts[status] = (counts[status] ?? 0) + 1;
     }
     return <PlatformDistributionSegment>[
-      PlatformDistributionSegment(label: 'Pending', count: counts[IdeaStatus.pendingSubmission] ?? 0, color: const Color(0xFF94A3B8)),
+      PlatformDistributionSegment(label: 'Pending', count: counts[IdeaStatus.draft] ?? 0, color: const Color(0xFF94A3B8)),
       PlatformDistributionSegment(label: 'Submitted', count: counts[IdeaStatus.submitted] ?? 0, color: const Color(0xFF2563EB)),
-      PlatformDistributionSegment(label: 'Review', count: counts[IdeaStatus.underReview] ?? 0, color: const Color(0xFF7C3AED)),
+      PlatformDistributionSegment(label: 'Review', count: counts[IdeaStatus.underEvaluation] ?? 0, color: const Color(0xFF7C3AED)),
       PlatformDistributionSegment(label: 'Evaluated', count: counts[IdeaStatus.evaluated] ?? 0, color: const Color(0xFF0891B2)),
-      PlatformDistributionSegment(label: 'Approved', count: counts[IdeaStatus.approved] ?? 0, color: const Color(0xFF16A34A)),
+      PlatformDistributionSegment(label: 'Approved', count: counts[IdeaStatus.shortlisted] ?? 0, color: const Color(0xFF16A34A)),
       PlatformDistributionSegment(label: 'Rejected', count: counts[IdeaStatus.rejected] ?? 0, color: const Color(0xFFDC2626)),
     ];
   }

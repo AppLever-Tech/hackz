@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../features/evaluations/models/evaluation_template.dart';
+import '../features/evaluations/services/evaluation_aggregation_sync_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -45,7 +46,7 @@ abstract final class JudgeEvaluationService {
     if (!_isJudge(judge)) {
       throw StateError('Only judges can save evaluations.');
     }
-    if (idea.status == IdeaStatus.pendingSubmission) {
+    if (idea.status == IdeaStatus.draft) {
       throw StateError('Idea is pending payment verification.');
     }
     final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
@@ -112,9 +113,10 @@ abstract final class JudgeEvaluationService {
     } else {
       await col.doc(existing.docs.first.id).update(payload.toMap());
     }
-    await _db.collection(FirestoreUtils.hkzIdeas).doc(idea.ideaId).update(<String, dynamic>{
-      'status': IdeaStatus.evaluated.value,
-    });
+    await EvaluationAggregationSyncService.syncIdea(
+      ideaId: idea.ideaId,
+      orgId: judge.orgId,
+    );
     clearCache();
   }
 
@@ -220,7 +222,7 @@ abstract final class JudgeEvaluationService {
 
     bool judgeMayEvaluate(IdeaModel idea) {
       if (!assignedIdeaIds.contains(idea.ideaId)) return false;
-      if (idea.status == IdeaStatus.pendingSubmission) return false;
+      if (idea.status == IdeaStatus.draft) return false;
       final pay = paymentByIdeaId[idea.ideaId];
       if (pay != null && pay.status != PaymentRecordStatus.verified && pay.status != PaymentRecordStatus.rejected) {
         return false;
@@ -336,7 +338,7 @@ abstract final class JudgeEvaluationService {
     final fileCount = idea.files.where((e) => e.trim().isNotEmpty).length;
     final att = (attachmentCountByIdeaId[idea.ideaId] ?? 0) + fileCount;
     final due = idea.createdAt.add(const Duration(days: 14));
-    final priority = idea.status == IdeaStatus.underReview ? JudgeEvaluationPriority.high : JudgeEvaluationPriority.standard;
+    final priority = idea.status == IdeaStatus.underEvaluation ? JudgeEvaluationPriority.high : JudgeEvaluationPriority.standard;
     return JudgeEvaluationPendingRow(
       idea: idea,
       teamName: teamName,
@@ -466,7 +468,7 @@ class JudgeEvaluationPendingRow {
   String get ideaId => idea.ideaId;
 
   JudgeAssignmentRowStatus get workflowStatus {
-    if (idea.status == IdeaStatus.underReview) {
+    if (idea.status == IdeaStatus.underEvaluation) {
       return JudgeAssignmentRowStatus.inProgress;
     }
     return JudgeAssignmentRowStatus.assigned;

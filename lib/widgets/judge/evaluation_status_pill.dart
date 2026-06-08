@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/status_styles.dart';
+import '../../features/idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 
 class EvaluationStatusPill extends StatelessWidget {
@@ -12,14 +13,7 @@ class EvaluationStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = StatusStyles.colorForIdeaStatus(status);
-    final label = switch (status) {
-      IdeaStatus.pendingSubmission => 'Pending payment',
-      IdeaStatus.submitted => 'Submitted',
-      IdeaStatus.underReview => 'Under review',
-      IdeaStatus.evaluated => 'Evaluated',
-      IdeaStatus.approved => 'Approved',
-      IdeaStatus.rejected => 'Rejected',
-    };
+    final String label = IdeaStatusHelpers.label(status);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 10, vertical: compact ? 2 : 4),
       decoration: BoxDecoration(

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../team/models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -242,11 +243,16 @@ abstract final class IdeaWorkspaceLoader {
       return '$scoreCount review${scoreCount == 1 ? '' : 's'} recorded';
     }
     return switch (status) {
-      IdeaStatus.evaluated || IdeaStatus.approved => 'Evaluated',
-      IdeaStatus.underReview => 'Awaiting reviews',
+      IdeaStatus.evaluated ||
+      IdeaStatus.shortlisted ||
+      IdeaStatus.eventAssigned ||
+      IdeaStatus.winner =>
+        'Evaluated',
+      IdeaStatus.underEvaluation => 'Awaiting reviews',
       IdeaStatus.rejected => 'Closed',
       IdeaStatus.submitted => 'Submitted · pending review',
-      IdeaStatus.pendingSubmission => 'Not yet submitted',
+      IdeaStatus.draft => 'Not yet submitted',
+      IdeaStatus.archived => 'Archived',
     };
   }
 
@@ -260,24 +266,6 @@ abstract final class IdeaWorkspaceLoader {
   }
 }
 
-String ideaWorkspaceStatusLabel(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => 'Pending submission',
-    IdeaStatus.submitted => 'Submitted',
-    IdeaStatus.underReview => 'Under review',
-    IdeaStatus.evaluated => 'Evaluated',
-    IdeaStatus.approved => 'Approved',
-    IdeaStatus.rejected => 'Rejected',
-  };
-}
+String ideaWorkspaceStatusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);
 
-IconData ideaWorkspaceStatusIcon(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => AppIcons.statusPendingSubmission,
-    IdeaStatus.submitted => AppIcons.statusSubmitted,
-    IdeaStatus.underReview => AppIcons.statusUnderReview,
-    IdeaStatus.evaluated => AppIcons.statusEvaluated,
-    IdeaStatus.approved => AppIcons.statusApproved,
-    IdeaStatus.rejected => AppIcons.statusRejected,
-  };
-}
+IconData ideaWorkspaceStatusIcon(IdeaStatus status) => IdeaStatusHelpers.icon(status);
