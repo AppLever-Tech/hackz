@@ -17,6 +17,9 @@ import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';
 import '../services/idea_shortlisting_service.dart';
 import '../widgets/evaluation_results_table_columns.dart';
+import '../../ideathons/screens/create_ideathon_workspace.dart';
+import '../../ideathons/services/ideathon_readiness_service.dart';
+import '../../ideathons/widgets/ideathon_readiness_banner.dart';
 
 /// Department-admin workspace for reviewing evaluation outcomes and shortlisting.
 class EvaluationResultsScreen extends StatefulWidget {
@@ -33,6 +36,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   Timer? _searchDebounce;
 
   Future<EvaluationResultsQueryResult>? _future;
+  Future<IdeathonReadiness>? _readinessFuture;
   EvaluationResultsMetrics _metrics = EvaluationResultsMetrics.empty;
   List<String> _categories = <String>[];
   List<String> _departments = <String>[];
@@ -65,6 +69,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
   void _load() {
     setState(() {
+      _readinessFuture = IdeathonReadinessService.compute(
+        orgId: widget.user.orgId,
+        departmentCode: widget.user.departmentCode,
+      );
       _future = EvaluationResultsQueryService.fetch(
         EvaluationResultsQueryParams(
           viewer: widget.user,
@@ -87,6 +95,21 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     setState(() => _saving = false);
     _load();
     FeedbackService.showSuccess(context, title: 'Shortlisted', message: 'Idea moved to shortlisted.');
+  }
+
+  Future<void> _openCreateIdeathon(BuildContext context) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => Scaffold(
+          appBar: AppBar(title: const Text('Create Ideathon')),
+          body: CreateIdeathonWorkspace(
+            user: widget.user,
+            onCreated: (_) => Navigator.of(context).pop(),
+          ),
+        ),
+      ),
+    );
+    _load();
   }
 
   Future<void> _reject(EvaluationResultsRow row) async {
@@ -303,6 +326,19 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           ],
         ),
         const SizedBox(height: 12),
+        FutureBuilder<IdeathonReadiness>(
+          future: _readinessFuture,
+          builder: (BuildContext context, AsyncSnapshot<IdeathonReadiness> readinessSnap) {
+            if (!readinessSnap.hasData) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: IdeathonReadinessBanner(
+                readiness: readinessSnap.data!,
+                onCreateIdeathon: () => _openCreateIdeathon(context),
+              ),
+            );
+          },
+        ),
         Row(
           children: <Widget>[
             Expanded(

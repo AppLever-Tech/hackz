@@ -4,6 +4,7 @@ import '../features/evaluations/assignments/models/evaluation_assignment_model.d
 import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../features/evaluations/models/evaluation_template.dart';
 import '../features/evaluations/services/evaluation_aggregation_sync_service.dart';
+import '../features/ideathons/services/ideathon_evaluation_sync_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../features/user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -42,6 +43,7 @@ abstract final class JudgeEvaluationService {
     required Map<String, double> criteriaScores,
     Map<String, String> criteriaComments = const <String, String>{},
     String overallFeedback = '',
+    String ideathonId = '',
   }) async {
     if (!_isJudge(judge)) {
       throw StateError('Only judges can save evaluations.');
@@ -87,11 +89,14 @@ abstract final class JudgeEvaluationService {
         ? 0
         : ((overall / template.scoringScale) * 100).clamp(0.0, 100.0);
     final col = _db.collection(FirestoreUtils.hkzScores);
-    final existing = await col
+    final String trimmedIdeathonId = ideathonId.trim();
+    Query<Map<String, dynamic>> existingQuery = col
         .where('ideaId', isEqualTo: idea.ideaId)
-        .where('judgeId', isEqualTo: judge.userId)
-        .limit(1)
-        .get();
+        .where('judgeId', isEqualTo: judge.userId);
+    if (trimmedIdeathonId.isNotEmpty) {
+      existingQuery = existingQuery.where('ideathonId', isEqualTo: trimmedIdeathonId);
+    }
+    final existing = await existingQuery.limit(1).get();
     final payload = ScoreModel(
       scoreId: existing.docs.isEmpty ? '' : existing.docs.first.id,
       ideaId: idea.ideaId,
@@ -106,6 +111,7 @@ abstract final class JudgeEvaluationService {
       criteriaComments: cleanedComments,
       rawScore: overall,
       normalizedScore: normalized,
+      ideathonId: trimmedIdeathonId,
     );
     if (existing.docs.isEmpty) {
       final doc = col.doc();
@@ -113,10 +119,19 @@ abstract final class JudgeEvaluationService {
     } else {
       await col.doc(existing.docs.first.id).update(payload.toMap());
     }
-    await EvaluationAggregationSyncService.syncIdea(
-      ideaId: idea.ideaId,
-      orgId: judge.orgId,
-    );
+    if (trimmedIdeathonId.isNotEmpty) {
+      await IdeathonEvaluationSyncService.syncIdeathonIdea(
+        ideathonId: trimmedIdeathonId,
+        ideaId: idea.ideaId,
+        orgId: judge.orgId,
+      );
+      await IdeathonEvaluationSyncService.syncIdeathonCompletion(trimmedIdeathonId);
+    } else {
+      await EvaluationAggregationSyncService.syncIdea(
+        ideaId: idea.ideaId,
+        orgId: judge.orgId,
+      );
+    }
     clearCache();
   }
 

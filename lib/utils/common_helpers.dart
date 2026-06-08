@@ -99,6 +99,16 @@ String formatDayMonthYear(DateTime date) {
   return '${date.day} ${kMonthNames[date.month - 1]} ${date.year}';
 }
 
+/// Compact date for pills and chips (e.g. Jun 2, 2026).
+String formatShortDate(DateTime date) {
+  const List<String> months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final int monthIndex = date.month.clamp(1, 12) - 1;
+  return '${months[monthIndex]} ${date.day}, ${date.year}';
+}
+
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm
 String formatDateTime(DateTime date) {
   final dd = date.day.toString().padLeft(2, '0');

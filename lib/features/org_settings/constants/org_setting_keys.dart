@@ -51,6 +51,10 @@ abstract final class OrgSettingKeys {
   static const String judgeScoreWeight = 'judgeScoreWeight';
   static const String innovationScoreWeight = 'innovationScoreWeight';
 
+  // Ideathon
+  static const String minShortlistedIdeasRequired = 'minShortlistedIdeasRequired';
+  static const String prototypeSelectionThreshold = 'prototypeSelectionThreshold';
+
   // Upload
   static const String maxUploadSizeMB = 'maxUploadSizeMB';
   static const String allowedImageFormats = 'allowedImageFormats';

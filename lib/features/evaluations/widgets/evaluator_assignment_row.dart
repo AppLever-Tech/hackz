@@ -74,13 +74,15 @@ class EvaluatorAssignmentRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          _MetaPill(
-            text: workloadLabel,
-            background: const Color(0xFFEFF6FF),
-            border: const Color(0xFFBFDBFE),
-            foreground: const Color(0xFF1D4ED8),
-          ),
+          if (workloadLabel.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(width: 6),
+            _MetaPill(
+              text: workloadLabel,
+              background: const Color(0xFFEFF6FF),
+              border: const Color(0xFFBFDBFE),
+              foreground: const Color(0xFF1D4ED8),
+            ),
+          ],
           if (conflictLabel != null) ...<Widget>[
             const SizedBox(width: 6),
             _MetaPill(

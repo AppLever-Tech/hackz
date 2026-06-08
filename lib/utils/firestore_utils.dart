@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../features/organization/models/department_model.dart';
 import '../features/idea/services/idea_department_helpers.dart';
+import 'package:hackz/features/idea/models/enums/idea_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../features/organization/models/organization_model.dart';
 import '../features/organization/models/enums/organization_type.dart';
@@ -37,6 +38,7 @@ class FirestoreUtils {
   static const String hkzEvaluationGroups = 'hkzEvaluationGroups';
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
+  static const String hkzIdeathons = 'hkzIdeathons';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);
@@ -540,7 +542,7 @@ class FirestoreUtils {
           : ((data['problemId'] as String?)?.trim().isNotEmpty == true
               ? (data['problemId'] as String).trim()
               : 'Unmapped Problem');
-      final status = ((data['status'] as String?) ?? 'submitted').trim().toLowerCase();
+      final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
       final bucket = grouped.putIfAbsent(
         problem,
         () => <String, dynamic>{
@@ -552,12 +554,17 @@ class FirestoreUtils {
         },
       );
       bucket['totalIdeas'] = (bucket['totalIdeas'] as int) + 1;
-      if (status == 'evaluated') {
+      if (status == IdeaStatus.evaluated ||
+          status == IdeaStatus.shortlisted ||
+          status == IdeaStatus.ideathonAssigned ||
+          status == IdeaStatus.ideathonEvaluated ||
+          status == IdeaStatus.prototypeSelected ||
+          status == IdeaStatus.winner) {
         bucket['evaluated'] = (bucket['evaluated'] as int) + 1;
         evaluatedIdeas++;
-      } else if (status == 'under review' || status == 'under_review') {
+      } else if (status == IdeaStatus.underEvaluation) {
         bucket['underReview'] = (bucket['underReview'] as int) + 1;
-      } else {
+      } else if (status != IdeaStatus.rejected && status != IdeaStatus.archived) {
         bucket['submitted'] = (bucket['submitted'] as int) + 1;
       }
     }
@@ -810,14 +817,19 @@ class FirestoreUtils {
       final data = idea.data();
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       totalIdeas++;
-      final status = ((data['status'] as String?) ?? 'submitted').trim().toLowerCase();
-      if (status == 'evaluated') {
+      final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
+      if (status == IdeaStatus.evaluated ||
+          status == IdeaStatus.shortlisted ||
+          status == IdeaStatus.ideathonAssigned ||
+          status == IdeaStatus.ideathonEvaluated ||
+          status == IdeaStatus.prototypeSelected ||
+          status == IdeaStatus.winner) {
         evaluated++;
         activeIdeas++;
-      } else if (status == 'under review' || status == 'under_review') {
+      } else if (status == IdeaStatus.underEvaluation) {
         underReview++;
         activeIdeas++;
-      } else {
+      } else if (status != IdeaStatus.rejected && status != IdeaStatus.archived) {
         submitted++;
       }
     }

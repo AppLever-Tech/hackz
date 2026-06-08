@@ -28,6 +28,7 @@ class IdeaModel {
     this.lowestScore,
     this.totalEvaluators = 0,
     this.evaluationRank,
+    this.ideathonId = '',
   });
 
   static const String fieldTeamDepartmentCode = 'teamDepartmentCode';
@@ -59,7 +60,9 @@ class IdeaModel {
   final double? lowestScore;
   final int totalEvaluators;
   final int? evaluationRank;
+  final String ideathonId;
 
+  bool get isInIdeathon => ideathonId.trim().isNotEmpty;
   bool get hasGitRepository => gitRepositoryUrl.trim().isNotEmpty;
   bool get hasYoutubeDemo => youtubeDemoUrl.trim().isNotEmpty;
   bool get hasPresentationFiles => files.isNotEmpty;
@@ -96,6 +99,7 @@ class IdeaModel {
       lowestScore: lowestScore ?? this.lowestScore,
       totalEvaluators: totalEvaluators ?? this.totalEvaluators,
       evaluationRank: clearEvaluationRank ? null : (evaluationRank ?? this.evaluationRank),
+      ideathonId: ideathonId,
     );
   }
 
@@ -122,6 +126,7 @@ class IdeaModel {
       if (lowestScore != null) fieldLowestScore: lowestScore,
       fieldTotalEvaluators: totalEvaluators,
       if (evaluationRank != null) fieldEvaluationRank: evaluationRank,
+      if (ideathonId.trim().isNotEmpty) 'ideathonId': ideathonId.trim(),
     };
   }
 
@@ -151,6 +156,7 @@ class IdeaModel {
       lowestScore: (map[fieldLowestScore] as num?)?.toDouble(),
       totalEvaluators: (map[fieldTotalEvaluators] as num?)?.toInt() ?? 0,
       evaluationRank: (map[fieldEvaluationRank] as num?)?.toInt(),
+      ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
     );
   }
 }

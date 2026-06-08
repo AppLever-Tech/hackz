@@ -14,8 +14,10 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.underEvaluation => 'Under Evaluation',
       IdeaStatus.evaluated => 'Evaluated',
       IdeaStatus.shortlisted => 'Shortlisted',
+      IdeaStatus.ideathonAssigned => 'Ideathon Assigned',
+      IdeaStatus.ideathonEvaluated => 'Ideathon Evaluated',
+      IdeaStatus.prototypeSelected => 'Prototype Selected',
       IdeaStatus.rejected => 'Rejected',
-      IdeaStatus.eventAssigned => 'Event Assigned',
       IdeaStatus.winner => 'Winner',
       IdeaStatus.archived => 'Archived',
     };
@@ -28,9 +30,11 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.underEvaluation => const Color(0xFF1E88E5),
       IdeaStatus.evaluated => const Color(0xFF7B1FA2),
       IdeaStatus.shortlisted => const Color(0xFF2E7D32),
+      IdeaStatus.ideathonAssigned => const Color(0xFF0EA5E9),
+      IdeaStatus.ideathonEvaluated => const Color(0xFF6366F1),
+      IdeaStatus.prototypeSelected => const Color(0xFFD97706),
       IdeaStatus.rejected => const Color(0xFFC62828),
-      IdeaStatus.eventAssigned => const Color(0xFF0EA5E9),
-      IdeaStatus.winner => const Color(0xFFD97706),
+      IdeaStatus.winner => const Color(0xFFB45309),
       IdeaStatus.archived => const Color(0xFF94A3B8),
     };
   }
@@ -50,6 +54,9 @@ abstract final class IdeaStatusHelpers {
   static bool canShortlistFrom(IdeaStatus status) => status == IdeaStatus.evaluated;
 
   static bool canRejectFrom(IdeaStatus status) => status == IdeaStatus.evaluated;
+
+  static bool canSelectPrototypeFrom(IdeaStatus status) =>
+      status == IdeaStatus.ideathonEvaluated || status == IdeaStatus.prototypeSelected;
 
   static int lifecycleIndex(IdeaStatus status) {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);

@@ -77,8 +77,11 @@ class AppIcons {
   static const IconData statusEvaluated = Icons.verified_rounded;
   static const IconData statusShortlisted = Icons.star_outline_rounded;
   static const IconData statusRejected = Icons.cancel_rounded;
-  static const IconData statusEventAssigned = Icons.event_available_outlined;
+  static const IconData statusIdeathonAssigned = Icons.event_available_outlined;
+  static const IconData statusIdeathonEvaluated = Icons.fact_check_rounded;
+  static const IconData statusPrototypeSelected = Icons.precision_manufacturing_outlined;
   static const IconData statusWinner = Icons.emoji_events_outlined;
+  static const IconData ideathons = Icons.celebration_outlined;
   static const IconData statusArchived = Icons.inventory_2_outlined;
 
   // ── Workflow / verification (payments, requests, imports, team readiness) ──
@@ -182,8 +185,10 @@ class AppIcons {
       IdeaStatus.underEvaluation => statusUnderEvaluation,
       IdeaStatus.evaluated => statusEvaluated,
       IdeaStatus.shortlisted => statusShortlisted,
+      IdeaStatus.ideathonAssigned => statusIdeathonAssigned,
+      IdeaStatus.ideathonEvaluated => statusIdeathonEvaluated,
+      IdeaStatus.prototypeSelected => statusPrototypeSelected,
       IdeaStatus.rejected => statusRejected,
-      IdeaStatus.eventAssigned => statusEventAssigned,
       IdeaStatus.winner => statusWinner,
       IdeaStatus.archived => statusArchived,
     };

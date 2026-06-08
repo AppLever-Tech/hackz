@@ -8,6 +8,7 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../widgets/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
+import '../widgets/ideathon_template_picker_pane.dart';
 import '../constants/default_org_settings.dart';
 import '../constants/org_settings_sections.dart';
 import '../models/org_setting_definition.dart';
@@ -33,6 +34,7 @@ class _SectionVm {
     required this.groupOrder,
     required this.byGroup,
     this.isEvaluationTemplates = false,
+    this.isIdeathonTemplate = false,
   });
 
   final String sectionKey;
@@ -45,6 +47,7 @@ class _SectionVm {
   /// renders with [EvaluationTemplatesEditorPane] instead of the standard
   /// per-definition rows.
   final bool isEvaluationTemplates;
+  final bool isIdeathonTemplate;
 }
 
 List<_SectionVm> _computeSectionViewModels() {
@@ -63,6 +66,19 @@ List<_SectionVm> _computeSectionViewModels() {
           groupOrder: const <String>[],
           byGroup: const <String, List<OrgSettingDefinition>>{},
           isEvaluationTemplates: true,
+        ),
+      );
+      continue;
+    }
+    if (sectionKey == kOrgSettingsIdeathonTemplateSectionKey) {
+      out.add(
+        _SectionVm(
+          sectionKey: sectionKey,
+          title: kOrgSettingsIdeathonTemplateSectionTitle,
+          icon: orgSettingsSectionIcon(sectionKey),
+          groupOrder: const <String>[],
+          byGroup: const <String, List<OrgSettingDefinition>>{},
+          isIdeathonTemplate: true,
         ),
       );
       continue;
@@ -680,6 +696,11 @@ class _OrgSettingsRightPane extends StatelessWidget {
       contentArea = const Padding(
         padding: EdgeInsets.fromLTRB(8, 6, 8, 8),
         child: EvaluationTemplatesEditorPane(),
+      );
+    } else if (!globalSearch && s.isIdeathonTemplate) {
+      contentArea = const Padding(
+        padding: EdgeInsets.fromLTRB(8, 6, 8, 8),
+        child: IdeathonTemplatePickerPane(),
       );
     } else {
       final List<Widget> bodyChildren =

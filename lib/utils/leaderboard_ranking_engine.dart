@@ -51,7 +51,9 @@ class LeaderboardRankingEngine {
       IdeaStatus.evaluated => 0.92,
       IdeaStatus.shortlisted => 1.0,
       IdeaStatus.rejected => 1.0,
-      IdeaStatus.eventAssigned => 1.0,
+      IdeaStatus.ideathonAssigned => 0.95,
+      IdeaStatus.ideathonEvaluated => 0.98,
+      IdeaStatus.prototypeSelected => 1.0,
       IdeaStatus.winner => 1.0,
       IdeaStatus.archived => 0.5,
     };

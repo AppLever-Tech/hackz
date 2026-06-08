@@ -4,8 +4,10 @@ enum IdeaStatus {
   underEvaluation('underEvaluation'),
   evaluated('evaluated'),
   shortlisted('shortlisted'),
+  ideathonAssigned('ideathonAssigned'),
+  ideathonEvaluated('ideathonEvaluated'),
+  prototypeSelected('prototypeSelected'),
   rejected('rejected'),
-  eventAssigned('eventAssigned'),
   winner('winner'),
   archived('archived');
 
@@ -18,36 +20,27 @@ enum IdeaStatus {
     IdeaStatus.underEvaluation,
     IdeaStatus.evaluated,
     IdeaStatus.shortlisted,
-    IdeaStatus.eventAssigned,
+    IdeaStatus.ideathonAssigned,
+    IdeaStatus.ideathonEvaluated,
+    IdeaStatus.prototypeSelected,
     IdeaStatus.winner,
   ];
 
   static IdeaStatus fromRaw(String raw) {
-    final normalized = raw.trim().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
-    switch (normalized) {
-      case 'draft':
-      case 'pendingsubmission':
-        return IdeaStatus.draft;
-      case 'submitted':
-        return IdeaStatus.submitted;
-      case 'underevaluation':
-      case 'underreview':
-        return IdeaStatus.underEvaluation;
-      case 'evaluated':
-        return IdeaStatus.evaluated;
-      case 'shortlisted':
-      case 'approved':
-        return IdeaStatus.shortlisted;
-      case 'rejected':
-        return IdeaStatus.rejected;
-      case 'eventassigned':
-        return IdeaStatus.eventAssigned;
-      case 'winner':
-        return IdeaStatus.winner;
-      case 'archived':
-        return IdeaStatus.archived;
-      default:
-        return IdeaStatus.submitted;
-    }
+    final String normalized = raw.trim().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+    return switch (normalized) {
+      'draft' => IdeaStatus.draft,
+      'submitted' => IdeaStatus.submitted,
+      'underevaluation' => IdeaStatus.underEvaluation,
+      'evaluated' => IdeaStatus.evaluated,
+      'shortlisted' => IdeaStatus.shortlisted,
+      'ideathonassigned' => IdeaStatus.ideathonAssigned,
+      'ideathonevaluated' => IdeaStatus.ideathonEvaluated,
+      'prototypeselected' => IdeaStatus.prototypeSelected,
+      'rejected' => IdeaStatus.rejected,
+      'winner' => IdeaStatus.winner,
+      'archived' => IdeaStatus.archived,
+      _ => IdeaStatus.submitted,
+    };
   }
 }

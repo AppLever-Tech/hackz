@@ -37,6 +37,7 @@ class OrgSettingsService extends ChangeNotifier {
   static const String evaluationTemplatesField = 'evaluationTemplates';
   static const String departmentEvaluationExtensionsField =
       'departmentEvaluationExtensions';
+  static const String ideathonEvaluationTemplateIdField = 'ideathonEvaluationTemplateId';
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -50,6 +51,7 @@ class OrgSettingsService extends ChangeNotifier {
   final List<Map<String, dynamic>> _evaluationTemplatesRaw = <Map<String, dynamic>>[];
   final Map<String, dynamic> _departmentEvaluationExtensionsRaw =
       <String, dynamic>{};
+  String _ideathonEvaluationTemplateId = '';
 
   String? _orgId;
   bool _loading = false;
@@ -70,6 +72,8 @@ class OrgSettingsService extends ChangeNotifier {
   Map<String, dynamic> get departmentEvaluationExtensionsRaw =>
       Map<String, dynamic>.unmodifiable(_departmentEvaluationExtensionsRaw);
 
+  String get ideathonEvaluationTemplateId => _ideathonEvaluationTemplateId;
+
   OrgSettingDefinition? definitionFor(String key) => _defByKey[key];
 
   /// Clears in-memory cache (call on logout).
@@ -77,6 +81,7 @@ class OrgSettingsService extends ChangeNotifier {
     _valuesByKey.clear();
     _evaluationTemplatesRaw.clear();
     _departmentEvaluationExtensionsRaw.clear();
+    _ideathonEvaluationTemplateId = '';
     _orgId = null;
     _error = null;
     _loading = false;
@@ -158,6 +163,7 @@ class OrgSettingsService extends ChangeNotifier {
         'settings': defaultOrgSettingsFirestoreEntries(),
         evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
         departmentEvaluationExtensionsField: <String, dynamic>{},
+        ideathonEvaluationTemplateIdField: 'ideathon',
       });
     });
   }
@@ -171,6 +177,8 @@ class OrgSettingsService extends ChangeNotifier {
     _applySettingsArray(data['settings']);
     _applyEvaluationTemplatesArray(data[evaluationTemplatesField]);
     _applyDepartmentEvaluationExtensions(data[departmentEvaluationExtensionsField]);
+    _ideathonEvaluationTemplateId =
+        ((data[ideathonEvaluationTemplateIdField] as String?) ?? '').trim();
 
     final List<Map<String, dynamic>> missing = <Map<String, dynamic>>[];
     for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) {
@@ -198,7 +206,41 @@ class OrgSettingsService extends ChangeNotifier {
       await _persistEvaluationTemplatesArray();
     }
 
+    if (_ideathonEvaluationTemplateId.isEmpty) {
+      _ideathonEvaluationTemplateId = 'ideathon';
+      await _configRef.set(
+        <String, dynamic>{
+          ideathonEvaluationTemplateIdField: _ideathonEvaluationTemplateId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+
     _normalizeDependentDefaults();
+  }
+
+  Future<String?> updateIdeathonEvaluationTemplateId(String templateId) async {
+    if (_orgId == null || _orgId!.isEmpty) return 'Org settings not loaded.';
+    final String next = templateId.trim();
+    if (next.isEmpty) return 'Template id is required.';
+    final String previous = _ideathonEvaluationTemplateId;
+    _ideathonEvaluationTemplateId = next;
+    notifyListeners();
+    try {
+      await _configRef.set(
+        <String, dynamic>{
+          ideathonEvaluationTemplateIdField: next,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      _ideathonEvaluationTemplateId = previous;
+      notifyListeners();
+      return e.toString();
+    }
+    return null;
   }
 
   void _applyEvaluationTemplatesArray(Object? raw) {

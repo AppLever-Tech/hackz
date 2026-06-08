@@ -6,6 +6,7 @@ import '../../features/evaluations/models/evaluation_criterion.dart';
 import '../../features/evaluations/models/evaluation_template.dart';
 import '../../features/evaluations/services/evaluation_templates_service.dart';
 import '../../features/evaluations/widgets/criterion_score_card.dart';
+import '../../features/ideathons/services/ideathon_settings_service.dart';
 import '../../features/org_settings/services/org_settings_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -109,6 +110,16 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     final ScoreModel? existing = widget.latestJudgeScore;
     final String problemDept = widget.idea.problemDepartmentCode.trim().toUpperCase();
     final bool isDepartmentScoped = problemDept.isNotEmpty;
+    if (widget.idea.isInIdeathon ||
+        widget.idea.status == IdeaStatus.ideathonAssigned ||
+        widget.idea.status == IdeaStatus.ideathonEvaluated) {
+      final String templateId = IdeathonSettingsService.ideathonEvaluationTemplateId(widget.idea.orgId);
+      return EvaluationTemplatesService.resolveTemplate(
+        templateId,
+        departmentCode: isDepartmentScoped ? problemDept : null,
+        includeDepartmentExtensions: isDepartmentScoped,
+      );
+    }
     if (existing != null && existing.templateId.trim().isNotEmpty) {
       return EvaluationTemplatesService.resolveTemplate(
         existing.templateId,
@@ -252,6 +263,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         criteriaScores: scores,
         criteriaComments: comments,
         overallFeedback: _overallRemarks.text,
+        ideathonId: widget.idea.ideathonId,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);

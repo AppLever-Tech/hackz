@@ -10,6 +10,11 @@ const String kOrgSettingsEvaluationTemplatesSectionKey = 'evaluationTemplates';
 /// Display title for the evaluation templates pseudo-section.
 const String kOrgSettingsEvaluationTemplatesSectionTitle = 'Evaluation templates';
 
+/// Pseudo-section for ideathon evaluation template picker.
+const String kOrgSettingsIdeathonTemplateSectionKey = 'ideathonTemplate';
+
+const String kOrgSettingsIdeathonTemplateSectionTitle = 'Ideathon evaluation template';
+
 /// Stable section ordering for the org settings dashboard.
 const List<String> kOrgSettingsSectionOrder = <String>[
   'team',
@@ -20,6 +25,8 @@ const List<String> kOrgSettingsSectionOrder = <String>[
   'leaderboard',
   'upload',
   'evaluationSettings',
+  'ideathon',
+  kOrgSettingsIdeathonTemplateSectionKey,
   kOrgSettingsEvaluationTemplatesSectionKey,
 ];
 
@@ -40,6 +47,10 @@ IconData orgSettingsSectionIcon(String sectionKey) {
     case 'upload':
       return AppIcons.attachments;
     case 'evaluationSettings':
+      return AppIcons.scoring;
+    case 'ideathon':
+      return AppIcons.ideathons;
+    case kOrgSettingsIdeathonTemplateSectionKey:
       return AppIcons.scoring;
     case kOrgSettingsEvaluationTemplatesSectionKey:
       return AppIcons.scoring;

@@ -24,6 +24,7 @@ class ScoreModel {
     this.criteriaComments = const <String, String>{},
     this.rawScore,
     this.normalizedScore,
+    this.ideathonId = '',
   });
 
   final String scoreId;
@@ -49,7 +50,11 @@ class ScoreModel {
   final double? rawScore;
   final double? normalizedScore;
 
+  /// When set, this score belongs to an ideathon evaluation round.
+  final String ideathonId;
+
   bool get hasStructuredCriteria => criteriaScores.isNotEmpty;
+  bool get isIdeathonScore => ideathonId.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -66,6 +71,7 @@ class ScoreModel {
       'criteriaComments': criteriaComments,
       'rawScore': rawScore,
       'normalizedScore': normalizedScore,
+      if (ideathonId.trim().isNotEmpty) 'ideathonId': ideathonId.trim(),
     };
   }
 
@@ -86,6 +92,7 @@ class ScoreModel {
       criteriaComments: _decodeStringMap(map['criteriaComments']),
       rawScore: (map['rawScore'] as num?)?.toDouble(),
       normalizedScore: (map['normalizedScore'] as num?)?.toDouble(),
+      ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
     );
   }
 
@@ -103,6 +110,7 @@ class ScoreModel {
     Map<String, String>? criteriaComments,
     double? rawScore,
     double? normalizedScore,
+    String? ideathonId,
   }) {
     return ScoreModel(
       scoreId: scoreId ?? this.scoreId,
@@ -118,6 +126,7 @@ class ScoreModel {
       criteriaComments: criteriaComments ?? this.criteriaComments,
       rawScore: rawScore ?? this.rawScore,
       normalizedScore: normalizedScore ?? this.normalizedScore,
+      ideathonId: ideathonId ?? this.ideathonId,
     );
   }
 }

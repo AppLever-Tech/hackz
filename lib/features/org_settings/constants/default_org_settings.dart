@@ -158,6 +158,36 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupTitle: 'Evaluation rules',
   ),
 
+  // —— Ideathon ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.minShortlistedIdeasRequired,
+    displayName: 'Minimum shortlisted ideas required',
+    type: OrgSettingValueType.integer,
+    defaultValue: 10,
+    sectionKey: 'ideathon',
+    sectionTitle: 'Ideathon settings',
+    groupKey: 'readiness',
+    groupTitle: 'Ideathon readiness',
+    description: 'Minimum shortlisted ideas before an ideathon event can be created.',
+    min: 1,
+    max: 500,
+    step: 1,
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.prototypeSelectionThreshold,
+    displayName: 'Prototype selection threshold (%)',
+    type: OrgSettingValueType.integer,
+    defaultValue: 80,
+    sectionKey: 'ideathon',
+    sectionTitle: 'Ideathon settings',
+    groupKey: 'prototype',
+    groupTitle: 'Prototype selection',
+    description: 'Average ideathon score percentage required to auto-mark prototype selected.',
+    min: 0,
+    max: 100,
+    step: 1,
+  ),
+
   // —— Evaluation settings ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.allowFacultyAsJudges,
