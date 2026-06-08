@@ -216,7 +216,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           ProblemAuthoringSection(
             title: 'Constraints & Feasibility',
             subtitle: 'Real-world limits, difficulty, and timeline',
-            icon: AppIcons.statusUnderReview,
+            icon: AppIcons.info,
             iconBg: const Color(0xFFFEF3E6),
             iconColor: const Color(0xFFD97706),
             status: const AuthoringSectionStatus(completed: 0, total: 0),

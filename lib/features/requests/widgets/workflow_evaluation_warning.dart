@@ -22,7 +22,7 @@ class WorkflowEvaluationWarning extends StatelessWidget {
       title: 'Team has already been evaluated',
       message:
           'Membership changes may affect evaluation integrity. Please coordinate with judges before submitting.',
-      icon: AppIcons.statusUnderReview,
+      icon: AppIcons.workflowPendingReview,
     );
   }
 

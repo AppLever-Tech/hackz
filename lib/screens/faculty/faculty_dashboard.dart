@@ -325,7 +325,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusApproved,
+              icon: AppIcons.statusShortlisted,
               tooltip: 'Approved',
               value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,

@@ -145,7 +145,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         PaymentSummaryCard(
           label: 'Verified payments',
           value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.workflowApproved,
           iconBgColor: const Color(0xFFECFDF5),
           accentColor: const Color(0xFF047857),
           subtitle: '${summary.verifiedCount} verified',
@@ -153,7 +153,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         PaymentSummaryCard(
           label: 'Pending verifications',
           value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
-          icon: AppIcons.statusUnderReview,
+          icon: AppIcons.workflowPendingReview,
           iconBgColor: const Color(0xFFFFF7ED),
           accentColor: const Color(0xFFEA580C),
           subtitle: '${summary.pendingCount} awaiting review',
@@ -192,14 +192,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ),
               FilterPill(
                 selected: _statusFilter == PaymentRecordStatus.pending,
-                icon: AppIcons.statusUnderReview,
+                icon: AppIcons.workflowPendingReview,
                 label: 'Pending',
                 count: workspace.summary.pendingCount,
                 onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
               ),
               FilterPill(
                 selected: _statusFilter == PaymentRecordStatus.verified,
-                icon: AppIcons.statusApproved,
+                icon: AppIcons.workflowApproved,
                 label: 'Verified',
                 count: workspace.summary.verifiedCount,
                 onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),

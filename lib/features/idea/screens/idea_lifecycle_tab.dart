@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../constants/status_styles.dart';
+import '../models/enums/idea_status.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../models/score_model.dart';
 import '../../../screens/common/dashboard_components.dart';
@@ -69,7 +70,7 @@ class IdeaLifecycleTab extends StatelessWidget {
           title: 'Evaluated',
           subtitle: 'Score ${latest.score.toStringAsFixed(1)} · ${vm.reviewerCount} reviewer${vm.reviewerCount == 1 ? '' : 's'}',
           when: latest.createdAt,
-          icon: AppIcons.statusEvaluated,
+          icon: StatusStyles.iconForIdeaStatus(IdeaStatus.evaluated),
           color: const Color(0xFF0EA5E9),
         ),
       );

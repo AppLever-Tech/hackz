@@ -161,7 +161,7 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
               PlatformMetricCard(
                 label: 'Approval Rate',
                 value: '${(data.approvalRate * 100).round()}%',
-                icon: AppIcons.statusApproved,
+                icon: AppIcons.workflowApproved,
                 accent: const Color(0xFF16A34A),
                 caption: 'Active users / registrations',
               ).toChipData(),

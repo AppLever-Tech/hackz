@@ -134,8 +134,8 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusApproved,
-              tooltip: 'Approved',
+              icon: AppIcons.statusShortlisted,
+              tooltip: 'Shortlisted',
               value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
             ),
@@ -160,13 +160,13 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
           icon: AppIcons.payments,
           segments: <DashboardMetricChipSegment>[
             DashboardMetricChipSegment(
-              icon: AppIcons.statusSubmitted,
+              icon: AppIcons.workflowPendingReview,
               tooltip: 'Pending',
               value: '${vm.pendingPayments}',
               color: const Color(0xFFB56A11),
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusApproved,
+              icon: AppIcons.workflowApproved,
               tooltip: 'Verified',
               value: '${vm.verifiedPayments}',
               color: const Color(0xFF177C50),

@@ -719,7 +719,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                       id: _AuthoringSectionId.constraints,
                       title: 'Constraints & Feasibility',
                       subtitle: 'Real-world limits, difficulty, and timeline',
-                      icon: AppIcons.statusUnderReview,
+                      icon: AppIcons.info,
                       iconBg: const Color(0xFFFEF3E6),
                       iconColor: const Color(0xFFD97706),
                       status: _constraintsStatus(),

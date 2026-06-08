@@ -359,10 +359,10 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           icon: AppIcons.submissions,
         ),
         DashboardMetricChipData.single(
-          label: 'Approved',
+          label: 'Shortlisted',
           value: '${metrics.approved}',
           color: const Color(0xFF059669),
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.statusShortlisted,
         ),
         DashboardMetricChipData.single(
           label: 'Evaluated',
@@ -460,7 +460,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
             Row(
               children: const <Widget>[
-                Icon(AppIcons.statusUnderReview, size: 18, color: Color(0xFF64748B)),
+                Icon(Icons.filter_alt_outlined, size: 18, color: Color(0xFF64748B)),
                 SizedBox(width: 6),
                 Text('Status', style: TextStyle(fontWeight: FontWeight.w600)),
               ],

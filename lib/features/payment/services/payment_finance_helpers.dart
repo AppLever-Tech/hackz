@@ -42,9 +42,9 @@ class PaymentFinanceHelpers {
   static IconData statusIcon(PaymentRecordStatus status) {
     switch (status) {
       case PaymentRecordStatus.pending:
-        return AppIcons.statusUnderReview;
+        return AppIcons.workflowPendingReview;
       case PaymentRecordStatus.verified:
-        return AppIcons.statusApproved;
+        return AppIcons.workflowApproved;
       case PaymentRecordStatus.rejected:
         return AppIcons.statusRejected;
     }

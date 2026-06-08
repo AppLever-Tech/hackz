@@ -76,7 +76,7 @@ class JudgeAssignedIdeaMetaLine extends StatelessWidget {
         _miniMeta(AppIcons.teams, teamName.trim().isEmpty ? 'Team' : teamName.trim()),
         _miniMeta(AppIcons.clock, dateLabel),
         if (dueLabel != null && dueLabel!.trim().isNotEmpty)
-          _miniMeta(AppIcons.statusUnderReview, dueLabel!.trim()),
+          _miniMeta(AppIcons.clock, dueLabel!.trim()),
         if (assignedJudgeCount != null && assignedJudgeCount! > 0)
           _miniMeta(
             AppIcons.judges,

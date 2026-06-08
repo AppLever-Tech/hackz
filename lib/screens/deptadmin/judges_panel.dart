@@ -161,7 +161,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         DepartmentMetricCard(
           value: '${metrics.underReviewIdeas}',
           label: 'Ideas Under Review',
-          icon: AppIcons.statusUnderReview,
+          icon: AppIcons.statusUnderEvaluation,
           iconBgColor: const Color(0xFFEAF2FF),
           tooltip: 'Ideas currently under review.',
         ).toChipData(),
@@ -177,7 +177,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
               color: StatusStyles.evaluated,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusApproved,
+              icon: AppIcons.statusShortlisted,
               tooltip: 'Approved',
               value: '${metrics.approvedIdeas}',
               color: StatusStyles.approved,

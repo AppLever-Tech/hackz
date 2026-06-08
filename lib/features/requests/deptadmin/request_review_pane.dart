@@ -267,7 +267,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       title: rejected ? 'Rejection comments' : 'Approval comments',
       subtitle: 'Visible to the requesting faculty',
       leading: _sectionIcon(
-        rejected ? AppIcons.statusRejected : AppIcons.statusApproved,
+        rejected ? AppIcons.statusRejected : AppIcons.workflowApproved,
         tone,
       ),
       tone: tone,
@@ -297,7 +297,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       ),
       if (request.status == WorkflowStatus.approved && request.approvedAt != null)
         _AuditEvent(
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.workflowApproved,
           title: 'Approved',
           detail:
               '${request.approvedBy.isEmpty ? 'Department admin' : request.approvedBy} · ${formatDateTime(request.approvedAt!)}',
@@ -521,7 +521,7 @@ class _ActionBar extends StatelessWidget {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : const Icon(AppIcons.statusApproved, size: 16),
+                : const Icon(AppIcons.workflowApproved, size: 16),
             label: const Text('Approve'),
             style: FilledButton.styleFrom(
               minimumSize: const Size(0, 42),

@@ -601,7 +601,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
               if (attachCount > 0)
                 _footerMeta(AppIcons.attachments, '$attachCount presentation file${attachCount == 1 ? '' : 's'}'),
               _footerMeta(
-                ready ? AppIcons.statusApproved : AppIcons.statusUnderReview,
+                ready ? AppIcons.workflowApproved : AppIcons.workflowPendingReview,
                 ready ? 'Ready to submit' : 'Complete required fields',
                 color: ready ? const Color(0xFF059669) : const Color(0xFF64748B),
               ),

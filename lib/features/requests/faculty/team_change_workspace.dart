@@ -403,12 +403,12 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
       message =
           'Add at least ${TeamChangeRequestService.minStudentsPerTeam} students. Free students from the department appear in the list above.';
       tone = const Color(0xFFB45309);
-      icon = AppIcons.statusUnderReview;
+      icon = AppIcons.workflowPendingReview;
     } else if (atMax) {
       message =
           'Team is at the maximum of ${TeamChangeRequestService.maxStudentsPerTeam} students. Remove a member to add a different student.';
       tone = const Color(0xFF047857);
-      icon = AppIcons.statusApproved;
+      icon = AppIcons.workflowApproved;
     } else {
       message =
           'Minimum ${TeamChangeRequestService.minStudentsPerTeam} · Maximum ${TeamChangeRequestService.maxStudentsPerTeam} students. Only department students not already on another team are shown.';

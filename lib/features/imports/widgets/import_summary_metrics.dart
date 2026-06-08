@@ -26,7 +26,7 @@ class ImportSummaryMetrics extends StatelessWidget {
           label: 'Valid Rows',
           value: '${summary.validRows}',
           color: const Color(0xFF047857),
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.workflowApproved,
         ),
         DashboardMetricChipData.single(
           label: 'Warnings',

@@ -364,7 +364,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     return Row(
       children: <Widget>[
         Icon(
-          belowMin ? AppIcons.statusUnderReview : (atMax ? AppIcons.statusApproved : AppIcons.statusActive),
+          belowMin ? AppIcons.workflowPendingReview : (atMax ? AppIcons.workflowApproved : AppIcons.statusActive),
           size: 14,
           color: belowMin ? const Color(0xFFB45309) : const Color(0xFF64748B),
         ),
@@ -417,7 +417,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
               _footerMeta(AppIcons.student, '$count student${count == 1 ? '' : 's'} selected'),
               _footerMeta(AppIcons.teams, '$remaining slot${remaining == 1 ? '' : 's'} left'),
               _footerMeta(
-                ready ? AppIcons.statusApproved : AppIcons.statusUnderReview,
+                ready ? AppIcons.workflowApproved : AppIcons.workflowPendingReview,
                 ready ? 'Ready to create' : 'Complete team details',
                 color: ready ? const Color(0xFF059669) : const Color(0xFF64748B),
               ),

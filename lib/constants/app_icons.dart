@@ -5,10 +5,11 @@ import '../features/organization/models/enums/organization_type.dart';
 import '../features/problems/models/problem_status.dart';
 import '../features/user/models/enums/user_role.dart';
 
+/// Central icon registry for Hackz — prefer these over raw [Icons] in product UI.
 class AppIcons {
   AppIcons._();
 
-  // Shared common action icons
+  // ── Common actions (toolbars, dialogs, inline controls) ──────────────────
   static const IconData add = Icons.add;
   static const IconData search = Icons.search;
   static const IconData refresh = Icons.refresh;
@@ -19,13 +20,18 @@ class AppIcons {
   static const IconData more = Icons.more_vert;
   static const IconData edit = Icons.edit_outlined;
   static const IconData remove = Icons.close_rounded;
+  static const IconData download = Icons.download_rounded;
+  static const IconData preview = Icons.visibility_outlined;
+  static const IconData openInNew = Icons.open_in_new_rounded;
+  static const IconData onboardingNext = Icons.arrow_forward_rounded;
+  static const IconData clock = Icons.schedule_rounded;
 
-  // Navigation chrome (mobile drawer toggle + collapsible side rail).
+  // ── Navigation chrome (drawer toggle, collapsible side rail) ──────────────
   static const IconData menu = Icons.menu_rounded;
   static const IconData chevronLeft = Icons.chevron_left_rounded;
   static const IconData chevronRight = Icons.chevron_right_rounded;
 
-  // Shared domain icons
+  // ── Domain entities (menus, cards, context pills, workspace headers) ─────
   static const IconData dashboard = Icons.grid_view_rounded;
   static const IconData organizations = Icons.apartment_outlined;
   static const IconData users = Icons.groups_outlined;
@@ -53,57 +59,55 @@ class AppIcons {
   static const IconData orgType = Icons.category_outlined;
   static const IconData address = Icons.location_on_outlined;
   static const IconData website = Icons.language_outlined;
-  static const IconData openInNew = Icons.open_in_new_rounded;
+  static const IconData helpSupport = Icons.support_agent_rounded;
+  static const IconData info = Icons.info_outline_rounded;
 
-  // Attachments
+  // ── Attachments & media ──────────────────────────────────────────────────
   static const IconData attachments = Icons.attach_file_rounded;
   static const IconData attachmentImage = Icons.image_outlined;
   static const IconData attachmentVideo = Icons.videocam_outlined;
   static const IconData attachmentDocument = Icons.description_outlined;
   static const IconData attachmentPdf = Icons.picture_as_pdf_outlined;
   static const IconData attachmentPpt = Icons.slideshow_outlined;
-  static const IconData download = Icons.download_rounded;
-  static const IconData preview = Icons.visibility_outlined;
-  static const IconData statusPendingSubmission = Icons.hourglass_bottom_rounded;
-  // Idea status
-  static const IconData statusSubmitted = Icons.send_rounded;
-  static const IconData statusUnderReview = Icons.pending_rounded;
-  static const IconData statusEvaluated = Icons.verified_rounded;
-  static const IconData statusApproved = Icons.check_circle_rounded;
-  static const IconData statusRejected = Icons.cancel_rounded;
 
-  // Idea Status
+  // ── Idea lifecycle ([IdeaStatus] — use [forIdeaStatus] / IdeaStatusHelpers) ─
   static const IconData statusDraft = Icons.edit_note_rounded;
+  static const IconData statusSubmitted = Icons.send_rounded;
   static const IconData statusUnderEvaluation = Icons.fact_check_outlined;
+  static const IconData statusEvaluated = Icons.verified_rounded;
   static const IconData statusShortlisted = Icons.star_outline_rounded;
+  static const IconData statusRejected = Icons.cancel_rounded;
   static const IconData statusEventAssigned = Icons.event_available_outlined;
   static const IconData statusWinner = Icons.emoji_events_outlined;
   static const IconData statusArchived = Icons.inventory_2_outlined;
+
+  // ── Workflow / verification (payments, requests, imports, team readiness) ──
+  // Not [IdeaStatus] — approval pipelines and completion checks outside ideas.
+  static const IconData workflowPendingReview = Icons.pending_rounded;
+  static const IconData workflowApproved = Icons.check_circle_rounded;
+
+  // ── Team membership (active roster vs disabled team) ───────────────────────
   static const IconData statusActive = Icons.circle;
   static const IconData statusInactive = Icons.circle_outlined;
 
-  /// Problem statement lifecycle status (draft → active → inactive → archived).
+  // ── Problem statement lifecycle ([ProblemStatus]) ──────────────────────────
   static const IconData problemStatusDraft = Icons.edit_note_rounded;
   static const IconData problemStatusActive = Icons.check_circle_outline_rounded;
   static const IconData problemStatusInactive = Icons.pause_circle_outline_rounded;
   static const IconData problemStatusArchived = Icons.inventory_2_outlined;
 
-  /// Account onboarding / approval timeline (signup workspace).
+  // ── Account onboarding timeline (signup workspace) ─────────────────────────
   static const IconData timelineRegistration = Icons.app_registration_outlined;
   static const IconData timelineAccessVerified = Icons.verified_outlined;
   static const IconData timelineApprovalPending = Icons.hourglass_top_rounded;
   static const IconData timelineWorkspace = Icons.dashboard_customize_outlined;
 
+  // ── Account approval state (user access, not idea lifecycle) ───────────────
   static const IconData accountPending = Icons.hourglass_empty_rounded;
   static const IconData accountApproved = Icons.verified_rounded;
   static const IconData accountRejected = Icons.highlight_off_rounded;
   static const IconData accountInvalidCode = Icons.password_outlined;
   static const IconData accountSuspended = Icons.pause_circle_outline_rounded;
-
-  static const IconData helpSupport = Icons.support_agent_rounded;
-  static const IconData info = Icons.info_outline_rounded;
-  static const IconData onboardingNext = Icons.arrow_forward_rounded;
-  static const IconData clock = Icons.schedule_rounded;
 
   static IconData forOrganizationType(OrganizationType? type) {
     switch (type) {
@@ -170,6 +174,7 @@ class AppIcons {
     };
   }
 
+  /// Icons for [IdeaStatus] lifecycle stages — the single source for idea status UI.
   static IconData forIdeaStatus(IdeaStatus status) {
     return switch (status) {
       IdeaStatus.draft => statusDraft,
@@ -183,5 +188,4 @@ class AppIcons {
       IdeaStatus.archived => statusArchived,
     };
   }
-
 }

@@ -48,7 +48,7 @@ class VerificationTimelineWidget extends StatelessWidget {
           ? 'Coordinator review in progress'
           : 'Review completed',
       when: payment.status == PaymentRecordStatus.pending ? null : payment.verifiedAt ?? payment.createdAt,
-      icon: AppIcons.statusUnderReview,
+      icon: AppIcons.workflowPendingReview,
       color: const Color(0xFF1E88E5),
       isComplete: payment.status != PaymentRecordStatus.pending,
     );
@@ -58,7 +58,7 @@ class VerificationTimelineWidget extends StatelessWidget {
           ? remarks!.trim()
           : (payment.status == PaymentRecordStatus.rejected ? 'Rejected by coordinator' : 'Verified by coordinator'),
       when: payment.verifiedAt,
-      icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.statusRejected : AppIcons.statusApproved,
+      icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.statusRejected : AppIcons.workflowApproved,
       color: PaymentFinanceHelpers.statusColor(payment.status),
       isComplete: payment.status != PaymentRecordStatus.pending,
     );

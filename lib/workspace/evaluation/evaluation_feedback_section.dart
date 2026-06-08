@@ -20,7 +20,7 @@ class EvaluationFeedbackSection extends StatelessWidget {
         const SizedBox(height: 10),
         _feedbackCard(
           title: 'Strengths',
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.workflowApproved,
           color: const Color(0xFF047857),
           items: vm.strengths,
           emptyText: 'No strengths highlighted in evaluation feedback.',

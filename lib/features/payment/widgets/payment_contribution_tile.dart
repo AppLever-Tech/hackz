@@ -122,7 +122,7 @@ class PaymentContributionTile extends StatelessWidget {
                   if (item.isOverdue)
                     _metaChip(AppIcons.statusRejected, 'Overdue', color: const Color(0xFFB91C1C))
                   else if (item.isRecentlyVerified)
-                    _metaChip(AppIcons.statusApproved, 'Recently verified', color: const Color(0xFF047857))
+                    _metaChip(AppIcons.workflowApproved, 'Recently verified', color: const Color(0xFF047857))
                   else if (item.needsAttention)
                     _metaChip(AppIcons.info, 'Needs attention', color: const Color(0xFFB45309)),
                   _metaChip(AppIcons.student, '${item.studentCount} students'),
