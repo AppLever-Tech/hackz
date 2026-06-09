@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
-import 'package:hackz/responsive/responsive_helper.dart';
+import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'attachment_preview_pane.dart';
 import 'attachment_workspace_loader.dart';
 

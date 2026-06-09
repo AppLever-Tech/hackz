@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import 'responsive_helper.dart';
 
 /// Scrollable dashboard body wrapper. Use for overview pages with column content.
 ///

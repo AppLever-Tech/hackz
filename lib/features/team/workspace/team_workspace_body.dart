@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../requests/widgets/team_change_history_timeline.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'team_activity_section.dart';
 import 'team_ideas_section.dart';
 import 'team_members_section.dart';

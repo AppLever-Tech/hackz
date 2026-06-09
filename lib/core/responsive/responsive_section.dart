@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
-import '../../screens/common/dashboard_components.dart' show SectionContainer;
+import 'responsive_helper.dart';
+import '../../../screens/common/dashboard_components.dart' show SectionContainer;
 
 /// Section block with responsive padding; reuses premium [SectionContainer] styling.
 class ResponsiveSection extends StatelessWidget {

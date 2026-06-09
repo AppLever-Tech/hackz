@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/workspace/workspace_attachments_panel.dart';
 import 'idea_related_section.dart';
 import 'idea_status_section.dart';

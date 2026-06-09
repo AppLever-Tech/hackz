@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/deptadmin/department_metric_card.dart';
-import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';

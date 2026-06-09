@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../organization/models/organization_model.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../user/models/user_model.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../models/workflow_request.dart';
 import '../models/workflow_request_type.dart';
 import '../models/workflow_status.dart';

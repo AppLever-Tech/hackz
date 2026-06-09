@@ -20,13 +20,13 @@ import 'coordinator_payment_card.dart';
 import '../common/app_dialog_template.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/dashboard_components.dart';
-import '../../widgets/responsive/responsive_alert_dialog.dart';
+import '../../core/responsive/responsive_alert_dialog.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
-import '../../widgets/responsive/responsive_columns.dart';
+import '../../core/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../core/responsive/responsive_metric_grid.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class CoordinatorDashboard extends StatelessWidget {

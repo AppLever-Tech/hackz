@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../screens/common/dashboard_components.dart';
+import '../../../constants/app_icons.dart';
+import 'responsive_helper.dart';
+import '../../../screens/common/dashboard_components.dart';
 import 'dashboard_scrollable_body.dart';
 
 /// Adaptive dashboard shell shared by every role.

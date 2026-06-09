@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../core/theme/auth_theme.dart';
 import '../../widgets/auth/landing/landing_ecosystem_sections.dart';
 import '../../widgets/auth/landing/innovation_journey_grid.dart';

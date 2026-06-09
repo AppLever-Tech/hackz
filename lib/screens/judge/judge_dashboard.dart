@@ -11,13 +11,13 @@ import '../../features/evaluations/services/judge_dashboard_service.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/dashboard_trend_chart_layout.dart';
 import '../../widgets/common/time_frame_filter.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_columns.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../core/responsive/responsive_columns.dart';
+import '../../core/responsive/responsive_metric_grid.dart';
 import '../../features/evaluations/screens/judge_evaluation_workspace_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {

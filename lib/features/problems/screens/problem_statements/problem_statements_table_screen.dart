@@ -6,7 +6,7 @@ import '../../../../constants/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
-import '../../../../responsive/responsive_helper.dart';
+import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
 import '../../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../../screens/common/dashboard_components.dart';

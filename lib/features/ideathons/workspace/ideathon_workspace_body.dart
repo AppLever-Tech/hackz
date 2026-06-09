@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_prototype_service.dart';

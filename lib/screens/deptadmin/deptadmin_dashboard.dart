@@ -21,12 +21,12 @@ import '../../features/evaluations/screens/department_evaluation_extensions_scre
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../features/evaluations/screens/judges_panel.dart';
 import '../../features/user/screens/manage_users_screen.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_columns.dart';
+import '../../core/responsive/adaptive_dashboard_panel.dart';
+import '../../core/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../core/responsive/responsive_metric_grid.dart';
 import '../../features/requests/deptadmin/requests_workspace_screen.dart';
 import 'package:hackz/features/payment/screens/payments_screen.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';

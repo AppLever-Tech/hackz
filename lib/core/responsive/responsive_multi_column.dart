@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import 'responsive_helper.dart';
 
 /// Stacks children vertically on mobile/tablet; horizontal row on desktop+.
 class ResponsiveMultiColumn extends StatelessWidget {

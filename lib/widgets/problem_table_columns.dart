@@ -7,7 +7,7 @@ import '../features/problems/models/problem_status.dart';
 import '../features/problems/validators/problem_submission_validators.dart';
 import '../features/problems/widgets/problem_context_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
-import '../responsive/responsive_helper.dart';
+import '../core/responsive/responsive_helper.dart';
 import '../utils/common_helpers.dart';
 import 'common/card_overflow_menu.dart';
 import 'data_view/data_table_column.dart';

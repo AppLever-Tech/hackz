@@ -13,7 +13,7 @@ import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/leaderboard/rank_showcase_card.dart';
 import '../../widgets/leaderboard/rising_ideas_widget.dart';
 import '../../widgets/leaderboard/trend_indicator_widget.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/widgets/common/context_pill_theme.dart';
 

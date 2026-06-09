@@ -20,11 +20,11 @@ import '../../widgets/sysadmin/platform_alerts_section.dart';
 import '../../widgets/sysadmin/platform_distribution_chart.dart';
 import '../../widgets/sysadmin/platform_metric_card.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_columns.dart';
+import '../../core/responsive/adaptive_dashboard_panel.dart';
+import '../../core/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_metric_grid.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/sysadmin/recent_platform_activity_card.dart';
 
 class SysAdminDashboard extends StatelessWidget {

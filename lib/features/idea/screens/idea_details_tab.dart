@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../organization/models/department_model.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../workspace/idea_workspace_loader.dart';

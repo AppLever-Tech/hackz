@@ -22,7 +22,7 @@ import '../../idea/services/idea_query_service.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
 import '../services/judge_evaluation_service.dart';
 import '../../../widgets/common/entity_card_pills.dart';
-import '../../../widgets/responsive/responsive_dialog_actions.dart';
+import '../../../core/responsive/responsive_dialog_actions.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/widgets/common/context_pill_theme.dart';
 

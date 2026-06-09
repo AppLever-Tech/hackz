@@ -14,11 +14,11 @@ import '../common/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../widgets/responsive/adaptive_dashboard_panel.dart';
-import '../../widgets/responsive/responsive_columns.dart';
+import '../../core/responsive/responsive_helper.dart';
+import '../../core/responsive/adaptive_dashboard_panel.dart';
+import '../../core/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
+import '../../core/responsive/responsive_metric_grid.dart';
 import 'manage_college_screen.dart';
 
 class CollegeAdminDashboard extends StatelessWidget {

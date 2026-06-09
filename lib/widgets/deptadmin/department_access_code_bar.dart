@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
 
 /// Compact single-line access / invite code row for department admin screens.

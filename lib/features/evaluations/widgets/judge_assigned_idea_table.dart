@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/judge_evaluation_service.dart';
 import '../../../widgets/common/context_pill_theme.dart';

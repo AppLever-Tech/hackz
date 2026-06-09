@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../core/responsive/responsive_metric_grid.dart';
 import '../models/import_summary.dart';
 
 class ImportSummaryMetrics extends StatelessWidget {

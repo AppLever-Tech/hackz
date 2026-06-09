@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../features/user/models/user_model.dart';
 import '../../shared/workspace/user_workspace_avatar.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../shared/menus/hackz_popup_menu.dart';
 import '../../widgets/common/time_frame_filter.dart';
 

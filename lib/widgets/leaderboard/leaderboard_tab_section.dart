@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../utils/leaderboard_role_config.dart';
 import '../common/rich_tabs.dart';
 

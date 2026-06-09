@@ -14,7 +14,7 @@ import 'package:hackz/features/attachment/services/attachment_service.dart';
 import 'package:hackz/utils/firestore_utils.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import 'package:hackz/widgets/loading/loading.dart';
-import 'package:hackz/widgets/responsive/responsive_dialog_actions.dart';
+import 'package:hackz/core/responsive/responsive_dialog_actions.dart';
 
 import '../models/payment_model.dart';
 

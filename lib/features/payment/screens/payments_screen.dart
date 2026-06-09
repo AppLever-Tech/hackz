@@ -6,8 +6,8 @@ import 'package:hackz/screens/common/app_dialog_template.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/shared/inputs/filter_pill.dart';
 import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
-import 'package:hackz/widgets/responsive/responsive_filter_bar.dart';
-import 'package:hackz/widgets/responsive/responsive_metric_grid.dart';
+import 'package:hackz/core/responsive/responsive_filter_bar.dart';
+import 'package:hackz/core/responsive/responsive_metric_grid.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';

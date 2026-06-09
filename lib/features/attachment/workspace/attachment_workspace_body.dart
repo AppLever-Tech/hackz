@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:hackz/constants/app_icons.dart';
-import 'package:hackz/responsive/responsive_helper.dart';
-import 'package:hackz/widgets/responsive/responsive_filter_bar.dart';
+import 'package:hackz/core/responsive/responsive_helper.dart';
+import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'attachment_metadata_section.dart';
 import 'attachment_preview_section.dart';
 import 'attachment_related_section.dart';

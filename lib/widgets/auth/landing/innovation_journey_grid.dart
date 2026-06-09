@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'innovation_milestone_node.dart';
 import 'landing_section_header.dart';
 import 'journey_connector_painter.dart';

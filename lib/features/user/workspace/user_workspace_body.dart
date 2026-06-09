@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'user_activity_section.dart';
 import 'user_metadata_section.dart';
 import 'user_summary_section.dart';

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../shared/feedback/feedback.dart';

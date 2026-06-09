@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'user_workspace_loader.dart';
 
 class UserActivitySection extends StatelessWidget {

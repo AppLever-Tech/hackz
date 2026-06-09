@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'evaluation_feedback_section.dart';
 import 'evaluation_judge_section.dart';
 import 'evaluation_scores_section.dart';

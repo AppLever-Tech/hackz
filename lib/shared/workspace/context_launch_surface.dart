@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_semantic_colors.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/common/context_pill_metrics.dart';
 import '../../widgets/common/context_pill_theme.dart';
 

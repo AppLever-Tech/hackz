@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import '../responsive/responsive_helper.dart';
 import 'workspace_controller.dart';
 import 'workspace_navigator.dart';
 import 'workspace_theme.dart';

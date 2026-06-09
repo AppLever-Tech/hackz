@@ -10,11 +10,11 @@ import '../../utils/firestore_utils.dart';
 import '../common/app_dialog_template.dart';
 import '../../features/user/screens/create_user_dialog.dart';
 import '../common/dashboard_components.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 import '../../shared/buttons/hover_icon_action_button.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../shared/inputs/hackz_select_field.dart';
-import '../../widgets/responsive/responsive_filter_bar.dart';
+import '../../core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 

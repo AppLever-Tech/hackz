@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_dialog.dart';
+import 'responsive_dialog.dart';
 import 'responsive_dialog_actions.dart';
 
 /// [AlertDialog] replacement with fullscreen mobile and adaptive max width.

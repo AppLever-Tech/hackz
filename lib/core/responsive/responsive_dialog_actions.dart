@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import 'responsive_helper.dart';
 
 /// Dialog / form footer actions: inline on desktop, wrapped or stacked on mobile.
 class ResponsiveDialogActions extends StatelessWidget {

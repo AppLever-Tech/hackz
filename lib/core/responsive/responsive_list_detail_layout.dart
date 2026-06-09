@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import 'responsive_helper.dart';
 
 /// List + optional detail: side-by-side on desktop, full-screen detail on mobile/tablet.
 class ResponsiveListDetailLayout extends StatelessWidget {

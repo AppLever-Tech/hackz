@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../responsive/responsive_helper.dart';
+import '../../../constants/app_icons.dart';
+import 'responsive_helper.dart';
 
 /// Search field + filter toggle; stacks on narrow widths.
 class ResponsiveSearchFilterBar extends StatelessWidget {

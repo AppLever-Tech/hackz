@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_helper.dart';
+import '../../core/responsive/responsive_helper.dart';
 
 /// Label for a [RichTabBar] / [RichTabs] segment.
 class RichTabItem {

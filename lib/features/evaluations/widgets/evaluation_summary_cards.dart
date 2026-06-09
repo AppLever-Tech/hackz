@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../idea/models/idea_model.dart';
 import '../services/evaluation_aggregation_service.dart';
 

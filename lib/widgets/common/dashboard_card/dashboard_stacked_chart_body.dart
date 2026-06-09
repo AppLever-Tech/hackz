@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'dashboard_bounded_body.dart';
 import 'dashboard_layout_tokens.dart';
 

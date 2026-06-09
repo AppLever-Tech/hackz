@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../user/models/user_model.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
 import '../widgets/ideathon_template_picker_pane.dart';
 import '../constants/default_org_settings.dart';

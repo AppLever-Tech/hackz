@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../responsive/responsive_breakpoints.dart';
-import '../../responsive/responsive_helper.dart';
+import 'responsive_breakpoints.dart';
+import 'responsive_helper.dart';
 
 /// Stacks two children vertically below [ResponsiveBreakpoints.tablet], otherwise [Row].
 class ResponsivePair extends StatelessWidget {

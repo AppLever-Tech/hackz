@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../dashboard/dashboard_metric_chips.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 
 /// Responsive metric chips: 2 per row on mobile/tablet, 4 on desktop.
 class ResponsiveMetricGrid extends StatelessWidget {

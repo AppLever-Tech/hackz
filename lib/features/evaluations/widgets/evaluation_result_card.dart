@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../user/models/user_model.dart';
