@@ -8,7 +8,7 @@ import '../../../models/score_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/core/workspace_attachment_counts.dart';
+import '../../../core/workspace/workspace_attachment_counts.dart';
 import '../models/problem_model.dart';
 
 class ProblemWorkspaceViewModel {

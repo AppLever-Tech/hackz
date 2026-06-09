@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/user/models/user_model.dart';
-import '../../workspace/core/workspace_navigator.dart';
+import '../../core/workspace/workspace_navigator.dart';
 import 'user_workspace_avatar.dart';
 
 /// Avatar + plain name lead for user/judge list rows (workspace opens from avatar).

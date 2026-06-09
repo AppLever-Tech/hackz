@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
-import 'package:hackz/workspace/core/workspace_attachments_panel.dart';
+import 'package:hackz/core/workspace/workspace_attachments_panel.dart';
 
 import '../models/payment_model.dart';
 import '../services/payment_finance_helpers.dart';

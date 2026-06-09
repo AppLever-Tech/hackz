@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../workspace/core/workspace_attachments_panel.dart';
+import '../../../core/workspace/workspace_attachments_panel.dart';
 import 'problem_metadata_section.dart';
 import 'problem_related_section.dart';
 import 'problem_summary_section.dart';

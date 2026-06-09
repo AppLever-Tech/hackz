@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../workspace/core/workspace_host.dart';
-import '../../../workspace/core/workspace_route.dart';
+import '../../../core/workspace/workspace_host.dart';
+import '../../../core/workspace/workspace_route.dart';
 import '../../../workspace/evaluation/evaluation_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../problems/workspace/problem_workspace.dart';

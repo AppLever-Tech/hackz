@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../screens/common/dashboard_components.dart';
-import '../../../../workspace/core/workspace_attachments_panel.dart';
+import '../../../../core/workspace/workspace_attachments_panel.dart';
 import '../../workspace/problem_metadata_section.dart';
 import '../../workspace/problem_summary_section.dart';
 import '../../workspace/problem_workspace_loader.dart';

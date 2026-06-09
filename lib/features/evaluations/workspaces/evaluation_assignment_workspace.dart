@@ -12,7 +12,7 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../widgets/common/context_pill_theme.dart';
 import '../../../widgets/common/entity_card_pills.dart';
-import '../../../workspace/core/workspace_navigator.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';

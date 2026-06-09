@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import 'package:hackz/features/team/workspace/team_workspace.dart';
 import 'package:hackz/features/user/workspace/user_workspace.dart';
-import 'package:hackz/workspace/core/workspace_host.dart';
-import 'package:hackz/workspace/core/workspace_route.dart';
+import 'package:hackz/core/workspace/workspace_host.dart';
+import 'package:hackz/core/workspace/workspace_route.dart';
 import 'payment_workspace_body.dart';
 import 'payment_workspace_loader.dart';
 

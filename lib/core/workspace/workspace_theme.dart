@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/auth_theme.dart';
+import '../theme/auth_theme.dart';
 
 /// Visual tokens for contextual workspace panels.
 abstract final class WorkspaceTheme {

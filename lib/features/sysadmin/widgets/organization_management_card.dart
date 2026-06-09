@@ -13,7 +13,7 @@ import '../../../shared/feedback/feedback.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/core/workspace_navigator.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../models/org_operational_data.dart';
 import 'org_metadata_row.dart';
 

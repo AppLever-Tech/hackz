@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../workspace/core/workspace_host.dart';
-import '../../../workspace/core/workspace_route.dart';
+import '../../../core/workspace/workspace_host.dart';
+import '../../../core/workspace/workspace_route.dart';
 import 'user_workspace_body.dart';
 import 'user_workspace_loader.dart';
 

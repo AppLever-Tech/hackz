@@ -1,17 +1,17 @@
 /// Hackz contextual workspace navigation (Phase 1 foundation).
 library;
 
-export 'core/workspace_container.dart';
-export 'core/workspace_controller.dart';
-export 'core/workspace_header.dart';
-export 'core/workspace_host.dart';
-export 'core/workspace_navigator.dart';
-export 'core/workspace_route.dart';
-export 'core/workspace_theme.dart';
-export 'core/workspace_transition.dart';
-export 'core/workspace_attachment_counts.dart';
-export 'core/workspace_attachments_summary.dart';
-export 'core/workspace_attachments_panel.dart';
+export '../core/workspace/workspace_container.dart';
+export '../core/workspace/workspace_controller.dart';
+export '../core/workspace/workspace_header.dart';
+export '../core/workspace/workspace_host.dart';
+export '../core/workspace/workspace_navigator.dart';
+export '../core/workspace/workspace_route.dart';
+export '../core/workspace/workspace_theme.dart';
+export '../core/workspace/workspace_transition.dart';
+export '../core/workspace/workspace_attachment_counts.dart';
+export '../core/workspace/workspace_attachments_summary.dart';
+export '../core/workspace/workspace_attachments_panel.dart';
 export '../features/attachment/workspace/attachment_workspace.dart';
 export 'shared/entity_reference_row.dart';
 export 'shared/entity_reference_tile.dart';

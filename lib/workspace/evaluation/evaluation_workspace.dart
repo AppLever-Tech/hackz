@@ -4,8 +4,8 @@ import '../../features/evaluations/models/evaluation_details_view_model.dart';
 import '../../features/evaluations/services/evaluation_details_loader.dart';
 import '../../features/evaluations/workspace/evaluation_details_workspace.dart';
 import '../../features/user/models/user_model.dart';
-import '../core/workspace_host.dart';
-import '../core/workspace_route.dart';
+import '../../core/workspace/workspace_host.dart';
+import '../../core/workspace/workspace_route.dart';
 
 /// Read-only evaluation report workspace (evaluation-centric).
 abstract final class EvaluationWorkspace {
