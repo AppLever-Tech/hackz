@@ -48,6 +48,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Set<String> _problemFilters = <String>{};
   Set<String> _departmentFilters = <String>{};
   IdeaSortType _sort = IdeaSortType.newest;
+  bool _scoreSortDescending = true;
 
   @override
   void initState() {
@@ -152,24 +153,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             .toList(growable: false)
           ..sort();
 
-        final Widget tableWidget = ideas.isEmpty
-            ? _EmptyIdeasState(
-                onClearSearch: () {
-                  if (_searchController.text.trim().isEmpty) return;
-                  _searchController.clear();
-                  _loadIdeas();
-                },
-              )
-            : DataTableView<IdeaListItem>(
-                items: ideas,
-                columns: IdeaTableColumns.build(
-                  config: widget.config,
-                  actions: _ideaTableActions(),
-                ),
-                onSort: _onTableSort,
-                activeSortKey: _activeSortKey,
-                onRowTap: _openIdeaDetails,
-              );
+        final IdeaTableActions tableActions = _ideaTableActions();
+        final List<IdeaListItem> displayItems = _displayItems(ideas);
+
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
@@ -182,12 +168,43 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               availableDepartments: availableDepartments,
             );
 
+            final Widget contentWidget = displayItems.isEmpty
+                ? _EmptyIdeasState(
+                    onClearSearch: () {
+                      if (_searchController.text.trim().isEmpty) return;
+                      _searchController.clear();
+                      _loadIdeas();
+                    },
+                  )
+                : mobile
+                    ? ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: displayItems.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (BuildContext context, int index) {
+                          return IdeaListRowCard(
+                            item: displayItems[index],
+                            config: widget.config,
+                            actions: tableActions,
+                          );
+                        },
+                      )
+                    : DataTableView<IdeaListItem>(
+                        items: displayItems,
+                        columns: IdeaTableColumns.build(
+                          config: widget.config,
+                          actions: tableActions,
+                        ),
+                        onSort: _onTableSort,
+                        activeSortKey: _activeSortKey,
+                      );
+
             if (!hasBoundedHeight) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   header,
-                  SizedBox(height: 420, child: tableWidget),
+                  SizedBox(height: 420, child: contentWidget),
                 ],
               );
             }
@@ -204,7 +221,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   ),
                   Expanded(
                     flex: 5,
-                    child: tableWidget,
+                    child: contentWidget,
                   ),
                 ],
               );
@@ -214,7 +231,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 header,
-                Expanded(child: tableWidget),
+                Expanded(child: contentWidget),
               ],
             );
           },
@@ -271,32 +288,43 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       case IdeaSortType.oldest:
         return 'newest';
       case IdeaSortType.status:
-        return 'status';
+        return null;
       case IdeaSortType.score:
         return 'score';
     }
   }
 
+  List<IdeaListItem> _displayItems(List<IdeaListItem> items) {
+    if (_sort != IdeaSortType.score) return items;
+    final List<IdeaListItem> sorted = List<IdeaListItem>.from(items);
+    sorted.sort((IdeaListItem a, IdeaListItem b) {
+      final int cmp = (a.score?.score ?? -1).compareTo(b.score?.score ?? -1);
+      return _scoreSortDescending ? -cmp : cmp;
+    });
+    return sorted;
+  }
+
   void _onTableSort(String sortKey) {
-    IdeaSortType? next;
     switch (sortKey) {
       case 'newest':
-        // Tapping the active "Idea" header flips newest <-> oldest;
-        // tapping it from another sort jumps to newest.
-        next = _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
-        break;
-      case 'status':
-        next = IdeaSortType.status;
-        break;
+        final IdeaSortType next =
+            _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
+        if (!widget.config.enabledSorts.contains(next)) return;
+        if (next == _sort) return;
+        setState(() => _sort = next);
+        _loadIdeas();
       case 'score':
-        next = IdeaSortType.score;
-        break;
+        if (!widget.config.enabledSorts.contains(IdeaSortType.score)) return;
+        if (_sort == IdeaSortType.score) {
+          setState(() => _scoreSortDescending = !_scoreSortDescending);
+        } else {
+          setState(() {
+            _sort = IdeaSortType.score;
+            _scoreSortDescending = true;
+          });
+          _loadIdeas();
+        }
     }
-    if (next == null) return;
-    if (!widget.config.enabledSorts.contains(next)) return;
-    if (next == _sort) return;
-    setState(() => _sort = next!);
-    _loadIdeas();
   }
 
   void _openAttachments(BuildContext context, IdeaListItem item) {

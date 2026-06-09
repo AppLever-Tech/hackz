@@ -115,4 +115,10 @@ abstract final class ContextPillMetrics {
 
   /// Inset for pills in clipped dashboard lists (hover scale, border, glow).
   static const EdgeInsets clippedListPadding = EdgeInsets.fromLTRB(8, 4, 6, 4);
+
+  // --- Compact pills inside mobile row cards ---
+  static const double mobileCardPillHeight = 28;
+  static const double mobileCardPillIconSize = 14;
+  static const double mobileCardPillFontSize = 10.5;
+  static const EdgeInsets mobileCardPillPadding = EdgeInsets.symmetric(horizontal: 8, vertical: 4);
 }

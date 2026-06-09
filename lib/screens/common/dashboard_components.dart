@@ -18,6 +18,22 @@ final BoxDecoration kDashboardCardDecoration = BoxDecoration(
   ],
 );
 
+/// Shared tappable title typography for compact mobile dashboard row cards.
+abstract final class MobileRowCardStyles {
+  MobileRowCardStyles._();
+
+  static const double titleFontSize = 15;
+  static const FontWeight titleFontWeight = FontWeight.w800;
+  static const Color titleColor = Color(0xFF1D4ED8);
+
+  static const TextStyle title = TextStyle(
+    fontSize: titleFontSize,
+    fontWeight: titleFontWeight,
+    color: titleColor,
+    height: 1.25,
+  );
+}
+
 /// Shared nav tree for desktop sidebar, tablet rail, and mobile drawer.
 ///
 /// Brand row layout (when [showBranding] is true):

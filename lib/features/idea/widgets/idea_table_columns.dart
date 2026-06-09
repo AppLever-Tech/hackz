@@ -5,15 +5,18 @@ import '../../../constants/app_icons.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../services/idea_query_service.dart';
+import '../../../screens/common/dashboard_components.dart';
 import '../../../widgets/common/card_overflow_menu.dart';
 import '../../../widgets/common/context_pill_theme.dart';
 import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/common/mobile_row_card_pill.dart';
 import '../../../widgets/data_view/data_table_column.dart';
 import '../../problems/widgets/problem_context_pill.dart';
+import '../../problems/widgets/problem_workflow_action_pill.dart';
 
 const double _kLeadingColumnGap = 12;
 
-/// Action bundle for [IdeaTableColumns].
+/// Action bundle for [IdeaTableColumns] and [IdeaListRowCard].
 class IdeaTableActions {
   const IdeaTableActions({
     required this.onOpenIdea,
@@ -38,6 +41,38 @@ class IdeaTableActions {
   final void Function(IdeaListItem item)? onAssignJudge;
 }
 
+class _IdeaActionFlags {
+  const _IdeaActionFlags({
+    required this.showPay,
+    required this.canEval,
+    required this.canAssignJudge,
+    required this.hasAttachments,
+    required this.hasPayment,
+    required this.canEvalView,
+    required this.hasScore,
+  });
+
+  final bool showPay;
+  final bool canEval;
+  final bool canAssignJudge;
+  final bool hasAttachments;
+  final bool hasPayment;
+  final bool canEvalView;
+  final bool hasScore;
+
+  factory _IdeaActionFlags.from(IdeaListItem item, IdeaListConfig config) {
+    return _IdeaActionFlags(
+      showPay: config.canUploadPayment && item.canUploadPayment && item.team != null,
+      canEval: config.canEvaluate && item.idea.status != IdeaStatus.draft,
+      canAssignJudge: config.canAssignJudge,
+      hasAttachments: item.attachmentCount > 0,
+      hasPayment: item.payment != null,
+      canEvalView: IdeaTableColumns.canOpenEvaluation(item),
+      hasScore: item.score?.score != null,
+    );
+  }
+}
+
 /// Per-feature column factory for the Ideas dashboard.
 abstract final class IdeaTableColumns {
   static List<DataTableColumn<IdeaListItem>> build({
@@ -49,31 +84,13 @@ abstract final class IdeaTableColumns {
       DataTableColumn<IdeaListItem>(
         label: 'Idea',
         flex: 5,
-        minWidth: 220,
+        minWidth: 240,
         gapAfter: _kLeadingColumnGap,
         sortKey: enabledSorts.contains(IdeaSortType.newest) ? 'newest' : null,
-        cell: (BuildContext context, IdeaListItem item) {
-          final String title = item.idea.ideaTitle.trim().isEmpty
-              ? 'Untitled Idea'
-              : item.idea.ideaTitle.trim();
-          return InkWell(
-            onTap: () => actions.onOpenIdea(item),
-            borderRadius: BorderRadius.circular(6),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF4A67FF),
-                  decoration: TextDecoration.underline,
-                  decorationColor: Color(0xFF4A67FF),
-                ),
-              ),
-            ),
-          );
-        },
+        cell: (BuildContext context, IdeaListItem item) => _IdeaTitleCell(
+          item: item,
+          onOpenIdea: () => actions.onOpenIdea(item),
+        ),
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Team',
@@ -84,33 +101,32 @@ abstract final class IdeaTableColumns {
           final String teamLabel =
               item.teamName.trim().isEmpty ? 'Team' : item.teamName.trim();
           final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
-          if (teamId.isEmpty) {
-            return EntityCardPills.meta(teamLabel, icon: AppIcons.teams);
-          }
-          return EntityCardPills.workspace(
-            teamLabel,
-            ContextPillSemantic.team,
-            () => actions.onOpenTeam(item),
-            icon: AppIcons.teams,
+          final Widget pill = teamId.isEmpty
+              ? EntityCardPills.meta(teamLabel, icon: AppIcons.teams)
+              : EntityCardPills.workspace(
+                  teamLabel,
+                  ContextPillSemantic.team,
+                  () => actions.onOpenTeam(item),
+                  icon: AppIcons.teams,
+                );
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: pill,
           );
         },
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Problem',
         flex: 2,
-        minWidth: 100,
+        minWidth: 136,
         gapAfter: _kLeadingColumnGap,
-        cell: (BuildContext context, IdeaListItem item) =>
-            _ProblemIdPill(item: item, onOpenProblem: () => actions.onOpenProblem(item)),
-      ),
-      DataTableColumn<IdeaListItem>(
-        label: 'Status',
-        flex: 3,
-        minWidth: 140,
-        gapAfter: _kLeadingColumnGap,
-        sortKey: enabledSorts.contains(IdeaSortType.status) ? 'status' : null,
-        cell: (BuildContext context, IdeaListItem item) =>
-            _StatusCell(status: item.idea.status),
+        cell: (BuildContext context, IdeaListItem item) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: _ProblemIdPill(
+            item: item,
+            onOpenProblem: () => actions.onOpenProblem(item),
+          ),
+        ),
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Score',
@@ -132,11 +148,11 @@ abstract final class IdeaTableColumns {
         },
       ),
       DataTableColumn<IdeaListItem>(
-        label: '',
-        flex: 1,
-        minWidth: 56,
-        align: Alignment.center,
-        cell: (BuildContext context, IdeaListItem item) => _IdeaRowActionsMenu(
+        label: 'Actions',
+        flex: 2,
+        minWidth: 112,
+        align: Alignment.centerLeft,
+        cell: (BuildContext context, IdeaListItem item) => _IdeaRowActionsCell(
           item: item,
           config: config,
           actions: actions,
@@ -150,6 +166,61 @@ abstract final class IdeaTableColumns {
     return item.idea.status == IdeaStatus.evaluated ||
         item.idea.status == IdeaStatus.shortlisted ||
         item.idea.status == IdeaStatus.underEvaluation;
+  }
+}
+
+class _IdeaTitleCell extends StatelessWidget {
+  const _IdeaTitleCell({
+    required this.item,
+    required this.onOpenIdea,
+  });
+
+  final IdeaListItem item;
+  final VoidCallback onOpenIdea;
+
+  @override
+  Widget build(BuildContext context) {
+    final IdeaStatus status = item.idea.status;
+    final Color statusColor = IdeaStatusHelpers.color(status);
+    final String title = item.idea.ideaTitle.trim().isEmpty
+        ? 'Untitled Idea'
+        : item.idea.ideaTitle.trim();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Tooltip(
+          message: IdeaStatusHelpers.label(status),
+          child: Icon(
+            IdeaStatusHelpers.icon(status),
+            size: 18,
+            color: statusColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: InkWell(
+            onTap: onOpenIdea,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF4A67FF),
+                  decoration: TextDecoration.underline,
+                  decorationColor: Color(0xFF4A67FF),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -184,9 +255,8 @@ class _ProblemIdPill extends StatelessWidget {
   }
 }
 
-/// Row-level ⋮ menu — same [CardOverflowMenuButton] styling as problem statements.
-class _IdeaRowActionsMenu extends StatelessWidget {
-  const _IdeaRowActionsMenu({
+class _IdeaRowActionsCell extends StatelessWidget {
+  const _IdeaRowActionsCell({
     required this.item,
     required this.config,
     required this.actions,
@@ -198,125 +268,381 @@ class _IdeaRowActionsMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool showPay =
-        config.canUploadPayment && item.canUploadPayment && item.team != null;
-    final bool canEval =
-        config.canEvaluate && item.idea.status != IdeaStatus.draft;
-    final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
-    final bool hasAttachments = item.attachmentCount > 0;
-    final bool hasPayment = item.payment != null;
-    final bool canEvalView = IdeaTableColumns.canOpenEvaluation(item);
+    final _IdeaActionFlags flags = _IdeaActionFlags.from(item, config);
+    final List<Widget> inline = _buildPrimaryActionPills(
+      item: item,
+      actions: actions,
+      flags: flags,
+    );
 
-    final List<CardOverflowMenuAction> menuActions = <CardOverflowMenuAction>[
+    final List<CardOverflowMenuAction> menuActions = _buildOverflowMenuActions(
+      item: item,
+      actions: actions,
+      flags: flags,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Expanded(
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: inline,
+          ),
+        ),
+        if (menuActions.isNotEmpty)
+          CardOverflowMenuButton(
+            tooltip: 'More actions',
+            actions: menuActions,
+            onSelected: (String value) => _handleMenuAction(value),
+          ),
+      ],
+    );
+  }
+
+  void _handleMenuAction(String value) {
+    _handleIdeaMenuAction(value: value, item: item, actions: actions);
+  }
+
+}
+
+List<CardOverflowMenuAction> _buildOverflowMenuActions({
+  required IdeaListItem item,
+  required IdeaTableActions actions,
+  required _IdeaActionFlags flags,
+}) {
+  return <CardOverflowMenuAction>[
+    if (flags.canAssignJudge && actions.onAssignJudge != null)
       const CardOverflowMenuAction(
-        value: 'idea',
-        icon: AppIcons.preview,
-        label: 'View Idea',
+        value: 'assign_judge',
+        icon: AppIcons.judges,
+        label: 'Assign Judge',
       ),
-      if (config.canAssignJudge && actions.onAssignJudge != null)
-        const CardOverflowMenuAction(
-          value: 'assign_judge',
-          icon: AppIcons.judges,
-          label: 'Assign Judge',
-        ),
-      if (teamId.isNotEmpty)
-        const CardOverflowMenuAction(
-          value: 'team',
-          icon: AppIcons.teams,
-          label: 'Open Team',
-        ),
-      if (item.idea.problemId.trim().isNotEmpty)
-        const CardOverflowMenuAction(
-          value: 'problem',
-          icon: AppIcons.problems,
-          label: 'Open Problem',
-        ),
-      if (canEval)
-        const CardOverflowMenuAction(
-          value: 'evaluate',
-          icon: AppIcons.scoring,
-          label: 'Evaluate',
-        ),
-      if (showPay)
-        const CardOverflowMenuAction(
-          value: 'upload_payment',
-          icon: AppIcons.payments,
-          label: 'Upload Payment',
-        ),
-      if (hasAttachments)
-        const CardOverflowMenuAction(
-          value: 'attachments',
-          icon: AppIcons.attachments,
-          label: 'View Attachments',
-        ),
-      if (hasPayment)
-        const CardOverflowMenuAction(
-          value: 'payment',
-          icon: AppIcons.payments,
-          label: 'View Payment',
-        ),
-      if (canEvalView)
-        const CardOverflowMenuAction(
-          value: 'evaluation',
-          icon: AppIcons.statusEvaluated,
-          label: 'View Evaluation',
-        ),
-    ];
+    if (flags.canEval)
+      const CardOverflowMenuAction(
+        value: 'evaluate',
+        icon: AppIcons.scoring,
+        label: 'Evaluate',
+      ),
+    if (flags.hasAttachments)
+      const CardOverflowMenuAction(
+        value: 'attachments',
+        icon: AppIcons.attachments,
+        label: 'View Attachments',
+      ),
+    if (flags.hasPayment)
+      const CardOverflowMenuAction(
+        value: 'payment',
+        icon: AppIcons.payments,
+        label: 'View Payment',
+      ),
+    if (flags.canEvalView)
+      const CardOverflowMenuAction(
+        value: 'evaluation',
+        icon: AppIcons.statusEvaluated,
+        label: 'View Evaluation',
+      ),
+  ];
+}
 
-    return CardOverflowMenuButton(
-      tooltip: 'Idea actions',
-      actions: menuActions,
-      onSelected: (String value) {
-        switch (value) {
-          case 'idea':
-            actions.onOpenIdea(item);
-          case 'assign_judge':
-            actions.onAssignJudge?.call(item);
-          case 'team':
-            actions.onOpenTeam(item);
-          case 'problem':
-            actions.onOpenProblem(item);
-          case 'evaluate':
-            actions.onEvaluate(item);
-          case 'upload_payment':
-            actions.onUploadPayment(item);
-          case 'attachments':
-            actions.onOpenAttachments(item);
-          case 'payment':
-            actions.onOpenPayment(item);
-          case 'evaluation':
-            actions.onOpenEvaluation(item);
-        }
-      },
+void _handleIdeaMenuAction({
+  required String value,
+  required IdeaListItem item,
+  required IdeaTableActions actions,
+}) {
+  switch (value) {
+    case 'assign_judge':
+      actions.onAssignJudge?.call(item);
+    case 'evaluate':
+      actions.onEvaluate(item);
+    case 'attachments':
+      actions.onOpenAttachments(item);
+    case 'payment':
+      actions.onOpenPayment(item);
+    case 'evaluation':
+      actions.onOpenEvaluation(item);
+  }
+}
+
+List<Widget> _buildPrimaryActionPills({
+  required IdeaListItem item,
+  required IdeaTableActions actions,
+  required _IdeaActionFlags flags,
+}) {
+  if (!flags.showPay) return const <Widget>[];
+  return <Widget>[
+    ProblemWorkflowActionPill(
+      label: 'Upload Payment',
+      icon: AppIcons.payments,
+      semantic: ProblemWorkflowPillSemantic.primary,
+      onTap: () => actions.onUploadPayment(item),
+    ),
+  ];
+}
+
+/// Compact card for mobile ideas list — mirrors evaluation results row cards.
+class IdeaListRowCard extends StatelessWidget {
+  const IdeaListRowCard({
+    super.key,
+    required this.item,
+    required this.config,
+    required this.actions,
+  });
+
+  final IdeaListItem item;
+  final IdeaListConfig config;
+  final IdeaTableActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final IdeaStatus status = item.idea.status;
+    final String title = item.idea.ideaTitle.trim().isEmpty
+        ? 'Untitled Idea'
+        : item.idea.ideaTitle.trim();
+    final String teamLabel =
+        item.teamName.trim().isEmpty ? 'Team' : item.teamName.trim();
+    final String problemId = item.idea.problemId.trim();
+    final String problemLabel = ProblemContextPill.resolveLabel(
+      problemNumber: item.idea.problemNumber,
+      problemId: problemId,
+    );
+    final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+    final _IdeaActionFlags flags = _IdeaActionFlags.from(item, config);
+    final double? score = item.score?.score;
+    final bool canOpenEvaluation = IdeaTableColumns.canOpenEvaluation(item);
+    final List<Widget> actionPills = _buildPrimaryActionPills(
+      item: item,
+      actions: actions,
+      flags: flags,
+    );
+    final List<Widget> iconActions = _buildMobileIconActions(
+      item: item,
+      actions: actions,
+      flags: flags,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: kDashboardCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              const Icon(AppIcons.ideas, size: 20, color: Color(0xFF4A67FF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () => actions.onOpenIdea(item),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: MobileRowCardStyles.title,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              if (problemLabel != '—')
+                _MobileCardMetaLine(
+                  icon: AppIcons.problems,
+                  label: problemLabel,
+                  onTap: problemId.isNotEmpty ? () => actions.onOpenProblem(item) : null,
+                ),
+              _MobileCardMetaLine(
+                icon: AppIcons.teams,
+                label: teamLabel,
+                onTap: teamId.isNotEmpty ? () => actions.onOpenTeam(item) : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              if (score != null) ...<Widget>[
+                MobileRowCardPill.evaluation(
+                  score: score,
+                  onTap: canOpenEvaluation
+                      ? () => actions.onOpenEvaluation(item)
+                      : null,
+                ),
+                const SizedBox(width: 8),
+              ],
+              MobileRowCardPill.attachments(
+                count: item.attachmentCount,
+                onTap: item.attachmentCount > 0
+                    ? () => actions.onOpenAttachments(item)
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: MobileRowCardPill.status(status: status),
+                ),
+              ),
+            ],
+          ),
+          if (actionPills.isNotEmpty || iconActions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: actionPills,
+                    ),
+                  ),
+                ),
+                if (iconActions.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _spacedWidgets(iconActions, gap: 6),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _StatusCell extends StatelessWidget {
-  const _StatusCell({required this.status});
-  final IdeaStatus status;
+List<Widget> _spacedWidgets(List<Widget> widgets, {required double gap}) {
+  if (widgets.isEmpty) return widgets;
+  final List<Widget> spaced = <Widget>[widgets.first];
+  for (var i = 1; i < widgets.length; i++) {
+    spaced.add(SizedBox(width: gap));
+    spaced.add(widgets[i]);
+  }
+  return spaced;
+}
+
+List<Widget> _buildMobileIconActions({
+  required IdeaListItem item,
+  required IdeaTableActions actions,
+  required _IdeaActionFlags flags,
+}) {
+  final List<Widget> icons = <Widget>[];
+  if (flags.canAssignJudge && actions.onAssignJudge != null) {
+    icons.add(
+      _MobileCardIconAction(
+        tooltip: 'Assign Judge',
+        icon: AppIcons.judges,
+        onTap: () => actions.onAssignJudge?.call(item),
+      ),
+    );
+  }
+  if (flags.canEval) {
+    icons.add(
+      _MobileCardIconAction(
+        tooltip: 'Evaluate',
+        icon: AppIcons.scoring,
+        onTap: () => actions.onEvaluate(item),
+      ),
+    );
+  }
+  if (flags.hasPayment) {
+    icons.add(
+      _MobileCardIconAction(
+        tooltip: 'View Payment',
+        icon: AppIcons.payments,
+        onTap: () => actions.onOpenPayment(item),
+      ),
+    );
+  }
+  return icons;
+}
+
+class _MobileCardMetaLine extends StatelessWidget {
+  const _MobileCardMetaLine({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final Color color = IdeaStatusHelpers.color(status);
-    return Row(
+    final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(IdeaStatusHelpers.icon(status), size: 14, color: color),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            IdeaStatusHelpers.label(status),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+        Icon(icon, size: 14, color: const Color(0xFF64748B)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+            height: 1.3,
           ),
         ),
       ],
+    );
+    if (onTap == null) return content;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: content,
+    );
+  }
+}
+
+class _MobileCardIconAction extends StatelessWidget {
+  const _MobileCardIconAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFF),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Icon(icon, size: 16, color: const Color(0xFF475569)),
+        ),
+      ),
     );
   }
 }

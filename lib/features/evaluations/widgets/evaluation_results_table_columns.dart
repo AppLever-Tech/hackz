@@ -187,7 +187,7 @@ class EvaluationResultsRowCard extends StatelessWidget {
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1D4ED8)),
+                        style: MobileRowCardStyles.title,
                       ),
                     ),
                     const SizedBox(height: 4),
