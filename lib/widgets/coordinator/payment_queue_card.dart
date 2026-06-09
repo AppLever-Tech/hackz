@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_metrics.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class PaymentQueueCard extends StatelessWidget {
   const PaymentQueueCard({

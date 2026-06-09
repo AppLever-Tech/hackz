@@ -4,9 +4,11 @@ import '../../../constants/app_icons.dart';
 import '../models/team_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/faculty_teams_service.dart';
-import '../../../workspace/workspace.dart';
 import '../../../widgets/common/card_overflow_menu.dart';
 import 'team_idea_summary_widget.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class TeamWorkspaceCard extends StatelessWidget {
   const TeamWorkspaceCard({

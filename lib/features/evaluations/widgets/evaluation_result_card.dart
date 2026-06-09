@@ -4,11 +4,12 @@ import '../../../constants/app_icons.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../workspace/workspace.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
 import 'evaluation_judge_detail_dialog.dart';
 import 'judge_type_pill.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 
 /// Compact judge row — full criteria open in read-only dialog.
 class EvaluationResultCard extends StatelessWidget {

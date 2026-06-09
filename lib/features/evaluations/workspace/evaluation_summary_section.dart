@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../utils/common_helpers.dart';
-import '../../widgets/common/context_pill_theme.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../shared/entity_reference_tile.dart';
+import '../../../constants/app_icons.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import 'package:hackz/shared/workspace/entity_reference_tile.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
-import '../../features/team/workspace/team_workspace.dart';
-import '../../features/user/workspace/user_workspace.dart';
+import '../../team/workspace/team_workspace.dart';
+import '../../user/workspace/user_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
 class EvaluationSummarySection extends StatelessWidget {

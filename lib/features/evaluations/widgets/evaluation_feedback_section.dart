@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/judge_evaluation_service.dart';
+import '../../../constants/app_icons.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/judge_evaluation_service.dart';
 
 class EvaluationFeedbackSection extends StatelessWidget {
   const EvaluationFeedbackSection({super.key, required this.rows});

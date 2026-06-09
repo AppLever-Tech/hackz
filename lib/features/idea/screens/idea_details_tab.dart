@@ -4,10 +4,13 @@ import '../../organization/models/department_model.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../workspace/workspace.dart';
 import '../workspace/idea_workspace_loader.dart';
 import '../widgets/idea_evaluation_results_section.dart';
 import '../widgets/innovation_assets_section.dart';
+import 'package:hackz/core/workspace/workspace_attachments_panel.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Idea Details tab for [IdeaDetailsPane].
 class IdeaDetailsTab extends StatelessWidget {

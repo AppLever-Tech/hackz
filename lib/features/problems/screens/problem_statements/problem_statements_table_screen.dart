@@ -16,7 +16,6 @@ import '../../../../widgets/data_view/data_table_view.dart';
 import '../../../idea/screens/innovation_submission_workspace.dart';
 import '../../../../widgets/problem_table_columns.dart';
 import '../../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../../workspace/workspace.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../../imports/models/import_created_source.dart';
@@ -31,7 +30,9 @@ import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
-import '../../../evaluations/workspaces/evaluation_assignment_details_pane.dart';
+import '../../../evaluations/workspace/evaluation_assignment_details_pane.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
 class ProblemStatementsTableScreen extends StatefulWidget {

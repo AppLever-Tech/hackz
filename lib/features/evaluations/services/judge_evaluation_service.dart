@@ -1,19 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../features/evaluations/assignments/models/evaluation_assignment_model.dart';
-import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
-import '../features/evaluations/models/evaluation_template.dart';
-import '../features/evaluations/services/evaluation_aggregation_sync_service.dart';
-import '../features/ideathons/services/ideathon_evaluation_sync_service.dart';
+import '../assignments/models/evaluation_assignment_model.dart';
+import '../assignments/services/evaluation_assignment_service.dart';
+import '../models/evaluation_template.dart';
+import '../models/score_model.dart';
+import 'evaluation_aggregation_sync_service.dart';
+import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
-import '../features/user/models/enums/user_role.dart';
+import '../../user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../features/problems/models/problem_model.dart';
-import '../models/score_model.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import 'firestore_utils.dart';
+import '../../problems/models/problem_model.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/firestore_utils.dart';
 import 'judge_evaluation_feedback_codec.dart';
 
 /// Centralized judge-scoped evaluation queries and persistence.

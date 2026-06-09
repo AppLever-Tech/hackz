@@ -9,9 +9,9 @@ import '../../features/user/models/user_model.dart';
 import '../../utils/auth_status_resolver.dart';
 import '../../utils/firestore_utils.dart';
 import '../../features/user/services/role_utils.dart';
-import '../../workspace/workspace.dart';
 import 'landing_screen.dart';
 import '../../widgets/signup/account_status_workspace.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/problems/widgets/problem_workflow_action_pill.dart';
+import '../../../constants/app_icons.dart';
+import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/judge_evaluation_service.dart';
-import '../common/context_pill_theme.dart';
-import '../common/entity_card_pills.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../utils/common_helpers.dart';
+import '../services/judge_evaluation_service.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../../widgets/common/entity_card_pills.dart';
 import 'judge_assignment_row_status.dart';
 
 /// Normalized row model for the judge assigned-ideas table.

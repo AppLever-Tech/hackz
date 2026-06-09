@@ -1,14 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/widgets.dart';
 
-import '../constants/app_icons.dart';
-import '../features/evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../../../constants/app_icons.dart';
+import '../assignments/services/evaluation_assignment_service.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../features/problems/models/problem_model.dart';
+import '../../problems/models/problem_model.dart';
 import '../models/score_model.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import 'firestore_utils.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/firestore_utils.dart';
 
 class JudgeDashboardService {
   JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;

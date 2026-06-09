@@ -12,14 +12,14 @@ import '../../user/services/role_visibility_helpers.dart';
 import '../../../widgets/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
 import 'package:hackz/features/payment/widgets/payment_dialog.dart';
-import '../../../widgets/judge/evaluate_idea_dialog.dart';
+import '../../evaluations/widgets/evaluate_idea_dialog.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../responsive/responsive_helper.dart';
 import '../../../widgets/responsive/responsive_metric_grid.dart';
 import 'idea_details_pane.dart';
-import '../../../workspace/workspace.dart';
-import '../../evaluations/workspaces/evaluation_assignment_details_pane.dart';
+import '../../evaluations/workspace/evaluation_assignment_details_pane.dart';
 import '../../../screens/common/dashboard_components.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class IdeasListScreen extends StatefulWidget {
   const IdeasListScreen({

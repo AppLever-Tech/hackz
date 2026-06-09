@@ -27,7 +27,7 @@ import '../../widgets/common/rich_tabs.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});

@@ -19,7 +19,7 @@ import '../../features/evaluations/screens/evaluation_results_screen.dart';
 import '../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../features/evaluations/screens/department_evaluation_extensions_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import 'judges_panel.dart';
+import '../../features/evaluations/screens/judges_panel.dart';
 import '../../features/user/screens/manage_users_screen.dart';
 import '../../responsive/responsive_helper.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
@@ -27,9 +27,12 @@ import '../../widgets/responsive/adaptive_dashboard_panel.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../workspace/workspace.dart';
 import '../../features/requests/deptadmin/requests_workspace_screen.dart';
 import 'package:hackz/features/payment/screens/payments_screen.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_metrics.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
   const DeptAdminDashboard({super.key, required this.user});

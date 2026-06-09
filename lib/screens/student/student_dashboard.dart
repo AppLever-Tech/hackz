@@ -21,7 +21,9 @@ import '../../features/problems/screens/problem_statements/problem_statements_ta
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/entity_card_pills.dart';
 import '../../widgets/common/form_value_row.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, required this.user});

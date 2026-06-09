@@ -16,7 +16,6 @@ import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
-import '../../workspace/workspace.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../responsive/responsive_helper.dart';
@@ -25,7 +24,10 @@ import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
 import '../../features/evaluations/services/evaluator_access_service.dart';
 import '../../features/team/screens/teams_screen.dart';
-import '../judge/judge_evaluation_workspace_screen.dart';
+import '../../features/evaluations/screens/judge_evaluation_workspace_screen.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key, required this.user});

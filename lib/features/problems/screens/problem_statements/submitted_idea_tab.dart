@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../constants/app_icons.dart';
 import '../../../../screens/common/dashboard_components.dart';
-import '../../../../workspace/workspace.dart';
+import '../../workspace/problem_workspace_loader.dart';
 import '../../workspace/problem_stats_section.dart';
 import 'submitted_ideas_table.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Submitted Ideas tab for [ProblemStatementDetailsScreen].
 class SubmittedIdeaTab extends StatelessWidget {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../workspace/evaluation/evaluation_workspace_loader.dart';
+import '../workspace/evaluation_workspace_loader.dart';
 import '../models/evaluation_details_view_model.dart';
 import 'evaluation_criterion_readonly_view.dart';
 import 'judge_type_pill.dart';

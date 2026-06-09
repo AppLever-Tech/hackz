@@ -6,7 +6,7 @@ import '../../user/models/enums/user_role.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../../models/score_model.dart';
+import '../../evaluations/models/score_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';

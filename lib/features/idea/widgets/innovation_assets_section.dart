@@ -6,7 +6,8 @@ import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../widgets/common/entity_card_pills.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Compact actionable innovation assets (git, demo video, presentation).
 class InnovationAssetsSection extends StatelessWidget {

@@ -10,7 +10,7 @@ import '../../organization/models/organization_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/models/problem_status.dart';
-import '../../../models/score_model.dart';
+import '../../evaluations/models/score_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';

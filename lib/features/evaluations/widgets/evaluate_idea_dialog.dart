@@ -1,29 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/evaluations/models/evaluation_criterion.dart';
-import '../../features/evaluations/models/evaluation_template.dart';
-import '../../features/evaluations/services/evaluation_templates_service.dart';
-import '../../features/evaluations/widgets/criterion_score_card.dart';
-import '../../features/ideathons/services/ideathon_settings_service.dart';
-import '../../features/org_settings/services/org_settings_service.dart';
+import '../../../constants/app_icons.dart';
+import '../models/evaluation_criterion.dart';
+import '../models/evaluation_template.dart';
+import '../models/score_model.dart';
+import '../services/evaluation_templates_service.dart';
+import 'criterion_score_card.dart';
+import '../../ideathons/services/ideathon_settings_service.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../models/score_model.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../screens/common/app_dialog_template.dart';
+import '../../problems/models/problem_model.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../shared/feedback/feedback.dart';
+import '../../../screens/common/app_dialog_template.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
-import '../../utils/firestore_utils.dart';
-import '../../features/idea/services/idea_query_service.dart';
-import '../../utils/judge_evaluation_feedback_codec.dart';
-import '../../utils/judge_evaluation_service.dart';
-import '../common/entity_card_pills.dart';
-import '../responsive/responsive_dialog_actions.dart';
-import '../../workspace/workspace.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../idea/services/idea_query_service.dart';
+import '../services/judge_evaluation_feedback_codec.dart';
+import '../services/judge_evaluation_service.dart';
+import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/responsive/responsive_dialog_actions.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).

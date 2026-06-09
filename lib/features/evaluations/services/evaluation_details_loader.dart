@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/evaluation/evaluation_workspace_loader.dart';
+import '../workspace/evaluation_workspace_loader.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../organization/models/department_model.dart';

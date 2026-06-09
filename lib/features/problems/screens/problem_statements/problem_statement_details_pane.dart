@@ -4,9 +4,10 @@ import '../../../../constants/app_icons.dart';
 import '../../../../screens/common/dashboard_components.dart';
 import '../../../../screens/common/dashboard_session_scope.dart';
 import '../../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../../workspace/workspace.dart';
 import '../../models/problem_model.dart';
+import '../../workspace/problem_workspace_loader.dart';
 import 'problem_statement_details_body.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Fills the dashboard main content area with problem statement details (replaces the table).
 class ProblemStatementDetailsPane extends StatefulWidget {

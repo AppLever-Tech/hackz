@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../core/theme/app_semantic_colors.dart';
-import '../../utils/judge_evaluation_service.dart';
+import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_semantic_colors.dart';
+import '../services/judge_evaluation_service.dart';
 
 /// Compact status pill for judge assigned-idea tables.
 class JudgeAssignmentRowStatusPill extends StatelessWidget {

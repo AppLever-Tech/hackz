@@ -7,7 +7,7 @@ import '../../constants/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../features/user/models/user_model.dart';
 import '../../utils/common_helpers.dart';
-import '../../utils/judge_dashboard_service.dart';
+import '../../features/evaluations/services/judge_dashboard_service.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/leaderboard_showcase_screen.dart';
@@ -18,7 +18,7 @@ import '../../widgets/common/time_frame_filter.dart';
 import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../widgets/responsive/responsive_columns.dart';
 import '../../widgets/responsive/responsive_metric_grid.dart';
-import 'judge_evaluation_workspace_screen.dart';
+import '../../features/evaluations/screens/judge_evaluation_workspace_screen.dart';
 
 class JudgeDashboard extends StatelessWidget {
   const JudgeDashboard({super.key, required this.user});

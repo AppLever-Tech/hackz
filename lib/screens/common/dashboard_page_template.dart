@@ -8,15 +8,16 @@ import '../../utils/coordinator_dashboard_service.dart';
 import '../../utils/department_dashboard_service.dart';
 import '../../features/team/services/faculty_teams_service.dart';
 import '../../features/org_settings/services/org_settings_service.dart';
-import '../../utils/judge_evaluation_service.dart';
+import '../../features/evaluations/services/judge_evaluation_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../widgets/responsive/responsive_dashboard_layout.dart';
-import '../../workspace/workspace.dart';
 import '../auth/landing_screen.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
 import 'dashboard_session_scope.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
   const DashboardPageTemplate({

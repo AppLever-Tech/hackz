@@ -1,4 +1,4 @@
-import '../../../models/score_model.dart';
+import '../models/score_model.dart';
 
 /// Aggregated evaluation metrics for an idea (single source of truth).
 class IdeaEvaluationAggregate {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/judge_evaluation_service.dart';
+import '../services/judge_evaluation_service.dart';
 import 'judge_assigned_idea_table.dart';
 
 class PendingEvaluationList extends StatelessWidget {

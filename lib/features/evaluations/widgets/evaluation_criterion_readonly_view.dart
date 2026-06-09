@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
-import '../../../models/score_model.dart';
-import '../../../utils/judge_evaluation_feedback_codec.dart';
-import '../../../widgets/judge/evaluate_idea_dialog.dart';
+import '../models/score_model.dart';
+import '../services/judge_evaluation_feedback_codec.dart';
+import '../widgets/evaluate_idea_dialog.dart';
 import '../models/evaluation_criterion.dart';
 import '../models/evaluation_template.dart';
 import '../services/evaluation_template_helpers.dart';

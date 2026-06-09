@@ -15,7 +15,8 @@ import '../../shared/buttons/hover_icon_action_button.dart';
 import '../../shared/feedback/feedback.dart';
 import '../../shared/inputs/hackz_select_field.dart';
 import '../../widgets/responsive/responsive_filter_bar.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 
 class ManageCollegeScreen extends StatefulWidget {
   const ManageCollegeScreen({super.key, required this.user});

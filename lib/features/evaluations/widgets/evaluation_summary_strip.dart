@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../dashboard/dashboard_metric_chips.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 
 /// Compact horizontal summary metrics for the judge evaluation workspace.
 class EvaluationSummaryStrip extends StatelessWidget {

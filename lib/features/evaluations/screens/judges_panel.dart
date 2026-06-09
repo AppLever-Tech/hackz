@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/evaluations/workspaces/evaluation_assignment_details_pane.dart';
-import '../../constants/status_styles.dart';
-import '../../features/imports/imports.dart';
-import '../../features/organization/models/department_model.dart';
-import '../../features/organization/models/enums/organization_type.dart';
-import '../../features/organization/models/organization_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../responsive/responsive_helper.dart';
-import '../../shared/feedback/feedback.dart';
-import '../../utils/department_dashboard_service.dart';
-import '../../utils/firestore_utils.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../widgets/deptadmin/department_metric_card.dart';
-import '../../widgets/responsive/responsive_metric_grid.dart';
-import '../../shared/workspace/user_list_identity_lead.dart';
-import '../../features/user/screens/create_user_dialog.dart';
+import '../../../constants/app_icons.dart';
+import '../workspace/evaluation_assignment_details_pane.dart';
+import '../../../constants/status_styles.dart';
+import '../../imports/imports.dart';
+import '../../organization/models/department_model.dart';
+import '../../organization/models/enums/organization_type.dart';
+import '../../organization/models/organization_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../responsive/responsive_helper.dart';
+import '../../../shared/feedback/feedback.dart';
+import '../../../utils/department_dashboard_service.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../widgets/deptadmin/department_metric_card.dart';
+import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../user/screens/create_user_dialog.dart';
 
 class JudgesPanelScreen extends StatefulWidget {
   const JudgesPanelScreen({super.key, required this.user});

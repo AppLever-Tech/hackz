@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../utils/common_helpers.dart';
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
-import '../../features/user/workspace/user_workspace.dart';
+import '../../../constants/app_icons.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../widgets/common/context_pill.dart';
+import '../../../widgets/common/context_pill_theme.dart';
+import '../../user/workspace/user_workspace.dart';
 import 'evaluation_workspace_loader.dart';
 
 class EvaluationJudgeSection extends StatelessWidget {

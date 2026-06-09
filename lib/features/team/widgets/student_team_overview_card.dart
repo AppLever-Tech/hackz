@@ -6,7 +6,9 @@ import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart' show formatDateTime, sortUsersByDisplayName;
 import '../../../utils/student_dashboard_service.dart';
 import '../../../screens/common/dashboard_components.dart';
-import '../../../workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Student dashboard team panel — layout aligned with faculty [TeamWorkspaceCard].
 class StudentTeamOverviewCard extends StatelessWidget {

@@ -8,7 +8,8 @@ import 'package:hackz/widgets/common/entity_card_pills.dart';
 
 import '../../responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
-import '../../workspace/workspace.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class CoordinatorPaymentCard extends StatelessWidget {
   const CoordinatorPaymentCard({

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/firebase/firebase_bootstrap.dart';
 import 'screens/auth/auth_gate.dart';
 import 'core/theme/app_theme.dart';
-import 'workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_host.dart';
 
 Future<void> main() async {
   await FirebaseBootstrap.initialize();

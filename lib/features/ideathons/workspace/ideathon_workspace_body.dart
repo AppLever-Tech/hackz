@@ -7,12 +7,13 @@ import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/responsive/responsive_metric_grid.dart';
-import '../../../workspace/workspace.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_prototype_service.dart';
 import '../widgets/ideathon_status_pill.dart';
 import 'ideathon_workspace_loader.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 
 class IdeathonWorkspaceBody extends StatelessWidget {
   const IdeathonWorkspaceBody({super.key, required this.vm, this.onRefresh});

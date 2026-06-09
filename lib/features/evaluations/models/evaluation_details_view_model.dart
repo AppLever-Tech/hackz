@@ -2,7 +2,7 @@ import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
-import '../../../workspace/evaluation/evaluation_workspace_loader.dart';
+import '../workspace/evaluation_workspace_loader.dart';
 
 /// Lightweight judge row for the evaluation details workspace.
 ///

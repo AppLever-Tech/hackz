@@ -14,9 +14,11 @@ import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';
 import '../widgets/team_workspace_card.dart';
-import '../../../workspace/workspace.dart';
 import '../../../widgets/responsive/responsive_metric_grid.dart';
 import '../../../responsive/responsive_helper.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key, required this.user});

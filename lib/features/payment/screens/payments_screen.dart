@@ -8,7 +8,6 @@ import 'package:hackz/shared/inputs/filter_pill.dart';
 import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
 import 'package:hackz/widgets/responsive/responsive_filter_bar.dart';
 import 'package:hackz/widgets/responsive/responsive_metric_grid.dart';
-import 'package:hackz/workspace/workspace.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
@@ -16,6 +15,7 @@ import '../services/payment_finance_helpers.dart';
 import '../widgets/payment_contribution_tile.dart';
 import '../widgets/payment_detail_pane.dart';
 import '../widgets/payment_summary_card.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});

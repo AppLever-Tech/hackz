@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../features/user/models/user_model.dart';
-import '../../utils/judge_evaluation_service.dart';
-import '../../widgets/judge/evaluate_idea_dialog.dart';
-import '../../widgets/judge/evaluation_feedback_section.dart';
-import '../../widgets/judge/evaluation_summary_strip.dart';
-import '../../widgets/judge/evaluated_idea_list.dart';
-import '../../widgets/common/rich_tabs.dart';
-import '../../widgets/judge/pending_evaluation_list.dart';
-import '../../widgets/loading/hkz_progress_indicator.dart';
-import '../../workspace/workspace.dart';
-import '../common/app_dialog_template.dart';
+import '../../user/models/user_model.dart';
+import '../services/judge_evaluation_service.dart';
+import '../widgets/evaluate_idea_dialog.dart';
+import '../widgets/evaluation_feedback_section.dart';
+import '../widgets/evaluation_summary_strip.dart';
+import '../widgets/evaluated_idea_list.dart';
+import '../../../widgets/common/rich_tabs.dart';
+import '../widgets/pending_evaluation_list.dart';
+import '../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../screens/common/app_dialog_template.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Judge-only evaluation workspace (Scoring tab). Not an idea dashboard clone.
 class JudgeEvaluationWorkspaceScreen extends StatefulWidget {

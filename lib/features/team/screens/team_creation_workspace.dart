@@ -10,8 +10,10 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/faculty_teams_service.dart';
 import '../services/team_service.dart';
-import '../../../workspace/workspace.dart';
 import '../widgets/team_student_selector.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 enum TeamFormDialogAction { none, saved }
 

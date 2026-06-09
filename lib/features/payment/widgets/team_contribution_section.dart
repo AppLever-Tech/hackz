@@ -6,7 +6,10 @@ import 'package:hackz/features/problems/models/problem_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/utils/common_helpers.dart';
-import 'package:hackz/workspace/workspace.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_group.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 class TeamContributionSection extends StatelessWidget {
   const TeamContributionSection({

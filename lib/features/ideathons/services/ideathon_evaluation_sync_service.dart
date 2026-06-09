@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/score_model.dart';
+import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../idea/models/enums/idea_status.dart';

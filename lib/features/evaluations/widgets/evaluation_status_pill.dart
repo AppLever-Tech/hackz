@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/status_styles.dart';
-import '../../features/idea/services/idea_status_helpers.dart';
+import '../../../constants/status_styles.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 
 class EvaluationStatusPill extends StatelessWidget {

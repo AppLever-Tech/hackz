@@ -1,20 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../features/evaluations/models/evaluation_criterion.dart';
-import '../../features/evaluations/models/evaluation_template.dart';
-import '../../features/evaluations/services/evaluation_templates_service.dart';
-import '../../features/org_settings/services/org_settings_service.dart';
+import '../models/evaluation_criterion.dart';
+import '../models/evaluation_template.dart';
+import '../models/score_model.dart';
+import '../services/evaluation_templates_service.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../features/problems/models/problem_model.dart';
-import '../../models/score_model.dart';
-import '../../features/team/models/team_model.dart';
-import '../../features/user/models/user_model.dart';
-import '../../utils/common_helpers.dart';
-import '../../utils/firestore_utils.dart';
-import '../../utils/judge_evaluation_feedback_codec.dart';
-import '../../utils/leaderboard_ranking_engine.dart';
-import '../../constants/status_styles.dart';
+import '../../problems/models/problem_model.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
+import '../services/judge_evaluation_feedback_codec.dart';
+import '../../../utils/leaderboard_ranking_engine.dart';
+import '../../../constants/status_styles.dart';
 
 enum EvaluationWorkspaceScope { singleJudge, ideaAggregate }
 

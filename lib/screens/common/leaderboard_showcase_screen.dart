@@ -11,10 +11,11 @@ import '../../widgets/leaderboard/leaderboard_hero_section.dart';
 import '../../widgets/leaderboard/leaderboard_tab_section.dart';
 import '../../widgets/common/context_pill_theme.dart';
 import '../../widgets/leaderboard/rank_showcase_card.dart';
-import '../../workspace/workspace.dart';
 import '../../widgets/leaderboard/rising_ideas_widget.dart';
 import '../../widgets/leaderboard/trend_indicator_widget.dart';
 import '../../responsive/responsive_helper.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Innovation Leaderboard Showcase — analytics-first, separate from operational dashboards.
 class LeaderboardShowcaseScreen extends StatefulWidget {

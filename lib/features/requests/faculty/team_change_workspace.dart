@@ -8,7 +8,6 @@ import '../../../shared/feedback/feedback.dart';
 import '../../../utils/common_helpers.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/widgets/team_student_selector.dart';
-import '../../../workspace/workspace.dart';
 import '../models/team_change_request.dart';
 import '../models/workflow_request.dart';
 import '../models/workflow_request_type.dart';
@@ -20,6 +19,9 @@ import '../widgets/team_change_history_timeline.dart';
 import '../widgets/team_member_diff_view.dart';
 import '../widgets/workflow_evaluation_warning.dart';
 import '../widgets/workflow_status_pill.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Full-screen "Request Team Change" workspace for faculty.
 ///

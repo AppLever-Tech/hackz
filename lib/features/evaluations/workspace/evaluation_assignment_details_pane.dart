@@ -5,8 +5,9 @@ import '../../user/models/user_model.dart';
 import '../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../screens/common/dashboard_session_scope.dart';
-import '../../../workspace/workspace.dart';
 import 'evaluation_assignment_workspace.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Opens the scoped assignment workspace as a dashboard overlay.
 void showEvaluationAssignmentPane(

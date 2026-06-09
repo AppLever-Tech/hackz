@@ -8,7 +8,6 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../screens/common/dashboard_session_scope.dart';
 import '../../../widgets/loading/hkz_progress_indicator.dart';
 import '../../../widgets/responsive/responsive_columns.dart';
-import '../../../workspace/workspace.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_details_loader.dart';
@@ -17,6 +16,8 @@ import '../widgets/evaluation_overview_card.dart';
 import '../widgets/evaluation_score_distribution.dart';
 import '../widgets/evaluation_shortlisting_section.dart';
 import '../widgets/evaluation_summary_cards.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Opens evaluation-centric details in the dashboard overlay (not Idea Details).
 void showEvaluationDetailsPane(

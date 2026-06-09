@@ -7,7 +7,6 @@ import '../../../responsive/responsive_helper.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../widgets/responsive/responsive_alert_dialog.dart';
-import '../../../workspace/workspace.dart';
 import '../models/team_change_request.dart';
 import '../models/workflow_request.dart';
 import '../models/workflow_request_type.dart';
@@ -18,6 +17,9 @@ import '../widgets/request_workspace_section.dart';
 import '../widgets/team_member_diff_view.dart';
 import '../widgets/workflow_evaluation_warning.dart';
 import '../widgets/workflow_status_pill.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Right pane of the dept-admin requests workspace. Renders a type-aware
 /// review surface and the approve / reject actions.

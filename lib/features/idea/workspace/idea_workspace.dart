@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
-import '../../../workspace/evaluation/evaluation_workspace.dart';
+import '../../evaluations/workspace/evaluation_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../problems/workspace/problem_workspace.dart';
 import '../../team/workspace/team_workspace.dart';

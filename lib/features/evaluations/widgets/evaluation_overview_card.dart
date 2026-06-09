@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
-import '../../../workspace/workspace.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../../../widgets/common/context_pill.dart';
 import '../../../widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/widgets/common/context_pill_theme.dart';
 
 /// Compact evaluation context with workspace launcher pills.
 class EvaluationOverviewCard extends StatelessWidget {
