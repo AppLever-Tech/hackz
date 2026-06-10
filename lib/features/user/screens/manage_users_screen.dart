@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../constants/account_workspace_visuals.dart';
+import '../../auth/account_workspace_visuals.dart';
 import '../../../constants/app_icons.dart';
 import '../../imports/imports.dart';
 import '../../organization/models/department_model.dart';

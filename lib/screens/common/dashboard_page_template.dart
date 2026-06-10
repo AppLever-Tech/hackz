@@ -11,7 +11,7 @@ import '../../features/org_settings/services/org_settings_service.dart';
 import '../../features/evaluations/services/judge_evaluation_service.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
 import '../../core/responsive/responsive_dashboard_layout.dart';
-import '../auth/landing_screen.dart';
+import '../../features/auth/screens/landing_screen.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';

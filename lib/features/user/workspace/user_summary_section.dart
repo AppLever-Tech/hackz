@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/account_workspace_visuals.dart';
+import '../../auth/account_workspace_visuals.dart';
 import '../../../constants/app_icons.dart';
 import '../models/user_model.dart';
 import '../../../utils/common_helpers.dart';
