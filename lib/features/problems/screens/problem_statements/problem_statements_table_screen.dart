@@ -339,21 +339,34 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
             final bool mobile = ResponsiveHelper.isMobile(context);
 
-            final tableBody = problems.isEmpty
+            final ProblemTableActions tableActions = _problemTableActions();
+
+            final Widget contentBody = problems.isEmpty
                 ? _EmptyTableState(onClearSearch: () {
                     _searchController.clear();
                     _loadProblems();
                   })
-                : DataTableView<ProblemModel>(
-                    items: problems,
-                    columns: ProblemTableColumns.build(
-                      context: context,
-                      config: widget.config,
-                      actions: _problemTableActions(),
-                    ),
-                    onSort: _onTableSort,
-                    activeSortKey: _activeSortKey,
-                  );
+                : mobile
+                    ? ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: problems.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (BuildContext context, int index) {
+                          return ProblemListRowCard(
+                            problem: problems[index],
+                            actions: tableActions,
+                          );
+                        },
+                      )
+                    : DataTableView<ProblemModel>(
+                        items: problems,
+                        columns: ProblemTableColumns.build(
+                          config: widget.config,
+                          actions: tableActions,
+                        ),
+                        onSort: _onTableSort,
+                        activeSortKey: _activeSortKey,
+                      );
 
             final Widget header = _buildListHeader(
               context: context,
@@ -366,7 +379,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   header,
-                  SizedBox(height: 480, child: tableBody),
+                  SizedBox(height: 480, child: contentBody),
                 ],
               );
             }
@@ -384,7 +397,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                   ),
                   Expanded(
                     flex: 5,
-                    child: tableBody,
+                    child: contentBody,
                   ),
                 ],
               );
@@ -394,7 +407,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 header,
-                Expanded(child: tableBody),
+                Expanded(child: contentBody),
               ],
             );
           },

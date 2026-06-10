@@ -73,13 +73,17 @@ class ProblemWorkflowActionPill extends StatelessWidget {
       rowChildren.add(Icon(icon, size: filledBrand ? 16 : 14, color: colors.text));
       rowChildren.add(SizedBox(width: filledBrand ? 5 : 4));
     }
-    rowChildren.add(Text(
-      label,
-      style: TextStyle(
-        fontSize: filledBrand ? 12.5 : 12,
-        fontWeight: FontWeight.w700,
-        color: colors.text,
-        height: 1.1,
+    rowChildren.add(Flexible(
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: filledBrand ? 12.5 : 12,
+          fontWeight: FontWeight.w700,
+          color: colors.text,
+          height: 1.1,
+        ),
       ),
     ));
 

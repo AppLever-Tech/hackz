@@ -21,6 +21,7 @@ abstract final class EvaluationWorkspace {
       builder: (BuildContext context) => EvaluationDetailsBody(
         vm: vm,
         onUpdated: () {},
+        layout: EvaluationDetailsLayout.workspace,
       ),
     );
   }

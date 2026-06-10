@@ -139,20 +139,32 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
   }
 }
 
+/// Layout variant for [EvaluationDetailsBody].
+enum EvaluationDetailsLayout {
+  /// Full evaluation results overlay (metrics, full judge rows).
+  pane,
+
+  /// Side workspace opened from a context pill (compact judge rows, no metric cards).
+  workspace,
+}
+
 /// Evaluation-centric scrollable body (shared by pane + side workspace).
 class EvaluationDetailsBody extends StatelessWidget {
   const EvaluationDetailsBody({
     super.key,
     required this.vm,
     required this.onUpdated,
+    this.layout = EvaluationDetailsLayout.pane,
   });
 
   final EvaluationDetailsViewModel vm;
   final VoidCallback onUpdated;
+  final EvaluationDetailsLayout layout;
 
   @override
   Widget build(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool workspace = layout == EvaluationDetailsLayout.workspace;
     final EdgeInsets pad = EdgeInsets.fromLTRB(
       mobile ? 12 : 16,
       4,
@@ -171,13 +183,19 @@ class EvaluationDetailsBody extends StatelessWidget {
       ),
     );
 
+    final bool showShortlisting = workspace || vm.canShortlist;
+
     return ListView(
       padding: pad,
       children: <Widget>[
-        EvaluationSummaryCards(idea: vm.idea),
-        if (vm.canShortlist) ...<Widget>[
-          const SizedBox(height: 14),
-          EvaluationShortlistingSection(vm: vm, onUpdated: onUpdated),
+        if (!workspace) EvaluationSummaryCards(idea: vm.idea),
+        if (showShortlisting) ...<Widget>[
+          if (!workspace) const SizedBox(height: 14),
+          EvaluationShortlistingSection(
+            vm: vm,
+            onUpdated: onUpdated,
+            alwaysShowRankStatus: workspace,
+          ),
         ],
         const SizedBox(height: 14),
         overviewDistributionRow,
@@ -185,6 +203,7 @@ class EvaluationDetailsBody extends StatelessWidget {
         EvaluationJudgeBreakdownPanel(
           judgeDetails: vm.judgeDetails,
           departmentCode: vm.idea.problemDepartmentCode,
+          compactRows: workspace,
         ),
       ],
     );

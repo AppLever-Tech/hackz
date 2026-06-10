@@ -9,7 +9,6 @@ import '../models/evaluation_details_view_model.dart';
 import 'evaluation_judge_detail_dialog.dart';
 import 'judge_type_pill.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 
 /// Compact judge row — full criteria open in read-only dialog.
 class EvaluationResultCard extends StatelessWidget {
@@ -17,10 +16,12 @@ class EvaluationResultCard extends StatelessWidget {
     super.key,
     required this.detail,
     required this.departmentCode,
+    this.compact = false,
   });
 
   final EvaluationJudgeDetail detail;
   final String departmentCode;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -39,23 +40,57 @@ class EvaluationResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: mobile
-          ? _buildMobile(
+      child: compact
+          ? _buildCompact(
               context,
               judgeName: judgeName,
               judgeId: judgeId,
-              evaluatedLabel: evaluatedLabel,
               overall: overall,
               scale: scale,
             )
-          : _buildDesktop(
-              context,
-              judgeName: judgeName,
-              judgeId: judgeId,
-              evaluatedLabel: evaluatedLabel,
-              overall: overall,
-              scale: scale,
-            ),
+          : mobile
+              ? _buildMobile(
+                  context,
+                  judgeName: judgeName,
+                  judgeId: judgeId,
+                  evaluatedLabel: evaluatedLabel,
+                  overall: overall,
+                  scale: scale,
+                )
+              : _buildDesktop(
+                  context,
+                  judgeName: judgeName,
+                  judgeId: judgeId,
+                  evaluatedLabel: evaluatedLabel,
+                  overall: overall,
+                  scale: scale,
+                ),
+    );
+  }
+
+  Widget _buildCompact(
+    BuildContext context, {
+    required String judgeName,
+    required String judgeId,
+    required double overall,
+    required int scale,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        _judgeAvatar(context, judgeId),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            judgeName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _scoreText(overall, scale),
+      ],
     );
   }
 

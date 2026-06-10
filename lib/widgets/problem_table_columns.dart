@@ -4,10 +4,11 @@ import '../constants/app_icons.dart';
 import '../features/problems/models/problem_list_config.dart';
 import '../features/problems/models/problem_model.dart';
 import '../features/problems/models/problem_status.dart';
+import '../features/problems/services/problem_status_helpers.dart';
 import '../features/problems/validators/problem_submission_validators.dart';
 import '../features/problems/widgets/problem_context_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
-import '../core/responsive/responsive_helper.dart';
+import '../screens/common/dashboard_components.dart';
 import '../utils/common_helpers.dart';
 import 'common/card_overflow_menu.dart';
 import 'data_view/data_table_column.dart';
@@ -15,7 +16,7 @@ import 'data_view/data_table_column.dart';
 const double _kPsTitleGap = 12;
 const double _kDeptCategoryGap = 12;
 
-/// Action bundle for [ProblemTableColumns].
+/// Action bundle for [ProblemTableColumns] and [ProblemListRowCard].
 class ProblemTableActions {
   const ProblemTableActions({
     required this.config,
@@ -46,40 +47,83 @@ class ProblemTableActions {
   final void Function(ProblemModel problem) onDeleteProblem;
   final void Function(ProblemModel problem)? onActivateProblem;
   final void Function(ProblemModel problem)? onDeactivateProblem;
+
+  IdeaSubmissionGate gateFor(ProblemModel problem) => computeIdeaSubmissionGate(
+        problem: problem,
+        submittedCount: ideaCountByProblemId[problem.problemId] ?? 0,
+        orgDefaultMaxIdeas: orgDefaultMaxIdeas,
+      );
+}
+
+class _ProblemActionFlags {
+  const _ProblemActionFlags({
+    required this.showSubmit,
+    required this.submitEnabled,
+    required this.isClosed,
+    required this.canManageStatus,
+    required this.canAssignJudge,
+    required this.canEdit,
+    required this.canDelete,
+    required this.canActivate,
+    required this.canDeactivate,
+  });
+
+  final bool showSubmit;
+  final bool submitEnabled;
+  final bool isClosed;
+  final bool canManageStatus;
+  final bool canAssignJudge;
+  final bool canEdit;
+  final bool canDelete;
+  final bool canActivate;
+  final bool canDeactivate;
+
+  factory _ProblemActionFlags.from({
+    required ProblemModel problem,
+    required ProblemTableActions actions,
+  }) {
+    final IdeaSubmissionGate gate = actions.gateFor(problem);
+    final bool showSubmit = actions.config.canSubmitIdea;
+    final bool submitEnabled = showSubmit && problem.isSubmissionOpen && gate.canSubmit;
+    return _ProblemActionFlags(
+      showSubmit: showSubmit,
+      submitEnabled: submitEnabled,
+      isClosed: showSubmit && !submitEnabled,
+      canManageStatus: actions.config.canToggleActive,
+      canAssignJudge: actions.config.canAssignJudge,
+      canEdit: actions.canEditFor(problem),
+      canDelete: actions.canDeleteFor(problem),
+      canActivate: actions.config.canToggleActive &&
+          (problem.status == ProblemStatus.draft || problem.status == ProblemStatus.inactive) &&
+          actions.onActivateProblem != null,
+      canDeactivate: actions.config.canToggleActive &&
+          problem.status == ProblemStatus.active &&
+          actions.onDeactivateProblem != null,
+    );
+  }
 }
 
 /// Per-feature column factory for the Problem Statements dashboard.
 abstract final class ProblemTableColumns {
   static List<DataTableColumn<ProblemModel>> build({
-    required BuildContext context,
     required ProblemListConfig config,
     required ProblemTableActions actions,
   }) {
     final Set<ProblemSortType> enabledSorts = config.enabledSorts;
-    final bool mobile = ResponsiveHelper.isMobile(context);
 
     return <DataTableColumn<ProblemModel>>[
       DataTableColumn<ProblemModel>(
-        label: 'PS #',
-        flex: mobile ? 2 : 3,
-        minWidth: mobile ? 96 : 112,
+        label: 'Problem',
+        flex: 3,
+        minWidth: 112,
         gapAfter: _kPsTitleGap,
         sortKey: enabledSorts.contains(ProblemSortType.psNumber) ? 'psNumber' : null,
-        cell: (BuildContext context, ProblemModel problem) {
-          return ProblemContextPill.fromProblem(
-            problem: problem,
-            onTap: () => actions.onOpenProblem(problem),
-            compact: true,
-            fitContent: !mobile,
-            allowHoverScale: false,
-            padding: ProblemContextPill.tableCellPadding,
-          );
-        },
+        cell: (BuildContext context, ProblemModel problem) => _ProblemIdCell(problem: problem),
       ),
       DataTableColumn<ProblemModel>(
         label: 'Title',
-        flex: mobile ? 8 : 10,
-        minWidth: mobile ? 140 : 180,
+        flex: 10,
+        minWidth: 180,
         sortKey: enabledSorts.contains(ProblemSortType.titleAZ) ? 'title' : null,
         cell: (BuildContext context, ProblemModel problem) {
           final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
@@ -90,7 +134,7 @@ abstract final class ProblemTableColumns {
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
                 title,
-                maxLines: mobile ? 2 : 3,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
@@ -105,53 +149,47 @@ abstract final class ProblemTableColumns {
           );
         },
       ),
-      if (!mobile) ...<DataTableColumn<ProblemModel>>[
-        DataTableColumn<ProblemModel>(
-          label: 'Department',
-          flex: 3,
-          minWidth: 100,
-          gapAfter: _kDeptCategoryGap,
-          sortKey: enabledSorts.contains(ProblemSortType.department) ? 'department' : null,
-          cell: (BuildContext context, ProblemModel problem) {
-            final String department = problem.departmentDisplayName.trim().isEmpty
-                ? '—'
-                : problem.departmentDisplayName.trim();
-            return Text(
-              department,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-            );
-          },
-        ),
-        DataTableColumn<ProblemModel>(
-          label: 'Category',
-          flex: 2,
-          minWidth: 76,
-          sortKey: enabledSorts.contains(ProblemSortType.category) ? 'category' : null,
-          cell: (BuildContext context, ProblemModel problem) {
-            final String category = problem.category.trim().isEmpty ? '—' : problem.category.trim();
-            return Text(
-              category,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            );
-          },
-        ),
-      ],
+      DataTableColumn<ProblemModel>(
+        label: 'Department',
+        flex: 3,
+        minWidth: 100,
+        gapAfter: _kDeptCategoryGap,
+        sortKey: enabledSorts.contains(ProblemSortType.department) ? 'department' : null,
+        cell: (BuildContext context, ProblemModel problem) {
+          final String department = problem.departmentDisplayName.trim().isEmpty
+              ? '—'
+              : problem.departmentDisplayName.trim();
+          return Text(
+            department,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+          );
+        },
+      ),
+      DataTableColumn<ProblemModel>(
+        label: 'Category',
+        flex: 2,
+        minWidth: 76,
+        sortKey: enabledSorts.contains(ProblemSortType.category) ? 'category' : null,
+        cell: (BuildContext context, ProblemModel problem) {
+          final String category = problem.category.trim().isEmpty ? '—' : problem.category.trim();
+          return Text(
+            category,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+          );
+        },
+      ),
       DataTableColumn<ProblemModel>(
         label: 'Ideas',
-        flex: mobile ? 2 : 2,
-        minWidth: mobile ? 56 : 76,
+        flex: 2,
+        minWidth: 76,
         align: Alignment.center,
         sortKey: enabledSorts.contains(ProblemSortType.ideasCount) ? 'ideas' : null,
         cell: (BuildContext context, ProblemModel problem) {
-          final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
-            problem: problem,
-            submittedCount: actions.ideaCountByProblemId[problem.problemId] ?? 0,
-            orgDefaultMaxIdeas: actions.orgDefaultMaxIdeas,
-          );
+          final IdeaSubmissionGate gate = actions.gateFor(problem);
           return Text(
             '${gate.submittedCount}/${gate.effectiveMaxIdeas}',
             textAlign: TextAlign.center,
@@ -164,42 +202,321 @@ abstract final class ProblemTableColumns {
           );
         },
       ),
-      if (!mobile)
-        DataTableColumn<ProblemModel>(
-          label: 'Deadline',
-          flex: 2,
-          minWidth: 92,
-          align: Alignment.center,
-          sortKey: enabledSorts.contains(ProblemSortType.deadline) ? 'deadline' : null,
-          cell: (BuildContext context, ProblemModel problem) => _DeadlineCell(problem: problem),
-        ),
       DataTableColumn<ProblemModel>(
-        label: '',
-        flex: mobile ? 4 : 3,
-        minWidth: mobile ? 120 : 180,
-        align: Alignment.centerRight,
+        label: 'Deadline',
+        flex: 2,
+        minWidth: 92,
+        align: Alignment.center,
+        sortKey: enabledSorts.contains(ProblemSortType.deadline) ? 'deadline' : null,
+        cell: (BuildContext context, ProblemModel problem) => _DeadlineCell(problem: problem),
+      ),
+      DataTableColumn<ProblemModel>(
+        label: 'Actions',
+        flex: 3,
+        minWidth: 180,
+        align: Alignment.centerLeft,
         cell: (BuildContext context, ProblemModel problem) => _ProblemRowActionArea(
           problem: problem,
-          gate: computeIdeaSubmissionGate(
-            problem: problem,
-            submittedCount: actions.ideaCountByProblemId[problem.problemId] ?? 0,
-            orgDefaultMaxIdeas: actions.orgDefaultMaxIdeas,
-          ),
-          canSubmitIdea: actions.config.canSubmitIdea,
-          canAssignJudge: actions.config.canAssignJudge,
-          canEdit: actions.canEditFor(problem),
-          canManageStatus: actions.config.canToggleActive,
-          canDelete: actions.canDeleteFor(problem),
-          onSubmitIdea: () => actions.onSubmitIdea(problem),
-          onOpenDetails: () => actions.onOpenDetails(problem),
-          onAssignJudge: actions.config.canAssignJudge ? () => actions.onAssignJudge(problem) : null,
-          onEdit: actions.canEditFor(problem) ? () => actions.onEditProblem(problem) : null,
-          onDelete: actions.canDeleteFor(problem) ? () => actions.onDeleteProblem(problem) : null,
-          onActivate: actions.onActivateProblem == null ? null : () => actions.onActivateProblem!(problem),
-          onDeactivate: actions.onDeactivateProblem == null ? null : () => actions.onDeactivateProblem!(problem),
+          actions: actions,
         ),
       ),
     ];
+  }
+}
+
+class _ProblemIdCell extends StatelessWidget {
+  const _ProblemIdCell({required this.problem});
+
+  final ProblemModel problem;
+
+  @override
+  Widget build(BuildContext context) {
+    final ProblemStatus status = problem.status;
+    final Color statusColor = ProblemStatusHelpers.color(status);
+    final String label = ProblemContextPill.resolveLabel(
+      problemNumber: problem.problemNumber,
+      problemId: problem.problemId,
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Tooltip(
+          message: ProblemStatusHelpers.label(status),
+          child: Icon(
+            ProblemStatusHelpers.icon(status),
+            size: 18,
+            color: statusColor,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Compact card for mobile problem statements list.
+class ProblemListRowCard extends StatelessWidget {
+  const ProblemListRowCard({
+    super.key,
+    required this.problem,
+    required this.actions,
+  });
+
+  final ProblemModel problem;
+  final ProblemTableActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
+    final String problemLabel = ProblemContextPill.resolveLabel(
+      problemNumber: problem.problemNumber,
+      problemId: problem.problemId,
+    );
+    final String category = problem.category.trim().isEmpty ? '—' : problem.category.trim();
+    final IdeaSubmissionGate gate = actions.gateFor(problem);
+    final _ProblemActionFlags flags = _ProblemActionFlags.from(
+      problem: problem,
+      actions: actions,
+    );
+    final List<Widget> primaryPills = _buildPrimaryProblemActionPills(
+      problem: problem,
+      actions: actions,
+      flags: flags,
+    );
+    final List<CardOverflowMenuAction> menuActions = _buildProblemOverflowActions(
+      flags: flags,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: kDashboardCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(AppIcons.problems, size: 20, color: Color(0xFF4A67FF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  onTap: () => actions.onOpenDetails(problem),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Text(
+                    title,
+                    style: MobileRowCardStyles.title.copyWith(
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              if (problemLabel != '—')
+                _ProblemCardMetaLine(
+                  icon: AppIcons.problems,
+                  label: problemLabel,
+                ),
+              _ProblemCardMetaLine(
+                icon: AppIcons.orgType,
+                label: category,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 14,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              _ProblemCardMetaLine(
+                icon: AppIcons.ideas,
+                label: '${gate.submittedCount}/${gate.effectiveMaxIdeas}',
+              ),
+              _ProblemCardMetaLine(
+                icon: AppIcons.clock,
+                label: _formatDeadline(problem),
+              ),
+            ],
+          ),
+          if (primaryPills.isNotEmpty || menuActions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                ...primaryPills,
+                if (menuActions.isNotEmpty)
+                  CardOverflowMenuButton(
+                    tooltip: 'More actions',
+                    dividersBefore: const <String>{'delete'},
+                    actions: menuActions,
+                    onSelected: (String value) => _handleProblemMenuAction(
+                      value: value,
+                      problem: problem,
+                      actions: actions,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProblemCardMetaLine extends StatelessWidget {
+  const _ProblemCardMetaLine({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 14, color: const Color(0xFF64748B)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _formatDeadline(ProblemModel problem) {
+  if (problem.ideaSubmissionDeadline == null) return '—';
+  final DateTime d = problem.ideaSubmissionDeadline!;
+  return '${d.day} ${kMonthNames[d.month - 1]} ${d.year}';
+}
+
+List<Widget> _buildPrimaryProblemActionPills({
+  required ProblemModel problem,
+  required ProblemTableActions actions,
+  required _ProblemActionFlags flags,
+}) {
+  final List<Widget> pills = <Widget>[];
+  if (flags.canActivate) {
+    pills.add(
+      ProblemWorkflowActionPill(
+        label: 'Activate',
+        icon: AppIcons.problemStatusActive,
+        semantic: ProblemWorkflowPillSemantic.primary,
+        onTap: () => actions.onActivateProblem?.call(problem),
+        tooltip: problem.status == ProblemStatus.inactive ? 'Reactivate problem' : 'Activate problem',
+      ),
+    );
+  }
+  if (flags.canDeactivate) {
+    pills.add(
+      ProblemWorkflowActionPill(
+        label: 'Deactivate',
+        icon: AppIcons.problemStatusInactive,
+        semantic: ProblemWorkflowPillSemantic.pending,
+        onTap: () => actions.onDeactivateProblem?.call(problem),
+        tooltip: 'Deactivate problem',
+      ),
+    );
+  }
+  if (flags.showSubmit && flags.submitEnabled) {
+    pills.add(
+      ProblemWorkflowActionPill(
+        label: 'Idea',
+        showPlusPrefix: true,
+        contentIcon: AppIcons.ideas,
+        semantic: ProblemWorkflowPillSemantic.filledBrand,
+        onTap: () => actions.onSubmitIdea(problem),
+        tooltip: 'Submit idea',
+      ),
+    );
+  }
+  if (flags.isClosed) {
+    pills.add(
+      const ProblemWorkflowActionPill(
+        label: 'Closed',
+        icon: AppIcons.problemStatusInactive,
+        semantic: ProblemWorkflowPillSemantic.closed,
+        enabled: false,
+        tooltip: 'Submissions closed',
+      ),
+    );
+  }
+  return pills;
+}
+
+List<CardOverflowMenuAction> _buildProblemOverflowActions({
+  required _ProblemActionFlags flags,
+}) {
+  return <CardOverflowMenuAction>[
+    if (flags.canEdit)
+      const CardOverflowMenuAction(
+        value: 'edit',
+        icon: AppIcons.edit,
+        label: 'Edit Problem',
+      ),
+    if (flags.canAssignJudge)
+      const CardOverflowMenuAction(
+        value: 'assign_judge',
+        icon: AppIcons.judges,
+        label: 'Assign Judge',
+      ),
+    if (flags.canDelete)
+      const CardOverflowMenuAction(
+        value: 'delete',
+        icon: AppIcons.remove,
+        label: 'Delete Problem',
+        danger: true,
+      ),
+  ];
+}
+
+void _handleProblemMenuAction({
+  required String value,
+  required ProblemModel problem,
+  required ProblemTableActions actions,
+}) {
+  switch (value) {
+    case 'edit':
+      actions.onEditProblem(problem);
+    case 'assign_judge':
+      actions.onAssignJudge(problem);
+    case 'delete':
+      actions.onDeleteProblem(problem);
   }
 }
 
@@ -251,132 +568,44 @@ class _DeadlineCell extends StatelessWidget {
 class _ProblemRowActionArea extends StatelessWidget {
   const _ProblemRowActionArea({
     required this.problem,
-    required this.gate,
-    required this.canSubmitIdea,
-    required this.canAssignJudge,
-    required this.canEdit,
-    required this.canManageStatus,
-    required this.canDelete,
-    required this.onSubmitIdea,
-    required this.onOpenDetails,
-    required this.onAssignJudge,
-    required this.onEdit,
-    required this.onDelete,
-    required this.onActivate,
-    required this.onDeactivate,
+    required this.actions,
   });
 
   final ProblemModel problem;
-  final IdeaSubmissionGate gate;
-  final bool canSubmitIdea;
-  final bool canAssignJudge;
-  final bool canEdit;
-  final bool canManageStatus;
-  final bool canDelete;
-  final VoidCallback onSubmitIdea;
-  final VoidCallback onOpenDetails;
-  final VoidCallback? onAssignJudge;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  final VoidCallback? onActivate;
-  final VoidCallback? onDeactivate;
+  final ProblemTableActions actions;
 
   @override
   Widget build(BuildContext context) {
-    final bool showSubmit = canSubmitIdea;
-    final bool submitEnabled = showSubmit && problem.isSubmissionOpen && gate.canSubmit;
-    final bool isClosed = showSubmit && !submitEnabled;
-    final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
-      const CardOverflowMenuAction(
-        value: 'details',
-        icon: AppIcons.preview,
-        label: 'View Details',
-      ),
-      if (canAssignJudge && onAssignJudge != null)
-        const CardOverflowMenuAction(
-          value: 'assign_judge',
-          icon: AppIcons.judges,
-          label: 'Assign Judge',
-        ),
-      if (canEdit && onEdit != null)
-        const CardOverflowMenuAction(
-          value: 'edit',
-          icon: AppIcons.edit,
-          label: 'Edit Problem',
-        ),
-      if (canDelete && onDelete != null)
-        const CardOverflowMenuAction(
-          value: 'delete',
-          icon: AppIcons.remove,
-          label: 'Delete Problem',
-          danger: true,
-        ),
-    ];
+    final _ProblemActionFlags flags = _ProblemActionFlags.from(
+      problem: problem,
+      actions: actions,
+    );
+    final List<Widget> primaryPills = _buildPrimaryProblemActionPills(
+      problem: problem,
+      actions: actions,
+      flags: flags,
+    );
+    final List<CardOverflowMenuAction> menuActions = _buildProblemOverflowActions(
+      flags: flags,
+    );
 
     return Wrap(
-      alignment: WrapAlignment.end,
+      spacing: 6,
+      runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: ResponsiveHelper.isMobile(context) ? 4 : 6,
-      runSpacing: 4,
       children: <Widget>[
-        if (canManageStatus && problem.status == ProblemStatus.draft && onActivate != null)
-          ProblemWorkflowActionPill(
-            label: 'Activate',
-            icon: AppIcons.problemStatusActive,
-            semantic: ProblemWorkflowPillSemantic.primary,
-            onTap: onActivate,
-            tooltip: 'Activate problem',
+        ...primaryPills,
+        if (menuActions.isNotEmpty)
+          CardOverflowMenuButton(
+            tooltip: 'Problem actions',
+            dividersBefore: const <String>{'delete'},
+            actions: menuActions,
+            onSelected: (String value) => _handleProblemMenuAction(
+              value: value,
+              problem: problem,
+              actions: actions,
+            ),
           ),
-        if (canManageStatus && problem.status == ProblemStatus.active && onDeactivate != null)
-          ProblemWorkflowActionPill(
-            label: 'Deactivate',
-            icon: AppIcons.problemStatusInactive,
-            semantic: ProblemWorkflowPillSemantic.pending,
-            onTap: onDeactivate,
-            tooltip: 'Deactivate problem',
-          ),
-        if (canManageStatus && problem.status == ProblemStatus.inactive && onActivate != null)
-          ProblemWorkflowActionPill(
-            label: 'Activate',
-            icon: AppIcons.problemStatusActive,
-            semantic: ProblemWorkflowPillSemantic.primary,
-            onTap: onActivate,
-            tooltip: 'Reactivate problem',
-          ),
-        if (showSubmit && submitEnabled)
-          ProblemWorkflowActionPill(
-            label: 'Idea',
-            showPlusPrefix: true,
-            contentIcon: AppIcons.ideas,
-            semantic: ProblemWorkflowPillSemantic.filledBrand,
-            onTap: onSubmitIdea,
-            tooltip: 'Submit idea',
-          ),
-        if (isClosed)
-          const ProblemWorkflowActionPill(
-            label: 'Closed',
-            icon: AppIcons.problemStatusInactive,
-            semantic: ProblemWorkflowPillSemantic.closed,
-            enabled: false,
-            tooltip: 'Submissions closed',
-          ),
-        CardOverflowMenuButton(
-          tooltip: 'Problem actions',
-          dividersBefore: const <String>{'delete'},
-          actions: actions,
-          onSelected: (String value) {
-            switch (value) {
-              case 'details':
-                onOpenDetails();
-              case 'assign_judge':
-                onAssignJudge?.call();
-              case 'edit':
-                onEdit?.call();
-              case 'delete':
-                onDelete?.call();
-            }
-          },
-        ),
       ],
     );
   }

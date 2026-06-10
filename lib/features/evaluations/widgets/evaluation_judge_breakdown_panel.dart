@@ -11,10 +11,12 @@ class EvaluationJudgeBreakdownPanel extends StatelessWidget {
     super.key,
     required this.judgeDetails,
     required this.departmentCode,
+    this.compactRows = false,
   });
 
   final List<EvaluationJudgeDetail> judgeDetails;
   final String departmentCode;
+  final bool compactRows;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,7 @@ class EvaluationJudgeBreakdownPanel extends StatelessWidget {
               EvaluationResultCard(
                 detail: judgeDetails[i],
                 departmentCode: departmentCode,
+                compact: compactRows,
               ),
             ],
         ],

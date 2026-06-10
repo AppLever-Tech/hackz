@@ -15,10 +15,13 @@ class EvaluationShortlistingSection extends StatefulWidget {
     super.key,
     required this.vm,
     required this.onUpdated,
+    this.alwaysShowRankStatus = false,
   });
 
   final EvaluationDetailsViewModel vm;
   final VoidCallback onUpdated;
+  /// When true, rank and status chips render even if [EvaluationDetailsViewModel.canShortlist] is false.
+  final bool alwaysShowRankStatus;
 
   @override
   State<EvaluationShortlistingSection> createState() => _EvaluationShortlistingSectionState();
@@ -57,11 +60,13 @@ class _EvaluationShortlistingSectionState extends State<EvaluationShortlistingSe
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.vm.canShortlist) return const SizedBox.shrink();
+    if (!widget.vm.canShortlist && !widget.alwaysShowRankStatus) {
+      return const SizedBox.shrink();
+    }
 
     final IdeaStatus status = widget.vm.status;
     final Color statusColor = IdeaStatusHelpers.color(status);
-    final bool canAct = status == IdeaStatus.evaluated;
+    final bool canAct = widget.vm.canShortlist && status == IdeaStatus.evaluated;
     final String? rankLabel = widget.vm.evaluationRank != null && widget.vm.evaluationRank! > 0
         ? '#${widget.vm.evaluationRank}'
         : null;
