@@ -5,7 +5,7 @@ export 'models/payment_model.dart';
 export 'screens/payments_screen.dart';
 export 'services/department_payments_service.dart';
 export 'services/payment_finance_helpers.dart';
-export 'widgets/payment_contribution_tile.dart';
+export 'widgets/payment_table_columns.dart';
 export 'widgets/payment_detail_pane.dart';
 export 'widgets/payment_dialog.dart';
 export 'widgets/payment_proof_panel.dart';

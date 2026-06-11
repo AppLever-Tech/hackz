@@ -71,8 +71,8 @@ class DepartmentPaymentDetail {
     required this.problem,
     required this.students,
     required this.proofAttachments,
-    required this.departmentContributionPercent,
-    required this.paymentTrendLabel,
+    this.coordinator,
+    this.mentor,
   });
 
   final DepartmentPaymentContribution contribution;
@@ -81,8 +81,8 @@ class DepartmentPaymentDetail {
   final ProblemModel? problem;
   final List<UserModel> students;
   final List<AttachmentModel> proofAttachments;
-  final double departmentContributionPercent;
-  final String paymentTrendLabel;
+  final UserModel? coordinator;
+  final UserModel? mentor;
 }
 
 class DepartmentPaymentsWorkspace {
@@ -269,10 +269,6 @@ class DepartmentPaymentsService {
         students = sortUsersByDisplayName(students);
       }
 
-      final double percent = summary.totalCollection <= 0
-          ? 0.0
-          : (payment.amount / summary.totalCollection * 100).clamp(0.0, 100.0).toDouble();
-
       detailsByPaymentId[payment.paymentId] = DepartmentPaymentDetail(
         contribution: contribution,
         idea: idea,
@@ -280,8 +276,8 @@ class DepartmentPaymentsService {
         problem: problem,
         students: students,
         proofAttachments: proof,
-        departmentContributionPercent: percent,
-        paymentTrendLabel: _trendLabel(payment),
+        coordinator: coordinator,
+        mentor: mentor,
       );
     }
 
@@ -342,13 +338,6 @@ class DepartmentPaymentsService {
     if (idea != null && idea.problemTitle.trim().isNotEmpty) return idea.problemTitle.trim();
     if (payment.problemNumber.trim().isNotEmpty) return payment.problemNumber.trim();
     return 'Problem';
-  }
-
-  static String _trendLabel(PaymentModel payment) {
-    if (payment.status == PaymentRecordStatus.verified) return 'Verified in department';
-    if (PaymentFinanceHelpers.isOverdue(payment)) return 'Attention: overdue verification';
-    if (payment.status == PaymentRecordStatus.pending) return 'Awaiting coordinator action';
-    return 'Rejected — resubmission may be required';
   }
 
   static List<DepartmentPaymentContribution> filterContributions({

@@ -28,11 +28,13 @@ class WorkspaceAttachmentsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 10),
+        if (title.trim().isNotEmpty) ...<Widget>[
+          Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 10),
+        ],
         if (attachments.isEmpty)
           Text(
             emptyMessage,

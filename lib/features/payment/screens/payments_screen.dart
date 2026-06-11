@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
-import 'package:hackz/screens/common/app_dialog_template.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/shared/inputs/filter_pill.dart';
 import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
+import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/core/responsive/responsive_metric_grid.dart';
+import 'package:hackz/widgets/data_view/data_table_view.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
-import '../widgets/payment_contribution_tile.dart';
 import '../widgets/payment_detail_pane.dart';
 import '../widgets/payment_summary_card.dart';
-import 'package:hackz/core/workspace/workspace_navigator.dart';
+import '../widgets/payment_table_columns.dart';
 
 class PaymentsScreen extends StatefulWidget {
   const PaymentsScreen({super.key, required this.user});
@@ -72,6 +72,12 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       _dateFilter != DepartmentPaymentDateFilter.all ||
       _verificationFilter != DepartmentPaymentVerificationFilter.all;
 
+  PaymentTableActions _tableActions(DepartmentPaymentsWorkspace workspace) {
+    return PaymentTableActions(
+      onOpenDetail: (DepartmentPaymentContribution item) => _openPaymentDetail(context, workspace, item),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DepartmentPaymentsWorkspace>(
@@ -85,54 +91,109 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         }
         final workspace = snapshot.data!;
         final filtered = _filtered(workspace);
+        final bool mobile = ResponsiveHelper.isMobile(context);
+        final PaymentTableActions tableActions = _tableActions(workspace);
 
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final listPanel = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _buildSummaryRow(workspace.summary),
-                const SizedBox(height: 10),
-                ResponsiveSearchFilterBar(
-                  searchController: _searchController,
-                  searchHint: 'Search idea, problem, team, mentor…',
-                  filtersExpanded: _showFilters,
-                  onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-                ),
-                const SizedBox(height: 8),
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: _buildFiltersPanel(workspace),
-                  crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 220),
-                ),
-                if (_hasAnyActiveFilter) ...<Widget>[
-                  const SizedBox(height: 8),
-                  _buildActiveFiltersRow(workspace),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  'Showing ${filtered.length} contribution${filtered.length == 1 ? '' : 's'}',
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                if (hasBoundedHeight)
-                  Expanded(child: _buildList(workspace, filtered))
-                else
-                  SizedBox(height: 480, child: _buildList(workspace, filtered)),
-              ],
+            final Widget header = _buildListHeader(
+              context: context,
+              workspace: workspace,
+              filteredCount: filtered.length,
+            );
+            final Widget contentWidget = _buildList(
+              workspace,
+              filtered,
+              mobile: mobile,
+              actions: tableActions,
             );
 
-            return listPanel;
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: 480, child: contentWidget),
+                ],
+              );
+            }
+
+            if (mobile) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Flexible(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: header,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 5,
+                    child: contentWidget,
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: contentWidget),
+              ],
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildSummaryRow(DepartmentPaymentsSummary summary) {
+  Widget _buildListHeader({
+    required BuildContext context,
+    required DepartmentPaymentsWorkspace workspace,
+    required int filteredCount,
+  }) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildSummaryRow(workspace.summary, compact: compact),
+        SizedBox(height: compact ? 8 : 10),
+        ResponsiveSearchFilterBar(
+          searchController: _searchController,
+          searchHint: 'Search idea, problem, team, mentor…',
+          filtersExpanded: _showFilters,
+          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+          iconOnlyFilterOnMobile: true,
+        ),
+        SizedBox(height: compact ? 6 : 8),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: _buildFiltersPanel(context, workspace),
+          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
+        ),
+        if (_hasAnyActiveFilter) ...<Widget>[
+          SizedBox(height: compact ? 6 : 8),
+          _buildActiveFiltersRow(workspace),
+        ],
+        SizedBox(height: compact ? 6 : 8),
+        Text(
+          'Showing $filteredCount contribution${filteredCount == 1 ? '' : 's'}',
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        SizedBox(height: compact ? 6 : 8),
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(DepartmentPaymentsSummary summary, {bool compact = false}) {
     return ResponsiveMetricGrid(
+      spacing: compact ? 8 : null,
+      runSpacing: compact ? 8 : null,
       chips: <DashboardMetricChipData>[
         PaymentSummaryCard(
           label: 'Total department collection',
@@ -170,41 +231,68 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  Widget _buildFiltersPanel(DepartmentPaymentsWorkspace workspace) {
+  Widget _buildFiltersPanel(BuildContext context, DepartmentPaymentsWorkspace workspace) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final double sectionGap = compact ? 6 : 10;
+    final double chipGap = compact ? 6 : 8;
+    final TextStyle sectionLabel = TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: compact ? 12 : 14,
+    );
+
+    Widget compactFilterChip({
+      required String label,
+      required bool selected,
+      required ValueChanged<bool> onSelected,
+    }) {
+      return FilterChip(
+        label: Text(label, style: TextStyle(fontSize: compact ? 12 : 14)),
+        selected: selected,
+        onSelected: onSelected,
+        visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+        materialTapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+        padding: compact ? const EdgeInsets.symmetric(horizontal: 4) : null,
+      );
+    }
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 8 : 12),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(compact ? 12 : 14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ResponsiveFilterChipRow(
             children: <Widget>[
-              FilterPill(
+              _statusFilterPill(
+                compact: compact,
                 selected: _statusFilter == null,
                 icon: AppIcons.payments,
                 label: 'All status',
                 count: workspace.contributions.length,
                 onTap: () => setState(() => _statusFilter = null),
               ),
-              FilterPill(
+              _statusFilterPill(
+                compact: compact,
                 selected: _statusFilter == PaymentRecordStatus.pending,
                 icon: AppIcons.workflowPendingReview,
                 label: 'Pending',
                 count: workspace.summary.pendingCount,
                 onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
               ),
-              FilterPill(
+              _statusFilterPill(
+                compact: compact,
                 selected: _statusFilter == PaymentRecordStatus.verified,
                 icon: AppIcons.workflowApproved,
                 label: 'Verified',
                 count: workspace.summary.verifiedCount,
                 onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
               ),
-              FilterPill(
+              _statusFilterPill(
+                compact: compact,
                 selected: _statusFilter == PaymentRecordStatus.rejected,
                 icon: AppIcons.statusRejected,
                 label: 'Rejected',
@@ -213,46 +301,106 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text('Payment date', style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+          SizedBox(height: sectionGap),
+          Text('Payment date', style: sectionLabel),
+          SizedBox(height: chipGap),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: chipGap,
+            runSpacing: chipGap,
             children: DepartmentPaymentDateFilter.values
                 .map(
-                  (f) => FilterChip(
-                    label: Text(f.label),
+                  (f) => compactFilterChip(
+                    label: f.label,
                     selected: _dateFilter == f,
                     onSelected: (_) => setState(() => _dateFilter = f),
                   ),
                 )
                 .toList(growable: false),
           ),
-          const SizedBox(height: 10),
-          const Text('Verification', style: TextStyle(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+          SizedBox(height: sectionGap),
+          Text('Verification', style: sectionLabel),
+          SizedBox(height: chipGap),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: chipGap,
+            runSpacing: chipGap,
             children: DepartmentPaymentVerificationFilter.values
                 .map(
-                  (f) => FilterChip(
-                    label: Text(f.label),
+                  (f) => compactFilterChip(
+                    label: f.label,
                     selected: _verificationFilter == f,
                     onSelected: (_) => setState(() => _verificationFilter = f),
                   ),
                 )
                 .toList(growable: false),
           ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              TextButton(onPressed: _clearAllFilters, child: const Text('Clear All')),
-            ],
+          SizedBox(height: sectionGap),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _clearAllFilters,
+              style: TextButton.styleFrom(
+                visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+                tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+              ),
+              child: Text('Clear All', style: TextStyle(fontSize: compact ? 12 : 14)),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _statusFilterPill({
+    required bool compact,
+    required bool selected,
+    required IconData icon,
+    required String label,
+    required int count,
+    required VoidCallback onTap,
+  }) {
+    if (!compact) {
+      return FilterPill(
+        selected: selected,
+        icon: icon,
+        label: label,
+        count: count,
+        onTap: onTap,
+      );
+    }
+
+    final Color fg = selected ? const Color(0xFF2E43C6) : const Color(0xFF475569);
+    final Color bg = selected ? const Color(0xFFE8ECFF) : const Color(0xFFF1F5F9);
+    final Color border = selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0);
+    final String text = count == 0 ? label : '$label ($count)';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: border, width: selected ? 1.4 : 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 14, color: fg),
+              const SizedBox(width: 4),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -282,7 +430,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
   }
 
-  Future<void> _openPaymentDetail(BuildContext context, DepartmentPaymentsWorkspace workspace, DepartmentPaymentContribution item) async {
+  Future<void> _openPaymentDetail(
+    BuildContext context,
+    DepartmentPaymentsWorkspace workspace,
+    DepartmentPaymentContribution item,
+  ) async {
     final DepartmentPaymentDetail? detail = workspace.detailFor(item.payment.paymentId);
     if (detail == null) {
       FeedbackService.showInfo(
@@ -292,36 +444,39 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       );
       return;
     }
-    await showAppDialog<void>(
-      context: context,
-      width: DialogWidthPreset.wide,
-      child: PaymentDetailPane(detail: detail),
-    );
+    await showPaymentDetailDialog(context, detail: detail);
   }
 
-  Widget _buildList(DepartmentPaymentsWorkspace workspace, List<DepartmentPaymentContribution> items) {
+  Widget _buildList(
+    DepartmentPaymentsWorkspace workspace,
+    List<DepartmentPaymentContribution> items, {
+    required bool mobile,
+    required PaymentTableActions actions,
+  }) {
     if (items.isEmpty) {
       return const Center(
         child: Text('No payment contributions match your filters.', style: TextStyle(color: Color(0xFF64748B))),
       );
     }
 
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return PaymentContributionTile(
-          item: item,
-          selected: false,
-          onTap: () => _openPaymentDetail(context, workspace, item),
-          onOpenWorkspace: () => WorkspaceNavigator.openPayment(context, item.payment.paymentId),
-          onOpenProblem: item.payment.problemId.trim().isEmpty
-              ? null
-              : () => WorkspaceNavigator.openProblem(context, item.payment.problemId),
-        );
-      },
+    if (mobile) {
+      return ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          return PaymentListRowCard(
+            item: items[index],
+            actions: actions,
+          );
+        },
+      );
+    }
+
+    return DataTableView<DepartmentPaymentContribution>(
+      items: items,
+      columns: PaymentTableColumns.build(actions: actions),
     );
   }
 }
+

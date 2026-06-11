@@ -86,7 +86,7 @@ class PaymentProofPanel extends StatelessWidget {
     }
 
     return WorkspaceAttachmentsPanel(
-      title: showDetailHeader ? 'Files' : 'Payment proof',
+      title: showDetailHeader ? '' : 'Payment proof',
       attachments: attachments,
       emptyMessage: 'No payment proof uploaded yet.',
     );

@@ -5,35 +5,39 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/problems/models/problem_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_group.dart';
 import 'package:hackz/widgets/common/context_pill_theme.dart';
+
+import 'payment_form_row.dart';
 
 class TeamContributionSection extends StatelessWidget {
   const TeamContributionSection({
     super.key,
     this.teamId,
     required this.teamName,
-    required this.mentorName,
+    this.mentor,
     required this.students,
     required this.ideaTitle,
+    this.ideaId,
     required this.problemTitle,
-    this.problemDescription,
+    this.problemId,
   });
 
   final String? teamId;
   final String teamName;
-  final String mentorName;
+  final UserModel? mentor;
   final List<UserModel> students;
   final String ideaTitle;
+  final String? ideaId;
   final String problemTitle;
-  final String? problemDescription;
+  final String? problemId;
 
   factory TeamContributionSection.fromModels({
     required TeamModel? team,
-    required String mentorName,
+    UserModel? mentor,
     required List<UserModel> students,
     required IdeaModel? idea,
     required ProblemModel? problem,
@@ -41,13 +45,14 @@ class TeamContributionSection extends StatelessWidget {
     return TeamContributionSection(
       teamId: team?.teamId,
       teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : (team?.teamId ?? '-'),
-      mentorName: mentorName,
+      mentor: mentor,
       students: students,
       ideaTitle: idea?.ideaTitle.trim().isNotEmpty == true ? idea!.ideaTitle.trim() : 'Untitled Idea',
+      ideaId: idea?.ideaId,
       problemTitle: problem?.title.trim().isNotEmpty == true
           ? problem!.title.trim()
           : (idea?.problemTitle.trim().isNotEmpty == true ? idea!.problemTitle.trim() : 'Problem'),
-      problemDescription: problem?.description.trim().isNotEmpty == true ? problem!.description.trim() : idea?.description,
+      problemId: problem?.problemId ?? idea?.problemId,
     );
   }
 
@@ -58,35 +63,32 @@ class TeamContributionSection extends StatelessWidget {
       children: <Widget>[
         _sectionTitle(AppIcons.teams, 'Team contribution'),
         const SizedBox(height: 8),
-        _teamLine(context),
-        const SizedBox(height: 6),
-        _line(AppIcons.faculty, 'Mentor', mentorName),
-        const SizedBox(height: 8),
-        const Text('Students', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-        const SizedBox(height: 6),
-        if (students.isEmpty)
-          const Text('No students linked', style: TextStyle(color: Color(0xFF94A3B8)))
-        else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: students
-                .map((UserModel student) => _studentPill(context, student))
-                .toList(growable: false),
-          ),
-        const SizedBox(height: 10),
-        _line(AppIcons.ideas, 'Idea', ideaTitle),
-        const SizedBox(height: 6),
-        _line(AppIcons.problems, 'Problem', problemTitle),
-        if (problemDescription != null && problemDescription!.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: 8),
-          Text(
-            problemDescription!.trim(),
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
-          ),
-        ],
+        PaymentFormRow(
+          icon: AppIcons.teams,
+          label: 'Team',
+          value: _teamValue(context),
+        ),
+        PaymentFormRow(
+          icon: AppIcons.faculty,
+          label: 'Mentor',
+          value: _mentorValue(context),
+        ),
+        PaymentFormRow(
+          icon: AppIcons.student,
+          label: 'Students',
+          value: _studentsValue(context),
+        ),
+        PaymentFormRow(
+          icon: AppIcons.ideas,
+          label: 'Idea',
+          value: _ideaValue(context),
+        ),
+        PaymentFormRow(
+          icon: AppIcons.problems,
+          label: 'Problem',
+          value: _problemValue(context),
+          bottomPadding: 0,
+        ),
       ],
     );
   }
@@ -101,70 +103,125 @@ class TeamContributionSection extends StatelessWidget {
     );
   }
 
-  static Widget _studentPill(BuildContext context, UserModel student) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(AppIcons.student, size: 14, color: Color(0xFF6A38FF)),
-          const SizedBox(width: 5),
-          Text(
-            userDisplayName(student),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-            ),
-          ),
-          ContextPill(
-            label: userDisplayName(student),
-            semantic: ContextPillSemantic.user,
-            onTap: () => WorkspaceNavigator.openUser(context, student.userId),
-            compact: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _teamLine(BuildContext context) {
+  Widget _teamValue(BuildContext context) {
     final String id = teamId?.trim() ?? '';
     if (id.isEmpty) {
-      return _line(AppIcons.teams, 'Team', teamName);
+      return PaymentFormRow.plainValue(teamName);
     }
-    return ContextPillGroup(
-      fieldLabel: 'Team',
-      pillLabel: teamName,
+    return _compactPill(
+      label: teamName,
       semantic: ContextPillSemantic.team,
-      onOpenWorkspace: () => WorkspaceNavigator.openTeam(context, id),
-      leadingIcon: AppIcons.teams,
+      onTap: () => WorkspaceNavigator.openTeam(context, id),
     );
   }
 
-  Widget _line(IconData icon, String label, String value) {
+  Widget _mentorValue(BuildContext context) {
+    final UserModel? mentorUser = mentor;
+    final String name = mentorUser == null
+        ? '-'
+        : userDisplayName(mentorUser);
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Icon(icon, size: 16, color: const Color(0xFF64748B)),
+        if (mentorUser != null)
+          UserWorkspaceAvatar(
+            user: mentorUser,
+            radius: 12,
+            ringPadding: 2,
+            onTap: () => WorkspaceNavigator.openUser(context, mentorUser.userId),
+          )
+        else
+          PaymentFormRow.fallbackAvatar(name, radius: 12),
         const SizedBox(width: 8),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
-              children: <TextSpan>[
-                TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-                TextSpan(text: value, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A))),
+        Expanded(child: PaymentFormRow.plainValue(name)),
+      ],
+    );
+  }
+
+  Widget _studentsValue(BuildContext context) {
+    if (students.isEmpty) {
+      return PaymentFormRow.plainValue('No students linked');
+    }
+
+    final List<Widget> rows = <Widget>[];
+    for (var i = 0; i < students.length; i += 2) {
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: i + 2 < students.length ? 8 : 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: _studentRow(context, students[i])),
+              if (i + 1 < students.length) ...<Widget>[
+                const SizedBox(width: 12),
+                Expanded(child: _studentRow(context, students[i + 1])),
               ],
-            ),
+            ],
           ),
         ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+  }
+
+  Widget _studentRow(BuildContext context, UserModel student) {
+    final String name = userDisplayName(student);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        UserWorkspaceAvatar(
+          user: student,
+          radius: 12,
+          ringPadding: 2,
+          onTap: () => WorkspaceNavigator.openUser(context, student.userId),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: PaymentFormRow.plainValue(name)),
       ],
+    );
+  }
+
+  Widget _ideaValue(BuildContext context) {
+    final String id = ideaId?.trim() ?? '';
+    if (id.isEmpty) {
+      return PaymentFormRow.plainValue(ideaTitle);
+    }
+    return _compactPill(
+      label: ideaTitle,
+      semantic: ContextPillSemantic.idea,
+      onTap: () => WorkspaceNavigator.openIdea(context, id),
+    );
+  }
+
+  Widget _problemValue(BuildContext context) {
+    final String id = problemId?.trim() ?? '';
+    if (id.isEmpty) {
+      return PaymentFormRow.plainValue(problemTitle);
+    }
+    return _compactPill(
+      label: problemTitle,
+      semantic: ContextPillSemantic.problem,
+      onTap: () => WorkspaceNavigator.openProblem(context, id),
+    );
+  }
+
+  static Widget _compactPill({
+    required String label,
+    required ContextPillSemantic semantic,
+    required VoidCallback onTap,
+  }) {
+    final String text = label.trim().isEmpty ? '—' : label.trim();
+    return ContextPill(
+      label: text,
+      semantic: semantic,
+      onTap: onTap,
+      compact: true,
+      fitContent: true,
     );
   }
 }

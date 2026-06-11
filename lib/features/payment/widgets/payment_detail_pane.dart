@@ -1,35 +1,61 @@
 import 'package:flutter/material.dart';
 
 import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/responsive/responsive_helper.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/screens/common/app_dialog_template.dart';
 import 'package:hackz/screens/common/dashboard_components.dart';
+import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/utils/common_helpers.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
+import 'payment_form_row.dart';
 import 'payment_proof_panel.dart';
 import 'payment_status_pill.dart';
 import 'team_contribution_section.dart';
 import 'verification_timeline_widget.dart';
 
+Future<void> showPaymentDetailDialog(
+  BuildContext context, {
+  required DepartmentPaymentDetail detail,
+}) {
+  final bool compact = ResponsiveHelper.isMobile(context);
+  return showAppDialog<void>(
+    context: context,
+    width: compact ? DialogWidthPreset.compact : DialogWidthPreset.wide,
+    child: PaymentDetailPane(detail: detail, compact: compact),
+  );
+}
+
 class PaymentDetailPane extends StatelessWidget {
   const PaymentDetailPane({
     super.key,
     required this.detail,
+    this.compact = false,
     this.sectionBorderRadius = 20,
   });
 
   final DepartmentPaymentDetail detail;
+  final bool compact;
   final double sectionBorderRadius;
 
   @override
   Widget build(BuildContext context) {
     final payment = detail.contribution.payment;
     final contribution = detail.contribution;
+    final double amountFontSize = compact ? 22 : 26;
+    final double sectionRadius = compact ? 14 : sectionBorderRadius;
+    final EdgeInsets sectionPadding = compact ? const EdgeInsets.all(12) : const EdgeInsets.all(14);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _sectionPanel(
+          borderRadius: sectionRadius,
+          padding: sectionPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -49,41 +75,61 @@ class PaymentDetailPane extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 PaymentFinanceHelpers.formatCurrency(payment.amount),
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                style: TextStyle(fontSize: amountFontSize, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
               ),
               const SizedBox(height: 8),
-              _summaryRow('Paid on', PaymentFinanceHelpers.formatDate(payment.createdAt)),
+              PaymentFormRow(
+                icon: AppIcons.clock,
+                label: 'Paid on',
+                value: PaymentFormRow.plainValue(formatDateTime(payment.createdAt)),
+              ),
               if (payment.verifiedAt != null)
-                _summaryRow(
-                  payment.status == PaymentRecordStatus.rejected ? 'Rejected on' : 'Verified on',
-                  PaymentFinanceHelpers.formatDate(payment.verifiedAt!),
+                PaymentFormRow(
+                  icon: AppIcons.workflowApproved,
+                  label: payment.status == PaymentRecordStatus.rejected ? 'Rejected on' : 'Verified on',
+                  value: PaymentFormRow.plainValue(formatDateTime(payment.verifiedAt!)),
                 ),
-              _summaryRow('Coordinator', contribution.coordinatorName),
+              PaymentFormRow(
+                icon: AppIcons.coordinator,
+                label: 'Coordinator',
+                value: _coordinatorValue(context, detail.coordinator, contribution.coordinatorName),
+              ),
               if (payment.transactionId?.trim().isNotEmpty == true)
-                _summaryRow('Transaction ID', payment.transactionId!.trim()),
+                PaymentFormRow(
+                  icon: AppIcons.payments,
+                  label: 'Transaction ID',
+                  value: PaymentFormRow.plainValue(payment.transactionId!.trim()),
+                  bottomPadding: 0,
+                ),
             ],
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 8 : 10),
         _sectionPanel(
+          borderRadius: sectionRadius,
+          padding: sectionPadding,
           child: TeamContributionSection.fromModels(
             team: detail.team,
-            mentorName: contribution.mentorName,
+            mentor: detail.mentor,
             students: detail.students,
             idea: detail.idea,
             problem: detail.problem,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 8 : 10),
         _sectionPanel(
+          borderRadius: sectionRadius,
+          padding: sectionPadding,
           child: PaymentProofPanel(
             payment: payment,
             attachments: detail.proofAttachments,
             showDetailHeader: true,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 8 : 10),
         _sectionPanel(
+          borderRadius: sectionRadius,
+          padding: sectionPadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -99,94 +145,39 @@ class PaymentDetailPane extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        _sectionPanel(
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: _insightTile(
-                  icon: AppIcons.insights,
-                  label: 'Dept. contribution',
-                  value: '${detail.departmentContributionPercent.toStringAsFixed(1)}%',
-                  color: const Color(0xFF6A38FF),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _insightTile(
-                  icon: AppIcons.payments,
-                  label: 'Trend',
-                  value: detail.paymentTrendLabel,
-                  color: const Color(0xFF0891B2),
-                  compactValue: true,
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
 
-  Widget _sectionPanel({required Widget child}) {
-    return SectionContainer(
-      borderRadius: sectionBorderRadius,
-      padding: const EdgeInsets.all(14),
-      child: child,
+  Widget _coordinatorValue(BuildContext context, UserModel? coordinator, String fallbackName) {
+    final String name = coordinator != null ? userDisplayName(coordinator) : fallbackName;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        if (coordinator != null)
+          UserWorkspaceAvatar(
+            user: coordinator,
+            radius: 12,
+            ringPadding: 2,
+            onTap: () => WorkspaceNavigator.openUser(context, coordinator.userId),
+          )
+        else
+          PaymentFormRow.fallbackAvatar(name, radius: 12),
+        const SizedBox(width: 8),
+        Expanded(child: PaymentFormRow.plainValue(name)),
+      ],
     );
   }
 
-  Widget _summaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: <Widget>[
-          SizedBox(
-            width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _insightTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    bool compactValue = false,
+  Widget _sectionPanel({
+    required Widget child,
+    required double borderRadius,
+    required EdgeInsets padding,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, size: 16, color: color),
-          const SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            maxLines: compactValue ? 3 : 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: compactValue ? 12 : 16,
-              fontWeight: FontWeight.w900,
-              color: color,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
+    return SectionContainer(
+      borderRadius: borderRadius,
+      padding: padding,
+      child: child,
     );
   }
 }

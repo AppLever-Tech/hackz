@@ -16,6 +16,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     this.filterLabel,
     this.onSearchSubmitted,
     this.showFilterButton = true,
+    this.iconOnlyFilterOnMobile = false,
   });
 
   final TextEditingController searchController;
@@ -27,19 +28,38 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
   final String? filterLabel;
   final VoidCallback? onSearchSubmitted;
   final bool showFilterButton;
+  final bool iconOnlyFilterOnMobile;
 
   @override
   Widget build(BuildContext context) {
-    final filterButton = showFilterButton && onToggleFilters != null
-        ? OutlinedButton.icon(
-            onPressed: onToggleFilters,
-            icon: const Icon(Icons.tune),
-            label: Text(filterLabel ?? (filtersExpanded ? 'Hide Filters' : 'Filters')),
-            style: OutlinedButton.styleFrom(
-              minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          )
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool useIconOnlyFilter = mobile && iconOnlyFilterOnMobile;
+
+    final Widget? filterButton = showFilterButton && onToggleFilters != null
+        ? useIconOnlyFilter
+            ? IconButton(
+                onPressed: onToggleFilters,
+                tooltip: filterLabel ?? (filtersExpanded ? 'Hide filters' : 'Filters'),
+                icon: Icon(Icons.tune, color: filtersExpanded ? const Color(0xFF6A38FF) : const Color(0xFF475569)),
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(40, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: filtersExpanded ? const Color(0xFFE8ECFF) : const Color(0xFFF8FAFC),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: filtersExpanded ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0)),
+                  ),
+                ),
+              )
+            : OutlinedButton.icon(
+                onPressed: onToggleFilters,
+                icon: const Icon(Icons.tune),
+                label: Text(filterLabel ?? (filtersExpanded ? 'Hide Filters' : 'Filters')),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(0, mobile ? 40 : 44),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              )
         : null;
 
     final searchField = TextField(
@@ -64,7 +84,19 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
       ),
     );
 
-    if (ResponsiveHelper.isMobile(context)) {
+    if (mobile && useIconOnlyFilter) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          if (leading.isNotEmpty) ...leading.expand((Widget w) => <Widget>[w, const SizedBox(width: 8)]),
+          Expanded(child: searchField),
+          if (trailing.isNotEmpty) ...trailing.map((Widget w) => Padding(padding: const EdgeInsets.only(left: 8), child: w)),
+          if (filterButton != null) ...<Widget>[const SizedBox(width: 8), filterButton],
+        ],
+      );
+    }
+
+    if (mobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
