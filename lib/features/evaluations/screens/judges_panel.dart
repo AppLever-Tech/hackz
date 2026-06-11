@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../workspace/evaluation_assignment_details_pane.dart';
-import '../../../constants/status_styles.dart';
 import '../../imports/imports.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
@@ -14,9 +13,7 @@ import '../../../shared/feedback/feedback.dart';
 import '../../user/widgets/mobile_user_list_row_card.dart';
 import '../../../utils/department_dashboard_service.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/deptadmin/department_metric_card.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
+import '../widgets/judges_panel_metrics_row.dart';
 import '../../../shared/workspace/user_list_identity_lead.dart';
 import '../../user/screens/create_user_dialog.dart';
 
@@ -152,60 +149,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       context,
       user: widget.user,
       backTooltip: 'Back to Judges Panel',
-    );
-  }
-
-  Widget _buildMetricChips(_JudgesPanelData data) {
-    final DepartmentDashboardAnalytics metrics = data.metrics;
-    return ResponsiveMetricGrid(
-      chips: <DashboardMetricChipData>[
-        DepartmentMetricCard(
-          value: '${data.judges.length}',
-          label: 'Total Judges',
-          icon: AppIcons.judges,
-          iconBgColor: const Color(0xFFFFF4ED),
-          tooltip: 'Judges assigned to this department.',
-        ).toChipData(),
-        DepartmentMetricCard(
-          value: '${metrics.ideasSubmitted}',
-          label: 'Ideas Submitted',
-          icon: AppIcons.ideas,
-          iconBgColor: const Color(0xFFF2EDFF),
-          tooltip: 'Department idea submissions.',
-        ).toChipData(),
-        DepartmentMetricCard(
-          value: '${metrics.underReviewIdeas}',
-          label: 'Ideas Under Review',
-          icon: AppIcons.statusUnderEvaluation,
-          iconBgColor: const Color(0xFFEAF2FF),
-          tooltip: 'Ideas currently under review.',
-        ).toChipData(),
-        DashboardMetricChipData.withSegments(
-          label: 'Ideas',
-          color: const Color(0xFF7C3AED),
-          icon: AppIcons.ideas,
-          segments: <DashboardMetricChipSegment>[
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusEvaluated,
-              tooltip: 'Evaluated',
-              value: '${metrics.evaluatedOnlyIdeas}',
-              color: StatusStyles.evaluated,
-            ),
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusShortlisted,
-              tooltip: 'Approved',
-              value: '${metrics.approvedIdeas}',
-              color: StatusStyles.approved,
-            ),
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusRejected,
-              tooltip: 'Rejected',
-              value: '${metrics.rejectedIdeas}',
-              color: StatusStyles.rejected,
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -360,10 +303,39 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
           return const Center(child: Text('No judges data available.'));
         }
 
+        final bool mobile = ResponsiveHelper.isMobile(context);
+        final Widget metrics = JudgesPanelMetricsRow(
+          judgeCount: data.judges.length,
+          metrics: data.metrics,
+          spacing: mobile ? 8 : 10,
+          runSpacing: mobile ? 8 : 10,
+        );
+
+        if (mobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _buildToolbar(context),
+              const SizedBox(height: 8),
+              metrics,
+              const SizedBox(height: 8),
+              Expanded(
+                child: data.judges.isEmpty
+                    ? const Center(child: Text('No judges assigned for this department.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: data.judges.length,
+                        itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
+                      ),
+              ),
+            ],
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _buildMetricChips(data),
+            metrics,
             SizedBox(height: gap),
             _buildToolbar(context),
             const SizedBox(height: 10),

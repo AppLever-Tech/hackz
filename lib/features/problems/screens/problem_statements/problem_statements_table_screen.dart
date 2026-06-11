@@ -6,6 +6,7 @@ import '../../../../constants/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
+import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../shared/feedback/feedback.dart';
@@ -386,20 +387,11 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             }
 
             if (mobile) {
-              // Metrics, toolbar, and filters can exceed viewport height on mobile.
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Flexible(
-                    flex: 2,
-                    child: SingleChildScrollView(
-                      child: header,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: contentBody,
-                  ),
+                  header,
+                  Expanded(child: contentBody),
                 ],
               );
             }
@@ -424,15 +416,9 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ProblemMetricsRow(metrics: _metrics),
-        SizedBox(height: compact ? 8 : 12),
-        _buildToolbar(context),
-        SizedBox(height: compact ? 6 : 12),
-        AnimatedCrossFade(
+    final Widget metrics = ProblemMetricsRow(metrics: _metrics);
+    final Widget searchBar = _buildSearchFilterBar(context);
+    final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: ProblemFiltersPanel(
             compact: compact,
@@ -464,12 +450,11 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             onClearAll: _clearAllFilters,
             onApply: _loadProblems,
           ),
-          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 220),
-        ),
-        if (_hasAnyActiveFilter) ...<Widget>[
-          SizedBox(height: compact ? 6 : 12),
-          ProblemActiveFiltersRow(
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
+    final Widget? activeFilters = _hasAnyActiveFilter
+        ? ProblemActiveFiltersRow(
             departmentFilters: _departmentFilters,
             tagFilters: _tagFilters,
             statusFilter: _statusFilter,
@@ -495,17 +480,54 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
               setState(() => _hasAttachments = null);
               _loadProblems();
             },
-          ),
+          )
+        : null;
+
+    if (compact) {
+      final Widget? primaryActions = _buildPrimaryActionToolbar(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (primaryActions != null) ...<Widget>[
+            primaryActions,
+            const SizedBox(height: 8),
+          ],
+          searchBar,
+          const SizedBox(height: 6),
+          filters,
+          if (activeFilters != null) ...<Widget>[
+            const SizedBox(height: 6),
+            activeFilters,
+          ],
+          const SizedBox(height: 6),
+          metrics,
+          const SizedBox(height: 6),
         ],
-        SizedBox(height: compact ? 6 : 10),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        metrics,
+        const SizedBox(height: 12),
+        _buildDesktopToolbar(context),
+        const SizedBox(height: 12),
+        filters,
+        if (activeFilters != null) ...<Widget>[
+          const SizedBox(height: 12),
+          activeFilters,
+        ],
+        const SizedBox(height: 10),
       ],
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
+  InputDecoration _searchDecoration(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
-
-    final InputDecoration searchDecoration = InputDecoration(
+    return InputDecoration(
       hintText: 'Search problem number, title, department, tags…',
       prefixIcon: const Icon(AppIcons.search),
       isDense: true,
@@ -525,19 +547,61 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
       ),
     );
+  }
+
+  Widget? _buildPrimaryActionToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    if (!mobile) return null;
 
     final Widget? createButton = widget.config.canCreate
         ? FilledButton.icon(
             onPressed: _openCreateProblem,
             icon: const Icon(AppIcons.add, size: 16),
-            label: Text(mobile ? 'Create' : 'Create Problem'),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(0, mobile ? 36 : 44),
-              padding: EdgeInsets.symmetric(horizontal: mobile ? 10 : 16),
-              visualDensity: mobile ? VisualDensity.compact : VisualDensity.standard,
-              tapTargetSize: mobile ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+            label: const Text('Create'),
+            style: MobileToolbarButtonStyles.filled(compact: true),
+          )
+        : null;
+    final Widget? importButton = widget.config.canCreate
+        ? OutlinedButton.icon(
+            onPressed: _openImportProblems,
+            icon: const Icon(Icons.upload_file_rounded, size: 16),
+            label: const Text('Import'),
+            style: MobileToolbarButtonStyles.outlined(compact: true),
+          )
+        : null;
+
+    if (createButton == null && importButton == null) return null;
+
+    return Row(
+      children: <Widget>[
+        if (createButton != null) ...<Widget>[
+          Expanded(child: createButton),
+          if (importButton != null) const SizedBox(width: 6),
+        ],
+        if (importButton != null) Expanded(child: importButton),
+      ],
+    );
+  }
+
+  Widget _buildSearchFilterBar(BuildContext context) {
+    return ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search problem number, title, department, tags…',
+      searchDecoration: _searchDecoration(context),
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      onSearchSubmitted: _loadProblems,
+      iconOnlyFilterOnMobile: true,
+    );
+  }
+
+  Widget _buildDesktopToolbar(BuildContext context) {
+    final Widget? createButton = widget.config.canCreate
+        ? FilledButton.icon(
+            onPressed: _openCreateProblem,
+            icon: const Icon(AppIcons.add, size: 16),
+            label: const Text('Create Problem'),
+            style: MobileToolbarButtonStyles.filled(compact: false),
           )
         : null;
 
@@ -545,34 +609,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         ? OutlinedButton.icon(
             onPressed: _openImportProblems,
             icon: const Icon(Icons.upload_file_rounded, size: 16),
-            label: Text(mobile ? 'Import' : 'Import Problems'),
-            style: _outlinedToolbarStyle(context, compact: mobile),
+            label: const Text('Import Problems'),
+            style: MobileToolbarButtonStyles.outlined(compact: false),
           )
         : null;
-
-    if (mobile) {
-      return ResponsiveSearchFilterBar(
-        searchController: _searchController,
-        searchHint: 'Search problem number, title, department, tags…',
-        searchDecoration: searchDecoration,
-        filtersExpanded: _showFilters,
-        onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-        onSearchSubmitted: _loadProblems,
-        iconOnlyFilterOnMobile: true,
-        mobileAboveSearchRow: (createButton != null || importButton != null)
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  if (createButton != null) ...<Widget>[
-                    Expanded(child: createButton),
-                    if (importButton != null) const SizedBox(width: 6),
-                  ],
-                  if (importButton != null) Expanded(child: importButton),
-                ],
-              )
-            : null,
-      );
-    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,16 +625,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           importButton,
           const SizedBox(width: 8),
         ],
-        Expanded(
-          child: ResponsiveSearchFilterBar(
-            searchController: _searchController,
-            searchHint: 'Search problem number, title, department, tags…',
-            searchDecoration: searchDecoration,
-            filtersExpanded: _showFilters,
-            onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-            onSearchSubmitted: _loadProblems,
-          ),
-        ),
+        Expanded(child: _buildSearchFilterBar(context)),
       ],
     );
   }
@@ -673,16 +704,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     _loadProblems();
   }
 
-  ButtonStyle _outlinedToolbarStyle(BuildContext context, {bool compact = false}) => OutlinedButton.styleFrom(
-        minimumSize: Size(0, compact ? 36 : 44),
-        padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 16),
-        visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-        tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        foregroundColor: const Color(0xFF334155),
-        backgroundColor: const Color(0xFFFCFDFF),
-        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
-      );
 }
 
 class _EmptyTableState extends StatelessWidget {

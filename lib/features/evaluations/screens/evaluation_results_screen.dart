@@ -12,9 +12,8 @@ import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/data_view/data_table_view.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
+import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';
 import '../services/idea_shortlisting_service.dart';
@@ -264,8 +263,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Flexible(flex: 2, child: SingleChildScrollView(child: header)),
-                      Expanded(flex: 5, child: content),
+                      header,
+                      Expanded(child: content),
                     ],
                   );
                 }
@@ -298,78 +297,78 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required List<String> departments,
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
+    final Widget metricsRow = EvaluationResultsMetricsRow(
+      metrics: metrics,
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+    );
+    final Widget readinessBanner = FutureBuilder<IdeathonReadiness>(
+      future: _readinessFuture,
+      builder: (BuildContext context, AsyncSnapshot<IdeathonReadiness> readinessSnap) {
+        if (!readinessSnap.hasData) return const SizedBox.shrink();
+        return IdeathonReadinessBanner(
+          readiness: readinessSnap.data!,
+          onCreateIdeathon: () => _openCreateIdeathon(context),
+        );
+      },
+    );
+    final Widget searchBar = ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search idea or problem title',
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      onSearchSubmitted: _load,
+      iconOnlyFilterOnMobile: true,
+    );
+    final Widget filters = AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: Padding(
+        padding: EdgeInsets.only(top: compact ? 6 : 12),
+        child: _buildFiltersPanel(
+          context: context,
+          categories: categories,
+          departments: departments,
+        ),
+      ),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 180),
+    );
+    final Widget? activeFilters = _hasActiveFilters ? _buildActiveFilters() : null;
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          readinessBanner,
+          const SizedBox(height: 8),
+          searchBar,
+          filters,
+          if (activeFilters != null) ...<Widget>[
+            const SizedBox(height: 6),
+            activeFilters,
+          ],
+          const SizedBox(height: 6),
+          metricsRow,
+          const SizedBox(height: 6),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        ResponsiveMetricGrid(
-          spacing: compact ? 8 : null,
-          runSpacing: compact ? 8 : null,
-          chips: <DashboardMetricChipData>[
-            DashboardMetricChipData.single(
-              label: 'Total Evaluated',
-              value: '${metrics.totalEvaluated}',
-              color: const Color(0xFF6A38FF),
-              icon: AppIcons.statusEvaluated,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Shortlisted',
-              value: '${metrics.shortlisted}',
-              color: const Color(0xFF059669),
-              icon: AppIcons.statusShortlisted,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Rejected',
-              value: '${metrics.rejected}',
-              color: const Color(0xFFDC2626),
-              icon: AppIcons.statusRejected,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Pending Review',
-              value: '${metrics.pendingReview}',
-              color: const Color(0xFFEA580C),
-              icon: AppIcons.statusUnderEvaluation,
-            ),
-          ],
+        metricsRow,
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: readinessBanner,
         ),
-        SizedBox(height: compact ? 8 : 12),
-        FutureBuilder<IdeathonReadiness>(
-          future: _readinessFuture,
-          builder: (BuildContext context, AsyncSnapshot<IdeathonReadiness> readinessSnap) {
-            if (!readinessSnap.hasData) return const SizedBox.shrink();
-            return Padding(
-              padding: EdgeInsets.only(bottom: compact ? 8 : 12),
-              child: IdeathonReadinessBanner(
-                readiness: readinessSnap.data!,
-                onCreateIdeathon: () => _openCreateIdeathon(context),
-              ),
-            );
-          },
-        ),
-        ResponsiveSearchFilterBar(
-          searchController: _searchController,
-          searchHint: 'Search idea or problem title',
-          filtersExpanded: _showFilters,
-          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-          onSearchSubmitted: _load,
-          iconOnlyFilterOnMobile: true,
-        ),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: Padding(
-            padding: EdgeInsets.only(top: compact ? 6 : 12),
-            child: _buildFiltersPanel(
-              context: context,
-              categories: categories,
-              departments: departments,
-            ),
-          ),
-          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 180),
-        ),
-        if (_hasActiveFilters) ...<Widget>[
-          SizedBox(height: compact ? 6 : 10),
-          _buildActiveFilters(),
+        searchBar,
+        filters,
+        if (activeFilters != null) ...<Widget>[
+          const SizedBox(height: 10),
+          activeFilters,
         ],
       ],
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/responsive_helper.dart';
 import '../../user/models/user_model.dart';
 import '../services/judge_evaluation_service.dart';
 import '../widgets/evaluate_idea_dialog.dart';
@@ -110,6 +111,9 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           return Center(child: Text('Unable to load workspace: ${snapshot.error}'));
         }
         final vm = snapshot.data!;
+        final bool compact = ResponsiveHelper.isMobile(context);
+        final double sectionGap = compact ? 8 : 12;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
@@ -119,7 +123,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               averageScore: vm.averageScore,
               completionPercent: vm.completionPercent,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
             RichTabBar(
               controller: _tabs,
               tabs: const <RichTabItem>[
@@ -128,7 +132,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
                 RichTabItem('Feedback'),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
             Expanded(child: _buildTabLists(vm)),
           ],
         );

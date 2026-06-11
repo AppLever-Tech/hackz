@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../models/enums/team_status.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/faculty_teams_service.dart';
 
@@ -22,15 +23,31 @@ class TeamIdeaSummaryWidget extends StatelessWidget {
       TeamStatus.locked => const Color(0xFFB56A11),
     };
 
+    final List<Widget> lines = <Widget>[
+      _infoLine(AppIcons.ideas, '${insight.ideas.length}'),
+      _infoLine(AppIcons.statusActive, 'Status: ${status.value}', color: statusColor),
+      _infoLine(AppIcons.clock, 'Created ${formatDateTime(insight.team.createdAt)}'),
+    ];
+
+    if (ResponsiveHelper.isMobile(context)) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: <Widget>[
+            for (int i = 0; i < lines.length; i++) ...<Widget>[
+              if (i > 0) const SizedBox(width: 12),
+              lines[i],
+            ],
+          ],
+        ),
+      );
+    }
+
     return Wrap(
       spacing: 12,
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: <Widget>[
-        _infoLine(AppIcons.ideas, '${insight.ideas.length} idea${insight.ideas.length == 1 ? '' : 's'}'),
-        _infoLine(AppIcons.statusActive, 'Team status: ${status.value}', color: statusColor),
-        _infoLine(AppIcons.clock, 'Created ${formatDateTime(insight.team.createdAt)}'),
-      ],
+      children: lines,
     );
   }
 

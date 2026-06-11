@@ -10,11 +10,11 @@ import '../../../shared/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../screens/common/dashboard_components.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';
+import '../widgets/team_metrics_row.dart';
 import '../widgets/team_workspace_card.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/widgets/common/context_pill.dart';
@@ -135,10 +135,78 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
         final teams = data.teams;
         final canCreate = FacultyTeamsService.canCreateTeam(teams);
+        final bool mobile = ResponsiveHelper.isMobile(context);
+        final Map<String, UserModel> studentsById = <String, UserModel>{
+          for (final UserModel student in data.students) student.userId: student,
+        };
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final viewportHeight = constraints.hasBoundedHeight
+            final bool hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            final Widget metrics = TeamMetricsRow(
+              teamCount: teams.length,
+              totalStudents: data.totalStudents,
+              activeIdeas: data.activeIdeas,
+              spacing: mobile ? 8 : 10,
+              runSpacing: mobile ? 8 : 10,
+            );
+            final VoidCallback? onCreate = canCreate ? () => _openCreateTeamDialog(data) : null;
+            final Widget teamList = teams.isEmpty
+                ? _EmptyTeamsState(onCreate: onCreate)
+                : _TeamList(
+                    teams: teams,
+                    data: data,
+                    mentorUser: widget.user,
+                    studentsById: studentsById,
+                    onEdit: (TeamModel team) {
+                      final FacultyTeamInsight insight = data.insightsByTeamId[team.teamId] ??
+                          FacultyTeamInsight(
+                            team: team,
+                            ideas: const <IdeaModel>[],
+                            paymentStatuses: const <PaymentRecordStatus>[],
+                            evaluationCount: 0,
+                          );
+                      _openTeamChangeWorkspace(team, insight);
+                    },
+                    onViewIdeas: _viewIdeas,
+                    onDisable: _disableTeam,
+                  );
+
+            if (mobile) {
+              final Widget header = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  _MobileCreateBar(
+                    teamCount: teams.length,
+                    onCreate: onCreate,
+                  ),
+                  const SizedBox(height: 8),
+                  metrics,
+                  const SizedBox(height: 8),
+                ],
+              );
+
+              if (!hasBoundedHeight) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    header,
+                    SizedBox(height: 480, child: teamList),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  Expanded(child: teamList),
+                ],
+              );
+            }
+
+            final viewportHeight = hasBoundedHeight
                 ? constraints.maxHeight
                 : MediaQuery.sizeOf(context).height;
             return SizedBox(
@@ -148,9 +216,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const _HeaderSection(),
-                    const SizedBox(height: 14),
-                    _SummaryGrid(data: data),
+                    metrics,
                     const SizedBox(height: 14),
                     _CreateTeamCta(
                       canCreate: canCreate,
@@ -158,26 +224,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                       onCreate: () => _openCreateTeamDialog(data),
                     ),
                     const SizedBox(height: 14),
-                    if (teams.isEmpty)
-                      _EmptyTeamsState(onCreate: canCreate ? () => _openCreateTeamDialog(data) : null)
-                    else
-                      _TeamGrid(
-                        teams: teams,
-                        data: data,
-                        mentorName: '${widget.user.firstName} ${widget.user.lastName}'.trim(),
-                        onEdit: (team) {
-                          final FacultyTeamInsight insight = data.insightsByTeamId[team.teamId] ??
-                              FacultyTeamInsight(
-                                team: team,
-                                ideas: const <IdeaModel>[],
-                                paymentStatuses: const <PaymentRecordStatus>[],
-                                evaluationCount: 0,
-                              );
-                          _openTeamChangeWorkspace(team, insight);
-                        },
-                        onViewIdeas: (insight) => _viewIdeas(insight),
-                        onDisable: _disableTeam,
-                      ),
+                    teamList,
                   ],
                 ),
               ),
@@ -189,56 +236,31 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 }
 
-class _HeaderSection extends StatelessWidget {
-  const _HeaderSection();
+class _MobileCreateBar extends StatelessWidget {
+  const _MobileCreateBar({
+    required this.teamCount,
+    required this.onCreate,
+  });
+
+  final int teamCount;
+  final VoidCallback? onCreate;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: <Widget>[
-        Text('Team Workspace', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-        SizedBox(height: 3),
-        Text('Manage teams, mentoring actions, and idea submission workflow.', style: TextStyle(color: Color(0xFF64748B))),
-      ],
-    );
-  }
-}
-
-class _SummaryGrid extends StatelessWidget {
-  const _SummaryGrid({required this.data});
-
-  final FacultyTeamsWorkspaceData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return ResponsiveMetricGrid(
-      chips: <DashboardMetricChipData>[
-        DashboardMetricChipData.ratio(
-          label: 'Total Teams',
-          primary: '${data.teams.length}',
-          secondary: '${FacultyTeamsService.maxTeamsPerFaculty}',
-          subtitle: 'Teams created',
-          color: const Color(0xFF6A38FF),
-          icon: AppIcons.teams,
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: onCreate,
+            icon: const Icon(AppIcons.add, size: 16),
+            label: const Text('Create Team'),
+            style: MobileToolbarButtonStyles.filled(compact: true),
+          ),
         ),
-        DashboardMetricChipData.single(
-          label: 'Total Students',
-          value: '${data.totalStudents}',
-          color: const Color(0xFF0EA5E9),
-          icon: AppIcons.student,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Active Ideas',
-          value: '${data.activeIdeas}',
-          color: const Color(0xFFEA580C),
-          icon: AppIcons.ideas,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Team Capacity',
-          value: FacultyTeamsService.capacityMessage(data.teams.length),
-          color: const Color(0xFF16A34A),
-          icon: AppIcons.verification,
+        const SizedBox(width: 8),
+        TeamCapacityWidget(
+          teamCount: teamCount,
+          maxTeams: FacultyTeamsService.maxTeamsPerFaculty,
         ),
       ],
     );
@@ -306,11 +328,12 @@ class _CreateTeamCta extends StatelessWidget {
   }
 }
 
-class _TeamGrid extends StatelessWidget {
-  const _TeamGrid({
+class _TeamList extends StatelessWidget {
+  const _TeamList({
     required this.teams,
     required this.data,
-    required this.mentorName,
+    required this.mentorUser,
+    required this.studentsById,
     required this.onEdit,
     required this.onViewIdeas,
     required this.onDisable,
@@ -318,35 +341,65 @@ class _TeamGrid extends StatelessWidget {
 
   final List<TeamModel> teams;
   final FacultyTeamsWorkspaceData data;
-  final String mentorName;
+  final UserModel mentorUser;
+  final Map<String, UserModel> studentsById;
   final ValueChanged<TeamModel> onEdit;
   final ValueChanged<FacultyTeamInsight> onViewIdeas;
   final ValueChanged<TeamModel> onDisable;
 
+  FacultyTeamInsight _insightFor(TeamModel team) {
+    return data.insightsByTeamId[team.teamId] ??
+        FacultyTeamInsight(
+          team: team,
+          ideas: const <IdeaModel>[],
+          paymentStatuses: const <PaymentRecordStatus>[],
+          evaluationCount: 0,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+
+    if (mobile) {
+      return ListView.separated(
+        padding: const EdgeInsets.only(bottom: 12),
+        itemCount: teams.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (BuildContext context, int index) {
+          final TeamModel team = teams[index];
+          final FacultyTeamInsight insight = _insightFor(team);
+          return TeamWorkspaceCard(
+            team: team,
+            insight: insight,
+            mentorUser: mentorUser,
+            studentsById: studentsById,
+            studentNamesById: data.studentNamesById,
+            onEdit: () => onEdit(team),
+            onViewIdeas: () => onViewIdeas(insight),
+            onDisable: () => onDisable(team),
+          );
+        },
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = ResponsiveHelper.useDashboardMultiColumn(context) ? 2 : 1;
-        final gap = 14.0;
-        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final int columns = ResponsiveHelper.useDashboardMultiColumn(context) ? 2 : 1;
+        const double gap = 14;
+        final double width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
-          children: teams.map((team) {
-            final insight = data.insightsByTeamId[team.teamId] ??
-                FacultyTeamInsight(
-                  team: team,
-                  ideas: const <IdeaModel>[],
-                  paymentStatuses: const <PaymentRecordStatus>[],
-                  evaluationCount: 0,
-                );
+          children: teams.map((TeamModel team) {
+            final FacultyTeamInsight insight = _insightFor(team);
             return SizedBox(
               width: width,
               child: TeamWorkspaceCard(
                 team: team,
                 insight: insight,
-                mentorName: mentorName,
+                mentorUser: mentorUser,
+                studentsById: studentsById,
                 studentNamesById: data.studentNamesById,
                 onEdit: () => onEdit(team),
                 onViewIdeas: () => onViewIdeas(insight),

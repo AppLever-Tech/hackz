@@ -12,18 +12,16 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/deptadmin/department_access_code_bar.dart';
-import '../../../widgets/deptadmin/department_metric_card.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../shared/workspace/user_list_identity_lead.dart';
 import '../../../widgets/common/mobile_compact_pill.dart';
 import '../../../widgets/common/mobile_row_card_icon_action.dart';
 import '../widgets/mobile_user_list_row_card.dart';
+import '../widgets/user_metrics_row.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import 'create_user_dialog.dart';
@@ -371,39 +369,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       UsersFilter.pending => _allUsers.where((UserModel u) => u.status == UserStatus.pendingApproval).length,
       UsersFilter.rejected => _allUsers.where((UserModel u) => u.status == UserStatus.rejected).length,
     };
-  }
-
-  List<DashboardMetricChipData> _userMetricChips() {
-    return <DashboardMetricChipData>[
-      DepartmentMetricCard(
-        value: '${_countForFilter(UsersFilter.faculty)}',
-        label: 'Faculty',
-        icon: AppIcons.faculty,
-        iconBgColor: const Color(0xFFEAF2FF),
-        tooltip: 'Active faculty in this department.',
-      ).toChipData(),
-      DepartmentMetricCard(
-        value: '${_countForFilter(UsersFilter.students)}',
-        label: 'Students',
-        icon: AppIcons.student,
-        iconBgColor: const Color(0xFFF2EDFF),
-        tooltip: 'Active students in this department.',
-      ).toChipData(),
-      DepartmentMetricCard(
-        value: '${_countForFilter(UsersFilter.coordinators)}',
-        label: 'Coordinators',
-        icon: AppIcons.coordinator,
-        iconBgColor: const Color(0xFFE9FAF0),
-        tooltip: 'Active coordinators in this department.',
-      ).toChipData(),
-      DepartmentMetricCard(
-        value: '${_countForFilter(UsersFilter.pending)}',
-        label: 'Pending Users',
-        icon: AppIcons.pendingUsers,
-        iconBgColor: const Color(0xFFFFF7E6),
-        tooltip: 'Users awaiting department approval.',
-      ).toChipData(),
-    ];
   }
 
   Widget _metaDot() {
@@ -941,47 +906,76 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  Widget _buildUserMetrics(BuildContext context) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    return UserMetricsRow(
+      faculty: _countForFilter(UsersFilter.faculty),
+      students: _countForFilter(UsersFilter.students),
+      coordinators: _countForFilter(UsersFilter.coordinators),
+      pending: _countForFilter(UsersFilter.pending),
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+    );
+  }
+
   Widget _buildHeader(BuildContext context, {required double gap}) {
     final bool mobile = ResponsiveHelper.isMobile(context);
+    final Widget metrics = _buildUserMetrics(context);
+    final Widget accessCodeBar = DepartmentAccessCodeBar(
+      displayCode: _formatCode(_inviteCode),
+      rawCode: _inviteCode,
+      copied: _copied,
+      onCopy: _copyInviteCode,
+      onRegenerate: _regenerateInviteCode,
+    );
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _buildCreateImportToolbar(context),
+          const SizedBox(height: 8),
+          accessCodeBar,
+          const SizedBox(height: 8),
+          _buildSearchToolbar(context),
+          const SizedBox(height: 6),
+          metrics,
+          const SizedBox(height: 6),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        ResponsiveMetricGrid(chips: _userMetricChips()),
-        SizedBox(height: mobile ? 8 : gap),
-        _buildCreateImportToolbar(context),
-        SizedBox(height: mobile ? 8 : gap),
-        DepartmentAccessCodeBar(
-          displayCode: _formatCode(_inviteCode),
-          rawCode: _inviteCode,
-          copied: _copied,
-          onCopy: _copyInviteCode,
-          onRegenerate: _regenerateInviteCode,
-        ),
+        metrics,
         SizedBox(height: gap),
-        if (!mobile) ...<Widget>[
-          ResponsiveFilterChipRow(
-            children: <Widget>[
-              _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-              _userFilterChip(compact: false, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
-              _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
-              _userFilterChip(
-                compact: false,
-                filter: UsersFilter.coordinators,
-                icon: AppIcons.coordinator,
-                label: 'Coordinator',
-              ),
-              _userFilterChip(compact: false, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
-              _userFilterChip(
-                compact: false,
-                filter: UsersFilter.rejected,
-                icon: AppIcons.statusRejected,
-                label: 'Rejected',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
+        _buildCreateImportToolbar(context),
+        SizedBox(height: gap),
+        accessCodeBar,
+        SizedBox(height: gap),
+        ResponsiveFilterChipRow(
+          children: <Widget>[
+            _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
+            _userFilterChip(compact: false, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
+            _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
+            _userFilterChip(
+              compact: false,
+              filter: UsersFilter.coordinators,
+              icon: AppIcons.coordinator,
+              label: 'Coordinator',
+            ),
+            _userFilterChip(compact: false, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
+            _userFilterChip(
+              compact: false,
+              filter: UsersFilter.rejected,
+              icon: AppIcons.statusRejected,
+              label: 'Rejected',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
         _buildSearchToolbar(context),
         const SizedBox(height: 10),
       ],
@@ -1014,16 +1008,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Flexible(
-                flex: 2,
-                child: SingleChildScrollView(
-                  child: header,
-                ),
-              ),
-              Expanded(
-                flex: 5,
-                child: userList,
-              ),
+              header,
+              Expanded(child: userList),
             ],
           );
         }

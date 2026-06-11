@@ -4,18 +4,16 @@ import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/shared/inputs/filter_pill.dart';
-import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
 import 'package:hackz/core/responsive/mobile_filter_pane_styles.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
-import 'package:hackz/core/responsive/responsive_metric_grid.dart';
 import 'package:hackz/widgets/data_view/data_table_view.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
 import '../widgets/payment_detail_pane.dart';
-import '../widgets/payment_summary_card.dart';
+import '../widgets/payment_metrics_row.dart';
 import '../widgets/payment_table_columns.dart';
 
 class PaymentsScreen extends StatefulWidget {
@@ -124,16 +122,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Flexible(
-                    flex: 2,
-                    child: SingleChildScrollView(
-                      child: header,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: contentWidget,
-                  ),
+                  header,
+                  Expanded(child: contentWidget),
                 ],
               );
             }
@@ -157,26 +147,52 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     required int filteredCount,
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
+    final Widget metrics = PaymentMetricsRow(
+      summary: workspace.summary,
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+    );
+    final Widget searchBar = ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search idea, problem, team, mentor…',
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      iconOnlyFilterOnMobile: true,
+    );
+    final Widget filters = AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: _buildFiltersPanel(context, workspace),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          searchBar,
+          const SizedBox(height: 6),
+          filters,
+          if (_hasAnyActiveFilter) ...<Widget>[
+            const SizedBox(height: 6),
+            _buildActiveFiltersRow(workspace),
+          ],
+          const SizedBox(height: 6),
+          metrics,
+          const SizedBox(height: 6),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _buildSummaryRow(workspace.summary, compact: compact),
-        SizedBox(height: compact ? 8 : 10),
-        ResponsiveSearchFilterBar(
-          searchController: _searchController,
-          searchHint: 'Search idea, problem, team, mentor…',
-          filtersExpanded: _showFilters,
-          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-          iconOnlyFilterOnMobile: true,
-        ),
-        SizedBox(height: compact ? 6 : 8),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: _buildFiltersPanel(context, workspace),
-          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 220),
-        ),
+        metrics,
+        const SizedBox(height: 10),
+        searchBar,
+        const SizedBox(height: 8),
+        filters,
         if (_hasAnyActiveFilter) ...<Widget>[
           SizedBox(height: compact ? 6 : 8),
           _buildActiveFiltersRow(workspace),
@@ -187,47 +203,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         SizedBox(height: compact ? 6 : 8),
-      ],
-    );
-  }
-
-  Widget _buildSummaryRow(DepartmentPaymentsSummary summary, {bool compact = false}) {
-    return ResponsiveMetricGrid(
-      spacing: compact ? 8 : null,
-      runSpacing: compact ? 8 : null,
-      chips: <DashboardMetricChipData>[
-        PaymentSummaryCard(
-          label: 'Total department collection',
-          value: PaymentFinanceHelpers.formatCurrency(summary.totalCollection),
-          icon: AppIcons.payments,
-          iconBgColor: const Color(0xFFE0F2FE),
-          accentColor: const Color(0xFF0369A1),
-          subtitle: '${summary.verifiedCount + summary.pendingCount + summary.rejectedCount} contributions',
-        ).toChipData(),
-        PaymentSummaryCard(
-          label: 'Verified payments',
-          value: PaymentFinanceHelpers.formatCurrency(summary.verifiedAmount),
-          icon: AppIcons.workflowApproved,
-          iconBgColor: const Color(0xFFECFDF5),
-          accentColor: const Color(0xFF047857),
-          subtitle: '${summary.verifiedCount} verified',
-        ).toChipData(),
-        PaymentSummaryCard(
-          label: 'Pending verifications',
-          value: PaymentFinanceHelpers.formatCurrency(summary.pendingAmount),
-          icon: AppIcons.workflowPendingReview,
-          iconBgColor: const Color(0xFFFFF7ED),
-          accentColor: const Color(0xFFEA580C),
-          subtitle: '${summary.pendingCount} awaiting review',
-        ).toChipData(),
-        PaymentSummaryCard(
-          label: 'Rejected payments',
-          value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
-          icon: AppIcons.statusRejected,
-          iconBgColor: const Color(0xFFFEF2F2),
-          accentColor: const Color(0xFFB91C1C),
-          subtitle: '${summary.rejectedCount} rejected',
-        ).toChipData(),
       ],
     );
   }

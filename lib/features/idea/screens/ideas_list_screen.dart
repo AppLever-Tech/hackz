@@ -13,11 +13,10 @@ import '../../../widgets/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
 import 'package:hackz/features/payment/widgets/payment_dialog.dart';
 import '../../evaluations/widgets/evaluate_idea_dialog.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
+import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
 import '../../evaluations/workspace/evaluation_assignment_details_pane.dart';
 import '../../../screens/common/dashboard_components.dart';
@@ -215,16 +214,8 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Flexible(
-                    flex: 2,
-                    child: SingleChildScrollView(
-                      child: header,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: contentWidget,
-                  ),
+                  header,
+                  Expanded(child: contentWidget),
                 ],
               );
             }
@@ -346,70 +337,60 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
 
+    final Widget metrics = IdeaMetricsRow(metrics: _metrics, spacing: compact ? 8 : 10, runSpacing: compact ? 8 : 10);
+    final Widget searchBar = ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search by idea title, problem, or description',
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      onSearchSubmitted: _loadIdeas,
+      iconOnlyFilterOnMobile: true,
+    );
+    final Widget filters = AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: _buildFiltersPanel(
+        context: context,
+        availableProblems: availableProblems,
+        availableDepartments: availableDepartments,
+      ),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
+    final Widget? activeFilters = _hasAnyActiveFilter ? _buildActiveFiltersRow(availableProblems) : null;
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          searchBar,
+          const SizedBox(height: 6),
+          filters,
+          if (activeFilters != null) ...<Widget>[
+            const SizedBox(height: 6),
+            activeFilters,
+          ],
+          const SizedBox(height: 6),
+          metrics,
+          const SizedBox(height: 6),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _buildMetricsRow(_metrics, compact: compact),
-        SizedBox(height: compact ? 8 : 12),
-        ResponsiveSearchFilterBar(
-          searchController: _searchController,
-          searchHint: 'Search by idea title, problem, or description',
-          filtersExpanded: _showFilters,
-          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-          onSearchSubmitted: _loadIdeas,
-          iconOnlyFilterOnMobile: true,
-        ),
-        SizedBox(height: compact ? 6 : 12),
-        AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
-          secondChild: _buildFiltersPanel(
-            context: context,
-            availableProblems: availableProblems,
-            availableDepartments: availableDepartments,
-          ),
-          crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-          duration: const Duration(milliseconds: 220),
-        ),
-        if (_hasAnyActiveFilter) ...<Widget>[
-          SizedBox(height: compact ? 6 : 12),
-          _buildActiveFiltersRow(availableProblems),
+        metrics,
+        const SizedBox(height: 12),
+        searchBar,
+        const SizedBox(height: 12),
+        filters,
+        if (activeFilters != null) ...<Widget>[
+          const SizedBox(height: 12),
+          activeFilters,
         ],
-        SizedBox(height: compact ? 6 : 12),
-      ],
-    );
-  }
-
-  Widget _buildMetricsRow(IdeaDepartmentMetrics metrics, {bool compact = false}) {
-    return ResponsiveMetricGrid(
-      spacing: compact ? 8 : 10,
-      runSpacing: compact ? 8 : 10,
-      chips: <DashboardMetricChipData>[
-        DashboardMetricChipData.single(
-          label: 'Total Ideas',
-          value: '${metrics.total}',
-          color: const Color(0xFF4A67FF),
-          icon: AppIcons.ideas,
-          subtitle: metrics.pendingSubmission > 0 ? '${metrics.pendingSubmission} pending' : null,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Submitted',
-          value: '${metrics.submitted}',
-          color: const Color(0xFF7C3AED),
-          icon: AppIcons.submissions,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Shortlisted',
-          value: '${metrics.approved}',
-          color: const Color(0xFF059669),
-          icon: AppIcons.statusShortlisted,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Evaluated',
-          value: '${metrics.evaluated}',
-          color: const Color(0xFFEA580C),
-          icon: AppIcons.scoring,
-        ),
+        const SizedBox(height: 12),
       ],
     );
   }

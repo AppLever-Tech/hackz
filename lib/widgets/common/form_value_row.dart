@@ -12,6 +12,7 @@ class FormValueRow extends StatelessWidget {
     this.labelAlignment = Alignment.centerRight,
     this.labelGap = EntityCardStyles.labelGap,
     this.crossAxisAlignment = CrossAxisAlignment.center,
+    this.labelTopInset = 0,
   });
 
   final double labelWidth;
@@ -22,6 +23,9 @@ class FormValueRow extends StatelessWidget {
   final Alignment labelAlignment;
   final double labelGap;
   final CrossAxisAlignment crossAxisAlignment;
+  final double labelTopInset;
+
+  bool get _alignStart => crossAxisAlignment == CrossAxisAlignment.start;
 
   @override
   Widget build(BuildContext context) {
@@ -30,28 +34,21 @@ class FormValueRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: crossAxisAlignment,
       children: <Widget>[
-        SizedBox(
-          width: labelWidth,
-          child: hasLabel
-              ? Align(
-                  alignment: labelAlignment,
-                  child: _LabelContent(
-                    label: label!,
-                    labelIcon: labelIcon,
-                    labelStyle: labelStyle,
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
-        if (hasLabel) SizedBox(width: labelGap),
-        Expanded(
-          child: Align(
-            alignment: crossAxisAlignment == CrossAxisAlignment.start
-                ? Alignment.topLeft
-                : Alignment.centerLeft,
-            child: child,
+        if (hasLabel)
+          SizedBox(
+            width: labelWidth,
+            child: Padding(
+              padding: EdgeInsets.only(top: _alignStart ? labelTopInset : 0),
+              child: _LabelContent(
+                label: label!,
+                labelIcon: labelIcon,
+                labelStyle: labelStyle,
+                labelAlignment: labelAlignment,
+              ),
+            ),
           ),
-        ),
+        if (hasLabel) SizedBox(width: labelGap),
+        Expanded(child: child),
       ],
     );
   }
@@ -62,18 +59,25 @@ class _LabelContent extends StatelessWidget {
     required this.label,
     required this.labelIcon,
     required this.labelStyle,
+    required this.labelAlignment,
   });
 
   final String label;
   final IconData? labelIcon;
   final TextStyle labelStyle;
+  final Alignment labelAlignment;
+
+  bool get _leftAligned {
+    return labelAlignment.x <= 0;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final TextAlign textAlign = _leftAligned ? TextAlign.left : TextAlign.right;
     final Text labelText = Text(
       label,
       style: labelStyle,
-      textAlign: TextAlign.right,
+      textAlign: textAlign,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
@@ -82,7 +86,7 @@ class _LabelContent extends StatelessWidget {
 
     return Row(
       mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: _leftAligned ? MainAxisAlignment.start : MainAxisAlignment.end,
       children: <Widget>[
         Icon(labelIcon, size: 14, color: labelStyle.color),
         const SizedBox(width: 4),
