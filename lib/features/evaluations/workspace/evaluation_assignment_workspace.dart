@@ -22,6 +22,8 @@ import '../models/evaluator_source.dart';
 import '../services/evaluator_catalog_service.dart';
 import '../widgets/evaluator_assignment_row.dart';
 import '../widgets/evaluator_filter_chips.dart';
+import '../../../widgets/common/mobile_accordion_section.dart';
+import '../../../widgets/common/mobile_compact_pill.dart';
 
 class EvaluationAssignmentWorkspace extends StatefulWidget {
   const EvaluationAssignmentWorkspace({
@@ -482,7 +484,6 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           padding: const EdgeInsets.only(bottom: 16),
           children: <Widget>[
             _buildMobileAccordionSection(
-              sectionKey: 'problem-summary',
               icon: AppIcons.problems,
               title: 'Problem Summary',
               expanded: _mobileProblemExpanded,
@@ -490,18 +491,16 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
               child: _buildLeftPanel(expandBody: false, includeHeader: false, wrapCard: false),
             ),
             _buildMobileAccordionSection(
-              sectionKey: 'ideas',
               icon: AppIcons.ideas,
-              title: 'Ideas',
+              title: _mobileSectionTitle('Ideas', _selectedIdeaIds.length),
               expanded: _mobileIdeasExpanded,
               onExpandedChanged: (bool value) => setState(() => _mobileIdeasExpanded = value),
               bodyHeight: listPanelHeight,
               child: _buildCenterPanel(compact: true, includeHeader: false, wrapCard: false),
             ),
             _buildMobileAccordionSection(
-              sectionKey: 'evaluators',
               icon: AppIcons.judges,
-              title: 'Evaluators',
+              title: _mobileSectionTitle('Evaluators', _selectedJudgeIds.length),
               expanded: _mobileEvaluatorsExpanded,
               onExpandedChanged: (bool value) => setState(() => _mobileEvaluatorsExpanded = value),
               titleTrailing: _assignTrailingButton(compact: true),
@@ -514,8 +513,12 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
+  String _mobileSectionTitle(String label, int selectedCount) {
+    if (selectedCount <= 0) return label;
+    return '$label ($selectedCount)';
+  }
+
   Widget _buildMobileAccordionSection({
-    required String sectionKey,
     required IconData icon,
     required String title,
     required bool expanded,
@@ -524,69 +527,14 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     Widget? titleTrailing,
     double? bodyHeight,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          decoration: kDashboardCardDecoration,
-          clipBehavior: Clip.antiAlias,
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              key: ValueKey<String>(sectionKey),
-              initiallyExpanded: expanded,
-              onExpansionChanged: onExpandedChanged,
-              maintainState: true,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              childrenPadding: EdgeInsets.zero,
-              collapsedShape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-              leading: Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
-              title: Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  if (titleTrailing != null) ...<Widget>[
-                    titleTrailing,
-                    const SizedBox(width: 4),
-                  ],
-                  IconButton(
-                    onPressed: () => onExpandedChanged(!expanded),
-                    tooltip: expanded ? 'Collapse' : 'Expand',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    icon: AnimatedRotation(
-                      turns: expanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
-                    ),
-                  ),
-                ],
-              ),
-              children: <Widget>[
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-                if (bodyHeight != null)
-                  SizedBox(height: bodyHeight, child: child)
-                else
-                  child,
-              ],
-            ),
-          ),
-        ),
-      ),
+    return MobileAccordionSection(
+      title: title,
+      expanded: expanded,
+      onExpandedChanged: onExpandedChanged,
+      bodyHeight: bodyHeight,
+      leading: Icon(icon, size: 18, color: const Color(0xFF4F46E5)),
+      titleTrailing: titleTrailing,
+      child: child,
     );
   }
 
@@ -935,7 +883,6 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }) {
     final List<_IdeaRowVm> rows = _filteredIdeas;
     final int visible = math.min(_visibleCount, rows.length);
-    final String selectionLabel = '${_selectedIdeaIds.length} selected';
     final Widget panel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -974,15 +921,17 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                       ),
                     ),
                   ),
-                const SizedBox(width: 8),
-                Text(
-                  selectionLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+                if (!compact) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_selectedIdeaIds.length} selected',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1014,7 +963,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                     final bool selected = _selectedIdeaIds.contains(row.idea.ideaId);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _ideaRow(row, selected),
+                      child: _ideaRow(row, selected, mobileLayout: compact),
                     );
                   },
                 ),
@@ -1079,7 +1028,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     WorkspaceNavigator.openIdea(context, id);
   }
 
-  Widget _ideaRow(_IdeaRowVm row, bool selected) {
+  Widget _ideaRow(_IdeaRowVm row, bool selected, {bool mobileLayout = false}) {
     final String ideaTitle = _ideaDisplayTitle(row);
     final int assignedCount = row.assignedJudgeIds.length;
     return AnimatedContainer(
@@ -1139,6 +1088,14 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                         orElse: () => null,
                       );
                   final String label = judge == null ? judgeId : _judgeDisplayName(judge);
+                  if (mobileLayout) {
+                    return MobileCompactPill(
+                      label: label,
+                      icon: AppIcons.judges,
+                      selected: true,
+                      onDeleted: () => _removeAssignment(ideaId: row.idea.ideaId, judgeId: judgeId),
+                    );
+                  }
                   return InputChip(
                     label: Text(label, style: const TextStyle(fontSize: 11)),
                     visualDensity: VisualDensity.compact,
@@ -1162,29 +1119,31 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     bool wrapCard = true,
   }) {
     final List<UserModel> evaluators = _filteredEvaluators;
-    final String selectionLabel = '${_selectedJudgeIds.length} selected';
     final Widget evaluatorSearchField = TextField(
       decoration: _compactRoundedFieldDecoration(
         hintText: 'Search name or email',
       ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
       onChanged: (String value) => setState(() => _evaluatorSearch = value),
     );
+    final Widget selectAllControl = _inlineSelectAllControl(
+      value: _evaluatorsSelectAllValue,
+      onToggle: _toggleSelectAllJudges,
+      label: 'Select all',
+    );
     final Widget selectAllRow = Row(
       children: <Widget>[
-        _inlineSelectAllControl(
-          value: _evaluatorsSelectAllValue,
-          onToggle: _toggleSelectAllJudges,
-          label: 'Select all',
-        ),
-        const Spacer(),
-        Text(
-          selectionLabel,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF64748B),
+        selectAllControl,
+        if (!compact) ...<Widget>[
+          const Spacer(),
+          Text(
+            '${_selectedJudgeIds.length} selected',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+            ),
           ),
-        ),
+        ],
       ],
     );
 
@@ -1206,13 +1165,21 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                 children: <Widget>[
                   evaluatorSearchField,
                   const SizedBox(height: 6),
-                  EvaluatorFilterChips(
-                    selected: _evaluatorFilter,
-                    onChanged: (EvaluatorListFilter filter) =>
-                        setState(() => _evaluatorFilter = filter),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      selectAllControl,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: EvaluatorFilterChips(
+                          compact: true,
+                          selected: _evaluatorFilter,
+                          onChanged: (EvaluatorListFilter filter) =>
+                              setState(() => _evaluatorFilter = filter),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  selectAllRow,
                 ],
               ),
             )

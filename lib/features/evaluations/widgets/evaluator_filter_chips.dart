@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../widgets/common/mobile_compact_pill.dart';
 import '../models/evaluator_source.dart';
 
 /// Lightweight All / Judges / Faculty filter row for the evaluator panel.
@@ -8,34 +9,40 @@ class EvaluatorFilterChips extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onChanged,
+    this.compact = false,
   });
 
   final EvaluatorListFilter selected;
   final ValueChanged<EvaluatorListFilter> onChanged;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final List<({String label, EvaluatorListFilter value})> options =
+        <({String label, EvaluatorListFilter value})>[
+      (label: 'All', value: EvaluatorListFilter.all),
+      (label: 'Judges', value: EvaluatorListFilter.judges),
+      (label: 'Faculty', value: EvaluatorListFilter.faculty),
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          _Chip(
-            label: 'All',
-            selected: selected == EvaluatorListFilter.all,
-            onTap: () => onChanged(EvaluatorListFilter.all),
-          ),
-          const SizedBox(width: 6),
-          _Chip(
-            label: 'Judges',
-            selected: selected == EvaluatorListFilter.judges,
-            onTap: () => onChanged(EvaluatorListFilter.judges),
-          ),
-          const SizedBox(width: 6),
-          _Chip(
-            label: 'Faculty',
-            selected: selected == EvaluatorListFilter.faculty,
-            onTap: () => onChanged(EvaluatorListFilter.faculty),
-          ),
+          for (int i = 0; i < options.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(width: 6),
+            compact
+                ? MobileCompactPill(
+                    label: options[i].label,
+                    selected: selected == options[i].value,
+                    onTap: () => onChanged(options[i].value),
+                  )
+                : _Chip(
+                    label: options[i].label,
+                    selected: selected == options[i].value,
+                    onTap: () => onChanged(options[i].value),
+                  ),
+          ],
         ],
       ),
     );

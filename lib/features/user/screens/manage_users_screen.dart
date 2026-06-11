@@ -21,6 +21,7 @@ import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../../widgets/common/mobile_compact_pill.dart';
 import '../../../widgets/common/mobile_row_card_icon_action.dart';
 import '../widgets/mobile_user_list_row_card.dart';
 import '../models/enums/user_status.dart';
@@ -758,40 +759,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       );
     }
 
-    final Color fg = selected ? const Color(0xFF2E43C6) : const Color(0xFF475569);
-    final Color bg = selected ? const Color(0xFFE8ECFF) : const Color(0xFFF1F5F9);
-    final Color border = selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0);
     final String text = count == 0 ? label : '$label ($count)';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: selectFilter,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: border, width: selected ? 1.4 : 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 14, color: fg),
-              const SizedBox(width: 4),
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: fg,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return MobileCompactPill(
+      label: text,
+      icon: icon,
+      selected: selected,
+      onTap: selectFilter,
     );
   }
 
@@ -854,40 +827,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       spacing: 6,
       runSpacing: 6,
       children: <Widget>[
-        Material(
-          color: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.only(left: 8, right: 4, top: 4, bottom: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8ECFF),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF6A38FF), width: 1.4),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(icon, size: 13, color: const Color(0xFF2E43C6)),
-                const SizedBox(width: 4),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF2E43C6),
-                  ),
-                ),
-                const SizedBox(width: 2),
-                InkWell(
-                  onTap: _clearAllFilters,
-                  borderRadius: BorderRadius.circular(12),
-                  child: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Icon(AppIcons.remove, size: 14, color: Color(0xFF2E43C6)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        MobileCompactPill(
+          label: text,
+          icon: icon,
+          selected: true,
+          onDeleted: _clearAllFilters,
         ),
       ],
     );
