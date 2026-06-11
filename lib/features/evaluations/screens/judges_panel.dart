@@ -8,8 +8,10 @@ import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../shared/feedback/feedback.dart';
+import '../../user/widgets/mobile_user_list_row_card.dart';
 import '../../../utils/department_dashboard_service.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
@@ -90,6 +92,19 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       ),
     );
     if (imported == true && mounted) {
+      _refresh();
+    }
+  }
+
+  Future<void> _editJudge(UserModel judge) async {
+    final bool changed = await showCreateUserDialog(
+      context: context,
+      roleCode: 'JUD',
+      organization: _organization,
+      department: widget.user.department,
+      initialUser: judge,
+    );
+    if (changed && mounted) {
       _refresh();
     }
   }
@@ -238,12 +253,21 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   }
 
   Widget _judgeRow(UserModel judge) {
+    if (ResponsiveHelper.isMobile(context)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: MobileUserListRowCard.editDelete(
+          user: judge,
+          showJudgeType: true,
+          onEdit: () => _editJudge(judge),
+          onDelete: () => _removeJudge(judge),
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(top: 6),
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveHelper.isMobile(context) ? 8 : 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -255,14 +279,67 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
           Expanded(child: _judgeDetailsLine(judge)),
           const SizedBox(width: 4),
           IconButton(
+            tooltip: 'Edit',
+            onPressed: () => _editJudge(judge),
+            icon: const Icon(AppIcons.edit, size: 20),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          ),
+          IconButton(
             tooltip: 'Remove',
             onPressed: () => _removeJudge(judge),
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            icon: const Icon(AppIcons.remove, color: Colors.redAccent),
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+
+    final Widget addButton = FilledButton.icon(
+      onPressed: _addJudge,
+      icon: const Icon(AppIcons.add, size: 16),
+      label: Text(mobile ? 'Add' : 'Add Judge'),
+      style: MobileToolbarButtonStyles.filled(compact: mobile),
+    );
+    final Widget importButton = OutlinedButton.icon(
+      onPressed: _importJudges,
+      icon: const Icon(AppIcons.attachments, size: 16),
+      label: Text(mobile ? 'Import' : 'Import Users'),
+      style: MobileToolbarButtonStyles.outlined(compact: mobile),
+    );
+    final Widget assignmentsButton = OutlinedButton.icon(
+      onPressed: _openAssignmentWorkspace,
+      icon: const Icon(AppIcons.scoring, size: 16),
+      label: Text(mobile ? 'Assignments' : 'Evaluation Assignments'),
+      style: MobileToolbarButtonStyles.outlined(compact: mobile),
+    );
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(child: addButton),
+              const SizedBox(width: 6),
+              Expanded(child: importButton),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SizedBox(width: double.infinity, child: assignmentsButton),
+        ],
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[addButton, importButton, assignmentsButton],
     );
   }
 
@@ -288,30 +365,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
           children: <Widget>[
             _buildMetricChips(data),
             SizedBox(height: gap),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  FilledButton.icon(
-                    onPressed: _addJudge,
-                    icon: const Icon(AppIcons.add, size: 16),
-                    label: const Text('Add Judge'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _importJudges,
-                    icon: const Icon(AppIcons.attachments, size: 16),
-                    label: const Text('Import Users'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _openAssignmentWorkspace,
-                    icon: const Icon(AppIcons.scoring, size: 16),
-                    label: const Text('Evaluation Assignments'),
-                  ),
-                ],
-              ),
-            ),
+            _buildToolbar(context),
             const SizedBox(height: 10),
             Expanded(
               child: data.judges.isEmpty

@@ -559,7 +559,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         onToggleFilters: () => setState(() => _showFilters = !_showFilters),
         onSearchSubmitted: _loadProblems,
         iconOnlyFilterOnMobile: true,
-        mobileBelowSearchRow: (createButton != null || importButton != null)
+        mobileAboveSearchRow: (createButton != null || importButton != null)
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[

@@ -15,10 +15,14 @@ import '../../../utils/firestore_utils.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/deptadmin/department_access_code_bar.dart';
 import '../../../widgets/deptadmin/department_metric_card.dart';
+import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../../widgets/common/mobile_row_card_icon_action.dart';
+import '../widgets/mobile_user_list_row_card.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import 'create_user_dialog.dart';
@@ -43,6 +47,7 @@ enum UsersFilter { all, faculty, students, coordinators, pending, rejected }
 class _ManageUsersScreenState extends State<ManageUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   UsersFilter _filter = UsersFilter.all;
+  bool _showFilters = false;
   bool _copied = false;
   List<UserModel> _allUsers = <UserModel>[];
   String _inviteCode = '';
@@ -550,13 +555,111 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  List<Widget> _mobileUserRow2Extras(UserModel u) {
+    final bool isPending = u.status == UserStatus.pendingApproval;
+    final bool isRejected = u.status == UserStatus.rejected;
+    final String rejectionReason =
+        (u.rejectionReason ?? '').trim().isEmpty ? 'No reason recorded' : u.rejectionReason!.trim();
+
+    final List<Widget> extras = <Widget>[];
+
+    if (u.status != UserStatus.active && !isPending) {
+      extras.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: AccountWorkspaceVisuals.chipBackgroundForUserStatus(u.status),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            AccountWorkspaceVisuals.userStatusDisplayLabel(u.status),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AccountWorkspaceVisuals.userStatusAccent(u.status),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isRejected) {
+      extras.add(
+        Text(
+          'Reason: $rejectionReason',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF7F1D1D),
+            height: 1.3,
+          ),
+        ),
+      );
+    }
+
+    return extras;
+  }
+
+  List<Widget> _mobileUserRowTrailing(UserModel u) {
+    final bool isPending = u.status == UserStatus.pendingApproval;
+    if (isPending) {
+      return <Widget>[
+        MobileRowCardIconAction(
+          tooltip: 'Edit user',
+          icon: AppIcons.edit,
+          onTap: () => _openEditUser(u),
+        ),
+        MobileRowCardIconAction(
+          tooltip: 'Approve',
+          icon: AppIcons.workflowApproved,
+          onTap: () => _approve(u),
+          foregroundColor: const Color(0xFF177C50),
+        ),
+        MobileRowCardIconAction(
+          tooltip: 'Reject',
+          icon: AppIcons.statusRejected,
+          onTap: () => _reject(u),
+          foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
+        ),
+      ];
+    }
+
+    return <Widget>[
+      MobileRowCardIconAction(
+        tooltip: 'Edit user',
+        icon: AppIcons.edit,
+        onTap: () => _openEditUser(u),
+      ),
+      MobileRowCardIconAction(
+        tooltip: 'Delete user',
+        icon: AppIcons.remove,
+        onTap: () => _deleteUser(u),
+        foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
+      ),
+    ];
+  }
+
+  Widget _mobileUserRow(UserModel u) {
+    return MobileUserListRowCard(
+      user: u,
+      trailing: _mobileUserRowTrailing(u),
+      extraRow2Items: _mobileUserRow2Extras(u),
+    );
+  }
+
   Widget _userRow(UserModel u) {
+    if (ResponsiveHelper.isMobile(context)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: _mobileUserRow(u),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(top: 6),
-      padding: EdgeInsets.symmetric(
-        horizontal: ResponsiveHelper.isMobile(context) ? 8 : 10,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -605,13 +708,226 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  Widget _filterPill(UsersFilter filter, IconData icon, String label) {
-    return FilterPill(
-      selected: _filter == filter,
-      icon: icon,
-      label: label,
-      count: _countForFilter(filter),
-      onTap: () => setState(() => _filter = filter),
+  bool get _hasActiveFilter => _filter != UsersFilter.all;
+
+  void _clearAllFilters() {
+    setState(() => _filter = UsersFilter.all);
+  }
+
+  InputDecoration _searchDecoration(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    return InputDecoration(
+      hintText: 'Search users',
+      prefixIcon: const Icon(AppIcons.search),
+      isDense: true,
+      filled: true,
+      fillColor: const Color(0xFFFCFDFF),
+      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
+      ),
+    );
+  }
+
+  Widget _userFilterChip({
+    required bool compact,
+    required UsersFilter filter,
+    required IconData icon,
+    required String label,
+  }) {
+    final bool selected = _filter == filter;
+    final int count = _countForFilter(filter);
+    void selectFilter() => setState(() => _filter = filter);
+
+    if (!compact) {
+      return FilterPill(
+        selected: selected,
+        icon: icon,
+        label: label,
+        count: count,
+        onTap: selectFilter,
+      );
+    }
+
+    final Color fg = selected ? const Color(0xFF2E43C6) : const Color(0xFF475569);
+    final Color bg = selected ? const Color(0xFFE8ECFF) : const Color(0xFFF1F5F9);
+    final Color border = selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0);
+    final String text = count == 0 ? label : '$label ($count)';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: selectFilter,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: border, width: selected ? 1.4 : 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 14, color: fg),
+              const SizedBox(width: 4),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileFiltersPanel(BuildContext context) {
+    final bool compact = MobileFilterPaneStyles.useCompact(context);
+    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
+
+    return MobileFilterPaneStyles.panelShell(
+      compact: compact,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ResponsiveFilterChipRow(
+            spacing: chipGap,
+            runSpacing: chipGap,
+            children: <Widget>[
+              _userFilterChip(compact: compact, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
+              _userFilterChip(compact: compact, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
+              _userFilterChip(compact: compact, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
+              _userFilterChip(
+                compact: compact,
+                filter: UsersFilter.coordinators,
+                icon: AppIcons.coordinator,
+                label: 'Coordinator',
+              ),
+              _userFilterChip(compact: compact, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
+              _userFilterChip(
+                compact: compact,
+                filter: UsersFilter.rejected,
+                icon: AppIcons.statusRejected,
+                label: 'Rejected',
+              ),
+            ],
+          ),
+          SizedBox(height: MobileFilterPaneStyles.sectionGap(compact: compact)),
+          MobileFilterPaneStyles.footer(
+            compact: compact,
+            onClearAll: _clearAllFilters,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersRow() {
+    if (!_hasActiveFilter) return const SizedBox.shrink();
+
+    final (IconData icon, String label) = switch (_filter) {
+      UsersFilter.faculty => (AppIcons.faculty, 'Faculty'),
+      UsersFilter.students => (AppIcons.student, 'Student'),
+      UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
+      UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
+      UsersFilter.rejected => (AppIcons.statusRejected, 'Rejected'),
+      UsersFilter.all => (AppIcons.users, 'All'),
+    };
+    final int count = _countForFilter(_filter);
+    final String text = count == 0 ? label : '$label ($count)';
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: <Widget>[
+        Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.only(left: 8, right: 4, top: 4, bottom: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8ECFF),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFF6A38FF), width: 1.4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, size: 13, color: const Color(0xFF2E43C6)),
+                const SizedBox(width: 4),
+                Text(
+                  text,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF2E43C6),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                InkWell(
+                  onTap: _clearAllFilters,
+                  borderRadius: BorderRadius.circular(12),
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(AppIcons.remove, size: 14, color: Color(0xFF2E43C6)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          ResponsiveSearchFilterBar(
+            searchController: _searchController,
+            searchHint: 'Search users',
+            searchDecoration: _searchDecoration(context),
+            filtersExpanded: _showFilters,
+            onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+            iconOnlyFilterOnMobile: true,
+          ),
+          const SizedBox(height: 6),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: _buildMobileFiltersPanel(context),
+            crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 220),
+          ),
+          if (_hasActiveFilter) ...<Widget>[
+            const SizedBox(height: 6),
+            _buildActiveFiltersRow(),
+          ],
+        ],
+      );
+    }
+
+    return ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search users',
+      searchDecoration: _searchDecoration(context),
+      showFilterButton: false,
     );
   }
 
@@ -645,16 +961,52 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final double gap = ResponsiveHelper.dashboardSectionGap(context);
-    final List<UserModel> users = _filteredUsers();
+  Widget _buildCreateImportToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+
+    final Widget createButton = FilledButton.icon(
+      onPressed: _openCreateUser,
+      icon: const Icon(AppIcons.add, size: 16),
+      label: Text(mobile ? 'Create' : 'Create User'),
+      style: MobileToolbarButtonStyles.filled(compact: mobile),
+    );
+    final Widget importButton = OutlinedButton.icon(
+      onPressed: _openImportUsers,
+      icon: const Icon(AppIcons.attachments, size: 16),
+      label: Text(mobile ? 'Import' : 'Import Users'),
+      style: MobileToolbarButtonStyles.outlined(compact: mobile),
+    );
+
+    if (mobile) {
+      return Row(
+        children: <Widget>[
+          Expanded(child: createButton),
+          const SizedBox(width: 6),
+          Expanded(child: importButton),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        createButton,
+        const SizedBox(width: 8),
+        importButton,
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, {required double gap}) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         ResponsiveMetricGrid(chips: _userMetricChips()),
-        SizedBox(height: gap),
+        SizedBox(height: mobile ? 8 : gap),
+        _buildCreateImportToolbar(context),
+        SizedBox(height: mobile ? 8 : gap),
         DepartmentAccessCodeBar(
           displayCode: _formatCode(_inviteCode),
           rawCode: _inviteCode,
@@ -663,38 +1015,83 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           onRegenerate: _regenerateInviteCode,
         ),
         SizedBox(height: gap),
-        ResponsiveFilterChipRow(
-          children: <Widget>[
-            _filterPill(UsersFilter.all, AppIcons.users, 'All'),
-            _filterPill(UsersFilter.faculty, AppIcons.faculty, 'Faculty'),
-            _filterPill(UsersFilter.students, AppIcons.student, 'Student'),
-            _filterPill(UsersFilter.coordinators, AppIcons.coordinator, 'Coordinator'),
-            _filterPill(UsersFilter.pending, AppIcons.pendingUsers, 'Pending'),
-            _filterPill(UsersFilter.rejected, AppIcons.statusRejected, 'Rejected'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ResponsiveSearchFilterBar(
-          searchController: _searchController,
-          searchHint: 'Search users',
-          showFilterButton: false,
-          leading: <Widget>[
-            FilledButton.icon(
-              onPressed: _openCreateUser,
-              icon: const Icon(AppIcons.add, size: 16),
-              label: const Text('Create User'),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: _openImportUsers,
-              icon: const Icon(AppIcons.attachments, size: 16),
-              label: const Text('Import Users'),
-            ),
-          ],
-        ),
+        if (!mobile) ...<Widget>[
+          ResponsiveFilterChipRow(
+            children: <Widget>[
+              _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
+              _userFilterChip(compact: false, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
+              _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
+              _userFilterChip(
+                compact: false,
+                filter: UsersFilter.coordinators,
+                icon: AppIcons.coordinator,
+                label: 'Coordinator',
+              ),
+              _userFilterChip(compact: false, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
+              _userFilterChip(
+                compact: false,
+                filter: UsersFilter.rejected,
+                icon: AppIcons.statusRejected,
+                label: 'Rejected',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+        _buildSearchToolbar(context),
         const SizedBox(height: 10),
-        Expanded(child: _buildUserList(users)),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final double gap = ResponsiveHelper.dashboardSectionGap(context);
+    final List<UserModel> users = _filteredUsers();
+    final Widget header = _buildHeader(context, gap: gap);
+    final Widget userList = _buildUserList(users);
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+
+        if (!hasBoundedHeight) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              header,
+              SizedBox(height: 480, child: userList),
+            ],
+          );
+        }
+
+        if (mobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Flexible(
+                flex: 2,
+                child: SingleChildScrollView(
+                  child: header,
+                ),
+              ),
+              Expanded(
+                flex: 5,
+                child: userList,
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            header,
+            Expanded(child: userList),
+          ],
+        );
+      },
     );
   }
 }
