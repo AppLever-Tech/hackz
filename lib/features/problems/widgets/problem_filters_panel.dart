@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../imports/models/import_created_source.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../models/problem_list_config.dart';
@@ -8,14 +9,6 @@ import '../services/problem_status_helpers.dart';
 
 /// Stateless filter panel shared by the problem list and Problem Statements
 /// table screens.
-///
-/// State lives in the parent screen; the panel just renders the per-section
-/// chip groups (department, status, source, tag, attachments) gated by
-/// [ProblemListConfig.enabledFilters] and notifies the parent through
-/// [onDepartmentToggle] / [onTagToggle] / [onStatusChange] / [onSourceChange] /
-/// [onAttachmentsChange].
-/// `Apply` and `Clear All` are also routed through callbacks so each screen
-/// owns its own load / reset flow.
 class ProblemFiltersPanel extends StatelessWidget {
   const ProblemFiltersPanel({
     super.key,
@@ -34,6 +27,7 @@ class ProblemFiltersPanel extends StatelessWidget {
     required this.onAttachmentsChange,
     required this.onClearAll,
     required this.onApply,
+    this.compact = false,
   });
 
   final Set<ProblemFilterType> enabledFilters;
@@ -51,138 +45,150 @@ class ProblemFiltersPanel extends StatelessWidget {
   final void Function(bool? next) onAttachmentsChange;
   final VoidCallback onClearAll;
   final VoidCallback onApply;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+    final bool useCompact = MobileFilterPaneStyles.useCompact(context, compact: compact);
+    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: useCompact);
+    final double chipGap = MobileFilterPaneStyles.chipGap(compact: useCompact);
+    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: useCompact);
+
+    return MobileFilterPaneStyles.panelShell(
+      compact: useCompact,
       decoration: kDashboardCardDecoration.copyWith(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
+        color: MobileFilterPaneStyles.panelColor,
+        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: useCompact),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (enabledFilters.contains(ProblemFilterType.department)) ...<Widget>[
-            const Text('Department', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text('Department', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: allDepartments
                   .map(
-                    (d) => FilterChip(
-                      label: Text(d),
+                    (d) => MobileFilterPaneStyles.filterChip(
+                      compact: useCompact,
+                      label: d,
                       selected: departmentFilters.contains(d),
                       onSelected: (selected) => onDepartmentToggle(d, selected),
                     ),
                   )
                   .toList(growable: false),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (enabledFilters.contains(ProblemFilterType.status)) ...<Widget>[
-            const Text('Status', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text('Status', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: <Widget>[
-                ChoiceChip(
-                  label: const Text('All'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'All',
                   selected: statusFilter == null,
-                  onSelected: (_) => onStatusChange(null),
+                  onSelected: () => onStatusChange(null),
                 ),
                 for (final ProblemStatus status in ProblemStatus.lifecycleOrder)
-                  ChoiceChip(
-                    label: Text(ProblemStatusHelpers.label(status)),
+                  MobileFilterPaneStyles.choiceChip(
+                    compact: useCompact,
+                    label: ProblemStatusHelpers.label(status),
                     selected: statusFilter == status,
-                    onSelected: (_) => onStatusChange(statusFilter == status ? null : status),
+                    onSelected: () => onStatusChange(statusFilter == status ? null : status),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (enabledFilters.contains(ProblemFilterType.source)) ...<Widget>[
-            const Text('Source', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text('Source', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: <Widget>[
-                ChoiceChip(
-                  label: const Text('All'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'All',
                   selected: sourceFilter == null,
-                  onSelected: (_) => onSourceChange(null),
+                  onSelected: () => onSourceChange(null),
                 ),
-                ChoiceChip(
-                  label: const Text('Manual'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'Manual',
                   selected: sourceFilter == ImportCreatedSource.manual,
-                  onSelected: (_) => onSourceChange(
+                  onSelected: () => onSourceChange(
                     sourceFilter == ImportCreatedSource.manual ? null : ImportCreatedSource.manual,
                   ),
                 ),
-                ChoiceChip(
-                  label: const Text('Imported'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'Imported',
                   selected: sourceFilter == ImportCreatedSource.csvImport,
-                  onSelected: (_) => onSourceChange(
+                  onSelected: () => onSourceChange(
                     sourceFilter == ImportCreatedSource.csvImport ? null : ImportCreatedSource.csvImport,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (enabledFilters.contains(ProblemFilterType.tags)) ...<Widget>[
-            const Text('Tags', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text('Tags', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: allTags
                   .map(
-                    (tag) => FilterChip(
-                      label: Text(tag),
+                    (tag) => MobileFilterPaneStyles.filterChip(
+                      compact: useCompact,
+                      label: tag,
                       selected: tagFilters.contains(tag),
                       onSelected: (selected) => onTagToggle(tag, selected),
                     ),
                   )
                   .toList(growable: false),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (enabledFilters.contains(ProblemFilterType.attachments)) ...<Widget>[
-            const Text('Attachments', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
+            Text('Attachments', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: <Widget>[
-                ChoiceChip(
-                  label: const Text('With Attachments'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'With Attachments',
                   selected: hasAttachments == true,
-                  onSelected: (_) => onAttachmentsChange(
+                  onSelected: () => onAttachmentsChange(
                     hasAttachments == true ? null : true,
                   ),
                 ),
-                ChoiceChip(
-                  label: const Text('Without Attachments'),
+                MobileFilterPaneStyles.choiceChip(
+                  compact: useCompact,
+                  label: 'Without Attachments',
                   selected: hasAttachments == false,
-                  onSelected: (_) => onAttachmentsChange(
+                  onSelected: () => onAttachmentsChange(
                     hasAttachments == false ? null : false,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              TextButton(onPressed: onClearAll, child: const Text('Clear All')),
-              const SizedBox(width: 6),
-              FilledButton(onPressed: onApply, child: const Text('Apply')),
-            ],
+          MobileFilterPaneStyles.footer(
+            compact: useCompact,
+            onClearAll: onClearAll,
+            onApply: onApply,
           ),
         ],
       ),
@@ -191,11 +197,6 @@ class ProblemFiltersPanel extends StatelessWidget {
 }
 
 /// Wrap of input-chip pills representing the currently applied filter values.
-///
-/// Designed to sit directly below the [ProblemFiltersPanel] toggle so users
-/// can remove individual selections without re-opening the panel. Returns an
-/// empty [SizedBox] when nothing is active so callers can place it
-/// unconditionally.
 class ProblemActiveFiltersRow extends StatelessWidget {
   const ProblemActiveFiltersRow({
     super.key,

@@ -79,27 +79,11 @@ class IdeaEvaluationResultsSection extends StatelessWidget {
       );
     }
 
-    final bool isMobile = ResponsiveHelper.isMobile(context);
-    final bool isDesktop = ResponsiveHelper.isDesktopOrWider(context);
-
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        if (isDesktop && chips.length <= 4) {
-          return ResponsiveMetricGrid(chips: chips);
-        }
-        if (isMobile) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (int i = 0; i < chips.length; i++) ...<Widget>[
-                if (i > 0) const SizedBox(height: 8),
-                DashboardMetricChip(data: chips[i]),
-              ],
-            ],
-          );
-        }
-        return ResponsiveMetricGrid(chips: chips);
-      },
+    final bool compact = ResponsiveHelper.isMobile(context);
+    return ResponsiveMetricGrid(
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+      chips: chips,
     );
   }
 }

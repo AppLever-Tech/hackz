@@ -171,7 +171,7 @@ class EvaluationResultsRowCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  row.rank > 0 ? '${row.rank}' : '—',
+                  row.rank > 0 ? '#${row.rank}' : '—',
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF6A38FF)),
                 ),
               ),

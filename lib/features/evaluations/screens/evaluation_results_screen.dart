@@ -7,6 +7,8 @@ import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../workspace/evaluation_details_workspace.dart';
 import '../../user/models/user_model.dart';
+import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
@@ -294,10 +296,15 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required EvaluationResultsMetrics metrics,
     required List<String> categories,
     required List<String> departments,
-  }) {    return Column(
+  }) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         ResponsiveMetricGrid(
+          spacing: compact ? 8 : null,
+          runSpacing: compact ? 8 : null,
           chips: <DashboardMetricChipData>[
             DashboardMetricChipData.single(
               label: 'Total Evaluated',
@@ -325,13 +332,13 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 8 : 12),
         FutureBuilder<IdeathonReadiness>(
           future: _readinessFuture,
           builder: (BuildContext context, AsyncSnapshot<IdeathonReadiness> readinessSnap) {
             if (!readinessSnap.hasData) return const SizedBox.shrink();
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: compact ? 8 : 12),
               child: IdeathonReadinessBanner(
                 readiness: readinessSnap.data!,
                 onCreateIdeathon: () => _openCreateIdeathon(context),
@@ -339,67 +346,68 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             );
           },
         ),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search idea or problem title',
-                  prefixIcon: const Icon(AppIcons.search, size: 20),
-                  isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () => setState(() => _showFilters = !_showFilters),
-              icon: Icon(_showFilters ? Icons.expand_less : Icons.filter_list),
-              label: Text(_showFilters ? 'Hide filters' : 'Filters'),
-            ),
-            IconButton(onPressed: _load, icon: const Icon(AppIcons.refresh), tooltip: 'Refresh'),
-          ],
+        ResponsiveSearchFilterBar(
+          searchController: _searchController,
+          searchHint: 'Search idea or problem title',
+          filtersExpanded: _showFilters,
+          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+          onSearchSubmitted: _load,
+          iconOnlyFilterOnMobile: true,
         ),
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _buildFiltersPanel(categories: categories, departments: departments),
+            padding: EdgeInsets.only(top: compact ? 6 : 12),
+            child: _buildFiltersPanel(
+              context: context,
+              categories: categories,
+              departments: departments,
+            ),
           ),
           crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 180),
         ),
         if (_hasActiveFilters) ...<Widget>[
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 6 : 10),
           _buildActiveFilters(),
-        ],      ],
+        ],
+      ],
     );
   }
 
   Widget _buildFiltersPanel({
+    required BuildContext context,
     required List<String> categories,
     required List<String> departments,
-  }) {    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: kDashboardCardDecoration,
+  }) {
+    final bool compact = MobileFilterPaneStyles.useCompact(context);
+    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
+    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
+    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
+
+    return MobileFilterPaneStyles.panelShell(
+      compact: compact,
+      decoration: kDashboardCardDecoration.copyWith(
+        color: MobileFilterPaneStyles.panelColor,
+        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
+          Text('Status', style: sectionLabel),
+          SizedBox(height: chipGap),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: chipGap,
+            runSpacing: chipGap,
             children: <Widget>[
               for (final IdeaStatus status in <IdeaStatus>[
                 IdeaStatus.evaluated,
                 IdeaStatus.shortlisted,
                 IdeaStatus.rejected,
               ])
-                FilterChip(
-                  label: Text(IdeaStatusHelpers.label(status)),
+                MobileFilterPaneStyles.filterChip(
+                  compact: compact,
+                  label: IdeaStatusHelpers.label(status),
                   selected: _statusFilters.contains(status),
                   onSelected: (bool value) {
                     setState(() {
@@ -414,16 +422,17 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             ],
           ),
           if (departments.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 12),
-            const Text('Department', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
+            SizedBox(height: sectionGap),
+            Text('Department', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: departments
                   .map(
-                    (String dep) => FilterChip(
-                      label: Text(dep),
+                    (String dep) => MobileFilterPaneStyles.filterChip(
+                      compact: compact,
+                      label: dep,
                       selected: _departmentFilters.contains(dep),
                       onSelected: (bool value) {
                         setState(() {
@@ -440,16 +449,17 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             ),
           ],
           if (categories.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 12),
-            const Text('Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
+            SizedBox(height: sectionGap),
+            Text('Category', style: sectionLabel),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: categories
                   .map(
-                    (String cat) => FilterChip(
-                      label: Text(cat),
+                    (String cat) => MobileFilterPaneStyles.filterChip(
+                      compact: compact,
+                      label: cat,
                       selected: _categoryFilters.contains(cat),
                       onSelected: (bool value) {
                         setState(() {
@@ -465,14 +475,11 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                   .toList(),
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              TextButton(onPressed: _clearFilters, child: const Text('Clear All')),
-              const SizedBox(width: 8),
-              FilledButton(onPressed: _load, child: const Text('Apply')),
-            ],
+          SizedBox(height: sectionGap),
+          MobileFilterPaneStyles.footer(
+            compact: compact,
+            onClearAll: _clearFilters,
+            onApply: _load,
           ),
         ],
       ),

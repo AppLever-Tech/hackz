@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
+import 'mobile_filter_pane_styles.dart';
 import 'responsive_helper.dart';
 
 /// Search field + filter toggle; stacks on narrow widths.
@@ -13,10 +14,12 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     this.onToggleFilters,
     this.leading = const <Widget>[],
     this.trailing = const <Widget>[],
+    this.mobileBelowSearchRow,
     this.filterLabel,
     this.onSearchSubmitted,
     this.showFilterButton = true,
     this.iconOnlyFilterOnMobile = false,
+    this.searchDecoration,
   });
 
   final TextEditingController searchController;
@@ -25,10 +28,12 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
   final VoidCallback? onToggleFilters;
   final List<Widget> leading;
   final List<Widget> trailing;
+  final Widget? mobileBelowSearchRow;
   final String? filterLabel;
   final VoidCallback? onSearchSubmitted;
   final bool showFilterButton;
   final bool iconOnlyFilterOnMobile;
+  final InputDecoration? searchDecoration;
 
   @override
   Widget build(BuildContext context) {
@@ -37,19 +42,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
 
     final Widget? filterButton = showFilterButton && onToggleFilters != null
         ? useIconOnlyFilter
-            ? IconButton(
-                onPressed: onToggleFilters,
+            ? MobileFilterToggleButton(
+                expanded: filtersExpanded,
+                onPressed: onToggleFilters!,
                 tooltip: filterLabel ?? (filtersExpanded ? 'Hide filters' : 'Filters'),
-                icon: Icon(Icons.tune, color: filtersExpanded ? const Color(0xFF6A38FF) : const Color(0xFF475569)),
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(40, 40),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  backgroundColor: filtersExpanded ? const Color(0xFFE8ECFF) : const Color(0xFFF8FAFC),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: filtersExpanded ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0)),
-                  ),
-                ),
               )
             : OutlinedButton.icon(
                 onPressed: onToggleFilters,
@@ -65,33 +61,45 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     final searchField = TextField(
       controller: searchController,
       onSubmitted: onSearchSubmitted == null ? null : (_) => onSearchSubmitted!(),
-      decoration: InputDecoration(
-        hintText: searchHint,
-        prefixIcon: const Icon(AppIcons.search),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: ResponsiveHelper.isMobile(context) ? 10 : 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
+      decoration: searchDecoration ??
+          InputDecoration(
+            hintText: searchHint,
+            prefixIcon: const Icon(AppIcons.search),
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: ResponsiveHelper.isMobile(context) ? 10 : 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+          ),
     );
 
     if (mobile && useIconOnlyFilter) {
-      return Row(
+      final Widget searchRow = Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           if (leading.isNotEmpty) ...leading.expand((Widget w) => <Widget>[w, const SizedBox(width: 8)]),
           Expanded(child: searchField),
           if (trailing.isNotEmpty) ...trailing.map((Widget w) => Padding(padding: const EdgeInsets.only(left: 8), child: w)),
           if (filterButton != null) ...<Widget>[const SizedBox(width: 8), filterButton],
+        ],
+      );
+
+      if (mobileBelowSearchRow == null) return searchRow;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          searchRow,
+          const SizedBox(height: 8),
+          mobileBelowSearchRow!,
         ],
       );
     }
@@ -145,25 +153,32 @@ class ResponsiveFilterChipRow extends StatelessWidget {
     super.key,
     required this.children,
     this.allowHorizontalScroll = false,
+    this.spacing,
+    this.runSpacing,
   });
 
   final List<Widget> children;
   final bool allowHorizontalScroll;
+  final double? spacing;
+  final double? runSpacing;
 
   @override
   Widget build(BuildContext context) {
     if (children.isEmpty) return const SizedBox.shrink();
 
+    final double resolvedSpacing = spacing ?? 8;
+    final double resolvedRunSpacing = runSpacing ?? 8;
+
     if (allowHorizontalScroll && ResponsiveHelper.isDesktopOrWider(context)) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(children: _spaced(children, 8)),
+        child: Row(children: _spaced(children, resolvedSpacing)),
       );
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: resolvedSpacing,
+      runSpacing: resolvedRunSpacing,
       children: children,
     );
   }

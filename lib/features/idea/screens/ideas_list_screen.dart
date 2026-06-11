@@ -14,6 +14,8 @@ import '../widgets/idea_table_columns.dart';
 import 'package:hackz/features/payment/widgets/payment_dialog.dart';
 import '../../evaluations/widgets/evaluate_idea_dialog.dart';
 import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import 'idea_details_pane.dart';
@@ -342,17 +344,27 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     required Map<String, String> availableProblems,
     required List<String> availableDepartments,
   }) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _buildMetricsRow(_metrics),
-        const SizedBox(height: 12),
-        _buildToolbar(context, maxWidth: maxWidth),
-        const SizedBox(height: 12),
+        _buildMetricsRow(_metrics, compact: compact),
+        SizedBox(height: compact ? 8 : 12),
+        ResponsiveSearchFilterBar(
+          searchController: _searchController,
+          searchHint: 'Search by idea title, problem, or description',
+          filtersExpanded: _showFilters,
+          onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+          onSearchSubmitted: _loadIdeas,
+          iconOnlyFilterOnMobile: true,
+        ),
+        SizedBox(height: compact ? 6 : 12),
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: _buildFiltersPanel(
+            context: context,
             availableProblems: availableProblems,
             availableDepartments: availableDepartments,
           ),
@@ -360,18 +372,18 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           duration: const Duration(milliseconds: 220),
         ),
         if (_hasAnyActiveFilter) ...<Widget>[
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 6 : 12),
           _buildActiveFiltersRow(availableProblems),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 6 : 12),
       ],
     );
   }
 
-  Widget _buildMetricsRow(IdeaDepartmentMetrics metrics) {
+  Widget _buildMetricsRow(IdeaDepartmentMetrics metrics, {bool compact = false}) {
     return ResponsiveMetricGrid(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
       chips: <DashboardMetricChipData>[
         DashboardMetricChipData.single(
           label: 'Total Ideas',
@@ -402,106 +414,43 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     );
   }
 
-  ButtonStyle _toolbarButtonStyle(BuildContext context) => OutlinedButton.styleFrom(
-        minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        foregroundColor: const Color(0xFF334155),
-        backgroundColor: const Color(0xFFFCFDFF),
-        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
-        disabledForegroundColor: const Color(0xFF334155),
-        disabledBackgroundColor: const Color(0xFFFCFDFF),
-      );
-
-  Widget _buildToolbar(BuildContext context, {required double maxWidth}) {
-    final bool useStackedToolbar =
-        ResponsiveHelper.isMobile(context) || maxWidth < 768;
-    final filterButton = OutlinedButton.icon(
-      onPressed: () => setState(() => _showFilters = !_showFilters),
-      icon: const Icon(Icons.tune),
-      label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-      style: _toolbarButtonStyle(context),
-    );
-
-    final searchField = TextField(
-      controller: _searchController,
-      onSubmitted: (_) => _loadIdeas(),
-      decoration: InputDecoration(
-        hintText: 'Search by idea title, problem, or description',
-        prefixIcon: const Icon(AppIcons.search),
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: ResponsiveHelper.isMobile(context) ? 10 : 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
-    );
-
-    if (useStackedToolbar) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          searchField,
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              filterButton,
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(child: searchField),
-        const SizedBox(width: 8),
-        filterButton,
-      ],
-    );
-  }
-
   Widget _buildFiltersPanel({
+    required BuildContext context,
     required Map<String, String> availableProblems,
     required List<String> availableDepartments,
   }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+    final bool compact = MobileFilterPaneStyles.useCompact(context);
+    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
+    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
+    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
+
+    return MobileFilterPaneStyles.panelShell(
+      compact: compact,
       decoration: kDashboardCardDecoration.copyWith(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(14),
+        color: MobileFilterPaneStyles.panelColor,
+        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
             Row(
-              children: const <Widget>[
-                Icon(Icons.filter_alt_outlined, size: 18, color: Color(0xFF64748B)),
-                SizedBox(width: 6),
-                Text('Status', style: TextStyle(fontWeight: FontWeight.w600)),
+              children: <Widget>[
+                Icon(Icons.filter_alt_outlined, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Text('Status', style: sectionLabel),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: IdeaStatus.values
                   .map(
-                    (status) => FilterChip(
-                      avatar: Icon(_statusIcon(status), size: 16),
-                      label: Text(_statusLabel(status)),
+                    (status) => MobileFilterPaneStyles.filterChip(
+                      compact: compact,
+                      avatar: Icon(_statusIcon(status), size: compact ? 14 : 16),
+                      label: _statusLabel(status),
                       selected: _statusFilters.contains(status),
                       onSelected: (selected) {
                         setState(() {
@@ -516,53 +465,59 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   )
                   .toList(growable: false),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.problem)) ...<Widget>[
             Row(
-              children: const <Widget>[
-                Icon(AppIcons.problems, size: 18, color: Color(0xFF64748B)),
-                SizedBox(width: 6),
-                Text('Problem', style: TextStyle(fontWeight: FontWeight.w600)),
+              children: <Widget>[
+                Icon(AppIcons.problems, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Text('Problem', style: sectionLabel),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: chipGap),
             DropdownButtonFormField<String>(
               value: _problemFilters.length == 1 ? _problemFilters.first : null,
               isExpanded: true,
+              isDense: compact,
               items: availableProblems.entries
                   .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
                   .toList(growable: false),
               onChanged: (value) => setState(() {
                 _problemFilters = value == null ? <String>{} : <String>{value};
               }),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                prefixIcon: Icon(AppIcons.problems),
-                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: compact ? 8 : 12,
+                ),
+                prefixIcon: const Icon(AppIcons.problems),
+                border: const OutlineInputBorder(),
                 hintText: 'Select problem',
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
               widget.config.ideaDepartmentScope == IdeaDepartmentScope.none) ...<Widget>[
             Row(
-              children: const <Widget>[
-                Icon(AppIcons.departments, size: 18, color: Color(0xFF64748B)),
-                SizedBox(width: 6),
-                Text('Department', style: TextStyle(fontWeight: FontWeight.w600)),
+              children: <Widget>[
+                Icon(AppIcons.departments, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Text('Department', style: sectionLabel),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: chipGap),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: chipGap,
+              runSpacing: chipGap,
               children: availableDepartments
                   .map(
-                    (d) => FilterChip(
-                      avatar: const Icon(AppIcons.departments, size: 16),
-                      label: Text(d),
+                    (d) => MobileFilterPaneStyles.filterChip(
+                      compact: compact,
+                      avatar: Icon(AppIcons.departments, size: compact ? 14 : 16),
+                      label: d,
                       selected: _departmentFilters.contains(d),
                       onSelected: (selected) {
                         setState(() {
@@ -577,15 +532,12 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                   )
                   .toList(growable: false),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: sectionGap),
           ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              TextButton(onPressed: _clearAllFilters, child: const Text('Clear All')),
-              const SizedBox(width: 6),
-              FilledButton(onPressed: _loadIdeas, child: const Text('Apply')),
-            ],
+          MobileFilterPaneStyles.footer(
+            compact: compact,
+            onClearAll: _clearAllFilters,
+            onApply: _loadIdeas,
           ),
         ],
       ),

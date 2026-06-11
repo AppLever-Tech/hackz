@@ -5,6 +5,7 @@ import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/shared/inputs/filter_pill.dart';
 import 'package:hackz/widgets/dashboard/dashboard_metric_chips.dart';
+import 'package:hackz/core/responsive/mobile_filter_pane_styles.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/core/responsive/responsive_metric_grid.dart';
@@ -232,40 +233,19 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget _buildFiltersPanel(BuildContext context, DepartmentPaymentsWorkspace workspace) {
-    final bool compact = ResponsiveHelper.isMobile(context);
-    final double sectionGap = compact ? 6 : 10;
-    final double chipGap = compact ? 6 : 8;
-    final TextStyle sectionLabel = TextStyle(
-      fontWeight: FontWeight.w600,
-      fontSize: compact ? 12 : 14,
-    );
+    final bool compact = MobileFilterPaneStyles.useCompact(context);
+    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
+    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
+    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
 
-    Widget compactFilterChip({
-      required String label,
-      required bool selected,
-      required ValueChanged<bool> onSelected,
-    }) {
-      return FilterChip(
-        label: Text(label, style: TextStyle(fontSize: compact ? 12 : 14)),
-        selected: selected,
-        onSelected: onSelected,
-        visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-        materialTapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
-        padding: compact ? const EdgeInsets.symmetric(horizontal: 4) : null,
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(compact ? 8 : 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(compact ? 12 : 14),
-      ),
+    return MobileFilterPaneStyles.panelShell(
+      compact: compact,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           ResponsiveFilterChipRow(
+            spacing: chipGap,
+            runSpacing: chipGap,
             children: <Widget>[
               _statusFilterPill(
                 compact: compact,
@@ -309,7 +289,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             runSpacing: chipGap,
             children: DepartmentPaymentDateFilter.values
                 .map(
-                  (f) => compactFilterChip(
+                  (f) => MobileFilterPaneStyles.filterChip(
+                    compact: compact,
                     label: f.label,
                     selected: _dateFilter == f,
                     onSelected: (_) => setState(() => _dateFilter = f),
@@ -325,7 +306,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             runSpacing: chipGap,
             children: DepartmentPaymentVerificationFilter.values
                 .map(
-                  (f) => compactFilterChip(
+                  (f) => MobileFilterPaneStyles.filterChip(
+                    compact: compact,
                     label: f.label,
                     selected: _verificationFilter == f,
                     onSelected: (_) => setState(() => _verificationFilter = f),
@@ -334,16 +316,9 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                 .toList(growable: false),
           ),
           SizedBox(height: sectionGap),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _clearAllFilters,
-              style: TextButton.styleFrom(
-                visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-                tapTargetSize: compact ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
-              ),
-              child: Text('Clear All', style: TextStyle(fontSize: compact ? 12 : 14)),
-            ),
+          MobileFilterPaneStyles.footer(
+            compact: compact,
+            onClearAll: _clearAllFilters,
           ),
         ],
       ),

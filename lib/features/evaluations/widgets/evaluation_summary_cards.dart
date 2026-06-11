@@ -30,6 +30,7 @@ class EvaluationSummaryCards extends StatelessWidget {
       );
     }
 
+    final bool compact = ResponsiveHelper.isMobile(context);
     final List<DashboardMetricChipData> chips = <DashboardMetricChipData>[
       DashboardMetricChipData.single(
         label: 'Average Score',
@@ -57,18 +58,10 @@ class EvaluationSummaryCards extends StatelessWidget {
       ),
     ];
 
-    if (ResponsiveHelper.isMobile(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          for (int i = 0; i < chips.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(height: 8),
-            DashboardMetricChip(data: chips[i]),
-          ],
-        ],
-      );
-    }
-
-    return ResponsiveMetricGrid(chips: chips);
+    return ResponsiveMetricGrid(
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+      chips: chips,
+    );
   }
 }

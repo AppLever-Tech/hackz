@@ -11,6 +11,7 @@ import '../features/problems/widgets/problem_workflow_action_pill.dart';
 import '../screens/common/dashboard_components.dart';
 import '../utils/common_helpers.dart';
 import 'common/card_overflow_menu.dart';
+import 'common/mobile_row_card_icon_action.dart';
 import 'data_view/data_table_column.dart';
 
 const double _kPsTitleGap = 12;
@@ -296,9 +297,12 @@ class ProblemListRowCard extends StatelessWidget {
       actions: actions,
       flags: flags,
     );
-    final List<CardOverflowMenuAction> menuActions = _buildProblemOverflowActions(
+    final List<Widget> iconActions = _buildProblemMobileIconActions(
+      problem: problem,
+      actions: actions,
       flags: flags,
     );
+    final bool iconsOnRow3 = primaryPills.isEmpty && iconActions.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -344,40 +348,56 @@ class ProblemListRowCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 14,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              _ProblemCardMetaLine(
-                icon: AppIcons.ideas,
-                label: '${gate.submittedCount}/${gate.effectiveMaxIdeas}',
+              Expanded(
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    _ProblemCardMetaLine(
+                      icon: AppIcons.ideas,
+                      label: '${gate.submittedCount}/${gate.effectiveMaxIdeas}',
+                    ),
+                    _ProblemCardMetaLine(
+                      icon: AppIcons.clock,
+                      label: _formatDeadline(problem),
+                    ),
+                  ],
+                ),
               ),
-              _ProblemCardMetaLine(
-                icon: AppIcons.clock,
-                label: _formatDeadline(problem),
-              ),
+              if (iconsOnRow3)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: spacedMobileRowCardIconActions(iconActions),
+                ),
             ],
           ),
-          if (primaryPills.isNotEmpty || menuActions.isNotEmpty) ...<Widget>[
+          if (primaryPills.isNotEmpty) ...<Widget>[
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                ...primaryPills,
-                if (menuActions.isNotEmpty)
-                  CardOverflowMenuButton(
-                    tooltip: 'More actions',
-                    dividersBefore: const <String>{'delete'},
-                    actions: menuActions,
-                    onSelected: (String value) => _handleProblemMenuAction(
-                      value: value,
-                      problem: problem,
-                      actions: actions,
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: primaryPills,
                     ),
                   ),
+                ),
+                if (iconActions.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: spacedMobileRowCardIconActions(iconActions),
+                  ),
+                ],
               ],
             ),
           ],
@@ -518,6 +538,43 @@ void _handleProblemMenuAction({
     case 'delete':
       actions.onDeleteProblem(problem);
   }
+}
+
+List<Widget> _buildProblemMobileIconActions({
+  required ProblemModel problem,
+  required ProblemTableActions actions,
+  required _ProblemActionFlags flags,
+}) {
+  final List<Widget> icons = <Widget>[];
+  if (flags.canEdit) {
+    icons.add(
+      MobileRowCardIconAction(
+        tooltip: 'Edit Problem',
+        icon: AppIcons.edit,
+        onTap: () => actions.onEditProblem(problem),
+      ),
+    );
+  }
+  if (flags.canAssignJudge) {
+    icons.add(
+      MobileRowCardIconAction(
+        tooltip: 'Assign Judge',
+        icon: AppIcons.judges,
+        onTap: () => actions.onAssignJudge(problem),
+      ),
+    );
+  }
+  if (flags.canDelete) {
+    icons.add(
+      MobileRowCardIconAction(
+        tooltip: 'Delete Problem',
+        icon: AppIcons.remove,
+        onTap: () => actions.onDeleteProblem(problem),
+        foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
+      ),
+    );
+  }
+  return icons;
 }
 
 class _DeadlineCell extends StatelessWidget {

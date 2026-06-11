@@ -9,6 +9,7 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../../widgets/common/card_overflow_menu.dart';
 import '../../../widgets/common/context_pill_theme.dart';
 import '../../../widgets/common/entity_card_pills.dart';
+import '../../../widgets/common/mobile_row_card_icon_action.dart';
 import '../../../widgets/common/mobile_row_card_pill.dart';
 import '../../../widgets/data_view/data_table_column.dart';
 import '../../problems/widgets/problem_context_pill.dart';
@@ -422,6 +423,7 @@ class IdeaListRowCard extends StatelessWidget {
       actions: actions,
       flags: flags,
     );
+    final bool iconsOnRow3 = actionPills.isEmpty && iconActions.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -466,6 +468,7 @@ class IdeaListRowCard extends StatelessWidget {
                 label: teamLabel,
                 onTap: teamId.isNotEmpty ? () => actions.onOpenTeam(item) : null,
               ),
+              MobileRowCardPill.status(status: status),
             ],
           ),
           const SizedBox(height: 10),
@@ -487,16 +490,16 @@ class IdeaListRowCard extends StatelessWidget {
                     ? () => actions.onOpenAttachments(item)
                     : null,
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: MobileRowCardPill.status(status: status),
+              if (iconsOnRow3) ...<Widget>[
+                const Spacer(),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: spacedMobileRowCardIconActions(iconActions),
                 ),
-              ),
+              ],
             ],
           ),
-          if (actionPills.isNotEmpty || iconActions.isNotEmpty) ...<Widget>[
+          if (actionPills.isNotEmpty) ...<Widget>[
             const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -515,7 +518,7 @@ class IdeaListRowCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: _spacedWidgets(iconActions, gap: 6),
+                    children: spacedMobileRowCardIconActions(iconActions),
                   ),
                 ],
               ],
@@ -527,16 +530,6 @@ class IdeaListRowCard extends StatelessWidget {
   }
 }
 
-List<Widget> _spacedWidgets(List<Widget> widgets, {required double gap}) {
-  if (widgets.isEmpty) return widgets;
-  final List<Widget> spaced = <Widget>[widgets.first];
-  for (var i = 1; i < widgets.length; i++) {
-    spaced.add(SizedBox(width: gap));
-    spaced.add(widgets[i]);
-  }
-  return spaced;
-}
-
 List<Widget> _buildMobileIconActions({
   required IdeaListItem item,
   required IdeaTableActions actions,
@@ -545,7 +538,7 @@ List<Widget> _buildMobileIconActions({
   final List<Widget> icons = <Widget>[];
   if (flags.canAssignJudge && actions.onAssignJudge != null) {
     icons.add(
-      _MobileCardIconAction(
+      MobileRowCardIconAction(
         tooltip: 'Assign Judge',
         icon: AppIcons.judges,
         onTap: () => actions.onAssignJudge?.call(item),
@@ -554,7 +547,7 @@ List<Widget> _buildMobileIconActions({
   }
   if (flags.canEval) {
     icons.add(
-      _MobileCardIconAction(
+      MobileRowCardIconAction(
         tooltip: 'Evaluate',
         icon: AppIcons.scoring,
         onTap: () => actions.onEvaluate(item),
@@ -563,7 +556,7 @@ List<Widget> _buildMobileIconActions({
   }
   if (flags.hasPayment) {
     icons.add(
-      _MobileCardIconAction(
+      MobileRowCardIconAction(
         tooltip: 'View Payment',
         icon: AppIcons.payments,
         onTap: () => actions.onOpenPayment(item),
@@ -609,40 +602,6 @@ class _MobileCardMetaLine extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(4),
       child: content,
-    );
-  }
-}
-
-class _MobileCardIconAction extends StatelessWidget {
-  const _MobileCardIconAction({
-    required this.tooltip,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFF),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Icon(icon, size: 16, color: const Color(0xFF475569)),
-        ),
-      ),
     );
   }
 }
