@@ -89,6 +89,9 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   String? _filterDepartmentCode;
   final int _pageSize = 120;
   int _visibleCount = 120;
+  bool _mobileProblemExpanded = true;
+  bool _mobileIdeasExpanded = false;
+  bool _mobileEvaluatorsExpanded = false;
 
   List<ProblemModel> _problems = <ProblemModel>[];
   List<IdeaModel> _ideas = <IdeaModel>[];
@@ -468,33 +471,143 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
   }
 
   Widget _buildMobileLayout() {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 16),
-      children: <Widget>[
-        _buildLeftPanel(),
-        const SizedBox(height: 12),
-        SizedBox(height: 520, child: _buildCenterPanel()),
-        const SizedBox(height: 12),
-        SizedBox(height: 420, child: _buildRightPanel()),
-      ],
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double viewport = constraints.hasBoundedHeight && constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 640;
+        final double listPanelHeight = math.max(280, viewport * 0.42);
+
+        return ListView(
+          padding: const EdgeInsets.only(bottom: 16),
+          children: <Widget>[
+            _buildMobileAccordionSection(
+              sectionKey: 'problem-summary',
+              icon: AppIcons.problems,
+              title: 'Problem Summary',
+              expanded: _mobileProblemExpanded,
+              onExpandedChanged: (bool value) => setState(() => _mobileProblemExpanded = value),
+              child: _buildLeftPanel(expandBody: false, includeHeader: false, wrapCard: false),
+            ),
+            _buildMobileAccordionSection(
+              sectionKey: 'ideas',
+              icon: AppIcons.ideas,
+              title: 'Ideas',
+              expanded: _mobileIdeasExpanded,
+              onExpandedChanged: (bool value) => setState(() => _mobileIdeasExpanded = value),
+              bodyHeight: listPanelHeight,
+              child: _buildCenterPanel(compact: true, includeHeader: false, wrapCard: false),
+            ),
+            _buildMobileAccordionSection(
+              sectionKey: 'evaluators',
+              icon: AppIcons.judges,
+              title: 'Evaluators',
+              expanded: _mobileEvaluatorsExpanded,
+              onExpandedChanged: (bool value) => setState(() => _mobileEvaluatorsExpanded = value),
+              titleTrailing: _assignTrailingButton(compact: true),
+              bodyHeight: listPanelHeight,
+              child: _buildRightPanel(compact: true, includeHeader: false, wrapCard: false),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildLeftPanel() {
+  Widget _buildMobileAccordionSection({
+    required String sectionKey,
+    required IconData icon,
+    required String title,
+    required bool expanded,
+    required ValueChanged<bool> onExpandedChanged,
+    required Widget child,
+    Widget? titleTrailing,
+    double? bodyHeight,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: kDashboardCardDecoration,
+          clipBehavior: Clip.antiAlias,
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: ValueKey<String>(sectionKey),
+              initiallyExpanded: expanded,
+              onExpansionChanged: onExpandedChanged,
+              maintainState: true,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              childrenPadding: EdgeInsets.zero,
+              collapsedShape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(16)),
+              ),
+              leading: Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (titleTrailing != null) ...<Widget>[
+                    titleTrailing,
+                    const SizedBox(width: 4),
+                  ],
+                  IconButton(
+                    onPressed: () => onExpandedChanged(!expanded),
+                    tooltip: expanded ? 'Collapse' : 'Expand',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    icon: AnimatedRotation(
+                      turns: expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+                    ),
+                  ),
+                ],
+              ),
+              children: <Widget>[
+                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                if (bodyHeight != null)
+                  SizedBox(height: bodyHeight, child: child)
+                else
+                  child,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeftPanel({
+    bool expandBody = true,
+    bool includeHeader = true,
+    bool wrapCard = true,
+  }) {
     final ProblemModel? selectedProblem = _selectedProblem;
     final List<_IdeaRowVm> rows = _filteredIdeas;
     final int assigned = rows.where((_IdeaRowVm r) => r.assignedJudgeIds.isNotEmpty).length;
     final int total = rows.length;
-    return Container(
-      decoration: kDashboardCardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+    final Widget panel = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (includeHeader)
           _panelHeader(
             icon: AppIcons.problems,
             title: 'Problem Summary',
           ),
-          _panelToolbarRow(
+        _panelToolbarRow(
             child: _problemScopeLocked
                 ? _lockedProblemField(selectedProblem)
                 : DropdownButtonFormField<String>(
@@ -521,50 +634,59 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
                   ),
           ),
           _panelToolbarDivider,
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Text(
-                    selectedProblem?.title.isNotEmpty == true
-                        ? selectedProblem!.title
-                        : 'Select a problem',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _summaryStatTile('Total ideas', '$total', const Color(0xFFEEF2FF), const Color(0xFF4F46E5)),
-                  const SizedBox(height: 6),
-                  _summaryStatTile('Assigned', '$assigned', const Color(0xFFECFDF5), const Color(0xFF16A34A)),
-                  const SizedBox(height: 6),
-                  _summaryStatTile(
-                    'Unassigned',
-                    '${math.max(0, total - assigned)}',
-                    const Color(0xFFFFF7ED),
-                    const Color(0xFFEA580C),
-                  ),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                  const SizedBox(height: 14),
-                  _sectionLabel('Default Filters'),
-                  _filterCheckboxRow(
-                    label: 'Show unassigned only',
-                    value: _onlyUnassigned,
-                    onChanged: (bool value) => setState(() => _onlyUnassigned = value),
-                  ),
-                  _filterCheckboxRow(
-                    label: 'Score pending only',
-                    value: _onlyPendingScore,
-                    onChanged: (bool value) => setState(() => _onlyPendingScore = value),
-                  ),
-                ],
-              ),
+        if (expandBody)
+          Expanded(child: _buildLeftPanelBody(selectedProblem, total: total, assigned: assigned))
+        else
+          _buildLeftPanelBody(selectedProblem, total: total, assigned: assigned),
+      ],
+    );
+
+    if (!wrapCard) return panel;
+    return Container(decoration: kDashboardCardDecoration, child: panel);
+  }
+
+  Widget _buildLeftPanelBody(
+    ProblemModel? selectedProblem, {
+    required int total,
+    required int assigned,
+  }) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            selectedProblem?.title.isNotEmpty == true ? selectedProblem!.title : 'Select a problem',
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: Color(0xFF0F172A),
             ),
+          ),
+          const SizedBox(height: 10),
+          _summaryStatTile('Total ideas', '$total', const Color(0xFFEEF2FF), const Color(0xFF4F46E5)),
+          const SizedBox(height: 6),
+          _summaryStatTile('Assigned', '$assigned', const Color(0xFFECFDF5), const Color(0xFF16A34A)),
+          const SizedBox(height: 6),
+          _summaryStatTile(
+            'Unassigned',
+            '${math.max(0, total - assigned)}',
+            const Color(0xFFFFF7ED),
+            const Color(0xFFEA580C),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 14),
+          _sectionLabel('Default Filters'),
+          _filterCheckboxRow(
+            label: 'Show unassigned only',
+            value: _onlyUnassigned,
+            onChanged: (bool value) => setState(() => _onlyUnassigned = value),
+          ),
+          _filterCheckboxRow(
+            label: 'Score pending only',
+            value: _onlyPendingScore,
+            onChanged: (bool value) => setState(() => _onlyPendingScore = value),
           ),
         ],
       ),
@@ -617,11 +739,11 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
-  Widget _panelToolbarRow({required Widget child}) {
+  Widget _panelToolbarRow({required Widget child, bool compact = false}) {
     return SizedBox(
-      height: _kPaneToolbarRowHeight,
+      height: compact ? 44 : _kPaneToolbarRowHeight,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
         child: Center(child: child),
       ),
     );
@@ -666,10 +788,15 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
-  Widget _panelHeader({required IconData icon, required String title, Widget? trailing}) {
+  Widget _panelHeader({
+    required IconData icon,
+    required String title,
+    Widget? trailing,
+    bool compact = false,
+  }) {
     return Container(
-      height: _kPaneHeaderHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      height: compact ? 48 : _kPaneHeaderHeight,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
       decoration: const BoxDecoration(
         color: Color(0xFFE9EEF7),
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -682,12 +809,40 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: compact ? 15 : 16,
+                color: const Color(0xFF0F172A),
+              ),
             ),
           ),
           if (trailing != null) trailing,
         ],
       ),
+    );
+  }
+
+  Widget _assignTrailingButton({bool compact = false}) {
+    final Widget icon = _saving
+        ? const SizedBox(
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+          )
+        : const Icon(Icons.assignment_turned_in_outlined, size: 16);
+
+    return FilledButton.icon(
+      onPressed: _saving ? null : _assignSelected,
+      style: FilledButton.styleFrom(
+        backgroundColor: BrandColors.primaryActionFill,
+        foregroundColor: BrandColors.onPrimaryActionFill,
+        visualDensity: VisualDensity.compact,
+        minimumSize: Size(0, compact ? 34 : 40),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12, vertical: compact ? 8 : 10),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: icon,
+      label: const Text('Assign'),
     );
   }
 
@@ -773,17 +928,20 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
-  Widget _buildCenterPanel() {
+  Widget _buildCenterPanel({
+    bool compact = false,
+    bool includeHeader = true,
+    bool wrapCard = true,
+  }) {
     final List<_IdeaRowVm> rows = _filteredIdeas;
     final int visible = math.min(_visibleCount, rows.length);
     final String selectionLabel = '${_selectedIdeaIds.length} selected';
-    return Container(
-      decoration: kDashboardCardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          _panelHeader(icon: AppIcons.ideas, title: 'Ideas'),
-          _panelToolbarRow(
+    final Widget panel = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (includeHeader) _panelHeader(icon: AppIcons.ideas, title: 'Ideas', compact: compact),
+        _panelToolbarRow(
+            compact: compact,
             child: Row(
               children: <Widget>[
                 if (!_ideaScopeLocked) ...<Widget>[
@@ -828,42 +986,44 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
               ],
             ),
           ),
-          _panelToolbarDivider,
-          Expanded(
-            child: rows.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No ideas match the current filters.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                    itemCount: visible + (visible < rows.length ? 1 : 0),
-                    itemBuilder: (BuildContext context, int index) {
-                      if (index == visible && visible < rows.length) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4, bottom: 8),
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() => _visibleCount += _pageSize);
-                            },
-                            child: Text('Load more (${rows.length - visible} remaining)'),
-                          ),
-                        );
-                      }
-                      final _IdeaRowVm row = rows[index];
-                      final bool selected = _selectedIdeaIds.contains(row.idea.ideaId);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _ideaRow(row, selected),
-                      );
-                    },
+        _panelToolbarDivider,
+        Expanded(
+          child: rows.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No ideas match the current filters.',
+                    style: TextStyle(color: Color(0xFF64748B)),
                   ),
-          ),
-        ],
-      ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  itemCount: visible + (visible < rows.length ? 1 : 0),
+                  itemBuilder: (BuildContext context, int index) {
+                    if (index == visible && visible < rows.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 8),
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() => _visibleCount += _pageSize);
+                          },
+                          child: Text('Load more (${rows.length - visible} remaining)'),
+                        ),
+                      );
+                    }
+                    final _IdeaRowVm row = rows[index];
+                    final bool selected = _selectedIdeaIds.contains(row.idea.ideaId);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _ideaRow(row, selected),
+                    );
+                  },
+                ),
+        ),
+      ],
     );
+
+    if (!wrapCard) return panel;
+    return Container(decoration: kDashboardCardDecoration, child: panel);
   }
 
   void _toggleIdeaSelection(String ideaId, {required bool selected}) {
@@ -996,97 +1156,103 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
     );
   }
 
-  Widget _buildRightPanel() {
+  Widget _buildRightPanel({
+    bool compact = false,
+    bool includeHeader = true,
+    bool wrapCard = true,
+  }) {
     final List<UserModel> evaluators = _filteredEvaluators;
     final String selectionLabel = '${_selectedJudgeIds.length} selected';
-    return Container(
-      decoration: kDashboardCardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+    final Widget evaluatorSearchField = TextField(
+      decoration: _compactRoundedFieldDecoration(
+        hintText: 'Search name or email',
+      ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
+      onChanged: (String value) => setState(() => _evaluatorSearch = value),
+    );
+    final Widget selectAllRow = Row(
+      children: <Widget>[
+        _inlineSelectAllControl(
+          value: _evaluatorsSelectAllValue,
+          onToggle: _toggleSelectAllJudges,
+          label: 'Select all',
+        ),
+        const Spacer(),
+        Text(
+          selectionLabel,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF64748B),
+          ),
+        ),
+      ],
+    );
+
+    final Widget panel = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (includeHeader)
           _panelHeader(
             icon: AppIcons.judges,
             title: 'Evaluators',
-            trailing: FilledButton.icon(
-              onPressed: _saving ? null : _assignSelected,
-              style: FilledButton.styleFrom(
-                backgroundColor: BrandColors.primaryActionFill,
-                foregroundColor: BrandColors.onPrimaryActionFill,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            compact: compact,
+            trailing: _assignTrailingButton(compact: compact),
+          ),
+        if (compact)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  evaluatorSearchField,
+                  const SizedBox(height: 6),
+                  EvaluatorFilterChips(
+                    selected: _evaluatorFilter,
+                    onChanged: (EvaluatorListFilter filter) =>
+                        setState(() => _evaluatorFilter = filter),
+                  ),
+                  const SizedBox(height: 4),
+                  selectAllRow,
+                ],
               ),
-              icon: _saving
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.assignment_turned_in_outlined, size: 16),
-              label: const Text('Assign'),
+            )
+          else ...<Widget>[
+            _panelToolbarRow(child: evaluatorSearchField),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: EvaluatorFilterChips(
+                selected: _evaluatorFilter,
+                onChanged: (EvaluatorListFilter filter) =>
+                    setState(() => _evaluatorFilter = filter),
+              ),
             ),
-          ),
-          _panelToolbarRow(
-            child: TextField(
-              decoration: _compactRoundedFieldDecoration(
-                hintText: 'Search name or email',
-              ).copyWith(prefixIcon: const Icon(AppIcons.search, size: 18)),
-              onChanged: (String value) => setState(() => _evaluatorSearch = value),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: EvaluatorFilterChips(
-              selected: _evaluatorFilter,
-              onChanged: (EvaluatorListFilter filter) =>
-                  setState(() => _evaluatorFilter = filter),
-            ),
-          ),
-          _panelToolbarRow(
-            child: Row(
-              children: <Widget>[
-                _inlineSelectAllControl(
-                  value: _evaluatorsSelectAllValue,
-                  onToggle: _toggleSelectAllJudges,
-                  label: 'Select all',
-                ),
-                const Spacer(),
-                Text(
-                  selectionLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF64748B),
+            _panelToolbarRow(child: selectAllRow),
+          ],
+        _panelToolbarDivider,
+        Expanded(
+          child: evaluators.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No evaluators found for this organization.',
+                    style: TextStyle(color: Color(0xFF64748B)),
                   ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  itemCount: evaluators.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _evaluatorRow(evaluators[index]),
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
-          _panelToolbarDivider,
-          Expanded(
-            child: evaluators.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No evaluators found for this organization.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                    itemCount: evaluators.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _evaluatorRow(evaluators[index]),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+
+    if (!wrapCard) return panel;
+    return Container(decoration: kDashboardCardDecoration, child: panel);
   }
 
   Widget _evaluatorRow(UserModel evaluator) {
