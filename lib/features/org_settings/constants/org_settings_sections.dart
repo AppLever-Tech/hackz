@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 
 /// Section key for the evaluation templates editor. Unlike the others, this
 /// section is not backed by `OrgSettingDefinition` entries — the dashboard

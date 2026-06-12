@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/workflow_status.dart';
 
 /// Compact semantic status badge shared across faculty + dept admin surfaces.

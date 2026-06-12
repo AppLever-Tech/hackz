@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../user/models/user_model.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../screens/common/dashboard_components.dart';

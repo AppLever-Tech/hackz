@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../constants/app_icons.dart';
+import '../../../../core/theme/app_icons.dart';
 
 /// Read-only preview tiles — builds anticipation; no navigation or actions.
 class PlatformPreviewSection extends StatelessWidget {

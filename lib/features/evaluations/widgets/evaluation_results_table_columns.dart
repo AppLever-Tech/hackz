@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';

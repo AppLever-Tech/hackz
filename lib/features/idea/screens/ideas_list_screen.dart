@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/idea_list_config.dart';
 import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';

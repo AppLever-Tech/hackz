@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../core/responsive/responsive_helper.dart';

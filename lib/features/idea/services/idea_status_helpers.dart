@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/enums/idea_status.dart';
 
 /// Labels, colors, icons, and lifecycle helpers for [IdeaStatus].

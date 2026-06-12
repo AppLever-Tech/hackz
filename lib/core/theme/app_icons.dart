@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../features/idea/models/enums/idea_status.dart';
-import '../features/organization/models/enums/organization_type.dart';
-import '../features/problems/models/problem_status.dart';
-import '../features/user/models/enums/user_role.dart';
+import '../../features/idea/models/enums/idea_status.dart';
+import '../../features/organization/models/enums/organization_type.dart';
+import '../../features/problems/models/problem_status.dart';
+import '../../features/user/models/enums/user_role.dart';
 
 /// Central icon registry for Hackz — prefer these over raw [Icons] in product UI.
 class AppIcons {

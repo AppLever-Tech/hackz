@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 
 /// Single image proof — same picker + preview pattern as [showPaymentDialog].
 class AttachmentSingleImagePickField extends StatelessWidget {

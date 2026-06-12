@@ -3,8 +3,8 @@ import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../constants/brand_colors.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/brand_colors.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/score_model.dart';
 import '../../user/models/user_model.dart';

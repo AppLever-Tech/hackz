@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 
 /// Non-blocking warning banner surfaced when a workflow change could impact
 /// downstream artifacts (e.g. team change on an already-evaluated idea).

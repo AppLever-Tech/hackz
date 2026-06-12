@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../core/ui/common/entity_card_pills.dart';

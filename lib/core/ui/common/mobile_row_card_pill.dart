@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../features/idea/models/enums/idea_status.dart';
 import '../../../features/idea/services/idea_status_helpers.dart';
 

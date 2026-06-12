@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../core/theme/app_icons.dart';
 import '../../features/organization/models/enums/organization_type.dart';
 import '../../features/user/models/enums/user_role.dart';
 import '../../features/organization/models/organization_model.dart';

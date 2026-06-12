@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import 'evaluation_workspace_loader.dart';
 
 class EvaluationScoresSection extends StatelessWidget {

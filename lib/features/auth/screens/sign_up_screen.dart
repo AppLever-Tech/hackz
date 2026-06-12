@@ -6,7 +6,7 @@ import '../../../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../organization/models/department_model.dart';
 import '../../user/models/user_model.dart';
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../screens/common/auth_page_layout.dart';
 import '../../../core/theme/auth_theme.dart';

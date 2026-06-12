@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/shared/inputs/filter_pill.dart';

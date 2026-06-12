@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../services/problem_status_helpers.dart';
 import '../../../utils/common_helpers.dart';
 import '../screens/authoring/problem_authoring_section.dart';

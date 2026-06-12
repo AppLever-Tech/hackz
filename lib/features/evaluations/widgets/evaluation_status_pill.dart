@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/status_styles.dart';
+import '../../../core/theme/status_styles.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../../constants/app_icons.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../models/enums/account_workspace_phase.dart';
 
 enum ApprovalTimelineNodeState {

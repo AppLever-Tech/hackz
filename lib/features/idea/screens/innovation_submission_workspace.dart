@@ -1,7 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../team/models/enums/team_status.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/validators/problem_submission_validators.dart';

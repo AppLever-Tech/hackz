@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../core/theme/app_icons.dart';
 import 'workspace_theme.dart';
 
 /// Workspace chrome: internal back, title, close.

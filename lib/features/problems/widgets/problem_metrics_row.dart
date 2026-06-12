@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../services/problem_query_service.dart';

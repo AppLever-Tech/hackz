@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../constants/status_styles.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../core/ui/common/context_pill.dart';

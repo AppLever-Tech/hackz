@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../constants/status_styles.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/status_styles.dart';
 import '../../../core/ui/common/rich_tabs.dart';
 import '../../problems/screens/problem_statements/problem_details_tab.dart';
 import '../services/idea_details_loader.dart';

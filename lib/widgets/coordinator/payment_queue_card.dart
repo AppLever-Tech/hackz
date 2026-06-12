@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../utils/coordinator_dashboard_service.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/brand_colors.dart';
+import '../../../core/theme/brand_colors.dart';
 
 /// Brand-filled action style aligned with [FilledButton] / “Create Team”.
 abstract final class ProblemWorkflowActionStyles {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/auth_theme.dart';
 import '../widgets/auth_action_button.dart';
 import '../widgets/landing_brand_header.dart';

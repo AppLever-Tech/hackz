@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../services/ideathon_readiness_service.dart';
 
 /// Shows shortlisted count vs org threshold and optional create action.

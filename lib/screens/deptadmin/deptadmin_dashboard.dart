@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../constants/status_styles.dart';
+import '../../core/theme/app_icons.dart';
+import '../../core/theme/status_styles.dart';
 import '../../features/user/models/enums/user_role.dart';
 import '../../features/user/models/user_model.dart';
 import '../../utils/department_dashboard_service.dart';

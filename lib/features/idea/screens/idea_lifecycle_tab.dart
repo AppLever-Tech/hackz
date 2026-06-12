@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../constants/status_styles.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/theme/status_styles.dart';
 import '../models/enums/idea_status.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../evaluations/models/score_model.dart';

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../constants/status_styles.dart';
+import '../../core/theme/app_icons.dart';
+import '../../core/theme/status_styles.dart';
 import '../../features/user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../features/team/models/team_model.dart';

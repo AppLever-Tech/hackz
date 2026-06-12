@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 
 import '../models/payment_model.dart';
 import '../services/payment_finance_helpers.dart';

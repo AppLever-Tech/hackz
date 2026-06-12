@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 
 /// Shared compact pill metrics for mobile filter chips, tags, and row meta.
 abstract final class MobileCompactPillMetrics {

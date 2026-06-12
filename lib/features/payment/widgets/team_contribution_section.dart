@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/problems/models/problem_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';

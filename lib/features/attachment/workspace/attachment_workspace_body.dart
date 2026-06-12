@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'attachment_metadata_section.dart';

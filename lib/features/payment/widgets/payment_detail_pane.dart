@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/screens/common/app_dialog_template.dart';

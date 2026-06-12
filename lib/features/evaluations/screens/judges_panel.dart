@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../workspace/evaluation_assignment_details_pane.dart';
 import '../../imports/imports.dart';
 import '../../organization/models/department_model.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/screens/common/dashboard_components.dart';
 import 'package:hackz/utils/common_helpers.dart';

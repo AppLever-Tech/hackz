@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../constants/app_icons.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../constants/problem_constants.dart';
 import '../../widgets/problem_source_pill.dart';
 import '../../widgets/problem_status_pill.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:hackz/constants/app_icons.dart';
+import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 
 /// Shared attachment type labels, icons, and size formatting for workspace UIs.

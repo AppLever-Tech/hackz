@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../core/theme/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'workspace_attachment_counts.dart';
 

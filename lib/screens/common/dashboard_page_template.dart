@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
+import '../../core/theme/app_icons.dart';
 import '../../features/user/models/enums/user_role.dart';
 import '../../features/user/models/user_model.dart';
 import '../../utils/coordinator_dashboard_service.dart';
