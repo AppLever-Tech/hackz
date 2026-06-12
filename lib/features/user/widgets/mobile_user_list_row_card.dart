@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/workspace/workspace_navigator.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../models/user_model.dart';

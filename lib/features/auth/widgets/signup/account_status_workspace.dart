@@ -4,7 +4,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../models/enums/account_workspace_phase.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../../screens/common/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import 'approval_timeline_vm.dart';
 import 'approval_timeline_widget.dart';
 import 'registration_info_card.dart';

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/brand_colors.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../org_settings/widgets/settings_group_widget.dart';
 import '../../org_settings/widgets/settings_number_stepper.dart';

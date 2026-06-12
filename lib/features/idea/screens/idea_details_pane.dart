@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../screens/common/dashboard_chrome_scope.dart';
-import '../../../screens/common/dashboard_components.dart';
-import '../../../screens/common/dashboard_session_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../services/idea_details_loader.dart';
 import 'idea_details_body.dart';

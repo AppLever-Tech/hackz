@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'responsive_helper.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 
 /// Section container with optional fixed height on desktop (scrollable inside).
 class AdaptiveDashboardPanel extends StatelessWidget {

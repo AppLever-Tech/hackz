@@ -8,7 +8,7 @@ import '../features/problems/services/problem_status_helpers.dart';
 import '../features/problems/validators/problem_submission_validators.dart';
 import '../features/problems/widgets/problem_context_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
-import '../screens/common/dashboard_components.dart';
+import '../features/dashboard/chrome/dashboard_components.dart';
 import '../utils/common_helpers.dart';
 import '../core/ui/common/card_overflow_menu.dart';
 import '../core/ui/common/mobile_row_card_icon_action.dart';

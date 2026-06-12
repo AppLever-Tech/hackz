@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/screens/common/dashboard_components.dart';
+import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import 'package:hackz/core/ui/common/entity_card_pills.dart';

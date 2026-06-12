@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/deptadmin/department_metric_card.dart';
+import '../../../features/dashboard/deptadmin/widgets/department_metric_card.dart';
 
 /// Reusable metric row for manage-users screens.
 class UserMetricsRow extends StatelessWidget {

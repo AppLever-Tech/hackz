@@ -5,7 +5,7 @@ import '../../../core/theme/app_icons.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../services/idea_query_service.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/common/card_overflow_menu.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../../../core/ui/common/context_pill.dart';

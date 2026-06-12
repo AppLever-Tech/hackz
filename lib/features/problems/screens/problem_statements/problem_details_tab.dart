@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../screens/common/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../core/workspace/workspace_attachments_panel.dart';
 import '../../workspace/problem_metadata_section.dart';
 import '../../workspace/problem_summary_section.dart';

@@ -10,7 +10,7 @@ import '../../user/models/user_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../screens/common/app_dialog_template.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/services/team_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';

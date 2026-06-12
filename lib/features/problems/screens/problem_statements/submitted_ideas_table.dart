@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../../screens/common/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../workspace/problem_workspace_loader.dart';
 

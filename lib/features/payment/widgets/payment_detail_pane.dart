@@ -4,7 +4,7 @@ import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/screens/common/app_dialog_template.dart';
-import 'package:hackz/screens/common/dashboard_components.dart';
+import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../screens/common/dashboard_chrome_controller.dart';
-import '../../../screens/common/dashboard_chrome_scope.dart';
-import '../../../screens/common/dashboard_components.dart';
-import '../../../screens/common/dashboard_session_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_controller.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/responsive/responsive_columns.dart';
 import '../../user/models/user_model.dart';

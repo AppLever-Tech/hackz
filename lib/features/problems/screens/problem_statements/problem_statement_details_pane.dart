@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
-import '../../../../screens/common/dashboard_components.dart';
-import '../../../../screens/common/dashboard_session_scope.dart';
+import '../../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../models/problem_model.dart';
 import '../../workspace/problem_workspace_loader.dart';

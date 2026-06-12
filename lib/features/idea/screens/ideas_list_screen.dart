@@ -19,7 +19,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
 import '../../evaluations/workspace/evaluation_assignment_details_pane.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class IdeasListScreen extends StatefulWidget {

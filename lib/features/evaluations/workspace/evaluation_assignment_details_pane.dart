@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../user/models/user_model.dart';
-import '../../../screens/common/dashboard_chrome_scope.dart';
-import '../../../screens/common/dashboard_components.dart';
-import '../../../screens/common/dashboard_session_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import 'evaluation_assignment_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';

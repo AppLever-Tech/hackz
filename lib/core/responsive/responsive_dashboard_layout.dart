@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_icons.dart';
 import 'responsive_helper.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import 'dashboard_scrollable_body.dart';
 
 /// Adaptive dashboard shell shared by every role.

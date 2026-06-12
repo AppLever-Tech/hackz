@@ -9,7 +9,7 @@ import '../../user/models/user_model.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
 import '../../../screens/common/app_dialog_template.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';
 import '../widgets/team_metrics_row.dart';

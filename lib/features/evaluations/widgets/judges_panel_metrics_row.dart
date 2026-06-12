@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/status_styles.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
-import '../../../utils/department_dashboard_service.dart';
+import '../../../features/dashboard/deptadmin/services/department_dashboard_service.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/deptadmin/department_metric_card.dart';
+import '../../../features/dashboard/deptadmin/widgets/department_metric_card.dart';
 
 /// Reusable metric row for the judges panel screen.
 class JudgesPanelMetricsRow extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../imports/models/import_created_source.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_status.dart';
 import '../services/problem_status_helpers.dart';

@@ -12,7 +12,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../widgets/deptadmin/department_access_code_bar.dart';
+import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';

@@ -8,7 +8,7 @@ import '../../../core/theme/brand_colors.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/score_model.dart';
 import '../../user/models/user_model.dart';
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
