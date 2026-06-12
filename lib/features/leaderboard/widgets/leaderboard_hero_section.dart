@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/leaderboard_showcase_service.dart';
+import '../services/leaderboard_showcase_service.dart';
 import 'achievement_badge_widget.dart';
 import 'podium_widget.dart';
 import 'trend_indicator_widget.dart';

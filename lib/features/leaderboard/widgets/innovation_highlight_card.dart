@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/leaderboard_ranking_engine.dart';
+import '../services/leaderboard_ranking_engine.dart';
 import 'trend_indicator_widget.dart';
 
 /// Compact horizontal highlight tile for “most innovative / fastest rising”.

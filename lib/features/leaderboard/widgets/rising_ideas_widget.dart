@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/leaderboard_ranking_engine.dart';
-import '../../utils/leaderboard_showcase_service.dart';
+import '../services/leaderboard_ranking_engine.dart';
+import '../services/leaderboard_showcase_service.dart';
 import 'innovation_highlight_card.dart';
 
 /// Highlights fastest-rising / top evaluated ideas from pre-ranked rows.

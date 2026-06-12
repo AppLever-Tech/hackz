@@ -1,6 +1,6 @@
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../features/problems/models/problem_model.dart';
+import '../../problems/models/problem_model.dart';
 
 /// Extensible weighted ranking for innovation leaderboard showcase.
 /// Default: 70% evaluation, 20% innovation/completeness, 10% submission & payment completeness.

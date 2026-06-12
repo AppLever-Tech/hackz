@@ -21,7 +21,7 @@ import '../common/app_dialog_template.dart';
 import '../common/dashboard_page_template.dart';
 import '../common/dashboard_components.dart';
 import '../../core/responsive/responsive_alert_dialog.dart';
-import '../common/leaderboard_showcase_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../widgets/common/rich_tabs.dart';
 import '../../core/responsive/responsive_columns.dart';

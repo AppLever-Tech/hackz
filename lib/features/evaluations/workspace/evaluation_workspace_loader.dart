@@ -13,7 +13,7 @@ import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
-import '../../../utils/leaderboard_ranking_engine.dart';
+import '../../leaderboard/services/leaderboard_ranking_engine.dart';
 import '../../../constants/status_styles.dart';
 
 enum EvaluationWorkspaceScope { singleJudge, ideaAggregate }

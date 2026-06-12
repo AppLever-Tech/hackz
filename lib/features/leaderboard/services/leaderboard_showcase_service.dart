@@ -1,15 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../features/organization/models/department_model.dart';
-import '../features/user/models/enums/user_role.dart';
+import '../../organization/models/department_model.dart';
+import '../../user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
-import '../features/problems/models/problem_model.dart';
-import '../features/evaluations/models/score_model.dart';
-import '../features/team/models/team_model.dart';
-import '../features/user/models/user_model.dart';
-import 'firestore_utils.dart';
-import '../features/idea/services/idea_department_helpers.dart';
+import '../../problems/models/problem_model.dart';
+import '../../evaluations/models/score_model.dart';
+import '../../team/models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../idea/services/idea_department_helpers.dart';
 import 'leaderboard_ranking_engine.dart';
 import 'leaderboard_role_config.dart';
 

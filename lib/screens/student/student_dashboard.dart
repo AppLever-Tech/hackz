@@ -15,7 +15,7 @@ import '../../widgets/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
-import '../common/leaderboard_showcase_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';

@@ -6,7 +6,7 @@ import '../../features/user/models/enums/user_role.dart';
 import '../../features/organization/models/organization_model.dart';
 import '../../features/user/models/user_model.dart';
 import '../common/dashboard_page_template.dart';
-import '../common/leaderboard_showcase_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../common/dashboard_components.dart';
 import 'organization_dialog.dart';
 import '../../features/sysadmin/sysadmin.dart';

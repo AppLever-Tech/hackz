@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/leaderboard_showcase_service.dart';
+import '../services/leaderboard_showcase_service.dart';
 
 /// Premium podium for ranks #2, #1, #3 (left → center → right).
 class PodiumWidget extends StatelessWidget {

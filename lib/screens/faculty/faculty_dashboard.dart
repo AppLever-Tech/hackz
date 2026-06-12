@@ -15,7 +15,7 @@ import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
 import '../../widgets/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
-import '../common/leaderboard_showcase_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../core/responsive/responsive_helper.dart';

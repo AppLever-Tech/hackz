@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/leaderboard_ranking_engine.dart';
+import '../services/leaderboard_ranking_engine.dart';
 
 class TrendIndicatorWidget extends StatelessWidget {
   const TrendIndicatorWidget({

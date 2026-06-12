@@ -13,7 +13,7 @@ import '../../widgets/deptadmin/department_trend_chart.dart';
 import '../../widgets/deptadmin/recent_department_activity_card.dart';
 import '../../widgets/deptadmin/user_distribution_widget.dart';
 import '../common/dashboard_page_template.dart';
-import '../common/leaderboard_showcase_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/evaluations/screens/evaluation_results_screen.dart';
 import '../../features/ideathons/screens/ideathons_list_screen.dart';
