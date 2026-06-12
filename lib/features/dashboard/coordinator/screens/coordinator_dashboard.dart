@@ -17,7 +17,7 @@ import '../widgets/payment_queue_card.dart';
 import '../widgets/submission_workflow_funnel.dart';
 import '../widgets/verification_trend_chart.dart';
 import 'coordinator_payment_card.dart';
-import '../../../../screens/common/app_dialog_template.dart';
+import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_alert_dialog.dart';

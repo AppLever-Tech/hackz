@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
-import '../../account_workspace_visuals.dart';
-import '../../../../models/enums/account_workspace_phase.dart';
+import 'account_workspace_visuals.dart';
+import '../../models/enums/account_workspace_phase.dart';
 import '../../../../utils/common_helpers.dart';
 
 class StatusHeroCard extends StatelessWidget {

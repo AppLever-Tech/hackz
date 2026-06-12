@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../../models/enums/account_workspace_phase.dart';
+import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import 'auth_utils.dart';

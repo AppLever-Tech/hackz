@@ -8,7 +8,7 @@ import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
-import '../../../screens/common/app_dialog_template.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';

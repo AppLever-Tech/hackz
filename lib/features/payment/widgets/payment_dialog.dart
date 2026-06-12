@@ -8,7 +8,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
-import 'package:hackz/screens/common/app_dialog_template.dart';
+import 'package:hackz/core/ui/dialog/app_dialog_template.dart';
 import 'package:hackz/shared/feedback/feedback.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import 'package:hackz/utils/firestore_utils.dart';

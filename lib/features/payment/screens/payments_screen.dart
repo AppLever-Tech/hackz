@@ -7,7 +7,7 @@ import 'package:hackz/shared/inputs/filter_pill.dart';
 import 'package:hackz/core/responsive/mobile_filter_pane_styles.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
-import 'package:hackz/widgets/data_view/data_table_view.dart';
+import 'package:hackz/core/ui/data_view/data_table_view.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';

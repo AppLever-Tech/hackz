@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_icons.dart';
-import '../features/problems/models/problem_list_config.dart';
-import '../features/problems/models/problem_model.dart';
-import '../features/problems/models/problem_status.dart';
-import '../features/problems/services/problem_status_helpers.dart';
-import '../features/problems/validators/problem_submission_validators.dart';
-import '../features/problems/widgets/problem_context_pill.dart';
-import '../features/problems/widgets/problem_workflow_action_pill.dart';
-import '../features/dashboard/chrome/dashboard_components.dart';
-import '../utils/common_helpers.dart';
-import '../core/ui/common/card_overflow_menu.dart';
-import '../core/ui/common/mobile_row_card_icon_action.dart';
-import 'data_view/data_table_column.dart';
+import '../../../core/theme/app_icons.dart';
+import '../models/problem_list_config.dart';
+import '../models/problem_model.dart';
+import '../models/problem_status.dart';
+import '../services/problem_status_helpers.dart';
+import '../validators/problem_submission_validators.dart';
+import 'problem_context_pill.dart';
+import 'problem_workflow_action_pill.dart';
+import '../../dashboard/chrome/dashboard_components.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../core/ui/common/card_overflow_menu.dart';
+import '../../../core/ui/common/mobile_row_card_icon_action.dart';
+import '../../../core/ui/data_view/data_table_column.dart';
 
 const double _kPsTitleGap = 12;
 const double _kDeptCategoryGap = 12;

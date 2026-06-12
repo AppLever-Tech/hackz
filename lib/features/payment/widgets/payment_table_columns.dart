@@ -6,7 +6,7 @@ import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import 'package:hackz/core/ui/common/entity_card_pills.dart';
-import 'package:hackz/widgets/data_view/data_table_column.dart';
+import 'package:hackz/core/ui/data_view/data_table_column.dart';
 
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';

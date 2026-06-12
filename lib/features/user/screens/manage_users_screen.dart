@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../auth/account_workspace_visuals.dart';
+import '../../auth/widgets/signup/account_workspace_visuals.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../imports/imports.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../screens/common/app_dialog_template.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';

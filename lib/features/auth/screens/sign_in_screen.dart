@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../../models/enums/account_workspace_phase.dart';
+import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/user_model.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../screens/common/auth_page_layout.dart';
+import '../widgets/auth_page_layout.dart';
 import '../../../shared/inputs/phone_number_field.dart';
 import '../widgets/auth_feature_strip.dart';
 import '../services/auth_utils.dart';

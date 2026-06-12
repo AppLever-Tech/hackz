@@ -12,7 +12,7 @@ import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/data_view/data_table_view.dart';
+import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';

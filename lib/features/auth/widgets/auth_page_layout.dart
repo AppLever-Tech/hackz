@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/auth_theme.dart';
-import '../../features/auth/widgets/auth_action_button.dart';
-import '../../features/auth/widgets/landing_brand_header.dart';
-import '../../features/auth/widgets/mobile_landing_shell.dart';
+import '../../../core/theme/auth_theme.dart';
+import 'auth_action_button.dart';
+import 'landing_brand_header.dart';
+import 'mobile_landing_shell.dart';
 
 /// Full-page auth flow layout: landing gradient, logo header, scrollable form, pinned CTAs.
 class AuthPageLayout extends StatelessWidget {

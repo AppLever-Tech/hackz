@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../organization/models/organization_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../screens/common/app_dialog_template.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../shared/inputs/email_field.dart';

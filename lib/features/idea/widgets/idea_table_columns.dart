@@ -11,7 +11,7 @@ import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../../../core/ui/common/mobile_row_card_pill.dart';
-import '../../../widgets/data_view/data_table_column.dart';
+import '../../../core/ui/data_view/data_table_column.dart';
 import '../../problems/widgets/problem_context_pill.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 

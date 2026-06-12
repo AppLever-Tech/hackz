@@ -5,7 +5,7 @@ import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
-import '../../../widgets/data_view/data_table_column.dart';
+import '../../../core/ui/data_view/data_table_column.dart';
 import '../services/evaluation_ranking_service.dart';
 
 class EvaluationResultsTableActions {

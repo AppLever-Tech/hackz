@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../organization/models/enums/organization_type.dart';
-import '../../../models/enums/account_workspace_phase.dart';
+import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../organization/models/department_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../screens/common/auth_page_layout.dart';
+import '../widgets/auth_page_layout.dart';
 import '../../../core/theme/auth_theme.dart';
 import '../../../shared/inputs/email_field.dart';
 import '../../../shared/inputs/phone_number_field.dart';

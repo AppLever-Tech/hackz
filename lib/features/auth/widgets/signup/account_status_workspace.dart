@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
-import '../../../../models/enums/account_workspace_phase.dart';
+import '../../models/enums/account_workspace_phase.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';

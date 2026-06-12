@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../screens/common/app_dialog_template.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';
 import '../../../core/ui/loading/hkz_async_loader.dart';
 import '../models/import_execution_result.dart';

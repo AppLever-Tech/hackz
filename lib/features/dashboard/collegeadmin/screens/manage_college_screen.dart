@@ -7,7 +7,7 @@ import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../../screens/common/app_dialog_template.dart';
+import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_helper.dart';

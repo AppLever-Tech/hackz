@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/responsive/responsive_dialog.dart';
+import '../../responsive/responsive_dialog.dart';
 
-export '../../core/responsive/responsive_dialog.dart' show DialogWidthPreset;
+export '../../responsive/responsive_dialog.dart' show DialogWidthPreset;
 
 Future<T?> showAppDialog<T>({
   required BuildContext context,

@@ -9,7 +9,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../user/models/user_model.dart';
 import '../services/idea_query_service.dart';
 import '../../user/services/role_visibility_helpers.dart';
-import '../../../widgets/data_view/data_table_view.dart';
+import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
 import 'package:hackz/features/payment/widgets/payment_dialog.dart';
 import '../../evaluations/widgets/evaluate_idea_dialog.dart';

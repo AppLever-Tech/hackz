@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../screens/common/app_dialog_template.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../workspace/evaluation_workspace_loader.dart';

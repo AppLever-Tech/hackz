@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/feedback/feedback.dart';
-import '../../../screens/common/auth_page_layout.dart';
+import '../widgets/auth_page_layout.dart';
 import 'auth_gate.dart';
 import '../../../core/theme/auth_theme.dart';
 import '../services/auth_utils.dart';
