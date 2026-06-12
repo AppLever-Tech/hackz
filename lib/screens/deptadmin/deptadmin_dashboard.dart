@@ -27,7 +27,7 @@ import '../../core/responsive/adaptive_dashboard_panel.dart';
 import '../../core/responsive/responsive_columns.dart';
 import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
-import '../../features/requests/deptadmin/requests_workspace_screen.dart';
+import '../../features/requests/deptadmin/screens/requests_workspace_screen.dart';
 import 'package:hackz/features/payment/screens/payments_screen.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../requests/faculty/team_change_workspace.dart';
+import '../../requests/faculty/screens/team_change_workspace.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../models/team_model.dart';
