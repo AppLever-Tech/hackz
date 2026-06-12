@@ -10,8 +10,8 @@ import '../features/problems/widgets/problem_context_pill.dart';
 import '../features/problems/widgets/problem_workflow_action_pill.dart';
 import '../screens/common/dashboard_components.dart';
 import '../utils/common_helpers.dart';
-import 'common/card_overflow_menu.dart';
-import 'common/mobile_row_card_icon_action.dart';
+import '../core/ui/common/card_overflow_menu.dart';
+import '../core/ui/common/mobile_row_card_icon_action.dart';
 import 'data_view/data_table_column.dart';
 
 const double _kPsTitleGap = 12;

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../widgets/common/context_pill_theme.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import 'package:hackz/shared/workspace/entity_reference_tile.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../team/workspace/team_workspace.dart';

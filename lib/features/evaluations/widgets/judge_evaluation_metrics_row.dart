@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_metric_grid.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 
 /// Reusable metric row for judge scoring / evaluation workspace screens.
 class JudgeEvaluationMetricsRow extends StatelessWidget {

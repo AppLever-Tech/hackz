@@ -6,8 +6,8 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/judge_evaluation_service.dart';
-import '../../../widgets/common/context_pill_theme.dart';
-import '../../../widgets/common/entity_card_pills.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import 'judge_assignment_row_status.dart';
 
 /// Normalized row model for the judge assigned-ideas table.

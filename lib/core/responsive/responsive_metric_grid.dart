@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../ui/dashboard/dashboard_metric_chips.dart';
 import 'responsive_helper.dart';
 
 /// Responsive metric chips: 2 per row on mobile/tablet, 4 on desktop.

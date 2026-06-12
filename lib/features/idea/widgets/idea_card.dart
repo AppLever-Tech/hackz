@@ -7,9 +7,9 @@ import '../../evaluations/models/score_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../services/idea_query_service.dart';
-import '../../../widgets/common/context_pill_theme.dart';
-import '../../../widgets/common/entity_card_pills.dart';
-import '../../../widgets/common/form_value_row.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/form_value_row.dart';
 
 /// Compact contextual idea feed card (workspace pills).
 class IdeaCard extends StatelessWidget {

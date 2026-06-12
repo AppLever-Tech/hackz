@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/sysadmin_dashboard_service.dart';
-import '../common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 
 class PlatformAlertsSection extends StatelessWidget {
   const PlatformAlertsSection({

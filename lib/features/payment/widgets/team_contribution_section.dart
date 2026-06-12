@@ -8,8 +8,8 @@ import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 import 'payment_form_row.dart';
 

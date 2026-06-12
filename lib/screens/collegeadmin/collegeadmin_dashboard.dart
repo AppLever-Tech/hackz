@@ -17,7 +17,7 @@ import '../../features/problems/screens/problem_statements/problem_statements_ta
 import '../../core/responsive/responsive_helper.dart';
 import '../../core/responsive/adaptive_dashboard_panel.dart';
 import '../../core/responsive/responsive_columns.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
 import 'manage_college_screen.dart';
 

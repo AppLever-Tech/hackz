@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../models/team_change_request.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Visual semantics for a team-member chip in a diff view.
 enum TeamDiffStatus {

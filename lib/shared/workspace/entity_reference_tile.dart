@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/common/context_pill.dart';
-import '../../widgets/common/context_pill_theme.dart';
+import '../../core/ui/common/context_pill.dart';
+import '../../core/ui/common/context_pill_theme.dart';
 
 /// Related-entity preview for workspace panels (category + context pill + detail).
 class EntityReferenceTile extends StatelessWidget {

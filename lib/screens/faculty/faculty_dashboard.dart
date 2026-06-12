@@ -11,8 +11,8 @@ import '../../utils/firestore_utils.dart';
 import '../../features/idea/services/idea_role_config.dart';
 import '../../features/problems/services/problem_role_config.dart';
 import '../../utils/common_helpers.dart';
-import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
-import '../../widgets/common/time_frame_filter.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/time_frame_filter.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
@@ -20,14 +20,14 @@ import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../core/responsive/responsive_columns.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
 import '../../features/evaluations/services/evaluator_access_service.dart';
 import '../../features/team/screens/teams_screen.dart';
 import '../../features/evaluations/screens/judge_evaluation_workspace_screen.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 class FacultyDashboard extends StatefulWidget {
   const FacultyDashboard({super.key, required this.user});

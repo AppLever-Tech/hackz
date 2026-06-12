@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import '../models/problem_model.dart';
 import '../models/problem_status.dart';
 import '../services/problem_status_helpers.dart';

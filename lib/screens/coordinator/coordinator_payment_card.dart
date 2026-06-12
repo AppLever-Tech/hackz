@@ -4,12 +4,12 @@ import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import 'package:hackz/features/payment/services/payment_finance_helpers.dart';
 import 'package:hackz/features/payment/widgets/payment_status_pill.dart';
-import 'package:hackz/widgets/common/entity_card_pills.dart';
+import 'package:hackz/core/ui/common/entity_card_pills.dart';
 
 import '../../core/responsive/responsive_helper.dart';
 import '../../screens/common/dashboard_components.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 class CoordinatorPaymentCard extends StatelessWidget {
   const CoordinatorPaymentCard({

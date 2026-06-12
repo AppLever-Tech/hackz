@@ -17,7 +17,7 @@ import '../../../../utils/firestore_utils.dart';
 import '../../../../widgets/data_view/data_table_view.dart';
 import '../../../idea/screens/innovation_submission_workspace.dart';
 import '../../../../widgets/problem_table_columns.dart';
-import '../../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../../imports/models/import_created_source.dart';

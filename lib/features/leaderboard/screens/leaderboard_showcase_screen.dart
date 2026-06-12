@@ -5,7 +5,7 @@ import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import '../services/leaderboard_role_config.dart';
 import '../services/leaderboard_showcase_service.dart';
 import '../widgets/comparative_analytics_section.dart';

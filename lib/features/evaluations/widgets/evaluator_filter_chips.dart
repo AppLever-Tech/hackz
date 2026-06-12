@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/common/mobile_compact_pill.dart';
+import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../models/evaluator_source.dart';
 
 /// Lightweight All / Judges / Faculty filter row for the evaluator panel.

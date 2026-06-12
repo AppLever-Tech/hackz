@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
 import 'payment_summary_card.dart';

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/sysadmin_dashboard_service.dart';
-import '../common/dashboard_card/dashboard_card_layout.dart';
-import '../common/time_frame_filter.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/time_frame_filter.dart';
 
 class RecentPlatformActivityCard extends StatelessWidget {
   const RecentPlatformActivityCard({

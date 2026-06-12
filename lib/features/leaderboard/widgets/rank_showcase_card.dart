@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/leaderboard_ranking_engine.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import 'achievement_badge_widget.dart';
 import 'trend_indicator_widget.dart';
 

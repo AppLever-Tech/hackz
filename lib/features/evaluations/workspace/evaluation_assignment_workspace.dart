@@ -10,8 +10,8 @@ import '../models/score_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/common/context_pill_theme.dart';
-import '../../../widgets/common/entity_card_pills.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../problems/models/problem_model.dart';
@@ -22,8 +22,8 @@ import '../models/evaluator_source.dart';
 import '../services/evaluator_catalog_service.dart';
 import '../widgets/evaluator_assignment_row.dart';
 import '../widgets/evaluator_filter_chips.dart';
-import '../../../widgets/common/mobile_accordion_section.dart';
-import '../../../widgets/common/mobile_compact_pill.dart';
+import '../../../core/ui/common/mobile_accordion_section.dart';
+import '../../../core/ui/common/mobile_compact_pill.dart';
 
 class EvaluationAssignmentWorkspace extends StatefulWidget {
   const EvaluationAssignmentWorkspace({

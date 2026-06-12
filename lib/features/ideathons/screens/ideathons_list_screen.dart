@@ -6,7 +6,7 @@ import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/dashboard_components.dart';
-import '../../../widgets/common/mobile_compact_pill.dart';
+import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../widgets/ideathon_metrics_row.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';

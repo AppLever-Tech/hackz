@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../utils/common_helpers.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import 'package:hackz/shared/workspace/entity_reference_tile.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';

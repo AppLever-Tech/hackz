@@ -7,9 +7,9 @@ import '../widgets/evaluate_idea_dialog.dart';
 import '../widgets/evaluation_feedback_section.dart';
 import '../widgets/evaluation_summary_strip.dart';
 import '../widgets/evaluated_idea_list.dart';
-import '../../../widgets/common/rich_tabs.dart';
+import '../../../core/ui/common/rich_tabs.dart';
 import '../widgets/pending_evaluation_list.dart';
-import '../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 

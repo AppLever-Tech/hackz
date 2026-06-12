@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../dashboard/dashboard_metric_chips.dart';
+import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 
 class DepartmentMetricCard {
   const DepartmentMetricCard({

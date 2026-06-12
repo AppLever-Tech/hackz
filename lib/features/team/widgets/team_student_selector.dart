@@ -4,8 +4,8 @@ import '../../../constants/app_icons.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Searchable inline student picker with selected user workspace pills.
 class TeamStudentSelector extends StatefulWidget {

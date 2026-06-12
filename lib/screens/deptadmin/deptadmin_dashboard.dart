@@ -22,17 +22,17 @@ import '../../features/problems/screens/problem_statements/problem_statements_ta
 import '../../features/evaluations/screens/judges_panel.dart';
 import '../../features/user/screens/manage_users_screen.dart';
 import '../../core/responsive/responsive_helper.dart';
-import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 import '../../core/responsive/adaptive_dashboard_panel.dart';
 import '../../core/responsive/responsive_columns.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
 import '../../features/requests/deptadmin/requests_workspace_screen.dart';
 import 'package:hackz/features/payment/screens/payments_screen.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_metrics.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_metrics.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 class DeptAdminDashboard extends StatelessWidget {
   const DeptAdminDashboard({super.key, required this.user});

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_icons.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import 'problem_workspace_loader.dart';
 
 class ProblemRelatedSection extends StatelessWidget {

@@ -14,11 +14,11 @@ import '../../../screens/common/dashboard_components.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/services/team_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
-import '../../../widgets/common/entity_card_pills.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import '../widgets/innovation_submission_team_selector.dart';
-import '../../../widgets/loading/loading.dart';
+import '../../../core/ui/loading/loading.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Problem-first innovation submission workspace (launch from Problem Card only).
 ///

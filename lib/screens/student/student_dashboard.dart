@@ -11,19 +11,19 @@ import '../../utils/common_helpers.dart';
 import '../../features/team/widgets/student_team_overview_card.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../core/responsive/responsive_columns.dart';
-import '../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../core/responsive/responsive_metric_grid.dart';
 import '../common/dashboard_components.dart';
 import '../common/dashboard_page_template.dart';
 import '../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../features/idea/screens/ideas_list_screen.dart';
 import '../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import '../../widgets/common/dashboard_card/dashboard_card_layout.dart';
-import '../../widgets/common/entity_card_pills.dart';
-import '../../widgets/common/form_value_row.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/entity_card_pills.dart';
+import '../../core/ui/common/form_value_row.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, required this.user});

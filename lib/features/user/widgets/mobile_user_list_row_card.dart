@@ -4,7 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
-import '../../../widgets/common/mobile_row_card_icon_action.dart';
+import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../models/user_model.dart';
 import '../../evaluations/widgets/judge_type_pill.dart';
 

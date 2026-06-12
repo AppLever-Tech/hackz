@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../constants/status_styles.dart';
+import '../../../constants/status_styles.dart';
 
 class IdeaStatusDistributionDonut extends StatelessWidget {
   const IdeaStatusDistributionDonut({

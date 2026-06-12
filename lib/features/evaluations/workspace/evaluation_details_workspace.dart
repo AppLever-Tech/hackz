@@ -6,7 +6,7 @@ import '../../../screens/common/dashboard_chrome_controller.dart';
 import '../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../screens/common/dashboard_session_scope.dart';
-import '../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/responsive/responsive_columns.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';

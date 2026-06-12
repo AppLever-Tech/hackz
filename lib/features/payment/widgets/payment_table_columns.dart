@@ -4,8 +4,8 @@ import 'package:hackz/constants/app_icons.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/screens/common/dashboard_components.dart';
 import 'package:hackz/utils/common_helpers.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
-import 'package:hackz/widgets/common/entity_card_pills.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/entity_card_pills.dart';
 import 'package:hackz/widgets/data_view/data_table_column.dart';
 
 import '../services/department_payments_service.dart';

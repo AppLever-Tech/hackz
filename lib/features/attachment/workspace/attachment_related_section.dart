@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hackz/features/attachment/models/attachment_model.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import 'package:hackz/shared/workspace/entity_reference_tile.dart';
 import 'attachment_workspace.dart';
 import 'attachment_workspace_loader.dart';

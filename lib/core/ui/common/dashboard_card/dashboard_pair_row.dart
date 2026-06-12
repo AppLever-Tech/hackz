@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/responsive_breakpoints.dart';
-import '../../../core/responsive/responsive_columns.dart';
+import '../../../../core/responsive/responsive_breakpoints.dart';
+import '../../../../core/responsive/responsive_columns.dart';
 
 /// Wraps a [ResponsivePair] with a fixed height only when the pair lays out side-by-side.
 class DashboardPairRow extends StatelessWidget {

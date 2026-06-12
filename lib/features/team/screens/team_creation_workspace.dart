@@ -12,8 +12,8 @@ import '../services/faculty_teams_service.dart';
 import '../services/team_service.dart';
 import '../widgets/team_student_selector.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 enum TeamFormDialogAction { none, saved }
 

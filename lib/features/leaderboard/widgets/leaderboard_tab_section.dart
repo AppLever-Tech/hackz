@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
 import '../services/leaderboard_role_config.dart';
-import '../../../widgets/common/rich_tabs.dart';
+import '../../../core/ui/common/rich_tabs.dart';
 
 class LeaderboardTabSection extends StatelessWidget {
   const LeaderboardTabSection({

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../shared/workspace/user_workspace_avatar.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import '../../user/models/user_model.dart';
 import '../../user/workspace/user_workspace.dart';
 import 'idea_workspace.dart';

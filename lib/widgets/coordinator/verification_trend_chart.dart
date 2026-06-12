@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../../constants/app_icons.dart';
 import '../../screens/common/dashboard_components.dart';
 import '../../utils/coordinator_dashboard_service.dart';
-import '../common/dashboard_trend_chart_layout.dart';
-import '../common/time_frame_filter.dart';
+import '../../core/ui/common/dashboard_trend_chart_layout.dart';
+import '../../core/ui/common/time_frame_filter.dart';
 
 class VerificationTrendChart extends StatelessWidget {
   const VerificationTrendChart({

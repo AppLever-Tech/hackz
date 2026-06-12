@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 
 /// One labeled count inside a [DashboardMetricChip] (e.g. submitted / approved / rejected).
 class DashboardMetricChipSegment {

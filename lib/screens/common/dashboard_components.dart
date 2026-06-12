@@ -5,7 +5,7 @@ import '../../features/user/models/user_model.dart';
 import '../../shared/workspace/user_workspace_avatar.dart';
 import '../../core/responsive/responsive_helper.dart';
 import '../../shared/menus/hackz_popup_menu.dart';
-import '../../widgets/common/time_frame_filter.dart';
+import '../../core/ui/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
 /// Not `const`: [Border.all] is not a const factory in this SDK when used inside [BoxDecoration].

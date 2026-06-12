@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../constants/app_icons.dart';
 import '../../../../screens/common/dashboard_components.dart';
 import '../../../../screens/common/dashboard_session_scope.dart';
-import '../../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../models/problem_model.dart';
 import '../../workspace/problem_workspace_loader.dart';
 import 'problem_statement_details_body.dart';

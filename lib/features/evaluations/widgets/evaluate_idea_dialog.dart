@@ -21,10 +21,10 @@ import '../../../utils/firestore_utils.dart';
 import '../../idea/services/idea_query_service.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
 import '../services/judge_evaluation_service.dart';
-import '../../../widgets/common/entity_card_pills.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/responsive/responsive_dialog_actions.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/widgets/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).

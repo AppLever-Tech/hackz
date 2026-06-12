@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../screens/common/dashboard_components.dart';
-import '../../../widgets/common/context_pill_theme.dart';
-import '../../../widgets/common/entity_card_pills.dart';
-import '../../../widgets/common/form_value_row.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/form_value_row.dart';
 import '../models/problem_model.dart';
 import '../validators/problem_submission_validators.dart';
 import 'problem_submission_status_pill.dart';

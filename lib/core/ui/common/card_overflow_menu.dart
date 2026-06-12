@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/menus/hackz_popup_menu.dart';
+import '../../../shared/menus/hackz_popup_menu.dart';
 
-export '../../shared/menus/hackz_popup_menu.dart';
+export '../../../shared/menus/hackz_popup_menu.dart';
 
 typedef CardOverflowMenuAction = HackzMenuAction;
 

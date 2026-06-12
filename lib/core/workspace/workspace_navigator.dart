@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/loading/hkz_progress_indicator.dart';
+import '../../core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';

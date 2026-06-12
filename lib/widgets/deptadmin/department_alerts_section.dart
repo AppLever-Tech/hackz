@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../constants/app_icons.dart';
 import '../../utils/department_dashboard_service.dart';
-import '../common/dashboard_card/dashboard_card_layout.dart';
+import '../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 
 class DepartmentAlertsSection extends StatelessWidget {
   const DepartmentAlertsSection({super.key, required this.alerts});

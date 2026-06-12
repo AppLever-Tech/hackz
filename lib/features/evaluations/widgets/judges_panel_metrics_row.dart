@@ -4,7 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../../../constants/status_styles.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../utils/department_dashboard_service.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/deptadmin/department_metric_card.dart';
 
 /// Reusable metric row for the judges panel screen.

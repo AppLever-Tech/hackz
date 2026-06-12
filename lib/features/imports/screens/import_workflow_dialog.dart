@@ -5,7 +5,7 @@ import '../../../constants/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../screens/common/app_dialog_template.dart';
 import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/loading/hkz_async_loader.dart';
+import '../../../core/ui/loading/hkz_async_loader.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_summary.dart';

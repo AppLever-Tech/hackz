@@ -4,7 +4,7 @@ import '../../../constants/app_icons.dart';
 import '../../../screens/common/dashboard_chrome_scope.dart';
 import '../../../screens/common/dashboard_components.dart';
 import '../../../screens/common/dashboard_session_scope.dart';
-import '../../../widgets/loading/hkz_progress_indicator.dart';
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../services/idea_details_loader.dart';
 import 'idea_details_body.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';

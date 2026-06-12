@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../widgets/deptadmin/department_metric_card.dart';
 
 /// Reusable metric row for manage-users screens.

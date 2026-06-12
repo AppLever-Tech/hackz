@@ -4,7 +4,7 @@ import '../../../../constants/app_icons.dart';
 import '../../constants/problem_constants.dart';
 import '../../widgets/problem_source_pill.dart';
 import '../../widgets/problem_status_pill.dart';
-import '../../../../widgets/common/rich_tabs.dart';
+import '../../../../core/ui/common/rich_tabs.dart';
 import '../../workspace/problem_workspace_loader.dart';
 import 'lifecycle_tab.dart';
 import 'problem_details_tab.dart';

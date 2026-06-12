@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
 import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
-import 'package:hackz/widgets/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
 import 'workspace_attachment_counts.dart';
 
 /// Read-only attachment list with workspace navigation per file.

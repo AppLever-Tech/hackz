@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../constants/app_icons.dart';
-import '../../features/idea/models/enums/idea_status.dart';
-import '../../features/idea/services/idea_status_helpers.dart';
+import '../../../constants/app_icons.dart';
+import '../../../features/idea/models/enums/idea_status.dart';
+import '../../../features/idea/services/idea_status_helpers.dart';
 
 /// Shared compact pill metrics for mobile dashboard row cards (score, attachments, etc.).
 abstract final class MobileRowCardPillMetrics {

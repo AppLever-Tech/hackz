@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/responsive/responsive_helper.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'context_pill_theme.dart';
 
 /// Shared sizing and typography for [ContextPill] and workspace navigation UI.
