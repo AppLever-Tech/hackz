@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/loading/hkz_loading_theme.dart';
+import '../../loading/hkz_loading_theme.dart';
 import '../enums/app_alert_type.dart';
 import '../models/app_alert_action.dart';
 

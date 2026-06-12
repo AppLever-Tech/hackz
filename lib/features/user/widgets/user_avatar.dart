@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/inputs/network_image_compat.dart';
+import '../../../core/ui/inputs/network_image_compat.dart';
 import '../models/user_model.dart';
 
 /// Circular avatar for user cards, workspace headers, and assignment rows.

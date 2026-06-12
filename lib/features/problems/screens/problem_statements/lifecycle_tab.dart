@@ -4,7 +4,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/status_styles.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../../shared/widgets/lifecycle_timeline.dart';
+import '../../../../core/ui/common/lifecycle_timeline.dart';
 import '../../models/problem_status.dart';
 import '../../services/problem_status_helpers.dart';
 import '../../widgets/problem_lifecycle_strip.dart';

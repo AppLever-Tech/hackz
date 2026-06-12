@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';

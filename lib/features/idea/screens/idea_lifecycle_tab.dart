@@ -6,7 +6,7 @@ import '../models/enums/idea_status.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/widgets/lifecycle_timeline.dart';
+import '../../../core/ui/common/lifecycle_timeline.dart';
 import '../widgets/idea_lifecycle_strip.dart';
 import '../workspace/idea_workspace_loader.dart';
 

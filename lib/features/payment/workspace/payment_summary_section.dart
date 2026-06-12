@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
-import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';

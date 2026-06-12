@@ -5,7 +5,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
 import '../widgets/ideathon_template_picker_pane.dart';

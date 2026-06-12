@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../models/enums/org_setting_value_type.dart';
 import '../models/org_setting_definition.dart';
 import '../services/org_settings_service.dart';

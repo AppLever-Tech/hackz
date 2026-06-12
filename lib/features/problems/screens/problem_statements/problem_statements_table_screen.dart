@@ -9,7 +9,7 @@ import '../../../user/models/user_model.dart';
 import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/responsive/responsive_helper.dart';
-import '../../../../shared/feedback/feedback.dart';
+import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';

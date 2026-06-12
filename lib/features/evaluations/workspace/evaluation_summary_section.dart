@@ -4,7 +4,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import 'package:hackz/shared/workspace/entity_reference_tile.dart';
+import 'package:hackz/core/workspace/entity_reference_tile.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../team/workspace/team_workspace.dart';
 import '../../user/workspace/user_workspace.dart';

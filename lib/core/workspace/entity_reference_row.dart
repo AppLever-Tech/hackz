@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/ui/common/context_pill.dart';
-import '../../core/ui/common/context_pill_group.dart';
-import '../../core/ui/common/context_pill_theme.dart';
+import '../ui/common/context_pill.dart';
+import '../ui/common/context_pill_group.dart';
+import '../ui/common/context_pill_theme.dart';
 
 /// Informational row, or field label + [ContextPill] for workspace navigation.
 class EntityReferenceRow extends StatelessWidget {

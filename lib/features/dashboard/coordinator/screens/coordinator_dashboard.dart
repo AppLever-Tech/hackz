@@ -7,7 +7,7 @@ import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../../features/user/models/user_model.dart';
-import '../../../../shared/feedback/feedback.dart';
+import '../../../../core/ui/feedback/feedback.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../services/coordinator_dashboard_service.dart';
 import '../../../../utils/firestore_utils.dart';

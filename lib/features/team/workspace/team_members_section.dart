@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import 'team_workspace.dart';
 import 'team_workspace_loader.dart';
 

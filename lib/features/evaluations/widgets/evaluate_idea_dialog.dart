@@ -14,7 +14,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../utils/firestore_utils.dart';

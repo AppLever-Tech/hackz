@@ -4,7 +4,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../evaluations/services/evaluator_catalog_service.dart';
 import '../widgets/ideathon_assignee_select_row.dart';
 import '../../idea/models/idea_model.dart';

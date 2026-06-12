@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/user/models/user_model.dart';
 import '../../features/user/widgets/user_avatar.dart';
-import '../../core/ui/common/context_pill_theme.dart';
+import '../ui/common/context_pill_theme.dart';
 import 'context_launch_surface.dart';
 
 /// Clickable user avatar that opens the user workspace with context-pill hover styling.

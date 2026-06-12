@@ -3,7 +3,7 @@ import 'package:video_player/video_player.dart';
 
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
-import 'package:hackz/shared/inputs/network_image_compat.dart';
+import 'package:hackz/core/ui/inputs/network_image_compat.dart';
 
 /// File-type-aware preview (image zoom, video player, document card) for attachment workspace.
 class AttachmentPreviewPane extends StatelessWidget {

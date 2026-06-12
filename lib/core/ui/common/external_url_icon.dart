@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/app_icons.dart';
+import '../../theme/app_icons.dart';
 
 /// Compact external-launch icon with tooltip.
 class ExternalUrlIcon extends StatelessWidget {

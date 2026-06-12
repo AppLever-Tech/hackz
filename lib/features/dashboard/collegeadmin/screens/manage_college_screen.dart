@@ -11,12 +11,12 @@ import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_helper.dart';
-import '../../../../shared/buttons/hover_icon_action_button.dart';
-import '../../../../shared/feedback/feedback.dart';
-import '../../../../shared/inputs/hackz_select_field.dart';
+import '../../../../core/ui/buttons/hover_icon_action_button.dart';
+import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/inputs/hackz_select_field.dart';
 import '../../../../core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 
 class ManageCollegeScreen extends StatefulWidget {
   const ManageCollegeScreen({super.key, required this.user});

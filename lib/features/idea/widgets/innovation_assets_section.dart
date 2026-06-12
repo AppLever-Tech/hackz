@@ -5,7 +5,7 @@ import '../../../core/theme/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 

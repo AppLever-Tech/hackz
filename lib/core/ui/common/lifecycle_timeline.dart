@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../utils/common_helpers.dart';
+import '../../../utils/common_helpers.dart';
 
 /// Reusable vertical lifecycle timeline (problem statements, ideas, etc.).
 class LifecycleTimeline extends StatelessWidget {

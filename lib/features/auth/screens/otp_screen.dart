@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../widgets/auth_page_layout.dart';
 import 'auth_gate.dart';
 import '../../../core/theme/auth_theme.dart';

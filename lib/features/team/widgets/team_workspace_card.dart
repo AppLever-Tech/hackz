@@ -7,7 +7,7 @@ import '../models/team_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/faculty_teams_service.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../../core/ui/common/card_overflow_menu.dart';
 import '../../../core/ui/common/form_value_row.dart';
 import 'team_idea_summary_widget.dart';

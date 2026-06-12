@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../evaluations/models/evaluation_template.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../services/org_settings_service.dart';

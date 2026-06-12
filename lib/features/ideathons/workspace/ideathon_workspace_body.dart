@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
@@ -13,7 +13,7 @@ import '../services/ideathon_prototype_service.dart';
 import '../widgets/ideathon_status_pill.dart';
 import 'ideathon_workspace_loader.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 
 class IdeathonWorkspaceBody extends StatelessWidget {
   const IdeathonWorkspaceBody({super.key, required this.vm, this.onRefresh});

@@ -4,7 +4,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../team/models/team_model.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../core/responsive/responsive_helper.dart';
-import '../../../../shared/feedback/feedback.dart';
+import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../team/services/faculty_teams_service.dart';
 import '../../../team/widgets/team_student_selector.dart';

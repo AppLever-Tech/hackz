@@ -3,7 +3,7 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/material.dart';
 
-import '../media/remote_image_logging.dart';
+import '../../media/remote_image_logging.dart';
 
 class NetworkImageCompat extends StatefulWidget {
   const NetworkImageCompat({

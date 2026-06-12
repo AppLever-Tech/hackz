@@ -10,14 +10,14 @@ import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
-import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../widgets/mobile_user_list_row_card.dart';
@@ -25,7 +25,7 @@ import '../widgets/user_metrics_row.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import 'create_user_dialog.dart';
-import '../../../shared/inputs/filter_pill.dart';
+import '../../../core/ui/inputs/filter_pill.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({

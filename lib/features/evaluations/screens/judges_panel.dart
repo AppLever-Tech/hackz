@@ -9,12 +9,12 @@ import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../user/widgets/mobile_user_list_row_card.dart';
 import '../../../features/dashboard/deptadmin/services/department_dashboard_service.dart';
 import '../../../utils/firestore_utils.dart';
 import '../widgets/judges_panel_metrics_row.dart';
-import '../../../shared/workspace/user_list_identity_lead.dart';
+import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../user/screens/create_user_dialog.dart';
 
 class JudgesPanelScreen extends StatefulWidget {

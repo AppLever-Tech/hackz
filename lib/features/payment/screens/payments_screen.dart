@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
-import 'package:hackz/shared/feedback/feedback.dart';
-import 'package:hackz/shared/inputs/filter_pill.dart';
+import 'package:hackz/core/ui/feedback/feedback.dart';
+import 'package:hackz/core/ui/inputs/filter_pill.dart';
 import 'package:hackz/core/responsive/mobile_filter_pane_styles.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';

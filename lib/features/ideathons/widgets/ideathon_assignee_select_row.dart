@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../evaluations/widgets/judge_type_pill.dart';
 import '../../user/models/user_model.dart';

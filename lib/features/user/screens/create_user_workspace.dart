@@ -6,9 +6,9 @@ import '../../organization/models/organization_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/feedback/feedback.dart';
-import '../../../shared/inputs/email_field.dart';
-import '../../../shared/inputs/phone_number_field.dart';
+import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/inputs/email_field.dart';
+import '../../../core/ui/inputs/phone_number_field.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/enums/judge_type.dart';
@@ -28,7 +28,7 @@ import '../services/user_role_labels.dart';
 import '../services/user_service.dart';
 import '../widgets/user_form_section.dart';
 import '../widgets/user_profile_photo_field.dart';
-import '../../../shared/inputs/hackz_select_field.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../widgets/user_tags_field.dart';
 
 enum _UserFormField { firstName, lastName, email, phone, roles }

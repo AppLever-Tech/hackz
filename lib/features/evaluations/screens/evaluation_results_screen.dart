@@ -11,7 +11,7 @@ import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';

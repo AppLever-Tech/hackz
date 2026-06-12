@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/shared/workspace/user_workspace_avatar.dart';
+import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 

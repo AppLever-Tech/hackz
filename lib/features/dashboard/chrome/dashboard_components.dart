@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../features/user/models/user_model.dart';
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../shared/menus/hackz_popup_menu.dart';
+import '../../../core/ui/menus/hackz_popup_menu.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.

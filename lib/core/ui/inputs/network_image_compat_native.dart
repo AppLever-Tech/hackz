@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../media/remote_image_logging.dart';
+import '../../media/remote_image_logging.dart';
 
 class NetworkImageCompat extends StatelessWidget {
   const NetworkImageCompat({

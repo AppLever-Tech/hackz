@@ -7,7 +7,7 @@ import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../core/responsive/responsive_helper.dart';
-import '../../../../shared/feedback/feedback.dart';
+import '../../../../core/ui/feedback/feedback.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';

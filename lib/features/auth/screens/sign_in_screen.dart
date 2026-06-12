@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/user_model.dart';
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../widgets/auth_page_layout.dart';
-import '../../../shared/inputs/phone_number_field.dart';
+import '../../../core/ui/inputs/phone_number_field.dart';
 import '../widgets/auth_feature_strip.dart';
 import '../services/auth_utils.dart';
 import '../../../utils/common_helpers.dart';

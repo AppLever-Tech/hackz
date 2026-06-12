@@ -2,7 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../shared/inputs/network_image_compat.dart';
+import '../../../core/ui/inputs/network_image_compat.dart';
 
 /// Profile photo picker with avatar preview for user workflows.
 class UserProfilePhotoField extends StatelessWidget {

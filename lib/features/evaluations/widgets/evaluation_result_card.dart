@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_helper.dart';
-import '../../../shared/workspace/user_workspace_avatar.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';

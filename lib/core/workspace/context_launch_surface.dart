@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_semantic_colors.dart';
-import '../../core/responsive/responsive_helper.dart';
-import '../../core/ui/common/context_pill_metrics.dart';
-import '../../core/ui/common/context_pill_theme.dart';
+import '../theme/app_semantic_colors.dart';
+import '../responsive/responsive_helper.dart';
+import '../ui/common/context_pill_metrics.dart';
+import '../ui/common/context_pill_theme.dart';
 
 /// Shared hover, press, shimmer, and border styling for workspace launch controls.
 ///

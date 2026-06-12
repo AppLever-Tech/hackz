@@ -12,7 +12,7 @@ import 'organization_dialog.dart';
 import '../../../../features/sysadmin/sysadmin.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../services/sysadmin_dashboard_service.dart';
-import '../../../../shared/inputs/filter_pill.dart';
+import '../../../../core/ui/inputs/filter_pill.dart';
 import '../widgets/innovation_funnel_widget.dart';
 import '../widgets/organization_analytics_chart.dart';
 import '../widgets/participation_trend_chart.dart';

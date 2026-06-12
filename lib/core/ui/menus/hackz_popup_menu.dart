@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_icons.dart';
+import '../../theme/app_icons.dart';
 
 /// Shared panel styling for Hackz popup menus and select fields.
 abstract final class HackzPopupMenuStyle {
