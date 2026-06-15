@@ -69,21 +69,67 @@ class _StatusCell extends StatelessWidget {
       ImportRowSeverity.warning => const Color(0xFFB45309),
       ImportRowSeverity.error => const Color(0xFFB91C1C),
     };
-    final String dept = row.metadata['departmentStatus'] ?? '';
+    final String dept = row.metadata['departmentName'] ?? '';
+    final String detail = row.messages.isNotEmpty ? row.messages.first : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         Text(
           row.statusLabel,
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
         ),
+        if (detail.isNotEmpty) _StatusDetailText(detail: detail, color: color),
         if (dept.isNotEmpty)
           Text(
             dept,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           ),
       ],
     );
+  }
+}
+
+/// Inline status detail — compact by default; full text in a hover tooltip when verbose.
+class _StatusDetailText extends StatelessWidget {
+  const _StatusDetailText({required this.detail, required this.color});
+
+  static const int _tooltipCharThreshold = 48;
+
+  final String detail;
+  final Color color;
+
+  bool get _useTooltip => detail.contains('\n') || detail.length > _tooltipCharThreshold;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle style = TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w600,
+      color: color.withValues(alpha: 0.9),
+    );
+
+    final Widget text = Text(
+      _useTooltip ? _singleLinePreview(detail) : detail,
+      maxLines: _useTooltip ? 1 : 2,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+
+    if (!_useTooltip) return text;
+
+    return Tooltip(
+      message: detail,
+      preferBelow: true,
+      waitDuration: const Duration(milliseconds: 300),
+      child: text,
+    );
+  }
+
+  static String _singleLinePreview(String raw) {
+    return raw.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }

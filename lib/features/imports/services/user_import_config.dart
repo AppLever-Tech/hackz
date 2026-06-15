@@ -1,4 +1,5 @@
 import '../../organization/models/enums/organization_type.dart';
+import '../../user/constants/csv_import_role_constants.dart';
 import '../../user/models/user_model.dart';
 
 /// Launch configuration for the shared user import workflow.
@@ -8,7 +9,7 @@ class UserImportConfig {
     required this.organizationType,
     required this.departmentName,
     required this.departmentCode,
-    this.allowedCsvRoles = const <String>{'STUDENT', 'FACULTY', 'JUDGE'},
+    this.allowedCsvRoles = CsvImportRoleConstants.allSet,
   });
 
   final UserModel actor;

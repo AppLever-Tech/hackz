@@ -1,21 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../organization/models/department_model.dart';
+import '../../user/constants/csv_import_role_constants.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/user_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../constants/import_constants.dart';
 import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
+import 'import_department_lookup.dart';
+import 'import_department_validator.dart';
 import 'import_handler.dart';
+import 'import_role_validator.dart';
 import 'user_import_config.dart';
 
 class UserImportHandler implements ImportHandler {
-  static const List<String> headers = <String>['name', 'email', 'phone', 'role', 'department'];
+  static const List<String> headers = <String>[
+    'name',
+    'email',
+    'phone',
+    'role',
+    ImportConstants.departmentColumnKey,
+  ];
 
   @override
   ImportType get type => ImportType.users;
@@ -28,10 +38,10 @@ class UserImportHandler implements ImportHandler {
 
   @override
   String get templateCsv => '''
-name,email,phone,role,department
-John Doe,john@test.com,9876543210,FACULTY,CSE
-Jane Smith,jane@test.com,9876543211,STUDENT,CSE
-Robert Lee,robert@test.com,9876543212,JUDGE,CSE
+name,email,phone,role,${ImportConstants.departmentColumnKey}
+John Doe,john@test.com,9876543210,${CsvImportRoleConstants.faculty},CSE
+Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.student},CSE
+Robert Lee,robert@test.com,9876543212,${CsvImportRoleConstants.judge},CSE
 '''.trim();
 
   @override
@@ -43,7 +53,7 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
     ImportHandlerContext context,
   ) async {
     final UserImportConfig? config = context is UserImportHandlerContext ? context.config : null;
-    final Set<String> allowedRoles = config?.allowedCsvRoles ?? const <String>{'STUDENT', 'FACULTY', 'JUDGE'};
+    final Set<String> allowedRoles = config?.allowedCsvRoles ?? CsvImportRoleConstants.allSet;
 
     final _UserImportLookup lookup = await _UserImportLookup.load(context.orgId);
     final Set<String> phonesInFile = <String>{};
@@ -57,13 +67,15 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
       final String email = _cell(row, 'email');
       final String phoneRaw = _cell(row, 'phone');
       final String roleRaw = _cell(row, 'role');
-      final String departmentRaw = _cell(row, 'department');
+      final String departmentRaw = _cell(row, ImportConstants.departmentColumnKey);
 
       final List<String> issues = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
-      String departmentStatus = '';
+      String? roleCode;
+      String? departmentCode;
+      String? departmentName;
 
       if (name.isEmpty) {
         issues.add('Missing name');
@@ -94,35 +106,31 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
         statusLabel = 'Invalid Phone';
       }
 
-      final String? roleCode = _resolveRoleCode(roleRaw);
-      if (roleRaw.isEmpty) {
-        issues.add('Missing role');
+      final ImportRoleValidation roleResult = ImportRoleValidator.validate(
+        rawInput: roleRaw,
+        allowedCsvRoles: allowedRoles,
+      );
+      if (!roleResult.isValid) {
+        issues.add(roleResult.errorMessage ?? 'Invalid role');
         severity = ImportRowSeverity.error;
         importable = false;
-        statusLabel = 'Missing Role';
-      } else if (roleCode == null) {
-        issues.add('Invalid role');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Invalid Role';
-      } else if (!_csvRoleAllowed(roleRaw, allowedRoles)) {
-        issues.add('Role not allowed for this import');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Invalid Role';
+        statusLabel = roleResult.statusLabel ?? 'Invalid Role';
+      } else {
+        roleCode = roleResult.roleCode;
       }
 
-      if (departmentRaw.isEmpty) {
-        issues.add('Missing department');
+      final ImportDepartmentValidation deptResult = ImportDepartmentValidator.validate(
+        rawInput: departmentRaw,
+        lookup: lookup.departments,
+      );
+      if (!deptResult.isValid) {
+        issues.add(deptResult.errorMessage ?? 'Invalid department code');
         severity = ImportRowSeverity.error;
         importable = false;
-        statusLabel = 'Missing Department';
+        statusLabel = deptResult.statusLabel ?? 'Invalid Department';
       } else {
-        final String code = DepartmentModel.resolveCode(departmentRaw);
-        final bool existing = lookup.orgDepartmentCodes.contains(code) ||
-            DepartmentModel.byCode(code) != null ||
-            DepartmentModel.byName(departmentRaw) != null;
-        departmentStatus = existing ? 'Existing Department' : 'New Department';
+        departmentCode = deptResult.canonicalCode;
+        departmentName = deptResult.departmentName;
       }
 
       if (phoneRaw.isNotEmpty && isValidPhoneInput(phoneRaw)) {
@@ -177,7 +185,7 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
             'email': email,
             'phone': phoneRaw,
             'role': roleRaw,
-            'department': departmentRaw,
+            ImportConstants.departmentColumnKey: departmentCode ?? departmentRaw,
           },
           severity: severity,
           statusLabel: statusLabel,
@@ -185,8 +193,8 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
           importable: importable,
           metadata: <String, String>{
             if (roleCode != null) 'roleCode': roleCode,
-            if (departmentStatus.isNotEmpty) 'departmentStatus': departmentStatus,
-            if (departmentRaw.isNotEmpty) 'departmentCode': DepartmentModel.resolveCode(departmentRaw),
+            if (departmentCode != null) 'departmentCode': departmentCode,
+            if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
           },
         ),
       );
@@ -208,22 +216,10 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
     var failed = 0;
     final List<String> failures = <String>[];
 
-    final Set<String> ensuredDepartments = <String>{};
-
     for (final ImportReviewRow row in importable) {
       try {
-        final String departmentInput = row.valueFor('department');
-        final String departmentCode = row.metadata['departmentCode'] ?? DepartmentModel.resolveCode(departmentInput);
-        final String departmentName = DepartmentModel.byCode(departmentCode)?.name ?? departmentInput;
-
-        if (!ensuredDepartments.contains(departmentCode)) {
-          await _ensureDepartment(
-            orgId: context.orgId,
-            departmentName: departmentName,
-            departmentCode: departmentCode,
-          );
-          ensuredDepartments.add(departmentCode);
-        }
+        final String departmentCode = row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+        final String departmentName = row.metadata['departmentName'] ?? departmentCode;
 
         final (String firstName, String lastName) = _splitName(row.valueFor('name'));
         final String roleCode = row.metadata['roleCode'] ?? 'STU';
@@ -274,47 +270,11 @@ Robert Lee,robert@test.com,9876543212,JUDGE,CSE
 
   static String _cell(Map<String, String> row, String key) => (row[key] ?? '').trim();
 
-  static bool _csvRoleAllowed(String roleRaw, Set<String> allowed) {
-    final String normalized = roleRaw.trim().toUpperCase();
-    return allowed.contains(normalized) ||
-        (normalized == 'STU' && allowed.contains('STUDENT')) ||
-        (normalized == 'FAC' && allowed.contains('FACULTY')) ||
-        (normalized == 'JUD' && allowed.contains('JUDGE'));
-  }
-
-  static String? _resolveRoleCode(String roleRaw) {
-    final String normalized = roleRaw.trim().toUpperCase();
-    return switch (normalized) {
-      'STUDENT' || 'STU' => 'STU',
-      'FACULTY' || 'FAC' => 'FAC',
-      'JUDGE' || 'JUD' => 'JUD',
-      _ => null,
-    };
-  }
-
   static (String, String) _splitName(String fullName) {
     final List<String> parts = fullName.trim().split(RegExp(r'\s+')).where((String p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return ('User', '');
     if (parts.length == 1) return (parts.first, '');
     return (parts.first, parts.sublist(1).join(' '));
-  }
-
-  static Future<void> _ensureDepartment({
-    required String orgId,
-    required String departmentName,
-    required String departmentCode,
-  }) async {
-    final List<Map<String, dynamic>> existing = await FirestoreUtils.getDepartmentsByCollege(orgId);
-    final bool found = existing.any((Map<String, dynamic> d) {
-      final String code = ((d['code'] as String?) ?? '').trim().toUpperCase();
-      return code == departmentCode.trim().toUpperCase();
-    });
-    if (found) return;
-    await FirestoreUtils.addDepartment(
-      orgId: orgId,
-      name: departmentName.trim().isEmpty ? departmentCode : departmentName.trim(),
-      code: departmentCode,
-    );
   }
 }
 
@@ -328,6 +288,9 @@ class UserImportHandlerContext extends ImportHandlerContext {
   });
 
   final UserImportConfig config;
+
+  @override
+  Set<String>? get supportedCsvRoles => config.allowedCsvRoles;
 
   factory UserImportHandlerContext.fromConfig(UserImportConfig config) {
     return UserImportHandlerContext(
@@ -344,12 +307,12 @@ class _UserImportLookup {
   const _UserImportLookup({
     required this.existingPhones,
     required this.existingEmails,
-    required this.orgDepartmentCodes,
+    required this.departments,
   });
 
   final Set<String> existingPhones;
   final Set<String> existingEmails;
-  final Set<String> orgDepartmentCodes;
+  final ImportDepartmentLookup departments;
 
   static Future<_UserImportLookup> load(String orgId) async {
     final QuerySnapshot<Map<String, dynamic>> snap = await FirebaseFirestore.instance
@@ -365,16 +328,12 @@ class _UserImportLookup {
       if (user.email.trim().isNotEmpty) emails.add(user.email.trim().toLowerCase());
     }
 
-    final List<Map<String, dynamic>> departments = await FirestoreUtils.getDepartmentsByCollege(orgId);
-    final Set<String> deptCodes = departments
-        .map((Map<String, dynamic> d) => ((d['code'] as String?) ?? '').trim().toUpperCase())
-        .where((String c) => c.isNotEmpty)
-        .toSet();
+    final ImportDepartmentLookup departments = await ImportDepartmentLookup.load(orgId);
 
     return _UserImportLookup(
       existingPhones: phones,
       existingEmails: emails,
-      orgDepartmentCodes: deptCodes,
+      departments: departments,
     );
   }
 }

@@ -40,4 +40,7 @@ class ImportHandlerContext {
   final String orgId;
   final String defaultDepartmentName;
   final String defaultDepartmentCode;
+
+  /// CSV role labels shown in Supported Values (user import only).
+  Set<String>? get supportedCsvRoles => null;
 }

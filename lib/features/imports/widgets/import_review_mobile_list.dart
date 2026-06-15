@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../constants/import_constants.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 
@@ -23,8 +24,11 @@ class ImportReviewMobileList extends StatelessWidget {
           ImportRowSeverity.error => const Color(0xFFB91C1C),
         };
         final String role = row.valueFor('role');
-        final String department = row.valueFor('department');
-        final String deptStatus = row.metadata['departmentStatus'] ?? '';
+        final String department = row.valueFor(ImportConstants.departmentColumnKey);
+        final String deptName = row.metadata['departmentName'] ?? '';
+        final String detail = row.messages.isNotEmpty ? row.messages.first : '';
+        final String primary =
+            row.valueFor('name').isNotEmpty ? row.valueFor('name') : row.valueFor('title');
 
         return Container(
           width: double.infinity,
@@ -38,7 +42,7 @@ class ImportReviewMobileList extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                row.valueFor('name').isEmpty ? 'Row ${row.rowNumber}' : row.valueFor('name'),
+                primary.isEmpty ? 'Row ${row.rowNumber}' : primary,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
@@ -57,9 +61,16 @@ class ImportReviewMobileList extends StatelessWidget {
                 row.statusLabel,
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
               ),
-              if (deptStatus.isNotEmpty)
+              if (detail.isNotEmpty)
                 Text(
-                  deptStatus,
+                  detail,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color.withValues(alpha: 0.9)),
+                ),
+              if (deptName.isNotEmpty)
+                Text(
+                  deptName,
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                 ),
             ],

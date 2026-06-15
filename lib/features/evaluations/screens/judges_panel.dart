@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../workspace/evaluation_assignment_details_pane.dart';
 import '../../imports/imports.dart';
+import '../../user/constants/csv_import_role_constants.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
@@ -85,7 +86,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         organizationType: widget.user.orgType ?? OrganizationType.college,
         departmentName: widget.user.department,
         departmentCode: DepartmentModel.resolveCode(widget.user.departmentCode),
-        allowedCsvRoles: const <String>{'JUDGE'},
+        allowedCsvRoles: CsvImportRoleConstants.judgesPanelOnly,
       ),
     );
     if (imported == true && mounted) {

@@ -11,12 +11,15 @@ import '../models/import_review_row.dart';
 import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
+import '../services/import_department_lookup.dart';
 import '../services/import_handler.dart';
 import '../services/import_registry.dart';
 import '../services/import_template_service.dart';
+import '../constants/import_constants.dart';
 import '../widgets/import_review_mobile_list.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_summary_metrics.dart';
+import '../widgets/import_supported_values_section.dart';
 
 enum _ImportStep { template, review, result }
 
@@ -41,8 +44,31 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   List<ImportReviewRow> _rows = const <ImportReviewRow>[];
   ImportSummary? _summary;
   ImportExecutionResult? _result;
+  ImportDepartmentLookup? _departments;
+  bool _departmentsLoading = true;
 
   ImportHandler get _handler => widget.handler;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDepartments();
+  }
+
+  Future<void> _loadDepartments() async {
+    try {
+      final ImportDepartmentLookup lookup =
+          await ImportDepartmentLookup.load(widget.contextData.orgId);
+      if (!mounted) return;
+      setState(() {
+        _departments = lookup;
+        _departmentsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _departmentsLoading = false);
+    }
+  }
 
   Future<void> _downloadTemplate() async {
     final bool saved = await ImportTemplateService.downloadTemplate(
@@ -56,6 +82,31 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       message: saved
           ? 'CSV template saved to your device.'
           : 'CSV template copied to clipboard. Paste into a spreadsheet and save as .csv',
+    );
+  }
+
+  Future<void> _downloadDepartmentCodes() async {
+    final ImportDepartmentLookup? lookup = _departments;
+    if (lookup == null || lookup.departments.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'No departments',
+        message: 'Create departments under Department Management first.',
+      );
+      return;
+    }
+
+    final bool saved = await ImportTemplateService.downloadTemplate(
+      fileName: ImportDepartmentInfo.departmentCodesFileName,
+      csvContent: lookup.buildDepartmentCodesCsv(),
+    );
+    if (!mounted) return;
+    FeedbackService.showSuccess(
+      context,
+      title: saved ? 'Department codes downloaded' : 'Department codes copied',
+      message: saved
+          ? 'Department codes CSV saved to your device.'
+          : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
     );
   }
 
@@ -180,6 +231,12 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   Widget _buildTemplateStep() {
     return ListView(
       children: <Widget>[
+        ImportSupportedValuesSection(
+          departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
+          supportedRoles: widget.contextData.supportedCsvRoles,
+          loading: _departmentsLoading,
+        ),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -195,15 +252,33 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
+              Text(
+                ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 4),
               const Text(
-                'Required columns: name, email, phone, role, department',
+                'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _downloadTemplate,
-                icon: const Icon(AppIcons.download, size: 16),
-                label: const Text('Download Template'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _downloadTemplate,
+                    icon: const Icon(AppIcons.download, size: 16),
+                    label: const Text('Download CSV Template'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _departmentsLoading || (_departments?.departments.isEmpty ?? true)
+                        ? null
+                        : _downloadDepartmentCodes,
+                    icon: const Icon(AppIcons.download, size: 16),
+                    label: const Text('Download Department Codes'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -354,6 +429,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   String _labelFor(String key) {
+    if (key == ImportConstants.departmentColumnKey) return 'Department Code';
     if (key.isEmpty) return key;
     return '${key[0].toUpperCase()}${key.substring(1)}';
   }

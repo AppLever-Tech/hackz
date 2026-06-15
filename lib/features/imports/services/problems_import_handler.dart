@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../problems/constants/problem_constants.dart';
-import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/models/problem_status.dart';
 import '../../problems/services/problem_utils.dart';
 import '../../../utils/firestore_utils.dart';
+import '../constants/import_constants.dart';
 import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
+import 'import_department_lookup.dart';
+import 'import_department_validator.dart';
 import 'import_handler.dart';
 
 class ProblemsImportHandler implements ImportHandler {
@@ -18,7 +20,7 @@ class ProblemsImportHandler implements ImportHandler {
     'title',
     'description',
     'category',
-    'department',
+    ImportConstants.departmentColumnKey,
     'theme',
     'tags',
   ];
@@ -34,13 +36,13 @@ class ProblemsImportHandler implements ImportHandler {
 
   @override
   String get templateCsv => '''
-title,description,category,department,theme,tags
+title,description,category,${ImportConstants.departmentColumnKey},theme,tags
 Smart Campus Navigation,Help students find classrooms quickly,Software,CSE,Mobility,"IoT,Mobile"
 Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Environment,"IoT,AI/ML"
 '''.trim();
 
   @override
-  List<String> get requiredHeaders => const <String>['title', 'category', 'department'];
+  List<String> get requiredHeaders => const <String>['title', 'category', ImportConstants.departmentColumnKey];
 
   @override
   Future<List<ImportReviewRow>> validateRows(
@@ -57,7 +59,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       final String title = _cell(row, 'title');
       final String description = _cell(row, 'description');
       final String category = _cell(row, 'category');
-      final String departmentRaw = _cell(row, 'department');
+      final String departmentRaw = _cell(row, ImportConstants.departmentColumnKey);
       final String theme = _cell(row, 'theme');
       final String tagsRaw = _cell(row, 'tags');
 
@@ -65,7 +67,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
-      String departmentStatus = '';
+      String? departmentCode;
+      String? departmentName;
 
       if (title.isEmpty) {
         issues.add('Missing title');
@@ -73,22 +76,19 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
         importable = false;
         statusLabel = 'Missing Title';
       }
-      if (departmentRaw.isEmpty) {
-        issues.add('Missing department');
+
+      final ImportDepartmentValidation deptResult = ImportDepartmentValidator.validate(
+        rawInput: departmentRaw,
+        lookup: lookup.departments,
+      );
+      if (!deptResult.isValid) {
+        issues.add(deptResult.errorMessage ?? 'Invalid department code');
         severity = ImportRowSeverity.error;
         importable = false;
-        statusLabel = 'Missing Department';
+        statusLabel = deptResult.statusLabel ?? 'Invalid Department';
       } else {
-        final String departmentCode = DepartmentModel.resolveCode(departmentRaw);
-        final DepartmentModel? dept = DepartmentModel.byCode(departmentCode);
-        if (dept == null && !lookup.knownDepartmentCodes.contains(departmentCode)) {
-          issues.add('Unknown department');
-          severity = ImportRowSeverity.error;
-          importable = false;
-          statusLabel = 'Invalid Department';
-        } else {
-          departmentStatus = dept?.name ?? departmentRaw;
-        }
+        departmentCode = deptResult.canonicalCode;
+        departmentName = deptResult.departmentName;
       }
 
       String? resolvedCategory;
@@ -123,9 +123,9 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
         titlesInFile.add(normalizedTitle);
       }
 
-      final String departmentCode = departmentRaw.isEmpty
-          ? ''
-          : DepartmentModel.resolveCode(departmentRaw);
+      if (severity == ImportRowSeverity.valid && importable) {
+        statusLabel = 'Valid';
+      }
 
       review.add(
         ImportReviewRow(
@@ -134,7 +134,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
             'title': title,
             'description': description,
             'category': resolvedCategory ?? category,
-            'department': departmentStatus.isEmpty ? departmentRaw : departmentStatus,
+            ImportConstants.departmentColumnKey: departmentCode ?? departmentRaw,
             'theme': theme,
             'tags': tagsRaw,
           },
@@ -143,7 +143,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
           messages: issues,
           importable: importable,
           metadata: <String, String>{
-            if (departmentCode.isNotEmpty) 'departmentCode': departmentCode,
+            if (departmentCode != null) 'departmentCode': departmentCode,
+            if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
             if (resolvedCategory != null) 'category': resolvedCategory,
             if (tagsRaw.isNotEmpty) 'tags': tagsRaw,
           },
@@ -169,8 +170,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
 
     for (final ImportReviewRow row in importable) {
       try {
-        final String departmentCode = row.metadata['departmentCode'] ??
-            DepartmentModel.resolveCode(row.valueFor('department'));
+        final String departmentCode =
+            row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
         final String problemId =
             FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
         final String problemNumber = await ProblemUtils.generateProblemNumber();
@@ -225,25 +226,22 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
 class _ProblemImportLookup {
   _ProblemImportLookup({
     required this.existingTitles,
-    required this.knownDepartmentCodes,
+    required this.departments,
   });
 
   final Set<String> existingTitles;
-  final Set<String> knownDepartmentCodes;
+  final ImportDepartmentLookup departments;
 
   static Future<_ProblemImportLookup> load(String orgId) async {
     final List<ProblemModel> problems = await FirestoreUtils.getProblemModelsByCollege(orgId);
-    final List<Map<String, dynamic>> departments = await FirestoreUtils.getDepartmentsByCollege(orgId);
+    final ImportDepartmentLookup departments = await ImportDepartmentLookup.load(orgId);
 
     return _ProblemImportLookup(
       existingTitles: problems
           .map((ProblemModel p) => p.title.trim().toLowerCase())
           .where((String t) => t.isNotEmpty)
           .toSet(),
-      knownDepartmentCodes: departments
-          .map((Map<String, dynamic> d) => ((d['code'] as String?) ?? '').trim().toUpperCase())
-          .where((String c) => c.isNotEmpty)
-          .toSet(),
+      departments: departments,
     );
   }
 }

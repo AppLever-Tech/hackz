@@ -10,6 +10,7 @@ class HoverIconActionButton extends StatefulWidget {
     this.destructive = false,
     this.iconSize = 15,
     this.size = 28,
+    this.iconColor,
   });
 
   final IconData icon;
@@ -18,6 +19,7 @@ class HoverIconActionButton extends StatefulWidget {
   final bool destructive;
   final double iconSize;
   final double size;
+  final Color? iconColor;
 
   @override
   State<HoverIconActionButton> createState() => _HoverIconActionButtonState();
@@ -30,8 +32,8 @@ class _HoverIconActionButtonState extends State<HoverIconActionButton> {
   Widget build(BuildContext context) {
     final Color borderColor =
         widget.destructive ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0);
-    final Color iconColor =
-        widget.destructive ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    final Color resolvedIconColor = widget.iconColor ??
+        (widget.destructive ? const Color(0xFFDC2626) : const Color(0xFF64748B));
     final Color backgroundColor =
         widget.destructive ? const Color(0xFFFFF7F7) : Colors.white;
 
@@ -52,7 +54,7 @@ class _HoverIconActionButtonState extends State<HoverIconActionButton> {
             child: SizedBox(
               width: widget.size,
               height: widget.size,
-              child: Icon(widget.icon, size: widget.iconSize, color: iconColor),
+              child: Icon(widget.icon, size: widget.iconSize, color: resolvedIconColor),
             ),
           ),
         ),
