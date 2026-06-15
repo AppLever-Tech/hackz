@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../models/enums/team_status.dart';
 import '../../user/models/user_model.dart';
+import '../models/enums/team_status.dart';
 import '../../../utils/common_helpers.dart' show formatDateTime, sortUsersByDisplayName;
 import '../../../features/dashboard/student/services/student_dashboard_service.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/ui/common/context_pill.dart';
-import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/form_value_row.dart';
+import '../../../core/workspace/user_list_identity_lead.dart';
 
-/// Student dashboard team panel — layout aligned with faculty [TeamWorkspaceCard].
+/// Student dashboard team panel — form layout aligned with [StudentDashboard] My Details.
 class StudentTeamOverviewCard extends StatelessWidget {
   const StudentTeamOverviewCard({
     super.key,
@@ -21,10 +22,16 @@ class StudentTeamOverviewCard extends StatelessWidget {
   final StudentDashboardVm vm;
   final bool compact;
 
-  double get _rowGap => compact ? 6 : 8;
+  static const double _labelWidth = 96;
+  static const double _labelGap = EntityCardStyles.labelGap;
+  static const double _studentLabelTopInset = 7;
+  static const Alignment _labelAlignment = Alignment.centerLeft;
+
+  double get _rowGap => compact ? 8 : 8;
 
   @override
   Widget build(BuildContext context) {
+    final String teamName = vm.team.teamName.trim().isEmpty ? 'No Team' : vm.team.teamName.trim();
     final Widget body = vm.team.teamId.isEmpty
         ? const Text('No team assigned yet.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))
         : _teamContent(context);
@@ -46,7 +53,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const DashboardCardTitle(title: 'My Team', icon: AppIcons.teams),
+              DashboardCardTitle(title: 'My Team — $teamName', icon: AppIcons.teams),
               const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
               bodySlot,
             ],
@@ -62,70 +69,81 @@ class StudentTeamOverviewCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _buildTeamNameRow(context),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Mentor',
+          labelIcon: AppIcons.faculty,
+          labelAlignment: _labelAlignment,
+          child: _mentorLead(),
+        ),
         SizedBox(height: _rowGap),
-        _buildMentorRow(context),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Students',
+          labelIcon: AppIcons.student,
+          labelAlignment: _labelAlignment,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          labelTopInset: _studentLabelTopInset,
+          child: _studentsLead(context, members),
+        ),
         SizedBox(height: _rowGap),
-        _buildStudentsRow(context, members),
-        SizedBox(height: _rowGap),
-        _buildMetricsRow(),
+        _buildMetricsRows(),
       ],
     );
   }
 
-  Widget _buildTeamNameRow(BuildContext context) {
-    final String name = vm.team.teamName.trim().isEmpty ? '—' : vm.team.teamName.trim();
-    final String teamId = vm.team.teamId.trim();
-    if (teamId.isEmpty) {
-      return Text(
-        name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+  Widget _mentorLead() {
+    final UserModel? mentor = vm.mentorUser;
+    final String name = vm.mentorName.trim().isEmpty ? '—' : vm.mentorName.trim();
+    if (mentor == null || mentor.userId.trim().isEmpty) {
+      return EntityCardPills.plainValue(name);
+    }
+    return UserListIdentityLead(
+      user: mentor,
+      avatarRadius: 12,
+    );
+  }
+
+  Widget _studentsLead(BuildContext context, List<UserModel> members) {
+    if (members.isEmpty) {
+      return const Text('No students on team', style: EntityCardStyles.plainValue);
+    }
+
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          for (int i = 0; i < members.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: 6),
+            UserListIdentityLead(user: members[i], avatarRadius: 12),
+          ],
+        ],
       );
     }
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ContextPill(
-        label: name,
-        semantic: ContextPillSemantic.team,
-        onTap: () => WorkspaceNavigator.openTeam(context, teamId),
-        compact: true,
-      ),
-    );
-  }
 
-  Widget _buildMentorRow(BuildContext context) {
-    final String name = vm.mentorName.trim().isEmpty ? '—' : vm.mentorName.trim();
-    if (vm.mentorId.trim().isEmpty) {
-      return _plainLabel(name, AppIcons.faculty);
+    final List<Widget> rows = <Widget>[];
+    for (int i = 0; i < members.length; i += 2) {
+      if (i > 0) rows.add(const SizedBox(height: 6));
+      rows.add(
+        Row(
+          children: <Widget>[
+            Expanded(child: UserListIdentityLead(user: members[i], avatarRadius: 12)),
+            if (i + 1 < members.length) ...<Widget>[
+              const SizedBox(width: 8),
+              Expanded(child: UserListIdentityLead(user: members[i + 1], avatarRadius: 12)),
+            ] else
+              const Expanded(child: SizedBox.shrink()),
+          ],
+        ),
+      );
     }
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ContextPill(
-        label: name,
-        semantic: ContextPillSemantic.user,
-        icon: AppIcons.faculty,
-        onTap: () => WorkspaceNavigator.openUser(context, vm.mentorId),
-        compact: true,
-      ),
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
   }
 
-  Widget _buildStudentsRow(BuildContext context, List<UserModel> members) {
-    if (members.isEmpty) {
-      return const Text('No students on team', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)));
-    }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: members
-          .map((UserModel member) => _memberPill(context, member))
-          .toList(growable: false),
-    );
-  }
-
-  Widget _buildMetricsRow() {
+  Widget _buildMetricsRows() {
     final TeamStatus status = vm.team.status;
     final Color statusColor = switch (status) {
       TeamStatus.active => const Color(0xFF177C50),
@@ -134,57 +152,37 @@ class StudentTeamOverviewCard extends StatelessWidget {
     };
     final int ideaCount = vm.ideaCards.length;
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _metricLine(AppIcons.ideas, '$ideaCount idea${ideaCount == 1 ? '' : 's'}'),
-        _metricLine(AppIcons.statusActive, 'Team status: ${status.value}', color: statusColor),
-        _metricLine(AppIcons.clock, 'Created ${formatDateTime(vm.team.createdAt)}'),
-      ],
-    );
-  }
-
-  Widget _memberPill(BuildContext context, UserModel member) {
-    final String name = '${member.firstName} ${member.lastName}'.trim();
-    final String label = name.isEmpty ? member.userId : name;
-    if (member.userId.trim().isEmpty) {
-      return _plainLabel(label, AppIcons.forUserRoleCode(member.role));
-    }
-    return ContextPill(
-      label: label,
-      semantic: ContextPillSemantic.user,
-      icon: AppIcons.forUserRoleCode(member.role),
-      onTap: () => WorkspaceNavigator.openUser(context, member.userId),
-      compact: true,
-    );
-  }
-
-  Widget _plainLabel(String label, IconData icon) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(icon, size: 14, color: const Color(0xFF64748B)),
-        const SizedBox(width: 5),
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155))),
-      ],
-    );
-  }
-
-  Widget _metricLine(IconData icon, String label, {Color? color}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(icon, size: 14, color: color ?? const Color(0xFF64748B)),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: color ?? const Color(0xFF475569),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Ideas',
+          labelIcon: AppIcons.ideas,
+          labelAlignment: _labelAlignment,
+          child: EntityCardPills.plainValue('$ideaCount idea${ideaCount == 1 ? '' : 's'}'),
+        ),
+        SizedBox(height: _rowGap),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Status',
+          labelIcon: AppIcons.statusActive,
+          labelAlignment: _labelAlignment,
+          child: Text(
+            status.value,
+            style: EntityCardStyles.plainValue.copyWith(color: statusColor),
           ),
+        ),
+        SizedBox(height: _rowGap),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Created',
+          labelIcon: AppIcons.clock,
+          labelAlignment: _labelAlignment,
+          child: EntityCardPills.plainValue(formatDateTime(vm.team.createdAt)),
         ),
       ],
     );

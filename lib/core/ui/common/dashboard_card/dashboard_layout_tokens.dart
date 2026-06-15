@@ -7,7 +7,7 @@ abstract final class DashboardLayoutTokens {
   static const double pairRowAlertsActivity = 380;
   static const double pairRowAlertsActivityDept = 390;
   static const double pairRowDistribution = 236;
-  static const double studentDetailsRowHeight = 200;
+  static const double studentDetailsRowHeight = 230;
 
   // Coordinator dashboard panels.
   static const double listPaymentQueueRowStride = 128;

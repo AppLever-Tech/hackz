@@ -214,10 +214,13 @@ class StudentDashboardService {
       organizationName: organizationName.isEmpty ? student.orgId : organizationName,
       team: resolvedTeam,
       teamMembers: teamMembers,
+      mentorUser: mentor,
       mentorId: mentor?.userId ?? '',
       mentorName: _fullName(mentor),
+      departmentAdminUser: departmentAdmin,
       departmentAdminId: departmentAdmin.userId,
       departmentAdminName: _fullName(departmentAdmin),
+      collegeAdminUser: collegeAdmin,
       collegeAdminId: collegeAdmin.userId,
       collegeAdminName: _fullName(collegeAdmin),
       teamMemberCount: resolvedTeam.studentIds.length,
@@ -273,10 +276,13 @@ class StudentDashboardVm {
     required this.organizationName,
     required this.team,
     required this.teamMembers,
+    required this.mentorUser,
     required this.mentorId,
     required this.mentorName,
+    required this.departmentAdminUser,
     required this.departmentAdminId,
     required this.departmentAdminName,
+    required this.collegeAdminUser,
     required this.collegeAdminId,
     required this.collegeAdminName,
     required this.teamMemberCount,
@@ -303,10 +309,13 @@ class StudentDashboardVm {
   final String organizationName;
   final TeamModel team;
   final List<UserModel> teamMembers;
+  final UserModel? mentorUser;
   final String mentorId;
   final String mentorName;
+  final UserModel departmentAdminUser;
   final String departmentAdminId;
   final String departmentAdminName;
+  final UserModel collegeAdminUser;
   final String collegeAdminId;
   final String collegeAdminName;
   final int teamMemberCount;

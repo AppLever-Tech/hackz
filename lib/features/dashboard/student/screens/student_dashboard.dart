@@ -21,9 +21,11 @@ import '../../../../features/problems/screens/problem_statements/problem_stateme
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 import '../../../../core/ui/common/entity_card_pills.dart';
 import '../../../../core/ui/common/form_value_row.dart';
+import '../../../../core/ui/common/context_pill.dart';
+import '../../../../core/ui/common/context_pill_theme.dart';
+import '../../../../core/workspace/user_list_identity_lead.dart';
+import '../../../../core/workspace/user_workspace_avatar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/ui/common/context_pill.dart';
-import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key, required this.user});
@@ -75,6 +77,9 @@ class _StudentDashboardHome extends StatefulWidget {
 
 class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   static const double _kDashboardIconSize = 18;
+  static const double _detailsLabelWidth = 96;
+  static const double _detailsLabelGap = EntityCardStyles.labelGap;
+  static const Alignment _detailsLabelAlignment = Alignment.centerLeft;
 
   late Future<StudentDashboardVm> _future;
   final StudentDashboardService _service = StudentDashboardService();
@@ -199,11 +204,12 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   Widget _buildMyDetailsCard(StudentDashboardVm vm) {
     final Widget details = _buildStudentDetailsContent(vm);
+    final String titleName = vm.studentName.trim().isEmpty ? 'Student' : vm.studentName.trim();
     return SectionContainer(
       child: DashboardBoundedBody(
-        headers: const <Widget>[
-          DashboardCardTitle(title: 'My Details', icon: AppIcons.student),
-          SizedBox(height: DashboardCardTitleStyle.headerSpacing),
+        headers: <Widget>[
+          _buildMyDetailsHeader(titleName),
+          const SizedBox(height: DashboardCardTitleStyle.headerSpacing),
         ],
         bodyBuilder: ({required bool expandVertically}) {
           if (expandVertically) {
@@ -215,6 +221,33 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
           return details;
         },
       ),
+    );
+  }
+
+  Widget _buildMyDetailsHeader(String studentName) {
+    final String userId = widget.user.userId.trim();
+    return Row(
+      children: <Widget>[
+        Icon(AppIcons.student, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
+        const SizedBox(width: DashboardCardTitleStyle.iconGap),
+        const Text('My Details', style: DashboardCardTitleStyle.textStyle),
+        const SizedBox(width: 10),
+        UserWorkspaceAvatar(
+          user: widget.user,
+          radius: 12,
+          onTap: userId.isEmpty ? () {} : () => WorkspaceNavigator.openUser(context, userId),
+          enabled: userId.isNotEmpty,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            studentName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DashboardCardTitleStyle.textStyle,
+          ),
+        ),
+      ],
     );
   }
 
@@ -231,68 +264,72 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildStudentDetailsContent(StudentDashboardVm vm) {
+    final String department = vm.department.trim().isEmpty ? '—' : vm.department.trim();
+    final String college = vm.organizationName.trim().isEmpty ? '—' : vm.organizationName.trim();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.start,
       children: <Widget>[
         FormValueRow(
-          labelWidth: EntityCardStyles.labelWidth,
-          label: 'Student',
-          child: _userWorkspaceValue(
-            name: vm.studentName,
-            userId: vm.studentId,
-            icon: AppIcons.student,
-          ),
-        ),
-        const SizedBox(height: 4),
-        FormValueRow(
-          labelWidth: EntityCardStyles.labelWidth,
+          labelWidth: _detailsLabelWidth,
+          labelGap: _detailsLabelGap,
           label: 'Mentor',
-          child: _userWorkspaceValue(
-            name: vm.mentorName,
-            userId: vm.mentorId,
-            icon: AppIcons.faculty,
-          ),
+          labelIcon: AppIcons.faculty,
+          labelAlignment: _detailsLabelAlignment,
+          child: _userIdentityLead(user: vm.mentorUser, fallbackName: vm.mentorName),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         FormValueRow(
-          labelWidth: EntityCardStyles.labelWidth,
+          labelWidth: _detailsLabelWidth,
+          labelGap: _detailsLabelGap,
           label: 'Dept Admin',
-          child: _userWorkspaceValue(
-            name: vm.departmentAdminName,
-            userId: vm.departmentAdminId,
-            icon: AppIcons.departments,
-          ),
+          labelIcon: AppIcons.departments,
+          labelAlignment: _detailsLabelAlignment,
+          child: _userIdentityLead(user: vm.departmentAdminUser, fallbackName: vm.departmentAdminName),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         FormValueRow(
-          labelWidth: EntityCardStyles.labelWidth,
+          labelWidth: _detailsLabelWidth,
+          labelGap: _detailsLabelGap,
+          label: 'Department',
+          labelIcon: AppIcons.departments,
+          labelAlignment: _detailsLabelAlignment,
+          child: EntityCardPills.plainValue(department),
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: _detailsLabelWidth,
+          labelGap: _detailsLabelGap,
           label: 'College Admin',
-          child: _userWorkspaceValue(
-            name: vm.collegeAdminName,
-            userId: vm.collegeAdminId,
-            icon: AppIcons.organizations,
-          ),
+          labelIcon: AppIcons.organizations,
+          labelAlignment: _detailsLabelAlignment,
+          child: _userIdentityLead(user: vm.collegeAdminUser, fallbackName: vm.collegeAdminName),
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: _detailsLabelWidth,
+          labelGap: _detailsLabelGap,
+          label: 'College',
+          labelIcon: AppIcons.organizations,
+          labelAlignment: _detailsLabelAlignment,
+          child: EntityCardPills.plainValue(college),
         ),
       ],
     );
   }
 
-  Widget _userWorkspaceValue({
-    required String name,
-    required String userId,
-    required IconData icon,
+  Widget _userIdentityLead({
+    required UserModel? user,
+    required String fallbackName,
   }) {
-    final String display = name.trim().isEmpty ? '—' : name.trim();
-    if (userId.trim().isEmpty) {
+    final String display = fallbackName.trim().isEmpty || fallbackName.trim() == '-' ? '—' : fallbackName.trim();
+    if (user == null || user.userId.trim().isEmpty) {
       return EntityCardPills.plainValue(display);
     }
-    return EntityCardPills.workspace(
-      display,
-      ContextPillSemantic.user,
-      () => WorkspaceNavigator.openUser(context, userId),
-      fullWidth: true,
-      icon: icon,
+    return UserListIdentityLead(
+      user: user,
+      avatarRadius: 12,
     );
   }
 
