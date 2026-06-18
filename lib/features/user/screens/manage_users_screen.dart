@@ -872,6 +872,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
 
   Widget _buildCreateImportToolbar(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool showImport = ImportPlatformSupport.isSupported(context);
 
     final Widget createButton = FilledButton.icon(
       onPressed: _openCreateUser,
@@ -879,22 +880,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       label: Text(mobile ? 'Create' : 'Create User'),
       style: MobileToolbarButtonStyles.filled(compact: mobile),
     );
+
+    if (!showImport) {
+      return mobile
+          ? SizedBox(width: double.infinity, child: createButton)
+          : Row(mainAxisSize: MainAxisSize.min, children: <Widget>[createButton]);
+    }
+
     final Widget importButton = OutlinedButton.icon(
       onPressed: _openImportUsers,
       icon: const Icon(AppIcons.attachments, size: 16),
-      label: Text(mobile ? 'Import' : 'Import Users'),
-      style: MobileToolbarButtonStyles.outlined(compact: mobile),
+      label: const Text('Import Users'),
+      style: MobileToolbarButtonStyles.outlined(compact: false),
     );
-
-    if (mobile) {
-      return Row(
-        children: <Widget>[
-          Expanded(child: createButton),
-          const SizedBox(width: 6),
-          Expanded(child: importButton),
-        ],
-      );
-    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,

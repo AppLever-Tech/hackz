@@ -2,7 +2,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/loading/hkz_async_loader.dart';
@@ -13,10 +12,10 @@ import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
 import '../services/import_department_lookup.dart';
 import '../services/import_handler.dart';
+import '../services/import_platform_support.dart';
 import '../services/import_registry.dart';
 import '../services/import_template_service.dart';
 import '../constants/import_constants.dart';
-import '../widgets/import_review_mobile_list.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_summary_metrics.dart';
 import '../widgets/import_supported_values_section.dart';
@@ -318,7 +317,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   Widget _buildReviewStep() {
     final ImportSummary summary = _summary ?? ImportSummary.fromRows(_rows);
-    final bool isMobile = ResponsiveHelper.isMobile(context);
     final List<ImportReviewColumn> columns = _handler.requiredHeaders
         .map((String h) => ImportReviewColumn(key: h, label: _labelFor(h)))
         .toList(growable: false);
@@ -335,10 +333,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
         ImportSummaryMetrics(summary: summary),
         const SizedBox(height: 12),
-        if (isMobile)
-          ImportReviewMobileList(rows: _rows)
-        else
-          ImportReviewTable(rows: _rows, columns: columns),
+        ImportReviewTable(rows: _rows, columns: columns),
       ],
     );
   }
@@ -435,12 +430,16 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 }
 
-/// Opens the shared CSV import workflow for [type].
+/// Opens the shared CSV import workflow for [type] (tablet and desktop/web only).
 Future<bool?> showImportWorkflow({
   required BuildContext context,
   required ImportType type,
   required ImportHandlerContext contextData,
 }) {
+  if (!ImportPlatformSupport.isSupported(context)) {
+    return Future<bool?>.value(null);
+  }
+
   final ImportHandler handler = ImportRegistry.handlerFor(type);
   return showAppDialog<bool>(
     context: context,
@@ -448,7 +447,7 @@ Future<bool?> showImportWorkflow({
     width: DialogWidthPreset.wide,
     maxWidth: 980,
     child: SizedBox(
-      height: ResponsiveHelper.isMobile(context) ? 520 : 560,
+      height: 560,
       child: ImportWorkflowDialog(handler: handler, contextData: contextData),
     ),
   );

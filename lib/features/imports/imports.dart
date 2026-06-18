@@ -10,5 +10,6 @@ export 'models/import_type.dart';
 export 'screens/import_workflow_dialog.dart';
 export 'screens/user_import_entry.dart';
 export 'services/import_handler.dart';
+export 'services/import_platform_support.dart';
 export 'services/import_registry.dart';
 export 'services/user_import_config.dart';

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
@@ -54,29 +53,12 @@ class ReferenceValuesViewerConfig {
   bool get showSearch => enableSearch && items.length > searchThreshold;
 }
 
-/// Opens reference data in a fixed-height dialog (desktop/web) or bottom sheet (mobile).
+/// Opens reference data in a fixed-height dialog (tablet and desktop/web).
 Future<void> showReferenceValuesViewer({
   required BuildContext context,
   required ReferenceValuesViewerConfig config,
 }) {
-  final bool isMobile = ResponsiveHelper.isMobile(context);
   final Widget body = ReferenceValuesViewerBody(config: config);
-
-  if (isMobile) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext sheetContext) {
-        final double height = MediaQuery.sizeOf(sheetContext).height * 0.7;
-        return SizedBox(height: height, child: body);
-      },
-    );
-  }
 
   return showAppDialog<void>(
     context: context,
@@ -87,7 +69,7 @@ Future<void> showReferenceValuesViewer({
   );
 }
 
-/// Scrollable reference list with optional search — used inside dialog or bottom sheet.
+/// Scrollable reference list with optional search — used inside the reference dialog.
 class ReferenceValuesViewerBody extends StatefulWidget {
   const ReferenceValuesViewerBody({super.key, required this.config});
 

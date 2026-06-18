@@ -243,6 +243,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
 
   Widget _buildToolbar(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool showImport = ImportPlatformSupport.isSupported(context);
 
     final Widget addButton = FilledButton.icon(
       onPressed: _addJudge,
@@ -250,12 +251,14 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       label: Text(mobile ? 'Add' : 'Add Judge'),
       style: MobileToolbarButtonStyles.filled(compact: mobile),
     );
-    final Widget importButton = OutlinedButton.icon(
-      onPressed: _importJudges,
-      icon: const Icon(AppIcons.attachments, size: 16),
-      label: Text(mobile ? 'Import' : 'Import Users'),
-      style: MobileToolbarButtonStyles.outlined(compact: mobile),
-    );
+    final Widget? importButton = showImport
+        ? OutlinedButton.icon(
+            onPressed: _importJudges,
+            icon: const Icon(AppIcons.attachments, size: 16),
+            label: const Text('Import Users'),
+            style: MobileToolbarButtonStyles.outlined(compact: false),
+          )
+        : null;
     final Widget assignmentsButton = OutlinedButton.icon(
       onPressed: _openAssignmentWorkspace,
       icon: const Icon(AppIcons.scoring, size: 16),
@@ -267,13 +270,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(child: addButton),
-              const SizedBox(width: 6),
-              Expanded(child: importButton),
-            ],
-          ),
+          SizedBox(width: double.infinity, child: addButton),
           const SizedBox(height: 6),
           SizedBox(width: double.infinity, child: assignmentsButton),
         ],
@@ -283,7 +280,11 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: <Widget>[addButton, importButton, assignmentsButton],
+      children: <Widget>[
+        addButton,
+        if (importButton != null) importButton,
+        assignmentsButton,
+      ],
     );
   }
 

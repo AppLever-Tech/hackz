@@ -22,6 +22,7 @@ import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../../imports/models/import_created_source.dart';
 import '../../../imports/screens/problems_import_entry.dart';
+import '../../../imports/services/import_platform_support.dart';
 import '../../models/problem_list_config.dart';
 import '../../models/problem_model.dart';
 import '../../models/problem_status.dart';
@@ -561,26 +562,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             style: MobileToolbarButtonStyles.filled(compact: true),
           )
         : null;
-    final Widget? importButton = widget.config.canCreate
-        ? OutlinedButton.icon(
-            onPressed: _openImportProblems,
-            icon: const Icon(Icons.upload_file_rounded, size: 16),
-            label: const Text('Import'),
-            style: MobileToolbarButtonStyles.outlined(compact: true),
-          )
-        : null;
 
-    if (createButton == null && importButton == null) return null;
+    if (createButton == null) return null;
 
-    return Row(
-      children: <Widget>[
-        if (createButton != null) ...<Widget>[
-          Expanded(child: createButton),
-          if (importButton != null) const SizedBox(width: 6),
-        ],
-        if (importButton != null) Expanded(child: importButton),
-      ],
-    );
+    return SizedBox(width: double.infinity, child: createButton);
   }
 
   Widget _buildSearchFilterBar(BuildContext context) {
@@ -605,7 +590,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           )
         : null;
 
-    final Widget? importButton = widget.config.canCreate
+    final Widget? importButton = widget.config.canCreate && ImportPlatformSupport.isSupported(context)
         ? OutlinedButton.icon(
             onPressed: _openImportProblems,
             icon: const Icon(Icons.upload_file_rounded, size: 16),
