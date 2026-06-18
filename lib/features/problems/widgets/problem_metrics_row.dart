@@ -26,7 +26,7 @@ class ProblemMetricsRow extends StatelessWidget {
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(metrics.total, 'Problems'),
         MetricKpiSegment.count(metrics.withIdeas, 'With Ideas'),
-        MetricKpiSegment.count(metrics.withoutIdeas, 'Without Ideas'),
+        MetricKpiSegment.count(metrics.withoutIdeas, 'W/O Ideas'),
         MetricKpiSegment.count(metrics.myDepartment, 'My Dept'),
       ];
 

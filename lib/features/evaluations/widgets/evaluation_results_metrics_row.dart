@@ -22,7 +22,7 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
         MetricKpiSegment.count(metrics.totalEvaluated, 'Evaluated'),
         MetricKpiSegment.count(metrics.shortlisted, 'Shortlisted'),
         MetricKpiSegment.count(metrics.rejected, 'Rejected'),
-        MetricKpiSegment.count(metrics.pendingReview, 'Pending Review'),
+        MetricKpiSegment.count(metrics.pendingReview, 'Pending'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[

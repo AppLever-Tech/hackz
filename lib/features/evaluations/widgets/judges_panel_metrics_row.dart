@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/status_styles.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../features/dashboard/deptadmin/services/department_dashboard_service.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
@@ -24,7 +25,6 @@ class JudgesPanelMetricsRow extends StatelessWidget {
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(judgeCount, 'Judges'),
-        MetricKpiSegment.count(metrics.ideasSubmitted, 'Submitted'),
         MetricKpiSegment.count(metrics.underReviewIdeas, 'Under Review'),
         MetricKpiSegment.count(metrics.evaluatedOnlyIdeas, 'Evaluated'),
         MetricKpiSegment.count(metrics.approvedIdeas, 'Approved'),
@@ -82,11 +82,15 @@ class JudgesPanelMetricsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final List<MetricKpiSegment> stripSegments = ResponsiveHelper.isMobile(context)
+        ? _stripSegments.where((MetricKpiSegment s) => s.label != 'Under Review').toList(growable: false)
+        : _stripSegments;
+
     return ResponsiveListMetrics(
       spacing: spacing,
       runSpacing: runSpacing,
       chips: _chips,
-      stripSegments: _stripSegments,
+      stripSegments: stripSegments,
     );
   }
 }

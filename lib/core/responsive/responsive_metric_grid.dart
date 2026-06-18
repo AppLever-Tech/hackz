@@ -41,9 +41,11 @@ class MetricKpiSegment {
 
 /// Compact text KPI strip for mobile list/management screens.
 ///
-/// Example: `125 Ideas • 80 Approved • 20 Pending • 10 Rejected`
+/// Renders equal-width centered columns with value and label on one line.
 abstract final class MetricKpiStripStyles {
   MetricKpiStripStyles._();
+
+  static const double segmentGap = 6;
 
   static const TextStyle value = TextStyle(
     fontSize: 18,
@@ -58,46 +60,55 @@ abstract final class MetricKpiStripStyles {
     color: Color(0xFF64748B),
     height: 1.2,
   );
-  static const TextStyle separator = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFFCBD5E1),
-    height: 1.2,
-  );
 }
 
+/// One centered KPI cell inside [ResponsiveMetricKpiStrip].
+class MetricKpiSegmentCell extends StatelessWidget {
+  const MetricKpiSegmentCell({super.key, required this.segment});
+
+  final MetricKpiSegment segment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text.rich(
+        TextSpan(
+          children: <InlineSpan>[
+            TextSpan(text: '${segment.value} ', style: MetricKpiStripStyles.value),
+            TextSpan(text: segment.label, style: MetricKpiStripStyles.label),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+}
+
+/// Horizontally centered mobile KPI strip with uniform spacing between segments.
 class ResponsiveMetricKpiStrip extends StatelessWidget {
   const ResponsiveMetricKpiStrip({
     super.key,
     required this.segments,
+    this.gap = MetricKpiStripStyles.segmentGap,
   });
 
   final List<MetricKpiSegment> segments;
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
     if (segments.isEmpty) return const SizedBox.shrink();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Text.rich(
-        TextSpan(
-          children: <InlineSpan>[
-            for (int i = 0; i < segments.length; i++) ...<InlineSpan>[
-              if (i > 0) const TextSpan(text: ' • ', style: MetricKpiStripStyles.separator),
-              TextSpan(
-                text: '${segments[i].value} ',
-                style: MetricKpiStripStyles.value,
-              ),
-              TextSpan(
-                text: segments[i].label,
-                style: MetricKpiStripStyles.label,
-              ),
-            ],
-          ],
-        ),
-        maxLines: 1,
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        for (int i = 0; i < segments.length; i++) ...<Widget>[
+          if (i > 0) SizedBox(width: gap),
+          Expanded(child: MetricKpiSegmentCell(segment: segments[i])),
+        ],
+      ],
     );
   }
 }

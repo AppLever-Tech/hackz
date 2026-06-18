@@ -171,6 +171,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          metrics,
+          const SizedBox(height: 8),
           searchBar,
           const SizedBox(height: 6),
           filters,
@@ -178,8 +180,6 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
             const SizedBox(height: 6),
             _buildActiveFiltersRow(workspace),
           ],
-          const SizedBox(height: 6),
-          metrics,
           const SizedBox(height: 6),
         ],
       );

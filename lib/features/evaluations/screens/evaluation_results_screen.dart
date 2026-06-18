@@ -340,6 +340,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          metricsRow,
+          const SizedBox(height: 8),
           readinessBanner,
           const SizedBox(height: 8),
           searchBar,
@@ -348,8 +350,6 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             const SizedBox(height: 6),
             activeFilters,
           ],
-          const SizedBox(height: 6),
-          metricsRow,
           const SizedBox(height: 6),
         ],
       );

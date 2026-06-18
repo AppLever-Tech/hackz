@@ -8,6 +8,7 @@ import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
+import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/feedback/feedback.dart';
@@ -267,14 +268,7 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
     );
 
     if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          SizedBox(width: double.infinity, child: addButton),
-          const SizedBox(height: 6),
-          SizedBox(width: double.infinity, child: assignmentsButton),
-        ],
-      );
+      return const SizedBox.shrink();
     }
 
     return Wrap(
@@ -314,21 +308,42 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         );
 
         if (mobile) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          const double fabGap = 12;
+          final double stackedFabBottom =
+              MobileCreateFabStyles.screenMargin.bottom + MobileCreateFabStyles.size + fabGap;
+          final double listBottomPadding =
+              MobileCreateFabStyles.listBottomPadding + MobileCreateFabStyles.size + fabGap;
+
+          return Stack(
             children: <Widget>[
-              _buildToolbar(context),
-              const SizedBox(height: 8),
-              metrics,
-              const SizedBox(height: 8),
-              Expanded(
-                child: data.judges.isEmpty
-                    ? const Center(child: Text('No judges assigned for this department.'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: data.judges.length,
-                        itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  metrics,
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: data.judges.isEmpty
+                        ? const Center(child: Text('No judges assigned for this department.'))
+                        : ListView.builder(
+                            padding: EdgeInsets.only(bottom: listBottomPadding),
+                            itemCount: data.judges.length,
+                            itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
+                          ),
+                  ),
+                ],
+              ),
+              MobileCreateFab(
+                onPressed: _openAssignmentWorkspace,
+                icon: AppIcons.scoring,
+                tooltip: 'Evaluation Assignments',
+                margin: EdgeInsets.only(
+                  right: MobileCreateFabStyles.screenMargin.right,
+                  bottom: stackedFabBottom,
+                ),
+              ),
+              MobileCreateFab(
+                onPressed: _addJudge,
+                tooltip: 'Add Judge',
               ),
             ],
           );

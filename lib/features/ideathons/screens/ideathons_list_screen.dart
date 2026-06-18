@@ -5,6 +5,7 @@ import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../widgets/ideathon_metrics_row.dart';
@@ -176,7 +177,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          SizedBox(width: double.infinity, child: createButton),
+          metrics,
           const SizedBox(height: 8),
           ResponsiveSearchFilterBar(
             searchController: _searchController,
@@ -193,8 +194,6 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 220),
           ),
-          const SizedBox(height: 6),
-          metrics,
           if (latest != null) ...<Widget>[
             const SizedBox(height: 8),
             Align(
@@ -282,59 +281,71 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
         final List<IdeathonListRow> rows = snapshot.data ?? const <IdeathonListRow>[];
         final IdeathonModel? latest = rows.isEmpty ? null : rows.first.ideathon;
 
-        return Padding(
-          padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (!mobile) ...<Widget>[
-                _buildTopPills(rows: rows, latest: latest),
-                const SizedBox(height: 12),
-              ],
-              _buildToolbar(context, rows: rows, latest: latest),
-              const SizedBox(height: 12),
-              Expanded(
-                child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
-                    ? const Center(child: CircularProgressIndicator())
-                    : rows.isEmpty
-                        ? const Center(child: Text('No ideathon events yet.'))
-                        : ListView.separated(
-                            itemCount: rows.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 8),
-                            itemBuilder: (BuildContext context, int index) {
-                              final row = rows[index].ideathon;
-                              return InkWell(
-                                onTap: () => _openIdeathon(row.ideathonId),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: kDashboardCardDecoration,
-                                  child: Row(
-                                    children: <Widget>[
-                                      const Icon(AppIcons.ideathons, color: Color(0xFF6A38FF)),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: <Widget>[
-                                            Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                                            Text(
-                                              '${row.ideaCount} ideas · ${formatShortDate(row.eventDate.toLocal())}',
-                                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      IdeathonStatusPill(status: row.status),
-                                    ],
-                                  ),
+        return Stack(
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  if (!mobile) ...<Widget>[
+                    _buildTopPills(rows: rows, latest: latest),
+                    const SizedBox(height: 12),
+                  ],
+                  _buildToolbar(context, rows: rows, latest: latest),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
+                        ? const Center(child: CircularProgressIndicator())
+                        : rows.isEmpty
+                            ? const Center(child: Text('No ideathon events yet.'))
+                            : ListView.separated(
+                                padding: EdgeInsets.only(
+                                  bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 0,
                                 ),
-                              );
-                            },
-                          ),
+                                itemCount: rows.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                itemBuilder: (BuildContext context, int index) {
+                                  final row = rows[index].ideathon;
+                                  return InkWell(
+                                    onTap: () => _openIdeathon(row.ideathonId),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: kDashboardCardDecoration,
+                                      child: Row(
+                                        children: <Widget>[
+                                          const Icon(AppIcons.ideathons, color: Color(0xFF6A38FF)),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: <Widget>[
+                                                Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                                Text(
+                                                  '${row.ideaCount} ideas · ${formatShortDate(row.eventDate.toLocal())}',
+                                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IdeathonStatusPill(status: row.status),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            if (mobile)
+              MobileCreateFab(
+                onPressed: () => setState(() => _showCreate = true),
+                tooltip: 'Create Ideathon',
+              ),
+          ],
         );
       },
     );

@@ -13,6 +13,7 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
+import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
@@ -841,13 +842,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Widget _buildUserList(List<UserModel> users) {
+    final double bottomPadding = ResponsiveHelper.isMobile(context)
+        ? MobileCreateFabStyles.listBottomPadding
+        : 12;
+
     if (users.isEmpty) {
       return const Center(child: Text('No users match the selected filter.'));
     }
 
     if (_filter != UsersFilter.all) {
       return ListView(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.only(bottom: bottomPadding),
         children: users.map(_userRow).toList(growable: false),
       );
     }
@@ -859,7 +864,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     final rejected = _section(users, status: UserStatus.rejected);
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: bottomPadding),
       children: <Widget>[
         _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
         _roleAccordion(title: 'Faculty', count: faculty.length, users: faculty),
@@ -871,20 +876,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Widget _buildCreateImportToolbar(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    final bool showImport = ImportPlatformSupport.isSupported(context);
+    if (ResponsiveHelper.isMobile(context)) {
+      return const SizedBox.shrink();
+    }
 
     final Widget createButton = FilledButton.icon(
       onPressed: _openCreateUser,
       icon: const Icon(AppIcons.add, size: 16),
-      label: Text(mobile ? 'Create' : 'Create User'),
-      style: MobileToolbarButtonStyles.filled(compact: mobile),
+      label: const Text('Create User'),
+      style: MobileToolbarButtonStyles.filled(compact: false),
     );
 
-    if (!showImport) {
-      return mobile
-          ? SizedBox(width: double.infinity, child: createButton)
-          : Row(mainAxisSize: MainAxisSize.min, children: <Widget>[createButton]);
+    if (!ImportPlatformSupport.isSupported(context)) {
+      return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[createButton]);
     }
 
     final Widget importButton = OutlinedButton.icon(
@@ -932,13 +936,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          _buildCreateImportToolbar(context),
+          metrics,
           const SizedBox(height: 8),
           accessCodeBar,
           const SizedBox(height: 8),
           _buildSearchToolbar(context),
-          const SizedBox(height: 6),
-          metrics,
           const SizedBox(height: 6),
         ],
       );
@@ -1003,11 +1005,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         }
 
         if (mobile) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          return Stack(
             children: <Widget>[
-              header,
-              Expanded(child: userList),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  Expanded(child: userList),
+                ],
+              ),
+              MobileCreateFab(
+                onPressed: _openCreateUser,
+                tooltip: 'Create User',
+              ),
             ],
           );
         }
