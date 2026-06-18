@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
+import '../../widgets/workspace_section_switcher.dart';
 
 /// Label for a [RichTabBar] / [RichTabs] segment.
 class RichTabItem {
@@ -28,7 +29,20 @@ class RichTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool scrollable = isScrollable || ResponsiveHelper.isMobile(context);
+    if (ResponsiveHelper.isMobile(context)) {
+      return AnimatedBuilder(
+        animation: controller,
+        builder: (BuildContext context, Widget? child) {
+          return WorkspaceSectionSwitcher(
+            titles: tabs.map(_tabTitle).toList(growable: false),
+            selectedIndex: controller.index,
+            onChanged: controller.animateTo,
+          );
+        },
+      );
+    }
+
+    final bool scrollable = isScrollable;
 
     return Container(
       decoration: BoxDecoration(
@@ -56,6 +70,11 @@ class RichTabBar extends StatelessWidget {
         tabs: tabs.map((RichTabItem tab) => _buildTab(tab, scrollable: scrollable)).toList(growable: false),
       ),
     );
+  }
+
+  static String _tabTitle(RichTabItem item) {
+    if (item.count == null) return item.label;
+    return '${item.label} (${item.count})';
   }
 
   Widget _buildTab(RichTabItem item, {required bool scrollable}) {
