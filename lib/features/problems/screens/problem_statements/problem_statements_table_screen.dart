@@ -6,6 +6,7 @@ import '../../../../core/theme/app_icons.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
+import '../../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -351,7 +352,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                   })
                 : mobile
                     ? ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
                         itemCount: problems.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (BuildContext context, int index) {
@@ -388,11 +389,25 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             }
 
             if (mobile) {
-              return Column(
+              final Widget mobileBody = Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   header,
                   Expanded(child: contentBody),
+                ],
+              );
+
+              if (!widget.config.canCreate) {
+                return mobileBody;
+              }
+
+              return Stack(
+                children: <Widget>[
+                  mobileBody,
+                  MobileCreateFab(
+                    onPressed: _openCreateProblem,
+                    tooltip: 'Create Problem',
+                  ),
                 ],
               );
             }
@@ -485,15 +500,12 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         : null;
 
     if (compact) {
-      final Widget? primaryActions = _buildPrimaryActionToolbar(context);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          if (primaryActions != null) ...<Widget>[
-            primaryActions,
-            const SizedBox(height: 8),
-          ],
+          metrics,
+          const SizedBox(height: 8),
           searchBar,
           const SizedBox(height: 6),
           filters,
@@ -501,8 +513,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             const SizedBox(height: 6),
             activeFilters,
           ],
-          const SizedBox(height: 6),
-          metrics,
           const SizedBox(height: 6),
         ],
       );
@@ -548,24 +558,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
       ),
     );
-  }
-
-  Widget? _buildPrimaryActionToolbar(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    if (!mobile) return null;
-
-    final Widget? createButton = widget.config.canCreate
-        ? FilledButton.icon(
-            onPressed: _openCreateProblem,
-            icon: const Icon(AppIcons.add, size: 16),
-            label: const Text('Create'),
-            style: MobileToolbarButtonStyles.filled(compact: true),
-          )
-        : null;
-
-    if (createButton == null) return null;
-
-    return SizedBox(width: double.infinity, child: createButton);
   }
 
   Widget _buildSearchFilterBar(BuildContext context) {

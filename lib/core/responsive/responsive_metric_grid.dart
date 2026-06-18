@@ -46,10 +46,11 @@ abstract final class MetricKpiStripStyles {
   MetricKpiStripStyles._();
 
   static const TextStyle value = TextStyle(
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: FontWeight.w900,
     color: Color(0xFF0F172A),
     height: 1.2,
+    letterSpacing: -0.2,
   );
   static const TextStyle label = TextStyle(
     fontSize: 12,
