@@ -11,6 +11,7 @@ import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_helper.dart';
+import '../../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/inputs/hackz_select_field.dart';
@@ -369,82 +370,103 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         final int deptCount = departments.length;
         final isMobile = ResponsiveHelper.isMobile(context);
 
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
+        final Widget title = Text(
+          'Departments ($deptCount)',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        );
+        final Widget addDepartmentButton = FilledButton.icon(
+          onPressed: _showAddDepartmentDialog,
+          icon: const Icon(AppIcons.add),
+          label: const Text('Add Department'),
+        );
+        final Widget departmentList = departments.isEmpty
+            ? Text(
+                'No departments available for this college.',
+                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+              )
+            : isMobile
+                ? ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: departments.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    itemBuilder: (BuildContext context, int index) {
+                      final dept = departments[index];
+                      return _DepartmentCard(
+                        department: dept,
+                        onAddAdmin: () => _openDepartmentAdminDialog(dept),
+                        onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
+                        onRemoveAdmin: (String adminUserId, String adminName) =>
+                            _removeDepartmentAdmin(
+                          dept,
+                          adminUserId: adminUserId,
+                          adminName: adminName,
+                        ),
+                        onDelete: () => _deleteDepartment(dept),
+                      );
+                    },
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: departments.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      mainAxisExtent: 148,
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      final dept = departments[index];
+                      return _DepartmentCard(
+                        department: dept,
+                        onAddAdmin: () => _openDepartmentAdminDialog(dept),
+                        onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
+                        onRemoveAdmin: (String adminUserId, String adminName) =>
+                            _removeDepartmentAdmin(
+                          dept,
+                          adminUserId: adminUserId,
+                          adminName: adminName,
+                        ),
+                        onDelete: () => _deleteDepartment(dept),
+                      );
+                    },
+                  );
+
+        final Widget body = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (isMobile)
+              title
+            else
               ResponsiveWrapToolbar(
                 alignment: WrapAlignment.spaceBetween,
                 children: <Widget>[
-                  Text(
-                    'Departments ($deptCount)',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                  FilledButton.icon(
-                    onPressed: _showAddDepartmentDialog,
-                    icon: const Icon(AppIcons.add),
-                    label: const Text('Add Department'),
-                  ),
+                  title,
+                  addDepartmentButton,
                 ],
               ),
-              const SizedBox(height: 12),
-              if (departments.isEmpty)
-                Text(
-                  'No departments available for this college.',
-                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                )
-              else if (isMobile)
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: departments.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (BuildContext context, int index) {
-                    final dept = departments[index];
-                    return _DepartmentCard(
-                      department: dept,
-                      onAddAdmin: () => _openDepartmentAdminDialog(dept),
-                      onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
-                      onRemoveAdmin: (String adminUserId, String adminName) =>
-                          _removeDepartmentAdmin(
-                        dept,
-                        adminUserId: adminUserId,
-                        adminName: adminName,
-                      ),
-                      onDelete: () => _deleteDepartment(dept),
-                    );
-                  },
-                )
-              else
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: departments.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    mainAxisExtent: 148,
-                  ),
-                  itemBuilder: (BuildContext context, int index) {
-                    final dept = departments[index];
-                    return _DepartmentCard(
-                      department: dept,
-                      onAddAdmin: () => _openDepartmentAdminDialog(dept),
-                      onEditAdmin: (UserModel adminUser) => _openEditDepartmentAdmin(dept, adminUser),
-                      onRemoveAdmin: (String adminUserId, String adminName) =>
-                          _removeDepartmentAdmin(
-                        dept,
-                        adminUserId: adminUserId,
-                        adminName: adminName,
-                      ),
-                      onDelete: () => _deleteDepartment(dept),
-                    );
-                  },
-                ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            departmentList,
+          ],
         );
+
+        if (isMobile) {
+          return Stack(
+            children: <Widget>[
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
+                child: body,
+              ),
+              MobileCreateFab(
+                onPressed: _showAddDepartmentDialog,
+                tooltip: 'Add Department',
+              ),
+            ],
+          );
+        }
+
+        return SingleChildScrollView(child: body);
       },
     );
   }
