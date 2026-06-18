@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../core/workspace/workspace_attachments_panel.dart';
 import '../../workspace/problem_metadata_section.dart';
 import '../../workspace/problem_summary_section.dart';
@@ -15,34 +14,20 @@ class ProblemDetailsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      padding: const EdgeInsets.only(bottom: 20),
       children: <Widget>[
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: kDashboardCardDecoration,
-          child: ProblemSummarySection(
-            vm: vm,
-            showMetaChips: false,
-            prominentDescription: true,
-          ),
+        ProblemSummarySection(
+          vm: vm,
+          showMetaChips: false,
+          prominentDescription: true,
+          stackContextFieldLabels: true,
         ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: kDashboardCardDecoration,
-          child: ProblemMetadataSection(vm: vm),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: kDashboardCardDecoration,
-          child: WorkspaceAttachmentsPanel(
-            attachments: vm.attachments,
-            emptyMessage: 'No attachments uploaded for this problem statement.',
-          ),
+        const SizedBox(height: 16),
+        ProblemMetadataSection(vm: vm),
+        const SizedBox(height: 16),
+        WorkspaceAttachmentsPanel(
+          attachments: vm.attachments,
+          emptyMessage: 'No attachments uploaded for this problem statement.',
         ),
       ],
     );

@@ -32,6 +32,7 @@ class ProblemSummarySection extends StatefulWidget {
     this.showMetaChips = true,
     this.prominentDescription = false,
     this.workspaceSectionsOnly = false,
+    this.stackContextFieldLabels = false,
   });
 
   final ProblemWorkspaceViewModel vm;
@@ -41,6 +42,9 @@ class ProblemSummarySection extends StatefulWidget {
   /// When true (problem workspace), only the Description card is shown and
   /// its header is collapsible. Elsewhere the description stays always open.
   final bool workspaceSectionsOnly;
+
+  /// Stacks field labels above values for Innovation Context and Expected Outcomes.
+  final bool stackContextFieldLabels;
 
   @override
   State<ProblemSummarySection> createState() => _ProblemSummarySectionState();
@@ -82,6 +86,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
     // skipped entirely (no empty cards rendered for problems that haven't
     // been fully authored).
     final bool workspaceOnly = widget.workspaceSectionsOnly;
+    final bool stackContextFields = widget.stackContextFieldLabels;
     final bool hasInnovation = !workspaceOnly &&
         (p.background.trim().isNotEmpty ||
         p.impact.trim().isNotEmpty ||
@@ -171,14 +176,26 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _DetailValueBlock(label: 'Background', value: p.background),
                 _DetailValueBlock(
-                    label: 'Why this needs to be solved / Impact', value: p.impact),
+                  label: 'Background',
+                  value: p.background,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Stakeholders / Beneficiaries', value: p.stakeholders),
+                  label: 'Why this needs to be solved / Impact',
+                  value: p.impact,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Supporting data / Research context',
-                    value: p.researchContext),
+                  label: 'Stakeholders / Beneficiaries',
+                  value: p.stakeholders,
+                  stacked: stackContextFields,
+                ),
+                _DetailValueBlock(
+                  label: 'Supporting data / Research context',
+                  value: p.researchContext,
+                  stacked: stackContextFields,
+                ),
               ],
             ),
           ),
@@ -198,15 +215,26 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _DetailValueBlock(
-                    label: 'Expected solution direction', value: p.expectedSolution),
+                  label: 'Expected solution direction',
+                  value: p.expectedSolution,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Success criteria', value: p.successCriteria),
+                  label: 'Success criteria',
+                  value: p.successCriteria,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Expected deliverables', value: p.expectedDeliverables),
+                  label: 'Expected deliverables',
+                  value: p.expectedDeliverables,
+                  stacked: stackContextFields,
+                ),
                 if (p.suggestedTechnologies.isNotEmpty)
                   _DetailChipBlock(
-                      label: 'Suggested technologies',
-                      values: p.suggestedTechnologies),
+                    label: 'Suggested technologies',
+                    values: p.suggestedTechnologies,
+                    prominentLabel: stackContextFields,
+                  ),
               ],
             ),
           ),
@@ -476,15 +504,58 @@ class _DetailCategoryField extends StatelessWidget {
 /// Empty values short-circuit to `SizedBox.shrink` so the caller doesn't
 /// need to gate each row.
 class _DetailValueBlock extends StatelessWidget {
-  const _DetailValueBlock({required this.label, required this.value});
+  const _DetailValueBlock({
+    required this.label,
+    required this.value,
+    this.stacked = false,
+  });
 
   final String label;
   final String value;
+  final bool stacked;
+
+  static const TextStyle _inlineLabelStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: Color(0xFF64748B),
+    letterSpacing: 0.3,
+    height: 1.2,
+  );
+
+  static const TextStyle _stackedLabelStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    color: Color(0xFF334155),
+    letterSpacing: 0.2,
+    height: 1.25,
+  );
+
+  static const TextStyle _valueStyle = TextStyle(
+    fontSize: 13,
+    color: Color(0xFF1E293B),
+    height: 1.45,
+    fontWeight: FontWeight.w500,
+  );
 
   @override
   Widget build(BuildContext context) {
     final String trimmed = value.trim();
     if (trimmed.isEmpty) return const SizedBox.shrink();
+
+    if (stacked) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(label, style: _stackedLabelStyle),
+            const SizedBox(height: 5),
+            Text(trimmed, softWrap: true, style: _valueStyle),
+          ],
+        ),
+      );
+    }
+
     final bool compact = MediaQuery.sizeOf(context).width < 900;
     final double labelWidth = compact ? 170 : 220;
 
@@ -495,29 +566,11 @@ class _DetailValueBlock extends StatelessWidget {
         children: <Widget>[
           SizedBox(
             width: labelWidth,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF64748B),
-                letterSpacing: 0.3,
-                height: 1.2,
-              ),
-            ),
+            child: Text(label, style: _inlineLabelStyle),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              trimmed,
-              softWrap: true,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF1E293B),
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(trimmed, softWrap: true, style: _valueStyle),
           ),
         ],
       ),
@@ -528,30 +581,35 @@ class _DetailValueBlock extends StatelessWidget {
 /// Label + wrapped chip row used for chip-list fields (suggested technologies,
 /// preferred tech stack, tags, reference links).
 class _DetailChipBlock extends StatelessWidget {
-  const _DetailChipBlock({required this.label, required this.values});
+  const _DetailChipBlock({
+    required this.label,
+    required this.values,
+    this.prominentLabel = false,
+  });
 
   final String label;
   final List<String> values;
+  final bool prominentLabel;
 
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: prominentLabel ? 14 : 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
+            style: TextStyle(
+              fontSize: prominentLabel ? 12 : 11,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.3,
-              height: 1.2,
+              color: prominentLabel ? const Color(0xFF334155) : const Color(0xFF64748B),
+              letterSpacing: prominentLabel ? 0.2 : 0.3,
+              height: prominentLabel ? 1.25 : 1.2,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: prominentLabel ? 5 : 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,

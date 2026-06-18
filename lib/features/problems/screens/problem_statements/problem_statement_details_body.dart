@@ -59,9 +59,7 @@ class ProblemStatementDetailsBody extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: RichTabs(
+          child: RichTabs(
               tabs: <RichTabItem>[
                 const RichTabItem('Problem Details'),
                 RichTabItem('Submitted Ideas', count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length),
@@ -73,7 +71,6 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                 LifecycleTab(vm: vm),
               ],
             ),
-          ),
         ),
       ],
     );

@@ -51,9 +51,7 @@ class IdeaDetailsBody extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: RichTabs(
+          child: RichTabs(
               tabs: const <RichTabItem>[
                 RichTabItem('Idea Details'),
                 RichTabItem('Problem Details'),
@@ -65,7 +63,6 @@ class IdeaDetailsBody extends StatelessWidget {
                 IdeaLifecycleTab(vm: vm.ideaVm),
               ],
             ),
-          ),
         ),
       ],
     );

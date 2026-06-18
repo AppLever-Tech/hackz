@@ -124,13 +124,16 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               completionPercent: vm.completionPercent,
             ),
             SizedBox(height: sectionGap),
-            RichTabBar(
-              controller: _tabs,
-              tabs: const <RichTabItem>[
-                RichTabItem('Pending review'),
-                RichTabItem('Evaluated'),
-                RichTabItem('Feedback'),
-              ],
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: RichTabBar.horizontalInset(context)),
+              child: RichTabBar(
+                controller: _tabs,
+                tabs: const <RichTabItem>[
+                  RichTabItem('Pending review'),
+                  RichTabItem('Evaluated'),
+                  RichTabItem('Feedback'),
+                ],
+              ),
             ),
             SizedBox(height: sectionGap),
             Expanded(child: _buildTabLists(vm)),

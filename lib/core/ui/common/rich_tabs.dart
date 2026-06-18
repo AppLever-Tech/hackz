@@ -27,47 +27,58 @@ class RichTabBar extends StatelessWidget {
   final List<RichTabItem> tabs;
   final bool isScrollable;
 
+  /// Minimal horizontal inset for tab navigation. Mobile uses full width.
+  static double horizontalInset(BuildContext context) {
+    return ResponsiveHelper.isMobile(context) ? 0 : 4;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (ResponsiveHelper.isMobile(context)) {
-      return AnimatedBuilder(
-        animation: controller,
-        builder: (BuildContext context, Widget? child) {
-          return WorkspaceSectionSwitcher(
-            titles: tabs.map(_tabTitle).toList(growable: false),
-            selectedIndex: controller.index,
-            onChanged: controller.animateTo,
-          );
-        },
+      return SizedBox(
+        width: double.infinity,
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (BuildContext context, Widget? child) {
+            return WorkspaceSectionSwitcher(
+              titles: tabs.map(_tabTitle).toList(growable: false),
+              selectedIndex: controller.index,
+              onChanged: controller.animateTo,
+            );
+          },
+        ),
       );
     }
 
     final bool scrollable = isScrollable;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: TabBar(
-        controller: controller,
-        isScrollable: scrollable,
-        tabAlignment: scrollable ? TabAlignment.start : TabAlignment.fill,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        indicator: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: <BoxShadow>[
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
-          ],
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: const Color(0xFF0F172A),
-        unselectedLabelColor: const Color(0xFF64748B),
-        tabs: tabs.map((RichTabItem tab) => _buildTab(tab, scrollable: scrollable)).toList(growable: false),
+        padding: const EdgeInsets.all(4),
+        child: TabBar(
+          controller: controller,
+          isScrollable: scrollable,
+          tabAlignment: scrollable ? TabAlignment.start : TabAlignment.fill,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          indicator: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: <BoxShadow>[
+              BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
+          ),
+          indicatorSize: TabBarIndicatorSize.tab,
+          dividerColor: Colors.transparent,
+          labelColor: const Color(0xFF0F172A),
+          unselectedLabelColor: const Color(0xFF64748B),
+          tabs: tabs.map((RichTabItem tab) => _buildTab(tab, scrollable: scrollable)).toList(growable: false),
+        ),
       ),
     );
   }
@@ -140,6 +151,7 @@ class RichTabs extends StatefulWidget {
     this.spacingAfterBar = 12,
     this.fitBodyHeight = false,
     this.bodyHeight = 400,
+    this.padding,
   }) : assert(tabs.length > 0),
        assert(children.length == tabs.length);
 
@@ -150,9 +162,17 @@ class RichTabs extends StatefulWidget {
   final bool isScrollable;
   final double spacingAfterBar;
 
+  /// When null, uses [RichTabs.resolvePadding] (full width on mobile).
+  final EdgeInsetsGeometry? padding;
+
   /// When true, body is a fixed [SizedBox] instead of [Expanded] (e.g. leaderboard).
   final bool fitBodyHeight;
   final double bodyHeight;
+
+  static EdgeInsets resolvePadding(BuildContext context) {
+    final double horizontal = RichTabBar.horizontalInset(context);
+    return EdgeInsets.fromLTRB(horizontal, 10, horizontal, 12);
+  }
 
   @override
   State<RichTabs> createState() => _RichTabsState();
@@ -193,16 +213,19 @@ class _RichTabsState extends State<RichTabs> with SingleTickerProviderStateMixin
       children: widget.children,
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        RichTabBar(controller: _controller, tabs: widget.tabs, isScrollable: widget.isScrollable),
-        SizedBox(height: widget.spacingAfterBar),
-        if (widget.fitBodyHeight)
-          SizedBox(height: widget.bodyHeight, child: body)
-        else
-          Expanded(child: body),
-      ],
+    return Padding(
+      padding: widget.padding ?? RichTabs.resolvePadding(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          RichTabBar(controller: _controller, tabs: widget.tabs, isScrollable: widget.isScrollable),
+          SizedBox(height: widget.spacingAfterBar),
+          if (widget.fitBodyHeight)
+            SizedBox(height: widget.bodyHeight, child: body)
+          else
+            Expanded(child: body),
+        ],
+      ),
     );
   }
 }
