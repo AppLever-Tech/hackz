@@ -236,7 +236,9 @@ class DepartmentDashboardService {
     final int pendingSubmissionIdeas = ideaStatuses.where((s) => s == IdeaStatus.draft).length;
     final int underReviewIdeas = ideaStatuses.where((s) => s == IdeaStatus.underEvaluation).length;
     final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted || s == IdeaStatus.underEvaluation).length;
-    final int evaluatedOnlyIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated).length;
+    final int evaluatedOnlyIdeas = ideaStatuses
+        .where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.readyForShortlisting)
+        .length;
     final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.shortlisted).length;
     final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.shortlisted).length;
     final int rejectedIdeas = ideaStatuses.where((s) => s == IdeaStatus.rejected).length;

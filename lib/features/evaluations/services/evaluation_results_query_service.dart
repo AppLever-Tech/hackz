@@ -8,6 +8,8 @@ import '../../problems/models/problem_model.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import 'evaluation_ranking_service.dart';
+import 'evaluation_settings_service.dart';
+import '../../org_settings/services/org_settings_service.dart';
 
 /// Filters for the Evaluation Results workspace.
 class EvaluationResultsQueryParams {
@@ -33,22 +35,22 @@ class EvaluationResultsQueryParams {
 class EvaluationResultsMetrics {
   const EvaluationResultsMetrics({
     required this.totalEvaluated,
+    required this.readyForShortlisting,
     required this.shortlisted,
     required this.rejected,
-    required this.pendingReview,
   });
 
   static const EvaluationResultsMetrics empty = EvaluationResultsMetrics(
     totalEvaluated: 0,
+    readyForShortlisting: 0,
     shortlisted: 0,
     rejected: 0,
-    pendingReview: 0,
   );
 
   final int totalEvaluated;
+  final int readyForShortlisting;
   final int shortlisted;
   final int rejected;
-  final int pendingReview;
 }
 
 class EvaluationResultsQueryResult {
@@ -75,6 +77,7 @@ abstract final class EvaluationResultsQueryService {
 
   static const Set<IdeaStatus> _reviewStatuses = <IdeaStatus>{
     IdeaStatus.evaluated,
+    IdeaStatus.readyForShortlisting,
     IdeaStatus.shortlisted,
     IdeaStatus.rejected,
   };
@@ -139,6 +142,11 @@ abstract final class EvaluationResultsQueryService {
       if (dep.isNotEmpty) departments.add(dep);
     }
 
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
+    final bool recommendationEnabled = EvaluationSettingsService.enableRecommendationEngine(orgId);
+    final double recommendationThreshold = EvaluationSettingsService.recommendationThresholdPercent(orgId);
+    final int scoringScale = EvaluationSettingsService.defaultScoringScale();
+
     final EvaluationResultsMetrics metrics = _computeMetrics(ideas);
 
     ideas = _applyFilters(
@@ -150,6 +158,9 @@ abstract final class EvaluationResultsQueryService {
     final List<EvaluationResultsRow> ranked = EvaluationRankingService.buildRankedRows(
       ideas: ideas,
       problems: problems,
+      recommendationEnabled: recommendationEnabled,
+      recommendationThreshold: recommendationThreshold,
+      scoringScale: scoringScale,
     );
 
     return EvaluationResultsQueryResult(
@@ -164,10 +175,17 @@ abstract final class EvaluationResultsQueryService {
   static EvaluationResultsMetrics _computeMetrics(List<IdeaModel> ideas) {
     if (ideas.isEmpty) return EvaluationResultsMetrics.empty;
     return EvaluationResultsMetrics(
-      totalEvaluated: ideas.where((IdeaModel i) => i.status == IdeaStatus.evaluated || i.hasEvaluationAggregate).length,
+      totalEvaluated: ideas
+          .where(
+            (IdeaModel i) =>
+                i.status == IdeaStatus.evaluated ||
+                i.status == IdeaStatus.readyForShortlisting ||
+                i.hasEvaluationAggregate,
+          )
+          .length,
+      readyForShortlisting: ideas.where((IdeaModel i) => i.status == IdeaStatus.readyForShortlisting).length,
       shortlisted: ideas.where((IdeaModel i) => i.status == IdeaStatus.shortlisted).length,
       rejected: ideas.where((IdeaModel i) => i.status == IdeaStatus.rejected).length,
-      pendingReview: ideas.where((IdeaModel i) => i.status == IdeaStatus.evaluated).length,
     );
   }
 

@@ -3,22 +3,26 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../utils/common_helpers.dart';
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/idea_shortlisting_service.dart';
+import 'evaluation_recommendation_pill.dart';
 
-/// Department-admin shortlist / reject actions for an evaluated idea.
+/// Department-admin shortlist / reject actions for ideas ready for shortlisting.
 class EvaluationShortlistingSection extends StatefulWidget {
   const EvaluationShortlistingSection({
     super.key,
     required this.vm,
+    required this.shortlistedByUserId,
     required this.onUpdated,
     this.alwaysShowRankStatus = false,
   });
 
   final EvaluationDetailsViewModel vm;
+  final String shortlistedByUserId;
   final VoidCallback onUpdated;
   /// When true, rank and status chips render even if [EvaluationDetailsViewModel.canShortlist] is false.
   final bool alwaysShowRankStatus;
@@ -33,7 +37,10 @@ class _EvaluationShortlistingSectionState extends State<EvaluationShortlistingSe
   Future<void> _shortlist() async {
     if (_saving) return;
     setState(() => _saving = true);
-    await IdeaShortlistingService.shortlistIdea(widget.vm.ideaId);
+    await IdeaShortlistingService.shortlistIdea(
+      widget.vm.ideaId,
+      shortlistedBy: widget.shortlistedByUserId,
+    );
     if (!mounted) return;
     setState(() => _saving = false);
     widget.onUpdated();
@@ -60,16 +67,19 @@ class _EvaluationShortlistingSectionState extends State<EvaluationShortlistingSe
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.vm.canShortlist && !widget.alwaysShowRankStatus) {
+    if (!widget.vm.canShortlist &&
+        !widget.alwaysShowRankStatus &&
+        !IdeaStatusHelpers.isPostEvaluationReview(widget.vm.status)) {
       return const SizedBox.shrink();
     }
 
     final IdeaStatus status = widget.vm.status;
     final Color statusColor = IdeaStatusHelpers.color(status);
-    final bool canAct = widget.vm.canShortlist && status == IdeaStatus.evaluated;
+    final bool canAct = widget.vm.canShortlist && IdeaStatusHelpers.canShortlistFrom(status);
     final String? rankLabel = widget.vm.evaluationRank != null && widget.vm.evaluationRank! > 0
         ? '#${widget.vm.evaluationRank}'
         : null;
+    final idea = widget.vm.idea;
 
     return Container(
       width: double.infinity,
@@ -91,8 +101,25 @@ class _EvaluationShortlistingSectionState extends State<EvaluationShortlistingSe
               if (rankLabel != null)
                 _infoChip('Rank', rankLabel, const Color(0xFFD97706)),
               _infoChip('Status', widget.vm.statusLabel, statusColor),
+              if (widget.vm.recommendation != null)
+                EvaluationRecommendationPill(level: widget.vm.recommendation!),
             ],
           ),
+          if (idea.shortlistedAt != null) ...<Widget>[
+            const SizedBox(height: 10),
+            Text(
+              'Shortlisted ${formatDateTime(idea.shortlistedAt!)}'
+              '${idea.shortlistedBy.trim().isNotEmpty ? ' · by ${idea.shortlistedBy.trim()}' : ''}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            ),
+            if (idea.shortlistRemarks.trim().isNotEmpty) ...<Widget>[
+              const SizedBox(height: 4),
+              Text(
+                idea.shortlistRemarks.trim(),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
+              ),
+            ],
+          ],
           if (canAct) ...<Widget>[
             const SizedBox(height: 12),
             Wrap(

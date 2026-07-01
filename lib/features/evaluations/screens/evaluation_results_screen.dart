@@ -47,6 +47,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
   Set<String> _departmentFilters = <String>{};
   Set<String> _categoryFilters = <String>{};
+  final Set<String> _selectedIdeaIds = <String>{};
   String? _activeSortKey;
   bool _sortDescending = true;
   @override
@@ -88,14 +89,54 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     });
   }
 
-  Future<void> _shortlist(EvaluationResultsRow row) async {
+  Future<void> _shortlist(EvaluationResultsRow row, {String? remarks}) async {
     if (_saving) return;
     setState(() => _saving = true);
-    await IdeaShortlistingService.shortlistIdea(row.idea.ideaId);
+    await IdeaShortlistingService.shortlistIdea(
+      row.idea.ideaId,
+      shortlistedBy: widget.user.userId,
+      remarks: remarks,
+    );
     if (!mounted) return;
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      _selectedIdeaIds.remove(row.idea.ideaId);
+    });
     _load();
     FeedbackService.showSuccess(context, title: 'Shortlisted', message: 'Idea moved to shortlisted.');
+  }
+
+  Future<void> _shortlistSelected() async {
+    if (_saving || _selectedIdeaIds.isEmpty) return;
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Shortlist selected ideas?',
+      message: 'Shortlist ${_selectedIdeaIds.length} idea${_selectedIdeaIds.length == 1 ? '' : 's'}?',
+      confirmLabel: 'Shortlist',
+    );
+    if (!ok || !mounted) return;
+    setState(() => _saving = true);
+    await IdeaShortlistingService.shortlistMany(
+      _selectedIdeaIds,
+      shortlistedBy: widget.user.userId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _selectedIdeaIds.clear();
+    });
+    _load();
+    FeedbackService.showSuccess(context, title: 'Shortlisted', message: 'Selected ideas moved to shortlisted.');
+  }
+
+  void _toggleSelection(EvaluationResultsRow row, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedIdeaIds.add(row.idea.ideaId);
+      } else {
+        _selectedIdeaIds.remove(row.idea.ideaId);
+      }
+    });
   }
 
   Future<void> _openCreateIdeathon(BuildContext context) async {
@@ -160,7 +201,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);
     if (idx >= 0) return idx;
     if (status == IdeaStatus.rejected) {
-      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.evaluated) + 1;
+      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.readyForShortlisting) + 1;
     }
     return 999;
   }
@@ -183,8 +224,31 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
         ideaId: row.idea.ideaId,
         viewer: widget.user,
       ),
-      onShortlist: _shortlist,
+      onShortlist: (EvaluationResultsRow row) => _shortlist(row),
       onReject: _reject,
+      selectedIdeaIds: _selectedIdeaIds,
+      onToggleSelection: _toggleSelection,
+    );
+  }
+
+  Widget _buildSelectionToolbar() {
+    if (_selectedIdeaIds.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: <Widget>[
+          FilledButton.icon(
+            onPressed: _saving ? null : _shortlistSelected,
+            icon: const Icon(AppIcons.statusShortlisted, size: 18),
+            label: Text('Shortlist Selected (${_selectedIdeaIds.length})'),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: _saving ? null : () => setState(_selectedIdeaIds.clear),
+            child: const Text('Clear selection'),
+          ),
+        ],
+      ),
     );
   }
   @override
@@ -254,6 +318,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       header,
+                      _buildSelectionToolbar(),
                       SizedBox(height: mobile ? 560 : 420, child: content),
                     ],
                   );
@@ -264,6 +329,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       header,
+                      _buildSelectionToolbar(),
                       Expanded(child: content),
                     ],
                   );
@@ -273,6 +339,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     header,
+                    _buildSelectionToolbar(),
                     Expanded(child: content),
                   ],
                 );
@@ -400,6 +467,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             runSpacing: chipGap,
             children: <Widget>[
               for (final IdeaStatus status in <IdeaStatus>[
+                IdeaStatus.readyForShortlisting,
                 IdeaStatus.evaluated,
                 IdeaStatus.shortlisted,
                 IdeaStatus.rejected,

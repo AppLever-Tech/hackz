@@ -13,6 +13,7 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.submitted => 'Submitted',
       IdeaStatus.underEvaluation => 'Under Evaluation',
       IdeaStatus.evaluated => 'Evaluated',
+      IdeaStatus.readyForShortlisting => 'Ready for Shortlisting',
       IdeaStatus.shortlisted => 'Shortlisted',
       IdeaStatus.ideathonAssigned => 'Ideathon Assigned',
       IdeaStatus.ideathonEvaluated => 'Ideathon Evaluated',
@@ -29,6 +30,7 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.submitted => const Color(0xFF9E9E9E),
       IdeaStatus.underEvaluation => const Color(0xFF1E88E5),
       IdeaStatus.evaluated => const Color(0xFF7B1FA2),
+      IdeaStatus.readyForShortlisting => const Color(0xFF0D9488),
       IdeaStatus.shortlisted => const Color(0xFF2E7D32),
       IdeaStatus.ideathonAssigned => const Color(0xFF0EA5E9),
       IdeaStatus.ideathonEvaluated => const Color(0xFF6366F1),
@@ -47,13 +49,14 @@ abstract final class IdeaStatusHelpers {
 
   static bool isPostEvaluationReview(IdeaStatus status) {
     return status == IdeaStatus.evaluated ||
+        status == IdeaStatus.readyForShortlisting ||
         status == IdeaStatus.shortlisted ||
         status == IdeaStatus.rejected;
   }
 
-  static bool canShortlistFrom(IdeaStatus status) => status == IdeaStatus.evaluated;
+  static bool canShortlistFrom(IdeaStatus status) => status == IdeaStatus.readyForShortlisting;
 
-  static bool canRejectFrom(IdeaStatus status) => status == IdeaStatus.evaluated;
+  static bool canRejectFrom(IdeaStatus status) => status == IdeaStatus.readyForShortlisting;
 
   static bool canSelectPrototypeFrom(IdeaStatus status) =>
       status == IdeaStatus.ideathonEvaluated || status == IdeaStatus.prototypeSelected;
@@ -62,7 +65,7 @@ abstract final class IdeaStatusHelpers {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);
     if (idx >= 0) return idx;
     if (status == IdeaStatus.rejected) {
-      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.evaluated);
+      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.readyForShortlisting);
     }
     return -1;
   }
@@ -75,7 +78,7 @@ abstract final class IdeaStatusHelpers {
   }
 
   static bool isLifecycleCurrent(IdeaStatus status, IdeaStatus stage) {
-    if (status == IdeaStatus.rejected && stage == IdeaStatus.evaluated) return true;
+    if (status == IdeaStatus.rejected && stage == IdeaStatus.readyForShortlisting) return true;
     return status == stage;
   }
 }

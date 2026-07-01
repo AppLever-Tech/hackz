@@ -49,6 +49,7 @@ class LeaderboardRankingEngine {
       IdeaStatus.submitted => 0.72,
       IdeaStatus.underEvaluation => 0.82,
       IdeaStatus.evaluated => 0.92,
+      IdeaStatus.readyForShortlisting => 0.94,
       IdeaStatus.shortlisted => 1.0,
       IdeaStatus.rejected => 1.0,
       IdeaStatus.ideathonAssigned => 0.95,

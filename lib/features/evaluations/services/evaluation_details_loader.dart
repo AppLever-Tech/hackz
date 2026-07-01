@@ -14,6 +14,8 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_templates_service.dart';
+import '../services/evaluation_recommendation_service.dart';
+import '../services/evaluation_settings_service.dart';
 
 /// Loads evaluation-centric context for [EvaluationDetailsWorkspace].
 ///
@@ -144,7 +146,11 @@ abstract final class EvaluationDetailsLoader {
     final String departmentName = DepartmentModel.byCode(idea.problemDepartmentCode)?.name ??
         (deptCode.isEmpty ? '—' : deptCode);
 
-    final bool canShortlist = viewer != null && UserRole.fromCode(viewer.role) == UserRole.departmentAdmin;
+    final bool canShortlist =
+        viewer != null && UserRole.fromCode(viewer.role) == UserRole.departmentAdmin;
+
+    final bool recommendationEnabled = EvaluationSettingsService.enableRecommendationEngine(orgId);
+    final double recommendationThreshold = EvaluationSettingsService.recommendationThresholdPercent(orgId);
 
     return EvaluationDetailsViewModel(
       ideaId: id,
@@ -164,6 +170,12 @@ abstract final class EvaluationDetailsLoader {
       judgeDetails: judgeDetails,
       scoringScale: scoringScale,
       canShortlist: canShortlist,
+      recommendation: EvaluationRecommendationService.compute(
+        enabled: recommendationEnabled,
+        averageScore: idea.averageScore,
+        scoringScale: scoringScale,
+        thresholdPercent: recommendationThreshold,
+      ),
     );
   }
 

@@ -7,17 +7,24 @@ import '../../idea/services/idea_status_helpers.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../../core/ui/data_view/data_table_column.dart';
 import '../services/evaluation_ranking_service.dart';
+import 'evaluation_recommendation_pill.dart';
 
 class EvaluationResultsTableActions {
   const EvaluationResultsTableActions({
     required this.onOpenIdea,
     required this.onShortlist,
     required this.onReject,
+    this.selectedIdeaIds,
+    this.onToggleSelection,
   });
 
   final void Function(EvaluationResultsRow row) onOpenIdea;
   final void Function(EvaluationResultsRow row) onShortlist;
   final void Function(EvaluationResultsRow row) onReject;
+  final Set<String>? selectedIdeaIds;
+  final void Function(EvaluationResultsRow row, bool selected)? onToggleSelection;
+
+  bool get selectionEnabled => selectedIdeaIds != null && onToggleSelection != null;
 }
 
 abstract final class EvaluationResultsTableColumns {
@@ -26,7 +33,24 @@ abstract final class EvaluationResultsTableColumns {
   static List<DataTableColumn<EvaluationResultsRow>> build({
     required EvaluationResultsTableActions actions,
   }) {
-    return <DataTableColumn<EvaluationResultsRow>>[
+    final List<DataTableColumn<EvaluationResultsRow>> columns = <DataTableColumn<EvaluationResultsRow>>[];
+
+    if (actions.selectionEnabled) {
+      columns.add(
+        DataTableColumn<EvaluationResultsRow>(
+          label: '',
+          flex: 0,
+          minWidth: 44,
+          align: Alignment.center,
+          cell: (BuildContext context, EvaluationResultsRow row) => _SelectionCell(
+            row: row,
+            actions: actions,
+          ),
+        ),
+      );
+    }
+
+    columns.addAll(<DataTableColumn<EvaluationResultsRow>>[
       DataTableColumn<EvaluationResultsRow>(
         label: 'Rank',
         flex: 1,
@@ -112,9 +136,20 @@ abstract final class EvaluationResultsTableColumns {
         ),
       ),
       DataTableColumn<EvaluationResultsRow>(
+        label: 'Recommendation',
+        flex: 2,
+        minWidth: 130,
+        align: Alignment.center,
+        cell: (_, EvaluationResultsRow row) => Center(
+          child: row.recommendation == null
+              ? const Text('—', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)))
+              : EvaluationRecommendationPill(level: row.recommendation!),
+        ),
+      ),
+      DataTableColumn<EvaluationResultsRow>(
         label: 'Status',
         flex: 2,
-        minWidth: 110,
+        minWidth: 130,
         align: Alignment.center,
         sortKey: 'status',
         cell: (_, EvaluationResultsRow row) => Center(
@@ -131,7 +166,31 @@ abstract final class EvaluationResultsTableColumns {
           actions: actions,
         ),
       ),
-    ];
+    ]);
+
+    return columns;
+  }
+}
+
+class _SelectionCell extends StatelessWidget {
+  const _SelectionCell({
+    required this.row,
+    required this.actions,
+  });
+
+  final EvaluationResultsRow row;
+  final EvaluationResultsTableActions actions;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!row.canShortlist) return const SizedBox(width: 44);
+    final bool selected = actions.selectedIdeaIds!.contains(row.idea.ideaId);
+    return Checkbox(
+      value: selected,
+      onChanged: (bool? value) => actions.onToggleSelection!(row, value ?? false),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
   }
 }
 
@@ -149,8 +208,10 @@ class EvaluationResultsRowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String title = row.idea.ideaTitle.trim().isEmpty ? row.idea.ideaId : row.idea.ideaTitle.trim();
-    final bool canAct = row.idea.status == IdeaStatus.evaluated;
+    final bool canAct = row.canShortlist;
     final Color statusColor = IdeaStatusHelpers.color(row.idea.status);
+    final bool selectionEnabled = actions.selectionEnabled;
+    final bool selected = selectionEnabled && actions.selectedIdeaIds!.contains(row.idea.ideaId);
 
     return Container(
       width: double.infinity,
@@ -162,6 +223,16 @@ class EvaluationResultsRowCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              if (selectionEnabled && row.canShortlist)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4, top: 2),
+                  child: Checkbox(
+                    value: selected,
+                    onChanged: (bool? value) => actions.onToggleSelection!(row, value ?? false),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
               Container(
                 width: 36,
                 height: 36,
@@ -212,6 +283,7 @@ class EvaluationResultsRowCard extends StatelessWidget {
               _MetricChip(label: 'High', value: row.aggregate.highestScore),
               _MetricChip(label: 'Low', value: row.aggregate.lowestScore),
               _MetricChip(label: 'Judges', value: row.aggregate.totalEvaluators.toDouble(), isCount: true),
+              if (row.recommendation != null) EvaluationRecommendationPill(level: row.recommendation!),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -371,7 +443,7 @@ class _ActionsCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (row.idea.status != IdeaStatus.evaluated) {
+    if (!row.canShortlist) {
       return const SizedBox.shrink();
     }
     return Wrap(

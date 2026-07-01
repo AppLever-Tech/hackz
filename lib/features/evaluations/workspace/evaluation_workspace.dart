@@ -20,6 +20,7 @@ abstract final class EvaluationWorkspace {
       },
       builder: (BuildContext context) => EvaluationDetailsBody(
         vm: vm,
+        shortlistedByUserId: viewer?.userId ?? '',
         onUpdated: () {},
         layout: EvaluationDetailsLayout.workspace,
       ),

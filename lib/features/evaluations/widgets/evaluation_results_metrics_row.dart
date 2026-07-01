@@ -20,9 +20,9 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(metrics.totalEvaluated, 'Evaluated'),
+        MetricKpiSegment.count(metrics.readyForShortlisting, 'Ready'),
         MetricKpiSegment.count(metrics.shortlisted, 'Shortlisted'),
         MetricKpiSegment.count(metrics.rejected, 'Rejected'),
-        MetricKpiSegment.count(metrics.pendingReview, 'Pending'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
@@ -31,6 +31,12 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
           value: '${metrics.totalEvaluated}',
           color: const Color(0xFF6A38FF),
           icon: AppIcons.statusEvaluated,
+        ),
+        DashboardMetricChipData.single(
+          label: 'Ready for Shortlisting',
+          value: '${metrics.readyForShortlisting}',
+          color: const Color(0xFF0D9488),
+          icon: AppIcons.statusReadyForShortlisting,
         ),
         DashboardMetricChipData.single(
           label: 'Shortlisted',
@@ -43,12 +49,6 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
           value: '${metrics.rejected}',
           color: const Color(0xFFDC2626),
           icon: AppIcons.statusRejected,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Pending Review',
-          value: '${metrics.pendingReview}',
-          color: const Color(0xFFEA580C),
-          icon: AppIcons.statusUnderEvaluation,
         ),
       ];
 

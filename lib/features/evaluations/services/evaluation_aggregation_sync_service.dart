@@ -6,6 +6,8 @@ import '../../evaluations/assignments/services/evaluation_assignment_service.dar
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
 import 'evaluation_aggregation_service.dart';
+import 'evaluation_settings_service.dart';
+import '../../org_settings/services/org_settings_service.dart';
 
 /// Syncs evaluation aggregates onto ideas and advances lifecycle when complete.
 abstract final class EvaluationAggregationSyncService {
@@ -25,6 +27,9 @@ abstract final class EvaluationAggregationSyncService {
     if (!ideaDoc.exists || ideaDoc.data() == null) return;
 
     final IdeaModel idea = IdeaModel.fromMap(ideaDoc.id, ideaDoc.data()!);
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
+    final int requiredEvaluations = EvaluationSettingsService.requiredJudgeEvaluations(orgId);
+
     final QuerySnapshot<Map<String, dynamic>> scoreSnap = await _db
         .collection(FirestoreUtils.hkzScores)
         .where('orgId', isEqualTo: orgId)
@@ -44,7 +49,12 @@ abstract final class EvaluationAggregationSyncService {
 
     IdeaStatus? nextStatus;
     if (assignedJudges.isNotEmpty && aggregate.hasScores) {
-      if (assignedJudges.every(scoredJudges.contains) &&
+      if (aggregate.totalEvaluators >= requiredEvaluations &&
+          (idea.status == IdeaStatus.submitted ||
+              idea.status == IdeaStatus.underEvaluation ||
+              idea.status == IdeaStatus.evaluated)) {
+        nextStatus = IdeaStatus.readyForShortlisting;
+      } else if (assignedJudges.every(scoredJudges.contains) &&
           (idea.status == IdeaStatus.underEvaluation || idea.status == IdeaStatus.submitted)) {
         nextStatus = IdeaStatus.evaluated;
       } else if (idea.status == IdeaStatus.submitted) {

@@ -9,6 +9,7 @@ import '../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/responsive/responsive_columns.dart';
 import '../../user/models/user_model.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_details_loader.dart';
 import '../widgets/evaluation_judge_breakdown_panel.dart';
@@ -128,6 +129,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
               Expanded(
                 child: EvaluationDetailsBody(
                   vm: vm,
+                  shortlistedByUserId: widget.viewer.userId,
                   onUpdated: _load,
                 ),
               ),
@@ -153,11 +155,13 @@ class EvaluationDetailsBody extends StatelessWidget {
   const EvaluationDetailsBody({
     super.key,
     required this.vm,
+    required this.shortlistedByUserId,
     required this.onUpdated,
     this.layout = EvaluationDetailsLayout.pane,
   });
 
   final EvaluationDetailsViewModel vm;
+  final String shortlistedByUserId;
   final VoidCallback onUpdated;
   final EvaluationDetailsLayout layout;
 
@@ -183,7 +187,9 @@ class EvaluationDetailsBody extends StatelessWidget {
       ),
     );
 
-    final bool showShortlisting = workspace || vm.canShortlist;
+    final bool showShortlisting = workspace ||
+        vm.canShortlist ||
+        IdeaStatusHelpers.isPostEvaluationReview(vm.status);
 
     return ListView(
       padding: pad,
@@ -193,6 +199,7 @@ class EvaluationDetailsBody extends StatelessWidget {
           if (!workspace) const SizedBox(height: 14),
           EvaluationShortlistingSection(
             vm: vm,
+            shortlistedByUserId: shortlistedByUserId,
             onUpdated: onUpdated,
             alwaysShowRankStatus: workspace,
           ),

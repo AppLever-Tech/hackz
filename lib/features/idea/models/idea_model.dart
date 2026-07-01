@@ -29,6 +29,9 @@ class IdeaModel {
     this.totalEvaluators = 0,
     this.evaluationRank,
     this.ideathonId = '',
+    this.shortlistedBy = '',
+    this.shortlistedAt,
+    this.shortlistRemarks = '',
   });
 
   static const String fieldTeamDepartmentCode = 'teamDepartmentCode';
@@ -38,6 +41,9 @@ class IdeaModel {
   static const String fieldLowestScore = 'lowestScore';
   static const String fieldTotalEvaluators = 'totalEvaluators';
   static const String fieldEvaluationRank = 'evaluationRank';
+  static const String fieldShortlistedBy = 'shortlistedBy';
+  static const String fieldShortlistedAt = 'shortlistedAt';
+  static const String fieldShortlistRemarks = 'shortlistRemarks';
 
   final String ideaId;
   final String problemId;
@@ -61,6 +67,9 @@ class IdeaModel {
   final int totalEvaluators;
   final int? evaluationRank;
   final String ideathonId;
+  final String shortlistedBy;
+  final DateTime? shortlistedAt;
+  final String shortlistRemarks;
 
   bool get isInIdeathon => ideathonId.trim().isNotEmpty;
   bool get hasGitRepository => gitRepositoryUrl.trim().isNotEmpty;
@@ -76,6 +85,9 @@ class IdeaModel {
     int? totalEvaluators,
     int? evaluationRank,
     bool clearEvaluationRank = false,
+    String? shortlistedBy,
+    DateTime? shortlistedAt,
+    String? shortlistRemarks,
   }) {
     return IdeaModel(
       ideaId: ideaId,
@@ -100,6 +112,9 @@ class IdeaModel {
       totalEvaluators: totalEvaluators ?? this.totalEvaluators,
       evaluationRank: clearEvaluationRank ? null : (evaluationRank ?? this.evaluationRank),
       ideathonId: ideathonId,
+      shortlistedBy: shortlistedBy ?? this.shortlistedBy,
+      shortlistedAt: shortlistedAt ?? this.shortlistedAt,
+      shortlistRemarks: shortlistRemarks ?? this.shortlistRemarks,
     );
   }
 
@@ -127,6 +142,9 @@ class IdeaModel {
       fieldTotalEvaluators: totalEvaluators,
       if (evaluationRank != null) fieldEvaluationRank: evaluationRank,
       if (ideathonId.trim().isNotEmpty) 'ideathonId': ideathonId.trim(),
+      if (shortlistedBy.trim().isNotEmpty) fieldShortlistedBy: shortlistedBy.trim(),
+      if (shortlistedAt != null) fieldShortlistedAt: Timestamp.fromDate(shortlistedAt!),
+      if (shortlistRemarks.trim().isNotEmpty) fieldShortlistRemarks: shortlistRemarks.trim(),
     };
   }
 
@@ -157,6 +175,9 @@ class IdeaModel {
       totalEvaluators: (map[fieldTotalEvaluators] as num?)?.toInt() ?? 0,
       evaluationRank: (map[fieldEvaluationRank] as num?)?.toInt(),
       ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
+      shortlistedBy: ((map[fieldShortlistedBy] as String?) ?? '').trim(),
+      shortlistedAt: (map[fieldShortlistedAt] as Timestamp?)?.toDate(),
+      shortlistRemarks: ((map[fieldShortlistRemarks] as String?) ?? '').trim(),
     );
   }
 }

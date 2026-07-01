@@ -555,6 +555,7 @@ class FirestoreUtils {
       );
       bucket['totalIdeas'] = (bucket['totalIdeas'] as int) + 1;
       if (status == IdeaStatus.evaluated ||
+          status == IdeaStatus.readyForShortlisting ||
           status == IdeaStatus.shortlisted ||
           status == IdeaStatus.ideathonAssigned ||
           status == IdeaStatus.ideathonEvaluated ||
@@ -819,6 +820,7 @@ class FirestoreUtils {
       totalIdeas++;
       final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
       if (status == IdeaStatus.evaluated ||
+          status == IdeaStatus.readyForShortlisting ||
           status == IdeaStatus.shortlisted ||
           status == IdeaStatus.ideathonAssigned ||
           status == IdeaStatus.ideathonEvaluated ||

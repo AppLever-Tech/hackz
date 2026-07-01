@@ -76,6 +76,20 @@ class IdeaLifecycleTab extends StatelessWidget {
       );
     }
 
+    if (idea.shortlistedAt != null) {
+      events.add(
+        LifecycleTimelineEvent(
+          title: 'Shortlisted',
+          subtitle: idea.shortlistRemarks.trim().isEmpty
+              ? (idea.shortlistedBy.trim().isEmpty ? 'Department admin shortlist' : 'By ${idea.shortlistedBy.trim()}')
+              : idea.shortlistRemarks.trim(),
+          when: idea.shortlistedAt,
+          icon: StatusStyles.iconForIdeaStatus(IdeaStatus.shortlisted),
+          color: StatusStyles.approved,
+        ),
+      );
+    }
+
     final PaymentModel? payment = vm.payment;
     if (payment != null) {
       events.add(

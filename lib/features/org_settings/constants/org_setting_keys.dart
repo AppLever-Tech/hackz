@@ -23,6 +23,9 @@ abstract final class OrgSettingKeys {
   static const String maxJudgesPerIdea = 'maxJudgesPerIdea';
   static const String showJudgeCommentsToStudents = 'showJudgeCommentsToStudents';
   static const String allowFacultyAsJudges = 'allowFacultyAsJudges';
+  static const String requiredJudgeEvaluations = 'requiredJudgeEvaluations';
+  static const String recommendationThreshold = 'recommendationThreshold';
+  static const String enableRecommendationEngine = 'enableRecommendationEngine';
 
   // Problem
   static const String requireProblemCategoryTheme = 'requireProblemCategoryTheme';
