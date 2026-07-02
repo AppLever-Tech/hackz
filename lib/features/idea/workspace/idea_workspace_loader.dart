@@ -244,6 +244,7 @@ abstract final class IdeaWorkspaceLoader {
     }
     return switch (status) {
       IdeaStatus.evaluated ||
+      IdeaStatus.readyForShortlisting ||
       IdeaStatus.shortlisted ||
       IdeaStatus.ideathonAssigned ||
       IdeaStatus.ideathonEvaluated ||
