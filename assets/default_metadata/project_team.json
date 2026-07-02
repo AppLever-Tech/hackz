@@ -1,0 +1,18 @@
+{
+  "type": "projectTeam",
+  "title": "Project Team",
+  "members": [
+    {
+      "name": "Vinay T",
+      "designation": "Lead Architect"
+    },
+    {
+      "name": "Nagaraj Rangarajulu",
+      "designation": "AppLever Founder"
+    },
+    {
+      "name": "Sivarama Krishna Maladi",
+      "designation": "Product Advisor"
+    }
+  ]
+}

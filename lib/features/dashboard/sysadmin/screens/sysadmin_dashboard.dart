@@ -5,6 +5,7 @@ import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/user/models/user_model.dart';
+import '../../../../features/app_metadata/screens/app_metadata_management_screen.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../chrome/dashboard_components.dart';
@@ -47,11 +48,14 @@ class SysAdminDashboard extends StatelessWidget {
     return DashboardPageTemplate(
       user: user,
       bodyBuilder: (BuildContext context, int refreshToken, int selectedMenuIndex) {
-        if (selectedMenuIndex == 2) {
+        if (selectedMenuIndex == 3) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
+        }
+        if (selectedMenuIndex == 2) {
+          return AppMetadataManagementScreen(key: ValueKey<int>(refreshToken));
         }
         if (selectedMenuIndex == 1) {
           return _OrganizationDetailsView(

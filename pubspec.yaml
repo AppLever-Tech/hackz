@@ -88,6 +88,11 @@ flutter:
   assets:
     - assets/images/hackz_logo.png
     - assets/images/hackz_logo_branded.png
+    - assets/default_metadata/about.json
+    - assets/default_metadata/project_team.json
+    - assets/default_metadata/privacy_policy.json
+    - assets/default_metadata/terms.json
+    - assets/default_metadata/app_info.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:

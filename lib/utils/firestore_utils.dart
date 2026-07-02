@@ -39,6 +39,7 @@ class FirestoreUtils {
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
   static const String hkzIdeathons = 'hkzIdeathons';
+  static const String hkzAppMetadata = 'hkzAppMetadata';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);

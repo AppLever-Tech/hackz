@@ -5,6 +5,7 @@ import '../../../features/user/models/user_model.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/menus/hackz_popup_menu.dart';
+import '../../../features/app_metadata/widgets/show_metadata_viewer.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
@@ -271,16 +272,23 @@ class _DashboardHeaderActions extends StatelessWidget {
         SizedBox(width: compact ? 4 : 6),
         HackzPopupMenuButton(
           tooltip: 'Account',
-          actions: const <HackzMenuAction>[
-            HackzMenuAction(
+          actions: <HackzMenuAction>[
+            for (final ({String value, IconData icon, String label}) item in AppMetadataMenu.menuItems)
+              HackzMenuAction(value: item.value, icon: item.icon, label: item.label),
+            const HackzMenuAction(
               value: 'logout',
               icon: Icons.logout_rounded,
               label: 'Logout',
               danger: true,
             ),
           ],
+          dividersBefore: AppMetadataMenu.dividersBeforeLogout,
           onSelected: (String value) {
-            if (value == 'logout') onLogout();
+            if (value == 'logout') {
+              onLogout();
+              return;
+            }
+            AppMetadataMenu.handleSelection(context, value);
           },
           child: HackzPopupMenuOverflowTrigger(
             size: compact ? 32 : 34,
