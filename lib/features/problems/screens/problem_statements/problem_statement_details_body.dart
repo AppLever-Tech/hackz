@@ -47,6 +47,14 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                           : vm.problem.departmentDisplayName.trim(),
                       color: const Color(0xFF475569),
                     ),
+                    if (vm.domain != null)
+                      _MetaChip(
+                        icon: AppIcons.domains,
+                        label: vm.domain!.name.trim().isEmpty
+                            ? vm.domain!.code
+                            : vm.domain!.name.trim(),
+                        color: const Color(0xFF0F766E),
+                      ),
                     if (category != null)
                       _MetaChip(
                         icon: AppIcons.orgType,

@@ -11,6 +11,7 @@ import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
 import '../services/import_department_lookup.dart';
+import '../services/import_domain_lookup.dart';
 import '../services/import_handler.dart';
 import '../services/import_platform_support.dart';
 import '../services/import_registry.dart';
@@ -44,23 +45,30 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   ImportSummary? _summary;
   ImportExecutionResult? _result;
   ImportDepartmentLookup? _departments;
+  ImportDomainLookup? _domains;
   bool _departmentsLoading = true;
 
   ImportHandler get _handler => widget.handler;
+  bool get _isProblemsImport => _handler.type == ImportType.problems;
 
   @override
   void initState() {
     super.initState();
-    _loadDepartments();
+    _loadReferenceLookups();
   }
 
-  Future<void> _loadDepartments() async {
+  Future<void> _loadReferenceLookups() async {
     try {
-      final ImportDepartmentLookup lookup =
+      final ImportDepartmentLookup deptLookup =
           await ImportDepartmentLookup.load(widget.contextData.orgId);
+      ImportDomainLookup? domainLookup;
+      if (_isProblemsImport) {
+        domainLookup = await ImportDomainLookup.load(widget.contextData.orgId);
+      }
       if (!mounted) return;
       setState(() {
-        _departments = lookup;
+        _departments = deptLookup;
+        _domains = domainLookup;
         _departmentsLoading = false;
       });
     } catch (_) {
@@ -106,6 +114,31 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       message: saved
           ? 'Department codes CSV saved to your device.'
           : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
+    );
+  }
+
+  Future<void> _downloadDomainCodes() async {
+    final ImportDomainLookup? lookup = _domains;
+    if (lookup == null || lookup.domains.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'No domains',
+        message: 'Create domains under Domains first.',
+      );
+      return;
+    }
+
+    final bool saved = await ImportTemplateService.downloadTemplate(
+      fileName: ImportDomainInfo.domainCodesFileName,
+      csvContent: lookup.buildDomainCodesCsv(),
+    );
+    if (!mounted) return;
+    FeedbackService.showSuccess(
+      context,
+      title: saved ? 'Domain codes downloaded' : 'Domain codes copied',
+      message: saved
+          ? 'Domain codes CSV saved to your device.'
+          : 'Domain codes copied to clipboard. Paste into a spreadsheet and save as .csv',
     );
   }
 
@@ -232,6 +265,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       children: <Widget>[
         ImportSupportedValuesSection(
           departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
+          domains: _isProblemsImport
+              ? (_domains?.domains ?? const <ImportDomainInfo>[])
+              : const <ImportDomainInfo>[],
           supportedRoles: widget.contextData.supportedCsvRoles,
           loading: _departmentsLoading,
         ),
@@ -256,9 +292,11 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+              Text(
+                _isProblemsImport
+                    ? 'Use department and domain codes (e.g. CSE, CLOUDSEC), not display names. Role values are case-sensitive.'
+                    : 'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -277,6 +315,14 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                     icon: const Icon(AppIcons.download, size: 16),
                     label: const Text('Download Department Codes'),
                   ),
+                  if (_isProblemsImport)
+                    OutlinedButton.icon(
+                      onPressed: _busy || _departmentsLoading || (_domains?.domains.isEmpty ?? true)
+                          ? null
+                          : _downloadDomainCodes,
+                      icon: const Icon(AppIcons.download, size: 16),
+                      label: const Text('Download Domain Codes'),
+                    ),
                 ],
               ),
             ],
@@ -425,6 +471,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   String _labelFor(String key) {
     if (key == ImportConstants.departmentColumnKey) return 'Department Code';
+    if (key == ImportConstants.domainCodeColumnKey) return 'Domain Code';
     if (key.isEmpty) return key;
     return '${key[0].toUpperCase()}${key.substring(1)}';
   }

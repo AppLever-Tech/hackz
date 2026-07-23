@@ -5,6 +5,7 @@ abstract final class ImportConstants {
   ImportConstants._();
 
   static const String departmentColumnKey = 'department';
+  static const String domainCodeColumnKey = 'domainCode';
 
   static String requiredColumnsHint(List<String> headers) =>
       'Required columns: ${headers.join(', ')}';
@@ -18,7 +19,16 @@ abstract final class ImportConstants {
 
   static const String missingDepartmentCodeMessage = 'Missing department code';
 
+  static const String missingDomainCodeMessage = 'Missing domain code';
+
+  static const String domainRequiresDepartmentMessage =
+      'Domain code requires a valid department code in the same row.';
+
   static String departmentNotFoundMessage(String code) =>
       'Department Code "$code" not found.\n\n'
       'Please create the department first under Department Management and retry the import.';
+
+  static String domainNotFoundInDepartmentMessage(String domainCode, String departmentCode) =>
+      'Domain Code "$domainCode" not found in department "$departmentCode".\n\n'
+      'Create the domain under Domains for that department and retry the import.';
 }

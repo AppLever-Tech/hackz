@@ -40,6 +40,7 @@ class FirestoreUtils {
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
   static const String hkzIdeathons = 'hkzIdeathons';
   static const String hkzAppMetadata = 'hkzAppMetadata';
+  static const String hkzDomains = 'hkzDomains';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);

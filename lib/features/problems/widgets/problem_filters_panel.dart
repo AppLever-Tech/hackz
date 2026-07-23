@@ -14,13 +14,16 @@ class ProblemFiltersPanel extends StatelessWidget {
     super.key,
     required this.enabledFilters,
     required this.allDepartments,
+    required this.allDomains,
     required this.allTags,
     required this.departmentFilters,
+    required this.domainFilters,
     required this.tagFilters,
     required this.statusFilter,
     required this.sourceFilter,
     required this.hasAttachments,
     required this.onDepartmentToggle,
+    required this.onDomainToggle,
     required this.onTagToggle,
     required this.onStatusChange,
     required this.onSourceChange,
@@ -32,13 +35,17 @@ class ProblemFiltersPanel extends StatelessWidget {
 
   final Set<ProblemFilterType> enabledFilters;
   final List<String> allDepartments;
+  /// domainId → display label
+  final Map<String, String> allDomains;
   final List<String> allTags;
   final Set<String> departmentFilters;
+  final Set<String> domainFilters;
   final Set<String> tagFilters;
   final ProblemStatus? statusFilter;
   final ImportCreatedSource? sourceFilter;
   final bool? hasAttachments;
   final void Function(String department, bool selected) onDepartmentToggle;
+  final void Function(String domainId, bool selected) onDomainToggle;
   final void Function(String tag, bool selected) onTagToggle;
   final void Function(ProblemStatus? next) onStatusChange;
   final void Function(ImportCreatedSource? next) onSourceChange;
@@ -76,6 +83,25 @@ class ProblemFiltersPanel extends StatelessWidget {
                       label: d,
                       selected: departmentFilters.contains(d),
                       onSelected: (selected) => onDepartmentToggle(d, selected),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+            SizedBox(height: sectionGap),
+          ],
+          if (enabledFilters.contains(ProblemFilterType.domain) && allDomains.isNotEmpty) ...<Widget>[
+            Text('Domain', style: sectionLabel),
+            SizedBox(height: chipGap),
+            Wrap(
+              spacing: chipGap,
+              runSpacing: chipGap,
+              children: allDomains.entries
+                  .map(
+                    (MapEntry<String, String> e) => MobileFilterPaneStyles.filterChip(
+                      compact: useCompact,
+                      label: e.value,
+                      selected: domainFilters.contains(e.key),
+                      onSelected: (selected) => onDomainToggle(e.key, selected),
                     ),
                   )
                   .toList(growable: false),
@@ -201,11 +227,14 @@ class ProblemActiveFiltersRow extends StatelessWidget {
   const ProblemActiveFiltersRow({
     super.key,
     required this.departmentFilters,
+    required this.domainFilters,
+    required this.domainLabels,
     required this.tagFilters,
     required this.statusFilter,
     required this.sourceFilter,
     required this.hasAttachments,
     required this.onRemoveDepartment,
+    required this.onRemoveDomain,
     required this.onRemoveTag,
     required this.onClearStatus,
     required this.onClearSource,
@@ -213,11 +242,14 @@ class ProblemActiveFiltersRow extends StatelessWidget {
   });
 
   final Set<String> departmentFilters;
+  final Set<String> domainFilters;
+  final Map<String, String> domainLabels;
   final Set<String> tagFilters;
   final ProblemStatus? statusFilter;
   final ImportCreatedSource? sourceFilter;
   final bool? hasAttachments;
   final void Function(String department) onRemoveDepartment;
+  final void Function(String domainId) onRemoveDomain;
   final void Function(String tag) onRemoveTag;
   final VoidCallback onClearStatus;
   final VoidCallback onClearSource;
@@ -225,6 +257,7 @@ class ProblemActiveFiltersRow extends StatelessWidget {
 
   bool get isEmpty =>
       departmentFilters.isEmpty &&
+      domainFilters.isEmpty &&
       tagFilters.isEmpty &&
       statusFilter == null &&
       sourceFilter == null &&
@@ -241,6 +274,12 @@ class ProblemActiveFiltersRow extends StatelessWidget {
           (d) => InputChip(
             label: Text(d),
             onDeleted: () => onRemoveDepartment(d),
+          ),
+        ),
+        ...domainFilters.map(
+          (id) => InputChip(
+            label: Text(domainLabels[id] ?? id),
+            onDeleted: () => onRemoveDomain(id),
           ),
         ),
         ...tagFilters.map(

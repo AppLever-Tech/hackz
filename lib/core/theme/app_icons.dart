@@ -61,6 +61,7 @@ class AppIcons {
   static const IconData website = Icons.language_outlined;
   static const IconData helpSupport = Icons.support_agent_rounded;
   static const IconData info = Icons.info_outline_rounded;
+  static const IconData domains = Icons.hub_outlined;
 
   // ── Attachments & media ──────────────────────────────────────────────────
   static const IconData attachments = Icons.attach_file_rounded;

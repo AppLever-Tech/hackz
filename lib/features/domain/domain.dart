@@ -1,0 +1,9 @@
+/// Domain feature barrel.
+library;
+
+export 'models/domain_model.dart';
+export 'services/domain_service.dart';
+export 'services/domain_department_resolver.dart';
+export 'screens/domain_management_screen.dart';
+export 'screens/dept_domain_management_host.dart';
+export 'widgets/domain_context_pill.dart';

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
+import '../../../domain/domain.dart';
+import '../../../organization/models/department_model.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
@@ -72,7 +74,11 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   ImportCreatedSource? _sourceFilter;
   bool? _hasAttachments;
   Set<String> _departmentFilters = <String>{};
+  Set<String> _domainFilters = <String>{};
   Set<String> _tagFilters = <String>{};
+  Map<String, DomainModel> _domainsById = <String, DomainModel>{};
+  Map<String, String> _deptIdToCode = <String, String>{};
+  bool _groupByDomain = false;
 
   // Embedded authoring workspace toggles.
   // replaced in-place by [ProblemAuthoringWorkspace] (create or edit mode).
@@ -87,7 +93,25 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         : widget.config.enabledSorts.first;
     _loadProblems();
     _loadOrgDefaultMaxIdeas();
+    _loadDomains();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadDomains() async {
+    try {
+      final List<DomainModel> domains = await DomainService.listByOrg(orgId: widget.config.orgId);
+      final Map<String, String> idToCode = await DomainDepartmentResolver.idToCodeMap(widget.config.orgId);
+      if (!mounted) return;
+      setState(() {
+        _domainsById = <String, DomainModel>{
+          for (final DomainModel d in domains) d.domainId: d,
+        };
+        _deptIdToCode = idToCode;
+      });
+      _loadProblems();
+    } catch (_) {
+      // Domain enrichment is best-effort.
+    }
   }
 
   /// Reads org-scoped default-max-ideas so the submission gate can resolve
@@ -129,8 +153,13 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           statusFilter: _statusFilter,
           sourceFilter: _sourceFilter,
           departmentFilters: _departmentFilters,
+          domainFilters: _domainFilters,
           tagFilters: _tagFilters,
           hasAttachments: _hasAttachments,
+          domainsById: <String, String>{
+            for (final MapEntry<String, DomainModel> e in _domainsById.entries)
+              e.key: '${e.value.code} ${e.value.name}',
+          },
         ),
       );
     });
@@ -142,6 +171,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       _sourceFilter = null;
       _hasAttachments = null;
       _departmentFilters = <String>{};
+      _domainFilters = <String>{};
       _tagFilters = <String>{};
     });
     _loadProblems();
@@ -149,6 +179,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
   bool get _hasAnyActiveFilter =>
       _departmentFilters.isNotEmpty ||
+      _domainFilters.isNotEmpty ||
       _tagFilters.isNotEmpty ||
       _statusFilter != null ||
       _sourceFilter != null ||
@@ -337,6 +368,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             .toSet()
             .toList(growable: false)
           ..sort();
+        final Map<String, String> allDomains = _domainFilterOptions();
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -350,31 +382,34 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                     _searchController.clear();
                     _loadProblems();
                   })
-                : mobile
-                    ? ListView.separated(
-                        padding: const EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
-                        itemCount: problems.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (BuildContext context, int index) {
-                          return ProblemListRowCard(
-                            problem: problems[index],
-                            actions: tableActions,
+                : _groupByDomain
+                    ? _buildGroupedProblems(problems, tableActions, mobile: mobile)
+                    : mobile
+                        ? ListView.separated(
+                            padding: const EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
+                            itemCount: problems.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (BuildContext context, int index) {
+                              return ProblemListRowCard(
+                                problem: problems[index],
+                                actions: tableActions,
+                              );
+                            },
+                          )
+                        : DataTableView<ProblemModel>(
+                            items: problems,
+                            columns: ProblemTableColumns.build(
+                              config: widget.config,
+                              actions: tableActions,
+                            ),
+                            onSort: _onTableSort,
+                            activeSortKey: _activeSortKey,
                           );
-                        },
-                      )
-                    : DataTableView<ProblemModel>(
-                        items: problems,
-                        columns: ProblemTableColumns.build(
-                          config: widget.config,
-                          actions: tableActions,
-                        ),
-                        onSort: _onTableSort,
-                        activeSortKey: _activeSortKey,
-                      );
 
             final Widget header = _buildListHeader(
               context: context,
               allDepartments: allDepartments,
+              allDomains: allDomains,
               allTags: allTags,
             );
 
@@ -425,14 +460,141 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
+  Map<String, String> _domainFilterOptions() {
+    Iterable<DomainModel> domains = _domainsById.values;
+    if (_departmentFilters.isNotEmpty) {
+      final Set<String> selected = _departmentFilters
+          .map((String e) => e.trim().toUpperCase())
+          .where((String e) => e.isNotEmpty)
+          .toSet();
+      final Set<String> matchingDeptIds = <String>{};
+      for (final MapEntry<String, String> e in _deptIdToCode.entries) {
+        final String code = e.value.trim().toUpperCase();
+        final String name = (DepartmentModel.byCode(code)?.name ?? code).trim().toUpperCase();
+        if (selected.contains(code) || selected.contains(name)) {
+          matchingDeptIds.add(e.key);
+        }
+      }
+      if (matchingDeptIds.isNotEmpty) {
+        domains = domains.where((DomainModel d) => matchingDeptIds.contains(d.departmentId));
+      } else {
+        final Set<String> domainIdsOnFiltered = _lastLoaded
+            .where((ProblemModel p) {
+              final String name = p.departmentDisplayName.trim().toUpperCase();
+              final String code = p.departmentCode.trim().toUpperCase();
+              return selected.contains(code) || selected.contains(name);
+            })
+            .map((ProblemModel p) => p.domainId.trim())
+            .where((String id) => id.isNotEmpty)
+            .toSet();
+        if (domainIdsOnFiltered.isNotEmpty) {
+          domains = domains.where((DomainModel d) => domainIdsOnFiltered.contains(d.domainId));
+        }
+      }
+    }
+    final List<DomainModel> list = domains.toList(growable: false)
+      ..sort((DomainModel a, DomainModel b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return <String, String>{
+      for (final DomainModel d in list) d.domainId: d.displayLabel,
+    };
+  }
+
+  Widget _buildGroupedProblems(
+    List<ProblemModel> problems,
+    ProblemTableActions tableActions, {
+    required bool mobile,
+  }) {
+    final Map<String, List<ProblemModel>> grouped = <String, List<ProblemModel>>{};
+    for (final ProblemModel p in problems) {
+      final String key = p.domainId.trim().isEmpty ? '__none__' : p.domainId.trim();
+      grouped.putIfAbsent(key, () => <ProblemModel>[]).add(p);
+    }
+    final List<String> keys = grouped.keys.toList(growable: false)
+      ..sort((String a, String b) {
+        if (a == '__none__') return 1;
+        if (b == '__none__') return -1;
+        final String an = _domainsById[a]?.name ?? a;
+        final String bn = _domainsById[b]?.name ?? b;
+        return an.toLowerCase().compareTo(bn.toLowerCase());
+      });
+
+    return ListView.builder(
+      padding: EdgeInsets.only(bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 12),
+      itemCount: keys.length,
+      itemBuilder: (BuildContext context, int index) {
+        final String key = keys[index];
+        final List<ProblemModel> group = grouped[key]!;
+        final String title = key == '__none__'
+            ? 'Unassigned domain'
+            : (_domainsById[key]?.displayLabel ?? 'Domain');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
+            ),
+            subtitle: Text(
+              '${group.length} problem${group.length == 1 ? '' : 's'}',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            ),
+            children: <Widget>[
+              if (mobile)
+                ...group.map(
+                  (ProblemModel p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ProblemListRowCard(problem: p, actions: tableActions),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: (group.length * 56.0).clamp(120, 420),
+                  child: DataTableView<ProblemModel>(
+                    items: group,
+                    columns: ProblemTableColumns.build(
+                      config: widget.config,
+                      actions: tableActions,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildListHeader({
     required BuildContext context,
     required List<String> allDepartments,
+    required Map<String, String> allDomains,
     required List<String> allTags,
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
 
     final Widget metrics = ProblemMetricsRow(metrics: _metrics);
+    final Widget viewToggle = Align(
+      alignment: Alignment.centerLeft,
+      child: SegmentedButton<bool>(
+        segments: const <ButtonSegment<bool>>[
+          ButtonSegment<bool>(value: false, label: Text('Table'), icon: Icon(Icons.table_rows_outlined, size: 16)),
+          ButtonSegment<bool>(value: true, label: Text('By Domain'), icon: Icon(Icons.hub_outlined, size: 16)),
+        ],
+        selected: <bool>{_groupByDomain},
+        onSelectionChanged: (Set<bool> next) {
+          setState(() => _groupByDomain = next.first);
+        },
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          textStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+      ),
+    );
     final Widget searchBar = _buildSearchFilterBar(context);
     final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
@@ -440,8 +602,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             compact: compact,
             enabledFilters: widget.config.enabledFilters,
             allDepartments: allDepartments,
+            allDomains: allDomains,
             allTags: allTags,
             departmentFilters: _departmentFilters,
+            domainFilters: _domainFilters,
             tagFilters: _tagFilters,
             statusFilter: _statusFilter,
             sourceFilter: _sourceFilter,
@@ -451,6 +615,14 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
                 _departmentFilters.add(d);
               } else {
                 _departmentFilters.remove(d);
+              }
+              _domainFilters.removeWhere((String id) => !allDomains.containsKey(id));
+            }),
+            onDomainToggle: (id, selected) => setState(() {
+              if (selected) {
+                _domainFilters.add(id);
+              } else {
+                _domainFilters.remove(id);
               }
             }),
             onTagToggle: (t, selected) => setState(() {
@@ -472,12 +644,18 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     final Widget? activeFilters = _hasAnyActiveFilter
         ? ProblemActiveFiltersRow(
             departmentFilters: _departmentFilters,
+            domainFilters: _domainFilters,
+            domainLabels: allDomains,
             tagFilters: _tagFilters,
             statusFilter: _statusFilter,
             sourceFilter: _sourceFilter,
             hasAttachments: _hasAttachments,
             onRemoveDepartment: (d) {
               setState(() => _departmentFilters.remove(d));
+              _loadProblems();
+            },
+            onRemoveDomain: (id) {
+              setState(() => _domainFilters.remove(id));
               _loadProblems();
             },
             onRemoveTag: (t) {
@@ -506,6 +684,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         children: <Widget>[
           metrics,
           const SizedBox(height: 8),
+          viewToggle,
+          const SizedBox(height: 8),
           searchBar,
           const SizedBox(height: 6),
           filters,
@@ -525,6 +705,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         metrics,
         const SizedBox(height: 12),
         _buildDesktopToolbar(context),
+        const SizedBox(height: 10),
+        viewToggle,
         const SizedBox(height: 12),
         filters,
         if (activeFilters != null) ...<Widget>[
@@ -539,7 +721,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   InputDecoration _searchDecoration(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
     return InputDecoration(
-      hintText: 'Search problem number, title, department, tags…',
+      hintText: 'Search problem number, title, domain, tags…',
       prefixIcon: const Icon(AppIcons.search),
       isDense: true,
       filled: true,
@@ -608,6 +790,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   }
 
   ProblemTableActions _problemTableActions() {
+    final Map<String, String> domainLabelById = <String, String>{
+      for (final DomainModel d in _domainsById.values)
+        d.domainId: d.name.trim().isEmpty ? d.code : d.name.trim(),
+    };
     return ProblemTableActions(
       config: widget.config,
       ideaCountByProblemId: _ideaCountByProblemId,
@@ -621,6 +807,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       onAssignJudge: _openAssignJudge,
       onEditProblem: _openEditProblem,
       onDeleteProblem: _deleteProblem,
+      domainLabelById: domainLabelById,
       onActivateProblem: widget.config.canToggleActive ? _activateProblem : null,
       onDeactivateProblem: widget.config.canToggleActive ? _deactivateProblem : null,
     );

@@ -20,6 +20,7 @@ import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/evaluations/screens/department_evaluation_extensions_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/evaluations/screens/judges_panel.dart';
+import '../../../../features/domain/domain.dart';
 import '../../../../features/user/screens/manage_users_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
@@ -57,56 +58,64 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
+          return DeptDomainManagementHost(
+            key: ValueKey<int>(refreshToken),
+            orgId: user.orgId,
+            departmentCode: user.departmentCode,
+            departmentName: user.department,
+          );
+        }
+        if (selectedMenuIndex == 3) {
           return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.departmentAdmin, user),
           );
         }
-        if (selectedMenuIndex == 3) {
+        if (selectedMenuIndex == 4) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.departmentAdmin, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 5) {
           return EvaluationResultsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 5) {
+        if (selectedMenuIndex == 6) {
           return IdeathonsListScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 6) {
+        if (selectedMenuIndex == 7) {
           return DepartmentEvaluationExtensionsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 7) {
+        if (selectedMenuIndex == 8) {
           return JudgesPanelScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 8) {
+        if (selectedMenuIndex == 9) {
           return PaymentsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 9) {
+        if (selectedMenuIndex == 10) {
           return RequestsWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 10) {
+        if (selectedMenuIndex == 11) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

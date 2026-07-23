@@ -13,6 +13,7 @@ class ProblemModel {
     required this.orgId,
     required this.orgType,
     required this.departmentCode,
+    this.domainId = '',
     required this.createdBy,
     required this.category,
     required this.theme,
@@ -53,6 +54,7 @@ class ProblemModel {
   final String orgId;
   final String orgType;
   final String departmentCode;
+  final String domainId;
   final String createdBy;
   final String category;
   final String theme;
@@ -114,6 +116,7 @@ class ProblemModel {
       'orgId': orgId,
       'orgType': orgType,
       'departmentCode': departmentCode,
+      if (domainId.trim().isNotEmpty) 'domainId': domainId.trim(),
       'createdBy': createdBy,
       'category': category,
       'theme': theme,
@@ -168,6 +171,7 @@ class ProblemModel {
       orgId: str('orgId'),
       orgType: str('orgType'),
       departmentCode: str('departmentCode').trim().toUpperCase(),
+      domainId: str('domainId'),
       createdBy: str('createdBy'),
       category: str('category'),
       theme: str('theme'),
@@ -215,6 +219,7 @@ class ProblemModel {
       orgId: orgId,
       orgType: orgType,
       departmentCode: departmentCode,
+      domainId: domainId,
       createdBy: createdBy,
       category: category,
       theme: theme,

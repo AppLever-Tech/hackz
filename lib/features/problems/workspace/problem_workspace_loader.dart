@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../domain/models/domain_model.dart';
+import '../../domain/services/domain_service.dart';
 import '../../organization/models/organization_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../evaluations/models/score_model.dart';
@@ -34,6 +36,7 @@ class ProblemWorkspaceViewModel {
     required this.allIdeas,
     required this.coordinatorCount,
     required this.judgeCount,
+    this.domain,
   });
 
   final ProblemModel problem;
@@ -57,6 +60,7 @@ class ProblemWorkspaceViewModel {
   final List<ProblemIdeaPreview> allIdeas;
   final int coordinatorCount;
   final int judgeCount;
+  final DomainModel? domain;
 }
 
 class ProblemIdeaPreview {
@@ -177,6 +181,9 @@ abstract final class ProblemWorkspaceLoader {
     final String createdByName = createdByUser == null ? model.createdBy : userDisplayName(createdByUser);
     final String orgName = (org?.name.trim() ?? '').isEmpty ? model.orgId : org!.name.trim();
     final List<String> tags = model.tags.where((String e) => e.trim().isNotEmpty).toList(growable: false);
+    final DomainModel? domain = model.domainId.trim().isEmpty
+        ? null
+        : await DomainService.fetchById(model.domainId);
 
     return ProblemWorkspaceViewModel(
       problem: model,
@@ -200,6 +207,7 @@ abstract final class ProblemWorkspaceLoader {
       allIdeas: allIdeas,
       coordinatorCount: coordinators,
       judgeCount: judges,
+      domain: domain,
     );
   }
 }

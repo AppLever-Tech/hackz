@@ -16,6 +16,7 @@ import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../constants/problem_constants.dart';
 import '../../../imports/models/import_created_source.dart';
+import '../../../domain/domain.dart';
 import '../../models/problem_model.dart';
 import '../../models/problem_status.dart';
 import '../../services/problem_utils.dart';
@@ -89,6 +90,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   // Section 5 - Classification
   final TextEditingController _themeController = TextEditingController();
   String _selectedDepartment = '';
+  String _selectedDomainId = '';
   String _selectedCategory = '';
   List<String> _tags = <String>[];
 
@@ -121,8 +123,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
 
   // Workspace state
   bool _isLoadingDepartments = true;
+  bool _isLoadingDomains = false;
   bool _isSubmitting = false;
   List<Map<String, String>> _departmentOptions = <Map<String, String>>[];
+  List<DomainModel> _domainOptions = <DomainModel>[];
+  Map<String, String> _deptCodeToId = <String, String>{};
 
   late final Set<_AuthoringSectionId> _expanded = <_AuthoringSectionId>{
     _AuthoringSectionId.coreChallenge,
@@ -169,6 +174,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       _themeController.text = p.theme;
       _selectedCategory = p.category;
       _selectedDepartment = p.departmentCode;
+      _selectedDomainId = p.domainId;
       _tags = List<String>.from(p.tags);
       _youtubeController.text = p.youtubeLink;
       _datasetController.text = p.datasetLink;
@@ -270,6 +276,9 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   Future<void> _loadDepartments() async {
     try {
       final rows = await FirestoreUtils.getDepartmentsByCollege(widget.currentUser.orgId);
+      final Map<String, String> codeToId = await DomainDepartmentResolver.codeToIdMap(
+        widget.currentUser.orgId,
+      );
       final options = rows
           .map((row) {
             final code = ((row['code'] as String?) ?? '').trim();
@@ -282,13 +291,68 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       if (!mounted) return;
       setState(() {
         _departmentOptions = options;
+        _deptCodeToId = codeToId;
         if (_isDeptAdmin) {
           _selectedDepartment = widget.currentUser.departmentCode.trim().toUpperCase();
         }
       });
+      await _reloadDomainsForSelectedDepartment(preserveSelection: true);
     } finally {
       if (mounted) setState(() => _isLoadingDepartments = false);
     }
+  }
+
+  Future<void> _reloadDomainsForSelectedDepartment({bool preserveSelection = false}) async {
+    final String deptCode = _selectedDepartment.trim().toUpperCase();
+    final String? deptId = _deptCodeToId[deptCode];
+    if (deptCode.isEmpty || deptId == null || deptId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = <DomainModel>[];
+        if (!preserveSelection) _selectedDomainId = '';
+        _isLoadingDomains = false;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingDomains = true);
+    try {
+      final List<DomainModel> domains = await DomainService.listByOrg(
+        orgId: widget.currentUser.orgId,
+        departmentId: deptId,
+        activeOnly: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = domains;
+        if (preserveSelection &&
+            _selectedDomainId.isNotEmpty &&
+            domains.any((DomainModel d) => d.domainId == _selectedDomainId)) {
+          // keep
+        } else if (domains.length == 1) {
+          _selectedDomainId = domains.first.domainId;
+        } else if (!preserveSelection ||
+            !domains.any((DomainModel d) => d.domainId == _selectedDomainId)) {
+          _selectedDomainId = '';
+        }
+        _isLoadingDomains = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = <DomainModel>[];
+        if (!preserveSelection) _selectedDomainId = '';
+        _isLoadingDomains = false;
+      });
+    }
+  }
+
+  void _onDepartmentChanged(String? value) {
+    setState(() {
+      _selectedDepartment = value ?? '';
+      _selectedDomainId = '';
+    });
+    _reloadDomainsForSelectedDepartment();
   }
 
   Future<void> _pickAttachments() async {
@@ -346,10 +410,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   AuthoringSectionStatus _classificationStatus() {
     int filled = 0;
     if (_filled(_selectedDepartment)) filled++;
+    if (_filled(_selectedDomainId)) filled++;
     if (_filled(_selectedCategory)) filled++;
     if (_filled(_themeController.text)) filled++;
     if (_tags.isNotEmpty) filled++;
-    return AuthoringSectionStatus(completed: filled, total: 4, required: true);
+    return AuthoringSectionStatus(completed: filled, total: 5, required: true);
   }
 
   AuthoringSectionStatus _resourcesStatus() {
@@ -386,22 +451,24 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       );
 
   bool get _canPublish {
-    if (_isSubmitting || _isLoadingDepartments) return false;
+    if (_isSubmitting || _isLoadingDepartments || _isLoadingDomains) return false;
     if (!_filled(_titleController.text)) return false;
     if (!_filled(_descriptionController.text)) return false;
     if (!_filled(_selectedDepartment)) return false;
+    if (!_filled(_selectedDomainId)) return false;
     if (!_filled(_selectedCategory)) return false;
     if (!_filled(_themeController.text)) return false;
     return true;
   }
 
   // Hero counts only required fields used to gate publish.
-  int get _requiredFieldsTotal => 5;
+  int get _requiredFieldsTotal => 6;
   int get _requiredFieldsCompleted {
     int filled = 0;
     if (_filled(_titleController.text)) filled++;
     if (_filled(_descriptionController.text)) filled++;
     if (_filled(_selectedDepartment)) filled++;
+    if (_filled(_selectedDomainId)) filled++;
     if (_filled(_selectedCategory)) filled++;
     if (_filled(_themeController.text)) filled++;
     return filled;
@@ -476,6 +543,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         orgId: widget.currentUser.orgId,
         orgType: orgTypeName,
         departmentCode: _selectedDepartment,
+        domainId: _selectedDomainId,
         createdBy: widget.currentUser.userId,
         category: _selectedCategory,
         theme: _themeController.text.trim(),
@@ -976,13 +1044,15 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       children: <Widget>[
         AuthoringPairRow(
           first: _buildDepartmentSelector(),
-          second: AuthoringChoiceChips(
-            label: 'Category',
-            options: ProblemConstants.categories,
-            selected: _selectedCategory,
-            enabled: !_isSubmitting,
-            onChanged: (v) => setState(() => _selectedCategory = v),
-          ),
+          second: _buildDomainSelector(),
+        ),
+        const SizedBox(height: 12),
+        AuthoringChoiceChips(
+          label: 'Category',
+          options: ProblemConstants.categories,
+          selected: _selectedCategory,
+          enabled: !_isSubmitting,
+          onChanged: (v) => setState(() => _selectedCategory = v),
         ),
         const SizedBox(height: 12),
         AuthoringTextField(
@@ -1112,7 +1182,86 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
               .toList(growable: false),
           onChanged: _isSubmitting
               ? null
-              : (value) => setState(() => _selectedDepartment = value ?? ''),
+              : _onDepartmentChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDomainSelector() {
+    if (_isLoadingDepartments || _isLoadingDomains) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const <Widget>[
+          Text(
+            'Domain',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          SizedBox(height: 8),
+          LinearProgressIndicator(minHeight: 2),
+        ],
+      );
+    }
+
+    final bool noDepartment = _selectedDepartment.trim().isEmpty;
+    final bool noDomains = _domainOptions.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const Text(
+          'Domain',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: ValueKey<String>('domain-$_selectedDepartment'),
+          initialValue: _selectedDomainId.isEmpty ||
+                  !_domainOptions.any((DomainModel d) => d.domainId == _selectedDomainId)
+              ? null
+              : _selectedDomainId,
+          isExpanded: true,
+          icon: const Icon(Icons.expand_more_rounded, color: Color(0xFF64748B)),
+          decoration: InputDecoration(
+            hintText: noDepartment
+                ? 'Select a department first'
+                : (noDomains ? 'No domains in this department' : 'Select a domain'),
+            filled: true,
+            fillColor: const Color(0xFFFCFDFF),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
+            ),
+          ),
+          items: _domainOptions
+              .map(
+                (DomainModel d) => DropdownMenuItem<String>(
+                  value: d.domainId,
+                  child: Text(d.displayLabel, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (_isSubmitting || noDepartment || noDomains)
+              ? null
+              : (String? value) => setState(() => _selectedDomainId = value ?? ''),
         ),
       ],
     );

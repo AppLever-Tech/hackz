@@ -31,6 +31,7 @@ class ProblemTableActions {
     required this.onAssignJudge,
     required this.onEditProblem,
     required this.onDeleteProblem,
+    this.domainLabelById = const <String, String>{},
     this.onActivateProblem,
     this.onDeactivateProblem,
   });
@@ -46,6 +47,7 @@ class ProblemTableActions {
   final void Function(ProblemModel problem) onAssignJudge;
   final void Function(ProblemModel problem) onEditProblem;
   final void Function(ProblemModel problem) onDeleteProblem;
+  final Map<String, String> domainLabelById;
   final void Function(ProblemModel problem)? onActivateProblem;
   final void Function(ProblemModel problem)? onDeactivateProblem;
 
@@ -162,6 +164,23 @@ abstract final class ProblemTableColumns {
               : problem.departmentDisplayName.trim();
           return Text(
             department,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+          );
+        },
+      ),
+      DataTableColumn<ProblemModel>(
+        label: 'Domain',
+        flex: 3,
+        minWidth: 100,
+        cell: (BuildContext context, ProblemModel problem) {
+          final String domainId = problem.domainId.trim();
+          final String domain = domainId.isEmpty
+              ? '—'
+              : (actions.domainLabelById[domainId] ?? '—');
+          return Text(
+            domain,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
@@ -345,6 +364,11 @@ class ProblemListRowCard extends StatelessWidget {
                 icon: AppIcons.orgType,
                 label: category,
               ),
+              if ((actions.domainLabelById[problem.domainId.trim()] ?? '').isNotEmpty)
+                _ProblemCardMetaLine(
+                  icon: AppIcons.domains,
+                  label: actions.domainLabelById[problem.domainId.trim()]!,
+                ),
             ],
           ),
           const SizedBox(height: 10),

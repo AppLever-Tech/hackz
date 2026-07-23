@@ -28,6 +28,7 @@ class ProblemMetadataSection extends StatelessWidget {
         const SizedBox(height: 10),
         _row(AppIcons.orgType, 'Category', ProblemConstants.resolveCategory(p.category) ?? '—'),
         _row(AppIcons.insights, 'Theme', vm.theme),
+        _row(AppIcons.domains, 'Domain', vm.domain?.displayLabel ?? ''),
         _row(
           ProblemStatusHelpers.icon(p.status),
           'Status',

@@ -20,6 +20,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -49,6 +50,7 @@ class ProblemRoleConfig {
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -77,6 +79,7 @@ class ProblemRoleConfig {
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -105,6 +108,7 @@ class ProblemRoleConfig {
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -133,6 +137,7 @@ class ProblemRoleConfig {
           orgId: user.orgId,
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -162,6 +167,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,
@@ -191,6 +197,7 @@ class ProblemRoleConfig {
           departmentCode: user.departmentCode,
           enabledFilters: const <ProblemFilterType>{
             ProblemFilterType.department,
+            ProblemFilterType.domain,
             ProblemFilterType.status,
             ProblemFilterType.source,
             ProblemFilterType.tags,

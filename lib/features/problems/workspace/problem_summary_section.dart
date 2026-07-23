@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../domain/widgets/domain_context_pill.dart';
 import '../services/problem_status_helpers.dart';
 import '../../../utils/common_helpers.dart';
 import '../screens/authoring/problem_authoring_section.dart';
@@ -111,6 +112,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
         (p.category.trim().isNotEmpty ||
             p.theme.trim().isNotEmpty ||
             p.departmentDisplayName.trim().isNotEmpty ||
+            (widget.vm.domain != null) ||
             p.tags.isNotEmpty);
     final bool hasResources = !workspaceOnly &&
         (p.youtubeLink.trim().isNotEmpty ||
@@ -139,6 +141,8 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               _chip(AppIcons.problems,
                   p.problemNumber.trim().isEmpty ? p.problemId : p.problemNumber),
               _chip(AppIcons.departments, p.departmentDisplayName),
+              if (widget.vm.domain != null)
+                DomainContextPill(domain: widget.vm.domain!),
               _chip(
                 ProblemStatusHelpers.icon(p.status),
                 ProblemStatusHelpers.label(p.status),
@@ -335,7 +339,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           const SizedBox(height: 12),
           ProblemAuthoringSection(
             title: 'Classification',
-            subtitle: 'Department, category, theme, and tags',
+            subtitle: 'Department, domain, category, theme, and tags',
             icon: AppIcons.orgType,
             iconBg: const Color(0xFFE6F8EF),
             iconColor: const Color(0xFF047857),
@@ -346,6 +350,11 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _DetailValueBlock(label: 'Department', value: p.departmentDisplayName),
+                if (widget.vm.domain != null)
+                  _DetailValueBlock(
+                    label: 'Domain',
+                    value: widget.vm.domain!.displayLabel,
+                  ),
                 _DetailCategoryField(selected: p.category),
                 _DetailValueBlock(label: 'Theme', value: p.theme),
                 if (p.tags.isNotEmpty)

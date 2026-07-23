@@ -16,8 +16,10 @@ class ProblemQueryParams {
     required this.statusFilter,
     required this.sourceFilter,
     required this.departmentFilters,
+    required this.domainFilters,
     required this.tagFilters,
     required this.hasAttachments,
+    this.domainsById = const <String, String>{},
     this.limit = 300,
   });
 
@@ -27,8 +29,12 @@ class ProblemQueryParams {
   final ProblemStatus? statusFilter;
   final ImportCreatedSource? sourceFilter;
   final Set<String> departmentFilters;
+  /// Domain ids selected in filters.
+  final Set<String> domainFilters;
   final Set<String> tagFilters;
   final bool? hasAttachments;
+  /// domainId → searchable text (code + name) for search enrichment.
+  final Map<String, String> domainsById;
   final int limit;
 }
 
@@ -169,6 +175,10 @@ class ProblemQueryService {
           !selectedDepartmentCodes.contains(problem.departmentCode.trim().toUpperCase())) {
         return false;
       }
+      if (params.domainFilters.isNotEmpty &&
+          !params.domainFilters.contains(problem.domainId.trim())) {
+        return false;
+      }
       if (params.tagFilters.isNotEmpty) {
         final tags = problem.tags.map((e) => e.toLowerCase()).toSet();
         final hasAll = params.tagFilters.every((filterTag) => tags.contains(filterTag.toLowerCase()));
@@ -178,7 +188,9 @@ class ProblemQueryService {
         final inTitle = problem.title.toLowerCase().contains(search);
         final inNumber = problem.problemNumber.toLowerCase().contains(search);
         final inTags = problem.tags.any((t) => t.toLowerCase().contains(search));
-        if (!inTitle && !inNumber && !inTags) {
+        final String domainSearch = (params.domainsById[problem.domainId.trim()] ?? '').toLowerCase();
+        final inDomain = domainSearch.isNotEmpty && domainSearch.contains(search);
+        if (!inTitle && !inNumber && !inTags && !inDomain) {
           return false;
         }
       }

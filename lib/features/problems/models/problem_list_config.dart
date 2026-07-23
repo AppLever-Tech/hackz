@@ -1,5 +1,6 @@
 enum ProblemFilterType {
   department,
+  domain,
   status,
   source,
   tags,

@@ -13,6 +13,8 @@ import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
+import 'import_domain_lookup.dart';
+import 'import_domain_validator.dart';
 import 'import_handler.dart';
 
 class ProblemsImportHandler implements ImportHandler {
@@ -21,6 +23,7 @@ class ProblemsImportHandler implements ImportHandler {
     'description',
     'category',
     ImportConstants.departmentColumnKey,
+    ImportConstants.domainCodeColumnKey,
     'theme',
     'tags',
   ];
@@ -36,13 +39,18 @@ class ProblemsImportHandler implements ImportHandler {
 
   @override
   String get templateCsv => '''
-title,description,category,${ImportConstants.departmentColumnKey},theme,tags
-Smart Campus Navigation,Help students find classrooms quickly,Software,CSE,Mobility,"IoT,Mobile"
-Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Environment,"IoT,AI/ML"
+title,description,category,${ImportConstants.departmentColumnKey},${ImportConstants.domainCodeColumnKey},theme,tags
+Smart Campus Navigation,Help students find classrooms quickly,Software,CSE,CLOUDSEC,Mobility,"IoT,Mobile"
+Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,Environment,"IoT,AI/ML"
 '''.trim();
 
   @override
-  List<String> get requiredHeaders => const <String>['title', 'category', ImportConstants.departmentColumnKey];
+  List<String> get requiredHeaders => const <String>[
+        'title',
+        'category',
+        ImportConstants.departmentColumnKey,
+        ImportConstants.domainCodeColumnKey,
+      ];
 
   @override
   Future<List<ImportReviewRow>> validateRows(
@@ -60,6 +68,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       final String description = _cell(row, 'description');
       final String category = _cell(row, 'category');
       final String departmentRaw = _cell(row, ImportConstants.departmentColumnKey);
+      final String domainRaw = _cell(row, ImportConstants.domainCodeColumnKey);
       final String theme = _cell(row, 'theme');
       final String tagsRaw = _cell(row, 'tags');
 
@@ -69,6 +78,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       String statusLabel = 'Valid';
       String? departmentCode;
       String? departmentName;
+      String? domainId;
+      String? domainCode;
 
       if (title.isEmpty) {
         issues.add('Missing title');
@@ -89,6 +100,21 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       } else {
         departmentCode = deptResult.canonicalCode;
         departmentName = deptResult.departmentName;
+      }
+
+      final ImportDomainValidation domainResult = ImportDomainValidator.validate(
+        rawInput: domainRaw,
+        departmentCode: departmentCode,
+        lookup: lookup.domains,
+      );
+      if (!domainResult.isValid) {
+        issues.add(domainResult.errorMessage ?? 'Invalid domain code');
+        severity = ImportRowSeverity.error;
+        importable = false;
+        statusLabel = domainResult.statusLabel ?? 'Invalid Domain';
+      } else {
+        domainId = domainResult.domainId;
+        domainCode = domainResult.canonicalCode;
       }
 
       String? resolvedCategory;
@@ -135,6 +161,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
             'description': description,
             'category': resolvedCategory ?? category,
             ImportConstants.departmentColumnKey: departmentCode ?? departmentRaw,
+            ImportConstants.domainCodeColumnKey: domainCode ?? domainRaw,
             'theme': theme,
             'tags': tagsRaw,
           },
@@ -145,6 +172,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
           metadata: <String, String>{
             if (departmentCode != null) 'departmentCode': departmentCode,
             if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
+            if (domainId != null) 'domainId': domainId,
+            if (domainCode != null) 'domainCode': domainCode,
             if (resolvedCategory != null) 'category': resolvedCategory,
             if (tagsRaw.isNotEmpty) 'tags': tagsRaw,
           },
@@ -172,6 +201,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
       try {
         final String departmentCode =
             row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+        final String domainId = row.metadata['domainId'] ?? '';
         final String problemId =
             FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
         final String problemNumber = await ProblemUtils.generateProblemNumber();
@@ -185,6 +215,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,Envi
           orgId: context.orgId,
           orgType: 'college',
           departmentCode: departmentCode,
+          domainId: domainId,
           createdBy: context.actorUserId,
           category: row.metadata['category'] ?? row.valueFor('category'),
           theme: row.valueFor('theme'),
@@ -227,14 +258,17 @@ class _ProblemImportLookup {
   _ProblemImportLookup({
     required this.existingTitles,
     required this.departments,
+    required this.domains,
   });
 
   final Set<String> existingTitles;
   final ImportDepartmentLookup departments;
+  final ImportDomainLookup domains;
 
   static Future<_ProblemImportLookup> load(String orgId) async {
     final List<ProblemModel> problems = await FirestoreUtils.getProblemModelsByCollege(orgId);
     final ImportDepartmentLookup departments = await ImportDepartmentLookup.load(orgId);
+    final ImportDomainLookup domains = await ImportDomainLookup.load(orgId);
 
     return _ProblemImportLookup(
       existingTitles: problems
@@ -242,6 +276,7 @@ class _ProblemImportLookup {
           .where((String t) => t.isNotEmpty)
           .toSet(),
       departments: departments,
+      domains: domains,
     );
   }
 }
