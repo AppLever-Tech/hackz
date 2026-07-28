@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../services/auth_status_resolver.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_utils.dart';
+import '../../app_metadata/services/app_metadata_service.dart';
 import 'landing_screen.dart';
 import '../widgets/signup/account_status_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
@@ -106,6 +108,12 @@ class _AuthGateState extends State<AuthGate> {
                   await FirebaseAuth.instance.signOut();
                 },
               );
+            }
+
+            // Returning SysAdmin sessions: seed App Metadata if Firestore was wiped
+            // or docs were never written (idempotent after success).
+            if (UserRole.fromCode(appUser.role) == UserRole.sysAdmin) {
+              unawaited(AppMetadataService.ensureSeeded());
             }
 
             return RoleUtils.routeForRole(appUser);

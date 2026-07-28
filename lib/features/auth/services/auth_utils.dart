@@ -8,6 +8,7 @@ import '../../organization/models/enums/organization_type.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../organization/models/department_model.dart';
 import '../../user/models/user_model.dart';
+import '../../app_metadata/services/app_metadata_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 
@@ -54,6 +55,8 @@ class AuthUtils {
       firebaseAuthUid: uid,
       profile: user,
     );
+    // First SysAdmin bootstrap: copy bundled App Metadata defaults into Firestore.
+    await AppMetadataService.ensureSeeded();
   }
 
   static Future<void> sendOtp({

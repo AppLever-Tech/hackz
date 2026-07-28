@@ -2,8 +2,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../features/app_metadata/services/app_metadata_service.dart';
-
 class FirebaseBootstrap {
   static const String _apiKey = 'AIzaSyAgyqYLei_lpMcWQSaHBfhraDwjZg4t2Rk';
   static const String _messagingSenderId = '439535394674';
@@ -15,7 +13,6 @@ class FirebaseBootstrap {
     await Firebase.initializeApp(
       options: _firebaseOptionsForCurrentPlatform,
     );
-    await AppMetadataService.ensureSeeded();
   }
 
   static FirebaseOptions get _firebaseOptionsForCurrentPlatform {

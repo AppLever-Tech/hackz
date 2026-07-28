@@ -12,26 +12,49 @@ abstract final class AppMetadataService {
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static bool _seedChecked = false;
+  static Future<void>? _seedInFlight;
 
   static CollectionReference<Map<String, dynamic>> get _collection =>
       _db.collection(FirestoreUtils.hkzAppMetadata);
 
-  /// Seeds bundled defaults when the collection is empty. Safe to call repeatedly.
+  /// Seeds bundled defaults from `assets/default_metadata/*.json` when docs are
+  /// missing. Safe to call repeatedly; intended to run after SysAdmin auth
+  /// (same timing idea as org-settings bootstrap), not at cold start.
   static Future<void> ensureSeeded() async {
     if (_seedChecked) return;
-    _seedChecked = true;
+    if (_seedInFlight != null) return _seedInFlight!;
+    _seedInFlight = _seedIfNeeded();
     try {
-      final QuerySnapshot<Map<String, dynamic>> snap = await _collection.limit(1).get();
-      if (snap.docs.isNotEmpty) return;
+      await _seedInFlight;
+    } finally {
+      _seedInFlight = null;
+    }
+  }
+
+  static Future<void> _seedIfNeeded() async {
+    try {
+      final List<String> missing = <String>[];
+      for (final String docId in AppMetadataKeys.all) {
+        final DocumentSnapshot<Map<String, dynamic>> snap =
+            await _collection.doc(docId).get();
+        if (!snap.exists) missing.add(docId);
+      }
+
+      if (missing.isEmpty) {
+        _seedChecked = true;
+        return;
+      }
 
       final WriteBatch batch = _db.batch();
-      for (final String docId in AppMetadataKeys.all) {
+      for (final String docId in missing) {
         final Map<String, dynamic> payload = await DefaultMetadataSeed.firestorePayloadFor(docId);
         if (payload.isEmpty) continue;
         batch.set(_collection.doc(docId), payload);
       }
       await batch.commit();
+      _seedChecked = true;
     } catch (e) {
+      // Leave `_seedChecked` false so a later authenticated call can retry.
       if (kDebugMode) {
         debugPrint('AppMetadataService.ensureSeeded failed: $e');
       }
