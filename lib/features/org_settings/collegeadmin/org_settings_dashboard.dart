@@ -8,8 +8,10 @@ import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
+import '../../evaluations/services/evaluation_settings_service.dart';
 import '../widgets/ideathon_template_picker_pane.dart';
 import '../constants/default_org_settings.dart';
+import '../constants/org_setting_keys.dart';
 import '../constants/org_settings_sections.dart';
 import '../models/org_setting_definition.dart';
 import '../services/org_settings_service.dart';
@@ -221,6 +223,12 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
         message: firstError,
       );
     } else {
+      if (keysToSave.contains(OrgSettingKeys.requiredJudgeEvaluations)) {
+        await EvaluationSettingsService.reconcileAfterEvaluationConfigChange(
+          orgId: _orgId,
+        );
+      }
+      if (!mounted) return;
       FeedbackService.showSuccess(
         context,
         title: 'Saved',

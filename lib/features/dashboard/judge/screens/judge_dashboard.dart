@@ -320,13 +320,27 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
 
   Widget _activityRow(JudgeActivityItem activity) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Icon(activity.icon, size: _kActivityIconSize, color: const Color(0xFF4B5AA9)),
         const SizedBox(width: 8),
-        Expanded(child: Text(activity.text)),
-        Text(
-          formatDateTime(activity.at),
-          style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+        Expanded(
+          child: Text(
+            activity.text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 84,
+          child: Text(
+            formatDateTime(activity.at),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6E7394)),
+          ),
         ),
       ],
     );

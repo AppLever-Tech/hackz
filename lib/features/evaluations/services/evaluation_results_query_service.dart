@@ -9,7 +9,7 @@ import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import 'evaluation_ranking_service.dart';
 import 'evaluation_settings_service.dart';
-import '../../org_settings/services/org_settings_service.dart';
+import 'evaluation_aggregation_sync_service.dart';
 
 /// Filters for the Evaluation Results workspace.
 class EvaluationResultsQueryParams {
@@ -94,6 +94,12 @@ abstract final class EvaluationResultsQueryService {
       );
     }
 
+    // Use the session org-settings snapshot (loaded at login). Do not force a
+    // mid-session refresh — College Admin edits elsewhere stay offline until
+    // this user logs out and back in.
+    await EvaluationSettingsService.ensureLoaded(orgId: orgId);
+    await EvaluationAggregationSyncService.reconcileOrg(orgId: orgId);
+
     final String deptCode = DepartmentModel.resolveCode(params.viewer.departmentCode);
 
     final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
@@ -142,7 +148,6 @@ abstract final class EvaluationResultsQueryService {
       if (dep.isNotEmpty) departments.add(dep);
     }
 
-    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
     final bool recommendationEnabled = EvaluationSettingsService.enableRecommendationEngine(orgId);
     final double recommendationThreshold = EvaluationSettingsService.recommendationThresholdPercent(orgId);
     final int scoringScale = EvaluationSettingsService.defaultScoringScale();

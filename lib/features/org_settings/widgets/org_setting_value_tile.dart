@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/feedback/feedback.dart';
+import '../../evaluations/services/evaluation_settings_service.dart';
+import '../constants/org_setting_keys.dart';
 import '../models/enums/org_setting_value_type.dart';
 import '../models/org_setting_definition.dart';
 import '../services/org_settings_service.dart';
@@ -40,8 +42,14 @@ class _OrgSettingValueTileState extends State<OrgSettingValueTile> {
   Future<void> _persist(Object? value) async {
     setState(() => _busy = true);
     final String? err = await OrgSettingsService.instance.updateValue(widget.definition.key, value);
-    setState(() => _busy = false);
+    if (err == null && widget.definition.key == OrgSettingKeys.requiredJudgeEvaluations) {
+      final String? orgId = OrgSettingsService.instance.currentOrgId;
+      if (orgId != null && orgId.trim().isNotEmpty) {
+        await EvaluationSettingsService.reconcileAfterEvaluationConfigChange(orgId: orgId);
+      }
+    }
     if (!mounted) return;
+    setState(() => _busy = false);
     if (err != null) {
       FeedbackService.showError(
         context,

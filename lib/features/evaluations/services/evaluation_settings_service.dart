@@ -1,13 +1,25 @@
 import '../../evaluations/constants/default_evaluation_templates.dart';
 import '../../org_settings/constants/org_setting_keys.dart';
 import '../../org_settings/services/org_settings_service.dart';
+import 'evaluation_aggregation_sync_service.dart';
 
 /// Reads evaluation-related org settings for scoring and shortlisting workflows.
 abstract final class EvaluationSettingsService {
   EvaluationSettingsService._();
 
-  static Future<void> ensureLoaded({required String orgId}) async {
-    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
+  static Future<void> ensureLoaded({
+    required String orgId,
+    bool force = false,
+  }) async {
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId, force: force);
+  }
+
+  /// After Evaluation Configuration changes that affect idea lifecycle, re-sync
+  /// org ideas so Department Admin / Faculty / Judges see updated shortlist gates.
+  static Future<void> reconcileAfterEvaluationConfigChange({
+    required String orgId,
+  }) async {
+    await EvaluationAggregationSyncService.reconcileOrg(orgId: orgId);
   }
 
   static int requiredJudgeEvaluations(String orgId) {

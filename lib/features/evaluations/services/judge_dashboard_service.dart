@@ -120,7 +120,7 @@ class JudgeDashboardService {
           .map(
             (s) => JudgeActivityItem(
               icon: AppIcons.scoring,
-              text: 'Feedback added for idea ${s.ideaId}',
+              text: 'Feedback added for ${_activityIdeaLabel(scopedIdeas, s.ideaId)}',
               at: s.createdAt,
             ),
           ),
@@ -195,6 +195,13 @@ class JudgeDashboardService {
     if (title.isNotEmpty) return title;
     if (idea.problemNumber.trim().isNotEmpty) return idea.problemNumber.trim();
     return idea.ideaId;
+  }
+
+  static String _activityIdeaLabel(List<IdeaModel> ideas, String ideaId) {
+    for (final IdeaModel idea in ideas) {
+      if (idea.ideaId == ideaId) return _ideaTitle(idea);
+    }
+    return ideaId;
   }
 
 }

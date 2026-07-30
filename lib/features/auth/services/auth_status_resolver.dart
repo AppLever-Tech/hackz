@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import 'auth_utils.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -58,13 +59,19 @@ class AuthStatusResolver {
 
   static Future<UserModel?> resolveSignedInUser(User firebaseUser) async {
     final byUid = await FirestoreUtils.fetchUser(firebaseUser.uid);
-    if (byUid != null) return byUid;
+    if (byUid != null) {
+      await _ensureOrgSettingsForSession(byUid);
+      return byUid;
+    }
 
     final phone = firebaseUser.phoneNumber;
     if (phone == null || phone.trim().isEmpty) return null;
     final normalized = normalizePhoneE164(phone);
     final byPhone = await FirestoreUtils.fetchUserByPhone(normalized);
-    if (byPhone != null) return byPhone;
+    if (byPhone != null) {
+      await _ensureOrgSettingsForSession(byPhone);
+      return byPhone;
+    }
 
     final whitelist = await AuthUtils.checkWhitelist(normalized);
     if (whitelist != null) {
@@ -73,9 +80,20 @@ class AuthStatusResolver {
         phone: normalized,
         whitelist: whitelist,
       );
-      return FirestoreUtils.fetchUser(firebaseUser.uid) ??
-          FirestoreUtils.fetchUserByPhone(normalized);
+      final UserModel? created = await FirestoreUtils.fetchUser(firebaseUser.uid) ??
+          await FirestoreUtils.fetchUserByPhone(normalized);
+      if (created != null) {
+        await _ensureOrgSettingsForSession(created);
+      }
+      return created;
     }
     return null;
+  }
+
+  /// One load per login for org-scoped roles. Memory cache is kept until logout.
+  static Future<void> _ensureOrgSettingsForSession(UserModel user) async {
+    final String orgId = user.orgId.trim();
+    if (orgId.isEmpty) return;
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
   }
 }

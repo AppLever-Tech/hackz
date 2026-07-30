@@ -13,13 +13,11 @@ import 'org_settings_validators.dart';
 /// Firestore path: `hkzOrganizations/{orgId}/settings/org_settings`.
 ///
 /// Lifecycle:
-///   1. Caller (College Admin dashboard or any reader) invokes
-///      [ensureLoaded] passing the active `orgId`.
-///   2. Service bootstraps the doc with defaults if absent, reads, and merges
-///      any new keys introduced in [defaultOrgSettingDefinitions].
-///   3. Reads / writes operate on the cached `orgId`. Changing `orgId`
-///      transparently clears the cache and reloads.
-///   4. [clearCache] resets everything (call on logout).
+///   1. On login, [ensureLoaded] loads once for the user's `orgId` (server read).
+///   2. While the session stays open, callers reuse the in-memory snapshot
+///      (College Admin changes made elsewhere are intentionally not live-synced).
+///   3. Changing `orgId` or calling [ensureLoaded] with `force: true` reloads.
+///   4. [clearCache] on logout resets memory so the next login fetches again.
 class OrgSettingsService extends ChangeNotifier {
   OrgSettingsService._();
 
@@ -91,7 +89,7 @@ class OrgSettingsService extends ChangeNotifier {
 
   /// Loads org settings from Firestore (bootstraps the doc if absent and
   /// merges any newly introduced keys from Dart defaults). Cached after the
-  /// first call for the same [orgId].
+  /// first call for the same [orgId] until logout / [force] / org change.
   Future<void> ensureLoaded({required String orgId, bool force = false}) {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) {
@@ -152,24 +150,43 @@ class OrgSettingsService extends ChangeNotifier {
     return _configRefFor(id);
   }
 
+  /// Prefer a server read so logout→login picks up College Admin writes.
+  /// Firestore local persistence can otherwise return a stale cached doc.
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getSettingsSnap() async {
+    final DocumentReference<Map<String, dynamic>> ref = _configRef;
+    try {
+      return await ref.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      return ref.get();
+    }
+  }
+
   Future<void> _bootstrapIfAbsent() async {
     final DocumentReference<Map<String, dynamic>> ref = _configRef;
-    await _db.runTransaction((Transaction txn) async {
-      final snap = await txn.get(ref);
-      if (snap.exists) return;
-      txn.set(ref, <String, dynamic>{
-        'schemaVersion': kOrgSettingsSchemaVersion,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'settings': defaultOrgSettingsFirestoreEntries(),
-        evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
-        departmentEvaluationExtensionsField: <String, dynamic>{},
-        ideathonEvaluationTemplateIdField: 'ideathon',
+    try {
+      await _db.runTransaction((Transaction txn) async {
+        final snap = await txn.get(ref);
+        if (snap.exists) return;
+        txn.set(ref, <String, dynamic>{
+          'schemaVersion': kOrgSettingsSchemaVersion,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'settings': defaultOrgSettingsFirestoreEntries(),
+          evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
+          departmentEvaluationExtensionsField: <String, dynamic>{},
+          ideathonEvaluationTemplateIdField: 'ideathon',
+        });
       });
-    });
+    } catch (e) {
+      // Read-only roles may not create the doc. Continue to server read;
+      // missing doc will surface in [_readAndMerge].
+      if (kDebugMode) {
+        debugPrint('OrgSettingsService bootstrap skipped/failed: $e');
+      }
+    }
   }
 
   Future<void> _readAndMerge() async {
-    final snap = await _configRef.get();
+    final snap = await _getSettingsSnap();
     if (!snap.exists || snap.data() == null) {
       throw StateError('Org settings document missing after bootstrap.');
     }
@@ -192,8 +209,16 @@ class OrgSettingsService extends ChangeNotifier {
       }
     }
 
+    // Best-effort write-backs. Never wipe a successful read if a non-admin
+    // role cannot persist schema merges / template bootstrap.
     if (missing.isNotEmpty) {
-      await _persistFullSettingsArray();
+      try {
+        await _persistFullSettingsArray();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService missing-key persist skipped: $e');
+        }
+      }
     }
 
     // Lazy bootstrap of evaluation templates for orgs that pre-date the
@@ -203,18 +228,30 @@ class OrgSettingsService extends ChangeNotifier {
       _evaluationTemplatesRaw
         ..clear()
         ..addAll(defaultEvaluationTemplatesFirestoreEntries());
-      await _persistEvaluationTemplatesArray();
+      try {
+        await _persistEvaluationTemplatesArray();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService templates persist skipped: $e');
+        }
+      }
     }
 
     if (_ideathonEvaluationTemplateId.isEmpty) {
       _ideathonEvaluationTemplateId = 'ideathon';
-      await _configRef.set(
-        <String, dynamic>{
-          ideathonEvaluationTemplateIdField: _ideathonEvaluationTemplateId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      try {
+        await _configRef.set(
+          <String, dynamic>{
+            ideathonEvaluationTemplateIdField: _ideathonEvaluationTemplateId,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService ideathon template id persist skipped: $e');
+        }
+      }
     }
 
     _normalizeDependentDefaults();
