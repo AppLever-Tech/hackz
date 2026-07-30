@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../data/docs_registry.dart';
+import '../data/idea_lifecycle_content.dart';
 import '../data/problem_lifecycle_content.dart';
+import '../data/roles_responsibilities_content.dart';
 import '../models/doc_models.dart';
 import '../services/docs_print.dart';
 import '../services/docs_search_service.dart';
@@ -84,6 +86,8 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
       query: q,
       extraCorpus: <String, List<String>>{
         'problem-lifecycle': ProblemLifecycleSections.searchCorpus,
+        'idea-lifecycle': IdeaLifecycleSections.searchCorpus,
+        'roles-responsibilities': RolesResponsibilitiesSections.searchCorpus,
       },
     );
     setState(() {
@@ -106,6 +110,18 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
   Widget _buildPageContent() {
     if (_pageId == 'problem-lifecycle') {
       return ProblemLifecycleDocBody(
+        sectionKeys: _sectionKeys,
+        onPrint: _enterPrintMode,
+      );
+    }
+    if (_pageId == 'idea-lifecycle') {
+      return IdeaLifecycleDocBody(
+        sectionKeys: _sectionKeys,
+        onPrint: _enterPrintMode,
+      );
+    }
+    if (_pageId == 'roles-responsibilities') {
+      return RolesResponsibilitiesDocBody(
         sectionKeys: _sectionKeys,
         onPrint: _enterPrintMode,
       );

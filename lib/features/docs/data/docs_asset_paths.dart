@@ -6,4 +6,9 @@ abstract final class DocsAssetPaths {
 
   static const String problemLifecycle =
       'assets/docs/images/problem_lifecycle.png';
+
+  static const String ideaLifecycle = 'assets/docs/images/idea_lifecycle.png';
+
+  static const String rolesResponsibilities =
+      'assets/docs/images/roles_responsibilities.png';
 }
