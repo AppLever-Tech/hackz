@@ -93,6 +93,7 @@ flutter:
     - assets/default_metadata/privacy_policy.json
     - assets/default_metadata/terms.json
     - assets/default_metadata/app_info.json
+    - assets/docs/images/problem_lifecycle.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

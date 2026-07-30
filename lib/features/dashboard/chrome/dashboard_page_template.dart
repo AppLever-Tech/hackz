@@ -140,6 +140,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'App Metadata', icon: AppIcons.info),
+            DashboardMenuItem(label: 'Documentation', icon: AppIcons.docs),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],
