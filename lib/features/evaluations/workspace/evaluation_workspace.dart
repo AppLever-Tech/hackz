@@ -15,6 +15,7 @@ abstract final class EvaluationWorkspace {
       id: 'evaluation:$id',
       title: 'Evaluation Details',
       subtitle: WorkspaceRoute.loadingSubtitle,
+      helpPageId: 'evaluation-lifecycle',
       prepare: () async {
         vm = await EvaluationDetailsLoader.load(ideaId: id, viewer: viewer);
       },

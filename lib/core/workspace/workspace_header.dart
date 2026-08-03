@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_icons.dart';
+import '../../features/docs/widgets/help_action_button.dart';
 import 'workspace_theme.dart';
 
-/// Workspace chrome: internal back, title, close.
+/// Workspace chrome: internal back, title, optional Help, close.
 class WorkspaceHeader extends StatelessWidget {
   const WorkspaceHeader({
     super.key,
@@ -12,6 +13,7 @@ class WorkspaceHeader extends StatelessWidget {
     required this.showBack,
     required this.onBack,
     required this.onClose,
+    this.helpPageId,
   });
 
   final String title;
@@ -19,6 +21,7 @@ class WorkspaceHeader extends StatelessWidget {
   final bool showBack;
   final VoidCallback onBack;
   final VoidCallback onClose;
+  final String? helpPageId;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +65,7 @@ class WorkspaceHeader extends StatelessWidget {
               ],
             ),
           ),
+          if (helpPageId != null) HelpActionButton(pageId: helpPageId),
           IconButton(
             tooltip: 'Close workspace',
             onPressed: onClose,

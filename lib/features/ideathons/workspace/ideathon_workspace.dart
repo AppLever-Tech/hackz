@@ -14,6 +14,7 @@ abstract final class IdeathonWorkspace {
       id: 'ideathon:$ideathonId',
       title: 'Ideathon',
       subtitle: WorkspaceRoute.loadingSubtitle,
+      helpPageId: 'ideathon',
       prepare: () async {
         vm = await IdeathonWorkspaceLoader.load(ideathonId);
       },

@@ -11,12 +11,16 @@ class WorkspaceRoute {
     required this.builder,
     this.subtitle,
     this.prepare,
+    this.helpPageId,
   });
 
   /// Stable key for transitions and stack identity (e.g. `idea:abc123`).
   final String id;
   final String title;
   final String? subtitle;
+
+  /// Optional Help page id opened from the workspace header (?).
+  final String? helpPageId;
 
   /// Builds workspace body below the header.
   final WidgetBuilder builder;

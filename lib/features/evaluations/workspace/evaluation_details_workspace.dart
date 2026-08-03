@@ -90,6 +90,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
             onLogout: session.onLogout,
             onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
             onRefresh: _load,
+            helpPageId: 'evaluation-lifecycle',
             leading: IconButton(
               onPressed: widget.onBack,
               icon: const Icon(Icons.arrow_back_rounded),

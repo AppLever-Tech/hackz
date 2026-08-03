@@ -76,6 +76,7 @@ class _IdeaDetailsPaneState extends State<IdeaDetailsPane> {
             onLogout: session.onLogout,
             onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
             onRefresh: _reload,
+            helpPageId: 'idea-lifecycle',
             leading: IconButton(
               onPressed: widget.onBack,
               icon: const Icon(Icons.arrow_back_rounded),

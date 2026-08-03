@@ -16,6 +16,7 @@ abstract final class PaymentWorkspace {
       id: 'payment:$id',
       title: 'Payment Details',
       subtitle: WorkspaceRoute.loadingSubtitle,
+      helpPageId: 'payment-verification',
       prepare: () async {
         vm = await PaymentWorkspaceLoader.load(id);
       },

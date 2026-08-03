@@ -31,7 +31,7 @@ class PlaceholderDocPage extends StatelessWidget {
           tone: DocInfoTone.note,
           title: 'Coming soon',
           body:
-              'This page is registered in the Hackz Docs framework. Content will reuse the same layout, TOC, timeline, tables, and media widgets.',
+              'This page is registered in Hackz Help. Content will reuse the same layout, TOC, timeline, tables, and media widgets.',
         ),
         const SizedBox(height: 12),
         DocumentationCard(

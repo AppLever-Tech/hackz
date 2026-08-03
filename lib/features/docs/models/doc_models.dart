@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// Identifies a documentation page in the registry.
+import '../../user/models/enums/user_role.dart';
+
+/// Help content categories for sidebar grouping.
+enum DocCategory {
+  gettingStarted,
+  workflows,
+  reference,
+  administration,
+}
+
+extension DocCategoryLabels on DocCategory {
+  String get label => switch (this) {
+        DocCategory.gettingStarted => 'Getting Started',
+        DocCategory.workflows => 'Workflows',
+        DocCategory.reference => 'Reference',
+        DocCategory.administration => 'Administration',
+      };
+}
+
+/// Identifies a documentation / Help page in the registry.
 class DocPageDefinition {
   const DocPageDefinition({
     required this.id,
@@ -13,6 +32,8 @@ class DocPageDefinition {
     this.isPlaceholder = false,
     this.heroImageAsset,
     this.searchKeywords = const <String>[],
+    this.category = DocCategory.reference,
+    this.adminOnly = false,
   });
 
   final String id;
@@ -25,6 +46,17 @@ class DocPageDefinition {
   final bool isPlaceholder;
   final String? heroImageAsset;
   final List<String> searchKeywords;
+  final DocCategory category;
+
+  /// When true, hidden from non-admin Help browsers (Faculty/Judge/Coordinator/Student).
+  final bool adminOnly;
+
+  bool isVisibleTo(UserRole role) {
+    if (!adminOnly) return true;
+    return role == UserRole.sysAdmin ||
+        role == UserRole.collegeAdmin ||
+        role == UserRole.departmentAdmin;
+  }
 }
 
 /// A scroll-anchored section used for TOC and deep links.

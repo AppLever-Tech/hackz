@@ -18,6 +18,8 @@ class DocumentationLayout extends StatelessWidget {
     required this.searchController,
     required this.onSearchChanged,
     this.filteredPageIds,
+    this.groupedPages,
+    this.onSelectHome,
     this.printMode = false,
   });
 
@@ -31,6 +33,8 @@ class DocumentationLayout extends StatelessWidget {
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
   final Set<String>? filteredPageIds;
+  final List<(String title, List<DocPageDefinition> pages)>? groupedPages;
+  final VoidCallback? onSelectHome;
   final bool printMode;
 
   @override
@@ -69,6 +73,8 @@ class DocumentationLayout extends StatelessWidget {
                       selectedId: selectedPage.id,
                       onSelect: onSelectPage,
                       filteredIds: filteredPageIds,
+                      groupedPages: groupedPages,
+                      onSelectHome: onSelectHome,
                     ),
                   ),
                 ],

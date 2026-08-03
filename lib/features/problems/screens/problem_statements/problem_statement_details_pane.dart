@@ -73,6 +73,7 @@ class _ProblemStatementDetailsPaneState extends State<ProblemStatementDetailsPan
             onLogout: session.onLogout,
             onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
             onRefresh: _reload,
+            helpPageId: 'problem-lifecycle',
             leading: _backLeading(),
           );
 

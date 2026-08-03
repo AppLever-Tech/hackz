@@ -11,6 +11,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/docs/widgets/help_action_button.dart';
 import '../../team/services/faculty_teams_service.dart';
 import '../../team/services/team_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
@@ -350,6 +351,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             ],
           ),
         ),
+        const HelpActionButton(pageId: 'idea-lifecycle'),
       ],
     );
   }

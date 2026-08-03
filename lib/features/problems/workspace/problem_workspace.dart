@@ -17,6 +17,7 @@ abstract final class ProblemWorkspace {
       id: 'problem:$id',
       title: 'Problem Details',
       subtitle: WorkspaceRoute.loadingSubtitle,
+      helpPageId: 'problem-lifecycle',
       prepare: () async {
         vm = await ProblemWorkspaceLoader.load(id);
       },

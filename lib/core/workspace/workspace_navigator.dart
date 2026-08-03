@@ -71,6 +71,7 @@ class WorkspaceNavigator extends StatelessWidget {
           showBack: true,
           onBack: controller.pop,
           onClose: controller.close,
+          helpPageId: route.helpPageId,
         ),
         Expanded(
           child: WorkspaceTransition(

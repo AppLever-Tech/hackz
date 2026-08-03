@@ -6,6 +6,8 @@ import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/menus/hackz_popup_menu.dart';
 import '../../../features/app_metadata/widgets/show_metadata_viewer.dart';
+import '../../../features/docs/services/help_navigation.dart';
+import '../../../features/docs/widgets/help_action_button.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
@@ -183,6 +185,7 @@ class DashboardPageHeader extends StatelessWidget {
     this.leading,
     this.onRefresh,
     this.onUserTap,
+    this.helpPageId,
   });
 
   final String title;
@@ -192,6 +195,7 @@ class DashboardPageHeader extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback onLogout;
   final VoidCallback? onUserTap;
+  final String? helpPageId;
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +230,7 @@ class DashboardPageHeader extends StatelessWidget {
           onLogout: onLogout,
           onRefresh: onRefresh,
           onUserTap: onUserTap,
+          helpPageId: helpPageId,
         ),
       ],
     );
@@ -238,12 +243,14 @@ class _DashboardHeaderActions extends StatelessWidget {
     required this.onLogout,
     this.onRefresh,
     this.onUserTap,
+    this.helpPageId,
   });
 
   final UserModel user;
   final VoidCallback onLogout;
   final VoidCallback? onRefresh;
   final VoidCallback? onUserTap;
+  final String? helpPageId;
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +261,11 @@ class _DashboardHeaderActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        if (helpPageId != null)
+          HelpActionButton(
+            pageId: helpPageId,
+            iconSize: iconSize,
+          ),
         if (onRefresh != null)
           IconButton(
             tooltip: 'Refresh',
@@ -273,6 +285,11 @@ class _DashboardHeaderActions extends StatelessWidget {
         HackzPopupMenuButton(
           tooltip: 'Account',
           actions: <HackzMenuAction>[
+            HackzMenuAction(
+              value: HelpNavigation.overflowAction,
+              icon: AppIcons.docs,
+              label: 'Help',
+            ),
             for (final ({String value, IconData icon, String label}) item in AppMetadataMenu.menuItems)
               HackzMenuAction(value: item.value, icon: item.icon, label: item.label),
             const HackzMenuAction(
@@ -286,6 +303,10 @@ class _DashboardHeaderActions extends StatelessWidget {
           onSelected: (String value) {
             if (value == 'logout') {
               onLogout();
+              return;
+            }
+            if (value == HelpNavigation.overflowAction) {
+              HelpNavigation.open(context, user: user);
               return;
             }
             AppMetadataMenu.handleSelection(context, value);

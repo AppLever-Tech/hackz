@@ -19,6 +19,7 @@ import '../services/import_template_service.dart';
 import '../constants/import_constants.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_summary_metrics.dart';
+import '../../../features/docs/widgets/help_action_button.dart';
 import '../widgets/import_supported_values_section.dart';
 
 enum _ImportStep { template, review, result }
@@ -229,9 +230,16 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          _handler.title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _handler.title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              ),
+            ),
+            const HelpActionButton(pageId: 'csv-import'),
+          ],
         ),
         const SizedBox(height: 4),
         Text(

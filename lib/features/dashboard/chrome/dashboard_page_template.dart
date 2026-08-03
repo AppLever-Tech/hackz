@@ -12,6 +12,7 @@ import '../../../features/evaluations/services/judge_evaluation_service.dart';
 import '../sysadmin/services/sysadmin_dashboard_service.dart';
 import '../../../core/responsive/responsive_dashboard_layout.dart';
 import '../../../features/auth/screens/landing_screen.dart';
+import '../../../features/docs/data/docs_registry.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
@@ -104,6 +105,9 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               user: widget.user,
               onLogout: () => _logout(context),
               onUserTap: () => WorkspaceNavigator.openUser(context, widget.user.userId),
+              helpPageId: isDashboardTab
+                  ? null
+                  : DocsRegistry.helpPageForContext(selectedMenuTitle),
               onRefresh: () {
                 _chromeController.clearOverlay();
                 setState(() => _refreshToken++);
@@ -140,7 +144,6 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'App Metadata', icon: AppIcons.info),
-            DashboardMenuItem(label: 'Documentation', icon: AppIcons.docs),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],

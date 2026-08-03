@@ -17,6 +17,7 @@ abstract final class IdeaWorkspace {
       id: 'idea:$id',
       title: 'Idea Details',
       subtitle: WorkspaceRoute.loadingSubtitle,
+      helpPageId: 'idea-lifecycle',
       prepare: () async {
         vm = await IdeaWorkspaceLoader.load(id);
       },

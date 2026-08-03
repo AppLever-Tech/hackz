@@ -61,6 +61,7 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
             user: session.user,
             onLogout: session.onLogout,
             onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            helpPageId: 'evaluation-lifecycle',
             leading: IconButton(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded),
