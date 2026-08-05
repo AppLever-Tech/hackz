@@ -26,7 +26,9 @@ class AttachmentRelatedEntity {
   final String detail;
 
   bool get canOpenWorkspace =>
-      entityId.trim().isNotEmpty && entityType != AttachmentEntityType.organization;
+      entityId.trim().isNotEmpty &&
+      entityType != AttachmentEntityType.organization &&
+      entityType != AttachmentEntityType.feedback;
 }
 
 class AttachmentWorkspaceViewModel {
@@ -175,6 +177,13 @@ abstract final class AttachmentWorkspaceLoader {
         );
       case AttachmentEntityType.organization:
         return null;
+      case AttachmentEntityType.feedback:
+        return AttachmentRelatedEntity(
+          entityType: AttachmentEntityType.feedback,
+          entityId: entityId,
+          headline: entityId,
+          detail: 'Linked feedback',
+        );
     }
   }
 

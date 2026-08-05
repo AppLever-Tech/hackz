@@ -183,6 +183,7 @@ class SysAdminDashboardService {
       _fetchCollection(FirestoreUtils.hkzScores),
       _fetchCollection(FirestoreUtils.hkzProblems),
       _fetchCollection(FirestoreUtils.hkzPayments),
+      _fetchCollection(FirestoreUtils.hkzFeedback),
     ]);
 
     final orgDocs = results[0];
@@ -192,6 +193,7 @@ class SysAdminDashboardService {
     final scoreDocs = results[4];
     final problemDocs = results[5];
     final paymentDocs = results[6];
+    final feedbackDocs = results[7];
 
     final Map<String, String> orgNames = <String, String>{
       for (final doc in orgDocs) doc.id: ((doc.data()['name'] as String?) ?? doc.id).trim().isEmpty ? doc.id : ((doc.data()['name'] as String?) ?? doc.id).trim(),
@@ -241,6 +243,7 @@ class SysAdminDashboardService {
         teamDocs: teamDocs,
         ideaDocs: ideaDocs,
         paymentDocs: paymentDocs,
+        feedbackDocs: feedbackDocs,
       ),
       recentActivity: _buildRecentActivity(orgDocs, userDocs, problemDocs, scoreDocs, paymentDocs),
       usersByRole: _roleDistribution(userDocs),
@@ -407,6 +410,7 @@ class SysAdminDashboardService {
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> teamDocs,
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> ideaDocs,
     required List<QueryDocumentSnapshot<Map<String, dynamic>>> paymentDocs,
+    required List<QueryDocumentSnapshot<Map<String, dynamic>>> feedbackDocs,
   }) {
     final List<PlatformAlert> alerts = <PlatformAlert>[];
     final int pendingUsers = userDocs.where((doc) => UserStatus.fromRaw((doc.data()['status'] as String?) ?? '') == UserStatus.pendingApproval).length;
@@ -460,6 +464,18 @@ class SysAdminDashboardService {
         title: 'Payment verification backlog',
         message: '$paymentBacklog payments are pending coordinator verification.',
         severity: paymentBacklog > 10 ? PlatformAlertSeverity.critical : PlatformAlertSeverity.warning,
+      ));
+    }
+
+    final int openFeedback = feedbackDocs.where((doc) {
+      final String status = ((doc.data()['status'] as String?) ?? '').trim().toUpperCase();
+      return status == 'OPEN';
+    }).length;
+    if (openFeedback > 0) {
+      alerts.add(PlatformAlert(
+        title: 'Open feedback',
+        message: '$openFeedback feedback item${openFeedback == 1 ? '' : 's'} awaiting review.',
+        severity: openFeedback > 20 ? PlatformAlertSeverity.warning : PlatformAlertSeverity.info,
       ));
     }
 

@@ -54,6 +54,8 @@ class AttachmentService {
         return 'ideas/$entityId';
       case AttachmentEntityType.payment:
         return 'payments/$entityId';
+      case AttachmentEntityType.feedback:
+        return 'feedback/$entityId';
     }
   }
 

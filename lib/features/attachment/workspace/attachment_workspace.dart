@@ -53,6 +53,7 @@ abstract final class AttachmentWorkspace {
       case AttachmentEntityType.payment:
         PaymentWorkspace.push(context, id);
       case AttachmentEntityType.organization:
+      case AttachmentEntityType.feedback:
         break;
     }
   }

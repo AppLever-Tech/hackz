@@ -60,6 +60,7 @@ class AttachmentMetadataSection extends StatelessWidget {
       AttachmentEntityType.problem => 'Problem',
       AttachmentEntityType.payment => 'Payment',
       AttachmentEntityType.organization => 'Organization',
+      AttachmentEntityType.feedback => 'Feedback',
     };
   }
 

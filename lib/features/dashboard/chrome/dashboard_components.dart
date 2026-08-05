@@ -8,6 +8,10 @@ import '../../../core/ui/menus/hackz_popup_menu.dart';
 import '../../../features/app_metadata/widgets/show_metadata_viewer.dart';
 import '../../../features/docs/services/help_navigation.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
+import '../../../features/feedback/services/feedback_navigation.dart';
+import '../../../features/org_settings/constants/org_setting_keys.dart';
+import '../../../features/org_settings/services/org_settings_service.dart';
+import '../../../features/user/models/enums/user_role.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
@@ -257,6 +261,7 @@ class _DashboardHeaderActions extends StatelessWidget {
     final bool compact = ResponsiveHelper.isMobile(context);
     final double iconSize = compact ? 20 : 22;
     final double avatarRadius = compact ? 14 : 16;
+    final bool showFeedback = _feedbackVisibleFor(user);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -290,6 +295,12 @@ class _DashboardHeaderActions extends StatelessWidget {
               icon: AppIcons.docs,
               label: 'Help',
             ),
+            if (showFeedback)
+              HackzMenuAction(
+                value: FeedbackNavigation.overflowAction,
+                icon: AppIcons.feedback,
+                label: 'Feedback',
+              ),
             for (final ({String value, IconData icon, String label}) item in AppMetadataMenu.menuItems)
               HackzMenuAction(value: item.value, icon: item.icon, label: item.label),
             const HackzMenuAction(
@@ -309,6 +320,10 @@ class _DashboardHeaderActions extends StatelessWidget {
               HelpNavigation.open(context, user: user);
               return;
             }
+            if (value == FeedbackNavigation.overflowAction) {
+              FeedbackNavigation.open(context, user: user);
+              return;
+            }
             AppMetadataMenu.handleSelection(context, value);
           },
           child: HackzPopupMenuOverflowTrigger(
@@ -318,6 +333,14 @@ class _DashboardHeaderActions extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  static bool _feedbackVisibleFor(UserModel user) {
+    if (UserRole.fromCode(user.role) == UserRole.sysAdmin) return true;
+    final Object? raw =
+        OrgSettingsService.instance.valuesSnapshot[OrgSettingKeys.enableFeedback];
+    if (raw is bool) return raw;
+    return true;
   }
 }
 

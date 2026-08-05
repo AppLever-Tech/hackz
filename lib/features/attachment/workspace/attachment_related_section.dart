@@ -23,6 +23,7 @@ class AttachmentRelatedSection extends StatelessWidget {
       AttachmentEntityType.problem => ContextPillSemantic.problem,
       AttachmentEntityType.payment => ContextPillSemantic.payment,
       AttachmentEntityType.organization => ContextPillSemantic.generic,
+      AttachmentEntityType.feedback => ContextPillSemantic.generic,
     };
 
     return Column(
@@ -50,6 +51,7 @@ class AttachmentRelatedSection extends StatelessWidget {
       AttachmentEntityType.problem => 'Problem',
       AttachmentEntityType.payment => 'Payment',
       AttachmentEntityType.organization => 'Organization',
+      AttachmentEntityType.feedback => 'Feedback',
     };
   }
 }

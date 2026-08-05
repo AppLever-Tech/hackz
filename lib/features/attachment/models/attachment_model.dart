@@ -4,7 +4,8 @@ enum AttachmentEntityType {
   organization('organization'),
   problem('problem'),
   idea('idea'),
-  payment('payment');
+  payment('payment'),
+  feedback('feedback');
 
   const AttachmentEntityType(this.value);
   final String value;
@@ -18,6 +19,8 @@ enum AttachmentEntityType {
         return AttachmentEntityType.idea;
       case 'payment':
         return AttachmentEntityType.payment;
+      case 'feedback':
+        return AttachmentEntityType.feedback;
       case 'problem':
       default:
         return AttachmentEntityType.problem;

@@ -63,4 +63,9 @@ abstract final class OrgSettingKeys {
   static const String allowedImageFormats = 'allowedImageFormats';
   static const String allowedDocumentFormats = 'allowedDocumentFormats';
   static const String allowedVideoFormats = 'allowedVideoFormats';
+
+  // Feedback
+  static const String enableFeedback = 'enableFeedback';
+  static const String maxFeedbackScreenshotSizeMB = 'maxFeedbackScreenshotSizeMB';
+  static const String maxFeedbackPerUserPerDay = 'maxFeedbackPerUserPerDay';
 }

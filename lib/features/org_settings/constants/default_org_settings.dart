@@ -455,6 +455,47 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupKey: 'general',
     groupTitle: 'Limits & formats',
   ),
+
+  // —— Feedback ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.enableFeedback,
+    displayName: 'Enable Feedback',
+    type: OrgSettingValueType.boolean,
+    defaultValue: true,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Allow users to submit Issues and Enhancements from the app.',
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxFeedbackScreenshotSizeMB,
+    displayName: 'Maximum Screenshot Size (MB)',
+    type: OrgSettingValueType.integer,
+    defaultValue: 5,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Maximum size for an optional feedback screenshot.',
+    min: 1,
+    max: 25,
+    step: 1,
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxFeedbackPerUserPerDay,
+    displayName: 'Maximum Feedback Per User Per Day',
+    type: OrgSettingValueType.integer,
+    defaultValue: 5,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Daily submission limit per user.',
+    min: 1,
+    max: 50,
+    step: 1,
+  ),
 ];
 
 /// Firestore `settings` array entries: `{ key, displayName, value }`.
