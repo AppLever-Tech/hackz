@@ -7,6 +7,7 @@ import '../data/innovation_to_startup_content.dart';
 import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
+import '../data/smart_india_hackathon_content.dart';
 import '../models/doc_models.dart';
 import '../screens/pages/placeholder_doc_page.dart';
 import 'docs_asset_paths.dart';
@@ -54,17 +55,16 @@ abstract final class DocsRegistry {
     ),
     DocPageDefinition(
       id: 'smart-india-hackathon',
-      title: 'Smart India Hackathon',
+      title: 'Smart India Hackathon (SIH)',
       description:
-          'Event-specific operating guidance for Smart India Hackathon programs (Phase 3). Will cross-link to the Innovation to Startup Program.',
+          'Learn how Hackz helps institutions manage the complete internal Smart India Hackathon workflow—from publishing official problem statements to evaluating, shortlisting and nominating the best teams.',
       icon: AppIcons.statusWinner,
-      isPlaceholder: true,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 7,
+      heroImageAsset: DocsAssetPaths.smartIndiaHackathonWorkflow,
+      searchKeywords: SmartIndiaHackathonSections.searchCorpus,
       category: DocCategory.institutionSolutions,
-      builder: (_) => const PlaceholderDocPage(
-        title: 'Smart India Hackathon',
-        description:
-            'Phase 3 documentation for Smart India Hackathon will land here and link back to the Innovation to Startup Program.',
-      ),
+      builder: (_) => const SizedBox.shrink(),
     ),
     DocPageDefinition(
       id: 'problem-lifecycle',
@@ -344,6 +344,7 @@ abstract final class DocsRegistry {
     if (id == helpHomeId) return const <DocSectionSpec>[];
     if (id == 'platform-overview') return PlatformOverviewSections.all;
     if (id == 'innovation-to-startup') return InnovationToStartupSections.all;
+    if (id == 'smart-india-hackathon') return SmartIndiaHackathonSections.all;
     if (id == 'problem-lifecycle') return ProblemLifecycleSections.all;
     if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
     if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;

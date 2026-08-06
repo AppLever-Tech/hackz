@@ -12,6 +12,7 @@ import '../data/innovation_to_startup_content.dart';
 import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
+import '../data/smart_india_hackathon_content.dart';
 import '../models/doc_models.dart';
 import '../services/docs_print.dart';
 import '../services/docs_search_service.dart';
@@ -155,6 +156,13 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
     }
     if (_pageId == 'innovation-to-startup') {
       return InnovationToStartupDocBody(
+        sectionKeys: _sectionKeys,
+        onOpenPage: _selectPage,
+        onPrint: _enterPrintMode,
+      );
+    }
+    if (_pageId == 'smart-india-hackathon') {
+      return SmartIndiaHackathonDocBody(
         sectionKeys: _sectionKeys,
         onOpenPage: _selectPage,
         onPrint: _enterPrintMode,

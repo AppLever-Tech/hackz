@@ -97,6 +97,7 @@ flutter:
     - assets/docs/images/idea_lifecycle.png
     - assets/docs/images/roles_responsibilities.png
     - assets/docs/images/innovation_to_startup_program.png
+    - assets/docs/images/smart_india_hackathon_workflow.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
