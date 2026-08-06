@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../user/models/enums/user_role.dart';
 import '../data/idea_lifecycle_content.dart';
+import '../data/innovation_to_startup_content.dart';
 import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
@@ -41,26 +42,28 @@ abstract final class DocsRegistry {
     DocPageDefinition(
       id: 'innovation-to-startup',
       title: 'Innovation to Startup Program',
-      description: 'Institution program path from campus innovation to startup outcomes.',
+      description:
+          'Understand how Hackz enables institutions to build a complete innovation ecosystem—from ideation to startup incubation—using structured workflows, mentorship, intellectual property support and product development.',
       icon: AppIcons.statusPrototypeSelected,
-      isPlaceholder: true,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 8,
+      heroImageAsset: DocsAssetPaths.innovationToStartupProgram,
+      searchKeywords: InnovationToStartupSections.searchCorpus,
       category: DocCategory.institutionSolutions,
-      builder: (_) => const PlaceholderDocPage(
-        title: 'Innovation to Startup Program',
-        description:
-            'Program-level guidance for taking campus innovations toward startup outcomes will land here.',
-      ),
+      builder: (_) => const SizedBox.shrink(),
     ),
     DocPageDefinition(
       id: 'smart-india-hackathon',
       title: 'Smart India Hackathon',
-      description: 'Operating guidance for Smart India Hackathon style programs.',
+      description:
+          'Event-specific operating guidance for Smart India Hackathon programs (Phase 3). Will cross-link to the Innovation to Startup Program.',
       icon: AppIcons.statusWinner,
       isPlaceholder: true,
       category: DocCategory.institutionSolutions,
       builder: (_) => const PlaceholderDocPage(
         title: 'Smart India Hackathon',
-        description: 'Smart India Hackathon program documentation will land here.',
+        description:
+            'Phase 3 documentation for Smart India Hackathon will land here and link back to the Innovation to Startup Program.',
       ),
     ),
     DocPageDefinition(
@@ -340,6 +343,7 @@ abstract final class DocsRegistry {
   static List<DocSectionSpec> sectionsFor(String id) {
     if (id == helpHomeId) return const <DocSectionSpec>[];
     if (id == 'platform-overview') return PlatformOverviewSections.all;
+    if (id == 'innovation-to-startup') return InnovationToStartupSections.all;
     if (id == 'problem-lifecycle') return ProblemLifecycleSections.all;
     if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
     if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;

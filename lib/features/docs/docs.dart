@@ -5,6 +5,7 @@ export 'models/doc_models.dart';
 export 'data/docs_registry.dart';
 export 'data/docs_asset_paths.dart';
 export 'data/platform_overview_content.dart';
+export 'data/innovation_to_startup_content.dart';
 export 'data/problem_lifecycle_content.dart';
 export 'data/idea_lifecycle_content.dart';
 export 'data/help_home_content.dart';

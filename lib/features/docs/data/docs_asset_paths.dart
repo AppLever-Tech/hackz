@@ -11,4 +11,7 @@ abstract final class DocsAssetPaths {
 
   static const String rolesResponsibilities =
       'assets/docs/images/roles_responsibilities.png';
+
+  static const String innovationToStartupProgram =
+      'assets/docs/images/innovation_to_startup_program.png';
 }
