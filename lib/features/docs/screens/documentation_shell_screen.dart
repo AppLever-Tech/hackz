@@ -8,6 +8,7 @@ import '../../dashboard/chrome/dashboard_session_scope.dart';
 import '../data/docs_registry.dart';
 import '../data/help_home_content.dart';
 import '../data/idea_lifecycle_content.dart';
+import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../models/doc_models.dart';
@@ -140,6 +141,13 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
     if (_pageId == DocsRegistry.helpHomeId) {
       return HelpHomeDocBody(
         role: _role,
+        onOpenPage: _selectPage,
+        onPrint: _enterPrintMode,
+      );
+    }
+    if (_pageId == 'platform-overview') {
+      return PlatformOverviewDocBody(
+        sectionKeys: _sectionKeys,
         onOpenPage: _selectPage,
         onPrint: _enterPrintMode,
       );

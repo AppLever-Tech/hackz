@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../user/models/enums/user_role.dart';
 import '../data/idea_lifecycle_content.dart';
+import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../models/doc_models.dart';
@@ -26,15 +27,40 @@ abstract final class DocsRegistry {
 
   static final List<DocPageDefinition> pages = <DocPageDefinition>[
     DocPageDefinition(
-      id: 'getting-started',
-      title: 'Getting Started',
-      description: 'Orientation for new Hackz users.',
-      icon: AppIcons.info,
-      isPlaceholder: true,
+      id: 'platform-overview',
+      title: 'Hackz Platform Overview',
+      description:
+          'Learn how Hackz helps institutions manage the complete innovation lifecycle—from problem statements to prototype selection—through a structured, role-based and collaborative platform.',
+      icon: AppIcons.docs,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 7,
+      searchKeywords: PlatformOverviewSections.searchCorpus,
       category: DocCategory.gettingStarted,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'innovation-to-startup',
+      title: 'Innovation to Startup Program',
+      description: 'Institution program path from campus innovation to startup outcomes.',
+      icon: AppIcons.statusPrototypeSelected,
+      isPlaceholder: true,
+      category: DocCategory.institutionSolutions,
       builder: (_) => const PlaceholderDocPage(
-        title: 'Getting Started',
-        description: 'A short orientation guide for new Hackz users will land here.',
+        title: 'Innovation to Startup Program',
+        description:
+            'Program-level guidance for taking campus innovations toward startup outcomes will land here.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'smart-india-hackathon',
+      title: 'Smart India Hackathon',
+      description: 'Operating guidance for Smart India Hackathon style programs.',
+      icon: AppIcons.statusWinner,
+      isPlaceholder: true,
+      category: DocCategory.institutionSolutions,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Smart India Hackathon',
+        description: 'Smart India Hackathon program documentation will land here.',
       ),
     ),
     DocPageDefinition(
@@ -204,51 +230,51 @@ abstract final class DocsRegistry {
   static List<String> recommendedIdsFor(UserRole role) {
     return switch (role) {
       UserRole.sysAdmin => const <String>[
-          'problem-lifecycle',
-          'idea-lifecycle',
-          'roles-responsibilities',
-          'csv-import',
+          'platform-overview',
           'org-settings',
+          'user-management',
+          'problem-lifecycle',
+          'roles-responsibilities',
         ],
       UserRole.collegeAdmin => const <String>[
-          'problem-lifecycle',
-          'idea-lifecycle',
-          'roles-responsibilities',
-          'csv-import',
+          'platform-overview',
           'org-settings',
+          'problem-lifecycle',
+          'csv-import',
+          'roles-responsibilities',
         ],
       UserRole.departmentAdmin => const <String>[
+          'platform-overview',
           'problem-lifecycle',
-          'idea-lifecycle',
-          'roles-responsibilities',
-          'csv-import',
           'evaluation-lifecycle',
-          'ideathon',
+          'csv-import',
+          'roles-responsibilities',
         ],
       UserRole.faculty => const <String>[
-          'idea-lifecycle',
+          'platform-overview',
           'problem-lifecycle',
+          'idea-lifecycle',
           'roles-responsibilities',
           'innovation-submission',
-          'evaluation-lifecycle',
         ],
       UserRole.judge => const <String>[
+          'platform-overview',
           'evaluation-lifecycle',
           'idea-lifecycle',
           'roles-responsibilities',
-          'ideathon',
         ],
       UserRole.coordinator => const <String>[
+          'platform-overview',
+          'evaluation-lifecycle',
           'idea-lifecycle',
           'payment-verification',
           'roles-responsibilities',
-          'ideathon',
         ],
       UserRole.student => const <String>[
-          'problem-lifecycle',
+          'platform-overview',
           'idea-lifecycle',
           'roles-responsibilities',
-          'ideathon',
+          'problem-lifecycle',
         ],
     };
   }
@@ -313,6 +339,7 @@ abstract final class DocsRegistry {
 
   static List<DocSectionSpec> sectionsFor(String id) {
     if (id == helpHomeId) return const <DocSectionSpec>[];
+    if (id == 'platform-overview') return PlatformOverviewSections.all;
     if (id == 'problem-lifecycle') return ProblemLifecycleSections.all;
     if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
     if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;
@@ -325,6 +352,8 @@ abstract final class DocsRegistry {
   static String? helpPageForContext(String contextKey) {
     final String key = contextKey.trim().toLowerCase();
     return switch (key) {
+      'getting started' || 'platform overview' || 'hackz platform overview' || 'overview' =>
+        'platform-overview',
       'problem statements' || 'problem workspace' || 'problem details' || 'problems' =>
         'problem-lifecycle',
       'ideas dashboard' || 'idea workspace' || 'idea details' || 'innovation submission' =>
@@ -345,6 +374,8 @@ abstract final class DocsRegistry {
         'user-management',
       'payments' || 'payment verification' => 'payment-verification',
       'roles' || 'roles & responsibilities' => 'roles-responsibilities',
+      'innovation to startup' || 'startup program' => 'innovation-to-startup',
+      'smart india hackathon' || 'sih' => 'smart-india-hackathon',
       _ => null,
     };
   }

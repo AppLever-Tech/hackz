@@ -11,6 +11,7 @@ class DocumentationHero extends StatelessWidget {
     super.key,
     required this.title,
     required this.description,
+    this.subtitle,
     this.lastUpdated,
     this.readingMinutes = 5,
     this.imageAsset,
@@ -20,6 +21,7 @@ class DocumentationHero extends StatelessWidget {
 
   final String title;
   final String description;
+  final String? subtitle;
   final DateTime? lastUpdated;
   final int readingMinutes;
   final String? imageAsset;
@@ -66,6 +68,18 @@ class DocumentationHero extends StatelessWidget {
               color: cs.onPrimary,
             ),
           ),
+          if (subtitle != null && subtitle!.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+                color: cs.onPrimary.withValues(alpha: 0.92),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Text(
             description,

@@ -5,6 +5,7 @@ import '../../user/models/enums/user_role.dart';
 /// Help content categories for sidebar grouping.
 enum DocCategory {
   gettingStarted,
+  institutionSolutions,
   workflows,
   reference,
   administration,
@@ -13,6 +14,7 @@ enum DocCategory {
 extension DocCategoryLabels on DocCategory {
   String get label => switch (this) {
         DocCategory.gettingStarted => 'Getting Started',
+        DocCategory.institutionSolutions => 'Institution Solutions',
         DocCategory.workflows => 'Workflows',
         DocCategory.reference => 'Reference',
         DocCategory.administration => 'Administration',
