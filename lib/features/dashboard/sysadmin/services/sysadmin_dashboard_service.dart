@@ -204,8 +204,8 @@ class SysAdminDashboardService {
     final double approvalRate = userDocs.isEmpty ? 0 : approvedUsers / userDocs.length;
 
     final List<IdeaStatus> ideaStatuses = ideaDocs.map((doc) => IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.shortlisted).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.shortlisted).length;
+    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.ideathonAssigned).length;
+    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.ideathonAssigned).length;
 
     final List<OrganizationActivityPoint> orgActivity = _buildOrganizationActivity(
       orgDocs: orgDocs,
@@ -597,7 +597,7 @@ class SysAdminDashboardService {
       PlatformDistributionSegment(label: 'Submitted', count: counts[IdeaStatus.submitted] ?? 0, color: const Color(0xFF2563EB)),
       PlatformDistributionSegment(label: 'Review', count: counts[IdeaStatus.underEvaluation] ?? 0, color: const Color(0xFF7C3AED)),
       PlatformDistributionSegment(label: 'Evaluated', count: counts[IdeaStatus.evaluated] ?? 0, color: const Color(0xFF0891B2)),
-      PlatformDistributionSegment(label: 'Approved', count: counts[IdeaStatus.shortlisted] ?? 0, color: const Color(0xFF16A34A)),
+      PlatformDistributionSegment(label: 'Ideathon Assigned', count: counts[IdeaStatus.ideathonAssigned] ?? 0, color: const Color(0xFF16A34A)),
       PlatformDistributionSegment(label: 'Rejected', count: counts[IdeaStatus.rejected] ?? 0, color: const Color(0xFFDC2626)),
     ];
   }

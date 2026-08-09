@@ -39,7 +39,7 @@ abstract final class PlatformOverviewSections {
         'hackz platform overview innovation lifecycle ideathon hackathon',
         'college admin department admin faculty coordinator judge student',
         'problem statements ideas evaluations teams domains csv import',
-        'shortlisting prototype transparent evaluation multi-tenant',
+        'ideathon prototype transparent evaluation multi-tenant',
         'organization settings reports analytics feedback app metadata',
         'role-based access responsive dashboards getting started onboarding',
       ];
@@ -357,7 +357,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                   'Manage problem statements',
                   'Collect ideas',
                   'Evaluate innovations',
-                  'Shortlist teams',
+                  'Assign ideas to Ideathons',
                   'Organize events',
                   'Select prototypes',
                   'Track innovation progress',
@@ -367,7 +367,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               const DocumentationInfoCard(
                 title: 'More than event management',
                 body:
-                    'Hackz is not just an event management system—it is an innovation lifecycle platform spanning problem catalogs, idea workflows, evaluations, shortlisting, ideathons, prototypes and hackathons.',
+                    'Hackz is not just an event management system—it is an innovation lifecycle platform spanning problem catalogs, idea workflows, evaluations, ideathons, prototypes and hackathons.',
                 tone: DocInfoTone.important,
               ),
             ],
@@ -406,7 +406,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                       'Problem management',
                       'Judge assignments',
                       'Evaluation',
-                      'Shortlisting',
+                      'Ideathon assignment',
                       'Event management',
                     ],
                     cols,
@@ -478,7 +478,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                   'Email-based evaluations',
                   'Lost submissions',
                   'No evaluation transparency',
-                  'Difficult shortlisting',
+                  'Difficult Ideathon selection',
                   'Lack of analytics',
                   'No structured innovation workflow',
                   'Poor collaboration',
@@ -501,9 +501,9 @@ class PlatformOverviewDocBody extends StatelessWidget {
                           'Judge assignments, scoring and aggregation are visible and auditable, reducing bias and confusion.',
                     ),
                     (
-                      title: 'Guided shortlisting',
+                      title: 'Ideathon assignment',
                       body:
-                          'Ready-for-shortlisting signals and department controls replace ad-hoc selection chats.',
+                          'Department admins assign Submitted ideas to Ideathons with clear eligibility and readiness controls.',
                     ),
                     (
                       title: 'Analytics & collaboration',
@@ -563,7 +563,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     icon: AppIcons.scoring,
                     title: 'Evaluations',
-                    body: 'Assign judges, score ideas, aggregate results and shortlist teams.',
+                    body: 'Assign judges, score ideas and aggregate evaluation results.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -603,7 +603,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     icon: AppIcons.ideathons,
                     title: 'Ideathons',
-                    body: 'Run post-shortlist ideathon assignment, evaluation and prototypes.',
+                    body: 'Assign Submitted ideas to Ideathons, then run evaluation and prototypes.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -687,13 +687,13 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     pill: const DocumentationStatusPill(label: 'Evaluate'),
                   ),
                   (
-                    title: 'Shortlisting',
-                    body: 'Department admins advance ready ideas to the next stage.',
-                    pill: const DocumentationStatusPill(label: 'Shortlist', kind: DocStatusKind.active),
+                    title: 'Ideathon Assigned',
+                    body: 'Department admins assign Submitted ideas into Ideathon events.',
+                    pill: const DocumentationStatusPill(label: 'Ideathon', kind: DocStatusKind.active),
                   ),
                   (
                     title: 'Ideathon',
-                    body: 'Shortlisted teams deepen concepts in structured ideathon rounds.',
+                    body: 'Teams deepen concepts in structured ideathon rounds.',
                     pill: const DocumentationStatusPill(label: 'Ideathon', kind: DocStatusKind.custom),
                   ),
                   (
@@ -749,7 +749,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     page: ideaLifecycle,
                     summary:
-                        'How ideas progress from submission through evaluation, shortlisting, ideathon and winners.',
+                        'How ideas progress from submission through Ideathon assignment, Ideathon evaluation and winners.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -757,14 +757,14 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     page: evaluation,
                     summary:
-                        'Judge assignment, scoring, aggregation, ready-for-shortlisting and results.',
+                        'Judge assignment, scoring, aggregation and results.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
                   _workflowCard(
                     context,
                     page: ideathon,
-                    summary: 'Post-shortlist ideathon assignment, evaluation and prototype selection.',
+                    summary: 'Ideathon assignment, evaluation and prototype selection.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -858,7 +858,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     icon: AppIcons.ideathons,
                     title: 'Ideathon Management',
-                    body: 'Structured rounds after shortlisting.',
+                    body: 'Structured rounds after Ideathon assignment.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -1030,7 +1030,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'What is Hackz?',
                 body:
-                    'Hackz is an end-to-end innovation management platform for institutions. It covers problem catalogs, idea submission, evaluation, shortlisting, ideathons, prototypes and hackathons.',
+                    'Hackz is an end-to-end innovation management platform for institutions. It covers problem catalogs, idea submission, evaluation, ideathons, prototypes and hackathons.',
               ),
               (
                 title: 'Who can use Hackz?',
@@ -1045,7 +1045,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'Can Hackz conduct Ideathons?',
                 body:
-                    'Yes. After shortlisting, institutions can run ideathon workflows including assignment, evaluation and prototype selection.',
+                    'Yes. Ideas go Submitted → Ideathon Assigned. Institutions can then run ideathon workflows including evaluation and prototype selection.',
               ),
               (
                 title: 'Can Hackz conduct Hackathons?',
@@ -1058,9 +1058,9 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     'Department admins assign judges; judges score assigned ideas; the platform aggregates scores and advances ideas when evaluation thresholds are met.',
               ),
               (
-                title: 'How are teams shortlisted?',
+                title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Ideas that reach ready-for-shortlisting can be shortlisted by authorized department administrators as part of the evaluation workflow.',
+                    'Ideas go Submitted → Ideathon Assigned. Authorized department administrators assign eligible Submitted ideas to Ideathon events.',
               ),
               (
                 title: 'Can Hackz manage multiple departments?',

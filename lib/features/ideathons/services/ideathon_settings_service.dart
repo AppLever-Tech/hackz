@@ -11,8 +11,8 @@ abstract final class IdeathonSettingsService {
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
   }
 
-  static int minShortlistedIdeasRequired(String orgId) {
-    final Object? raw = OrgSettingsService.instance.valuesSnapshot[OrgSettingKeys.minShortlistedIdeasRequired];
+  static int minIdeasRequiredForIdeathon(String orgId) {
+    final Object? raw = OrgSettingsService.instance.valuesSnapshot[OrgSettingKeys.minIdeasRequiredForIdeathon];
     if (raw is int) return raw.clamp(1, 500);
     if (raw is num) return raw.round().clamp(1, 500);
     return 10;

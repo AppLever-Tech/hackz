@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_icons.dart';
 import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../team/models/enums/team_status.dart';
@@ -244,8 +243,6 @@ abstract final class IdeaWorkspaceLoader {
     }
     return switch (status) {
       IdeaStatus.evaluated ||
-      IdeaStatus.readyForShortlisting ||
-      IdeaStatus.shortlisted ||
       IdeaStatus.ideathonAssigned ||
       IdeaStatus.ideathonEvaluated ||
       IdeaStatus.prototypeSelected ||
@@ -253,7 +250,7 @@ abstract final class IdeaWorkspaceLoader {
         'Evaluated',
       IdeaStatus.underEvaluation => 'Awaiting reviews',
       IdeaStatus.rejected => 'Closed',
-      IdeaStatus.submitted => 'Submitted · pending review',
+      IdeaStatus.submitted => 'Submitted',
       IdeaStatus.draft => 'Not yet submitted',
       IdeaStatus.archived => 'Archived',
     };

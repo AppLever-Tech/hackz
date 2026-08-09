@@ -132,7 +132,7 @@ class StudentDashboardService {
     final submittedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.submitted).length;
     final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.underEvaluation).length;
     final evaluatedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.evaluated).length;
-    final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.shortlisted).length;
+    final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.ideathonAssigned).length;
     final rejectedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.rejected).length;
     final approvedOrRejectedIdeas = approvedIdeas + rejectedIdeas;
 

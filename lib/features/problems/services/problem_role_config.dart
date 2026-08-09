@@ -44,7 +44,8 @@ class ProblemRoleConfig {
           canToggleActive: false,
           canDeleteDraft: true,
           canSubmitIdea: false,
-          canAssignJudge: true,
+          // Phase 1: pre-Ideathon judge assignment removed; infrastructure kept for Ideathon phases.
+          canAssignJudge: false,
           // All problem statements should be shown for department admin, faculty, and student views.
           restrictToDepartment: false,
           orgId: user.orgId,

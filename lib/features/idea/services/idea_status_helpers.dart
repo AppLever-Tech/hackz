@@ -13,8 +13,6 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.submitted => 'Submitted',
       IdeaStatus.underEvaluation => 'Under Evaluation',
       IdeaStatus.evaluated => 'Evaluated',
-      IdeaStatus.readyForShortlisting => 'Ready for Shortlisting',
-      IdeaStatus.shortlisted => 'Shortlisted',
       IdeaStatus.ideathonAssigned => 'Ideathon Assigned',
       IdeaStatus.ideathonEvaluated => 'Ideathon Evaluated',
       IdeaStatus.prototypeSelected => 'Prototype Selected',
@@ -30,8 +28,6 @@ abstract final class IdeaStatusHelpers {
       IdeaStatus.submitted => const Color(0xFF9E9E9E),
       IdeaStatus.underEvaluation => const Color(0xFF1E88E5),
       IdeaStatus.evaluated => const Color(0xFF7B1FA2),
-      IdeaStatus.readyForShortlisting => const Color(0xFF0D9488),
-      IdeaStatus.shortlisted => const Color(0xFF2E7D32),
       IdeaStatus.ideathonAssigned => const Color(0xFF0EA5E9),
       IdeaStatus.ideathonEvaluated => const Color(0xFF6366F1),
       IdeaStatus.prototypeSelected => const Color(0xFFD97706),
@@ -48,15 +44,15 @@ abstract final class IdeaStatusHelpers {
   static IconData icon(IdeaStatus status) => AppIcons.forIdeaStatus(status);
 
   static bool isPostEvaluationReview(IdeaStatus status) {
-    return status == IdeaStatus.evaluated ||
-        status == IdeaStatus.readyForShortlisting ||
-        status == IdeaStatus.shortlisted ||
-        status == IdeaStatus.rejected;
+    return status == IdeaStatus.evaluated || status == IdeaStatus.rejected;
   }
 
-  static bool canShortlistFrom(IdeaStatus status) => status == IdeaStatus.readyForShortlisting;
-
-  static bool canRejectFrom(IdeaStatus status) => status == IdeaStatus.readyForShortlisting;
+  /// Ideas that can be added to a new Ideathon.
+  static bool isEligibleForIdeathon(IdeaStatus status) {
+    return status == IdeaStatus.submitted ||
+        status == IdeaStatus.underEvaluation ||
+        status == IdeaStatus.evaluated;
+  }
 
   static bool canSelectPrototypeFrom(IdeaStatus status) =>
       status == IdeaStatus.ideathonEvaluated || status == IdeaStatus.prototypeSelected;
@@ -64,8 +60,10 @@ abstract final class IdeaStatusHelpers {
   static int lifecycleIndex(IdeaStatus status) {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);
     if (idx >= 0) return idx;
-    if (status == IdeaStatus.rejected) {
-      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.readyForShortlisting);
+    if (status == IdeaStatus.underEvaluation ||
+        status == IdeaStatus.evaluated ||
+        status == IdeaStatus.rejected) {
+      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.submitted);
     }
     return -1;
   }
@@ -78,7 +76,13 @@ abstract final class IdeaStatusHelpers {
   }
 
   static bool isLifecycleCurrent(IdeaStatus status, IdeaStatus stage) {
-    if (status == IdeaStatus.rejected && stage == IdeaStatus.readyForShortlisting) return true;
+    if (stage == IdeaStatus.submitted &&
+        (status == IdeaStatus.submitted ||
+            status == IdeaStatus.underEvaluation ||
+            status == IdeaStatus.evaluated ||
+            status == IdeaStatus.rejected)) {
+      return true;
+    }
     return status == stage;
   }
 }

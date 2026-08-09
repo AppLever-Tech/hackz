@@ -3,10 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../idea/models/idea_model.dart';
 import '../../problems/models/problem_model.dart';
-import '../../idea/services/idea_status_helpers.dart';
-import '../models/evaluation_recommendation_level.dart';
 import 'evaluation_aggregation_service.dart';
-import 'evaluation_recommendation_service.dart';
 
 /// Rank calculation for evaluated ideas (average score DESC).
 abstract final class EvaluationRankingService {
@@ -32,9 +29,6 @@ abstract final class EvaluationRankingService {
   static List<EvaluationResultsRow> buildRankedRows({
     required List<IdeaModel> ideas,
     required Map<String, ProblemModel> problems,
-    bool recommendationEnabled = false,
-    double recommendationThreshold = 75,
-    int scoringScale = 10,
   }) {
     final List<IdeaModel> sortable = ideas
         .where((IdeaModel i) => i.hasEvaluationAggregate && i.averageScore != null)
@@ -65,12 +59,6 @@ abstract final class EvaluationRankingService {
             lowestScore: idea.lowestScore,
             totalEvaluators: idea.totalEvaluators,
           ),
-          recommendation: EvaluationRecommendationService.compute(
-            enabled: recommendationEnabled,
-            averageScore: idea.averageScore,
-            scoringScale: scoringScale,
-            thresholdPercent: recommendationThreshold,
-          ),
         ),
       );
     }
@@ -93,12 +81,6 @@ abstract final class EvaluationRankingService {
             lowestScore: idea.lowestScore,
             totalEvaluators: idea.totalEvaluators,
           ),
-          recommendation: EvaluationRecommendationService.compute(
-            enabled: recommendationEnabled,
-            averageScore: idea.averageScore,
-            scoringScale: scoringScale,
-            thresholdPercent: recommendationThreshold,
-          ),
         ),
       );
     }
@@ -115,7 +97,6 @@ class EvaluationResultsRow {
     required this.problemTitle,
     required this.category,
     required this.aggregate,
-    this.recommendation,
   });
 
   final int rank;
@@ -123,7 +104,4 @@ class EvaluationResultsRow {
   final String problemTitle;
   final String category;
   final IdeaEvaluationAggregate aggregate;
-  final EvaluationRecommendationLevel? recommendation;
-
-  bool get canShortlist => IdeaStatusHelpers.canShortlistFrom(idea.status);
 }

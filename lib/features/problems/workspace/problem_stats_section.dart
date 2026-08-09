@@ -24,10 +24,10 @@ class ProblemStatsSection extends StatelessWidget {
           icon: AppIcons.ideas,
         ),
         DashboardMetricChipData.single(
-          label: 'Shortlisted',
+          label: 'Ideathon Assigned',
           value: '${vm.approvedIdeas}',
           color: const Color(0xFF16A34A),
-          icon: AppIcons.statusShortlisted,
+          icon: AppIcons.statusIdeathonAssigned,
         ),
         DashboardMetricChipData.ratio(
           label: 'Evaluation',

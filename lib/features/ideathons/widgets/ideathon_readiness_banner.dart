@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../services/ideathon_readiness_service.dart';
 
-/// Shows shortlisted count vs org threshold and optional create action.
+/// Shows eligible idea count vs org threshold and optional create action.
 class IdeathonReadinessBanner extends StatelessWidget {
   const IdeathonReadinessBanner({
     super.key,
@@ -22,7 +22,7 @@ class IdeathonReadinessBanner extends StatelessWidget {
     final Color accent = ready ? const Color(0xFF059669) : const Color(0xFFEA580C);
     final String message = ready
         ? 'Ready for Ideathon'
-        : '${readiness.shortlistedCount} / ${readiness.requiredCount} Shortlisted';
+        : '${readiness.eligibleCount} / ${readiness.requiredCount} Eligible ideas';
 
     return Container(
       width: double.infinity,
@@ -47,8 +47,8 @@ class IdeathonReadinessBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   ready
-                      ? 'Minimum shortlisted ideas reached. You can create an ideathon event.'
-                      : 'Shortlist more ideas to unlock ideathon creation.',
+                      ? 'Minimum eligible ideas reached. You can create an Ideathon event.'
+                      : 'Submit more ideas to unlock Ideathon creation.',
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
                 ),
               ],

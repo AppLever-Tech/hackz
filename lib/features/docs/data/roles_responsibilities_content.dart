@@ -32,9 +32,10 @@ abstract final class RolesResponsibilitiesSections {
 
   static List<String> get searchCorpus => const <String>[
         'college admin department admin faculty coordinator judge student',
-        'activate draft deactivate reactivate assign judges shortlist',
+        'activate draft deactivate reactivate assign judges ideathon',
         'verify payment evaluate idea org evaluation config catalog',
         'least privilege department isolation ownership permissions',
+        'prototype winner ideathon assignment evaluation',
       ];
 }
 
@@ -73,7 +74,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
           title: 'Roles & Responsibilities',
           description:
               'Understand the responsibilities, permissions and ownership of every Hackz user role across the complete innovation lifecycle.',
-          lastUpdated: DateTime(2026, 7, 30),
+          lastUpdated: DateTime(2026, 8, 9),
           readingMinutes: 5,
           imageAsset: DocsAssetPaths.rolesResponsibilities,
           onPrint: onPrint,
@@ -122,7 +123,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                       'Department management',
                       'Problem management',
                       'Judge assignments',
-                      'Shortlisting',
+                      'Ideathon assignment',
                       'Ideathon management',
                     ],
                     cols,
@@ -243,9 +244,9 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                     'Scores and feedback only',
                   ],
                   <String>[
-                    'Shortlist / Reject',
+                    'Assign Idea to Ideathon',
                     'Department Admin',
-                    'Only when Ready for Shortlisting',
+                    'From Submitted ideas',
                   ],
                   <String>[
                     'Org Evaluation Configuration',
@@ -288,10 +289,9 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   'Create problems',
                   'Import problems',
                   'Edit department problems',
-                  'Assign judges',
-                  'Review evaluation results',
-                  'Shortlist ideas',
-                  'Manage ideathons',
+                  'Assign judges (Ideathon / evaluation infrastructure)',
+                  'Assign submitted ideas to Ideathons',
+                  'Manage ideathons, prototypes, and winners',
                 ]),
               ),
               const SizedBox(height: 12),
@@ -371,7 +371,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.note,
                 title: 'System ownership',
                 body:
-                    'Aggregation, Ready for Shortlisting, and reconciliation transitions are System-owned — roles never set those statuses directly.',
+                    'Evaluation aggregation and related status synchronization (when used for Ideathon evaluation) are System-owned — roles never set those statuses directly. The System does not auto-advance ideas into Ideathons from pre-Ideathon evaluation scores.',
               ),
             ],
           ),
@@ -435,13 +435,15 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               DocumentationInfoCard(
                 tone: DocInfoTone.success,
                 title: 'System-controlled lifecycle transitions',
-                body: 'Aggregation and Ready for Shortlisting are never manually forced by judges or faculty.',
+                body:
+                    'Evaluation aggregation used for Ideathon evaluation is never manually forced by judges or faculty.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
                 tone: DocInfoTone.note,
                 title: 'Manual approvals only where required',
-                body: 'Activation, payment verification, shortlisting, and winner declaration stay human-gated.',
+                body:
+                    'Activation, payment verification, Ideathon assignment, prototype selection, and winner declaration stay human-gated.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
@@ -484,9 +486,9 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                     'Yes, as Internal Judges only when enabled in Organization Settings. Faculty cannot evaluate their own mentored ideas.',
               ),
               (
-                title: 'Can Judges shortlist ideas?',
+                title: 'Can Judges assign ideas to an Ideathon?',
                 body:
-                    'No. Judges score and comment only. Shortlist and reject are Department Admin actions after Ready for Shortlisting.',
+                    'No. Judges score and comment only. Ideas enter Ideathons by Department Admin assignment from Submitted.',
               ),
               (
                 title: 'Who verifies payments?',
@@ -496,12 +498,12 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               (
                 title: 'Who manages Ideathons?',
                 body:
-                    'Department Admin assigns shortlisted ideas to ideathons, drives ideathon operations, and selects prototypes / winners as configured.',
+                    'Department Admin assigns Submitted ideas to Ideathons, drives Ideathon operations, and selects prototypes / winners as configured. Evaluation and selection happen in Ideathon phases.',
               ),
               (
                 title: 'What does the System do automatically?',
                 body:
-                    'Aggregates evaluations, reconciles evaluation counts against requiredJudgeEvaluations, advances ideas to Ready for Shortlisting, and synchronizes related statuses.',
+                    'Supports evaluation aggregation and related status synchronization when evaluation infrastructure is used for Ideathon evaluation. It does not assign ideas into Ideathons from evaluation scores alone.',
               ),
             ],
           ),

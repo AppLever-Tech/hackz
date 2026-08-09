@@ -24,8 +24,6 @@ abstract final class OrgSettingKeys {
   static const String showJudgeCommentsToStudents = 'showJudgeCommentsToStudents';
   static const String allowFacultyAsJudges = 'allowFacultyAsJudges';
   static const String requiredJudgeEvaluations = 'requiredJudgeEvaluations';
-  static const String recommendationThreshold = 'recommendationThreshold';
-  static const String enableRecommendationEngine = 'enableRecommendationEngine';
 
   // Problem
   static const String requireProblemCategoryTheme = 'requireProblemCategoryTheme';
@@ -55,7 +53,7 @@ abstract final class OrgSettingKeys {
   static const String innovationScoreWeight = 'innovationScoreWeight';
 
   // Ideathon
-  static const String minShortlistedIdeasRequired = 'minShortlistedIdeasRequired';
+  static const String minIdeasRequiredForIdeathon = 'minIdeasRequiredForIdeathon';
   static const String prototypeSelectionThreshold = 'prototypeSelectionThreshold';
 
   // Upload

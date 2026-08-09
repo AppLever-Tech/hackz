@@ -42,12 +42,11 @@ class _DomainManagementScreenState extends State<DomainManagementScreen> {
   void initState() {
     super.initState();
     _filterDepartmentId = widget.lockedDepartmentId?.trim().isEmpty == true ? null : widget.lockedDepartmentId?.trim();
-    _bootstrap();
-  }
-
-  Future<void> _bootstrap() async {
-    await _loadDepartments();
-    _reload();
+    _future = DomainService.listByOrg(
+      orgId: widget.orgId,
+      departmentId: _isDeptScoped ? widget.lockedDepartmentId : _filterDepartmentId,
+    );
+    _loadDepartments();
   }
 
   Future<void> _loadDepartments() async {

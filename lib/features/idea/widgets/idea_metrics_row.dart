@@ -21,7 +21,7 @@ class IdeaMetricsRow extends StatelessWidget {
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(metrics.total, 'Ideas'),
         MetricKpiSegment.count(metrics.submitted, 'Submitted'),
-        MetricKpiSegment.count(metrics.approved, 'Shortlisted'),
+        MetricKpiSegment.count(metrics.approved, 'Ideathon Assigned'),
         MetricKpiSegment.count(metrics.evaluated, 'Evaluated'),
       ];
 
@@ -40,10 +40,10 @@ class IdeaMetricsRow extends StatelessWidget {
           icon: AppIcons.submissions,
         ),
         DashboardMetricChipData.single(
-          label: 'Shortlisted',
+          label: 'Ideathon Assigned',
           value: '${metrics.approved}',
           color: const Color(0xFF059669),
-          icon: AppIcons.statusShortlisted,
+          icon: AppIcons.statusIdeathonAssigned,
         ),
         DashboardMetricChipData.single(
           label: 'Evaluated',

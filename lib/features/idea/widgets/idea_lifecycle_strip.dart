@@ -35,7 +35,7 @@ class IdeaLifecycleStrip extends StatelessWidget {
                 highlighted: i == currentIndex,
                 completed: currentIndex >= 0 && i < currentIndex,
                 rejected: currentStatus == IdeaStatus.rejected &&
-                    IdeaStatus.lifecycleOrder[i] == IdeaStatus.readyForShortlisting,
+                    IdeaStatus.lifecycleOrder[i] == IdeaStatus.submitted,
               ),
               if (i < IdeaStatus.lifecycleOrder.length - 1)
                 Icon(

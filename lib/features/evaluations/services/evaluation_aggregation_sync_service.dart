@@ -9,7 +9,11 @@ import 'evaluation_aggregation_service.dart';
 import 'evaluation_settings_service.dart';
 import '../../org_settings/services/org_settings_service.dart';
 
-/// Syncs evaluation aggregates onto ideas and advances lifecycle when complete.
+/// Syncs evaluation aggregates onto ideas and advances evaluation lifecycle.
+///
+/// Does **not** advance ideas toward Ideathon participation. Aggregate fields
+/// and `evaluated` / `underEvaluation` remain for the reusable evaluation
+/// framework (future Ideathon evaluation).
 abstract final class EvaluationAggregationSyncService {
   EvaluationAggregationSyncService._();
 
@@ -50,14 +54,7 @@ abstract final class EvaluationAggregationSyncService {
     IdeaStatus? nextStatus;
     if (assignedJudges.isNotEmpty && aggregate.hasScores) {
       if (aggregate.totalEvaluators >= requiredEvaluations &&
-          (idea.status == IdeaStatus.submitted ||
-              idea.status == IdeaStatus.underEvaluation ||
-              idea.status == IdeaStatus.evaluated)) {
-        nextStatus = IdeaStatus.readyForShortlisting;
-      } else if (idea.status == IdeaStatus.readyForShortlisting &&
-          aggregate.totalEvaluators < requiredEvaluations) {
-        // Threshold was raised after ideas became ready — demote so shortlist
-        // stays gated by the live Evaluation Configuration.
+          (idea.status == IdeaStatus.submitted || idea.status == IdeaStatus.underEvaluation)) {
         nextStatus = IdeaStatus.evaluated;
       } else if (assignedJudges.every(scoredJudges.contains) &&
           (idea.status == IdeaStatus.underEvaluation || idea.status == IdeaStatus.submitted)) {
@@ -74,9 +71,7 @@ abstract final class EvaluationAggregationSyncService {
     await _db.collection(FirestoreUtils.hkzIdeas).doc(id).update(patch);
   }
 
-  /// Re-applies [requiredJudgeEvaluations] to existing ideas so Evaluation
-  /// Results shortlist actions reflect config changes without waiting for a
-  /// new judge score submission.
+  /// Re-applies evaluation config to existing ideas (aggregates / evaluated status).
   static Future<void> reconcileOrg({required String orgId}) async {
     final String org = orgId.trim();
     if (org.isEmpty) return;
@@ -93,12 +88,10 @@ abstract final class EvaluationAggregationSyncService {
       final IdeaModel idea = IdeaModel.fromMap(doc.id, doc.data());
       final bool candidate = idea.status == IdeaStatus.submitted ||
           idea.status == IdeaStatus.underEvaluation ||
-          idea.status == IdeaStatus.evaluated ||
-          idea.status == IdeaStatus.readyForShortlisting;
+          idea.status == IdeaStatus.evaluated;
       if (candidate) ideaIds.add(idea.ideaId);
     }
 
-    // Bound concurrency so large orgs don't open hundreds of Firestore ops at once.
     const int batchSize = 8;
     for (int i = 0; i < ideaIds.length; i += batchSize) {
       final List<String> chunk = ideaIds.sublist(

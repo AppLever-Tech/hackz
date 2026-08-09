@@ -201,12 +201,12 @@ class IdeaQueryService {
   ) {
     if (ideas.isEmpty) return IdeaDepartmentMetrics.empty;
     final int submitted = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
-    final int approved = ideas.where((IdeaModel i) => i.status == IdeaStatus.shortlisted).length;
+    final int approved = ideas.where((IdeaModel i) => i.status == IdeaStatus.ideathonAssigned).length;
     final int evaluated = ideas
         .where(
           (IdeaModel i) =>
               i.status == IdeaStatus.evaluated ||
-              i.status == IdeaStatus.shortlisted ||
+              i.status == IdeaStatus.ideathonAssigned ||
               scoreByIdeaId.containsKey(i.ideaId),
         )
         .length;

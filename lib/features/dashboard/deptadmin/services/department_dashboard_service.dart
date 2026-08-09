@@ -237,10 +237,10 @@ class DepartmentDashboardService {
     final int underReviewIdeas = ideaStatuses.where((s) => s == IdeaStatus.underEvaluation).length;
     final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted || s == IdeaStatus.underEvaluation).length;
     final int evaluatedOnlyIdeas = ideaStatuses
-        .where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.readyForShortlisting)
+        .where((s) => s == IdeaStatus.evaluated)
         .length;
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.shortlisted).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.shortlisted).length;
+    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.ideathonAssigned).length;
+    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.ideathonAssigned).length;
     final int rejectedIdeas = ideaStatuses.where((s) => s == IdeaStatus.rejected).length;
 
     final List<PaymentRecordStatus> paymentStatuses = payments.map((doc) => PaymentRecordStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);

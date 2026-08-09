@@ -30,7 +30,7 @@ class FacultyTeamInsight {
   int get submittedIdeas => ideas.where((idea) => idea.status != IdeaStatus.draft).length;
   bool get hasIdeas => ideas.isNotEmpty;
   bool get hasPendingPayment => paymentStatuses.any((status) => status == PaymentRecordStatus.pending);
-  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.shortlisted);
+  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.ideathonAssigned);
   bool get isLocked => team.status == TeamStatus.locked || hasIdeas;
 }
 

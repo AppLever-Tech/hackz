@@ -327,8 +327,8 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusShortlisted,
-              tooltip: 'Approved',
+              icon: AppIcons.statusIdeathonAssigned,
+              tooltip: 'Ideathon Assigned',
               value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
             ),
@@ -500,7 +500,10 @@ class _FacultyDashboardService {
     int rejected = 0;
     for (final idea in ideas) {
       switch (idea.status) {
-        case IdeaStatus.shortlisted:
+        case IdeaStatus.ideathonAssigned:
+        case IdeaStatus.ideathonEvaluated:
+        case IdeaStatus.prototypeSelected:
+        case IdeaStatus.winner:
           approved++;
           break;
         case IdeaStatus.rejected:

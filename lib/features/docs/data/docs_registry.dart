@@ -82,9 +82,9 @@ abstract final class DocsRegistry {
       id: 'idea-lifecycle',
       title: 'Idea Lifecycle',
       description:
-          'Complete lifecycle of an innovation idea from submission through evaluation, shortlisting, ideathon, prototype selection and winner declaration.',
+          'Complete lifecycle of an innovation idea from submission through Ideathon assignment, Ideathon evaluation, prototype selection and winner declaration.',
       icon: AppIcons.ideas,
-      lastUpdated: DateTime(2026, 7, 30),
+      lastUpdated: DateTime(2026, 8, 9),
       readingMinutes: 6,
       heroImageAsset: DocsAssetPaths.ideaLifecycle,
       searchKeywords: IdeaLifecycleSections.searchCorpus,
@@ -94,19 +94,19 @@ abstract final class DocsRegistry {
     DocPageDefinition(
       id: 'evaluation-lifecycle',
       title: 'Evaluation Workflow',
-      description: 'Assignments, scoring, shortlisting, and evaluation results.',
+      description: 'Assignments, scoring, and evaluation results.',
       icon: AppIcons.scoring,
       isPlaceholder: true,
       category: DocCategory.workflows,
       builder: (_) => const PlaceholderDocPage(
         title: 'Evaluation Workflow',
-        description: 'Judge assignment, aggregation, ready-for-shortlisting, and results.',
+        description: 'Judge assignment, aggregation, and results.',
       ),
     ),
     DocPageDefinition(
       id: 'ideathon',
       title: 'Ideathon',
-      description: 'Post-shortlist ideathon workflows.',
+      description: 'Ideathon assignment, evaluation, and prototype selection.',
       icon: AppIcons.ideathons,
       isPlaceholder: true,
       category: DocCategory.workflows,
@@ -366,7 +366,6 @@ abstract final class DocsRegistry {
       'problem import' || 'csv import' || 'import' => 'csv-import',
       'evaluation results' ||
       'evaluation assignment' ||
-      'shortlisting' ||
       'judge dashboard' ||
       'judges panel' ||
       'evaluation extensions' =>

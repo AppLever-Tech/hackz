@@ -12,7 +12,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_service.dart';
 
-/// Department-admin ideathon creation form (shortlisted ideas only).
+/// Department-admin Ideathon creation form (eligible submitted ideas).
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({super.key, required this.user, required this.onCreated});
 
@@ -30,7 +30,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool _loading = true;
   bool _saving = false;
-  List<IdeaModel> _shortlisted = <IdeaModel>[];
+  List<IdeaModel> _eligibleIdeas = <IdeaModel>[];
   List<UserModel> _evaluators = <UserModel>[];
   List<UserModel> _coordinators = <UserModel>[];
   final Set<String> _selectedIdeaIds = <String>{};
@@ -55,12 +55,12 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final String orgId = widget.user.orgId.trim();
     final String dept = widget.user.departmentCode.trim();
     final List<IdeaModel> ideas =
-        await IdeathonService.fetchShortlistedIdeas(orgId: orgId, departmentCode: dept);
+        await IdeathonService.fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
     if (!mounted) return;
     setState(() {
-      _shortlisted = ideas;
+      _eligibleIdeas = ideas;
       _evaluators = evaluators;
       _coordinators = coordinators;
       _loading = false;
@@ -215,12 +215,12 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Shortlisted ideas', style: TextStyle(fontWeight: FontWeight.w800)),
+              const Text('Eligible ideas', style: TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),
-              if (_shortlisted.isEmpty)
-                const Text('No shortlisted ideas available.', style: TextStyle(color: Color(0xFF64748B)))
+              if (_eligibleIdeas.isEmpty)
+                const Text('No eligible ideas available.', style: TextStyle(color: Color(0xFF64748B)))
               else
-                ..._shortlisted.map(
+                ..._eligibleIdeas.map(
                   (IdeaModel idea) => CheckboxListTile(
                     value: _selectedIdeaIds.contains(idea.ideaId),
                     onChanged: (bool? checked) {

@@ -11,18 +11,13 @@ import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';
-import '../services/idea_shortlisting_service.dart';
 import '../widgets/evaluation_results_table_columns.dart';
-import '../../ideathons/screens/create_ideathon_workspace.dart';
-import '../../ideathons/services/ideathon_readiness_service.dart';
-import '../../ideathons/widgets/ideathon_readiness_banner.dart';
 
-/// Department-admin workspace for reviewing evaluation outcomes and shortlisting.
+/// Department-admin workspace for reviewing evaluation outcomes and rankings.
 class EvaluationResultsScreen extends StatefulWidget {
   const EvaluationResultsScreen({super.key, required this.user});
 
@@ -37,17 +32,14 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   Timer? _searchDebounce;
 
   Future<EvaluationResultsQueryResult>? _future;
-  Future<IdeathonReadiness>? _readinessFuture;
   EvaluationResultsMetrics _metrics = EvaluationResultsMetrics.empty;
   List<String> _categories = <String>[];
   List<String> _departments = <String>[];
 
   bool _showFilters = false;
-  bool _saving = false;
-  Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
-  Set<String> _departmentFilters = <String>{};
-  Set<String> _categoryFilters = <String>{};
-  final Set<String> _selectedIdeaIds = <String>{};
+  final Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
+  final Set<String> _departmentFilters = <String>{};
+  final Set<String> _categoryFilters = <String>{};
   String? _activeSortKey;
   bool _sortDescending = true;
   @override
@@ -71,105 +63,19 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
   void _load() {
     setState(() {
-      _readinessFuture = IdeathonReadinessService.compute(
-        orgId: widget.user.orgId,
-        departmentCode: widget.user.departmentCode,
-      );
       _future = EvaluationResultsQueryService.fetch(
         EvaluationResultsQueryParams(
           viewer: widget.user,
           search: _searchController.text,
           statusFilters: _statusFilters,
           departmentFilters: _departmentFilters,
-          categoryFilters: _categoryFilters,        ),
+          categoryFilters: _categoryFilters,
+        ),
       ).then((EvaluationResultsQueryResult result) {
         unawaited(EvaluationRankingService.persistRanks(result.rows));
         return result;
       });
     });
-  }
-
-  Future<void> _shortlist(EvaluationResultsRow row, {String? remarks}) async {
-    if (_saving) return;
-    setState(() => _saving = true);
-    await IdeaShortlistingService.shortlistIdea(
-      row.idea.ideaId,
-      shortlistedBy: widget.user.userId,
-      remarks: remarks,
-    );
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _selectedIdeaIds.remove(row.idea.ideaId);
-    });
-    _load();
-    FeedbackService.showSuccess(context, title: 'Shortlisted', message: 'Idea moved to shortlisted.');
-  }
-
-  Future<void> _shortlistSelected() async {
-    if (_saving || _selectedIdeaIds.isEmpty) return;
-    final bool ok = await FeedbackService.showConfirmation(
-      context,
-      title: 'Shortlist selected ideas?',
-      message: 'Shortlist ${_selectedIdeaIds.length} idea${_selectedIdeaIds.length == 1 ? '' : 's'}?',
-      confirmLabel: 'Shortlist',
-    );
-    if (!ok || !mounted) return;
-    setState(() => _saving = true);
-    await IdeaShortlistingService.shortlistMany(
-      _selectedIdeaIds,
-      shortlistedBy: widget.user.userId,
-    );
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _selectedIdeaIds.clear();
-    });
-    _load();
-    FeedbackService.showSuccess(context, title: 'Shortlisted', message: 'Selected ideas moved to shortlisted.');
-  }
-
-  void _toggleSelection(EvaluationResultsRow row, bool selected) {
-    setState(() {
-      if (selected) {
-        _selectedIdeaIds.add(row.idea.ideaId);
-      } else {
-        _selectedIdeaIds.remove(row.idea.ideaId);
-      }
-    });
-  }
-
-  Future<void> _openCreateIdeathon(BuildContext context) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) => Scaffold(
-          appBar: AppBar(title: const Text('Create Ideathon')),
-          body: CreateIdeathonWorkspace(
-            user: widget.user,
-            onCreated: (_) => Navigator.of(context).pop(),
-          ),
-        ),
-      ),
-    );
-    _load();
-  }
-
-  Future<void> _reject(EvaluationResultsRow row) async {
-    if (_saving) return;
-    final bool ok = await FeedbackService.showConfirmation(
-      context,
-      title: 'Reject idea?',
-      message: 'This idea will be marked as rejected.',
-      confirmLabel: 'Reject',
-      dangerConfirm: true,
-    );
-    if (!ok || !mounted) return;
-    setState(() => _saving = true);
-    await IdeaShortlistingService.rejectIdea(row.idea.ideaId);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    _load();
-    FeedbackService.showSuccess(context, title: 'Rejected', message: 'Idea marked as rejected.');
   }
 
   List<EvaluationResultsRow> _sortedRows(List<EvaluationResultsRow> rows) {
@@ -200,10 +106,13 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   static int _statusSortIndex(IdeaStatus status) {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);
     if (idx >= 0) return idx;
-    if (status == IdeaStatus.rejected) {
-      return IdeaStatus.lifecycleOrder.indexOf(IdeaStatus.readyForShortlisting) + 1;
-    }
-    return 999;
+    // Legacy evaluation statuses sort near Submitted in the primary lifecycle.
+    return switch (status) {
+      IdeaStatus.underEvaluation => 10,
+      IdeaStatus.evaluated => 11,
+      IdeaStatus.rejected => 12,
+      _ => 999,
+    };
   }
 
   void _onSort(String sortKey) {
@@ -222,138 +131,90 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       onOpenIdea: (EvaluationResultsRow row) => showEvaluationDetailsPane(
         context,
         ideaId: row.idea.ideaId,
-        viewer: widget.user,
       ),
-      onShortlist: (EvaluationResultsRow row) => _shortlist(row),
-      onReject: _reject,
-      selectedIdeaIds: _selectedIdeaIds,
-      onToggleSelection: _toggleSelection,
     );
   }
 
-  Widget _buildSelectionToolbar() {
-    if (_selectedIdeaIds.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: <Widget>[
-          FilledButton.icon(
-            onPressed: _saving ? null : _shortlistSelected,
-            icon: const Icon(AppIcons.statusShortlisted, size: 18),
-            label: Text('Shortlist Selected (${_selectedIdeaIds.length})'),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: _saving ? null : () => setState(_selectedIdeaIds.clear),
-            child: const Text('Clear selection'),
-          ),
-        ],
-      ),
-    );
-  }
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        FutureBuilder<EvaluationResultsQueryResult>(
-          future: _future,
-          builder: (BuildContext context, AsyncSnapshot<EvaluationResultsQueryResult> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text('Unable to load results: ${snapshot.error}'));
-            }
+    return FutureBuilder<EvaluationResultsQueryResult>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<EvaluationResultsQueryResult> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Unable to load results: ${snapshot.error}'));
+        }
 
-            final EvaluationResultsQueryResult? data = snapshot.data;
-            final List<EvaluationResultsRow> rows = _sortedRows(data?.rows ?? const <EvaluationResultsRow>[]);
-            final EvaluationResultsMetrics metrics = data?.metrics ?? _metrics;
-            final List<String> categories = data?.categories ?? _categories;
-            final List<String> departments = data?.departments ?? _departments;
-            final EvaluationResultsTableActions actions = _tableActions(context);
+        final EvaluationResultsQueryResult? data = snapshot.data;
+        final List<EvaluationResultsRow> rows = _sortedRows(data?.rows ?? const <EvaluationResultsRow>[]);
+        final EvaluationResultsMetrics metrics = data?.metrics ?? _metrics;
+        final List<String> categories = data?.categories ?? _categories;
+        final List<String> departments = data?.departments ?? _departments;
+        final EvaluationResultsTableActions actions = _tableActions(context);
 
-            if (data != null) {
-              _metrics = data.metrics;
-              _categories = data.categories;
-              _departments = data.departments;
-            }
+        if (data != null) {
+          _metrics = data.metrics;
+          _categories = data.categories;
+          _departments = data.departments;
+        }
 
-            final bool mobile = ResponsiveHelper.isMobile(context);
+        final bool mobile = ResponsiveHelper.isMobile(context);
 
-            final Widget content = rows.isEmpty
-                ? _EmptyState(onClear: () {
-                    _searchController.clear();
-                    _clearFilters();
-                  })
-                : mobile
-                    ? ListView.separated(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: rows.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (BuildContext context, int index) {
-                          return EvaluationResultsRowCard(
-                            row: rows[index],
-                            actions: actions,
-                          );
-                        },
-                      )
-                    : DataTableView<EvaluationResultsRow>(
-                        items: rows,
-                        columns: EvaluationResultsTableColumns.build(actions: actions),
-                        onSort: _onSort,
-                        activeSortKey: _activeSortKey,
+        final Widget content = rows.isEmpty
+            ? _EmptyState(onClear: () {
+                _searchController.clear();
+                _clearFilters();
+              })
+            : mobile
+                ? ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    itemCount: rows.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (BuildContext context, int index) {
+                      return EvaluationResultsRowCard(
+                        row: rows[index],
+                        actions: actions,
                       );
-            return LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final bool hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-                final Widget header = _buildHeader(
-                  context: context,
-                  metrics: metrics,
-                  categories: categories,
-                  departments: departments,
-                );
-
-                if (!hasBoundedHeight) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      header,
-                      _buildSelectionToolbar(),
-                      SizedBox(height: mobile ? 560 : 420, child: content),
-                    ],
+                    },
+                  )
+                : DataTableView<EvaluationResultsRow>(
+                    items: rows,
+                    columns: EvaluationResultsTableColumns.build(actions: actions),
+                    onSort: _onSort,
+                    activeSortKey: _activeSortKey,
                   );
-                }
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            final Widget header = _buildHeader(
+              context: context,
+              metrics: metrics,
+              categories: categories,
+              departments: departments,
+            );
 
-                if (mobile) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      header,
-                      _buildSelectionToolbar(),
-                      Expanded(child: content),
-                    ],
-                  );
-                }
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: mobile ? 560 : 420, child: content),
+                ],
+              );
+            }
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    header,
-                    _buildSelectionToolbar(),
-                    Expanded(child: content),
-                  ],
-                );
-              },
-            );          },
-        ),
-        if (_saving)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Color(0x33FFFFFF),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-      ],
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: content),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -368,16 +229,6 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       metrics: metrics,
       spacing: compact ? 8 : 10,
       runSpacing: compact ? 8 : 10,
-    );
-    final Widget readinessBanner = FutureBuilder<IdeathonReadiness>(
-      future: _readinessFuture,
-      builder: (BuildContext context, AsyncSnapshot<IdeathonReadiness> readinessSnap) {
-        if (!readinessSnap.hasData) return const SizedBox.shrink();
-        return IdeathonReadinessBanner(
-          readiness: readinessSnap.data!,
-          onCreateIdeathon: () => _openCreateIdeathon(context),
-        );
-      },
     );
     final Widget searchBar = ResponsiveSearchFilterBar(
       searchController: _searchController,
@@ -409,8 +260,6 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
         children: <Widget>[
           metricsRow,
           const SizedBox(height: 8),
-          readinessBanner,
-          const SizedBox(height: 8),
           searchBar,
           filters,
           if (activeFilters != null) ...<Widget>[
@@ -427,10 +276,6 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       children: <Widget>[
         metricsRow,
         const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: readinessBanner,
-        ),
         searchBar,
         filters,
         if (activeFilters != null) ...<Widget>[
@@ -467,9 +312,9 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             runSpacing: chipGap,
             children: <Widget>[
               for (final IdeaStatus status in <IdeaStatus>[
-                IdeaStatus.readyForShortlisting,
+                IdeaStatus.underEvaluation,
                 IdeaStatus.evaluated,
-                IdeaStatus.shortlisted,
+                IdeaStatus.ideathonAssigned,
                 IdeaStatus.rejected,
               ])
                 MobileFilterPaneStyles.filterChip(
@@ -601,6 +446,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   bool get _hasActiveFilters =>
       _statusFilters.isNotEmpty || _departmentFilters.isNotEmpty || _categoryFilters.isNotEmpty;
 }
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onClear});
 

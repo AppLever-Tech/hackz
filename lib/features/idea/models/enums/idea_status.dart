@@ -3,8 +3,6 @@ enum IdeaStatus {
   submitted('submitted'),
   underEvaluation('underEvaluation'),
   evaluated('evaluated'),
-  readyForShortlisting('readyForShortlisting'),
-  shortlisted('shortlisted'),
   ideathonAssigned('ideathonAssigned'),
   ideathonEvaluated('ideathonEvaluated'),
   prototypeSelected('prototypeSelected'),
@@ -18,10 +16,6 @@ enum IdeaStatus {
   /// Primary lifecycle stages shown in idea lifecycle UI (post-submission).
   static const List<IdeaStatus> lifecycleOrder = <IdeaStatus>[
     IdeaStatus.submitted,
-    IdeaStatus.underEvaluation,
-    IdeaStatus.evaluated,
-    IdeaStatus.readyForShortlisting,
-    IdeaStatus.shortlisted,
     IdeaStatus.ideathonAssigned,
     IdeaStatus.ideathonEvaluated,
     IdeaStatus.prototypeSelected,
@@ -35,8 +29,6 @@ enum IdeaStatus {
       'submitted' => IdeaStatus.submitted,
       'underevaluation' => IdeaStatus.underEvaluation,
       'evaluated' => IdeaStatus.evaluated,
-      'readyforshortlisting' => IdeaStatus.readyForShortlisting,
-      'shortlisted' => IdeaStatus.shortlisted,
       'ideathonassigned' => IdeaStatus.ideathonAssigned,
       'ideathonevaluated' => IdeaStatus.ideathonEvaluated,
       'prototypeselected' => IdeaStatus.prototypeSelected,

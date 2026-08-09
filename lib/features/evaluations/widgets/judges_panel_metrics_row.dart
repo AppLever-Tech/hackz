@@ -65,8 +65,8 @@ class JudgesPanelMetricsRow extends StatelessWidget {
               color: StatusStyles.evaluated,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusShortlisted,
-              tooltip: 'Approved',
+              icon: AppIcons.statusIdeathonAssigned,
+              tooltip: 'Ideathon Assigned',
               value: '${metrics.approvedIdeas}',
               color: StatusStyles.approved,
             ),

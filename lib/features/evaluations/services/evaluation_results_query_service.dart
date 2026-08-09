@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
-import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_model.dart';
@@ -35,21 +34,18 @@ class EvaluationResultsQueryParams {
 class EvaluationResultsMetrics {
   const EvaluationResultsMetrics({
     required this.totalEvaluated,
-    required this.readyForShortlisting,
-    required this.shortlisted,
+    required this.ideathonAssigned,
     required this.rejected,
   });
 
   static const EvaluationResultsMetrics empty = EvaluationResultsMetrics(
     totalEvaluated: 0,
-    readyForShortlisting: 0,
-    shortlisted: 0,
+    ideathonAssigned: 0,
     rejected: 0,
   );
 
   final int totalEvaluated;
-  final int readyForShortlisting;
-  final int shortlisted;
+  final int ideathonAssigned;
   final int rejected;
 }
 
@@ -69,7 +65,7 @@ class EvaluationResultsQueryResult {
   final List<String> departments;
 }
 
-/// Loads ranked evaluation outcomes for department-admin shortlisting.
+/// Loads ranked evaluation outcomes for department-admin review.
 abstract final class EvaluationResultsQueryService {
   EvaluationResultsQueryService._();
 
@@ -77,8 +73,7 @@ abstract final class EvaluationResultsQueryService {
 
   static const Set<IdeaStatus> _reviewStatuses = <IdeaStatus>{
     IdeaStatus.evaluated,
-    IdeaStatus.readyForShortlisting,
-    IdeaStatus.shortlisted,
+    IdeaStatus.ideathonAssigned,
     IdeaStatus.rejected,
   };
 
@@ -148,10 +143,6 @@ abstract final class EvaluationResultsQueryService {
       if (dep.isNotEmpty) departments.add(dep);
     }
 
-    final bool recommendationEnabled = EvaluationSettingsService.enableRecommendationEngine(orgId);
-    final double recommendationThreshold = EvaluationSettingsService.recommendationThresholdPercent(orgId);
-    final int scoringScale = EvaluationSettingsService.defaultScoringScale();
-
     final EvaluationResultsMetrics metrics = _computeMetrics(ideas);
 
     ideas = _applyFilters(
@@ -163,9 +154,6 @@ abstract final class EvaluationResultsQueryService {
     final List<EvaluationResultsRow> ranked = EvaluationRankingService.buildRankedRows(
       ideas: ideas,
       problems: problems,
-      recommendationEnabled: recommendationEnabled,
-      recommendationThreshold: recommendationThreshold,
-      scoringScale: scoringScale,
     );
 
     return EvaluationResultsQueryResult(
@@ -184,12 +172,11 @@ abstract final class EvaluationResultsQueryService {
           .where(
             (IdeaModel i) =>
                 i.status == IdeaStatus.evaluated ||
-                i.status == IdeaStatus.readyForShortlisting ||
+                i.status == IdeaStatus.ideathonAssigned ||
                 i.hasEvaluationAggregate,
           )
           .length,
-      readyForShortlisting: ideas.where((IdeaModel i) => i.status == IdeaStatus.readyForShortlisting).length,
-      shortlisted: ideas.where((IdeaModel i) => i.status == IdeaStatus.shortlisted).length,
+      ideathonAssigned: ideas.where((IdeaModel i) => i.status == IdeaStatus.ideathonAssigned).length,
       rejected: ideas.where((IdeaModel i) => i.status == IdeaStatus.rejected).length,
     );
   }

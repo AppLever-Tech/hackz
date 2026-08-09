@@ -78,8 +78,6 @@ class AppIcons {
   static const IconData statusSubmitted = Icons.send_rounded;
   static const IconData statusUnderEvaluation = Icons.fact_check_outlined;
   static const IconData statusEvaluated = Icons.verified_rounded;
-  static const IconData statusReadyForShortlisting = Icons.playlist_add_check_rounded;
-  static const IconData statusShortlisted = Icons.star_outline_rounded;
   static const IconData statusRejected = Icons.cancel_rounded;
   static const IconData statusIdeathonAssigned = Icons.event_available_outlined;
   static const IconData statusIdeathonEvaluated = Icons.fact_check_rounded;
@@ -188,8 +186,6 @@ class AppIcons {
       IdeaStatus.submitted => statusSubmitted,
       IdeaStatus.underEvaluation => statusUnderEvaluation,
       IdeaStatus.evaluated => statusEvaluated,
-      IdeaStatus.readyForShortlisting => statusReadyForShortlisting,
-      IdeaStatus.shortlisted => statusShortlisted,
       IdeaStatus.ideathonAssigned => statusIdeathonAssigned,
       IdeaStatus.ideathonEvaluated => statusIdeathonEvaluated,
       IdeaStatus.prototypeSelected => statusPrototypeSelected,

@@ -8,14 +8,11 @@ import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/responsive/responsive_columns.dart';
-import '../../user/models/user_model.dart';
-import '../../idea/services/idea_status_helpers.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_details_loader.dart';
 import '../widgets/evaluation_judge_breakdown_panel.dart';
 import '../widgets/evaluation_overview_card.dart';
 import '../widgets/evaluation_score_distribution.dart';
-import '../widgets/evaluation_shortlisting_section.dart';
 import '../widgets/evaluation_summary_cards.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
@@ -24,7 +21,6 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 void showEvaluationDetailsPane(
   BuildContext context, {
   required String ideaId,
-  required UserModel viewer,
   String backTooltip = 'Back to Evaluation Results',
 }) {
   WorkspaceController.instance.close();
@@ -33,7 +29,6 @@ void showEvaluationDetailsPane(
     EvaluationDetailsPane(
       key: ValueKey<String>(ideaId),
       ideaId: ideaId,
-      viewer: viewer,
       onBack: chrome.clearOverlay,
       backTooltip: backTooltip,
     ),
@@ -45,13 +40,11 @@ class EvaluationDetailsPane extends StatefulWidget {
   const EvaluationDetailsPane({
     super.key,
     required this.ideaId,
-    required this.viewer,
     required this.onBack,
     this.backTooltip = 'Back',
   });
 
   final String ideaId;
-  final UserModel viewer;
   final VoidCallback onBack;
   final String backTooltip;
 
@@ -70,7 +63,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
 
   void _load() {
     setState(() {
-      _future = EvaluationDetailsLoader.load(ideaId: widget.ideaId, viewer: widget.viewer);
+      _future = EvaluationDetailsLoader.load(ideaId: widget.ideaId);
     });
   }
 
@@ -128,11 +121,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
               header,
               const SizedBox(height: 8),
               Expanded(
-                child: EvaluationDetailsBody(
-                  vm: vm,
-                  shortlistedByUserId: widget.viewer.userId,
-                  onUpdated: _load,
-                ),
+                child: EvaluationDetailsBody(vm: vm),
               ),
             ],
           );
@@ -156,14 +145,10 @@ class EvaluationDetailsBody extends StatelessWidget {
   const EvaluationDetailsBody({
     super.key,
     required this.vm,
-    required this.shortlistedByUserId,
-    required this.onUpdated,
     this.layout = EvaluationDetailsLayout.pane,
   });
 
   final EvaluationDetailsViewModel vm;
-  final String shortlistedByUserId;
-  final VoidCallback onUpdated;
   final EvaluationDetailsLayout layout;
 
   @override
@@ -188,23 +173,10 @@ class EvaluationDetailsBody extends StatelessWidget {
       ),
     );
 
-    final bool showShortlisting = workspace ||
-        vm.canShortlist ||
-        IdeaStatusHelpers.isPostEvaluationReview(vm.status);
-
     return ListView(
       padding: pad,
       children: <Widget>[
         if (!workspace) EvaluationSummaryCards(idea: vm.idea),
-        if (showShortlisting) ...<Widget>[
-          if (!workspace) const SizedBox(height: 14),
-          EvaluationShortlistingSection(
-            vm: vm,
-            shortlistedByUserId: shortlistedByUserId,
-            onUpdated: onUpdated,
-            alwaysShowRankStatus: workspace,
-          ),
-        ],
         const SizedBox(height: 14),
         overviewDistributionRow,
         const SizedBox(height: 14),

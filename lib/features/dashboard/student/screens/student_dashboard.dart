@@ -141,8 +141,8 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusShortlisted,
-              tooltip: 'Shortlisted',
+              icon: AppIcons.statusIdeathonAssigned,
+              tooltip: 'Ideathon Assigned',
               value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
             ),

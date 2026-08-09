@@ -6,6 +6,7 @@ import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
@@ -37,18 +38,19 @@ abstract final class IdeathonService {
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static Future<List<IdeaModel>> fetchShortlistedIdeas({
+  /// Ideas that can be selected when creating an Ideathon.
+  static Future<List<IdeaModel>> fetchEligibleIdeasForIdeathon({
     required String orgId,
     required String departmentCode,
   }) async {
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestoreUtils.hkzIdeas)
         .where('orgId', isEqualTo: orgId.trim())
-        .where('status', isEqualTo: IdeaStatus.shortlisted.value)
         .get();
     final String dept = departmentCode.trim().toUpperCase();
     return snap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => IdeaModel.fromMap(doc.id, doc.data()))
+        .where((IdeaModel idea) => IdeaStatusHelpers.isEligibleForIdeathon(idea.status))
         .where((IdeaModel idea) => dept.isEmpty || idea.problemDepartmentCode.trim().toUpperCase() == dept)
         .toList(growable: false)
       ..sort((IdeaModel a, IdeaModel b) => a.ideaTitle.compareTo(b.ideaTitle));
@@ -62,7 +64,7 @@ abstract final class IdeathonService {
     final String dept = actor.departmentCode.trim().toUpperCase();
     if (orgId.isEmpty) throw StateError('Organization is required.');
     if (input.name.trim().isEmpty) throw StateError('Event name is required.');
-    if (input.ideaIds.isEmpty) throw StateError('Select at least one shortlisted idea.');
+    if (input.ideaIds.isEmpty) throw StateError('Select at least one idea.');
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
@@ -71,20 +73,20 @@ abstract final class IdeathonService {
       departmentCode: dept,
     );
     if (!readiness.isReady) {
-      throw StateError('${readiness.shortlistedCount} / ${readiness.requiredCount} shortlisted ideas required.');
+      throw StateError('${readiness.eligibleCount} / ${readiness.requiredCount} eligible ideas required.');
     }
 
-    final List<IdeaModel> shortlisted = await fetchShortlistedIdeas(orgId: orgId, departmentCode: dept);
-    final Map<String, IdeaModel> shortlistedById = <String, IdeaModel>{
-      for (final IdeaModel idea in shortlisted) idea.ideaId: idea,
+    final List<IdeaModel> eligible = await fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
+    final Map<String, IdeaModel> eligibleById = <String, IdeaModel>{
+      for (final IdeaModel idea in eligible) idea.ideaId: idea,
     };
 
     final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
     for (final String rawId in input.ideaIds) {
       final String ideaId = rawId.trim();
-      final IdeaModel? idea = shortlistedById[ideaId];
+      final IdeaModel? idea = eligibleById[ideaId];
       if (idea == null) {
-        throw StateError('Only shortlisted ideas can be added to an ideathon.');
+        throw StateError('Only eligible ideas can be added to an Ideathon.');
       }
       final TeamModel? team = idea.teamId.trim().isEmpty
           ? null
@@ -132,7 +134,7 @@ abstract final class IdeathonService {
       orgId: orgId,
       actorUserId: actor.userId,
       ideathonId: ideathon.ideathonId,
-      ideas: snapshots.map((IdeathonIdeaSnapshot s) => shortlistedById[s.ideaId]!).toList(),
+      ideas: snapshots.map((IdeathonIdeaSnapshot s) => eligibleById[s.ideaId]!).toList(),
       judgeIds: ideathon.judgeIds,
     );
 

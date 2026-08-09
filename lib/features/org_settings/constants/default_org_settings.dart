@@ -160,15 +160,16 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
 
   // —— Ideathon ——
   const OrgSettingDefinition(
-    key: OrgSettingKeys.minShortlistedIdeasRequired,
-    displayName: 'Minimum shortlisted ideas required',
+    key: OrgSettingKeys.minIdeasRequiredForIdeathon,
+    displayName: 'Minimum ideas required for Ideathon',
     type: OrgSettingValueType.integer,
     defaultValue: 10,
     sectionKey: 'ideathon',
     sectionTitle: 'Ideathon settings',
     groupKey: 'readiness',
     groupTitle: 'Ideathon readiness',
-    description: 'Minimum shortlisted ideas before an ideathon event can be created.',
+    description:
+        'Minimum submitted ideas (not yet in an Ideathon) required before an Ideathon event can be created.',
     min: 1,
     max: 500,
     step: 1,
@@ -209,35 +210,11 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     sectionTitle: 'Evaluation settings',
     groupKey: 'configuration',
     groupTitle: 'Evaluation configuration',
-    description: 'Number of judge evaluations required before an idea moves to ready for shortlisting.',
+    description:
+        'Number of judge evaluations required before an idea is marked as fully evaluated. Used by the reusable evaluation framework (e.g. future Ideathon evaluation).',
     min: 1,
     max: 15,
     step: 1,
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.recommendationThreshold,
-    displayName: 'Recommendation threshold (%)',
-    type: OrgSettingValueType.integer,
-    defaultValue: 75,
-    sectionKey: 'evaluationSettings',
-    sectionTitle: 'Evaluation settings',
-    groupKey: 'configuration',
-    groupTitle: 'Evaluation configuration',
-    description: 'Average score percentage at or above which an idea is highly recommended for shortlisting.',
-    min: 0,
-    max: 100,
-    step: 1,
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.enableRecommendationEngine,
-    displayName: 'Enable recommendation engine',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'evaluationSettings',
-    sectionTitle: 'Evaluation settings',
-    groupKey: 'configuration',
-    groupTitle: 'Evaluation configuration',
-    description: 'Show advisory shortlisting recommendations in evaluation results. Never auto-shortlists.',
   ),
 
   // —— Problem ——

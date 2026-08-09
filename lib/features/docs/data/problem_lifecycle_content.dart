@@ -328,7 +328,7 @@ stateDiagram-v2
               (
                 title: 'What happens to existing ideas?',
                 body:
-                    'They keep progressing through the Idea lifecycle (payment, evaluation, shortlisting, ideathon) even if the problem later becomes Inactive.',
+                    'They keep progressing through the Idea lifecycle (payment, Ideathon, evaluation) even if the problem later becomes Inactive.',
               ),
               (
                 title: 'What is Archived?',

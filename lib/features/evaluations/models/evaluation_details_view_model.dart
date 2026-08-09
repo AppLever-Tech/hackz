@@ -1,6 +1,4 @@
-import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
-import '../models/evaluation_recommendation_level.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
 import '../workspace/evaluation_workspace_loader.dart';
@@ -43,8 +41,6 @@ class EvaluationDetailsViewModel {
     required this.evaluationRank,
     required this.judgeDetails,
     required this.scoringScale,
-    required this.canShortlist,
-    this.recommendation,
   });
 
   final String ideaId;
@@ -61,8 +57,6 @@ class EvaluationDetailsViewModel {
   final int? evaluationRank;
   final List<EvaluationJudgeDetail> judgeDetails;
   final int scoringScale;
-  final bool canShortlist;
-  final EvaluationRecommendationLevel? recommendation;
 
   bool get hasEvaluations => judgeDetails.isNotEmpty;
 }

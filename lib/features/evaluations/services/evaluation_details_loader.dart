@@ -10,12 +10,9 @@ import '../../org_settings/services/org_settings_service.dart';
 import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/enums/judge_type.dart';
-import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_templates_service.dart';
-import '../services/evaluation_recommendation_service.dart';
-import '../services/evaluation_settings_service.dart';
 
 /// Loads evaluation-centric context for [EvaluationDetailsWorkspace].
 ///
@@ -26,7 +23,6 @@ abstract final class EvaluationDetailsLoader {
 
   static Future<EvaluationDetailsViewModel> load({
     required String ideaId,
-    UserModel? viewer,
   }) async {
     final String id = ideaId.trim();
     if (id.isEmpty) {
@@ -146,17 +142,11 @@ abstract final class EvaluationDetailsLoader {
     final String departmentName = DepartmentModel.byCode(idea.problemDepartmentCode)?.name ??
         (deptCode.isEmpty ? '—' : deptCode);
 
-    final bool canShortlist =
-        viewer != null && UserRole.fromCode(viewer.role) == UserRole.departmentAdmin;
-
-    final bool recommendationEnabled = EvaluationSettingsService.enableRecommendationEngine(orgId);
-    final double recommendationThreshold = EvaluationSettingsService.recommendationThresholdPercent(orgId);
-
     return EvaluationDetailsViewModel(
       ideaId: id,
       idea: idea,
-      ideaTitle: ideaTitle,
       problemTitle: problemTitle,
+      ideaTitle: ideaTitle,
       departmentName: departmentName,
       status: idea.status,
       statusLabel: IdeaStatusHelpers.label(idea.status),
@@ -169,13 +159,6 @@ abstract final class EvaluationDetailsLoader {
       evaluationRank: idea.evaluationRank,
       judgeDetails: judgeDetails,
       scoringScale: scoringScale,
-      canShortlist: canShortlist,
-      recommendation: EvaluationRecommendationService.compute(
-        enabled: recommendationEnabled,
-        averageScore: idea.averageScore,
-        scoringScale: scoringScale,
-        thresholdPercent: recommendationThreshold,
-      ),
     );
   }
 

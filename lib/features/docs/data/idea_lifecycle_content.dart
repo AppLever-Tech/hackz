@@ -25,7 +25,7 @@ abstract final class IdeaLifecycleSections {
     DocSectionSpec(id: summary, title: 'Quick Summary'),
     DocSectionSpec(id: lifecycle, title: 'Idea Status Lifecycle'),
     DocSectionSpec(id: statuses, title: 'Status Descriptions'),
-    DocSectionSpec(id: flow, title: 'Submission & Evaluation Flow'),
+    DocSectionSpec(id: flow, title: 'Submission & Ideathon Flow'),
     DocSectionSpec(id: roles, title: 'Role Responsibilities'),
     DocSectionSpec(id: transitions, title: 'Automatic vs Manual Transitions'),
     DocSectionSpec(id: rules, title: 'Key Business Rules'),
@@ -33,12 +33,12 @@ abstract final class IdeaLifecycleSections {
   ];
 
   static List<String> get searchCorpus => const <String>[
-        'draft submitted underEvaluation evaluated readyForShortlisting',
-        'shortlisted rejected ideathonAssigned ideathonEvaluated',
+        'problem draft submitted ideathonAssigned ideathonEvaluated',
         'prototypeSelected winner archived',
+        'underEvaluation evaluated rejected historical',
         'faculty coordinator department admin judges system',
-        'requiredJudgeEvaluations EvaluationAggregationSyncService',
-        'payment verification evaluation assignment shortlisting',
+        'ideathon assignment evaluation infrastructure payment verification',
+        'submitted to ideathon assigned phase 1 lifecycle',
       ];
 }
 
@@ -76,8 +76,8 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         DocumentationHero(
           title: 'Idea Lifecycle',
           description:
-              'Complete lifecycle of an innovation idea from submission through evaluation, shortlisting, ideathon, prototype selection and winner declaration.',
-          lastUpdated: DateTime(2026, 7, 30),
+              'Complete lifecycle of an innovation idea from problem submission through Ideathon assignment, Ideathon evaluation, prototype selection and winner declaration.',
+          lastUpdated: DateTime(2026, 8, 9),
           readingMinutes: 6,
           imageAsset: DocsAssetPaths.ideaLifecycle,
           onPrint: onPrint,
@@ -105,12 +105,11 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: <Widget>[
-                  _summaryCard(context, 'Draft', 'Faculty submission', DocStatusKind.draft, cols, c.maxWidth),
-                  _summaryCard(context, 'Submitted', 'Payment verified', DocStatusKind.custom, cols, c.maxWidth),
-                  _summaryCard(context, 'Under Evaluation', 'Judges assigned', DocStatusKind.inactive, cols, c.maxWidth),
-                  _summaryCard(context, 'Ready for Shortlisting', 'Threshold met', DocStatusKind.active, cols, c.maxWidth),
-                  _summaryCard(context, 'Shortlisted', 'Advances to ideathon', DocStatusKind.active, cols, c.maxWidth),
-                  _summaryCard(context, 'Prototype Selected', 'After ideathon', DocStatusKind.custom, cols, c.maxWidth),
+                  _summaryCard(context, 'Problem', 'Active problem catalog', DocStatusKind.active, cols, c.maxWidth),
+                  _summaryCard(context, 'Idea (Submitted)', 'Payment verified', DocStatusKind.custom, cols, c.maxWidth),
+                  _summaryCard(context, 'Ideathon Assigned', 'Enters Ideathon', DocStatusKind.active, cols, c.maxWidth),
+                  _summaryCard(context, 'Ideathon Evaluated', 'Ideathon judging done', DocStatusKind.active, cols, c.maxWidth),
+                  _summaryCard(context, 'Prototype Selected', 'After Ideathon', DocStatusKind.custom, cols, c.maxWidth),
                   _summaryCard(context, 'Winner', 'Final declaration', DocStatusKind.custom, cols, c.maxWidth),
                 ],
               );
@@ -120,81 +119,70 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         _section(
           id: IdeaLifecycleSections.lifecycle,
           title: 'Idea Status Lifecycle',
-          subtitle: 'Track B — every idea progresses through structured IdeaStatus values after an Active problem.',
-          child: DocumentationTimeline(
-            axis: DocTimelineAxis.vertical,
-            items: <({String title, String body, Widget? pill})>[
-              (
-                title: 'Idea Draft',
-                body:
-                    'Status: draft. Faculty submits an innovation for an Active problem from the Innovation Submission Workspace. Team becomes locked. Payment verification may be required before evaluation.',
-                pill: const DocumentationStatusPill(label: 'draft', kind: DocStatusKind.draft),
+          subtitle:
+              'Phase 1 primary path — ideas go Submitted → Ideathon Assigned. Evaluation infrastructure remains for Ideathon evaluation later.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DocumentationTimeline(
+                axis: DocTimelineAxis.vertical,
+                items: <({String title, String body, Widget? pill})>[
+                  (
+                    title: 'Problem',
+                    body:
+                        'An Active problem is published in the catalog. Faculty can submit innovations only against Active problems.',
+                    pill: const DocumentationStatusPill(label: 'problem', kind: DocStatusKind.active),
+                  ),
+                  (
+                    title: 'Idea Draft',
+                    body:
+                        'Status: draft. Faculty submits an innovation from the Innovation Submission Workspace. Team becomes locked. Payment verification may be required before the idea is treated as submitted.',
+                    pill: const DocumentationStatusPill(label: 'draft', kind: DocStatusKind.draft),
+                  ),
+                  (
+                    title: 'Idea (Submitted)',
+                    body:
+                        'Status: submitted. Coordinator verifies payment. The idea is eligible for Ideathon assignment — Ideas go Submitted → Ideathon Assigned.',
+                    pill: const DocumentationStatusPill(label: 'submitted'),
+                  ),
+                  (
+                    title: 'Ideathon Assigned',
+                    body:
+                        'Status: ideathonAssigned. Department Admin assigns the submitted idea to an Ideathon.',
+                    pill: const DocumentationStatusPill(label: 'ideathonAssigned'),
+                  ),
+                  (
+                    title: 'Ideathon Evaluated',
+                    body:
+                        'Status: ideathonEvaluated. Ideathon judging completes. Evaluation infrastructure (assignments, scoring, aggregation) is reused for Ideathon evaluation; it is not a pre-Ideathon gate.',
+                    pill: const DocumentationStatusPill(label: 'ideathonEvaluated', kind: DocStatusKind.active),
+                  ),
+                  (
+                    title: 'Prototype Selected',
+                    body:
+                        'Status: prototypeSelected. Department Admin selects the winning prototype from Ideathon results.',
+                    pill: const DocumentationStatusPill(label: 'prototypeSelected'),
+                  ),
+                  (
+                    title: 'Winner',
+                    body:
+                        'Status: winner. Final winner declared by Department Admin (restricted usage).',
+                    pill: const DocumentationStatusPill(label: 'winner', kind: DocStatusKind.custom),
+                  ),
+                  (
+                    title: 'Archived',
+                    body:
+                        'Status: archived. Historical record only after event completion.',
+                    pill: const DocumentationStatusPill(label: 'archived', kind: DocStatusKind.archived),
+                  ),
+                ],
               ),
-              (
-                title: 'Submitted',
+              const SizedBox(height: 12),
+              DocumentationInfoCard(
+                tone: DocInfoTone.note,
+                title: 'Legacy evaluation statuses',
                 body:
-                    'Status: submitted. Coordinator verifies payment. Problem remains Active. Idea enters the evaluation pipeline.',
-                pill: const DocumentationStatusPill(label: 'submitted'),
-              ),
-              (
-                title: 'Under Evaluation',
-                body:
-                    'Status: underEvaluation. Department Admin assigns judges from Evaluation Assignment. An evaluation assignment group is created and linked to Problem + Idea.',
-                pill: const DocumentationStatusPill(label: 'underEvaluation'),
-              ),
-              (
-                title: 'Evaluated',
-                body:
-                    'Status: evaluated. Judges complete scoring. System advances via EvaluationAggregationSyncService. Aggregated evaluation and required evaluation count are checked.',
-                pill: const DocumentationStatusPill(label: 'evaluated', kind: DocStatusKind.active),
-              ),
-              (
-                title: 'Ready For Shortlisting',
-                body:
-                    'Status: readyForShortlisting. System detects evaluationCount ≥ requiredJudgeEvaluations (org setting). Department Admin can review Evaluation Results.',
-                pill: const DocumentationStatusPill(label: 'readyForShortlisting', kind: DocStatusKind.active),
-              ),
-              (
-                title: 'Shortlisted',
-                body:
-                    'Status: shortlisted. Manual decision by Department Admin from Evaluation Results. Idea may proceed to ideathon.',
-                pill: const DocumentationStatusPill(label: 'shortlisted', kind: DocStatusKind.active),
-              ),
-              (
-                title: 'Rejected',
-                body:
-                    'Status: rejected. Manual rejection by Department Admin from Evaluation Results. Lifecycle stops for this idea.',
-                pill: const DocumentationStatusPill(label: 'rejected', kind: DocStatusKind.inactive),
-              ),
-              (
-                title: 'Ideathon Assigned',
-                body:
-                    'Status: ideathonAssigned. Department Admin assigns the shortlisted idea to an Ideathon.',
-                pill: const DocumentationStatusPill(label: 'ideathonAssigned'),
-              ),
-              (
-                title: 'Ideathon Evaluated',
-                body:
-                    'Status: ideathonEvaluated. Ideathon judging completes. Judges evaluate; System records results.',
-                pill: const DocumentationStatusPill(label: 'ideathonEvaluated', kind: DocStatusKind.active),
-              ),
-              (
-                title: 'Prototype Selected',
-                body:
-                    'Status: prototypeSelected. Department Admin selects the winning prototype from ideathon results.',
-                pill: const DocumentationStatusPill(label: 'prototypeSelected'),
-              ),
-              (
-                title: 'Winner',
-                body:
-                    'Status: winner. Final winner declared by Department Admin (restricted usage).',
-                pill: const DocumentationStatusPill(label: 'winner', kind: DocStatusKind.custom),
-              ),
-              (
-                title: 'Archived',
-                body:
-                    'Status: archived. Historical record only after event completion.',
-                pill: const DocumentationStatusPill(label: 'archived', kind: DocStatusKind.archived),
+                    'Statuses such as underEvaluation, evaluated, and rejected may still appear on older ideas or during evaluation workflows. They are not a separate gate before Ideathon entry — new ideas follow Submitted → Ideathon Assigned.',
               ),
             ],
           ),
@@ -202,33 +190,35 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         _section(
           id: IdeaLifecycleSections.statuses,
           title: 'Status Descriptions',
-          child: DocumentationTable(
-            headers: const <String>['Status', 'Firestore', 'Trigger', 'Role'],
-            rows: const <List<String>>[
-              <String>['Idea Draft', 'draft', 'Faculty submits on Active problem', 'Faculty'],
-              <String>['Submitted', 'submitted', 'Payment verified', 'Coordinator'],
-              <String>['Under Evaluation', 'underEvaluation', 'Judges assigned', 'Department Admin'],
-              <String>['Evaluated', 'evaluated', 'Judges complete scoring', 'Judges / System'],
-              <String>[
-                'Ready For Shortlisting',
-                'readyForShortlisting',
-                'evaluationCount ≥ requiredJudgeEvaluations',
-                'System',
-              ],
-              <String>['Shortlisted', 'shortlisted', 'Manual shortlist', 'Department Admin'],
-              <String>['Rejected', 'rejected', 'Manual rejection', 'Department Admin'],
-              <String>['Ideathon Assigned', 'ideathonAssigned', 'Assigned to Ideathon', 'Department Admin'],
-              <String>['Ideathon Evaluated', 'ideathonEvaluated', 'Ideathon judging done', 'Judges / System'],
-              <String>['Prototype Selected', 'prototypeSelected', 'Prototype chosen', 'Department Admin'],
-              <String>['Winner', 'winner', 'Final declaration', 'Department Admin'],
-              <String>['Archived', 'archived', 'Historical terminal state', 'System'],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DocumentationTable(
+                headers: const <String>['Status', 'Naming', 'Trigger', 'Role'],
+                rows: const <List<String>>[
+                  <String>['Idea Draft', 'draft', 'Faculty submits on Active problem', 'Faculty'],
+                  <String>['Submitted', 'submitted', 'Payment verified', 'Coordinator'],
+                  <String>['Ideathon Assigned', 'ideathonAssigned', 'Assigned to Ideathon', 'Department Admin'],
+                  <String>['Ideathon Evaluated', 'ideathonEvaluated', 'Ideathon judging done', 'Judges / System'],
+                  <String>['Prototype Selected', 'prototypeSelected', 'Prototype chosen', 'Department Admin'],
+                  <String>['Winner', 'winner', 'Final declaration', 'Department Admin'],
+                  <String>['Archived', 'archived', 'Historical terminal state', 'System'],
+                ],
+              ),
+              const SizedBox(height: 12),
+              DocumentationInfoCard(
+                tone: DocInfoTone.information,
+                title: 'Legacy evaluation statuses (not the Ideathon-entry gate)',
+                body:
+                    'underEvaluation, evaluated, and rejected may still appear on older ideas or during evaluation. Recommendation-engine selection and automatic advancement from evaluation scores into Ideathon participation are not part of the product flow — Ideas go Submitted → Ideathon Assigned.',
+              ),
             ],
           ),
         ),
         _section(
           id: IdeaLifecycleSections.flow,
-          title: 'Submission & Evaluation Flow',
-          subtitle: 'Business path from an Active problem through winner and archive.',
+          title: 'Submission & Ideathon Flow',
+          subtitle: 'Phase 1 business path from an Active problem through winner and archive.',
           child: DocumentationCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,23 +229,24 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 _flowArrow(context),
                 _flowLine(context, 'Coordinator verifies payment → Submitted'),
                 _flowArrow(context),
-                _flowLine(context, 'Department Admin assigns judges → Under Evaluation'),
+                _flowLine(context, 'Department Admin assigns to Ideathon → Ideathon Assigned'),
                 _flowArrow(context),
-                _flowLine(context, 'Judges evaluate → Evaluated'),
-                _flowArrow(context),
-                _flowLine(context, 'System checks requiredJudgeEvaluations → Ready For Shortlisting'),
-                _flowArrow(context),
-                _flowLine(context, 'Department Admin → Shortlisted or Rejected'),
-                _flowArrow(context),
-                _flowLine(context, 'Shortlisted → Ideathon Assigned → Ideathon Evaluated'),
+                _flowLine(context, 'Ideathon judging → Ideathon Evaluated'),
                 _flowArrow(context),
                 _flowLine(context, 'Prototype Selected → Winner → Archived'),
                 const SizedBox(height: 12),
                 DocumentationInfoCard(
                   tone: DocInfoTone.note,
-                  title: 'Rejected stops here',
+                  title: 'Direct Ideathon assignment',
                   body:
-                      'Rejected ideas do not enter Ideathons. Only Shortlisted ideas continue to Ideathon Assigned and beyond.',
+                      'Ideas go Submitted → Ideathon Assigned. Department Admin assigns eligible ideas to Ideathons; evaluation and selection happen in Ideathon phases, not as a separate pre-Ideathon gate.',
+                ),
+                const SizedBox(height: 12),
+                DocumentationInfoCard(
+                  tone: DocInfoTone.information,
+                  title: 'Evaluation infrastructure retained',
+                  body:
+                      'Assignment, scoring, and aggregation capabilities still exist and will be reused for Ideathon evaluation. They are not a gate that ideas must pass before Ideathon assignment.',
                 ),
               ],
             ),
@@ -271,12 +262,15 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               <String>['Coordinator', 'Verify payment, approve submission'],
               <String>[
                 'Department Admin',
-                'Assign judges, review evaluations, shortlist, reject, assign Ideathon, select prototype, declare winner',
+                'Assign ideas to Ideathons, run Ideathon operations, select prototype, declare winner',
               ],
-              <String>['Judges', 'Evaluate ideas, submit scores, submit comments'],
+              <String>[
+                'Judges',
+                'Evaluate during Ideathon phases (and any configured evaluation assignments); submit scores and comments',
+              ],
               <String>[
                 'System',
-                'Aggregate scores, detect evaluation completion, compute averages, apply requiredJudgeEvaluations, transition to Ready For Shortlisting',
+                'Support evaluation aggregation and status synchronization for Ideathon evaluation; does not auto-advance ideas into Ideathons from pre-Ideathon scores',
               ],
             ],
           ),
@@ -284,22 +278,28 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         _section(
           id: IdeaLifecycleSections.transitions,
           title: 'Automatic vs Manual Transitions',
-          child: DocumentationTable(
-            headers: const <String>['Type', 'Action'],
-            rows: const <List<String>>[
-              <String>['Manual', 'Faculty submits idea'],
-              <String>['Manual', 'Coordinator verifies payment'],
-              <String>['Manual', 'Department Admin assigns judges'],
-              <String>['Manual', 'Department Admin shortlists'],
-              <String>['Manual', 'Department Admin rejects'],
-              <String>['Manual', 'Department Admin assigns Ideathon'],
-              <String>['Manual', 'Department Admin selects prototype'],
-              <String>['Manual', 'Department Admin declares winner'],
-              <String>['Automatic', 'Evaluation aggregation'],
-              <String>['Automatic', 'ReadyForShortlisting transition'],
-              <String>['Automatic', 'Evaluation count reconciliation'],
-              <String>['Automatic', 'Status synchronization'],
-              <String>['Automatic', 'Archive (future lifecycle)'],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DocumentationTable(
+                headers: const <String>['Type', 'Action'],
+                rows: const <List<String>>[
+                  <String>['Manual', 'Faculty submits idea'],
+                  <String>['Manual', 'Coordinator verifies payment'],
+                  <String>['Manual', 'Department Admin assigns Ideathon'],
+                  <String>['Manual', 'Department Admin selects prototype'],
+                  <String>['Manual', 'Department Admin declares winner'],
+                  <String>['Automatic', 'Ideathon evaluation aggregation / status sync (when used)'],
+                  <String>['Automatic', 'Archive (future lifecycle)'],
+                ],
+              ),
+              const SizedBox(height: 12),
+              DocumentationInfoCard(
+                tone: DocInfoTone.warning,
+                title: 'Not part of the primary path',
+                body:
+                    'Automatic advancement from evaluation scores to Ideathon participation and recommendation-engine selection are not part of Phase 1 flow. Ideas go Submitted → Ideathon Assigned by Department Admin assignment.',
+              ),
             ],
           ),
         ),
@@ -313,15 +313,15 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 'Ideas can only be submitted against Active Problems.',
                 'Faculty creates Draft ideas.',
                 'Coordinator verification moves Draft → Submitted.',
+                'Ideas go Submitted → Ideathon Assigned by Department Admin assignment.',
+                'Evaluation scores do not automatically advance an idea into Ideathon participation.',
+                'Recommendation-engine selection is not part of the product flow for Ideathon entry.',
                 'Judges never change Idea Status directly.',
-                'System controls evaluation aggregation.',
-                'ReadyForShortlisting is always a System transition.',
-                'Department Admin makes the final shortlisting decision.',
-                'Rejected ideas stop the lifecycle.',
-                'Only Shortlisted ideas enter Ideathons.',
+                'Evaluation infrastructure remains available and will be reused for Ideathon evaluation.',
                 'Prototype selection happens after Ideathon evaluation.',
-                'Winner is declared after prototype evaluation.',
+                'Winner is declared after prototype selection.',
                 'Archived is a historical terminal state.',
+                'Legacy evaluation statuses (underEvaluation, evaluated, rejected) may still appear on older ideas.',
               ]
                   .map(
                     (String line) => Padding(
@@ -348,27 +348,22 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'When does an idea become Submitted?',
                 body:
-                    'After Faculty creates a Draft and the Coordinator verifies payment. That verification advances Draft → Submitted and places the idea in the evaluation pipeline.',
+                    'After Faculty creates a Draft and the Coordinator verifies payment. That verification advances Draft → Submitted. The idea is then eligible for Ideathon assignment.',
               ),
               (
-                title: 'Who assigns judges?',
+                title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Department Admin assigns judges from the Evaluation Assignment workspace. That action creates an evaluation assignment group linked to the Problem and Idea, and moves the idea to Under Evaluation.',
+                    'Ideas go Submitted → Ideathon Assigned. Department Admin assigns Submitted ideas to Ideathons directly. There is no separate pre-Ideathon selection status on the product path.',
               ),
               (
-                title: 'How is Ready For Shortlisting calculated?',
+                title: 'Can judges decide Ideathon entry?',
                 body:
-                    'The System compares evaluationCount to org setting requiredJudgeEvaluations. When evaluationCount ≥ requiredJudgeEvaluations, EvaluationAggregationSyncService advances the idea to readyForShortlisting automatically.',
+                    'No. Judges score and comment during configured evaluation / Ideathon judging. Ideathon entry is by Department Admin assignment from Submitted — not by judge selection or a recommendation engine.',
               ),
               (
-                title: 'Can judges shortlist ideas?',
+                title: 'Who assigns ideas to Ideathons?',
                 body:
-                    'No. Judges score and comment only. Shortlist and reject decisions are made by Department Admin from Evaluation Results after the System marks Ready For Shortlisting.',
-              ),
-              (
-                title: 'Can rejected ideas enter Ideathon?',
-                body:
-                    'No. Rejected is a terminal branch for the competitive path. Only Shortlisted ideas are assigned to Ideathons.',
+                    'Department Admin assigns Submitted ideas to Ideathons (status → ideathonAssigned). Evaluation and selection then continue in Ideathon phases.',
               ),
               (
                 title: 'Who selects prototypes?',
@@ -378,7 +373,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'When is Winner assigned?',
                 body:
-                    'After prototype selection, Department Admin declares the final winner. Usage is restricted and typically follows ideathon / prototype outcomes.',
+                    'After prototype selection, Department Admin declares the final winner. Usage is restricted and typically follows Ideathon / prototype outcomes.',
               ),
               (
                 title: 'Why is Archived required?',

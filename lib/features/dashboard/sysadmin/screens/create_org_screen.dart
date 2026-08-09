@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_icons.dart';
+import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/inputs/hackz_select_field.dart';
 import '../../../../features/org_settings/services/org_settings_service.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
-import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../utils/firestore_utils.dart';
 
 class CreateOrganizationDialogForm extends StatefulWidget {
@@ -153,43 +155,6 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
     );
   }
 
-  Widget _typeDropdown({required double width}) {
-    return DropdownMenu<OrganizationType>(
-      key: ValueKey<OrganizationType>(_selectedType),
-      initialSelection: _selectedType,
-      enableFilter: false,
-      requestFocusOnTap: true,
-      inputDecorationTheme: InputDecorationTheme(
-        isDense: true,
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.6),
-        ),
-      ),
-      width: width,
-      dropdownMenuEntries: OrganizationType.values
-          .map(
-            (OrganizationType t) => DropdownMenuEntry<OrganizationType>(
-              value: t,
-              label: t.displayName,
-            ),
-          )
-          .toList(growable: false),
-      onSelected: (OrganizationType? t) {
-        if (t == null) return;
-        setState(() => _selectedType = t);
-      },
-    );
-  }
-
   Widget _formBody() {
     final bool unified = _unifiedDialog;
     final String title = _isEdit
@@ -225,10 +190,14 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         if (unified) ...<Widget>[
           const Text('Type', style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints c) {
-              return _typeDropdown(width: c.maxWidth);
-            },
+          HackzSelectField<OrganizationType>(
+            value: _selectedType,
+            hint: 'Select organization type',
+            prefixIcon: AppIcons.forOrganizationType(_selectedType),
+            options: OrganizationType.values,
+            labelBuilder: (OrganizationType t) => t.displayName,
+            iconBuilder: AppIcons.forOrganizationType,
+            onChanged: (OrganizationType t) => setState(() => _selectedType = t),
           ),
         ] else ...<Widget>[
           Row(
