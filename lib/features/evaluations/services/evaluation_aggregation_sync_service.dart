@@ -73,6 +73,4 @@ abstract final class EvaluationAggregationSyncService {
     }
   }
 
-  /// No-op: IdeaStatus no longer includes underEvaluation.
-  static Future<void> markUnderEvaluation({required String ideaId}) async {}
 }

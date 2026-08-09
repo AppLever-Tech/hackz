@@ -76,17 +76,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupKey: 'edit',
     groupTitle: 'Edit rules',
   ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.allowStudentSwitchAfterRejection,
-    displayName: 'Allow student to switch team after rejection',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'team',
-    sectionTitle: 'Team rules',
-    groupKey: 'edit',
-    groupTitle: 'Edit rules',
-  ),
-
   // —— Idea ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.maxIdeasPerProblem,
@@ -100,26 +89,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     min: 1,
     max: 20,
     step: 1,
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.allowIdeaResubmissionAfterRejection,
-    displayName: 'Allow resubmission after rejection',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'idea',
-    sectionTitle: 'Idea rules',
-    groupKey: 'submission',
-    groupTitle: 'Submission rules',
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.requirePaymentBeforeSubmission,
-    displayName: 'Require payment before submission',
-    type: OrgSettingValueType.boolean,
-    defaultValue: false,
-    sectionKey: 'idea',
-    sectionTitle: 'Idea rules',
-    groupKey: 'submission',
-    groupTitle: 'Submission rules',
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.minJudgesPerIdea,

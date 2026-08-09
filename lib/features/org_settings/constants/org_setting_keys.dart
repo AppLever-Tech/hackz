@@ -11,12 +11,9 @@ abstract final class OrgSettingKeys {
   // Team — edit
   static const String allowPendingSubmissionTeamEdit = 'allowPendingSubmissionTeamEdit';
   static const String freezeTeamAfterSubmitted = 'freezeTeamAfterSubmitted';
-  static const String allowStudentSwitchAfterRejection = 'allowStudentSwitchAfterRejection';
 
   // Idea — submission
   static const String maxIdeasPerProblem = 'maxIdeasPerProblem';
-  static const String allowIdeaResubmissionAfterRejection = 'allowIdeaResubmissionAfterRejection';
-  static const String requirePaymentBeforeSubmission = 'requirePaymentBeforeSubmission';
 
   // Idea — evaluation
   static const String minJudgesPerIdea = 'minJudgesPerIdea';

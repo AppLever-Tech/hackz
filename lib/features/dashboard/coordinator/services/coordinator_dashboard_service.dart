@@ -222,9 +222,11 @@ class CoordinatorDashboardService {
 
     final pendingPayments = pendingQueue.length;
     final rejectedPayments = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
+    // Ideas with a pending payment awaiting coordinator validation (payment is
+    // independent of IdeaStatus; ideas are typically already Submitted).
     final ideasAwaitingValidation = ideas.where((idea) {
       final payment = paymentByIdea[idea.ideaId];
-      return idea.status == IdeaStatus.draft && payment != null && payment.status == PaymentRecordStatus.pending;
+      return payment != null && payment.status == PaymentRecordStatus.pending;
     }).length;
 
     final analytics = CoordinatorDashboardAnalytics(

@@ -151,7 +151,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                   (
                     title: 'Ready For Execution',
                     body:
-                        'Once the participation payment is verified, the IdeathonParticipation status moves to readyForExecution. Ideathon evaluation, scoring, and results reuse the same evaluation infrastructure as pre-Ideathon review.',
+                        'Once the participation payment is verified, the IdeathonParticipation status moves to readyForExecution. Ideathon evaluation, scoring, and results reuse the shared evaluation infrastructure (assignments, scoring, aggregation).',
                     pill: const DocumentationStatusPill(label: 'participation: readyForExecution', kind: DocStatusKind.active),
                   ),
                 ],
@@ -161,7 +161,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 tone: DocInfoTone.note,
                 title: 'Evaluation aggregates stay on the idea',
                 body:
-                    'Average score, evaluator count, and rank remain on the idea record regardless of status, so judge scoring and results screens keep working before and during Ideathon participation.',
+                    'Average score, evaluator count, and rank remain on the idea record regardless of status, so judge scoring and results screens keep working when evaluation runs during Ideathon participation.',
               ),
             ],
           ),
@@ -242,7 +242,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               ],
               <String>[
                 'Judges',
-                'Evaluate ideas (pre-Ideathon and during Ideathon phases); submit scores and comments',
+                'Evaluate assigned ideas during Ideathon phases; submit scores and comments',
               ],
               <String>[
                 'System',

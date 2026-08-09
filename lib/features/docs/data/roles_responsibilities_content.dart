@@ -34,7 +34,7 @@ abstract final class RolesResponsibilitiesSections {
         'college admin department admin faculty coordinator judge student',
         'activate draft deactivate reactivate assign judges ideathon',
         'verify payment evaluate idea org evaluation config catalog',
-        'least privilege department isolation ownership permissions',
+        'least privilege department scope ownership permissions catalog',
         'prototype winner ideathon assignment evaluation',
       ];
 }
@@ -236,7 +236,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   <String>[
                     'Verify Payment',
                     'Coordinator',
-                    'Draft → Submitted',
+                    'Ideathon participation payment → readyForExecution',
                   ],
                   <String>[
                     'Evaluate Idea',
@@ -256,7 +256,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   <String>[
                     'View Problem Catalog',
                     'College Admin, Dept Admin, Faculty, Student',
-                    'Role-scoped visibility',
+                    'Org-wide catalog (all departments)',
                   ],
                 ],
               ),
@@ -329,7 +329,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 child: _bulletList(context, const <String>[
                   'Join teams',
                   'Participate in innovation',
-                  'View eligible problems',
+                  'View org-wide problem catalog',
                   'Build prototypes',
                 ]),
               ),
@@ -346,7 +346,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.information,
                 title: 'Problem Lifecycle',
                 body:
-                    'College Admin governs activation and catalog control. Department Admin authors and manages department problems. Faculty and Student consume the catalog. Judge and Coordinator use problem context during idea operations.',
+                    'College Admin governs activation and catalog control. Department Admin authors problems (typically for their department) and can edit their own problems. Faculty and Student view the org-wide problem catalog. Judge and Coordinator use problem context during idea operations.',
               ),
               const SizedBox(height: 12),
               DocumentationTable(
@@ -371,7 +371,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.note,
                 title: 'System ownership',
                 body:
-                    'Evaluation aggregation and related status synchronization (when used for Ideathon evaluation) are System-owned — roles never set those statuses directly. The System does not auto-advance ideas into Ideathons from pre-Ideathon evaluation scores.',
+                    'Evaluation aggregation and related status synchronization (when used for Ideathon evaluation) are System-owned — roles never set those statuses directly. The System does not auto-advance ideas into Ideathons from evaluation scores.',
               ),
             ],
           ),
@@ -384,11 +384,12 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <String>[
                 'College Admin has organization-wide permissions.',
-                'Department Admin manages only assigned departments.',
+                'Department Admin manages users and domains for assigned departments; the problem catalog is org-wide for viewing.',
+                'Department Admin edits problems they own (and College Admin can edit any).',
                 'Faculty can only submit ideas for Active Problems.',
                 'Judges evaluate only assigned ideas.',
-                'Students participate through team workflows.',
-                'Coordinators cannot modify evaluations.',
+                'Students participate through team workflows and can view the org-wide problem catalog.',
+                'Coordinators cannot modify evaluations; payment verification is department-scoped.',
                 'Lifecycle transitions remain role controlled.',
                 'Automatic transitions are performed only by the System.',
               ]
@@ -428,8 +429,9 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               const SizedBox(height: 10),
               DocumentationInfoCard(
                 tone: DocInfoTone.warning,
-                title: 'Department isolation',
-                body: 'Department Admin scope is limited to assigned departments and own problems.',
+                title: 'Department scope for management',
+                body:
+                    'Department Admin user/domain management is limited to assigned departments. Problem catalog viewing is org-wide for Dept Admin, Faculty, and Student; problem editing remains limited to own problems for Dept Admin.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
@@ -493,7 +495,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               (
                 title: 'Who verifies payments?',
                 body:
-                    'Coordinator verifies payment, which advances Draft ideas to Submitted.',
+                    'Coordinator verifies Ideathon participation payments (paymentPending → readyForExecution). Payment does not change IdeaStatus.',
               ),
               (
                 title: 'Who manages Ideathons?',

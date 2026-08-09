@@ -5,7 +5,6 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../services/evaluation_aggregation_sync_service.dart';
 import '../models/evaluation_assignment_conflict.dart';
 import '../models/evaluation_assignment_group_model.dart';
 import '../models/evaluation_assignment_model.dart';
@@ -195,9 +194,6 @@ class EvaluationAssignmentService {
       }
     }
     await batch.commit();
-    for (final IdeaModel idea in ideaList) {
-      await EvaluationAggregationSyncService.markUnderEvaluation(ideaId: idea.ideaId);
-    }
     return null;
   }
 
