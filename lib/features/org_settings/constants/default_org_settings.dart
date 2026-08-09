@@ -160,8 +160,8 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
 
   // —— Ideathon ——
   const OrgSettingDefinition(
-    key: OrgSettingKeys.minIdeasRequiredForIdeathon,
-    displayName: 'Minimum ideas required for Ideathon',
+    key: OrgSettingKeys.minimumIdeasForIdeathon,
+    displayName: 'Minimum ideas for Ideathon',
     type: OrgSettingValueType.integer,
     defaultValue: 10,
     sectionKey: 'ideathon',
@@ -169,7 +169,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupKey: 'readiness',
     groupTitle: 'Ideathon readiness',
     description:
-        'Minimum submitted ideas (not yet in an Ideathon) required before an Ideathon event can be created.',
+        'Minimum number of submitted Ideas required before an Ideathon can be created or run.',
     min: 1,
     max: 500,
     step: 1,

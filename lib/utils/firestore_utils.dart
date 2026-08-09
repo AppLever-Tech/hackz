@@ -39,6 +39,8 @@ class FirestoreUtils {
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
   static const String hkzIdeathons = 'hkzIdeathons';
+  /// Idea ↔ Ideathon participation (event-level relationship + payment readiness).
+  static const String hkzIdeathonParticipations = 'hkzIdeathonParticipations';
   static const String hkzAppMetadata = 'hkzAppMetadata';
   static const String hkzDomains = 'hkzDomains';
   static const String hkzFeedback = 'hkzFeedback';
@@ -557,17 +559,13 @@ class FirestoreUtils {
         },
       );
       bucket['totalIdeas'] = (bucket['totalIdeas'] as int) + 1;
-      if (status == IdeaStatus.evaluated ||
-          status == IdeaStatus.ideathonAssigned ||
-          status == IdeaStatus.ideathonEvaluated ||
-          status == IdeaStatus.prototypeSelected ||
-          status == IdeaStatus.winner) {
-        bucket['evaluated'] = (bucket['evaluated'] as int) + 1;
-        evaluatedIdeas++;
-      } else if (status == IdeaStatus.underEvaluation) {
-        bucket['underReview'] = (bucket['underReview'] as int) + 1;
-      } else if (status != IdeaStatus.rejected && status != IdeaStatus.archived) {
+      if (status == IdeaStatus.submitted) {
         bucket['submitted'] = (bucket['submitted'] as int) + 1;
+        // Eval aggregates still live on the idea; count scored submissions as evaluated for charts.
+        if (((data['totalEvaluators'] as num?)?.toInt() ?? 0) > 0) {
+          bucket['evaluated'] = (bucket['evaluated'] as int) + 1;
+          evaluatedIdeas++;
+        }
       }
     }
 
@@ -820,18 +818,12 @@ class FirestoreUtils {
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       totalIdeas++;
       final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
-      if (status == IdeaStatus.evaluated ||
-          status == IdeaStatus.ideathonAssigned ||
-          status == IdeaStatus.ideathonEvaluated ||
-          status == IdeaStatus.prototypeSelected ||
-          status == IdeaStatus.winner) {
-        evaluated++;
-        activeIdeas++;
-      } else if (status == IdeaStatus.underEvaluation) {
-        underReview++;
-        activeIdeas++;
-      } else if (status != IdeaStatus.rejected && status != IdeaStatus.archived) {
+      if (status == IdeaStatus.submitted) {
         submitted++;
+        activeIdeas++;
+        if (((data['totalEvaluators'] as num?)?.toInt() ?? 0) > 0) {
+          evaluated++;
+        }
       }
     }
 
@@ -1093,8 +1085,17 @@ class FirestoreUtils {
     } else {
       batch.update(canonRef, statusUpdate);
     }
-    batch.update(_db.collection(hkzIdeas).doc(ideaId), <String, dynamic>{'status': IdeaStatus.submitted.value});
     await batch.commit();
+
+    // Payment readiness is event-level: update IdeathonParticipation when linked.
+    final String participationId = ((legSnap.data()!['participationId'] as String?) ?? '').trim();
+    if (participationId.isNotEmpty) {
+      await _db.collection(hkzIdeathonParticipations).doc(participationId).update(<String, dynamic>{
+        'paymentStatus': PaymentRecordStatus.verified.value,
+        'participationStatus': 'readyForExecution',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   static Future<void> rejectIdeaPayment({
@@ -1102,11 +1103,22 @@ class FirestoreUtils {
     required String coordinatorId,
     String? remarks,
   }) async {
-    await _db.collection(hkzPayments).doc(paymentId).update(<String, dynamic>{
+    final DocumentReference<Map<String, dynamic>> ref = _db.collection(hkzPayments).doc(paymentId);
+    final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
+    await ref.update(<String, dynamic>{
       'status': PaymentRecordStatus.rejected.value,
       'verifiedBy': coordinatorId,
       'verifiedAt': FieldValue.serverTimestamp(),
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
     });
+    final String participationId =
+        snap.exists ? (((snap.data()?['participationId'] as String?) ?? '').trim()) : '';
+    if (participationId.isNotEmpty) {
+      await _db.collection(hkzIdeathonParticipations).doc(participationId).update(<String, dynamic>{
+        'paymentStatus': PaymentRecordStatus.rejected.value,
+        'participationStatus': 'paymentPending',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 }

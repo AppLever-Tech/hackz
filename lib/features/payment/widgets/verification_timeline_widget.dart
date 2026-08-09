@@ -58,7 +58,7 @@ class VerificationTimelineWidget extends StatelessWidget {
           ? remarks!.trim()
           : (payment.status == PaymentRecordStatus.rejected ? 'Rejected by coordinator' : 'Verified by coordinator'),
       when: payment.verifiedAt,
-      icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.statusRejected : AppIcons.workflowApproved,
+      icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.workflowRejected : AppIcons.workflowApproved,
       color: PaymentFinanceHelpers.statusColor(payment.status),
       isComplete: payment.status != PaymentRecordStatus.pending,
     );

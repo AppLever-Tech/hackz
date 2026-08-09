@@ -596,7 +596,7 @@ class SmartIndiaHackathonDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusPrototypeSelected,
+                    icon: AppIcons.milestone,
                     title: 'Prototype Tracking',
                     body: 'Monitor milestones, deliverables and prototype maturity over time.',
                     cols: cols,
@@ -739,7 +739,7 @@ class SmartIndiaHackathonDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Improved SIH Readiness',
                     body: 'Mock presentations and mentoring prepare teams for national competition.',
                     cols: cols,

@@ -214,7 +214,7 @@ abstract final class IdeaWorkspaceLoader {
       scores: scores,
       averageScore: averageScore,
       reviewerCount: judgeIds.length,
-      evaluationProgressLabel: _evaluationProgress(idea.status, scores.length),
+      evaluationProgressLabel: _evaluationProgress(idea, scores.length),
       paymentStatusLabel: _paymentStatusLabel(payment?.status),
       attachments: attachments,
       judgeNamesById: judgeNamesById,
@@ -237,22 +237,14 @@ abstract final class IdeaWorkspaceLoader {
     return PaymentModel.fromMap(doc.id, doc.data());
   }
 
-  static String _evaluationProgress(IdeaStatus status, int scoreCount) {
+  static String _evaluationProgress(IdeaModel idea, int scoreCount) {
     if (scoreCount > 0) {
       return '$scoreCount review${scoreCount == 1 ? '' : 's'} recorded';
     }
-    return switch (status) {
-      IdeaStatus.evaluated ||
-      IdeaStatus.ideathonAssigned ||
-      IdeaStatus.ideathonEvaluated ||
-      IdeaStatus.prototypeSelected ||
-      IdeaStatus.winner =>
-        'Evaluated',
-      IdeaStatus.underEvaluation => 'Awaiting reviews',
-      IdeaStatus.rejected => 'Closed',
+    if (idea.hasEvaluationAggregate) return 'Evaluated';
+    return switch (idea.status) {
       IdeaStatus.submitted => 'Submitted',
       IdeaStatus.draft => 'Not yet submitted',
-      IdeaStatus.archived => 'Archived',
     };
   }
 

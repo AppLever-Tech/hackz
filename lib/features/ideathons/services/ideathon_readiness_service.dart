@@ -29,7 +29,7 @@ abstract final class IdeathonReadinessService {
     required String departmentCode,
   }) async {
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
-    final int required = IdeathonSettingsService.minIdeasRequiredForIdeathon(orgId);
+    final int required = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
     final String dept = departmentCode.trim().toUpperCase();
 
     final QuerySnapshot<Map<String, dynamic>> snap = await _db

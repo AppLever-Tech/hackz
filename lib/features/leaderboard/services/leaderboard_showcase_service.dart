@@ -176,7 +176,7 @@ class LeaderboardShowcaseService {
     for (final code in sortedDeptCodes) {
       final list = deptCodeStats[code]!;
       final avg = list.map((e) => e.composite).reduce((a, b) => a + b) / list.length;
-      final approved = list.where((e) => e.idea.status == IdeaStatus.ideathonAssigned).length;
+      final approved = list.where((e) => e.idea.hasEvaluationAggregate).length;
       final participation =
           ((list.length / totalIdeasForParticipation * 100).clamp(0, 100)).toDouble();
       final approvedPct = list.isEmpty ? 0.0 : approved / list.length * 100;
@@ -232,13 +232,12 @@ class LeaderboardShowcaseService {
       }
       if (bundlesForMentor.isEmpty) continue;
       final avgTeam = bundlesForMentor.map((e) => e.composite).reduce((a, b) => a + b) / bundlesForMentor.length;
-      final success = bundlesForMentor
-              .where((e) => e.idea.status == IdeaStatus.evaluated || e.idea.status == IdeaStatus.ideathonAssigned)
-              .length /
+      final success = bundlesForMentor.where((e) => e.idea.hasEvaluationAggregate).length /
           bundlesForMentor.length *
           100;
-      final approvedPct =
-          bundlesForMentor.isEmpty ? 0.0 : bundlesForMentor.where((e) => e.idea.status == IdeaStatus.ideathonAssigned).length / bundlesForMentor.length * 100;
+      final approvedPct = bundlesForMentor.isEmpty
+          ? 0.0
+          : bundlesForMentor.where((e) => e.idea.hasEvaluationAggregate).length / bundlesForMentor.length * 100;
 
       final entryByTeamId = {for (final e in teamEntries) e.team.teamId: e};
       _TeamAgg? topRankedTeam;

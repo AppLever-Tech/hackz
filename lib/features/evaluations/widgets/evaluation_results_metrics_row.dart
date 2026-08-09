@@ -20,8 +20,7 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(metrics.totalEvaluated, 'Evaluated'),
-        MetricKpiSegment.count(metrics.ideathonAssigned, 'Ideathon Assigned'),
-        MetricKpiSegment.count(metrics.rejected, 'Rejected'),
+        MetricKpiSegment.count(metrics.pendingReview, 'Pending Review'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
@@ -32,16 +31,10 @@ class EvaluationResultsMetricsRow extends StatelessWidget {
           icon: AppIcons.statusEvaluated,
         ),
         DashboardMetricChipData.single(
-          label: 'Ideathon Assigned',
-          value: '${metrics.ideathonAssigned}',
-          color: const Color(0xFF059669),
-          icon: AppIcons.statusIdeathonAssigned,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Rejected',
-          value: '${metrics.rejected}',
-          color: const Color(0xFFDC2626),
-          icon: AppIcons.statusRejected,
+          label: 'Pending Review',
+          value: '${metrics.pendingReview}',
+          color: const Color(0xFF0EA5E9),
+          icon: AppIcons.clock,
         ),
       ];
 

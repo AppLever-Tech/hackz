@@ -353,7 +353,7 @@ abstract final class JudgeEvaluationService {
     final fileCount = idea.files.where((e) => e.trim().isNotEmpty).length;
     final att = (attachmentCountByIdeaId[idea.ideaId] ?? 0) + fileCount;
     final due = idea.createdAt.add(const Duration(days: 14));
-    final priority = idea.status == IdeaStatus.underEvaluation ? JudgeEvaluationPriority.high : JudgeEvaluationPriority.standard;
+    final priority = idea.hasEvaluationAggregate ? JudgeEvaluationPriority.standard : JudgeEvaluationPriority.high;
     return JudgeEvaluationPendingRow(
       idea: idea,
       teamName: teamName,
@@ -483,7 +483,7 @@ class JudgeEvaluationPendingRow {
   String get ideaId => idea.ideaId;
 
   JudgeAssignmentRowStatus get workflowStatus {
-    if (idea.status == IdeaStatus.underEvaluation) {
+    if (idea.hasEvaluationAggregate) {
       return JudgeAssignmentRowStatus.inProgress;
     }
     return JudgeAssignmentRowStatus.assigned;

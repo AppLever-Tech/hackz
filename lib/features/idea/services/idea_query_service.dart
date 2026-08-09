@@ -40,7 +40,6 @@ class IdeaDepartmentMetrics {
   const IdeaDepartmentMetrics({
     required this.total,
     required this.submitted,
-    required this.approved,
     required this.evaluated,
     required this.pendingSubmission,
     this.averageScore,
@@ -49,14 +48,12 @@ class IdeaDepartmentMetrics {
   static const IdeaDepartmentMetrics empty = IdeaDepartmentMetrics(
     total: 0,
     submitted: 0,
-    approved: 0,
     evaluated: 0,
     pendingSubmission: 0,
   );
 
   final int total;
   final int submitted;
-  final int approved;
   final int evaluated;
   final int pendingSubmission;
   final double? averageScore;
@@ -201,14 +198,8 @@ class IdeaQueryService {
   ) {
     if (ideas.isEmpty) return IdeaDepartmentMetrics.empty;
     final int submitted = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
-    final int approved = ideas.where((IdeaModel i) => i.status == IdeaStatus.ideathonAssigned).length;
     final int evaluated = ideas
-        .where(
-          (IdeaModel i) =>
-              i.status == IdeaStatus.evaluated ||
-              i.status == IdeaStatus.ideathonAssigned ||
-              scoreByIdeaId.containsKey(i.ideaId),
-        )
+        .where((IdeaModel i) => i.hasEvaluationAggregate || scoreByIdeaId.containsKey(i.ideaId))
         .length;
     final int pending = ideas.where((IdeaModel i) => i.status == IdeaStatus.draft).length;
     final Iterable<double> scores = scoreByIdeaId.values.map((ScoreModel s) => s.score);
@@ -216,7 +207,6 @@ class IdeaQueryService {
     return IdeaDepartmentMetrics(
       total: ideas.length,
       submitted: submitted,
-      approved: approved,
       evaluated: evaluated,
       pendingSubmission: pending,
       averageScore: avg,

@@ -224,10 +224,8 @@ class IdeaCard extends StatelessWidget {
     if (score != null) {
       return 'Score ${score.score.toStringAsFixed(0)}';
     }
-    return switch (idea.status) {
-      IdeaStatus.evaluated || IdeaStatus.ideathonAssigned => 'Evaluation complete',
-      IdeaStatus.underEvaluation => 'Under review',
-      _ => 'Pending evaluation',
-    };
+    if (idea.hasEvaluationAggregate) return 'Evaluation complete';
+    if (idea.status == IdeaStatus.submitted) return 'Under review';
+    return 'Pending evaluation';
   }
 }

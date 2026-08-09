@@ -4,7 +4,6 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_conflict.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
-import '../../idea/models/enums/idea_status.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../team/models/team_model.dart';
@@ -12,6 +11,7 @@ import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
+import 'ideathon_participation_service.dart';
 import 'ideathon_readiness_service.dart';
 import 'ideathon_settings_service.dart';
 
@@ -38,7 +38,7 @@ abstract final class IdeathonService {
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Ideas that can be selected when creating an Ideathon.
+  /// Submitted ideas that can be selected when creating an Ideathon.
   static Future<List<IdeaModel>> fetchEligibleIdeasForIdeathon({
     required String orgId,
     required String departmentCode,
@@ -86,7 +86,7 @@ abstract final class IdeathonService {
       final String ideaId = rawId.trim();
       final IdeaModel? idea = eligibleById[ideaId];
       if (idea == null) {
-        throw StateError('Only eligible ideas can be added to an Ideathon.');
+        throw StateError('Only submitted ideas can be added to an Ideathon.');
       }
       final TeamModel? team = idea.teamId.trim().isEmpty
           ? null
@@ -128,7 +128,16 @@ abstract final class IdeathonService {
       createdAt: now,
       updatedAt: now,
     );
-    await ref.set(ideathon.toMap());
+
+    final WriteBatch batch = _db.batch();
+    batch.set(ref, ideathon.toMap());
+    await IdeathonParticipationService.createForIdeathon(
+      orgId: orgId,
+      ideathonId: ideathon.ideathonId,
+      ideaIds: snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId).toList(growable: false),
+      batch: batch,
+    );
+    await batch.commit();
 
     await _assignJudges(
       orgId: orgId,
@@ -137,15 +146,6 @@ abstract final class IdeathonService {
       ideas: snapshots.map((IdeathonIdeaSnapshot s) => eligibleById[s.ideaId]!).toList(),
       judgeIds: ideathon.judgeIds,
     );
-
-    final WriteBatch batch = _db.batch();
-    for (final IdeathonIdeaSnapshot snapshot in snapshots) {
-      batch.update(_db.collection(FirestoreUtils.hkzIdeas).doc(snapshot.ideaId), <String, dynamic>{
-        'status': IdeaStatus.ideathonAssigned.value,
-        'ideathonId': ideathon.ideathonId,
-      });
-    }
-    await batch.commit();
 
     return ideathon.ideathonId;
   }

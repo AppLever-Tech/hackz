@@ -46,7 +46,7 @@ class PaymentFinanceHelpers {
       case PaymentRecordStatus.verified:
         return AppIcons.workflowApproved;
       case PaymentRecordStatus.rejected:
-        return AppIcons.statusRejected;
+        return AppIcons.workflowRejected;
     }
   }
 

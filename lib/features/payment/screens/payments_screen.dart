@@ -249,7 +249,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               _statusFilterPill(
                 compact: compact,
                 selected: _statusFilter == PaymentRecordStatus.rejected,
-                icon: AppIcons.statusRejected,
+                icon: AppIcons.workflowRejected,
                 label: 'Rejected',
                 count: workspace.summary.rejectedCount,
                 onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),

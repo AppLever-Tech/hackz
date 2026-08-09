@@ -105,14 +105,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
   static int _statusSortIndex(IdeaStatus status) {
     final int idx = IdeaStatus.lifecycleOrder.indexOf(status);
-    if (idx >= 0) return idx;
-    // Legacy evaluation statuses sort near Submitted in the primary lifecycle.
-    return switch (status) {
-      IdeaStatus.underEvaluation => 10,
-      IdeaStatus.evaluated => 11,
-      IdeaStatus.rejected => 12,
-      _ => 999,
-    };
+    return idx >= 0 ? idx : 999;
   }
 
   void _onSort(String sortKey) {
@@ -311,12 +304,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             spacing: chipGap,
             runSpacing: chipGap,
             children: <Widget>[
-              for (final IdeaStatus status in <IdeaStatus>[
-                IdeaStatus.underEvaluation,
-                IdeaStatus.evaluated,
-                IdeaStatus.ideathonAssigned,
-                IdeaStatus.rejected,
-              ])
+              for (final IdeaStatus status in IdeaStatus.lifecycleOrder)
                 MobileFilterPaneStyles.filterChip(
                   compact: compact,
                   label: IdeaStatusHelpers.label(status),

@@ -30,7 +30,7 @@ class FacultyTeamInsight {
   int get submittedIdeas => ideas.where((idea) => idea.status != IdeaStatus.draft).length;
   bool get hasIdeas => ideas.isNotEmpty;
   bool get hasPendingPayment => paymentStatuses.any((status) => status == PaymentRecordStatus.pending);
-  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.ideathonAssigned);
+  bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.hasEvaluationAggregate);
   bool get isLocked => team.status == TeamStatus.locked || hasIdeas;
 }
 
@@ -215,7 +215,7 @@ class FacultyTeamsService {
       ideaTitle: ideaTitle.trim(),
       description: description.trim(),
       files: const <String>[],
-      status: IdeaStatus.draft,
+      status: IdeaStatus.submitted,
       createdAt: DateTime.now(),
       orgId: faculty.orgId,
       teamDepartmentCode: teamDept,

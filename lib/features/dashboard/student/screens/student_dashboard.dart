@@ -120,7 +120,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 
   Widget _buildSummaryCards(StudentDashboardVm vm) {
-    final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas + vm.reviewIdeas;
+    final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas;
     return ResponsiveMetricGrid(
       chips: <DashboardMetricChipData>[
         DashboardMetricChipData.single(
@@ -136,21 +136,15 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
           segments: <DashboardMetricChipSegment>[
             DashboardMetricChipSegment(
               icon: AppIcons.statusSubmitted,
-              tooltip: 'In Progress (Pending + Submitted + Under Review)',
+              tooltip: 'In Progress (Pending + Submitted)',
               value: '$inProgressIdeas',
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusIdeathonAssigned,
-              tooltip: 'Ideathon Assigned',
+              icon: AppIcons.statusEvaluated,
+              tooltip: 'Scored',
               value: '${vm.approvedIdeas}',
-              color: StatusStyles.approved,
-            ),
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusRejected,
-              tooltip: 'Rejected',
-              value: '${vm.rejectedIdeas}',
-              color: StatusStyles.rejected,
+              color: StatusStyles.evaluated,
             ),
           ],
         ),
@@ -179,7 +173,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
               color: const Color(0xFF177C50),
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusRejected,
+              icon: AppIcons.workflowRejected,
               tooltip: 'Rejected',
               value: '${vm.rejectedPayments}',
               color: const Color(0xFFB93838),

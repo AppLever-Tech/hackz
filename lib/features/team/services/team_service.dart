@@ -188,12 +188,7 @@ class TeamService {
         .where('teamId', isEqualTo: teamId)
         .where('problemId', isEqualTo: problemId)
         .get();
-    if (snapshot.docs.isEmpty) return;
-    final latest = snapshot.docs
-        .map((d) => IdeaStatus.fromRaw((d.data()['status'] as String?) ?? ''))
-        .toList(growable: false);
-    final hasActive = latest.any((s) => s != IdeaStatus.rejected);
-    if (hasActive) {
+    if (snapshot.docs.isNotEmpty) {
       throw TeamRuleException('Only one active idea allowed per team and problem.');
     }
   }
@@ -204,9 +199,6 @@ class TeamService {
     final teamId = (currentTeamId ?? '').trim();
     if (teamId.isEmpty) return true;
     final ideas = await _db.collection(FirestoreUtils.hkzIdeas).where('teamId', isEqualTo: teamId).get();
-    if (ideas.docs.isEmpty) return true;
-    return ideas.docs
-        .map((d) => IdeaStatus.fromRaw((d.data()['status'] as String?) ?? ''))
-        .every((s) => s == IdeaStatus.rejected);
+    return ideas.docs.isEmpty;
   }
 }

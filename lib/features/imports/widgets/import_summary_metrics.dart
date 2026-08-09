@@ -38,7 +38,7 @@ class ImportSummaryMetrics extends StatelessWidget {
           label: 'Errors',
           value: '${summary.errorRows}',
           color: const Color(0xFFB91C1C),
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
         ),
       ],
     );

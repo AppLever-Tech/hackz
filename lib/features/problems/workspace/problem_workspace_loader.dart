@@ -154,7 +154,7 @@ abstract final class ProblemWorkspaceLoader {
       usersById[id] = u;
     }
 
-    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.ideathonAssigned).length;
+    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
     final int evaluatedIdeas = ideas.where((IdeaModel i) => scoresByIdea[i.ideaId]?.isNotEmpty == true).length;
     final int verifiedPayments = payments.where((PaymentModel p) => p.status == PaymentRecordStatus.verified).length;
 

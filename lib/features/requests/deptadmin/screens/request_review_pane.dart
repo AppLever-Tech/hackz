@@ -269,7 +269,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
       title: rejected ? 'Rejection comments' : 'Approval comments',
       subtitle: 'Visible to the requesting faculty',
       leading: _sectionIcon(
-        rejected ? AppIcons.statusRejected : AppIcons.workflowApproved,
+        rejected ? AppIcons.workflowRejected : AppIcons.workflowApproved,
         tone,
       ),
       tone: tone,
@@ -307,7 +307,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
         ),
       if (request.status == WorkflowStatus.rejected && request.rejectedAt != null)
         _AuditEvent(
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
           title: 'Rejected',
           detail:
               '${request.rejectedBy.isEmpty ? 'Department admin' : request.rejectedBy} · ${formatDateTime(request.rejectedAt!)}',
@@ -505,7 +505,7 @@ class _ActionBar extends StatelessWidget {
           const SizedBox(width: 10),
           OutlinedButton.icon(
             onPressed: actionable && !processing ? onReject : null,
-            icon: const Icon(AppIcons.statusRejected, size: 16),
+            icon: const Icon(AppIcons.workflowRejected, size: 16),
             label: const Text('Reject'),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFB91C1C),

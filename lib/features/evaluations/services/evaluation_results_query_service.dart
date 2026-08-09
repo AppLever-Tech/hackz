@@ -34,19 +34,16 @@ class EvaluationResultsQueryParams {
 class EvaluationResultsMetrics {
   const EvaluationResultsMetrics({
     required this.totalEvaluated,
-    required this.ideathonAssigned,
-    required this.rejected,
+    required this.pendingReview,
   });
 
   static const EvaluationResultsMetrics empty = EvaluationResultsMetrics(
     totalEvaluated: 0,
-    ideathonAssigned: 0,
-    rejected: 0,
+    pendingReview: 0,
   );
 
   final int totalEvaluated;
-  final int ideathonAssigned;
-  final int rejected;
+  final int pendingReview;
 }
 
 class EvaluationResultsQueryResult {
@@ -70,12 +67,6 @@ abstract final class EvaluationResultsQueryService {
   EvaluationResultsQueryService._();
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  static const Set<IdeaStatus> _reviewStatuses = <IdeaStatus>{
-    IdeaStatus.evaluated,
-    IdeaStatus.ideathonAssigned,
-    IdeaStatus.rejected,
-  };
 
   static Future<EvaluationResultsQueryResult> fetch(EvaluationResultsQueryParams params) async {
     final String orgId = params.viewer.orgId.trim();
@@ -120,7 +111,7 @@ abstract final class EvaluationResultsQueryService {
 
     List<IdeaModel> ideas = ideasSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => IdeaModel.fromMap(doc.id, doc.data()))
-        .where((IdeaModel idea) => _reviewStatuses.contains(idea.status) || idea.hasEvaluationAggregate)
+        .where((IdeaModel idea) => idea.status == IdeaStatus.submitted || idea.hasEvaluationAggregate)
         .toList(growable: false);
 
     if (deptCode.isNotEmpty) {
@@ -167,17 +158,10 @@ abstract final class EvaluationResultsQueryService {
 
   static EvaluationResultsMetrics _computeMetrics(List<IdeaModel> ideas) {
     if (ideas.isEmpty) return EvaluationResultsMetrics.empty;
+    final int totalEvaluated = ideas.where((IdeaModel i) => i.hasEvaluationAggregate).length;
     return EvaluationResultsMetrics(
-      totalEvaluated: ideas
-          .where(
-            (IdeaModel i) =>
-                i.status == IdeaStatus.evaluated ||
-                i.status == IdeaStatus.ideathonAssigned ||
-                i.hasEvaluationAggregate,
-          )
-          .length,
-      ideathonAssigned: ideas.where((IdeaModel i) => i.status == IdeaStatus.ideathonAssigned).length,
-      rejected: ideas.where((IdeaModel i) => i.status == IdeaStatus.rejected).length,
+      totalEvaluated: totalEvaluated,
+      pendingReview: ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted && !i.hasEvaluationAggregate).length,
     );
   }
 

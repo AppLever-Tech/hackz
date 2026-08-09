@@ -76,20 +76,21 @@ class AppIcons {
   // ── Idea lifecycle ([IdeaStatus] — use [forIdeaStatus] / IdeaStatusHelpers) ─
   static const IconData statusDraft = Icons.edit_note_rounded;
   static const IconData statusSubmitted = Icons.send_rounded;
-  static const IconData statusUnderEvaluation = Icons.fact_check_outlined;
   static const IconData statusEvaluated = Icons.verified_rounded;
-  static const IconData statusRejected = Icons.cancel_rounded;
   static const IconData statusIdeathonAssigned = Icons.event_available_outlined;
-  static const IconData statusIdeathonEvaluated = Icons.fact_check_rounded;
-  static const IconData statusPrototypeSelected = Icons.precision_manufacturing_outlined;
-  static const IconData statusWinner = Icons.emoji_events_outlined;
   static const IconData ideathons = Icons.celebration_outlined;
-  static const IconData statusArchived = Icons.inventory_2_outlined;
 
   // ── Workflow / verification (payments, requests, imports, team readiness) ──
   // Not [IdeaStatus] — approval pipelines and completion checks outside ideas.
   static const IconData workflowPendingReview = Icons.pending_rounded;
   static const IconData workflowApproved = Icons.check_circle_rounded;
+  static const IconData workflowRejected = Icons.cancel_rounded;
+  static const IconData workflowInProgress = Icons.fact_check_outlined;
+  static const IconData workflowArchived = Icons.inventory_2_outlined;
+
+  // ── Generic milestone / achievement (docs, showcase content — not IdeaStatus) ─
+  static const IconData milestone = Icons.precision_manufacturing_outlined;
+  static const IconData achievement = Icons.emoji_events_outlined;
 
   // ── Team membership (active roster vs disabled team) ───────────────────────
   static const IconData statusActive = Icons.circle;
@@ -184,14 +185,6 @@ class AppIcons {
     return switch (status) {
       IdeaStatus.draft => statusDraft,
       IdeaStatus.submitted => statusSubmitted,
-      IdeaStatus.underEvaluation => statusUnderEvaluation,
-      IdeaStatus.evaluated => statusEvaluated,
-      IdeaStatus.ideathonAssigned => statusIdeathonAssigned,
-      IdeaStatus.ideathonEvaluated => statusIdeathonEvaluated,
-      IdeaStatus.prototypeSelected => statusPrototypeSelected,
-      IdeaStatus.rejected => statusRejected,
-      IdeaStatus.winner => statusWinner,
-      IdeaStatus.archived => statusArchived,
     };
   }
 }

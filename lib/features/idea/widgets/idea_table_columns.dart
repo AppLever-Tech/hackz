@@ -164,9 +164,7 @@ abstract final class IdeaTableColumns {
 
   static bool canOpenEvaluation(IdeaListItem item) {
     if (item.score != null) return true;
-    return item.idea.status == IdeaStatus.evaluated ||
-        item.idea.status == IdeaStatus.ideathonAssigned ||
-        item.idea.status == IdeaStatus.underEvaluation;
+    return item.idea.hasEvaluationAggregate || item.idea.status == IdeaStatus.submitted;
   }
 }
 

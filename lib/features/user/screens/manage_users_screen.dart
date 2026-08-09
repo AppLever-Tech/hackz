@@ -586,7 +586,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ),
         MobileRowCardIconAction(
           tooltip: 'Reject',
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
           onTap: () => _reject(u),
           foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
         ),
@@ -760,7 +760,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
               _userFilterChip(
                 compact: compact,
                 filter: UsersFilter.rejected,
-                icon: AppIcons.statusRejected,
+                icon: AppIcons.workflowRejected,
                 label: 'Rejected',
               ),
             ],
@@ -783,7 +783,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       UsersFilter.students => (AppIcons.student, 'Student'),
       UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
       UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
-      UsersFilter.rejected => (AppIcons.statusRejected, 'Rejected'),
+      UsersFilter.rejected => (AppIcons.workflowRejected, 'Rejected'),
       UsersFilter.all => (AppIcons.users, 'All'),
     };
     final int count = _countForFilter(_filter);
@@ -970,7 +970,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             _userFilterChip(
               compact: false,
               filter: UsersFilter.rejected,
-              icon: AppIcons.statusRejected,
+              icon: AppIcons.workflowRejected,
               label: 'Rejected',
             ),
           ],

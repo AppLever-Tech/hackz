@@ -7,15 +7,17 @@ import '../../org_settings/services/org_settings_service.dart';
 abstract final class IdeathonSettingsService {
   IdeathonSettingsService._();
 
+  static const int defaultMinimumIdeasForIdeathon = 10;
+
   static Future<void> ensureLoaded({required String orgId}) async {
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
   }
 
-  static int minIdeasRequiredForIdeathon(String orgId) {
-    final Object? raw = OrgSettingsService.instance.valuesSnapshot[OrgSettingKeys.minIdeasRequiredForIdeathon];
+  static int minimumIdeasForIdeathon(String orgId) {
+    final Object? raw = OrgSettingsService.instance.valuesSnapshot[OrgSettingKeys.minimumIdeasForIdeathon];
     if (raw is int) return raw.clamp(1, 500);
     if (raw is num) return raw.round().clamp(1, 500);
-    return 10;
+    return defaultMinimumIdeasForIdeathon;
   }
 
   static double prototypeSelectionThresholdPercent(String orgId) {

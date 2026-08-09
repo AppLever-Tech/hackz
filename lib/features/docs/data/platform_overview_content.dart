@@ -687,8 +687,8 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     pill: const DocumentationStatusPill(label: 'Evaluate'),
                   ),
                   (
-                    title: 'Ideathon Assigned',
-                    body: 'Department admins assign Submitted ideas into Ideathon events.',
+                    title: 'Ideathon Participation',
+                    body: 'Department admins add eligible Submitted ideas into Ideathon events; participation payment and readiness are tracked separately from idea status.',
                     pill: const DocumentationStatusPill(label: 'Ideathon', kind: DocStatusKind.active),
                   ),
                   (
@@ -864,7 +864,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                   ),
                   _highlightCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Hackathon Support',
                     body: 'Extend the journey into build-and-compete programs.',
                     cols: cols,
@@ -1045,7 +1045,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'Can Hackz conduct Ideathons?',
                 body:
-                    'Yes. Ideas go Submitted → Ideathon Assigned. Institutions can then run ideathon workflows including evaluation and prototype selection.',
+                    'Yes. Submitted ideas can be added to an Ideathon as IdeathonParticipation records. Institutions can then run ideathon workflows including evaluation and prototype selection.',
               ),
               (
                 title: 'Can Hackz conduct Hackathons?',
@@ -1060,7 +1060,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Ideas go Submitted → Ideathon Assigned. Authorized department administrators assign eligible Submitted ideas to Ideathon events.',
+                    'Authorized department administrators add eligible Submitted ideas to Ideathon events, creating an IdeathonParticipation record. The idea itself keeps its Submitted status.',
               ),
               (
                 title: 'Can Hackz manage multiple departments?',

@@ -32,9 +32,9 @@ abstract final class IdeathonStatusHelpers {
     return switch (status) {
       IdeathonStatus.draft => AppIcons.statusDraft,
       IdeathonStatus.scheduled => AppIcons.clock,
-      IdeathonStatus.inProgress => AppIcons.statusUnderEvaluation,
+      IdeathonStatus.inProgress => AppIcons.workflowInProgress,
       IdeathonStatus.completed => AppIcons.workflowApproved,
-      IdeathonStatus.archived => AppIcons.statusArchived,
+      IdeathonStatus.archived => AppIcons.workflowArchived,
     };
   }
 }

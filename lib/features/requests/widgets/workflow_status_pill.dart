@@ -70,7 +70,7 @@ class WorkflowStatusPill extends StatelessWidget {
         );
       case WorkflowStatus.rejected:
         return const _StatusVisuals(
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
           foreground: Color(0xFFB91C1C),
           background: Color(0xFFFEECEC),
           border: Color(0xFFF8C4C4),

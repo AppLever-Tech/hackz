@@ -34,8 +34,6 @@ class IdeaLifecycleStrip extends StatelessWidget {
                 status: IdeaStatus.lifecycleOrder[i],
                 highlighted: i == currentIndex,
                 completed: currentIndex >= 0 && i < currentIndex,
-                rejected: currentStatus == IdeaStatus.rejected &&
-                    IdeaStatus.lifecycleOrder[i] == IdeaStatus.submitted,
               ),
               if (i < IdeaStatus.lifecycleOrder.length - 1)
                 Icon(
@@ -58,21 +56,17 @@ class _LifecycleStepChip extends StatelessWidget {
     required this.status,
     required this.highlighted,
     required this.completed,
-    required this.rejected,
   });
 
   final IdeaStatus status;
   final bool highlighted;
   final bool completed;
-  final bool rejected;
 
   @override
   Widget build(BuildContext context) {
-    final Color color = rejected && highlighted
-        ? IdeaStatusHelpers.color(IdeaStatus.rejected)
-        : IdeaStatusHelpers.color(status);
+    final Color color = IdeaStatusHelpers.color(status);
     final Color bg = highlighted
-        ? IdeaStatusHelpers.background(rejected ? IdeaStatus.rejected : status)
+        ? IdeaStatusHelpers.background(status)
         : completed
             ? color.withValues(alpha: 0.08)
             : const Color(0xFFF8FAFC);
@@ -82,7 +76,6 @@ class _LifecycleStepChip extends StatelessWidget {
             ? color.withValues(alpha: 0.25)
             : const Color(0xFFE2E8F0);
     final Color text = highlighted || completed ? color : const Color(0xFF94A3B8);
-    final String label = rejected && highlighted ? 'Rejected' : IdeaStatusHelpers.label(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -106,7 +99,7 @@ class _LifecycleStepChip extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           Text(
-            label,
+            IdeaStatusHelpers.label(status),
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: text),
           ),
         ],

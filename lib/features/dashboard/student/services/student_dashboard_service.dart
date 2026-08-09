@@ -130,10 +130,10 @@ class StudentDashboardService {
 
     final pendingIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.draft).length;
     final submittedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.submitted).length;
-    final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.underEvaluation).length;
-    final evaluatedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.evaluated).length;
-    final approvedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.ideathonAssigned).length;
-    final rejectedIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.rejected).length;
+    final evaluatedIdeas = scopedIdeas.where((i) => i.hasEvaluationAggregate).length;
+    final reviewIdeas = scopedIdeas.where((i) => i.status == IdeaStatus.submitted && !i.hasEvaluationAggregate).length;
+    final approvedIdeas = evaluatedIdeas;
+    const int rejectedIdeas = 0;
     final approvedOrRejectedIdeas = approvedIdeas + rejectedIdeas;
 
     final allScores = scoresByIdea.values.expand((x) => x).toList(growable: false);

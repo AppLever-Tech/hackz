@@ -45,7 +45,7 @@ abstract final class DocsRegistry {
       title: 'Innovation to Startup Program',
       description:
           'Understand how Hackz enables institutions to build a complete innovation ecosystem—from ideation to startup incubation—using structured workflows, mentorship, intellectual property support and product development.',
-      icon: AppIcons.statusPrototypeSelected,
+      icon: AppIcons.ideathons,
       lastUpdated: DateTime(2026, 8, 6),
       readingMinutes: 8,
       heroImageAsset: DocsAssetPaths.innovationToStartupProgram,
@@ -58,7 +58,7 @@ abstract final class DocsRegistry {
       title: 'Smart India Hackathon (SIH)',
       description:
           'Learn how Hackz helps institutions manage the complete internal Smart India Hackathon workflow—from publishing official problem statements to evaluating, shortlisting and nominating the best teams.',
-      icon: AppIcons.statusWinner,
+      icon: AppIcons.leaderboard,
       lastUpdated: DateTime(2026, 8, 6),
       readingMinutes: 7,
       heroImageAsset: DocsAssetPaths.smartIndiaHackathonWorkflow,

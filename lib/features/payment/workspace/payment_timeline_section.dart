@@ -48,7 +48,7 @@ class PaymentTimelineSection extends StatelessWidget {
         ),
         if (payment.verifiedAt != null)
           _metaTile(
-            icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.statusRejected : AppIcons.workflowApproved,
+            icon: payment.status == PaymentRecordStatus.rejected ? AppIcons.workflowRejected : AppIcons.workflowApproved,
             label: payment.status == PaymentRecordStatus.rejected ? 'Rejected on' : 'Verified on',
             value: PaymentFinanceHelpers.formatDate(payment.verifiedAt!),
           ),

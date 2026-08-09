@@ -233,15 +233,20 @@ class DepartmentDashboardService {
     }).length;
 
     final List<IdeaStatus> ideaStatuses = ideas.map((doc) => IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
+    bool hasAggregate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+      final data = doc.data();
+      final totalEvaluators = (data[IdeaModel.fieldTotalEvaluators] as num?)?.toInt() ?? 0;
+      final averageScore = data[IdeaModel.fieldAverageScore];
+      return totalEvaluators > 0 && averageScore != null;
+    }
+
     final int pendingSubmissionIdeas = ideaStatuses.where((s) => s == IdeaStatus.draft).length;
-    final int underReviewIdeas = ideaStatuses.where((s) => s == IdeaStatus.underEvaluation).length;
-    final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted || s == IdeaStatus.underEvaluation).length;
-    final int evaluatedOnlyIdeas = ideaStatuses
-        .where((s) => s == IdeaStatus.evaluated)
-        .length;
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.ideathonAssigned).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.ideathonAssigned).length;
-    final int rejectedIdeas = ideaStatuses.where((s) => s == IdeaStatus.rejected).length;
+    final int submittedIdeas = ideaStatuses.where((s) => s == IdeaStatus.submitted).length;
+    final int evaluatedOnlyIdeas = ideas.where(hasAggregate).length;
+    final int underReviewIdeas = submittedIdeas - evaluatedOnlyIdeas < 0 ? 0 : submittedIdeas - evaluatedOnlyIdeas;
+    final int evaluatedIdeas = evaluatedOnlyIdeas;
+    final int approvedIdeas = submittedIdeas;
+    const int rejectedIdeas = 0;
 
     final List<PaymentRecordStatus> paymentStatuses = payments.map((doc) => PaymentRecordStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
     final int pendingPayments = paymentStatuses.where((s) => s == PaymentRecordStatus.pending).length;
@@ -511,7 +516,7 @@ class DepartmentDashboardService {
     final stalled = ideas.where((doc) {
       final status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
       final created = _dateFrom(doc.data()['createdAt']);
-      return created != null && created.isBefore(cutoff) && (status == IdeaStatus.submitted || status == IdeaStatus.underEvaluation);
+      return created != null && created.isBefore(cutoff) && status == IdeaStatus.submitted;
     }).length;
     if (stalled > 0) {
       alerts.add(DepartmentAlert(title: 'Stalled evaluations', message: '$stalled ideas have waited more than 7 days.', severity: DepartmentAlertSeverity.warning));

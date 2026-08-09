@@ -41,6 +41,8 @@ class PaymentModel {
     required this.remarks,
     required this.createdAt,
     this.transactionId,
+    this.participationId = '',
+    this.ideathonId = '',
   });
 
   final String paymentId;
@@ -60,6 +62,11 @@ class PaymentModel {
   final String remarks;
   final DateTime createdAt;
   final String? transactionId;
+  /// When set, payment is for Ideathon participation (not idea submission).
+  final String participationId;
+  final String ideathonId;
+
+  bool get isIdeathonParticipationPayment => participationId.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -80,6 +87,8 @@ class PaymentModel {
       'remarks': remarks,
       'createdAt': Timestamp.fromDate(createdAt),
       'transactionId': transactionId,
+      if (participationId.trim().isNotEmpty) 'participationId': participationId.trim(),
+      if (ideathonId.trim().isNotEmpty) 'ideathonId': ideathonId.trim(),
     };
   }
 
@@ -106,6 +115,8 @@ class PaymentModel {
       remarks: ((map['remarks'] as String?) ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       transactionId: (map['transactionId'] as String?)?.trim(),
+      participationId: ((map['participationId'] as String?) ?? '').trim(),
+      ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
     );
   }
 
@@ -127,6 +138,8 @@ class PaymentModel {
     String? remarks,
     DateTime? createdAt,
     String? transactionId,
+    String? participationId,
+    String? ideathonId,
   }) {
     return PaymentModel(
       paymentId: paymentId ?? this.paymentId,
@@ -146,6 +159,8 @@ class PaymentModel {
       remarks: remarks ?? this.remarks,
       createdAt: createdAt ?? this.createdAt,
       transactionId: transactionId ?? this.transactionId,
+      participationId: participationId ?? this.participationId,
+      ideathonId: ideathonId ?? this.ideathonId,
     );
   }
 }

@@ -126,7 +126,7 @@ class JudgeDashboardService {
           ),
       ...pendingIdeas.take(20).map(
             (idea) => JudgeActivityItem(
-              icon: AppIcons.statusUnderEvaluation,
+              icon: AppIcons.workflowInProgress,
               text: 'Idea pending review: ${_ideaTitle(idea)}',
               at: idea.createdAt,
             ),

@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../idea/models/enums/idea_status.dart';
-import '../../idea/services/idea_status_helpers.dart';
 import 'ideathon_settings_service.dart';
 
+/// Prototype selection helpers for Ideathon events.
+///
+/// Phase 2: does **not** mutate IdeaStatus. Phase 3 will store selection on
+/// IdeathonParticipation / Ideathon event state.
 abstract final class IdeathonPrototypeService {
   IdeathonPrototypeService._();
 
@@ -44,33 +46,14 @@ abstract final class IdeathonPrototypeService {
       ideathonId: ideathonId,
     );
     if (avg == null || avg < threshold) return;
-    await selectPrototype(ideaId: ideaId);
+    // Phase 3: record prototype selection on participation / event.
   }
 
   static Future<void> selectPrototype({required String ideaId}) async {
-    final String id = ideaId.trim();
-    if (id.isEmpty) return;
-    final DocumentSnapshot<Map<String, dynamic>> doc =
-        await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
-    if (!doc.exists || doc.data() == null) return;
-    final IdeaStatus current = IdeaStatus.fromRaw((doc.data()!['status'] as String?) ?? '');
-    if (!IdeaStatusHelpers.canSelectPrototypeFrom(current)) return;
-    await _db.collection(FirestoreUtils.hkzIdeas).doc(id).update(<String, dynamic>{
-      'status': IdeaStatus.prototypeSelected.value,
-    });
+    // Phase 3: event-level prototype selection.
   }
 
   static Future<void> removePrototype({required String ideaId}) async {
-    final String id = ideaId.trim();
-    if (id.isEmpty) return;
-    final DocumentSnapshot<Map<String, dynamic>> doc =
-        await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
-    if (!doc.exists || doc.data() == null) return;
-    if (IdeaStatus.fromRaw((doc.data()!['status'] as String?) ?? '') != IdeaStatus.prototypeSelected) {
-      return;
-    }
-    await _db.collection(FirestoreUtils.hkzIdeas).doc(id).update(<String, dynamic>{
-      'status': IdeaStatus.ideathonEvaluated.value,
-    });
+    // Phase 3: event-level prototype selection.
   }
 }

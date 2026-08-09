@@ -541,7 +541,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusPrototypeSelected,
+                    icon: AppIcons.milestone,
                     title: 'Prototype Tracking',
                     body: 'Monitor progress from concept to working prototype.',
                     cols: cols,
@@ -573,7 +573,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Certificates & Recognition',
                     body: 'Recognize innovation milestones and team achievements.',
                     cols: cols,
@@ -671,7 +671,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusPrototypeSelected,
+                    icon: AppIcons.milestone,
                     title: 'Prototypes',
                     body: 'Working prototypes demonstrating technical and user validation.',
                     cols: cols,
@@ -703,7 +703,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Startups',
                     body: 'Ventures progressing into incubation, funding and scale.',
                     cols: cols,
@@ -834,7 +834,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Startup ecosystem',
                     body: 'A clearer pipeline from campus ideas to incubated ventures.',
                     cols: cols,
@@ -913,7 +913,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.statusWinner,
+                    icon: AppIcons.achievement,
                     title: 'Startup Focused',
                     body: 'Designed to convert campus innovation into ventures.',
                     cols: cols,

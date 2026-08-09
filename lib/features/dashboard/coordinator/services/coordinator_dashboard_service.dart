@@ -289,7 +289,7 @@ class CoordinatorDashboardService {
     }
     final paymentsByIdea = <String, PaymentModel>{for (final payment in payments) payment.ideaId: payment};
     final paymentSubmitted = ideas.where((idea) => paymentsByIdea.containsKey(idea.ideaId)).length;
-    final official = ideas.where((idea) => idea.status == IdeaStatus.submitted || idea.status == IdeaStatus.underEvaluation || idea.status == IdeaStatus.evaluated || idea.status == IdeaStatus.ideathonAssigned).length;
+    final official = ideas.where((idea) => idea.status == IdeaStatus.submitted).length;
     return <SubmissionWorkflowStep>[
       SubmissionWorkflowStep(label: 'Ideas Created', count: ideas.length, color: const Color(0xFF6A38FF)),
       SubmissionWorkflowStep(label: 'Payment Submitted', count: paymentSubmitted, color: const Color(0xFF0EA5E9)),
@@ -305,7 +305,7 @@ class CoordinatorDashboardService {
       if (payment.status == PaymentRecordStatus.verified && payment.verifiedAt != null) {
         items.add(CoordinatorActivityItem(title: 'Payment verified', subtitle: payment.problemNumber.isEmpty ? payment.ideaId : payment.problemNumber, when: payment.verifiedAt!, icon: AppIcons.verification, tint: const Color(0xFF16A34A)));
       } else if (payment.status == PaymentRecordStatus.rejected) {
-        items.add(CoordinatorActivityItem(title: 'Payment rejected / idea unlocked', subtitle: payment.problemNumber.isEmpty ? payment.ideaId : payment.problemNumber, when: payment.verifiedAt ?? payment.createdAt, icon: AppIcons.statusRejected, tint: const Color(0xFFDC2626)));
+        items.add(CoordinatorActivityItem(title: 'Payment rejected / idea unlocked', subtitle: payment.problemNumber.isEmpty ? payment.ideaId : payment.problemNumber, when: payment.verifiedAt ?? payment.createdAt, icon: AppIcons.workflowRejected, tint: const Color(0xFFDC2626)));
       }
     }
     for (final doc in scores) {

@@ -327,16 +327,10 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
               color: StatusStyles.submitted,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusIdeathonAssigned,
-              tooltip: 'Ideathon Assigned',
+              icon: AppIcons.statusEvaluated,
+              tooltip: 'Evaluated',
               value: '${vm.approvedIdeas}',
               color: StatusStyles.approved,
-            ),
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusRejected,
-              tooltip: 'Rejected',
-              value: '${vm.rejectedIdeas}',
-              color: StatusStyles.rejected,
             ),
           ],
         ),
@@ -497,22 +491,16 @@ class _FacultyDashboardService {
 
     int submitted = 0;
     int approved = 0;
-    int rejected = 0;
+    const int rejected = 0;
     for (final idea in ideas) {
       switch (idea.status) {
-        case IdeaStatus.ideathonAssigned:
-        case IdeaStatus.ideathonEvaluated:
-        case IdeaStatus.prototypeSelected:
-        case IdeaStatus.winner:
-          approved++;
-          break;
-        case IdeaStatus.rejected:
-          rejected++;
-          break;
         case IdeaStatus.draft:
           break;
-        default:
+        case IdeaStatus.submitted:
           submitted++;
+          if (idea.hasEvaluationAggregate) {
+            approved++;
+          }
       }
     }
 
@@ -524,9 +512,9 @@ class _FacultyDashboardService {
       ...ideas.map((i) {
         final icon = StatusStyles.iconForIdeaStatus(i.status);
         final color = StatusStyles.colorForIdeaStatus(i.status);
-        final text = i.status == IdeaStatus.evaluated
+        final text = i.hasEvaluationAggregate
             ? 'Idea evaluated in ${teamNameById[i.teamId] ?? i.teamId}'
-            : i.status == IdeaStatus.underEvaluation
+            : i.status == IdeaStatus.submitted && i.totalEvaluators > 0
                 ? 'Idea under review from ${teamNameById[i.teamId] ?? i.teamId}'
                 : 'Idea submitted by ${teamNameById[i.teamId] ?? i.teamId}';
         return _ActivityItem(icon: icon, color: color, text: text, time: i.createdAt);

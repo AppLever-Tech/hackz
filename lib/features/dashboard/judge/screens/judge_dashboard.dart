@@ -135,7 +135,7 @@ class _JudgeDashboardHomeState extends State<_JudgeDashboardHome> {
           label: 'Pending Reviews',
           value: '${vm.pendingReviews}',
           color: const Color(0xFFEA580C),
-          icon: AppIcons.statusUnderEvaluation,
+          icon: AppIcons.workflowInProgress,
         ),
         DashboardMetricChipData.single(
           label: 'Average Score Given',

@@ -3,12 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
-import '../../idea/models/enums/idea_status.dart';
-import '../../idea/models/idea_model.dart';
 import '../models/ideathon_model.dart';
 import 'ideathon_prototype_service.dart';
 
-/// Advances ideathon idea lifecycle when all assigned judges have scored.
+/// Syncs Ideathon-scoped evaluation completion.
+///
+/// Phase 2: does **not** mutate IdeaStatus (Idea lifecycle is draft/submitted only).
+/// Phase 3 will advance IdeathonParticipation / Ideathon lifecycle instead.
 abstract final class IdeathonEvaluationSyncService {
   IdeathonEvaluationSyncService._();
 
@@ -22,12 +23,6 @@ abstract final class IdeathonEvaluationSyncService {
     final String iid = ideathonId.trim();
     final String id = ideaId.trim();
     if (iid.isEmpty || id.isEmpty) return;
-
-    final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
-        await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
-    if (!ideaDoc.exists || ideaDoc.data() == null) return;
-    final IdeaModel idea = IdeaModel.fromMap(ideaDoc.id, ideaDoc.data()!);
-    if (idea.status != IdeaStatus.ideathonAssigned) return;
 
     final Map<String, List<String>> judgesByIdea = await _assignedIdeathonJudges(
       orgId: orgId,
@@ -51,10 +46,7 @@ abstract final class IdeathonEvaluationSyncService {
 
     if (!assigned.every(scored.contains)) return;
 
-    await _db.collection(FirestoreUtils.hkzIdeas).doc(id).update(<String, dynamic>{
-      'status': IdeaStatus.ideathonEvaluated.value,
-    });
-
+    // Phase 3: mark participation / ideathon idea as evaluated.
     await IdeathonPrototypeService.applyAutomaticSelection(
       ideathonId: iid,
       ideaId: id,
@@ -65,26 +57,7 @@ abstract final class IdeathonEvaluationSyncService {
   static Future<void> syncIdeathonCompletion(String ideathonId) async {
     final IdeathonModel? ideathon = await _fetchIdeathon(ideathonId);
     if (ideathon == null) return;
-
-    bool allEvaluated = true;
-    for (final snapshot in ideathon.ideas) {
-      final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
-          await _db.collection(FirestoreUtils.hkzIdeas).doc(snapshot.ideaId).get();
-      if (!ideaDoc.exists || ideaDoc.data() == null) {
-        allEvaluated = false;
-        continue;
-      }
-      final IdeaStatus status = IdeaStatus.fromRaw((ideaDoc.data()!['status'] as String?) ?? '');
-      if (status != IdeaStatus.ideathonEvaluated && status != IdeaStatus.prototypeSelected) {
-        allEvaluated = false;
-      }
-    }
-    if (allEvaluated) {
-      await _db.collection(FirestoreUtils.hkzIdeathons).doc(ideathon.ideathonId).update(<String, dynamic>{
-        'status': 'completed',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    }
+    // Phase 3: derive completion from participation / event lifecycle.
   }
 
   static Future<Map<String, List<String>>> _assignedIdeathonJudges({
@@ -92,19 +65,22 @@ abstract final class IdeathonEvaluationSyncService {
     required String ideathonId,
     required List<String> ideaIds,
   }) async {
+    if (ideaIds.isEmpty) return const <String, List<String>>{};
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestoreUtils.hkzEvaluationAssignments)
-        .where('orgId', isEqualTo: orgId)
-        .where('ideathonId', isEqualTo: ideathonId)
-        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value)
+        .where('orgId', isEqualTo: orgId.trim())
+        .where('ideathonId', isEqualTo: ideathonId.trim())
         .get();
-    final Set<String> filter = ideaIds.toSet();
-    final Map<String, List<String>> byIdea = <String, List<String>>{};
+    final Map<String, List<String>> byIdea = <String, List<String>>{
+      for (final String id in ideaIds) id: <String>[],
+    };
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final EvaluationAssignmentModel assignment =
-          EvaluationAssignmentModel.fromMap(doc.id, doc.data());
-      if (!filter.contains(assignment.ideaId)) continue;
-      byIdea.putIfAbsent(assignment.ideaId, () => <String>[]).add(assignment.judgeId);
+      final EvaluationAssignmentModel assignment = EvaluationAssignmentModel.fromMap(doc.id, doc.data());
+      if (assignment.status != EvaluationAssignmentStatus.active) continue;
+      final List<String>? list = byIdea[assignment.ideaId];
+      if (list == null) continue;
+      final String judgeId = assignment.judgeId.trim();
+      if (judgeId.isNotEmpty && !list.contains(judgeId)) list.add(judgeId);
     }
     return byIdea;
   }

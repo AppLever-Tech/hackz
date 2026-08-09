@@ -27,8 +27,6 @@ class JudgesPanelMetricsRow extends StatelessWidget {
         MetricKpiSegment.count(judgeCount, 'Judges'),
         MetricKpiSegment.count(metrics.underReviewIdeas, 'Under Review'),
         MetricKpiSegment.count(metrics.evaluatedOnlyIdeas, 'Evaluated'),
-        MetricKpiSegment.count(metrics.approvedIdeas, 'Approved'),
-        MetricKpiSegment.count(metrics.rejectedIdeas, 'Rejected'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
@@ -49,7 +47,7 @@ class JudgesPanelMetricsRow extends StatelessWidget {
         DepartmentMetricCard(
           value: '${metrics.underReviewIdeas}',
           label: 'Ideas Under Review',
-          icon: AppIcons.statusUnderEvaluation,
+          icon: AppIcons.clock,
           iconBgColor: const Color(0xFFEAF2FF),
           tooltip: 'Ideas currently under review.',
         ).toChipData(),
@@ -65,16 +63,10 @@ class JudgesPanelMetricsRow extends StatelessWidget {
               color: StatusStyles.evaluated,
             ),
             DashboardMetricChipSegment(
-              icon: AppIcons.statusIdeathonAssigned,
-              tooltip: 'Ideathon Assigned',
-              value: '${metrics.approvedIdeas}',
-              color: StatusStyles.approved,
-            ),
-            DashboardMetricChipSegment(
-              icon: AppIcons.statusRejected,
-              tooltip: 'Rejected',
-              value: '${metrics.rejectedIdeas}',
-              color: StatusStyles.rejected,
+              icon: AppIcons.clock,
+              tooltip: 'Under Review',
+              value: '${metrics.underReviewIdeas}',
+              color: StatusStyles.underReview,
             ),
           ],
         ),

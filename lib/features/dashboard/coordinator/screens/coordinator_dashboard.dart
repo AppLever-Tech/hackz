@@ -263,7 +263,7 @@ class _OperationalMetricGrid extends StatelessWidget {
           label: 'Rejected Payments',
           value: '${analytics.rejectedPayments}',
           color: const Color(0xFFDC2626),
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
         ),
       ],
     );

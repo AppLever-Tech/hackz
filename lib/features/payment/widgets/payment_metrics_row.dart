@@ -57,7 +57,7 @@ class PaymentMetricsRow extends StatelessWidget {
         PaymentSummaryCard(
           label: 'Rejected payments',
           value: PaymentFinanceHelpers.formatCurrency(summary.rejectedAmount),
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
           iconBgColor: const Color(0xFFFEF2F2),
           accentColor: const Color(0xFFB91C1C),
           subtitle: '${summary.rejectedCount} rejected',

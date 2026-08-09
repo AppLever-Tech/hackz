@@ -203,9 +203,15 @@ class SysAdminDashboardService {
     final int approvedUsers = userDocs.where((doc) => UserStatus.fromRaw((doc.data()['status'] as String?) ?? '') == UserStatus.active).length;
     final double approvalRate = userDocs.isEmpty ? 0 : approvedUsers / userDocs.length;
 
-    final List<IdeaStatus> ideaStatuses = ideaDocs.map((doc) => IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
-    final int evaluatedIdeas = ideaStatuses.where((s) => s == IdeaStatus.evaluated || s == IdeaStatus.ideathonAssigned).length;
-    final int approvedIdeas = ideaStatuses.where((s) => s == IdeaStatus.ideathonAssigned).length;
+    bool hasAggregate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+      final data = doc.data();
+      final totalEvaluators = (data[IdeaModel.fieldTotalEvaluators] as num?)?.toInt() ?? 0;
+      final averageScore = data[IdeaModel.fieldAverageScore];
+      return totalEvaluators > 0 && averageScore != null;
+    }
+
+    final int evaluatedIdeas = ideaDocs.where(hasAggregate).length;
+    final int approvedIdeas = evaluatedIdeas;
 
     final List<OrganizationActivityPoint> orgActivity = _buildOrganizationActivity(
       orgDocs: orgDocs,
@@ -247,7 +253,7 @@ class SysAdminDashboardService {
       ),
       recentActivity: _buildRecentActivity(orgDocs, userDocs, problemDocs, scoreDocs, paymentDocs),
       usersByRole: _roleDistribution(userDocs),
-      ideaStatusDistribution: _ideaStatusDistribution(ideaStatuses),
+      ideaStatusDistribution: _ideaStatusDistribution(ideaDocs),
       paymentVerificationRate: paymentDocs.isEmpty ? 0 : verifiedPayments / paymentDocs.length,
     );
 
@@ -446,9 +452,7 @@ class SysAdminDashboardService {
     final int delayedEvaluations = ideaDocs.where((doc) {
       final status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
       final created = _dateFrom(doc.data()['createdAt']);
-      return created != null &&
-          created.isBefore(evaluationCutoff) &&
-          (status == IdeaStatus.submitted || status == IdeaStatus.underEvaluation);
+      return created != null && created.isBefore(evaluationCutoff) && status == IdeaStatus.submitted;
     }).length;
     if (delayedEvaluations > 0) {
       alerts.add(PlatformAlert(
@@ -587,18 +591,26 @@ class SysAdminDashboardService {
     }).toList(growable: false);
   }
 
-  static List<PlatformDistributionSegment> _ideaStatusDistribution(List<IdeaStatus> statuses) {
-    final Map<IdeaStatus, int> counts = <IdeaStatus, int>{for (final s in IdeaStatus.values) s: 0};
-    for (final status in statuses) {
-      counts[status] = (counts[status] ?? 0) + 1;
+  static List<PlatformDistributionSegment> _ideaStatusDistribution(_FirestoreDocs ideaDocs) {
+    int draft = 0;
+    int submitted = 0;
+    int scored = 0;
+    for (final doc in ideaDocs) {
+      final data = doc.data();
+      final status = IdeaStatus.fromRaw((data['status'] as String?) ?? '');
+      if (status == IdeaStatus.draft) {
+        draft++;
+        continue;
+      }
+      submitted++;
+      final totalEvaluators = (data[IdeaModel.fieldTotalEvaluators] as num?)?.toInt() ?? 0;
+      final averageScore = data[IdeaModel.fieldAverageScore];
+      if (totalEvaluators > 0 && averageScore != null) scored++;
     }
     return <PlatformDistributionSegment>[
-      PlatformDistributionSegment(label: 'Pending', count: counts[IdeaStatus.draft] ?? 0, color: const Color(0xFF94A3B8)),
-      PlatformDistributionSegment(label: 'Submitted', count: counts[IdeaStatus.submitted] ?? 0, color: const Color(0xFF2563EB)),
-      PlatformDistributionSegment(label: 'Review', count: counts[IdeaStatus.underEvaluation] ?? 0, color: const Color(0xFF7C3AED)),
-      PlatformDistributionSegment(label: 'Evaluated', count: counts[IdeaStatus.evaluated] ?? 0, color: const Color(0xFF0891B2)),
-      PlatformDistributionSegment(label: 'Ideathon Assigned', count: counts[IdeaStatus.ideathonAssigned] ?? 0, color: const Color(0xFF16A34A)),
-      PlatformDistributionSegment(label: 'Rejected', count: counts[IdeaStatus.rejected] ?? 0, color: const Color(0xFFDC2626)),
+      PlatformDistributionSegment(label: 'Draft', count: draft, color: const Color(0xFF94A3B8)),
+      PlatformDistributionSegment(label: 'Submitted', count: submitted, color: const Color(0xFF2563EB)),
+      PlatformDistributionSegment(label: 'Scored', count: scored, color: const Color(0xFF0891B2)),
     ];
   }
 
