@@ -15,10 +15,18 @@ import 'ideathon_workspace_loader.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class IdeathonWorkspaceBody extends StatelessWidget {
-  const IdeathonWorkspaceBody({super.key, required this.vm, this.onRefresh});
+  const IdeathonWorkspaceBody({
+    super.key,
+    required this.vm,
+    this.onRefresh,
+    this.actor,
+    this.onOpenPayments,
+  });
 
   final IdeathonWorkspaceViewModel vm;
   final VoidCallback? onRefresh;
+  final UserModel? actor;
+  final VoidCallback? onOpenPayments;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +80,29 @@ class IdeathonWorkspaceBody extends StatelessWidget {
               _detailRow('Ends', formatDateTime(ideathon.endDateTime.toLocal())),
               if (ideathon.description.trim().isNotEmpty)
                 _detailRow('Description', ideathon.description.trim()),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _sectionCard(
+          title: 'Payments',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text(
+                'Monitor participation payment status and verify payments to make ideas ready for Ideathon execution.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ProblemWorkflowActionPill(
+                  label: 'Open Ideathon Payments',
+                  icon: AppIcons.payments,
+                  semantic: ProblemWorkflowPillSemantic.filledBrand,
+                  onTap: onOpenPayments,
+                ),
+              ),
             ],
           ),
         ),

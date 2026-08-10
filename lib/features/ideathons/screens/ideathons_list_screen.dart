@@ -59,7 +59,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     });
   }
 
-  void _openIdeathon(String id) => IdeathonWorkspace.open(context, id);
+  void _openIdeathon(String id) => IdeathonWorkspace.open(context, id, actor: widget.user);
 
   void _clearAllFilters() {
     setState(() {

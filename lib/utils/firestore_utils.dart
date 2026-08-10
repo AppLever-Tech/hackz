@@ -1066,36 +1066,46 @@ class FirestoreUtils {
     if (!legSnap.exists || legSnap.data() == null) {
       throw StateError('Payment not found.');
     }
-    final ideaId = ((legSnap.data()!['ideaId'] as String?) ?? '').trim();
+    final Map<String, dynamic> data = Map<String, dynamic>.from(legSnap.data()!);
+    final ideaId = ((data['ideaId'] as String?) ?? '').trim();
     if (ideaId.isEmpty) throw StateError('Invalid payment payload.');
-    final canonRef = _db.collection(hkzPayments).doc(ideaId);
-    final batch = _db.batch();
+
+    final String participationId = ((data['participationId'] as String?) ?? '').trim();
+    final String ideathonId = ((data['ideathonId'] as String?) ?? '').trim();
+    final bool isIdeathonPayment = participationId.isNotEmpty || ideathonId.isNotEmpty;
+
     final statusUpdate = <String, dynamic>{
       'status': PaymentRecordStatus.verified.value,
       'verifiedBy': coordinatorId,
       'verifiedAt': FieldValue.serverTimestamp(),
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
-      'paymentId': ideaId,
     };
-    if (legRef.id != ideaId) {
-      final merged = Map<String, dynamic>.from(legSnap.data()!);
-      merged.addAll(statusUpdate);
-      batch.delete(legRef);
-      batch.set(canonRef, merged);
-    } else {
-      batch.update(canonRef, statusUpdate);
-    }
-    await batch.commit();
 
-    // Payment readiness is event-level: update IdeathonParticipation when linked.
-    final String participationId = ((legSnap.data()!['participationId'] as String?) ?? '').trim();
-    if (participationId.isNotEmpty) {
-      await _db.collection(hkzIdeathonParticipations).doc(participationId).update(<String, dynamic>{
-        'paymentStatus': PaymentRecordStatus.verified.value,
-        'participationStatus': 'readyForExecution',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    if (isIdeathonPayment) {
+      // Keep ideathon participation payments on their own doc id.
+      statusUpdate['paymentId'] = legRef.id;
+      await legRef.update(statusUpdate);
+    } else {
+      final canonRef = _db.collection(hkzPayments).doc(ideaId);
+      final batch = _db.batch();
+      statusUpdate['paymentId'] = ideaId;
+      if (legRef.id != ideaId) {
+        final merged = Map<String, dynamic>.from(data)..addAll(statusUpdate);
+        batch.delete(legRef);
+        batch.set(canonRef, merged);
+      } else {
+        batch.update(canonRef, statusUpdate);
+      }
+      await batch.commit();
     }
+
+    await _syncIdeathonParticipationAfterPayment(
+      participationId: participationId,
+      ideathonId: ideathonId,
+      ideaId: ideaId,
+      paymentStatus: PaymentRecordStatus.verified,
+      participationStatus: 'readyForExecution',
+    );
   }
 
   static Future<void> rejectIdeaPayment({
@@ -1105,20 +1115,48 @@ class FirestoreUtils {
   }) async {
     final DocumentReference<Map<String, dynamic>> ref = _db.collection(hkzPayments).doc(paymentId);
     final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
+    if (!snap.exists || snap.data() == null) {
+      throw StateError('Payment not found.');
+    }
+    final Map<String, dynamic> data = Map<String, dynamic>.from(snap.data()!);
     await ref.update(<String, dynamic>{
       'status': PaymentRecordStatus.rejected.value,
       'verifiedBy': coordinatorId,
       'verifiedAt': FieldValue.serverTimestamp(),
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
     });
-    final String participationId =
-        snap.exists ? (((snap.data()?['participationId'] as String?) ?? '').trim()) : '';
-    if (participationId.isNotEmpty) {
-      await _db.collection(hkzIdeathonParticipations).doc(participationId).update(<String, dynamic>{
-        'paymentStatus': PaymentRecordStatus.rejected.value,
-        'participationStatus': 'paymentPending',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+    await _syncIdeathonParticipationAfterPayment(
+      participationId: ((data['participationId'] as String?) ?? '').trim(),
+      ideathonId: ((data['ideathonId'] as String?) ?? '').trim(),
+      ideaId: ((data['ideaId'] as String?) ?? '').trim(),
+      paymentStatus: PaymentRecordStatus.rejected,
+      participationStatus: 'paymentPending',
+    );
+  }
+
+  /// Updates Ideathon participation payment readiness after payment verify/reject.
+  static Future<void> _syncIdeathonParticipationAfterPayment({
+    required String participationId,
+    required String ideathonId,
+    required String ideaId,
+    required PaymentRecordStatus paymentStatus,
+    required String participationStatus,
+  }) async {
+    String id = participationId.trim();
+    if (id.isEmpty && ideathonId.trim().isNotEmpty && ideaId.trim().isNotEmpty) {
+      final QuerySnapshot<Map<String, dynamic>> snap = await _db
+          .collection(hkzIdeathonParticipations)
+          .where('ideathonId', isEqualTo: ideathonId.trim())
+          .where('ideaId', isEqualTo: ideaId.trim())
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) id = snap.docs.first.id;
     }
+    if (id.isEmpty) return;
+    await _db.collection(hkzIdeathonParticipations).doc(id).update(<String, dynamic>{
+      'paymentStatus': paymentStatus.value,
+      'participationStatus': participationStatus,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

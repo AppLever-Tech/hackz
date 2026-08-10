@@ -5,9 +5,12 @@ import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../features/problems/workspace/problem_workspace.dart';
 import '../../features/team/workspace/team_workspace.dart';
+import '../../features/user/models/user_model.dart';
 import '../../features/user/workspace/user_workspace.dart';
 import 'workspace_controller.dart';
 import 'workspace_header.dart';
@@ -64,6 +67,24 @@ class WorkspaceNavigator extends StatelessWidget {
       templateId,
       departmentCode: departmentCode,
     );
+  }
+
+  /// Opens the Ideathon participation payment workspace for [ideathonId].
+  static void openIdeathonPayments(
+    BuildContext context,
+    String ideathonId, {
+    UserModel? actor,
+  }) {
+    IdeathonPaymentWorkspace.open(context, ideathonId, actor: actor);
+  }
+
+  /// Opens the Ideathon overview workspace for [ideathonId].
+  static void openIdeathon(
+    BuildContext context,
+    String ideathonId, {
+    UserModel? actor,
+  }) {
+    IdeathonWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens the read-only attachment workspace for [attachmentId].
