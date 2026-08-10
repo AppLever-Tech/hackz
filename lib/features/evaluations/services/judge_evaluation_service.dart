@@ -5,6 +5,7 @@ import '../assignments/services/evaluation_assignment_service.dart';
 import '../models/evaluation_template.dart';
 import '../models/score_model.dart';
 import 'evaluation_aggregation_sync_service.dart';
+import '../../ideathons/models/ideathon_model.dart';
 import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../user/models/enums/user_role.dart';
@@ -22,7 +23,8 @@ abstract final class JudgeEvaluationService {
   static final Map<String, _CacheEntry> _cache = <String, _CacheEntry>{};
   static const Duration _ttl = Duration(seconds: 45);
 
-  static String _key(UserModel judge) => '${judge.userId.trim()}|${judge.orgId.trim()}';
+  static String _key(UserModel judge, {String ideathonId = ''}) =>
+      '${judge.userId.trim()}|${judge.orgId.trim()}|${ideathonId.trim()}';
 
   static void clearCache() => _cache.clear();
 
@@ -36,6 +38,9 @@ abstract final class JudgeEvaluationService {
   /// [ScoreModel.criteriaScores]; per-criterion comments (only for criteria
   /// with `commentsEnabled: true`) live on [ScoreModel.criteriaComments];
   /// overall remarks live on [ScoreModel.feedback].
+  ///
+  /// When [ideathonId] is set, the score is event-scoped and the template must
+  /// be the Ideathon's configured template (enforced by the caller).
   static Future<void> saveEvaluation({
     required UserModel judge,
     required IdeaModel idea,
@@ -51,12 +56,24 @@ abstract final class JudgeEvaluationService {
     if (idea.status == IdeaStatus.draft) {
       throw StateError('Idea is pending payment verification.');
     }
-    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+    final String trimmedIdeathonId = ideathonId.trim();
+    final List<EvaluationAssignmentModel> assignments =
+        await EvaluationAssignmentService.listAssignmentsForJudge(
       orgId: judge.orgId,
       judgeId: judge.userId,
+      ideathonId: trimmedIdeathonId,
     );
-    if (!assignedIdeaIds.contains(idea.ideaId)) {
-      throw StateError('Idea is not assigned to this judge.');
+    final bool assigned = assignments.any((EvaluationAssignmentModel a) {
+      if (a.ideaId.trim() != idea.ideaId.trim()) return false;
+      if (trimmedIdeathonId.isEmpty) return !a.isIdeathonAssignment;
+      return a.ideathonId.trim() == trimmedIdeathonId;
+    });
+    if (!assigned) {
+      throw StateError(
+        trimmedIdeathonId.isEmpty
+            ? 'Idea is not assigned to this judge.'
+            : 'Idea is not assigned to this judge for this Ideathon.',
+      );
     }
     if (template.criteria.isEmpty) {
       throw StateError('Evaluation template has no criteria.');
@@ -89,7 +106,6 @@ abstract final class JudgeEvaluationService {
         ? 0
         : ((overall / template.scoringScale) * 100).clamp(0.0, 100.0);
     final col = _db.collection(FirestoreUtils.hkzScores);
-    final String trimmedIdeathonId = ideathonId.trim();
     Query<Map<String, dynamic>> existingQuery = col
         .where('ideaId', isEqualTo: idea.ideaId)
         .where('judgeId', isEqualTo: judge.userId);
@@ -97,8 +113,23 @@ abstract final class JudgeEvaluationService {
       existingQuery = existingQuery.where('ideathonId', isEqualTo: trimmedIdeathonId);
     }
     final existing = await existingQuery.limit(1).get();
+    // Avoid updating a score from another Ideathon when saving without event id.
+    DocumentSnapshot<Map<String, dynamic>>? existingDoc;
+    if (existing.docs.isNotEmpty) {
+      if (trimmedIdeathonId.isEmpty) {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in existing.docs) {
+          final ScoreModel s = ScoreModel.fromMap(doc.id, doc.data());
+          if (s.ideathonId.trim().isEmpty) {
+            existingDoc = doc;
+            break;
+          }
+        }
+      } else {
+        existingDoc = existing.docs.first;
+      }
+    }
     final payload = ScoreModel(
-      scoreId: existing.docs.isEmpty ? '' : existing.docs.first.id,
+      scoreId: existingDoc == null ? '' : existingDoc.id,
       ideaId: idea.ideaId,
       judgeId: judge.userId,
       score: overall,
@@ -113,11 +144,11 @@ abstract final class JudgeEvaluationService {
       normalizedScore: normalized,
       ideathonId: trimmedIdeathonId,
     );
-    if (existing.docs.isEmpty) {
+    if (existingDoc == null) {
       final doc = col.doc();
       await doc.set(payload.copyWith(scoreId: doc.id).toMap());
     } else {
-      await col.doc(existing.docs.first.id).update(payload.toMap());
+      await col.doc(existingDoc.id).update(payload.toMap());
     }
     if (trimmedIdeathonId.isNotEmpty) {
       await IdeathonEvaluationSyncService.syncIdeathonIdea(
@@ -135,11 +166,15 @@ abstract final class JudgeEvaluationService {
     clearCache();
   }
 
-  static Future<JudgeEvaluationWorkspaceVm> loadWorkspace(UserModel judge) async {
+  static Future<JudgeEvaluationWorkspaceVm> loadWorkspace(
+    UserModel judge, {
+    String ideathonId = '',
+  }) async {
     if (!_isJudge(judge)) {
       return const JudgeEvaluationWorkspaceVm.empty();
     }
-    final key = _key(judge);
+    final String eventId = ideathonId.trim();
+    final key = _key(judge, ideathonId: eventId);
     final now = DateTime.now();
     final hit = _cache[key];
     if (hit != null && now.difference(hit.at) < _ttl) {
@@ -153,6 +188,7 @@ abstract final class JudgeEvaluationService {
       _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: judge.orgId).get(),
       _db.collection(FirestoreUtils.hkzAttachments).where('orgId', isEqualTo: judge.orgId).where('isActive', isEqualTo: true).get(),
       _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: judge.orgId).get(),
+      _db.collection(FirestoreUtils.hkzIdeathons).where('orgId', isEqualTo: judge.orgId).get(),
     ]);
 
     final ideaDocs = (results[0] as QuerySnapshot<Map<String, dynamic>>).docs;
@@ -161,12 +197,16 @@ abstract final class JudgeEvaluationService {
     final problemDocs = (results[3] as QuerySnapshot<Map<String, dynamic>>).docs;
     final attachmentDocs = (results[4] as QuerySnapshot<Map<String, dynamic>>).docs;
     final paymentDocs = (results[5] as QuerySnapshot<Map<String, dynamic>>).docs;
+    final ideathonDocs = (results[6] as QuerySnapshot<Map<String, dynamic>>).docs;
 
     final teamsById = <String, TeamModel>{
       for (final d in teamDocs) d.id: TeamModel.fromMap(d.id, d.data()),
     };
     final problemsById = <String, ProblemModel>{
       for (final d in problemDocs) d.id: ProblemModel.fromMap(d.id, d.data()),
+    };
+    final Map<String, IdeathonModel> ideathonsById = <String, IdeathonModel>{
+      for (final d in ideathonDocs) d.id: IdeathonModel.fromMap(d.id, d.data()),
     };
 
     final attachmentCountByIdeaId = <String, int>{};
@@ -184,144 +224,172 @@ abstract final class JudgeEvaluationService {
       paymentByIdeaId[p.ideaId] = p;
     }
 
-    final Set<String> assignedIdeaIds = await EvaluationAssignmentService.assignedIdeaIdsForJudge(
+    final List<EvaluationAssignmentModel> assignments =
+        await EvaluationAssignmentService.listAssignmentsForJudge(
       orgId: judge.orgId,
       judgeId: judge.userId,
+      ideathonId: eventId,
     );
-
-    final QuerySnapshot<Map<String, dynamic>> assignmentSnap = await _db
-        .collection(FirestoreUtils.hkzEvaluationAssignments)
-        .where('orgId', isEqualTo: judge.orgId)
-        .where('judgeId', isEqualTo: judge.userId)
-        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value)
-        .get();
-    final Map<String, String> assignmentIdByIdeaId = <String, String>{};
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in assignmentSnap.docs) {
-      final EvaluationAssignmentModel assignment =
-          EvaluationAssignmentModel.fromMap(doc.id, doc.data());
-      if (assignment.ideaId.isEmpty) continue;
-      assignmentIdByIdeaId[assignment.ideaId] = assignment.assignmentId;
+    if (assignments.isEmpty) {
+      final empty = const JudgeEvaluationWorkspaceVm.empty();
+      _cache[key] = _CacheEntry(at: now, vm: empty);
+      return empty;
     }
 
-    final Map<String, List<String>> judgesByIdea =
-        await EvaluationAssignmentService.assignedJudgesByIdea(
-      orgId: judge.orgId,
-      ideaIds: assignedIdeaIds,
-    );
-    final Map<String, int> assignedJudgeCountByIdeaId = <String, int>{
-      for (final MapEntry<String, List<String>> e in judgesByIdea.entries)
-        e.key: e.value.length,
+    final Set<String> assignedIdeaIds = assignments
+        .map((EvaluationAssignmentModel a) => a.ideaId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+
+    final Map<String, IdeaModel> ideasById = <String, IdeaModel>{
+      for (final d in ideaDocs)
+        if (assignedIdeaIds.contains(d.id)) d.id: IdeaModel.fromMap(d.id, d.data()),
     };
 
-    final scopedIdeas = ideaDocs
-        .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where((idea) => assignedIdeaIds.contains(idea.ideaId))
-        .toList(growable: false)
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final Map<String, int> assignedJudgeCountByIdeaId = <String, int>{};
+    final Set<String> eventIds = assignments
+        .map((EvaluationAssignmentModel a) => a.ideathonId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+    if (eventIds.isEmpty) {
+      final Map<String, List<String>> judges =
+          await EvaluationAssignmentService.assignedJudgesByIdea(
+        orgId: judge.orgId,
+        ideaIds: assignedIdeaIds,
+      );
+      for (final MapEntry<String, List<String>> e in judges.entries) {
+        assignedJudgeCountByIdeaId[e.key] = e.value.length;
+      }
+    } else {
+      for (final String eid in eventIds) {
+        final Map<String, List<String>> judges =
+            await EvaluationAssignmentService.assignedJudgesByIdeaForIdeathon(
+          ideathonId: eid,
+          ideaIds: assignedIdeaIds,
+        );
+        for (final MapEntry<String, List<String>> e in judges.entries) {
+          assignedJudgeCountByIdeaId[e.key] = e.value.length;
+        }
+      }
+    }
 
-    final scoresByJudge = scoreDocs
+    final List<ScoreModel> scoresByJudge = scoreDocs
         .map((d) => ScoreModel.fromMap(d.id, d.data()))
         .where((s) => s.judgeId == judge.userId)
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    final scoresByIdea = <String, List<ScoreModel>>{};
-    for (final score in scoresByJudge) {
-      scoresByIdea.putIfAbsent(score.ideaId, () => <ScoreModel>[]).add(score);
+    ScoreModel? scoreFor(String ideaId, String assignmentIdeathonId) {
+      for (final ScoreModel s in scoresByJudge) {
+        if (s.ideaId.trim() != ideaId) continue;
+        if (s.ideathonId.trim() == assignmentIdeathonId.trim()) return s;
+      }
+      return null;
     }
-    for (final e in scoresByIdea.values) {
-      e.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    }
-
-    final evaluatedIdeaIds = scoresByIdea.keys.toSet();
 
     bool judgeMayEvaluate(IdeaModel idea) {
-      if (!assignedIdeaIds.contains(idea.ideaId)) return false;
       if (idea.status == IdeaStatus.draft) return false;
       final pay = paymentByIdeaId[idea.ideaId];
-      if (pay != null && pay.status != PaymentRecordStatus.verified && pay.status != PaymentRecordStatus.rejected) {
+      if (pay != null &&
+          pay.status != PaymentRecordStatus.verified &&
+          pay.status != PaymentRecordStatus.rejected) {
         return false;
       }
       return true;
     }
 
-    final pendingIdeas = scopedIdeas.where((i) => judgeMayEvaluate(i) && !evaluatedIdeaIds.contains(i.ideaId)).toList(growable: false);
+    final List<JudgeEvaluationPendingRow> pendingRows = <JudgeEvaluationPendingRow>[];
+    final List<JudgeEvaluationEvaluatedRow> evaluatedRows = <JudgeEvaluationEvaluatedRow>[];
+    final List<JudgeEvaluationFeedbackRow> feedbackRows = <JudgeEvaluationFeedbackRow>[];
+    final List<ScoreModel> scopedScores = <ScoreModel>[];
 
-    final pendingRows = pendingIdeas
-        .map(
-          (idea) => _buildPendingRow(
+    for (final EvaluationAssignmentModel assignment in assignments) {
+      final String ideaId = assignment.ideaId.trim();
+      final IdeaModel? idea = ideasById[ideaId];
+      if (idea == null) continue;
+      final String aIdeathonId = assignment.ideathonId.trim();
+      if (eventId.isNotEmpty && aIdeathonId != eventId) continue;
+
+      final IdeathonModel? ideathon = aIdeathonId.isEmpty ? null : ideathonsById[aIdeathonId];
+      final String ideathonName = ideathon?.name.trim().isNotEmpty == true
+          ? ideathon!.name.trim()
+          : (aIdeathonId.isEmpty ? '' : aIdeathonId);
+      final String templateId = ideathon?.evaluationTemplateId.trim() ?? '';
+
+      final ScoreModel? score = scoreFor(ideaId, aIdeathonId);
+      if (score != null) {
+        scopedScores.add(score);
+        evaluatedRows.add(
+          _buildEvaluatedRow(
+            idea,
+            teamsById,
+            problemsById,
+            score,
+            assignment.assignmentId,
+            assignedJudgeCountByIdeaId[ideaId] ?? 0,
+            ideathonId: aIdeathonId,
+            ideathonName: ideathonName,
+            evaluationTemplateId: score.templateId.trim().isNotEmpty
+                ? score.templateId
+                : templateId,
+          ),
+        );
+        final String excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback);
+        final bool hasStructured = score.hasStructuredCriteria ||
+            JudgeEvaluationFeedbackCodec.tryDecode(score.feedback) != null;
+        final bool hasContent = excerpt.isNotEmpty || hasStructured;
+        if (hasContent) {
+          feedbackRows.add(
+            JudgeEvaluationFeedbackRow(
+              ideaId: score.ideaId,
+              ideaTitle: _ideaTitle(idea),
+              evaluatedAt: score.createdAt,
+              overallScore: score.score,
+              remarksExcerpt: excerpt.isEmpty
+                  ? (hasStructured ? 'Criteria scores recorded' : '—')
+                  : (excerpt.length > 160 ? '${excerpt.substring(0, 157)}…' : excerpt),
+              hasStructuredCriteria: hasStructured,
+              ideathonId: aIdeathonId,
+              ideathonName: ideathonName,
+            ),
+          );
+        }
+      } else if (judgeMayEvaluate(idea)) {
+        pendingRows.add(
+          _buildPendingRow(
             idea,
             teamsById,
             problemsById,
             attachmentCountByIdeaId,
-            assignmentIdByIdeaId[idea.ideaId] ?? '',
-            assignedJudgeCountByIdeaId[idea.ideaId] ?? 0,
+            assignment.assignmentId,
+            assignedJudgeCountByIdeaId[ideaId] ?? 0,
+            ideathonId: aIdeathonId,
+            ideathonName: ideathonName,
+            evaluationTemplateId: templateId,
           ),
-        )
-        .toList(growable: false);
-
-    final evaluatedRows = <JudgeEvaluationEvaluatedRow>[];
-    for (final idea in scopedIdeas) {
-      final list = scoresByIdea[idea.ideaId];
-      if (list == null || list.isEmpty) continue;
-      final score = list.first;
-      evaluatedRows.add(
-        _buildEvaluatedRow(
-          idea,
-          teamsById,
-          problemsById,
-          score,
-          assignmentIdByIdeaId[idea.ideaId] ?? '',
-          assignedJudgeCountByIdeaId[idea.ideaId] ?? 0,
-        ),
-      );
-    }
-    evaluatedRows.sort((a, b) => b.evaluatedAt.compareTo(a.evaluatedAt));
-
-    final latestScoreByIdea = <String, ScoreModel>{};
-    for (final s in scoresByJudge) {
-      latestScoreByIdea.putIfAbsent(s.ideaId, () => s);
-    }
-
-    final feedbackRows = <JudgeEvaluationFeedbackRow>[];
-    for (final s in latestScoreByIdea.values) {
-      IdeaModel? match;
-      for (final i in scopedIdeas) {
-        if (i.ideaId == s.ideaId) {
-          match = i;
-          break;
-        }
+        );
       }
-      final title = match == null ? s.ideaId : _ideaTitle(match);
-      // New template-driven records put plain remarks straight into
-      // `feedback`; legacy v1 records prefix it with the codec marker.
-      final String excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(s.feedback);
-      final bool hasStructured = s.hasStructuredCriteria ||
-          JudgeEvaluationFeedbackCodec.tryDecode(s.feedback) != null;
-      final bool hasContent = excerpt.isNotEmpty || hasStructured;
-      if (!hasContent) continue;
-      feedbackRows.add(
-        JudgeEvaluationFeedbackRow(
-          ideaId: s.ideaId,
-          ideaTitle: title,
-          evaluatedAt: s.createdAt,
-          overallScore: s.score,
-          remarksExcerpt: excerpt.isEmpty
-              ? (hasStructured ? 'Criteria scores recorded' : '—')
-              : (excerpt.length > 160 ? '${excerpt.substring(0, 157)}…' : excerpt),
-          hasStructuredCriteria: hasStructured,
-        ),
-      );
     }
+
+    pendingRows.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    evaluatedRows.sort((a, b) => b.evaluatedAt.compareTo(a.evaluatedAt));
     feedbackRows.sort((a, b) => b.evaluatedAt.compareTo(a.evaluatedAt));
 
     final evaluatedCount = evaluatedRows.length;
     final pendingCount = pendingRows.length;
     final total = evaluatedCount + pendingCount;
     final completionPct = total == 0 ? 0.0 : (evaluatedCount / total) * 100.0;
-    final avgScore = scoresByJudge.isEmpty
+    final avgScore = scopedScores.isEmpty
         ? null
-        : scoresByJudge.map((e) => e.score).reduce((a, b) => a + b) / scoresByJudge.length;
+        : scopedScores.map((e) => e.score).reduce((a, b) => a + b) / scopedScores.length;
+
+    String? contextName;
+    String? contextTemplateId;
+    if (eventId.isNotEmpty) {
+      final IdeathonModel? focused = ideathonsById[eventId];
+      contextName = focused?.name;
+      contextTemplateId = focused?.evaluationTemplateId;
+    }
 
     final vm = JudgeEvaluationWorkspaceVm(
       pending: pendingRows,
@@ -331,6 +399,9 @@ abstract final class JudgeEvaluationService {
       evaluatedCount: evaluatedCount,
       averageScore: avgScore,
       completionPercent: completionPct,
+      ideathonId: eventId,
+      ideathonName: contextName ?? '',
+      evaluationTemplateId: contextTemplateId ?? '',
     );
     _cache[key] = _CacheEntry(at: now, vm: vm);
     return vm;
@@ -342,8 +413,11 @@ abstract final class JudgeEvaluationService {
     Map<String, ProblemModel> problemsById,
     Map<String, int> attachmentCountByIdeaId,
     String assignmentId,
-    int assignedJudgeCount,
-  ) {
+    int assignedJudgeCount, {
+    String ideathonId = '',
+    String ideathonName = '',
+    String evaluationTemplateId = '',
+  }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
     final teamName = (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName.trim();
@@ -366,6 +440,9 @@ abstract final class JudgeEvaluationService {
       priority: priority,
       assignmentId: assignmentId,
       assignedJudgeCount: assignedJudgeCount,
+      ideathonId: ideathonId,
+      ideathonName: ideathonName,
+      evaluationTemplateId: evaluationTemplateId,
     );
   }
 
@@ -375,8 +452,11 @@ abstract final class JudgeEvaluationService {
     Map<String, ProblemModel> problemsById,
     ScoreModel score,
     String assignmentId,
-    int assignedJudgeCount,
-  ) {
+    int assignedJudgeCount, {
+    String ideathonId = '',
+    String ideathonName = '',
+    String evaluationTemplateId = '',
+  }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
     final teamName = (team?.teamName ?? '').trim().isEmpty ? idea.teamId : team!.teamName.trim();
@@ -394,6 +474,9 @@ abstract final class JudgeEvaluationService {
       latestScore: score,
       assignmentId: assignmentId,
       assignedJudgeCount: assignedJudgeCount,
+      ideathonId: ideathonId,
+      ideathonName: ideathonName,
+      evaluationTemplateId: evaluationTemplateId,
     );
   }
 
@@ -433,6 +516,9 @@ class JudgeEvaluationWorkspaceVm {
     required this.evaluatedCount,
     required this.averageScore,
     required this.completionPercent,
+    this.ideathonId = '',
+    this.ideathonName = '',
+    this.evaluationTemplateId = '',
   });
 
   const JudgeEvaluationWorkspaceVm.empty()
@@ -442,7 +528,10 @@ class JudgeEvaluationWorkspaceVm {
         pendingCount = 0,
         evaluatedCount = 0,
         averageScore = null,
-        completionPercent = 0;
+        completionPercent = 0,
+        ideathonId = '',
+        ideathonName = '',
+        evaluationTemplateId = '';
 
   final List<JudgeEvaluationPendingRow> pending;
   final List<JudgeEvaluationEvaluatedRow> evaluated;
@@ -451,6 +540,11 @@ class JudgeEvaluationWorkspaceVm {
   final int evaluatedCount;
   final double? averageScore;
   final double completionPercent;
+  final String ideathonId;
+  final String ideathonName;
+  final String evaluationTemplateId;
+
+  bool get isIdeathonScoped => ideathonId.trim().isNotEmpty;
 }
 
 class JudgeEvaluationPendingRow {
@@ -466,6 +560,9 @@ class JudgeEvaluationPendingRow {
     required this.priority,
     required this.assignmentId,
     required this.assignedJudgeCount,
+    this.ideathonId = '',
+    this.ideathonName = '',
+    this.evaluationTemplateId = '',
   });
 
   final IdeaModel idea;
@@ -479,6 +576,9 @@ class JudgeEvaluationPendingRow {
   final JudgeEvaluationPriority priority;
   final String assignmentId;
   final int assignedJudgeCount;
+  final String ideathonId;
+  final String ideathonName;
+  final String evaluationTemplateId;
 
   String get ideaId => idea.ideaId;
 
@@ -502,6 +602,9 @@ class JudgeEvaluationEvaluatedRow {
     required this.latestScore,
     required this.assignmentId,
     required this.assignedJudgeCount,
+    this.ideathonId = '',
+    this.ideathonName = '',
+    this.evaluationTemplateId = '',
   });
 
   final IdeaModel idea;
@@ -514,6 +617,9 @@ class JudgeEvaluationEvaluatedRow {
   final ScoreModel latestScore;
   final String assignmentId;
   final int assignedJudgeCount;
+  final String ideathonId;
+  final String ideathonName;
+  final String evaluationTemplateId;
 
   String get ideaId => idea.ideaId;
 
@@ -528,6 +634,8 @@ class JudgeEvaluationFeedbackRow {
     required this.overallScore,
     required this.remarksExcerpt,
     required this.hasStructuredCriteria,
+    this.ideathonId = '',
+    this.ideathonName = '',
   });
 
   final String ideaId;
@@ -536,5 +644,7 @@ class JudgeEvaluationFeedbackRow {
   final double overallScore;
   final String remarksExcerpt;
   final bool hasStructuredCriteria;
+  final String ideathonId;
+  final String ideathonName;
 }
 

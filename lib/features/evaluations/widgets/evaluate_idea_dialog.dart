@@ -41,6 +41,9 @@ class EvaluateIdeaDialog extends StatefulWidget {
     this.problem,
     this.latestJudgeScore,
     this.readOnly = false,
+    this.ideathonId = '',
+    this.forcedTemplateId = '',
+    this.ideathonName = '',
   });
 
   final UserModel judge;
@@ -49,6 +52,14 @@ class EvaluateIdeaDialog extends StatefulWidget {
   final ProblemModel? problem;
   final ScoreModel? latestJudgeScore;
   final bool readOnly;
+
+  /// When set, evaluation is Ideathon-scoped (score stamped with this id).
+  final String ideathonId;
+
+  /// Ideathon evaluation template — judges cannot pick a different template.
+  final String forcedTemplateId;
+
+  final String ideathonName;
 
   static Future<bool?> showForIdeaListItem(
     BuildContext context, {
@@ -107,9 +118,18 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   }
 
   EvaluationTemplate _resolveTemplateForExistingScore() {
+    final String forced = widget.forcedTemplateId.trim();
     final ScoreModel? existing = widget.latestJudgeScore;
     final String problemDept = widget.idea.problemDepartmentCode.trim().toUpperCase();
     final bool isDepartmentScoped = problemDept.isNotEmpty;
+
+    if (forced.isNotEmpty) {
+      return EvaluationTemplatesService.resolveTemplate(
+        forced,
+        departmentCode: isDepartmentScoped ? problemDept : null,
+        includeDepartmentExtensions: isDepartmentScoped,
+      );
+    }
     if (existing != null && existing.templateId.trim().isNotEmpty) {
       return EvaluationTemplatesService.resolveTemplate(
         existing.templateId,
@@ -253,6 +273,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         criteriaScores: scores,
         criteriaComments: comments,
         overallFeedback: _overallRemarks.text,
+        ideathonId: widget.ideathonId,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -294,6 +315,16 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
               : widget.idea.problemNumber,
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
+        if (widget.ideathonName.trim().isNotEmpty) ...<Widget>[
+          const SizedBox(height: 4),
+          Text(
+            'Ideathon: ${widget.ideathonName.trim()}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF6A38FF),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 4),
         Text(
           problemLine.isEmpty ? 'Problem' : problemLine,

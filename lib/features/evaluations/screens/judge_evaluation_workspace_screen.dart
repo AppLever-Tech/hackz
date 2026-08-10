@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/rich_tabs.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../../user/models/user_model.dart';
+import '../services/evaluation_templates_service.dart';
 import '../services/judge_evaluation_service.dart';
 import '../widgets/evaluate_idea_dialog.dart';
 import '../widgets/evaluation_feedback_section.dart';
 import '../widgets/evaluation_summary_strip.dart';
 import '../widgets/evaluated_idea_list.dart';
-import '../../../core/ui/common/rich_tabs.dart';
 import '../widgets/pending_evaluation_list.dart';
-import '../../../core/ui/loading/hkz_progress_indicator.dart';
-import '../../../core/ui/dialog/app_dialog_template.dart';
-import 'package:hackz/core/workspace/workspace_navigator.dart';
 
-/// Judge-only evaluation workspace (Scoring tab). Not an idea dashboard clone.
+/// Judge evaluation workspace (Scoring tab / Ideathon Evaluation entry).
+///
+/// Optional [ideathonId] scopes the same UX to one Ideathon event — no second screen.
 class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
-  const JudgeEvaluationWorkspaceScreen({super.key, required this.user});
+  const JudgeEvaluationWorkspaceScreen({
+    super.key,
+    required this.user,
+    this.ideathonId = '',
+    this.ideathonName = '',
+  });
 
   final UserModel user;
+  final String ideathonId;
+  final String ideathonName;
 
   @override
   State<JudgeEvaluationWorkspaceScreen> createState() => _JudgeEvaluationWorkspaceScreenState();
@@ -28,11 +41,21 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   late TabController _tabs;
   Future<JudgeEvaluationWorkspaceVm>? _future;
 
+  String get _eventId => widget.ideathonId.trim();
+
   @override
   void initState() {
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
-    _future = JudgeEvaluationService.loadWorkspace(widget.user);
+    _future = JudgeEvaluationService.loadWorkspace(widget.user, ideathonId: _eventId);
+  }
+
+  @override
+  void didUpdateWidget(covariant JudgeEvaluationWorkspaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.ideathonId != widget.ideathonId || oldWidget.user.userId != widget.user.userId) {
+      _reload();
+    }
   }
 
   @override
@@ -44,7 +67,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   Future<void> _reload() async {
     JudgeEvaluationService.clearCache();
     setState(() {
-      _future = JudgeEvaluationService.loadWorkspace(widget.user);
+      _future = JudgeEvaluationService.loadWorkspace(widget.user, ideathonId: _eventId);
     });
     await _future;
   }
@@ -60,6 +83,9 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         team: null,
         problem: null,
         latestJudgeScore: null,
+        ideathonId: row.ideathonId,
+        forcedTemplateId: row.evaluationTemplateId,
+        ideathonName: row.ideathonName,
       ),
     );
     if (ok == true && mounted) await _reload();
@@ -99,6 +125,56 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     );
   }
 
+  Widget _ideathonBanner(JudgeEvaluationWorkspaceVm vm) {
+    final String name = (widget.ideathonName.trim().isNotEmpty
+            ? widget.ideathonName
+            : vm.ideathonName)
+        .trim();
+    final String templateId = vm.evaluationTemplateId.trim();
+    if (name.isEmpty && !vm.isIdeathonScoped) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: ResponsiveHelper.isMobile(context) ? 12 : 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFC4B5FD)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(AppIcons.ideathons, size: 18, color: Color(0xFF6A38FF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  name.isEmpty ? 'Ideathon evaluation' : name,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Only ideas assigned to you for this Ideathon are listed. The event evaluation template is fixed.',
+            style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
+          ),
+          if (templateId.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            EntityCardPills.workspace(
+              EvaluationTemplatesService.resolveTemplate(templateId).templateName,
+              ContextPillSemantic.evaluationTemplate,
+              () => WorkspaceNavigator.openEvaluationTemplate(context, templateId),
+              icon: AppIcons.scoring,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<JudgeEvaluationWorkspaceVm>(
@@ -117,6 +193,10 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            if (vm.isIdeathonScoped || widget.ideathonId.trim().isNotEmpty) ...<Widget>[
+              _ideathonBanner(vm),
+              SizedBox(height: sectionGap),
+            ],
             EvaluationSummaryStrip(
               pendingCount: vm.pendingCount,
               evaluatedCount: vm.evaluatedCount,

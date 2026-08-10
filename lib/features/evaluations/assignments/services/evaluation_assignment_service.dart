@@ -17,20 +17,51 @@ class EvaluationAssignmentService {
   static Future<Set<String>> assignedIdeaIdsForJudge({
     required String orgId,
     required String judgeId,
+    String ideathonId = '',
   }) async {
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestoreUtils.hkzEvaluationAssignments)
-        .where('orgId', isEqualTo: orgId)
-        .where('judgeId', isEqualTo: judgeId)
-        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value)
-        .get();
-    return snap.docs
-        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-          final String id = ((doc.data()['ideaId'] as String?) ?? '').trim();
-          return id;
-        })
-        .where((String ideaId) => ideaId.isNotEmpty)
+    final List<EvaluationAssignmentModel> assignments = await listAssignmentsForJudge(
+      orgId: orgId,
+      judgeId: judgeId,
+      ideathonId: ideathonId,
+    );
+    return assignments
+        .map((EvaluationAssignmentModel a) => a.ideaId.trim())
+        .where((String id) => id.isNotEmpty)
         .toSet();
+  }
+
+  /// Active assignments for a judge, optionally limited to one Ideathon.
+  static Future<List<EvaluationAssignmentModel>> listAssignmentsForJudge({
+    required String orgId,
+    required String judgeId,
+    String ideathonId = '',
+  }) async {
+    final String org = orgId.trim();
+    final String judge = judgeId.trim();
+    if (org.isEmpty || judge.isEmpty) return const <EvaluationAssignmentModel>[];
+
+    final String eventId = ideathonId.trim();
+    Query<Map<String, dynamic>> query = _db
+        .collection(FirestoreUtils.hkzEvaluationAssignments)
+        .where('orgId', isEqualTo: org)
+        .where('judgeId', isEqualTo: judge)
+        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value);
+    if (eventId.isNotEmpty) {
+      query = query.where('ideathonId', isEqualTo: eventId);
+    }
+    final QuerySnapshot<Map<String, dynamic>> snap = await query.get();
+    final List<EvaluationAssignmentModel> list = snap.docs
+        .map(
+          (QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
+              EvaluationAssignmentModel.fromMap(doc.id, doc.data()),
+        )
+        .toList(growable: false);
+    if (eventId.isEmpty) {
+      // Unscoped Scoring: include Ideathon assignments (primary path) and any
+      // non-Ideathon rows that still exist.
+      return list;
+    }
+    return list.where((EvaluationAssignmentModel a) => a.ideathonId.trim() == eventId).toList(growable: false);
   }
 
   static Future<Map<String, List<String>>> assignedJudgesByIdea({

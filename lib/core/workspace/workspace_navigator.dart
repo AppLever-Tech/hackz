@@ -5,6 +5,7 @@ import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_workspace.dart';
@@ -68,6 +69,15 @@ class WorkspaceNavigator extends StatelessWidget {
       templateId,
       departmentCode: departmentCode,
     );
+  }
+
+  /// Opens Ideathon Evaluation using the existing Judge Scoring UX for [ideathonId].
+  static void openIdeathonEvaluation(
+    BuildContext context,
+    String ideathonId, {
+    required UserModel actor,
+  }) {
+    IdeathonEvaluationWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens the Ideathon judge assignment workspace for [ideathonId].

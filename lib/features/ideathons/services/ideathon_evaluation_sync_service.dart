@@ -4,12 +4,11 @@ import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../models/ideathon_model.dart';
-import 'ideathon_prototype_service.dart';
 
 /// Syncs Ideathon-scoped evaluation completion.
 ///
-/// Phase 2: does **not** mutate IdeaStatus (Idea lifecycle is draft/submitted only).
-/// Phase 3 will advance IdeathonParticipation / Ideathon lifecycle instead.
+/// Does **not** mutate IdeaStatus. Does not auto-select prototypes/winners
+/// during evaluation (reserved for later Ideathon results phases).
 abstract final class IdeathonEvaluationSyncService {
   IdeathonEvaluationSyncService._();
 
@@ -46,12 +45,7 @@ abstract final class IdeathonEvaluationSyncService {
 
     if (!assigned.every(scored.contains)) return;
 
-    // Phase 3: mark participation / ideathon idea as evaluated.
-    await IdeathonPrototypeService.applyAutomaticSelection(
-      ideathonId: iid,
-      ideaId: id,
-      orgId: orgId,
-    );
+    // Phase 6: record evaluation completion only — no automatic prototype/winner selection.
   }
 
   static Future<void> syncIdeathonCompletion(String ideathonId) async {
