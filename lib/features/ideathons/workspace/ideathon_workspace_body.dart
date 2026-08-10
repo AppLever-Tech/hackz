@@ -90,7 +90,7 @@ class IdeathonWorkspaceBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const Text(
-                'Monitor participation payment status and verify payments to make ideas ready for Ideathon execution.',
+                'Review idea payment status for ideas in this Ideathon. Payments are completed and verified before ideas can be added at create time.',
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
               ),
               const SizedBox(height: 10),

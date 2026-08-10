@@ -1060,7 +1060,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Authorized department administrators add eligible Submitted ideas to Ideathon events, creating an IdeathonParticipation record in the event pool (inPool). Registration happens after participation payment is verified. The idea itself keeps its Submitted status.',
+                    'Authorized department administrators create Ideathons from submitted ideas that already have verified Faculty payment. Unpaid ideas do not appear in Create Ideathon. The idea itself keeps its Submitted status.',
               ),
               (
                 title: 'Can Hackz manage multiple departments?',

@@ -76,8 +76,8 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         DocumentationHero(
           title: 'Idea Lifecycle',
           description:
-              'An innovation idea has just two statuses — Draft and Submitted. Ideathon pool membership and registration (payment, readiness) are tracked separately on an IdeathonParticipation record once a submitted idea is added to an Ideathon.',
-          lastUpdated: DateTime(2026, 8, 9),
+              'An innovation idea has just two statuses — Draft and Submitted. Faculty pays for the idea; a coordinator verifies payment; only then can the idea be selected when creating an Ideathon.',
+          lastUpdated: DateTime(2026, 8, 10),
           readingMinutes: 5,
           imageAsset: DocsAssetPaths.ideaLifecycle,
           onPrint: onPrint,
@@ -107,8 +107,8 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 children: <Widget>[
                   _summaryCard(context, 'Problem', 'Active problem catalog', DocStatusKind.active, cols, c.maxWidth),
                   _summaryCard(context, 'Idea Draft', 'Being authored by faculty', DocStatusKind.draft, cols, c.maxWidth),
-                  _summaryCard(context, 'Idea Submitted', 'Locked, eligible for an Ideathon', DocStatusKind.custom, cols, c.maxWidth),
-                  _summaryCard(context, 'Ideathon Participation', 'Payment → ready for execution', DocStatusKind.active, cols, c.maxWidth),
+                  _summaryCard(context, 'Idea Submitted', 'Locked for editing', DocStatusKind.custom, cols, c.maxWidth),
+                  _summaryCard(context, 'Paid + Verified', 'Eligible for Ideathon create', DocStatusKind.active, cols, c.maxWidth),
                 ],
               );
             },
@@ -117,7 +117,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         _section(
           id: IdeaLifecycleSections.lifecycle,
           title: 'Idea Status Lifecycle',
-          subtitle: 'Ideas only ever hold two statuses. Everything past submission is tracked on IdeathonParticipation.',
+          subtitle: 'Ideas only ever hold two statuses. Payment and Ideathon membership are tracked separately.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
@@ -139,20 +139,20 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                   (
                     title: 'Idea Submitted',
                     body:
-                        'Status: submitted. The idea is finalized and locked. Submitted ideas are the pool eligible to be added to an Ideathon.',
+                        'Status: submitted. The idea is finalized and locked. Faculty can upload payment for the idea.',
                     pill: const DocumentationStatusPill(label: 'submitted'),
                   ),
                   (
-                    title: 'Added to an Ideathon pool',
+                    title: 'Payment verified',
                     body:
-                        'A submitted idea can be added to an Ideathon once the org reaches its minimum-ideas threshold. This creates an IdeathonParticipation record in the event pool (inPool) — not registration. The idea itself stays "submitted".',
-                    pill: const DocumentationStatusPill(label: 'participation: inPool'),
+                        'Faculty pays for the idea; a coordinator verifies the payment. Only then does the idea appear when creating an Ideathon. IdeaStatus stays submitted.',
+                    pill: const DocumentationStatusPill(label: 'payment: verified', kind: DocStatusKind.active),
                   ),
                   (
-                    title: 'Registered (ready for execution)',
+                    title: 'Added to an Ideathon',
                     body:
-                        'After faculty completes Ideathon participation payment and a coordinator verifies it, IdeathonParticipation moves to readyForExecution (registered for that Ideathon). Evaluation and results reuse shared evaluation infrastructure.',
-                    pill: const DocumentationStatusPill(label: 'participation: readyForExecution', kind: DocStatusKind.active),
+                        'A Department Admin selects paid ideas when creating an Ideathon (at or above the org minimum). This creates an IdeathonParticipation membership record. The idea itself stays submitted.',
+                    pill: const DocumentationStatusPill(label: 'participation: active', kind: DocStatusKind.active),
                   ),
                 ],
               ),
@@ -161,7 +161,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 tone: DocInfoTone.note,
                 title: 'Evaluation aggregates stay on the idea',
                 body:
-                    'Average score, evaluator count, and rank remain on the idea record regardless of status, so judge scoring and results screens keep working when evaluation runs during Ideathon participation.',
+                    'Average score, evaluator count, and rank remain on the idea record regardless of status, so judge scoring and results screens keep working when evaluation runs during an Ideathon.',
               ),
             ],
           ),
@@ -177,17 +177,17 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 rows: const <List<String>>[
                   <String>['Idea Draft', 'draft', 'Faculty submits on an Active problem', 'Faculty'],
                   <String>['Idea Submitted', 'submitted', 'Faculty finalizes and locks the idea', 'Faculty'],
-                  <String>['In Ideathon Pool', 'inPool', 'Idea added to an Ideathon (not registered)', 'Department Admin'],
-                  <String>['Payment Pending', 'paymentPending', 'Faculty Ideathon participation payment in progress', 'Faculty / Coordinator'],
-                  <String>['Registered / Ready', 'readyForExecution', 'Ideathon participation payment verified', 'Coordinator'],
+                  <String>['Payment Pending', 'pending', 'Faculty uploads idea payment', 'Faculty'],
+                  <String>['Payment Verified', 'verified', 'Coordinator confirms idea payment', 'Coordinator'],
+                  <String>['Ideathon Member', 'active', 'Paid idea added when creating an Ideathon', 'Department Admin'],
                 ],
               ),
               const SizedBox(height: 12),
               DocumentationInfoCard(
                 tone: DocInfoTone.information,
-                title: 'IdeaStatus vs IdeathonParticipationStatus',
+                title: 'IdeaStatus vs payment vs Ideathon membership',
                 body:
-                    'IdeaStatus (draft, submitted) describes the idea document itself. IdeathonParticipationStatus (inPool, paymentPending, readyForExecution) is a separate, per-Ideathon record — pool membership is not registration, and an idea keeps its "submitted" status across one or more Ideathons.',
+                    'IdeaStatus (draft, submitted) describes the idea document. Payment status lives on the idea payment record. IdeathonParticipation is a simple membership link (ideaId + ideathonId) created only after payment is verified.',
               ),
             ],
           ),
@@ -195,7 +195,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         _section(
           id: IdeaLifecycleSections.flow,
           title: 'Submission & Ideathon Flow',
-          subtitle: 'Business path from an Active problem through Ideathon participation.',
+          subtitle: 'Business path from an Active problem through Ideathon membership.',
           child: DocumentationCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,19 +206,19 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 _flowArrow(context),
                 _flowLine(context, 'Faculty finalizes → Submitted'),
                 _flowArrow(context),
-                _flowLine(context, 'Org reaches minimum submitted ideas for an Ideathon'),
+                _flowLine(context, 'Faculty pays for the idea'),
                 _flowArrow(context),
-                _flowLine(context, 'Idea added to Ideathon pool → IdeathonParticipation (inPool)'),
+                _flowLine(context, 'Coordinator verifies payment'),
                 _flowArrow(context),
-                _flowLine(context, 'Faculty completes participation payment → paymentPending'),
+                _flowLine(context, 'Idea appears in Create Ideathon (paid only)'),
                 _flowArrow(context),
-                _flowLine(context, 'Payment verified → registered (readyForExecution)'),
+                _flowLine(context, 'Admin selects ≥ minimum paid ideas → Ideathon created'),
                 const SizedBox(height: 12),
                 DocumentationInfoCard(
                   tone: DocInfoTone.note,
                   title: 'The idea status never changes past Submitted',
                   body:
-                      'Once an idea is submitted, all Ideathon-related state (pool membership, payment, registration) lives on its IdeathonParticipation record, not on the idea document. Being in the pool is not the same as being registered.',
+                      'Once an idea is submitted, payment lives on the payment record and Ideathon membership lives on IdeathonParticipation — not on IdeaStatus.',
                 ),
                 const SizedBox(height: 12),
                 DocumentationInfoCard(
@@ -237,11 +237,11 @@ class IdeaLifecycleDocBody extends StatelessWidget {
           child: DocumentationTable(
             headers: const <String>['Role', 'Responsibilities'],
             rows: const <List<String>>[
-              <String>['Faculty', 'Submit and finalize innovation, maintain team'],
-              <String>['Coordinator', 'Verify Ideathon participation payment'],
+              <String>['Faculty', 'Submit and finalize innovation, upload idea payment, maintain team'],
+              <String>['Coordinator', 'Verify idea payment'],
               <String>[
                 'Department Admin',
-                'Add eligible submitted ideas to Ideathons, run Ideathon operations',
+                'Create Ideathons from paid ideas (meeting the org minimum), run Ideathon operations',
               ],
               <String>[
                 'Judges',
@@ -249,7 +249,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               ],
               <String>[
                 'System',
-                'Maintain evaluation aggregates on the idea record; sync IdeathonParticipation status from payment verification',
+                'Maintain evaluation aggregates on the idea record; hide unpaid ideas from Ideathon create',
               ],
             ],
           ),
@@ -265,10 +265,10 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 rows: const <List<String>>[
                   <String>['Manual', 'Faculty submits idea (Draft)'],
                   <String>['Manual', 'Faculty finalizes idea (Submitted)'],
-                  <String>['Manual', 'Department Admin adds a submitted idea to an Ideathon'],
-                  <String>['Manual', 'Coordinator verifies Ideathon participation payment'],
+                  <String>['Manual', 'Faculty uploads idea payment'],
+                  <String>['Manual', 'Coordinator verifies idea payment'],
+                  <String>['Manual', 'Department Admin creates Ideathon with paid ideas'],
                   <String>['Automatic', 'Evaluation aggregation sync on the idea (average score, evaluator count)'],
-                  <String>['Automatic', 'IdeathonParticipation → readyForExecution once payment is verified'],
                 ],
               ),
               const SizedBox(height: 12),
@@ -276,7 +276,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 tone: DocInfoTone.warning,
                 title: 'Not part of the current flow',
                 body:
-                    'Automatic advancement from evaluation scores into Ideathon participation and recommendation-engine selection are not part of the product flow. Adding an idea to an Ideathon is always a manual Department Admin action.',
+                    'Automatic advancement from evaluation scores into Ideathon membership and recommendation-engine selection are not part of the product flow. Adding an idea to an Ideathon is always a manual Department Admin action.',
               ),
             ],
           ),
@@ -291,10 +291,9 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 'Ideas can only be submitted against Active Problems.',
                 'Faculty creates Draft ideas; finalizing moves Draft → Submitted.',
                 'IdeaStatus only ever has two values: draft and submitted.',
-                'Only Submitted ideas are eligible to be added to an Ideathon.',
-                'An org must reach its configured minimum submitted-ideas threshold before an Ideathon can start.',
-                'Adding an idea to an Ideathon creates an IdeathonParticipation record in the event pool (status: inPool); the idea keeps its Submitted status and is not yet registered.',
-                'Verifying the participation payment moves IdeathonParticipation to readyForExecution (registered for that Ideathon).',
+                'Faculty payment + coordinator verification are required before an idea can appear in Create Ideathon.',
+                'An Ideathon can be created only when at least the org minimum of paid ideas is selected.',
+                'Adding an idea to an Ideathon creates an IdeathonParticipation membership record; the idea keeps its Submitted status.',
                 'Judges never change Idea Status directly — they submit scores that update the idea\'s evaluation aggregate.',
                 'Evaluation infrastructure (assignments, scoring, aggregation) is reused for Ideathon evaluation.',
               ]
@@ -328,17 +327,17 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'A Department Admin adds an eligible Submitted idea to an Ideathon once the org has reached its minimum-ideas threshold. This creates an IdeathonParticipation record in the event pool (inPool). The idea is not registered until participation payment is completed and verified; IdeaStatus stays Submitted.',
+                    'Faculty pays for the idea and a coordinator verifies payment. The idea then appears in Create Ideathon. A Department Admin selects paid ideas (meeting the org minimum) when creating the event. IdeaStatus stays Submitted.',
               ),
               (
                 title: 'Does the idea status change once it joins an Ideathon?',
                 body:
-                    'No. IdeaStatus stays Submitted. Ideathon-specific state (payment, readiness) is tracked on the separate IdeathonParticipation record.',
+                    'No. IdeaStatus stays Submitted. Membership is tracked on the separate IdeathonParticipation record.',
               ),
               (
-                title: 'What does readyForExecution mean?',
+                title: 'Why is my idea missing from Create Ideathon?',
                 body:
-                    'It means the Ideathon participation payment has been verified for that idea, so it is ready for Ideathon-phase evaluation and execution.',
+                    'Only submitted ideas with verified Faculty payment are listed. Upload payment and wait for coordinator verification.',
               ),
               (
                 title: 'Can judges decide Ideathon entry?',
@@ -348,7 +347,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'What happened to statuses like "Ideathon Assigned" or "Winner"?',
                 body:
-                    'They have been replaced. Idea documents only carry draft/submitted status; Ideathon assignment, execution, and outcomes are modeled on IdeathonParticipation and future Ideathon-execution records instead.',
+                    'They have been replaced. Idea documents only carry draft/submitted status; Ideathon membership and outcomes are modeled on IdeathonParticipation and future Ideathon-execution records instead.',
               ),
             ],
           ),

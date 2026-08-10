@@ -3,14 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../payment/models/payment_model.dart';
 import 'ideathon_participation_status.dart';
 
-/// Event-specific Idea ↔ Ideathon relationship.
+/// Event membership: one document per (idea, ideathon).
 ///
-/// One document per (idea, ideathon). The same Idea may have many participations
-/// across future events. Ideathon/payment state is never stored on [IdeaStatus].
-///
-/// - [IdeathonParticipationStatus.inPool]: idea is in the Ideathon pool only.
-/// - [IdeathonParticipationStatus.paymentPending]: payment in progress.
-/// - [IdeathonParticipationStatus.readyForExecution]: registered after payment.
+/// The same Idea may join different Ideathons over time. Idea payment is
+/// verified before create; this record does not drive a payment/pool lifecycle.
+/// Ideathon/payment state is never stored on [IdeaStatus].
 class IdeathonParticipation {
   const IdeathonParticipation({
     required this.participationId,
@@ -28,25 +25,16 @@ class IdeathonParticipation {
   final String ideaId;
   final String orgId;
 
-  /// Payment record status mirrored for this participation (pending until paid).
+  /// Snapshot of the idea payment status at (or after) membership create.
   final PaymentRecordStatus paymentStatus;
 
-  /// Pool vs payment vs registered state for this Ideathon only.
+  /// Membership status for this Ideathon only.
   final IdeathonParticipationStatus participationStatus;
 
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  /// In the Ideathon event pool, not yet registered.
-  bool get isInPool => participationStatus == IdeathonParticipationStatus.inPool;
-
-  /// Registered for this Ideathon (payment verified + ready for execution).
-  bool get isRegistered =>
-      participationStatus == IdeathonParticipationStatus.readyForExecution &&
-      paymentStatus == PaymentRecordStatus.verified;
-
-  /// Alias for registered / execution-ready participation.
-  bool get isReadyForExecution => isRegistered;
+  bool get isActive => participationStatus == IdeathonParticipationStatus.active;
 
   IdeathonParticipation copyWith({
     PaymentRecordStatus? paymentStatus,
@@ -86,9 +74,9 @@ class IdeathonParticipation {
       ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
       ideaId: ((map['ideaId'] as String?) ?? '').trim(),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
-      paymentStatus: PaymentRecordStatus.fromRaw((map['paymentStatus'] as String?) ?? 'pending'),
+      paymentStatus: PaymentRecordStatus.fromRaw((map['paymentStatus'] as String?) ?? 'verified'),
       participationStatus:
-          IdeathonParticipationStatus.fromRaw((map['participationStatus'] as String?) ?? 'inPool'),
+          IdeathonParticipationStatus.fromRaw((map['participationStatus'] as String?) ?? 'active'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );

@@ -22,7 +22,7 @@ class IdeathonReadinessBanner extends StatelessWidget {
     final Color accent = ready ? const Color(0xFF059669) : const Color(0xFFEA580C);
     final String message = ready
         ? 'Ready for Ideathon'
-        : '${readiness.eligibleCount} / ${readiness.requiredCount} Eligible ideas';
+        : '${readiness.eligibleCount} / ${readiness.requiredCount} Paid ideas';
 
     return Container(
       width: double.infinity,
@@ -47,8 +47,8 @@ class IdeathonReadinessBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   ready
-                      ? 'Minimum eligible ideas reached. You can create an Ideathon event.'
-                      : 'Submit more ideas to unlock Ideathon creation.',
+                      ? 'Enough paid ideas are available to create an Ideathon.'
+                      : 'Submit ideas, complete Faculty payment, and get coordinator verification to unlock Ideathon creation.',
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
                 ),
               ],

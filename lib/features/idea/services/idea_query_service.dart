@@ -380,7 +380,7 @@ class IdeaQueryService {
     required PaymentModel? payment,
   }) {
     if (viewer == null) return false;
-    if (idea.status != IdeaStatus.draft) return false;
+    if (idea.status != IdeaStatus.draft && idea.status != IdeaStatus.submitted) return false;
     if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
     if (team == null) return false;
     final role = UserRole.fromCode(viewer.role);

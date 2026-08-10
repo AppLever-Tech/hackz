@@ -33,7 +33,8 @@ class IdeathonPaymentRow {
   String get ideaId => participation.ideaId;
   PaymentRecordStatus get displayPaymentStatus =>
       payment?.status ?? participation.paymentStatus;
-  bool get isReadyForExecution => participation.isReadyForExecution;
+  bool get isReadyForExecution =>
+      displayPaymentStatus == PaymentRecordStatus.verified && participation.isActive;
   bool get canVerify =>
       payment != null && displayPaymentStatus == PaymentRecordStatus.pending;
   bool get canReject =>
@@ -206,13 +207,14 @@ abstract final class IdeathonPaymentService {
     );
   }
 
-  /// Marks participation ready when payment is already verified but sync lagged.
+  /// Syncs membership payment mirror when the idea payment is already verified.
   static Future<void> markParticipationReady(IdeathonPaymentRow row) async {
     if (row.displayPaymentStatus != PaymentRecordStatus.verified) {
-      throw StateError('Payment must be verified before marking ready for execution.');
+      throw StateError('Payment must be verified first.');
     }
-    await IdeathonParticipationService.markPaymentVerified(
+    await IdeathonParticipationService.syncPaymentStatus(
       participationId: row.participation.participationId,
+      paymentStatus: PaymentRecordStatus.verified,
     );
   }
 

@@ -39,7 +39,7 @@ class FirestoreUtils {
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
   static const String hkzIdeathons = 'hkzIdeathons';
-  /// Idea ↔ Ideathon participation (event-level relationship + payment readiness).
+  /// Idea ↔ Ideathon membership (idea already paid before create).
   static const String hkzIdeathonParticipations = 'hkzIdeathonParticipations';
   static const String hkzAppMetadata = 'hkzAppMetadata';
   static const String hkzDomains = 'hkzDomains';
@@ -1104,7 +1104,6 @@ class FirestoreUtils {
       ideathonId: ideathonId,
       ideaId: ideaId,
       paymentStatus: PaymentRecordStatus.verified,
-      participationStatus: 'readyForExecution',
     );
   }
 
@@ -1130,17 +1129,15 @@ class FirestoreUtils {
       ideathonId: ((data['ideathonId'] as String?) ?? '').trim(),
       ideaId: ((data['ideaId'] as String?) ?? '').trim(),
       paymentStatus: PaymentRecordStatus.rejected,
-      participationStatus: 'inPool',
     );
   }
 
-  /// Updates Ideathon participation payment readiness after payment verify/reject.
+  /// Mirrors idea payment status onto any linked Ideathon membership row.
   static Future<void> _syncIdeathonParticipationAfterPayment({
     required String participationId,
     required String ideathonId,
     required String ideaId,
     required PaymentRecordStatus paymentStatus,
-    required String participationStatus,
   }) async {
     String id = participationId.trim();
     if (id.isEmpty && ideathonId.trim().isNotEmpty && ideaId.trim().isNotEmpty) {
@@ -1155,7 +1152,6 @@ class FirestoreUtils {
     if (id.isEmpty) return;
     await _db.collection(hkzIdeathonParticipations).doc(id).update(<String, dynamic>{
       'paymentStatus': paymentStatus.value,
-      'participationStatus': participationStatus,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

@@ -236,7 +236,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   <String>[
                     'Verify Payment',
                     'Coordinator',
-                    'Ideathon participation payment → readyForExecution',
+                    'Idea payment verified → idea eligible for Ideathon create',
                   ],
                   <String>[
                     'Evaluate Idea',
@@ -490,17 +490,17 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               (
                 title: 'Can Judges assign ideas to an Ideathon?',
                 body:
-                    'No. Judges score and comment only. Ideas enter Ideathons by Department Admin assignment from Submitted.',
+                    'No. Judges score and comment only. Ideas enter Ideathons when a Department Admin selects paid (verified) ideas during Ideathon creation.',
               ),
               (
                 title: 'Who verifies payments?',
                 body:
-                    'Coordinator verifies Ideathon participation payments (paymentPending → readyForExecution / registered). Being added to the Ideathon pool (inPool) is not registration. Payment does not change IdeaStatus.',
+                    'Coordinator verifies Faculty idea payments. Only after verification can an idea appear when creating an Ideathon. Payment does not change IdeaStatus.',
               ),
               (
                 title: 'Who manages Ideathons?',
                 body:
-                    'Department Admin assigns Submitted ideas to Ideathons, drives Ideathon operations, and selects prototypes / winners as configured. Evaluation and selection happen in Ideathon phases.',
+                    'Department Admin creates Ideathons from paid ideas, drives Ideathon operations, and selects prototypes / winners as configured. Evaluation and selection happen in Ideathon phases.',
               ),
               (
                 title: 'What does the System do automatically?',

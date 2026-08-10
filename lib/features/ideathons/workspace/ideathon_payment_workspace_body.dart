@@ -237,7 +237,7 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
                 padding: const EdgeInsets.all(16),
                 decoration: kDashboardCardDecoration,
                 child: const Text(
-                  'No Ideathon participation payments match your filters.',
+                  'No idea payments match your filters for this Ideathon.',
                   style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
                 ),
               )
@@ -379,7 +379,7 @@ class _IdeathonPaymentRowCard extends StatelessWidget {
           ] else if (payment == null) ...<Widget>[
             const SizedBox(height: 6),
             const Text(
-              'Awaiting payment submission for this Ideathon participation.',
+              'No idea payment record found for this Ideathon member.',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
             ),
           ],

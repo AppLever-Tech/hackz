@@ -24,7 +24,7 @@ import '../services/ideathon_settings_service.dart';
 import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_idea_select_row.dart';
 
-/// Department-admin Ideathon creation form (eligible submitted ideas).
+/// Department-admin Ideathon creation form (paid submitted ideas only).
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({super.key, required this.user, required this.onCreated});
 
@@ -291,7 +291,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       FeedbackService.showSuccess(
         context,
         title: 'Ideathon created',
-        message: 'Event created. Selected ideas are pending participation payment.',
+        message: 'Event created with ${_selectedIdeaIds.length} paid ideas.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -390,7 +390,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 ),
               const SizedBox(height: 14),
               _sectionCard(
-                title: 'Ideas',
+                title: 'Ideas for this Ideathon',
                 icon: AppIcons.ideas,
                 sectionKey: 'ideas',
                 collapsible: true,
@@ -398,6 +398,17 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    const Text(
+                      'Only submitted ideas with verified Faculty payment appear here. '
+                      'Select at least the org minimum of paid ideas to create the Ideathon.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
@@ -446,7 +457,10 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                     ],
                     const SizedBox(height: 10),
                     if (_filteredIdeas.isEmpty)
-                      const Text('No eligible ideas match your filters.', style: TextStyle(color: Color(0xFF64748B)))
+                      const Text(
+                        'No paid ideas available. Faculty must pay and a coordinator must verify payment before ideas appear here.',
+                        style: TextStyle(color: Color(0xFF64748B)),
+                      )
                     else
                       ..._filteredIdeas.map(
                         (IdeaModel idea) => Padding(
@@ -584,8 +598,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   Widget _minimumFeedback() {
     final bool met = _minimumMet;
     final String text = met
-        ? 'Minimum requirement met'
-        : '${_selectedIdeaIds.length} of $_minimumIdeas minimum Ideas selected';
+        ? 'Minimum paid ideas met'
+        : '${_selectedIdeaIds.length} of $_minimumIdeas paid ideas required';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -725,8 +739,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return Column(
       children: <Widget>[
         _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
-        _summaryRow('Ideas selected', value: '${_selectedIdeaIds.length}'),
-        _summaryRow('Minimum ideas', value: _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required'),
+        _summaryRow('Paid ideas selected', value: '${_selectedIdeaIds.length}'),
+        _summaryRow(
+          'Minimum paid ideas',
+          value: _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required',
+        ),
         _summaryRow(
           'Evaluation template',
           child: template == null

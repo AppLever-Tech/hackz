@@ -6,7 +6,7 @@ import '../../user/models/user_model.dart';
 import '../services/ideathon_payment_service.dart';
 import 'ideathon_payment_workspace_body.dart';
 
-/// Coordinator operational workspace for Ideathon participation payments.
+/// Coordinator workspace for idea payments linked to Ideathon members.
 abstract final class IdeathonPaymentWorkspace {
   IdeathonPaymentWorkspace._();
 

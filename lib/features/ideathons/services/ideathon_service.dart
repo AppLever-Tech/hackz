@@ -7,6 +7,7 @@ import '../../evaluations/assignments/services/evaluation_assignment_service.dar
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
+import '../../payment/models/payment_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
@@ -45,20 +46,33 @@ abstract final class IdeathonService {
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Submitted ideas that can be selected when creating an Ideathon.
+  /// Submitted ideas with a **verified** idea payment — eligible for Ideathon create.
   ///
-  /// Returns all eligible ideas in the organization (any department). Faculty
-  /// may submit across departments, so Ideathon creation is not dept-scoped.
+  /// Org-wide (any department). Unpaid or pending-payment ideas are excluded.
   static Future<List<IdeaModel>> fetchEligibleIdeasForIdeathon({
     required String orgId,
   }) async {
+    final String org = orgId.trim();
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestoreUtils.hkzIdeas)
-        .where('orgId', isEqualTo: orgId.trim())
+        .where('orgId', isEqualTo: org)
         .get();
-    return snap.docs
+    final List<IdeaModel> submitted = snap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => IdeaModel.fromMap(doc.id, doc.data()))
         .where((IdeaModel idea) => IdeaStatusHelpers.isEligibleForIdeathon(idea.status))
+        .toList(growable: false);
+
+    if (submitted.isEmpty) return const <IdeaModel>[];
+
+    final List<PaymentModel> payments = await FirestoreUtils.getPaymentsByOrg(org);
+    final Set<String> verifiedIdeaIds = payments
+        .where((PaymentModel p) => p.status == PaymentRecordStatus.verified)
+        .map((PaymentModel p) => p.ideaId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+
+    return submitted
+        .where((IdeaModel idea) => verifiedIdeaIds.contains(idea.ideaId.trim()))
         .toList(growable: false)
       ..sort((IdeaModel a, IdeaModel b) => a.ideaTitle.compareTo(b.ideaTitle));
   }
@@ -74,13 +88,15 @@ abstract final class IdeathonService {
     if (!input.endDateTime.isAfter(input.startDateTime)) {
       throw StateError('End date/time must be after start date/time.');
     }
-    if (input.ideaIds.isEmpty) throw StateError('Select at least one idea.');
+    if (input.ideaIds.isEmpty) throw StateError('Select at least one paid idea.');
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
     final int minimumIdeas = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
     if (input.ideaIds.length < minimumIdeas) {
-      throw StateError('${input.ideaIds.length} of $minimumIdeas minimum ideas selected.');
+      throw StateError(
+        '${input.ideaIds.length} of $minimumIdeas minimum paid ideas selected.',
+      );
     }
 
     final String templateId = input.evaluationTemplateId.trim().isNotEmpty
@@ -101,7 +117,9 @@ abstract final class IdeathonService {
       final String ideaId = rawId.trim();
       final IdeaModel? idea = eligibleById[ideaId];
       if (idea == null) {
-        throw StateError('Only submitted ideas can be added to an Ideathon.');
+        throw StateError(
+          'Only submitted ideas with verified payment can be added to an Ideathon.',
+        );
       }
       final TeamModel? team = idea.teamId.trim().isEmpty
           ? null

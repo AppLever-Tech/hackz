@@ -138,7 +138,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupKey: 'readiness',
     groupTitle: 'Ideathon readiness',
     description:
-        'Minimum number of submitted Ideas required before an Ideathon can be created or run.',
+        'Minimum number of submitted ideas with verified Faculty payment required to create an Ideathon.',
     min: 1,
     max: 500,
     step: 1,
