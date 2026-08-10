@@ -350,15 +350,17 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(
-                  template.templateName,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF334155),
-                    letterSpacing: 0.4,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: EntityCardPills.workspace(
+                    template.templateName,
+                    ContextPillSemantic.evaluationTemplate,
+                    () => WorkspaceNavigator.openEvaluationTemplate(
+                      context,
+                      template.templateId,
+                    ),
+                    icon: AppIcons.scoring,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   'Weighted overall (auto-computed)',

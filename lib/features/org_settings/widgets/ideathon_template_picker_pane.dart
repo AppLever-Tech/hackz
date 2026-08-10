@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../../evaluations/models/evaluation_template.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../services/org_settings_service.dart';
@@ -60,7 +64,15 @@ class _IdeathonTemplatePickerPaneState extends State<IdeathonTemplatePickerPane>
             onChanged: _saving
                 ? null
                 : (String? value) => setState(() => _selectedId = value),
-            title: Text(template.templateName, style: const TextStyle(fontWeight: FontWeight.w700)),
+            title: Align(
+              alignment: Alignment.centerLeft,
+              child: EntityCardPills.workspace(
+                template.templateName,
+                ContextPillSemantic.evaluationTemplate,
+                () => WorkspaceNavigator.openEvaluationTemplate(context, template.templateId),
+                icon: AppIcons.scoring,
+              ),
+            ),
             subtitle: Text(
               (template.description ?? '').trim().isEmpty
                   ? template.templateId
@@ -75,7 +87,9 @@ class _IdeathonTemplatePickerPaneState extends State<IdeathonTemplatePickerPane>
           alignment: Alignment.centerRight,
           child: FilledButton(
             onPressed: _saving ? null : _save,
-            child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save template'),
+            child: _saving
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Save template'),
           ),
         ),
       ],

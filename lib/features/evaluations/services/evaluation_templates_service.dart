@@ -59,6 +59,20 @@ abstract final class EvaluationTemplatesService {
     );
   }
 
+  /// Exact lookup by id (org templates, then built-in defaults). Returns
+  /// `null` when missing — prefer this for read-only workspace openers.
+  static EvaluationTemplate? findTemplate(String? templateId) {
+    final String id = (templateId ?? '').trim();
+    if (id.isEmpty) return null;
+    for (final EvaluationTemplate t in templates) {
+      if (t.templateId == id) return t;
+    }
+    for (final EvaluationTemplate t in defaultEvaluationTemplates) {
+      if (t.templateId == id) return t;
+    }
+    return null;
+  }
+
   /// Looks up a template by id. Falls back to [defaultTemplate] when not
   /// found so legacy/orphan score documents still render gracefully.
   static EvaluationTemplate resolveTemplate(

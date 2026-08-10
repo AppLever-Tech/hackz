@@ -101,6 +101,7 @@ class EvaluationWorkspaceViewModel {
     required this.reviewCompletionLabel,
     required this.scoringScale,
     required this.templateName,
+    this.templateId = '',
   });
 
   final String evaluationId;
@@ -128,6 +129,9 @@ class EvaluationWorkspaceViewModel {
   /// Display name of the source template ("Mixed" when judges used different
   /// templates in an aggregate view).
   final String templateName;
+
+  /// Stable template id when a single template applies; empty for mixed.
+  final String templateId;
 
   EvaluationJudgeEntry? get primaryJudge =>
       judgeEntries.isEmpty ? null : judgeEntries.first;
@@ -247,6 +251,7 @@ abstract final class EvaluationWorkspaceLoader {
       reviewCompletionLabel: '1 of 1 review complete',
       scoringScale: template.scoringScale,
       templateName: template.templateName,
+      templateId: template.templateId,
     );
   }
 
@@ -376,6 +381,7 @@ abstract final class EvaluationWorkspaceLoader {
       reviewCompletionLabel: '${scores.length} review${scores.length == 1 ? '' : 's'} recorded',
       scoringScale: dominant.scoringScale,
       templateName: templateName,
+      templateId: usedTemplateIds.length == 1 ? dominant.templateId : '',
     );
   }
 

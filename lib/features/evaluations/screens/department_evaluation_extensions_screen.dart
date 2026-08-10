@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -332,13 +335,17 @@ class _DepartmentEvaluationExtensionsScreenState
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                template.templateName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: Color(0xFF0F172A),
-                                  height: 1.15,
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: EntityCardPills.workspace(
+                                  template.templateName,
+                                  ContextPillSemantic.evaluationTemplate,
+                                  () => WorkspaceNavigator.openEvaluationTemplate(
+                                    context,
+                                    template.templateId,
+                                    departmentCode: _departmentCode,
+                                  ),
+                                  icon: AppIcons.scoring,
                                 ),
                               ),
                             ],

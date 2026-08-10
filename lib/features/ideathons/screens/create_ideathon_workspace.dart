@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -578,6 +580,16 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         ),
         if (selected != null) ...<Widget>[
           const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: EntityCardPills.workspace(
+              selected.templateName,
+              ContextPillSemantic.evaluationTemplate,
+              () => WorkspaceNavigator.openEvaluationTemplate(context, selected.templateId),
+              icon: AppIcons.scoring,
+            ),
+          ),
+          const SizedBox(height: 10),
           const Text('Criteria preview', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
           const SizedBox(height: 6),
           Wrap(
@@ -602,17 +614,28 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         : '${_selectedCoordinatorIds.length} selected';
     return Column(
       children: <Widget>[
-        _summaryRow('Schedule', '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
-        _summaryRow('Ideas selected', '${_selectedIdeaIds.length}'),
-        _summaryRow('Minimum ideas', _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required'),
-        _summaryRow('Evaluation template', template?.templateName ?? 'Not selected'),
-        _summaryRow('Judges', judges),
-        _summaryRow('Coordinators', coords),
+        _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
+        _summaryRow('Ideas selected', value: '${_selectedIdeaIds.length}'),
+        _summaryRow('Minimum ideas', value: _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required'),
+        _summaryRow(
+          'Evaluation template',
+          child: template == null
+              ? null
+              : EntityCardPills.workspace(
+                  template.templateName,
+                  ContextPillSemantic.evaluationTemplate,
+                  () => WorkspaceNavigator.openEvaluationTemplate(context, template.templateId),
+                  icon: AppIcons.scoring,
+                ),
+          value: template == null ? 'Not selected' : null,
+        ),
+        _summaryRow('Judges', value: judges),
+        _summaryRow('Coordinators', value: coords),
       ],
     );
   }
 
-  Widget _summaryRow(String label, String value) {
+  Widget _summaryRow(String label, {String? value, Widget? child}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -623,7 +646,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
             child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+            child: child ??
+                Text(
+                  value ?? '—',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                ),
           ),
         ],
       ),

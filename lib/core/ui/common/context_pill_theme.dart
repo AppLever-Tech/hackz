@@ -13,6 +13,7 @@ enum ContextPillSemantic {
   problem,
   payment,
   evaluation,
+  evaluationTemplate,
   judge,
 }
 
@@ -26,6 +27,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.problem => AppSemanticColors.contextProblem,
       ContextPillSemantic.payment => AppSemanticColors.contextPayment,
       ContextPillSemantic.evaluation => AppSemanticColors.contextEvaluation,
+      ContextPillSemantic.evaluationTemplate => AppSemanticColors.contextEvaluation,
       ContextPillSemantic.judge => AppSemanticColors.contextUser,
       ContextPillSemantic.generic => AppSemanticColors.contextGeneric,
     };
@@ -40,6 +42,7 @@ abstract final class ContextPillTheme {
       'problem' => ContextPillSemantic.problem,
       'payment' => ContextPillSemantic.payment,
       'evaluation' => ContextPillSemantic.evaluation,
+      'evaluation template' || 'template' => ContextPillSemantic.evaluationTemplate,
       _ => ContextPillSemantic.generic,
     };
   }
@@ -53,6 +56,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.problem => AppIcons.problems,
       ContextPillSemantic.payment => AppIcons.payments,
       ContextPillSemantic.evaluation => AppIcons.scoring,
+      ContextPillSemantic.evaluationTemplate => AppIcons.scoring,
       ContextPillSemantic.generic => AppIcons.timelineWorkspace,
     };
   }
@@ -76,6 +80,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.problem => 'Open problem in workspace',
       ContextPillSemantic.payment => 'Open payment in workspace',
       ContextPillSemantic.evaluation => 'Open evaluation in workspace',
+      ContextPillSemantic.evaluationTemplate => 'Open evaluation template in workspace',
       ContextPillSemantic.judge => 'Open judge in workspace',
       ContextPillSemantic.generic => 'Open in workspace',
     };

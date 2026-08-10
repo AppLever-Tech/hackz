@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
+import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../features/problems/workspace/problem_workspace.dart';
@@ -50,6 +51,19 @@ class WorkspaceNavigator extends StatelessWidget {
   /// Opens the read-only evaluation workspace for [evaluationId] (score id or idea id).
   static void openEvaluation(BuildContext context, String evaluationId) {
     EvaluationWorkspace.open(context, evaluationId);
+  }
+
+  /// Opens the read-only evaluation template workspace for [templateId].
+  static void openEvaluationTemplate(
+    BuildContext context,
+    String templateId, {
+    String? departmentCode,
+  }) {
+    EvaluationTemplateWorkspace.open(
+      context,
+      templateId,
+      departmentCode: departmentCode,
+    );
   }
 
   /// Opens the read-only attachment workspace for [attachmentId].

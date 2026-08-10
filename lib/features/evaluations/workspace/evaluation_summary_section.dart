@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import 'package:hackz/core/workspace/entity_reference_tile.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../team/workspace/team_workspace.dart';
 import '../../user/workspace/user_workspace.dart';
@@ -59,11 +61,27 @@ class EvaluationSummarySection extends StatelessWidget {
                 '${vm.totalScore.toStringAsFixed(1)} / ${vm.scoringScale}',
                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, height: 1.05),
               ),
-              const SizedBox(height: 2),
-              Text(
-                vm.templateName,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFCBD5E1), letterSpacing: 0.3),
-              ),
+              const SizedBox(height: 6),
+              if (vm.templateId.trim().isEmpty)
+                Text(
+                  vm.templateName,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFCBD5E1),
+                    letterSpacing: 0.3,
+                  ),
+                )
+              else
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: EntityCardPills.workspace(
+                    vm.templateName,
+                    ContextPillSemantic.evaluationTemplate,
+                    () => WorkspaceNavigator.openEvaluationTemplate(context, vm.templateId),
+                    icon: AppIcons.scoring,
+                  ),
+                ),
               const SizedBox(height: 4),
               Text(
                 'Evaluated ${formatDateTime(vm.evaluatedAt)} · ${vm.reviewCompletionLabel}',
