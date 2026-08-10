@@ -5,6 +5,7 @@ import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
@@ -67,6 +68,15 @@ class WorkspaceNavigator extends StatelessWidget {
       templateId,
       departmentCode: departmentCode,
     );
+  }
+
+  /// Opens the Ideathon judge assignment workspace for [ideathonId].
+  static void openIdeathonJudgeAssignment(
+    BuildContext context,
+    String ideathonId, {
+    UserModel? actor,
+  }) {
+    IdeathonJudgeAssignmentWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens the Ideathon participation payment workspace for [ideathonId].

@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
-import '../../evaluations/assignments/models/evaluation_assignment_conflict.dart';
-import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
@@ -213,36 +211,14 @@ abstract final class IdeathonService {
       }
     }
 
-    final CollectionReference<Map<String, dynamic>> col =
-        _db.collection(FirestoreUtils.hkzEvaluationAssignments);
-    final WriteBatch batch = _db.batch();
-    final DateTime now = DateTime.now();
-    for (final IdeaModel idea in ideas) {
-      final TeamModel? team = teamsById[idea.teamId.trim()];
-      for (final UserModel judge in judges) {
-        final EvaluationAssignmentConflict conflict = EvaluationAssignmentService.validateConflict(
-          judge: judge,
-          idea: idea,
-          team: team,
-        );
-        if (conflict.isConflict) continue;
-        final DocumentReference<Map<String, dynamic>> ref = col.doc();
-        final EvaluationAssignmentModel assignment = EvaluationAssignmentModel(
-          assignmentId: ref.id,
-          orgId: orgId,
-          problemId: idea.problemId,
-          ideaId: idea.ideaId,
-          judgeId: judge.userId,
-          status: EvaluationAssignmentStatus.active,
-          assignedBy: actorUserId,
-          assignedAt: now,
-          updatedAt: now,
-          ideathonId: ideathonId,
-        );
-        batch.set(ref, assignment.toMap());
-      }
-    }
-    await batch.commit();
+    await EvaluationAssignmentService.assignIdeasToJudgesForIdeathon(
+      orgId: orgId,
+      actorUserId: actorUserId,
+      ideathonId: ideathonId,
+      ideas: ideas,
+      judges: judges,
+      teamsById: teamsById,
+    );
   }
 
   static Future<IdeathonModel?> fetchById(String ideathonId) async {

@@ -48,10 +48,140 @@ class EvaluationAssignmentService {
       final EvaluationAssignmentModel assignment =
           EvaluationAssignmentModel.fromMap(doc.id, doc.data());
       if (assignment.ideaId.isEmpty || assignment.judgeId.isEmpty) continue;
+      // Exclude Ideathon-scoped rows from problem/idea assignment views.
+      if (assignment.isIdeathonAssignment) continue;
       if (filterIds != null && !filterIds.contains(assignment.ideaId)) continue;
       byIdea.putIfAbsent(assignment.ideaId, () => <String>[]).add(assignment.judgeId);
     }
     return byIdea;
+  }
+
+  /// Active assignments for a specific Ideathon event only.
+  static Future<List<EvaluationAssignmentModel>> listByIdeathon({
+    required String ideathonId,
+  }) async {
+    final String eventId = ideathonId.trim();
+    if (eventId.isEmpty) return const <EvaluationAssignmentModel>[];
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestoreUtils.hkzEvaluationAssignments)
+        .where('ideathonId', isEqualTo: eventId)
+        .where('status', isEqualTo: EvaluationAssignmentStatus.active.value)
+        .get();
+    return snap.docs
+        .map(
+          (QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
+              EvaluationAssignmentModel.fromMap(doc.id, doc.data()),
+        )
+        .toList(growable: false);
+  }
+
+  /// Judge ids per idea for one Ideathon (ignores other events).
+  static Future<Map<String, List<String>>> assignedJudgesByIdeaForIdeathon({
+    required String ideathonId,
+    Iterable<String>? ideaIds,
+  }) async {
+    final List<EvaluationAssignmentModel> assignments =
+        await listByIdeathon(ideathonId: ideathonId);
+    final Set<String>? filterIds = ideaIds == null ? null : ideaIds.toSet();
+    final Map<String, List<String>> byIdea = <String, List<String>>{};
+    for (final EvaluationAssignmentModel assignment in assignments) {
+      if (assignment.ideaId.isEmpty || assignment.judgeId.isEmpty) continue;
+      if (filterIds != null && !filterIds.contains(assignment.ideaId)) continue;
+      byIdea.putIfAbsent(assignment.ideaId, () => <String>[]).add(assignment.judgeId);
+    }
+    return byIdea;
+  }
+
+  /// Assigns judges to ideas for a specific Ideathon.
+  ///
+  /// Uniqueness is [ideathonId] + [ideaId] + [judgeId]. Skips conflicts and
+  /// already-active duplicates. Does not mutate IdeaStatus.
+  static Future<void> assignIdeasToJudgesForIdeathon({
+    required String orgId,
+    required String actorUserId,
+    required String ideathonId,
+    required Iterable<IdeaModel> ideas,
+    required Iterable<UserModel> judges,
+    required Map<String, TeamModel> teamsById,
+  }) async {
+    final String eventId = ideathonId.trim();
+    final String org = orgId.trim();
+    if (eventId.isEmpty || org.isEmpty) {
+      throw StateError('Ideathon and organization are required.');
+    }
+    final List<IdeaModel> ideaList = ideas.toList(growable: false);
+    final List<UserModel> judgeList = judges.toList(growable: false);
+    if (ideaList.isEmpty || judgeList.isEmpty) return;
+
+    final CollectionReference<Map<String, dynamic>> col =
+        _db.collection(FirestoreUtils.hkzEvaluationAssignments);
+    final QuerySnapshot<Map<String, dynamic>> existing = await col
+        .where('ideathonId', isEqualTo: eventId)
+        .get();
+    final Map<String, EvaluationAssignmentModel> byIdeaJudge =
+        <String, EvaluationAssignmentModel>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in existing.docs) {
+      final EvaluationAssignmentModel model =
+          EvaluationAssignmentModel.fromMap(doc.id, doc.data());
+      byIdeaJudge['${model.ideaId}|${model.judgeId}'] = model;
+    }
+
+    final WriteBatch batch = _db.batch();
+    final DateTime now = DateTime.now();
+    bool wrote = false;
+    for (final IdeaModel idea in ideaList) {
+      final TeamModel? team = teamsById[idea.teamId.trim()];
+      for (final UserModel judge in judgeList) {
+        final EvaluationAssignmentConflict conflict = validateConflict(
+          judge: judge,
+          idea: idea,
+          team: team,
+        );
+        if (conflict.isConflict) continue;
+        final String key = '${idea.ideaId}|${judge.userId}';
+        final EvaluationAssignmentModel? previous = byIdeaJudge[key];
+        if (previous != null && previous.isActive) continue;
+        final DocumentReference<Map<String, dynamic>> ref = previous == null
+            ? col.doc()
+            : col.doc(previous.assignmentId);
+        final EvaluationAssignmentModel next = EvaluationAssignmentModel(
+          assignmentId: ref.id,
+          orgId: org,
+          problemId: idea.problemId,
+          ideaId: idea.ideaId,
+          judgeId: judge.userId,
+          status: EvaluationAssignmentStatus.active,
+          assignedBy: actorUserId,
+          assignedAt: previous?.assignedAt ?? now,
+          updatedAt: now,
+          ideathonId: eventId,
+        );
+        batch.set(ref, next.toMap(), SetOptions(merge: true));
+        wrote = true;
+      }
+    }
+    if (wrote) await batch.commit();
+  }
+
+  /// Soft-removes one Ideathon assignment (same idea may stay assigned in other events).
+  static Future<void> removeIdeathonAssignment({
+    required String assignmentId,
+    required String ideathonId,
+  }) async {
+    final String id = assignmentId.trim();
+    final String eventId = ideathonId.trim();
+    if (id.isEmpty || eventId.isEmpty) return;
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(FirestoreUtils.hkzEvaluationAssignments).doc(id).get();
+    if (!doc.exists || doc.data() == null) {
+      throw StateError('Assignment not found.');
+    }
+    final EvaluationAssignmentModel model =
+        EvaluationAssignmentModel.fromMap(doc.id, doc.data()!);
+    if (model.ideathonId.trim() != eventId) {
+      throw StateError('Assignment does not belong to this Ideathon.');
+    }
+    await removeAssignment(assignmentId: id);
   }
 
   static Future<Map<String, int>> workloadByJudge({

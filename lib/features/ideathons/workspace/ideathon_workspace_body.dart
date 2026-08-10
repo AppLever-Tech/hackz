@@ -21,12 +21,14 @@ class IdeathonWorkspaceBody extends StatelessWidget {
     this.onRefresh,
     this.actor,
     this.onOpenPayments,
+    this.onOpenJudgeAssignment,
   });
 
   final IdeathonWorkspaceViewModel vm;
   final VoidCallback? onRefresh;
   final UserModel? actor;
   final VoidCallback? onOpenPayments;
+  final VoidCallback? onOpenJudgeAssignment;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,29 @@ class IdeathonWorkspaceBody extends StatelessWidget {
               _detailRow('Ends', formatDateTime(ideathon.endDateTime.toLocal())),
               if (ideathon.description.trim().isNotEmpty)
                 _detailRow('Description', ideathon.description.trim()),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _sectionCard(
+          title: 'Judge Assignment',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text(
+                'Assign judges to ideas registered for this Ideathon. Uses the Ideathon evaluation template (read-only).',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ProblemWorkflowActionPill(
+                  label: 'Open Judge Assignment',
+                  icon: AppIcons.judges,
+                  semantic: ProblemWorkflowPillSemantic.filledBrand,
+                  onTap: onOpenJudgeAssignment,
+                ),
+              ),
             ],
           ),
         ),
