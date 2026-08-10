@@ -384,13 +384,11 @@ class IdeaQueryService {
     if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
     if (team == null) return false;
     final role = UserRole.fromCode(viewer.role);
-    if (role == UserRole.student) {
-      return team.studentIds.contains(viewer.userId);
-    }
-    if (role == UserRole.faculty) {
-      return team.mentorId == viewer.userId;
-    }
-    return false;
+    if (role != UserRole.faculty) return false;
+    final String facultyId = viewer.userId.trim();
+    if (facultyId.isEmpty) return false;
+    // Faculty mentor of the team, or the faculty who created the idea.
+    return team.mentorId.trim() == facultyId || idea.createdBy.trim() == facultyId;
   }
 
   static String? _displayName(UserModel? user) {
