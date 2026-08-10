@@ -88,8 +88,8 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
       if (!mounted) return;
       FeedbackService.showSuccess(
         context,
-        title: 'Payment verified',
-        message: 'Participation is ready for Ideathon execution.',
+        title: 'Payment confirmed',
+        message: 'Idea payment is confirmed.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -370,13 +370,7 @@ class _IdeathonPaymentRowCard extends StatelessWidget {
           _metaRow('Payment date', date),
           if (txn.isNotEmpty) _metaRow('Transaction', txn),
           if (remarks.isNotEmpty) _metaRow('Exception / remarks', remarks),
-          if (row.isReadyForExecution) ...<Widget>[
-            const SizedBox(height: 6),
-            const Text(
-              'Ready for Ideathon execution',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF047857)),
-            ),
-          ] else if (payment == null) ...<Widget>[
+          if (payment == null) ...<Widget>[
             const SizedBox(height: 6),
             const Text(
               'No idea payment record found for this Ideathon member.',

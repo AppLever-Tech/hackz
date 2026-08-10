@@ -390,7 +390,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 ),
               const SizedBox(height: 14),
               _sectionCard(
-                title: 'Ideas for this Ideathon',
+                title: 'Paid & Confirmed Ideas',
                 icon: AppIcons.ideas,
                 sectionKey: 'ideas',
                 collapsible: true,
@@ -399,7 +399,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     const Text(
-                      'Only submitted ideas with verified Faculty payment appear here. '
+                      'Only submitted ideas with coordinator-confirmed Faculty payment appear here. '
                       'Select at least the org minimum of paid ideas to create the Ideathon.',
                       style: TextStyle(
                         fontSize: 12,
