@@ -109,6 +109,13 @@ String formatShortDate(DateTime date) {
   return '${months[monthIndex]} ${date.day}, ${date.year}';
 }
 
+/// Compact clock time (e.g. 09:30).
+String formatShortTime(DateTime date) {
+  final String hh = date.hour.toString().padLeft(2, '0');
+  final String mm = date.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
+}
+
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm
 String formatDateTime(DateTime date) {
   final dd = date.day.toString().padLeft(2, '0');

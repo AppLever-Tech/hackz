@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/inputs/hackz_input_decoration.dart';
+
 /// Premium multiline text field used by authoring sections.
 class AuthoringTextArea extends StatelessWidget {
   const AuthoringTextArea({
@@ -28,15 +30,7 @@ class AuthoringTextArea extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF334155),
-            letterSpacing: 0.1,
-          ),
-        ),
+        Text(label, style: HackzInputDecoration.labelStyle),
         if (helperPrompts.isNotEmpty) ...<Widget>[
           const SizedBox(height: 6),
           Wrap(
@@ -70,27 +64,8 @@ class AuthoringTextArea extends StatelessWidget {
           minLines: minLines,
           maxLines: maxLines,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF1E293B)),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade500, height: 1.4),
-            filled: true,
-            fillColor: const Color(0xFFFCFDFF),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
-            ),
-          ),
+          style: HackzInputDecoration.fieldTextStyle,
+          decoration: HackzInputDecoration.decorate(hintText: hint),
         ),
       ],
     );
@@ -123,41 +98,19 @@ class AuthoringTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF334155),
-          ),
-        ),
+        Text(label, style: HackzInputDecoration.labelStyle),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           enabled: enabled,
           onChanged: onChanged,
           keyboardType: keyboardType,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: HackzInputDecoration.textColor),
+          decoration: HackzInputDecoration.decorate(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey.shade500),
-            prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 18, color: const Color(0xFF64748B)),
-            filled: true,
-            fillColor: const Color(0xFFFCFDFF),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
-            ),
+            prefixIcon: prefixIcon == null
+                ? null
+                : Icon(prefixIcon, size: 18, color: HackzInputDecoration.iconColor),
           ),
         ),
       ],
@@ -238,26 +191,7 @@ class _AuthoringChipInputState extends State<AuthoringChipInput> {
                 enabled: widget.enabled,
                 onSubmitted: _add,
                 style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-                decoration: InputDecoration(
-                  hintText: widget.hint,
-                  hintStyle: TextStyle(color: Colors.grey.shade500),
-                  filled: true,
-                  fillColor: const Color(0xFFFCFDFF),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
-                  ),
-                ),
+                decoration: HackzInputDecoration.decorate(hintText: widget.hint),
               ),
             ),
             const SizedBox(width: 8),
@@ -487,26 +421,9 @@ class _AuthoringLinkListState extends State<AuthoringLinkList> {
                 onSubmitted: _add,
                 keyboardType: TextInputType.url,
                 style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
-                decoration: InputDecoration(
+                decoration: HackzInputDecoration.decorate(
                   hintText: widget.hint,
-                  hintStyle: TextStyle(color: Colors.grey.shade500),
-                  prefixIcon: const Icon(Icons.link_rounded, size: 18, color: Color(0xFF64748B)),
-                  filled: true,
-                  fillColor: const Color(0xFFFCFDFF),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
-                  ),
+                  prefixIcon: const Icon(Icons.link_rounded, size: 18, color: HackzInputDecoration.iconColor),
                 ),
               ),
             ),

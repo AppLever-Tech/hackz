@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../menus/hackz_popup_menu.dart';
+import 'hackz_input_decoration.dart';
 
 /// Single-select form field with Hackz premium popup panel styling.
 class HackzSelectField<T> extends StatelessWidget {
@@ -29,17 +30,13 @@ class HackzSelectField<T> extends StatelessWidget {
   final String? errorText;
   final double? minWidth;
 
-  static const Color _errorAccent = Color(0xFFBE123C);
-  static const Color _errorBorder = Color(0xFFFECACA);
-  static const Color _errorFill = Color(0xFFFFF7F7);
-
   @override
   Widget build(BuildContext context) {
     final bool hasError = errorText != null && errorText!.isNotEmpty;
     final String displayText = value == null ? hint : labelBuilder(value as T);
     final Color textColor = value == null
-        ? const Color(0xFF94A3B8)
-        : (enabled ? const Color(0xFF0F172A) : const Color(0xFF94A3B8));
+        ? HackzInputDecoration.hintColor
+        : (enabled ? const Color(0xFF0F172A) : HackzInputDecoration.hintColor);
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -80,50 +77,23 @@ class HackzSelectField<T> extends StatelessWidget {
                 .toList(growable: false);
           },
           child: InputDecorator(
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: hasError ? _errorFill : Colors.white,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: HackzInputDecoration.decorate(
+              errorText: hasError ? errorText : null,
               prefixIcon: prefixIcon == null
                   ? null
                   : Icon(
                       prefixIcon,
                       size: 20,
-                      color: hasError ? _errorAccent.withValues(alpha: 0.75) : const Color(0xFF64748B),
+                      color: hasError
+                          ? HackzInputDecoration.errorColor.withValues(alpha: 0.75)
+                          : HackzInputDecoration.iconColor,
                     ),
               suffixIcon: Icon(
                 enabled ? Icons.expand_more_rounded : Icons.lock_outline_rounded,
                 size: 22,
-                color: enabled ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                color: enabled ? HackzInputDecoration.iconColor : HackzInputDecoration.hintColor,
               ),
-              errorText: hasError ? errorText : null,
-              errorStyle: const TextStyle(
-                fontSize: 11,
-                color: _errorAccent,
-                height: 1.25,
-                fontWeight: FontWeight.w500,
-              ),
-              errorMaxLines: 2,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: hasError ? _errorBorder : Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: hasError ? const Color(0xFFF87171) : const Color(0xFF6A38FF),
-                  width: 1.6,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: _errorBorder),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.6),
-              ),
+              contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
             child: Align(
               alignment: Alignment.centerLeft,

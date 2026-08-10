@@ -1,16 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_icons.dart';
+
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../core/ui/feedback/feedback.dart';
+import '../../evaluations/models/evaluation_template.dart';
+import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../evaluations/services/evaluator_catalog_service.dart';
-import '../widgets/ideathon_assignee_select_row.dart';
 import '../../idea/models/idea_model.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_service.dart';
+import '../services/ideathon_settings_service.dart';
+import '../widgets/ideathon_assignee_select_row.dart';
+import '../widgets/ideathon_idea_select_row.dart';
 
 /// Department-admin Ideathon creation form (eligible submitted ideas).
 class CreateIdeathonWorkspace extends StatefulWidget {
@@ -26,20 +36,42 @@ class CreateIdeathonWorkspace extends StatefulWidget {
 class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  DateTime _eventDate = DateTime.now().add(const Duration(days: 14));
+  final TextEditingController _ideaSearchController = TextEditingController();
+
+  late DateTime _startDateTime;
+  late DateTime _endDateTime;
 
   bool _loading = true;
   bool _saving = false;
   List<IdeaModel> _eligibleIdeas = <IdeaModel>[];
+  Map<String, String> _teamNameByIdeaId = <String, String>{};
   List<UserModel> _evaluators = <UserModel>[];
   List<UserModel> _coordinators = <UserModel>[];
+  List<EvaluationTemplate> _templates = <EvaluationTemplate>[];
+  String? _selectedTemplateId;
+  String? _optionalProblemId;
+
   final Set<String> _selectedIdeaIds = <String>{};
   final Set<String> _selectedJudgeIds = <String>{};
   final Set<String> _selectedCoordinatorIds = <String>{};
 
+  int _minimumIdeas = IdeathonSettingsService.defaultMinimumIdeasForIdeathon;
+
+  /// Collapsible sections (details/schedule stay always open).
+  final Map<String, bool> _sectionExpanded = <String, bool>{
+    'ideas': true,
+    'evaluation': true,
+    'people': true,
+    'summary': true,
+  };
+
   @override
   void initState() {
     super.initState();
+    final DateTime now = DateTime.now();
+    _startDateTime = DateTime(now.year, now.month, now.day + 14, 9, 0);
+    _endDateTime = DateTime(now.year, now.month, now.day + 14, 17, 0);
+    _ideaSearchController.addListener(() => setState(() {}));
     _load();
   }
 
@@ -47,6 +79,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _ideaSearchController.dispose();
     super.dispose();
   }
 
@@ -54,17 +87,48 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     setState(() => _loading = true);
     final String orgId = widget.user.orgId.trim();
     final String dept = widget.user.departmentCode.trim();
+    await IdeathonSettingsService.ensureLoaded(orgId: orgId);
+    await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
+
     final List<IdeaModel> ideas =
         await IdeathonService.fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
+    final Map<String, String> teamNames = await _loadTeamNames(ideas);
+    final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
+    final String defaultTemplateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
+    final int minimum = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
+
     if (!mounted) return;
     setState(() {
       _eligibleIdeas = ideas;
+      _teamNameByIdeaId = teamNames;
       _evaluators = evaluators;
       _coordinators = coordinators;
+      _templates = templates;
+      _selectedTemplateId = templates.any((EvaluationTemplate t) => t.templateId == defaultTemplateId)
+          ? defaultTemplateId
+          : (templates.isNotEmpty ? templates.first.templateId : null);
+      _minimumIdeas = minimum;
       _loading = false;
     });
+  }
+
+  Future<Map<String, String>> _loadTeamNames(List<IdeaModel> ideas) async {
+    final Map<String, String> byIdea = <String, String>{};
+    final Map<String, String> teamCache = <String, String>{};
+    for (final IdeaModel idea in ideas) {
+      final String teamId = idea.teamId.trim();
+      if (teamId.isEmpty) continue;
+      if (!teamCache.containsKey(teamId)) {
+        final DocumentSnapshot<Map<String, dynamic>> doc =
+            await FirebaseFirestore.instance.collection(FirestoreUtils.hkzTeams).doc(teamId).get();
+        final String name = ((doc.data()?['teamName'] as String?) ?? '').trim();
+        teamCache[teamId] = name;
+      }
+      byIdea[idea.ideaId] = teamCache[teamId] ?? '';
+    }
+    return byIdea;
   }
 
   Future<List<UserModel>> _loadCoordinators({required String orgId, required String dept}) async {
@@ -99,21 +163,87 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return users;
   }
 
-  Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _eventDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-    );
-    if (picked != null) setState(() => _eventDate = picked);
+  List<({String id, String label})> get _problemOptions {
+    final Map<String, String> byId = <String, String>{};
+    for (final IdeaModel idea in _eligibleIdeas) {
+      final String id = idea.problemId.trim();
+      if (id.isEmpty) continue;
+      final String title = idea.problemTitle.trim().isEmpty ? id : idea.problemTitle.trim();
+      byId.putIfAbsent(id, () => title);
+    }
+    final List<MapEntry<String, String>> entries = byId.entries.toList()
+      ..sort((MapEntry<String, String> a, MapEntry<String, String> b) => a.value.compareTo(b.value));
+    return entries
+        .map((MapEntry<String, String> e) => (id: e.key, label: e.value))
+        .toList(growable: false);
   }
+
+  List<IdeaModel> get _filteredIdeas {
+    final String q = _ideaSearchController.text.trim().toLowerCase();
+    final String? problemId = _optionalProblemId;
+    return _eligibleIdeas.where((IdeaModel idea) {
+      if (problemId != null && problemId.isNotEmpty && idea.problemId.trim() != problemId) {
+        return false;
+      }
+      if (q.isEmpty) return true;
+      final String hay = <String>[
+        idea.ideaTitle,
+        idea.description,
+        idea.problemTitle,
+        idea.problemDepartmentCode,
+        _teamNameByIdeaId[idea.ideaId] ?? '',
+      ].join(' ').toLowerCase();
+      return hay.contains(q);
+    }).toList(growable: false);
+  }
+
+  EvaluationTemplate? get _selectedTemplate {
+    final String? id = _selectedTemplateId;
+    if (id == null || id.isEmpty) return null;
+    for (final EvaluationTemplate t in _templates) {
+      if (t.templateId == id) return t;
+    }
+    return null;
+  }
+
+  bool get _scheduleValid => _endDateTime.isAfter(_startDateTime);
+
+  bool get _minimumMet => _selectedIdeaIds.length >= _minimumIdeas;
 
   bool get _canSubmit =>
       _nameController.text.trim().isNotEmpty &&
-      _selectedIdeaIds.isNotEmpty &&
+      _scheduleValid &&
+      _minimumMet &&
       _selectedJudgeIds.isNotEmpty &&
+      (_selectedTemplateId ?? '').trim().isNotEmpty &&
       !_saving;
+
+  Future<void> _pickDateTime({required bool isStart}) async {
+    final DateTime current = isStart ? _startDateTime : _endDateTime;
+    final DateTime? date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+    );
+    if (date == null || !mounted) return;
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+    );
+    if (time == null || !mounted) return;
+    setState(() {
+      final DateTime next = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      if (isStart) {
+        _startDateTime = next;
+        if (!_endDateTime.isAfter(_startDateTime)) {
+          _endDateTime = _startDateTime.add(const Duration(hours: 8));
+        }
+      } else {
+        _endDateTime = next;
+      }
+    });
+  }
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
@@ -124,15 +254,22 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         input: CreateIdeathonInput(
           name: _nameController.text,
           description: _descriptionController.text,
-          eventDate: _eventDate,
+          startDateTime: _startDateTime,
+          endDateTime: _endDateTime,
           ideaIds: _selectedIdeaIds.toList(),
           judgeIds: _selectedJudgeIds.toList(),
           coordinatorIds: _selectedCoordinatorIds.toList(),
+          evaluationTemplateId: _selectedTemplateId ?? '',
+          problemId: _optionalProblemId ?? '',
         ),
       );
       if (!mounted) return;
       widget.onCreated(id);
-      FeedbackService.showSuccess(context, title: 'Ideathon created', message: 'Event scheduled successfully.');
+      FeedbackService.showSuccess(
+        context,
+        title: 'Ideathon created',
+        message: 'Event created. Selected ideas are pending participation payment.',
+      );
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to create ideathon', message: '$e');
@@ -147,11 +284,63 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final EdgeInsets pad = EdgeInsets.fromLTRB(
-      ResponsiveHelper.isMobile(context) ? 16 : 22,
-      8,
-      ResponsiveHelper.isMobile(context) ? 16 : 22,
-      16,
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final EdgeInsets pad = EdgeInsets.fromLTRB(mobile ? 16 : 22, 8, mobile ? 16 : 22, 16);
+
+    final Widget detailsCard = _sectionCard(
+      title: 'Ideathon Details',
+      icon: AppIcons.ideathons,
+      fillRemaining: !mobile,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          TextField(
+            controller: _nameController,
+            onChanged: (_) => setState(() {}),
+            style: HackzInputDecoration.fieldTextStyle,
+            decoration: HackzInputDecoration.decorate(labelText: 'Event name'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            minLines: 5,
+            maxLines: 8,
+            style: HackzInputDecoration.fieldTextStyle,
+            decoration: HackzInputDecoration.decorate(labelText: 'Description (optional)'),
+          ),
+        ],
+      ),
+    );
+
+    final Widget scheduleCard = _sectionCard(
+      title: 'Schedule',
+      icon: AppIcons.clock,
+      fillRemaining: !mobile,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _scheduleField(
+            label: 'Start',
+            icon: Icons.event_rounded,
+            value: formatDateTime(_startDateTime.toLocal()),
+            onTap: () => _pickDateTime(isStart: true),
+          ),
+          const SizedBox(height: 12),
+          _scheduleField(
+            label: 'End',
+            icon: Icons.event_rounded,
+            value: formatDateTime(_endDateTime.toLocal()),
+            onTap: () => _pickDateTime(isStart: false),
+          ),
+          if (!_scheduleValid) ...<Widget>[
+            const SizedBox(height: 8),
+            const Text(
+              'End date/time must be after start date/time.',
+              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+            ),
+          ],
+        ],
+      ),
     );
 
     return Column(
@@ -161,91 +350,345 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           child: ListView(
             padding: pad,
             children: <Widget>[
-              TextField(
-                controller: _nameController,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Event name', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _descriptionController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Description (optional)', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              if (mobile) ...<Widget>[
+                detailsCard,
+                const SizedBox(height: 14),
+                scheduleCard,
+              ] else
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Expanded(flex: 3, child: detailsCard),
+                      const SizedBox(width: 14),
+                      Expanded(flex: 2, child: scheduleCard),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 14),
+              _sectionCard(
+                title: 'Ideas',
+                icon: AppIcons.ideas,
+                sectionKey: 'ideas',
+                collapsible: true,
+                trailing: _minimumFeedback(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    const Text(
-                      'Event date',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      onTap: _pickDate,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFF),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            const Icon(AppIcons.clock, size: 15, color: Color(0xFF64748B)),
-                            const SizedBox(width: 6),
-                            Text(
-                              formatShortDate(_eventDate.toLocal()),
-                              style: const TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF334155),
-                              ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (_problemOptions.isNotEmpty) ...<Widget>[
+                          SizedBox(
+                            width: mobile ? 148 : 200,
+                            child: HackzSelectField<String>(
+                              value: _optionalProblemId ?? '',
+                              hint: 'All problems',
+                              prefixIcon: AppIcons.problems,
+                              minWidth: mobile ? 148 : 200,
+                              options: <String>['', ..._problemOptions.map((e) => e.id)],
+                              labelBuilder: (String id) {
+                                if (id.isEmpty) return 'All problems';
+                                for (final option in _problemOptions) {
+                                  if (option.id == id) return option.label;
+                                }
+                                return id;
+                              },
+                              iconBuilder: (_) => AppIcons.problems,
+                              onChanged: (String id) =>
+                                  setState(() => _optionalProblemId = id.isEmpty ? null : id),
                             ),
-                          ],
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: TextField(
+                            controller: _ideaSearchController,
+                            style: HackzInputDecoration.fieldTextStyle,
+                            decoration: HackzInputDecoration.decorate(
+                              hintText: 'Search ideas, teams, problems…',
+                              prefixIcon:
+                                  const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_problemOptions.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Problem filter is optional. An Ideathon can include ideas from multiple problems.',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    if (_filteredIdeas.isEmpty)
+                      const Text('No eligible ideas match your filters.', style: TextStyle(color: Color(0xFF64748B)))
+                    else
+                      ..._filteredIdeas.map(
+                        (IdeaModel idea) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: IdeathonIdeaSelectRow(
+                            idea: idea,
+                            selected: _selectedIdeaIds.contains(idea.ideaId),
+                            teamName: _teamNameByIdeaId[idea.ideaId] ?? '',
+                            onToggle: () => setState(() {
+                              if (_selectedIdeaIds.contains(idea.ideaId)) {
+                                _selectedIdeaIds.remove(idea.ideaId);
+                              } else {
+                                _selectedIdeaIds.add(idea.ideaId);
+                              }
+                            }),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text('Eligible ideas', style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              if (_eligibleIdeas.isEmpty)
-                const Text('No eligible ideas available.', style: TextStyle(color: Color(0xFF64748B)))
-              else
-                ..._eligibleIdeas.map(
-                  (IdeaModel idea) => CheckboxListTile(
-                    value: _selectedIdeaIds.contains(idea.ideaId),
-                    onChanged: (bool? checked) {
-                      setState(() {
-                        if (checked == true) {
-                          _selectedIdeaIds.add(idea.ideaId);
-                        } else {
-                          _selectedIdeaIds.remove(idea.ideaId);
-                        }
-                      });
-                    },
-                    title: Text(idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim()),
-                    subtitle: Text(idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim()),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    dense: true,
-                  ),
-                ),
-              const SizedBox(height: 16),
-              _buildJudgesCoordinatorsSection(context),
+              const SizedBox(height: 14),
+              _sectionCard(
+                title: 'Evaluation',
+                icon: AppIcons.scoring,
+                sectionKey: 'evaluation',
+                collapsible: true,
+                child: _buildTemplateSection(),
+              ),
+              const SizedBox(height: 14),
+              _sectionCard(
+                title: 'People',
+                icon: AppIcons.users,
+                sectionKey: 'people',
+                collapsible: true,
+                child: _buildJudgesCoordinatorsSection(context),
+              ),
+              const SizedBox(height: 14),
+              _sectionCard(
+                title: 'Summary',
+                icon: Icons.checklist_rounded,
+                sectionKey: 'summary',
+                collapsible: true,
+                child: _buildSummary(),
+              ),
               const SizedBox(height: 80),
             ],
           ),
         ),
         _buildFooter(context),
       ],
+    );
+  }
+
+  Widget _minimumFeedback() {
+    final bool met = _minimumMet;
+    final String text = met
+        ? 'Minimum requirement met'
+        : '${_selectedIdeaIds.length} of $_minimumIdeas minimum Ideas selected';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: met ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: met ? const Color(0xFFA7F3D0) : const Color(0xFFFED7AA)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            met ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+            size: 14,
+            color: met ? const Color(0xFF047857) : const Color(0xFFC2410C),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: met ? const Color(0xFF047857) : const Color(0xFF9A3412),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scheduleField({
+    required String label,
+    required IconData icon,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(label, style: HackzInputDecoration.labelStyle),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(HackzInputDecoration.radius),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minWidth: 140),
+            padding: HackzInputDecoration.contentPadding,
+            decoration: HackzInputDecoration.pickerDecoration(),
+            child: Row(
+              children: <Widget>[
+                Icon(icon, size: 16, color: HackzInputDecoration.iconColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: HackzInputDecoration.fieldTextStyle.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTemplateSection() {
+    if (_templates.isEmpty) {
+      return const Text(
+        'No active evaluation templates. Configure templates in Organization Settings.',
+        style: TextStyle(color: Color(0xFF64748B)),
+      );
+    }
+    final EvaluationTemplate? selected = _selectedTemplate;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        HackzSelectField<String>(
+          value: _selectedTemplateId,
+          hint: 'Select evaluation template',
+          prefixIcon: AppIcons.scoring,
+          options: _templates.map((EvaluationTemplate t) => t.templateId).toList(growable: false),
+          labelBuilder: (String id) {
+            for (final EvaluationTemplate t in _templates) {
+              if (t.templateId == id) return t.templateName;
+            }
+            return id;
+          },
+          iconBuilder: (_) => AppIcons.scoring,
+          onChanged: (String id) => setState(() => _selectedTemplateId = id),
+        ),
+        if (selected != null) ...<Widget>[
+          const SizedBox(height: 10),
+          const Text('Criteria preview', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: selected.orderedCriteria
+                .map((c) => EntityCardPills.meta(c.title))
+                .toList(growable: false),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSummary() {
+    final EvaluationTemplate? template = _selectedTemplate;
+    final String judges = _selectedJudgeIds.isEmpty
+        ? 'None'
+        : '${_selectedJudgeIds.length} selected';
+    final String coords = _selectedCoordinatorIds.isEmpty
+        ? 'None'
+        : '${_selectedCoordinatorIds.length} selected';
+    return Column(
+      children: <Widget>[
+        _summaryRow('Schedule', '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
+        _summaryRow('Ideas selected', '${_selectedIdeaIds.length}'),
+        _summaryRow('Minimum ideas', _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required'),
+        _summaryRow('Evaluation template', template?.templateName ?? 'Not selected'),
+        _summaryRow('Judges', judges),
+        _summaryRow('Coordinators', coords),
+      ],
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: 140,
+            child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    String? sectionKey,
+    bool collapsible = false,
+    bool fillRemaining = false,
+    Widget? trailing,
+  }) {
+    final bool expanded = !collapsible || (_sectionExpanded[sectionKey] ?? true);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: kDashboardCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          InkWell(
+            onTap: collapsible && sectionKey != null
+                ? () => setState(() => _sectionExpanded[sectionKey] = !expanded)
+                : null,
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: const Color(0xFF6A38FF)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                ),
+                if (trailing != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  trailing,
+                ],
+                if (collapsible) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    size: 22,
+                    color: const Color(0xFF64748B),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (expanded) ...<Widget>[
+            const SizedBox(height: 12),
+            if (fillRemaining) ...<Widget>[
+              child,
+              const Spacer(),
+            ] else
+              child,
+          ],
+        ],
+      ),
     );
   }
 
@@ -352,7 +795,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       child: FilledButton.icon(
         onPressed: _canSubmit ? _submit : null,
         icon: _saving
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
             : const Icon(AppIcons.add, size: 18),
         label: const Text('Create Ideathon'),
         style: FilledButton.styleFrom(

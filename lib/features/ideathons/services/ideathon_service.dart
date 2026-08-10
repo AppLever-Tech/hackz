@@ -4,6 +4,7 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_conflict.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../team/models/team_model.dart';
@@ -12,25 +13,31 @@ import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
 import 'ideathon_participation_service.dart';
-import 'ideathon_readiness_service.dart';
 import 'ideathon_settings_service.dart';
 
 class CreateIdeathonInput {
   const CreateIdeathonInput({
     required this.name,
     required this.description,
-    required this.eventDate,
+    required this.startDateTime,
+    required this.endDateTime,
     required this.ideaIds,
     required this.judgeIds,
     required this.coordinatorIds,
+    required this.evaluationTemplateId,
+    this.problemId = '',
   });
 
   final String name;
   final String description;
-  final DateTime eventDate;
+  final DateTime startDateTime;
+  final DateTime endDateTime;
   final List<String> ideaIds;
   final List<String> judgeIds;
   final List<String> coordinatorIds;
+  final String evaluationTemplateId;
+  /// Optional — not required for creation; does not limit the Ideathon to one Problem.
+  final String problemId;
 }
 
 abstract final class IdeathonService {
@@ -64,16 +71,24 @@ abstract final class IdeathonService {
     final String dept = actor.departmentCode.trim().toUpperCase();
     if (orgId.isEmpty) throw StateError('Organization is required.');
     if (input.name.trim().isEmpty) throw StateError('Event name is required.');
+    if (!input.endDateTime.isAfter(input.startDateTime)) {
+      throw StateError('End date/time must be after start date/time.');
+    }
     if (input.ideaIds.isEmpty) throw StateError('Select at least one idea.');
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
-    final IdeathonReadiness readiness = await IdeathonReadinessService.compute(
-      orgId: orgId,
-      departmentCode: dept,
-    );
-    if (!readiness.isReady) {
-      throw StateError('${readiness.eligibleCount} / ${readiness.requiredCount} eligible ideas required.');
+    final int minimumIdeas = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
+    if (input.ideaIds.length < minimumIdeas) {
+      throw StateError('${input.ideaIds.length} of $minimumIdeas minimum ideas selected.');
+    }
+
+    final String templateId = input.evaluationTemplateId.trim().isNotEmpty
+        ? input.evaluationTemplateId.trim()
+        : IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
+    final resolved = EvaluationTemplatesService.resolveTemplate(templateId);
+    if (resolved.templateId.trim().isEmpty) {
+      throw StateError('Select an evaluation template.');
     }
 
     final List<IdeaModel> eligible = await fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
@@ -107,7 +122,6 @@ abstract final class IdeathonService {
       );
     }
 
-    final String templateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
     final DateTime now = DateTime.now();
     final DocumentReference<Map<String, dynamic>> ref =
         _db.collection(FirestoreUtils.hkzIdeathons).doc();
@@ -117,13 +131,15 @@ abstract final class IdeathonService {
       name: input.name.trim(),
       description: input.description.trim(),
       departmentId: dept,
-      eventDate: input.eventDate,
-      status: IdeathonStatus.scheduled,
+      startDateTime: input.startDateTime,
+      endDateTime: input.endDateTime,
+      status: IdeathonStatus.draft,
       judgeIds: input.judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
       coordinatorIds:
           input.coordinatorIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
       ideas: snapshots,
-      evaluationTemplateId: templateId,
+      evaluationTemplateId: resolved.templateId,
+      problemId: input.problemId.trim(),
       createdBy: actor.userId,
       createdAt: now,
       updatedAt: now,

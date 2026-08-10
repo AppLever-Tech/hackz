@@ -59,7 +59,7 @@ abstract final class IdeathonQueryService {
     }
 
     rows.sort((IdeathonListRow a, IdeathonListRow b) =>
-        b.ideathon.eventDate.compareTo(a.ideathon.eventDate));
+        b.ideathon.startDateTime.compareTo(a.ideathon.startDateTime));
     return rows;
   }
 }

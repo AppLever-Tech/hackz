@@ -13,7 +13,6 @@ import '../services/ideathon_prototype_service.dart';
 import '../widgets/ideathon_status_pill.dart';
 import 'ideathon_workspace_loader.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 
 class IdeathonWorkspaceBody extends StatelessWidget {
   const IdeathonWorkspaceBody({super.key, required this.vm, this.onRefresh});
@@ -69,7 +68,8 @@ class IdeathonWorkspaceBody extends StatelessWidget {
               IdeathonStatusPill(status: ideathon.status, compact: false),
               const SizedBox(height: 10),
               _detailRow('Department', ideathon.departmentId.isEmpty ? '—' : ideathon.departmentId),
-              _detailRow('Event date', ideathon.eventDate.toLocal().toString().split(' ').first),
+              _detailRow('Starts', formatDateTime(ideathon.startDateTime.toLocal())),
+              _detailRow('Ends', formatDateTime(ideathon.endDateTime.toLocal())),
               if (ideathon.description.trim().isNotEmpty)
                 _detailRow('Description', ideathon.description.trim()),
             ],

@@ -200,7 +200,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
               alignment: Alignment.centerLeft,
               child: _LatestEventPill(
                 name: latest.name,
-                dateLabel: formatShortDate(latest.eventDate.toLocal()),
+                dateLabel: formatDateTime(latest.startDateTime.toLocal()),
                 onTap: () => _openIdeathon(latest.ideathonId),
               ),
             ),
@@ -323,7 +323,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                               children: <Widget>[
                                                 Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                                                 Text(
-                                                  '${row.ideaCount} ideas · ${formatShortDate(row.eventDate.toLocal())}',
+                                                  '${row.ideaCount} ideas · ${formatDateTime(row.startDateTime.toLocal())}',
                                                   style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                                 ),
                                               ],
@@ -362,7 +362,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             alignment: Alignment.centerLeft,
             child: _LatestEventPill(
               name: latest.name,
-              dateLabel: formatShortDate(latest.eventDate.toLocal()),
+              dateLabel: formatDateTime(latest.startDateTime.toLocal()),
               onTap: () => _openIdeathon(latest.ideathonId),
             ),
           ),

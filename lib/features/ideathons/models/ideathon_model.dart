@@ -10,7 +10,8 @@ class IdeathonModel {
     required this.name,
     required this.description,
     required this.departmentId,
-    required this.eventDate,
+    required this.startDateTime,
+    required this.endDateTime,
     required this.status,
     required this.judgeIds,
     required this.coordinatorIds,
@@ -19,6 +20,7 @@ class IdeathonModel {
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
+    this.problemId = '',
   });
 
   final String ideathonId;
@@ -26,12 +28,15 @@ class IdeathonModel {
   final String name;
   final String description;
   final String departmentId;
-  final DateTime eventDate;
+  final DateTime startDateTime;
+  final DateTime endDateTime;
   final IdeathonStatus status;
   final List<String> judgeIds;
   final List<String> coordinatorIds;
   final List<IdeathonIdeaSnapshot> ideas;
   final String evaluationTemplateId;
+  /// Optional filter/context only — Ideathon is not required to bind to one Problem.
+  final String problemId;
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -39,6 +44,7 @@ class IdeathonModel {
   int get ideaCount => ideas.length;
   int get judgeCount => judgeIds.length;
   int get coordinatorCount => coordinatorIds.length;
+  bool get hasOptionalProblem => problemId.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -47,12 +53,14 @@ class IdeathonModel {
       'name': name,
       'description': description,
       'departmentId': departmentId,
-      'eventDate': Timestamp.fromDate(eventDate),
+      'startDateTime': Timestamp.fromDate(startDateTime),
+      'endDateTime': Timestamp.fromDate(endDateTime),
       'status': status.value,
       'judgeIds': judgeIds,
       'coordinatorIds': coordinatorIds,
       'ideas': ideas.map((IdeathonIdeaSnapshot i) => i.toMap()).toList(growable: false),
       'evaluationTemplateId': evaluationTemplateId,
+      if (problemId.trim().isNotEmpty) 'problemId': problemId.trim(),
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -69,6 +77,8 @@ class IdeathonModel {
         }
       }
     }
+    final DateTime start = (map['startDateTime'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final DateTime end = (map['endDateTime'] as Timestamp?)?.toDate() ?? start.add(const Duration(hours: 8));
     return IdeathonModel(
       ideathonId: ((map['ideathonId'] as String?) ?? '').trim().isNotEmpty
           ? ((map['ideathonId'] as String?) ?? '').trim()
@@ -77,12 +87,14 @@ class IdeathonModel {
       name: (map['name'] as String? ?? '').trim(),
       description: (map['description'] as String? ?? '').trim(),
       departmentId: (map['departmentId'] as String? ?? '').trim(),
-      eventDate: (map['eventDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      startDateTime: start,
+      endDateTime: end,
       status: IdeathonStatus.fromRaw((map['status'] as String?) ?? 'draft'),
       judgeIds: _readStringList(map['judgeIds']),
       coordinatorIds: _readStringList(map['coordinatorIds']),
       ideas: ideaSnapshots,
       evaluationTemplateId: (map['evaluationTemplateId'] as String? ?? '').trim(),
+      problemId: (map['problemId'] as String? ?? '').trim(),
       createdBy: (map['createdBy'] as String? ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
