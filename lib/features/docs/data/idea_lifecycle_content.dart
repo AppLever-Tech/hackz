@@ -76,7 +76,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         DocumentationHero(
           title: 'Idea Lifecycle',
           description:
-              'An innovation idea has just two statuses — Draft and Submitted. Ideathon participation (payment, readiness) is tracked separately on an IdeathonParticipation record once a submitted idea is added to an Ideathon.',
+              'An innovation idea has just two statuses — Draft and Submitted. Ideathon pool membership and registration (payment, readiness) are tracked separately on an IdeathonParticipation record once a submitted idea is added to an Ideathon.',
           lastUpdated: DateTime(2026, 8, 9),
           readingMinutes: 5,
           imageAsset: DocsAssetPaths.ideaLifecycle,
@@ -143,15 +143,15 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                     pill: const DocumentationStatusPill(label: 'submitted'),
                   ),
                   (
-                    title: 'Added to an Ideathon',
+                    title: 'Added to an Ideathon pool',
                     body:
-                        'A submitted idea can be added to an Ideathon once the org reaches its minimum-ideas threshold. This creates an IdeathonParticipation record — the idea itself stays "submitted".',
-                    pill: const DocumentationStatusPill(label: 'participation: paymentPending'),
+                        'A submitted idea can be added to an Ideathon once the org reaches its minimum-ideas threshold. This creates an IdeathonParticipation record in the event pool (inPool) — not registration. The idea itself stays "submitted".',
+                    pill: const DocumentationStatusPill(label: 'participation: inPool'),
                   ),
                   (
-                    title: 'Ready For Execution',
+                    title: 'Registered (ready for execution)',
                     body:
-                        'Once the participation payment is verified, the IdeathonParticipation status moves to readyForExecution. Ideathon evaluation, scoring, and results reuse the shared evaluation infrastructure (assignments, scoring, aggregation).',
+                        'After faculty completes Ideathon participation payment and a coordinator verifies it, IdeathonParticipation moves to readyForExecution (registered for that Ideathon). Evaluation and results reuse shared evaluation infrastructure.',
                     pill: const DocumentationStatusPill(label: 'participation: readyForExecution', kind: DocStatusKind.active),
                   ),
                 ],
@@ -177,8 +177,9 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 rows: const <List<String>>[
                   <String>['Idea Draft', 'draft', 'Faculty submits on an Active problem', 'Faculty'],
                   <String>['Idea Submitted', 'submitted', 'Faculty finalizes and locks the idea', 'Faculty'],
-                  <String>['Payment Pending', 'paymentPending', 'Idea added to an Ideathon', 'Department Admin / Coordinator'],
-                  <String>['Ready For Execution', 'readyForExecution', 'Ideathon participation payment verified', 'Coordinator'],
+                  <String>['In Ideathon Pool', 'inPool', 'Idea added to an Ideathon (not registered)', 'Department Admin'],
+                  <String>['Payment Pending', 'paymentPending', 'Faculty Ideathon participation payment in progress', 'Faculty / Coordinator'],
+                  <String>['Registered / Ready', 'readyForExecution', 'Ideathon participation payment verified', 'Coordinator'],
                 ],
               ),
               const SizedBox(height: 12),
@@ -186,7 +187,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 tone: DocInfoTone.information,
                 title: 'IdeaStatus vs IdeathonParticipationStatus',
                 body:
-                    'IdeaStatus (draft, submitted) describes the idea document itself. IdeathonParticipationStatus (paymentPending, readyForExecution) is a separate, per-Ideathon record — an idea keeps its "submitted" status the entire time it participates in one or more Ideathons.',
+                    'IdeaStatus (draft, submitted) describes the idea document itself. IdeathonParticipationStatus (inPool, paymentPending, readyForExecution) is a separate, per-Ideathon record — pool membership is not registration, and an idea keeps its "submitted" status across one or more Ideathons.',
               ),
             ],
           ),
@@ -207,15 +208,17 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 _flowArrow(context),
                 _flowLine(context, 'Org reaches minimum submitted ideas for an Ideathon'),
                 _flowArrow(context),
-                _flowLine(context, 'Idea added to Ideathon → IdeathonParticipation (paymentPending)'),
+                _flowLine(context, 'Idea added to Ideathon pool → IdeathonParticipation (inPool)'),
                 _flowArrow(context),
-                _flowLine(context, 'Participation payment verified → readyForExecution'),
+                _flowLine(context, 'Faculty completes participation payment → paymentPending'),
+                _flowArrow(context),
+                _flowLine(context, 'Payment verified → registered (readyForExecution)'),
                 const SizedBox(height: 12),
                 DocumentationInfoCard(
                   tone: DocInfoTone.note,
                   title: 'The idea status never changes past Submitted',
                   body:
-                      'Once an idea is submitted, all Ideathon-related state (assignment, payment, readiness) lives on its IdeathonParticipation record, not on the idea document.',
+                      'Once an idea is submitted, all Ideathon-related state (pool membership, payment, registration) lives on its IdeathonParticipation record, not on the idea document. Being in the pool is not the same as being registered.',
                 ),
                 const SizedBox(height: 12),
                 DocumentationInfoCard(
@@ -290,8 +293,8 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 'IdeaStatus only ever has two values: draft and submitted.',
                 'Only Submitted ideas are eligible to be added to an Ideathon.',
                 'An org must reach its configured minimum submitted-ideas threshold before an Ideathon can start.',
-                'Adding an idea to an Ideathon creates an IdeathonParticipation record (status: paymentPending); the idea keeps its Submitted status.',
-                'Verifying the participation payment moves IdeathonParticipation to readyForExecution.',
+                'Adding an idea to an Ideathon creates an IdeathonParticipation record in the event pool (status: inPool); the idea keeps its Submitted status and is not yet registered.',
+                'Verifying the participation payment moves IdeathonParticipation to readyForExecution (registered for that Ideathon).',
                 'Judges never change Idea Status directly — they submit scores that update the idea\'s evaluation aggregate.',
                 'Evaluation infrastructure (assignments, scoring, aggregation) is reused for Ideathon evaluation.',
               ]
@@ -325,7 +328,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'A Department Admin adds an eligible Submitted idea to an Ideathon once the org has reached its minimum-ideas threshold. This creates an IdeathonParticipation record; the idea itself stays Submitted.',
+                    'A Department Admin adds an eligible Submitted idea to an Ideathon once the org has reached its minimum-ideas threshold. This creates an IdeathonParticipation record in the event pool (inPool). The idea is not registered until participation payment is completed and verified; IdeaStatus stays Submitted.',
               ),
               (
                 title: 'Does the idea status change once it joins an Ideathon?',

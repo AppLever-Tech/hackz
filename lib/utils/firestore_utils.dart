@@ -1130,7 +1130,7 @@ class FirestoreUtils {
       ideathonId: ((data['ideathonId'] as String?) ?? '').trim(),
       ideaId: ((data['ideaId'] as String?) ?? '').trim(),
       paymentStatus: PaymentRecordStatus.rejected,
-      participationStatus: 'paymentPending',
+      participationStatus: 'inPool',
     );
   }
 

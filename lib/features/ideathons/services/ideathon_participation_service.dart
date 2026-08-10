@@ -5,7 +5,7 @@ import '../../payment/models/payment_model.dart';
 import '../models/ideathon_participation.dart';
 import '../models/ideathon_participation_status.dart';
 
-/// CRUD for Idea ↔ Ideathon participation documents.
+/// CRUD for Idea ↔ Ideathon participation documents (event pool + registration).
 abstract final class IdeathonParticipationService {
   IdeathonParticipationService._();
 
@@ -14,7 +14,10 @@ abstract final class IdeathonParticipationService {
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzIdeathonParticipations);
 
-  /// Creates payment-pending participations for each idea in an Ideathon.
+  /// Adds ideas to the Ideathon **event pool** (not registration).
+  ///
+  /// Creates [IdeathonParticipationStatus.inPool] rows. [IdeaStatus] is untouched.
+  /// Registration happens later when faculty payment is completed and verified.
   static Future<List<IdeathonParticipation>> createForIdeathon({
     required String orgId,
     required String ideathonId,
@@ -23,7 +26,9 @@ abstract final class IdeathonParticipationService {
   }) async {
     final String org = orgId.trim();
     final String eventId = ideathonId.trim();
-    if (org.isEmpty || eventId.isEmpty || ideaIds.isEmpty) return const <IdeathonParticipation>[];
+    if (org.isEmpty || eventId.isEmpty || ideaIds.isEmpty) {
+      return const <IdeathonParticipation>[];
+    }
 
     final DateTime now = DateTime.now();
     final WriteBatch writeBatch = batch ?? _db.batch();
@@ -39,7 +44,7 @@ abstract final class IdeathonParticipationService {
         ideaId: ideaId,
         orgId: org,
         paymentStatus: PaymentRecordStatus.pending,
-        participationStatus: IdeathonParticipationStatus.paymentPending,
+        participationStatus: IdeathonParticipationStatus.inPool,
         createdAt: now,
         updatedAt: now,
       );
@@ -82,6 +87,17 @@ abstract final class IdeathonParticipationService {
         .toList(growable: false);
   }
 
+  /// Ideas in the event pool for an Ideathon (includes unpaid / unregistered).
+  static Future<List<IdeathonParticipation>> listPoolByIdeathon(String ideathonId) {
+    return listByIdeathon(ideathonId);
+  }
+
+  /// Ideas registered for the Ideathon (payment verified / ready for execution).
+  static Future<List<IdeathonParticipation>> listRegisteredByIdeathon(String ideathonId) async {
+    final List<IdeathonParticipation> all = await listByIdeathon(ideathonId);
+    return all.where((IdeathonParticipation p) => p.isRegistered).toList(growable: false);
+  }
+
   static Future<List<IdeathonParticipation>> listByIdea(String ideaId) async {
     final QuerySnapshot<Map<String, dynamic>> snap =
         await _col.where('ideaId', isEqualTo: ideaId.trim()).get();
@@ -91,7 +107,20 @@ abstract final class IdeathonParticipationService {
         .toList(growable: false);
   }
 
-  /// Marks payment verified and participation ready for Ideathon execution.
+  /// Faculty payment submitted — still not registered until verified.
+  static Future<void> markPaymentPending({
+    required String participationId,
+  }) async {
+    final String id = participationId.trim();
+    if (id.isEmpty) return;
+    await _col.doc(id).update(<String, dynamic>{
+      'paymentStatus': PaymentRecordStatus.pending.value,
+      'participationStatus': IdeathonParticipationStatus.paymentPending.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Payment verified — idea is registered for this Ideathon.
   static Future<void> markPaymentVerified({
     required String participationId,
   }) async {
@@ -104,6 +133,7 @@ abstract final class IdeathonParticipationService {
     });
   }
 
+  /// Payment rejected — return to event pool (not registered).
   static Future<void> markPaymentRejected({
     required String participationId,
   }) async {
@@ -111,7 +141,7 @@ abstract final class IdeathonParticipationService {
     if (id.isEmpty) return;
     await _col.doc(id).update(<String, dynamic>{
       'paymentStatus': PaymentRecordStatus.rejected.value,
-      'participationStatus': IdeathonParticipationStatus.paymentPending.value,
+      'participationStatus': IdeathonParticipationStatus.inPool.value,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

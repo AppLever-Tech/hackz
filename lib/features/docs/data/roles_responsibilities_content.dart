@@ -495,7 +495,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               (
                 title: 'Who verifies payments?',
                 body:
-                    'Coordinator verifies Ideathon participation payments (paymentPending → readyForExecution). Payment does not change IdeaStatus.',
+                    'Coordinator verifies Ideathon participation payments (paymentPending → readyForExecution / registered). Being added to the Ideathon pool (inPool) is not registration. Payment does not change IdeaStatus.',
               ),
               (
                 title: 'Who manages Ideathons?',
