@@ -777,7 +777,7 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
             height: 14,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
           )
-        : const Icon(Icons.assignment_turned_in_outlined, size: 16);
+        : const Icon(AppIcons.assignmentComplete, size: 16);
 
     return FilledButton.icon(
       onPressed: _saving ? null : _assignSelected,

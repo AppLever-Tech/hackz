@@ -46,19 +46,19 @@ abstract final class IdeathonService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   /// Submitted ideas that can be selected when creating an Ideathon.
+  ///
+  /// Returns all eligible ideas in the organization (any department). Faculty
+  /// may submit across departments, so Ideathon creation is not dept-scoped.
   static Future<List<IdeaModel>> fetchEligibleIdeasForIdeathon({
     required String orgId,
-    required String departmentCode,
   }) async {
     final QuerySnapshot<Map<String, dynamic>> snap = await _db
         .collection(FirestoreUtils.hkzIdeas)
         .where('orgId', isEqualTo: orgId.trim())
         .get();
-    final String dept = departmentCode.trim().toUpperCase();
     return snap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => IdeaModel.fromMap(doc.id, doc.data()))
         .where((IdeaModel idea) => IdeaStatusHelpers.isEligibleForIdeathon(idea.status))
-        .where((IdeaModel idea) => dept.isEmpty || idea.problemDepartmentCode.trim().toUpperCase() == dept)
         .toList(growable: false)
       ..sort((IdeaModel a, IdeaModel b) => a.ideaTitle.compareTo(b.ideaTitle));
   }
@@ -91,7 +91,7 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final List<IdeaModel> eligible = await fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
+    final List<IdeaModel> eligible = await fetchEligibleIdeasForIdeathon(orgId: orgId);
     final Map<String, IdeaModel> eligibleById = <String, IdeaModel>{
       for (final IdeaModel idea in eligible) idea.ideaId: idea,
     };

@@ -224,7 +224,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: () => setState(() => _showFilters = !_showFilters),
-              icon: const Icon(Icons.filter_list),
+              icon: const Icon(AppIcons.filter),
               label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
             ),
             const SizedBox(width: 8),
@@ -255,7 +255,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(
               children: <Widget>[
-                IconButton(onPressed: () => setState(() => _showCreate = false), icon: const Icon(Icons.arrow_back)),
+                IconButton(onPressed: () => setState(() => _showCreate = false), icon: const Icon(AppIcons.back)),
                 const Text('Create Ideathon', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ],
             ),

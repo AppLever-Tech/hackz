@@ -34,7 +34,7 @@ class IdeathonReadinessBanner extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Icon(ready ? Icons.check_circle_rounded : AppIcons.ideathons, color: accent, size: 22),
+          Icon(ready ? AppIcons.workflowApproved : AppIcons.ideathons, color: accent, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

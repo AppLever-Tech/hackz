@@ -20,11 +20,26 @@ class AppIcons {
   static const IconData more = Icons.more_vert;
   static const IconData edit = Icons.edit_outlined;
   static const IconData remove = Icons.close_rounded;
+  static const IconData delete = Icons.delete_outline;
+  static const IconData save = Icons.save_outlined;
   static const IconData download = Icons.download_rounded;
   static const IconData preview = Icons.visibility_outlined;
+  static const IconData visibilityOff = Icons.visibility_off_outlined;
+  static const IconData star = Icons.star_rounded;
+  static const IconData starOutline = Icons.star_outline_rounded;
+  static const IconData moveUp = Icons.arrow_upward_rounded;
+  static const IconData moveDown = Icons.arrow_downward_rounded;
+  static const IconData error = Icons.error_outline_rounded;
+  static const IconData lock = Icons.lock_outline_rounded;
   static const IconData openInNew = Icons.open_in_new_rounded;
   static const IconData onboardingNext = Icons.arrow_forward_rounded;
   static const IconData clock = Icons.schedule_rounded;
+  static const IconData event = Icons.event_rounded;
+  static const IconData filter = Icons.filter_list_rounded;
+  static const IconData checklist = Icons.checklist_rounded;
+  static const IconData expandLess = Icons.expand_less_rounded;
+  static const IconData expandMore = Icons.expand_more_rounded;
+  static const IconData assignmentComplete = Icons.assignment_turned_in_outlined;
 
   // ── Navigation chrome (drawer toggle, collapsible side rail) ──────────────
   static const IconData menu = Icons.menu_rounded;

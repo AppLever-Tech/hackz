@@ -64,7 +64,7 @@ class EvaluationAssignmentDetailsPane extends StatelessWidget {
             helpPageId: 'evaluation-lifecycle',
             leading: IconButton(
               onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(AppIcons.back),
               tooltip: backTooltip,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.all(8),

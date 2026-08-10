@@ -61,10 +61,10 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   /// Collapsible sections (details/schedule stay always open).
   final Map<String, bool> _sectionExpanded = <String, bool>{
-    'ideas': true,
-    'evaluation': true,
-    'people': true,
-    'summary': true,
+    'ideas': false,
+    'evaluation': false,
+    'people': false,
+    'summary': false,
   };
 
   @override
@@ -93,7 +93,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
 
     final List<IdeaModel> ideas =
-        await IdeathonService.fetchEligibleIdeasForIdeathon(orgId: orgId, departmentCode: dept);
+        await IdeathonService.fetchEligibleIdeasForIdeathon(orgId: orgId);
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
     final Map<String, String> teamNames = await _loadTeamNames(ideas);
@@ -135,7 +135,13 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   Future<List<UserModel>> _loadCoordinators({required String orgId, required String dept}) async {
     final String normalizedDept = dept.trim().toUpperCase();
-    final List<Future<QuerySnapshot<Map<String, dynamic>>>> queries = <Future<QuerySnapshot<Map<String, dynamic>>>>[
+    final List<Future<QuerySnapshot<Map<String, dynamic>>>> queries =
+        <Future<QuerySnapshot<Map<String, dynamic>>>>[
+      FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzUsers)
+          .where('orgId', isEqualTo: orgId)
+          .where('role', isEqualTo: UserRole.coordinator.code)
+          .get(),
       FirebaseFirestore.instance
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: orgId)
@@ -154,15 +160,30 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
         UserModel user = UserModel.fromMap(doc.data());
         if (user.userId.trim().isEmpty) user = user.copyWith(userId: doc.id);
-        if (normalizedDept.isNotEmpty && user.departmentCode.trim().toUpperCase() != normalizedDept) {
+        if (normalizedDept.isNotEmpty &&
+            user.departmentCode.trim().toUpperCase() != normalizedDept) {
           continue;
         }
         byId[user.userId] = user;
       }
     }
-    final List<UserModel> users = byId.values.toList(growable: false)
-      ..sort((UserModel a, UserModel b) => a.displayName.compareTo(b.displayName));
+    final List<UserModel> users = byId.values.toList()
+      ..sort((UserModel a, UserModel b) {
+        final int roleCmp = _coordinatorListRoleRank(a.role).compareTo(_coordinatorListRoleRank(b.role));
+        if (roleCmp != 0) return roleCmp;
+        return a.displayName.compareTo(b.displayName);
+      });
     return users;
+  }
+
+  /// Coordinator assignees: department coordinator → faculty → department admin.
+  static int _coordinatorListRoleRank(String roleCode) {
+    return switch (UserRole.fromCode(roleCode)) {
+      UserRole.coordinator => 0,
+      UserRole.faculty => 1,
+      UserRole.departmentAdmin => 2,
+      _ => 3,
+    };
   }
 
   List<({String id, String label})> get _problemOptions {
@@ -323,14 +344,14 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         children: <Widget>[
           _scheduleField(
             label: 'Start',
-            icon: Icons.event_rounded,
+            icon: AppIcons.event,
             value: formatDateTime(_startDateTime.toLocal()),
             onTap: () => _pickDateTime(isStart: true),
           ),
           const SizedBox(height: 12),
           _scheduleField(
             label: 'End',
-            icon: Icons.event_rounded,
+            icon: AppIcons.event,
             value: formatDateTime(_endDateTime.toLocal()),
             onTap: () => _pickDateTime(isStart: false),
           ),
@@ -373,7 +394,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 icon: AppIcons.ideas,
                 sectionKey: 'ideas',
                 collapsible: true,
-                trailing: _minimumFeedback(),
+                trailing: _ideasSectionTrailing(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
@@ -449,10 +470,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
               ),
               const SizedBox(height: 14),
               _sectionCard(
-                title: 'Evaluation',
+                title: 'Evaluation Template',
                 icon: AppIcons.scoring,
                 sectionKey: 'evaluation',
                 collapsible: true,
+                trailing: _evaluationSectionTrailing(),
                 child: _buildTemplateSection(),
               ),
               const SizedBox(height: 14),
@@ -461,12 +483,13 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 icon: AppIcons.users,
                 sectionKey: 'people',
                 collapsible: true,
+                trailing: _peopleSectionTrailing(),
                 child: _buildJudgesCoordinatorsSection(context),
               ),
               const SizedBox(height: 14),
               _sectionCard(
                 title: 'Summary',
-                icon: Icons.checklist_rounded,
+                icon: AppIcons.checklist,
                 sectionKey: 'summary',
                 collapsible: true,
                 child: _buildSummary(),
@@ -477,6 +500,84 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         ),
         _buildFooter(context),
       ],
+    );
+  }
+
+  Widget _ideasSectionTrailing() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _statusChip(
+          ok: _selectedIdeaIds.isNotEmpty,
+          icon: AppIcons.ideas,
+          label: '${_selectedIdeaIds.length}',
+        ),
+        const SizedBox(width: 6),
+        _minimumFeedback(),
+      ],
+    );
+  }
+
+  Widget _evaluationSectionTrailing() {
+    final EvaluationTemplate? template = _selectedTemplate;
+    final bool selected = template != null;
+    final String name = selected
+        ? (template.templateName.trim().isEmpty ? template.templateId : template.templateName.trim())
+        : 'Not selected';
+    return _statusChip(
+      ok: selected,
+      icon: AppIcons.scoring,
+      label: name,
+    );
+  }
+
+  Widget _peopleSectionTrailing() {
+    final int judges = _selectedJudgeIds.length;
+    final int coordinators = _selectedCoordinatorIds.length;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _statusChip(
+          ok: judges > 0,
+          icon: AppIcons.judges,
+          label: '$judges',
+        ),
+        const SizedBox(width: 6),
+        _statusChip(
+          ok: coordinators > 0,
+          icon: AppIcons.coordinator,
+          label: '$coordinators',
+        ),
+      ],
+    );
+  }
+
+  Widget _statusChip({
+    required bool ok,
+    required IconData icon,
+    required String label,
+  }) {
+    final Color fg = ok ? const Color(0xFF047857) : const Color(0xFF9A3412);
+    final Color iconColor = ok ? const Color(0xFF047857) : const Color(0xFFC2410C);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: ok ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ok ? const Color(0xFFA7F3D0) : const Color(0xFFFED7AA)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: iconColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            softWrap: true,
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: fg),
+          ),
+        ],
+      ),
     );
   }
 
@@ -496,7 +597,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
-            met ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+            met ? AppIcons.workflowApproved : AppIcons.info,
             size: 14,
             color: met ? const Color(0xFF047857) : const Color(0xFFC2410C),
           ),
@@ -557,13 +658,23 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     if (_templates.isEmpty) {
       return const Text(
         'No active evaluation templates. Configure templates in Organization Settings.',
-        style: TextStyle(color: Color(0xFF64748B)),
+        style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
       );
     }
     final EvaluationTemplate? selected = _selectedTemplate;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        const Text(
+          'Choose the evaluation template used for this Ideathon.',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF64748B),
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 10),
         HackzSelectField<String>(
           value: _selectedTemplateId,
           hint: 'Select evaluation template',
@@ -580,6 +691,15 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         ),
         if (selected != null) ...<Widget>[
           const SizedBox(height: 10),
+          const Text(
+            'Selected',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
             child: EntityCardPills.workspace(
@@ -588,16 +708,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
               () => WorkspaceNavigator.openEvaluationTemplate(context, selected.templateId),
               icon: AppIcons.scoring,
             ),
-          ),
-          const SizedBox(height: 10),
-          const Text('Criteria preview', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: selected.orderedCriteria
-                .map((c) => EntityCardPills.meta(c.title))
-                .toList(growable: false),
           ),
         ],
       ],
@@ -666,7 +776,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     bool fillRemaining = false,
     Widget? trailing,
   }) {
-    final bool expanded = !collapsible || (_sectionExpanded[sectionKey] ?? true);
+    final bool expanded = !collapsible || (_sectionExpanded[sectionKey] ?? false);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -679,31 +789,46 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 ? () => setState(() => _sectionExpanded[sectionKey] = !expanded)
                 : null,
             borderRadius: BorderRadius.circular(8),
-            child: Row(
-              children: <Widget>[
-                Icon(icon, size: 18, color: const Color(0xFF6A38FF)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                  ),
-                ),
-                if (trailing != null) ...<Widget>[
+            child: SizedBox(
+              width: double.infinity,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Icon(icon, size: 18, color: const Color(0xFF6A38FF)),
                   const SizedBox(width: 8),
-                  trailing,
-                ],
-                if (collapsible) ...<Widget>[
-                  const SizedBox(width: 4),
-                  Icon(
-                    expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                    size: 22,
-                    color: const Color(0xFF64748B),
+                  Flexible(
+                    fit: FlexFit.loose,
+                    flex: 0,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
                   ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: trailing ?? const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                  if (collapsible) ...<Widget>[
+                    const SizedBox(width: 6),
+                    Icon(
+                      expanded ? AppIcons.expandLess : AppIcons.expandMore,
+                      size: 22,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           if (expanded) ...<Widget>[
@@ -723,6 +848,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final bool sideBySide = !ResponsiveHelper.isMobile(context);
     final Widget judges = _buildAssigneeList(
       title: 'Judges',
+      titleIcon: AppIcons.judges,
       users: _evaluators,
       selectedIds: _selectedJudgeIds,
       showJudgeType: true,
@@ -737,6 +863,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     );
     final Widget coordinators = _buildAssigneeList(
       title: 'Coordinators',
+      titleIcon: AppIcons.coordinator,
       users: _coordinators,
       selectedIds: _selectedCoordinatorIds,
       leadingIcon: AppIcons.coordinator,
@@ -773,6 +900,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   Widget _buildAssigneeList({
     required String title,
+    required IconData titleIcon,
     required List<UserModel> users,
     required Set<String> selectedIds,
     required ValueChanged<String> onToggle,
@@ -783,7 +911,13 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        Row(
+          children: <Widget>[
+            Icon(titleIcon, size: 16, color: const Color(0xFF64748B)),
+            const SizedBox(width: 6),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
         const SizedBox(height: 6),
         if (users.isEmpty)
           Text(emptyMessage, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)))

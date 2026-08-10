@@ -86,7 +86,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
             helpPageId: 'evaluation-lifecycle',
             leading: IconButton(
               onPressed: widget.onBack,
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(AppIcons.back),
               tooltip: widget.backTooltip,
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.all(8),

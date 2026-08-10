@@ -292,7 +292,7 @@ class _DepartmentEvaluationExtensionsScreenState
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       else
-                        const Icon(Icons.error_outline_rounded,
+                        const Icon(AppIcons.error,
                             size: 16, color: Color(0xFFDC2626)),
                       const SizedBox(width: 8),
                       Expanded(
@@ -417,7 +417,7 @@ class _DepartmentEvaluationExtensionsScreenState
         children: <Widget>[
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.lock_outline_rounded,
+            child: Icon(AppIcons.lock,
                 size: 16, color: Color(0xFF94A3B8)),
           ),
           const SizedBox(width: 8),

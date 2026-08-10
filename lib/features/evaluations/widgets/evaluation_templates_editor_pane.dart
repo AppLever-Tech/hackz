@@ -267,7 +267,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
                   onPressed: (_saving || !_dirty) ? null : _save,
                   icon: _saving
                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.save_outlined, size: 16),
+                      : const Icon(AppIcons.save, size: 16),
                   label: Text(_saving ? 'Saving' : 'Save templates'),
                 ),
                 const SizedBox(width: 6),
@@ -294,7 +294,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
                     onPressed: (_saving || !_dirty) ? null : _save,
                     icon: _saving
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save_outlined, size: 16),
+                        : const Icon(AppIcons.save, size: 16),
                     label: Text(_saving ? 'Saving' : 'Save'),
                   ),
                 ),
@@ -326,11 +326,11 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
           ),
           if (d.isDefault) ...<Widget>[
             const SizedBox(width: 4),
-            const Icon(Icons.star_rounded, size: 14, color: Color(0xFFD97706)),
+            const Icon(AppIcons.star, size: 14, color: Color(0xFFD97706)),
           ],
           if (!d.active) ...<Widget>[
             const SizedBox(width: 4),
-            const Icon(Icons.visibility_off_outlined, size: 12, color: Color(0xFF94A3B8)),
+            const Icon(AppIcons.visibilityOff, size: 12, color: Color(0xFF94A3B8)),
           ],
         ],
       ),
@@ -345,7 +345,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
 
   Widget _buildAddChip(BuildContext context) {
     return ActionChip(
-      avatar: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF6366F1)),
+      avatar: const Icon(AppIcons.add, size: 16, color: Color(0xFF6366F1)),
       label: const Text('Add template', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF6366F1))),
       onPressed: _saving ? null : _addTemplate,
       backgroundColor: Colors.white,
@@ -373,7 +373,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
               ),
               TextButton.icon(
                 onPressed: () => _deleteTemplate(selected),
-                icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                icon: const Icon(AppIcons.delete, size: 18, color: Color(0xFFDC2626)),
                 label: const Text('Delete template', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.w800)),
               ),
             ],
@@ -415,7 +415,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
                 ? const _DefaultBadge()
                 : OutlinedButton.icon(
                     onPressed: () => _setDefault(selected),
-                    icon: const Icon(Icons.star_outline_rounded, size: 16),
+                    icon: const Icon(AppIcons.starOutline, size: 16),
                     label: const Text('Make default'),
                   ),
           ),
@@ -451,7 +451,7 @@ class _EvaluationTemplatesEditorPaneState extends State<EvaluationTemplatesEdito
               return d.copyWith(criteria: next);
             });
           },
-          icon: const Icon(Icons.add_rounded, size: 18),
+          icon: const Icon(AppIcons.add, size: 18),
           label: const Text('Add criterion'),
         ),
       ),
@@ -563,7 +563,7 @@ class _DefaultBadge extends StatelessWidget {
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.star_rounded, size: 14, color: Color(0xFFB45309)),
+          Icon(AppIcons.star, size: 14, color: Color(0xFFB45309)),
           SizedBox(width: 4),
           Text('Default', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB45309))),
         ],
@@ -636,19 +636,19 @@ class _CriterionEditorCard extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Move up',
                 onPressed: onMoveUp,
-                icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                icon: const Icon(AppIcons.moveUp, size: 18),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Move down',
                 onPressed: onMoveDown,
-                icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                icon: const Icon(AppIcons.moveDown, size: 18),
               ),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Remove',
                 onPressed: onRemove,
-                icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFDC2626)),
+                icon: const Icon(AppIcons.delete, size: 18, color: Color(0xFFDC2626)),
               ),
             ],
           ),
