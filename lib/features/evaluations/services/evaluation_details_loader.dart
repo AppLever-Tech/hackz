@@ -12,7 +12,8 @@ import '../../team/models/team_model.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
-import '../services/evaluation_templates_service.dart';
+import 'evaluation_aggregation_service.dart';
+import 'evaluation_templates_service.dart';
 
 /// Loads evaluation-centric context for [EvaluationDetailsWorkspace].
 ///
@@ -23,11 +24,13 @@ abstract final class EvaluationDetailsLoader {
 
   static Future<EvaluationDetailsViewModel> load({
     required String ideaId,
+    String ideathonId = '',
   }) async {
     final String id = ideaId.trim();
     if (id.isEmpty) {
       throw ArgumentError('ideaId must be non-empty');
     }
+    final String eventId = ideathonId.trim();
 
     final FirebaseFirestore db = FirebaseFirestore.instance;
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
@@ -44,13 +47,16 @@ abstract final class EvaluationDetailsLoader {
     final String deptCode = idea.problemDepartmentCode.trim();
     final int defaultScale = EvaluationTemplatesService.defaultTemplate.scoringScale;
 
-    final Future<QuerySnapshot<Map<String, dynamic>>> scoresFuture = orgId.isEmpty
-        ? db.collection(FirestoreUtils.hkzScores).limit(0).get()
+    Query<Map<String, dynamic>> scoresQuery = orgId.isEmpty
+        ? db.collection(FirestoreUtils.hkzScores).limit(0)
         : db
             .collection(FirestoreUtils.hkzScores)
             .where('orgId', isEqualTo: orgId)
-            .where('ideaId', isEqualTo: id)
-            .get();
+            .where('ideaId', isEqualTo: id);
+    if (eventId.isNotEmpty) {
+      scoresQuery = scoresQuery.where('ideathonId', isEqualTo: eventId);
+    }
+    final Future<QuerySnapshot<Map<String, dynamic>>> scoresFuture = scoresQuery.get();
 
     final Future<DocumentSnapshot<Map<String, dynamic>>?> teamFuture = idea.teamId.trim().isEmpty
         ? Future<DocumentSnapshot<Map<String, dynamic>>?>.value(null)
@@ -84,6 +90,11 @@ abstract final class EvaluationDetailsLoader {
 
     final List<ScoreSummary> scores = scoresSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => ScoreSummary.fromDoc(doc))
+        .where((ScoreSummary s) {
+          if (eventId.isNotEmpty) return s.ideathonId.trim() == eventId;
+          // Pipeline details: never mix Ideathon event scores.
+          return s.ideathonId.trim().isEmpty;
+        })
         .toList(growable: false)
       ..sort((ScoreSummary a, ScoreSummary b) => b.evaluatedAt.compareTo(a.evaluatedAt));
 
@@ -142,6 +153,18 @@ abstract final class EvaluationDetailsLoader {
     final String departmentName = DepartmentModel.byCode(idea.problemDepartmentCode)?.name ??
         (deptCode.isEmpty ? '—' : deptCode);
 
+    double? averageScore;
+    double? highestScore;
+    double? lowestScore;
+    if (scores.isNotEmpty) {
+      final List<double> values = scores.map((ScoreSummary s) => s.overallScore).toList(growable: false);
+      final double sum = values.fold<double>(0, (double a, double b) => a + b);
+      averageScore = double.parse((sum / values.length).toStringAsFixed(2));
+      values.sort();
+      highestScore = values.last;
+      lowestScore = values.first;
+    }
+
     return EvaluationDetailsViewModel(
       ideaId: id,
       idea: idea,
@@ -156,9 +179,18 @@ abstract final class EvaluationDetailsLoader {
       submittedByUser: submitter,
       teamId: team?.teamId ?? idea.teamId,
       teamName: teamName,
-      evaluationRank: idea.evaluationRank,
+      evaluationRank: eventId.isNotEmpty ? null : idea.evaluationRank,
       judgeDetails: judgeDetails,
       scoringScale: scoringScale,
+      ideathonId: eventId,
+      aggregateOverride: scores.isEmpty
+          ? null
+          : IdeaEvaluationAggregate(
+              averageScore: averageScore,
+              highestScore: highestScore,
+              lowestScore: lowestScore,
+              totalEvaluators: scores.length,
+            ),
     );
   }
 
@@ -185,6 +217,7 @@ class ScoreSummary {
     required this.templateId,
     required this.overallScore,
     required this.evaluatedAt,
+    this.ideathonId = '',
   });
 
   factory ScoreSummary.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
@@ -195,6 +228,7 @@ class ScoreSummary {
       templateId: (data['templateId'] as String? ?? '').trim(),
       overallScore: (data['score'] as num?)?.toDouble() ?? 0,
       evaluatedAt: _readDate(data['createdAt']),
+      ideathonId: (data['ideathonId'] as String? ?? '').trim(),
     );
   }
 
@@ -203,6 +237,7 @@ class ScoreSummary {
   final String templateId;
   final double overallScore;
   final DateTime evaluatedAt;
+  final String ideathonId;
 
   static DateTime _readDate(dynamic raw) {
     if (raw is Timestamp) return raw.toDate();

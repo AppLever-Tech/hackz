@@ -1,6 +1,7 @@
 import '../../idea/models/idea_model.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
+import '../services/evaluation_aggregation_service.dart';
 import '../workspace/evaluation_workspace_loader.dart';
 
 /// Lightweight judge row for the evaluation details workspace.
@@ -41,6 +42,8 @@ class EvaluationDetailsViewModel {
     required this.evaluationRank,
     required this.judgeDetails,
     required this.scoringScale,
+    this.ideathonId = '',
+    this.aggregateOverride,
   });
 
   final String ideaId;
@@ -57,6 +60,11 @@ class EvaluationDetailsViewModel {
   final int? evaluationRank;
   final List<EvaluationJudgeDetail> judgeDetails;
   final int scoringScale;
+  final String ideathonId;
+
+  /// When set (e.g. Ideathon-scoped details), prefer over Idea aggregate fields.
+  final IdeaEvaluationAggregate? aggregateOverride;
 
   bool get hasEvaluations => judgeDetails.isNotEmpty;
+  bool get isIdeathonScoped => ideathonId.trim().isNotEmpty;
 }

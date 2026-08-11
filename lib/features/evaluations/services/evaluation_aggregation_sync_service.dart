@@ -33,8 +33,10 @@ abstract final class EvaluationAggregationSyncService {
         .where('orgId', isEqualTo: orgId)
         .where('ideaId', isEqualTo: id)
         .get();
+    // Ideathon scores must never influence Idea-level aggregates / pipeline results.
     final List<ScoreModel> scores = scoreSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => ScoreModel.fromMap(doc.id, doc.data()))
+        .where((ScoreModel s) => !s.isIdeathonScore)
         .toList(growable: false);
 
     final IdeaEvaluationAggregate aggregate = EvaluationAggregationService.computeFromScores(scores);

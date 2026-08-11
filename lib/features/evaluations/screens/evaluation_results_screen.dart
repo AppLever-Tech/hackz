@@ -12,16 +12,26 @@ import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';
 import '../widgets/evaluation_results_table_columns.dart';
 
 /// Department-admin workspace for reviewing evaluation outcomes and rankings.
+///
+/// Optional [ideathonId] scopes the same UX to one Ideathon — no second screen.
 class EvaluationResultsScreen extends StatefulWidget {
-  const EvaluationResultsScreen({super.key, required this.user});
+  const EvaluationResultsScreen({
+    super.key,
+    required this.user,
+    this.ideathonId = '',
+    this.ideathonName = '',
+  });
 
   final UserModel user;
+  final String ideathonId;
+  final String ideathonName;
 
   @override
   State<EvaluationResultsScreen> createState() => _EvaluationResultsScreenState();
@@ -35,6 +45,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   EvaluationResultsMetrics _metrics = EvaluationResultsMetrics.empty;
   List<String> _categories = <String>[];
   List<String> _departments = <String>[];
+  String _ideathonName = '';
+  String _templateId = '';
 
   bool _showFilters = false;
   final Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
@@ -42,11 +54,25 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   final Set<String> _categoryFilters = <String>{};
   String? _activeSortKey;
   bool _sortDescending = true;
+
+  String get _eventId => widget.ideathonId.trim();
+  bool get _isIdeathonScoped => _eventId.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
+    _ideathonName = widget.ideathonName.trim();
     _load();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant EvaluationResultsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.ideathonId != widget.ideathonId || oldWidget.user.userId != widget.user.userId) {
+      _ideathonName = widget.ideathonName.trim();
+      _load();
+    }
   }
 
   @override
@@ -70,9 +96,13 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           statusFilters: _statusFilters,
           departmentFilters: _departmentFilters,
           categoryFilters: _categoryFilters,
+          ideathonId: _eventId,
         ),
       ).then((EvaluationResultsQueryResult result) {
-        unawaited(EvaluationRankingService.persistRanks(result.rows));
+        // Never persist Idea ranks from Ideathon-scoped display ordering.
+        if (!result.isIdeathonScoped) {
+          unawaited(EvaluationRankingService.persistRanks(result.rows));
+        }
         return result;
       });
     });
@@ -90,6 +120,9 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
         case 'lowest':
           return (a.aggregate.lowestScore ?? -1).compareTo(b.aggregate.lowestScore ?? -1);
         case 'status':
+          if (_isIdeathonScoped) {
+            return (a.evaluationComplete ? 1 : 0).compareTo(b.evaluationComplete ? 1 : 0);
+          }
           return _statusSortIndex(a.idea.status).compareTo(_statusSortIndex(b.idea.status));
         default:
           return 0;
@@ -124,6 +157,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       onOpenIdea: (EvaluationResultsRow row) => showEvaluationDetailsPane(
         context,
         ideaId: row.idea.ideaId,
+        ideathonId: _eventId,
+        backTooltip: _isIdeathonScoped ? 'Back to Ideathon Results' : 'Back to Evaluation Results',
       ),
     );
   }
@@ -151,15 +186,23 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           _metrics = data.metrics;
           _categories = data.categories;
           _departments = data.departments;
+          if (data.ideathonName.trim().isNotEmpty) {
+            _ideathonName = data.ideathonName.trim();
+          }
+          _templateId = data.evaluationTemplateId.trim();
         }
 
         final bool mobile = ResponsiveHelper.isMobile(context);
+        final bool ideathonScoped = data?.isIdeathonScoped ?? _isIdeathonScoped;
 
         final Widget content = rows.isEmpty
-            ? _EmptyState(onClear: () {
-                _searchController.clear();
-                _clearFilters();
-              })
+            ? _EmptyState(
+                onClear: () {
+                  _searchController.clear();
+                  _clearFilters();
+                },
+                ideathonScoped: ideathonScoped,
+              )
             : mobile
                 ? ListView.separated(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -169,12 +212,16 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                       return EvaluationResultsRowCard(
                         row: rows[index],
                         actions: actions,
+                        ideathonScoped: ideathonScoped,
                       );
                     },
                   )
                 : DataTableView<EvaluationResultsRow>(
                     items: rows,
-                    columns: EvaluationResultsTableColumns.build(actions: actions),
+                    columns: EvaluationResultsTableColumns.build(
+                      actions: actions,
+                      ideathonScoped: ideathonScoped,
+                    ),
                     onSort: _onSort,
                     activeSortKey: _activeSortKey,
                   );
@@ -186,6 +233,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
               metrics: metrics,
               categories: categories,
               departments: departments,
+              ideathonScoped: ideathonScoped,
             );
 
             if (!hasBoundedHeight) {
@@ -216,8 +264,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required EvaluationResultsMetrics metrics,
     required List<String> categories,
     required List<String> departments,
+    required bool ideathonScoped,
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
+    final Widget? contextBanner = ideathonScoped ? _buildIdeathonBanner(compact: compact) : null;
     final Widget metricsRow = EvaluationResultsMetricsRow(
       metrics: metrics,
       spacing: compact ? 8 : 10,
@@ -239,6 +289,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           context: context,
           categories: categories,
           departments: departments,
+          ideathonScoped: ideathonScoped,
         ),
       ),
       crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
@@ -251,6 +302,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          if (contextBanner != null) ...<Widget>[
+            contextBanner,
+            const SizedBox(height: 8),
+          ],
           metricsRow,
           const SizedBox(height: 8),
           searchBar,
@@ -267,6 +322,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        if (contextBanner != null) ...<Widget>[
+          contextBanner,
+          const SizedBox(height: 12),
+        ],
         metricsRow,
         const SizedBox(height: 12),
         searchBar,
@@ -279,10 +338,58 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     );
   }
 
+  Widget _buildIdeathonBanner({required bool compact}) {
+    final String name = _ideathonName.isEmpty ? 'this Ideathon' : _ideathonName;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(AppIcons.results, size: 18, color: Color(0xFF4A67FF)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Ideathon Evaluation Results · $name',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Scores and completion are scoped to this event only. Incomplete evaluations are not treated as final.',
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500, color: Color(0xFF64748B), height: 1.35),
+                ),
+                if (_templateId.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () => WorkspaceNavigator.openEvaluationTemplate(context, _templateId),
+                    borderRadius: BorderRadius.circular(4),
+                    child: const Text(
+                      'View evaluation template',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFiltersPanel({
     required BuildContext context,
     required List<String> categories,
     required List<String> departments,
+    required bool ideathonScoped,
   }) {
     final bool compact = MobileFilterPaneStyles.useCompact(context);
     final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
@@ -298,31 +405,33 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Status', style: sectionLabel),
-          SizedBox(height: chipGap),
-          Wrap(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: <Widget>[
-              for (final IdeaStatus status in IdeaStatus.lifecycleOrder)
-                MobileFilterPaneStyles.filterChip(
-                  compact: compact,
-                  label: IdeaStatusHelpers.label(status),
-                  selected: _statusFilters.contains(status),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        _statusFilters.add(status);
-                      } else {
-                        _statusFilters.remove(status);
-                      }
-                    });
-                  },
-                ),
-            ],
-          ),
+          if (!ideathonScoped) ...<Widget>[
+            Text('Status', style: sectionLabel),
+            SizedBox(height: chipGap),
+            Wrap(
+              spacing: chipGap,
+              runSpacing: chipGap,
+              children: <Widget>[
+                for (final IdeaStatus status in IdeaStatus.lifecycleOrder)
+                  MobileFilterPaneStyles.filterChip(
+                    compact: compact,
+                    label: IdeaStatusHelpers.label(status),
+                    selected: _statusFilters.contains(status),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          _statusFilters.add(status);
+                        } else {
+                          _statusFilters.remove(status);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ],
           if (departments.isNotEmpty) ...<Widget>[
-            SizedBox(height: sectionGap),
+            if (!ideathonScoped) SizedBox(height: sectionGap),
             Text('Department', style: sectionLabel),
             SizedBox(height: chipGap),
             Wrap(
@@ -436,9 +545,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onClear});
+  const _EmptyState({required this.onClear, this.ideathonScoped = false});
 
   final VoidCallback onClear;
+  final bool ideathonScoped;
 
   @override
   Widget build(BuildContext context) {
@@ -452,9 +562,9 @@ class _EmptyState extends StatelessWidget {
           children: <Widget>[
             const Icon(AppIcons.results, size: 40, color: Color(0xFF94A3B8)),
             const SizedBox(height: 12),
-            const Text(
-              'No evaluation results',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            Text(
+              ideathonScoped ? 'No Ideathon evaluation results' : 'No evaluation results',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
             ),
             const SizedBox(height: 8),
             TextButton(onPressed: onClear, child: const Text('Clear filters')),

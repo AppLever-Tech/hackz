@@ -8,6 +8,7 @@ import '../../features/evaluations/workspace/evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_results_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
 import '../../features/problems/workspace/problem_workspace.dart';
@@ -69,6 +70,15 @@ class WorkspaceNavigator extends StatelessWidget {
       templateId,
       departmentCode: departmentCode,
     );
+  }
+
+  /// Opens Ideathon Evaluation Results using the existing Results UX for [ideathonId].
+  static void openIdeathonResults(
+    BuildContext context,
+    String ideathonId, {
+    required UserModel actor,
+  }) {
+    IdeathonResultsWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens Ideathon Evaluation using the existing Judge Scoring UX for [ideathonId].

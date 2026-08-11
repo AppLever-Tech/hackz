@@ -6,6 +6,7 @@ import '../../user/models/user_model.dart';
 import 'ideathon_evaluation_workspace.dart';
 import 'ideathon_judge_assignment_workspace.dart';
 import 'ideathon_payment_workspace.dart';
+import 'ideathon_results_workspace.dart';
 import 'ideathon_workspace_body.dart';
 import 'ideathon_workspace_loader.dart';
 
@@ -38,6 +39,13 @@ abstract final class IdeathonWorkspace {
         onOpenEvaluation: actor == null
             ? null
             : () => IdeathonEvaluationWorkspace.push(
+                  context,
+                  ideathonId,
+                  actor: actor,
+                ),
+        onOpenResults: actor == null
+            ? null
+            : () => IdeathonResultsWorkspace.push(
                   context,
                   ideathonId,
                   actor: actor,

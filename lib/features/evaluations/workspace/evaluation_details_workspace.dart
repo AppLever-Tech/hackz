@@ -21,14 +21,16 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 void showEvaluationDetailsPane(
   BuildContext context, {
   required String ideaId,
+  String ideathonId = '',
   String backTooltip = 'Back to Evaluation Results',
 }) {
   WorkspaceController.instance.close();
   final DashboardChromeController chrome = DashboardChromeScope.of(context);
   chrome.showOverlay(
     EvaluationDetailsPane(
-      key: ValueKey<String>(ideaId),
+      key: ValueKey<String>('$ideaId|${ideathonId.trim()}'),
       ideaId: ideaId,
+      ideathonId: ideathonId,
       onBack: chrome.clearOverlay,
       backTooltip: backTooltip,
     ),
@@ -41,10 +43,12 @@ class EvaluationDetailsPane extends StatefulWidget {
     super.key,
     required this.ideaId,
     required this.onBack,
+    this.ideathonId = '',
     this.backTooltip = 'Back',
   });
 
   final String ideaId;
+  final String ideathonId;
   final VoidCallback onBack;
   final String backTooltip;
 
@@ -63,7 +67,10 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
 
   void _load() {
     setState(() {
-      _future = EvaluationDetailsLoader.load(ideaId: widget.ideaId);
+      _future = EvaluationDetailsLoader.load(
+        ideaId: widget.ideaId,
+        ideathonId: widget.ideathonId,
+      );
     });
   }
 
@@ -176,7 +183,10 @@ class EvaluationDetailsBody extends StatelessWidget {
     return ListView(
       padding: pad,
       children: <Widget>[
-        if (!workspace) EvaluationSummaryCards(idea: vm.idea),
+        if (!workspace) EvaluationSummaryCards(
+          idea: vm.idea,
+          aggregateOverride: vm.aggregateOverride,
+        ),
         const SizedBox(height: 14),
         overviewDistributionRow,
         const SizedBox(height: 14),

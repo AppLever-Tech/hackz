@@ -8,20 +8,26 @@ import '../services/evaluation_aggregation_service.dart';
 
 /// Premium evaluation summary metrics (Average, Highest, Lowest, Judges).
 class EvaluationSummaryCards extends StatelessWidget {
-  const EvaluationSummaryCards({super.key, required this.idea});
+  const EvaluationSummaryCards({
+    super.key,
+    required this.idea,
+    this.aggregateOverride,
+  });
 
   final IdeaModel idea;
+  final IdeaEvaluationAggregate? aggregateOverride;
 
   @override
   Widget build(BuildContext context) {
-    final IdeaEvaluationAggregate aggregate = idea.hasEvaluationAggregate
-        ? EvaluationAggregationService.fromIdeaFields(
-            averageScore: idea.averageScore,
-            highestScore: idea.highestScore,
-            lowestScore: idea.lowestScore,
-            totalEvaluators: idea.totalEvaluators,
-          )
-        : const IdeaEvaluationAggregate.empty();
+    final IdeaEvaluationAggregate aggregate = aggregateOverride ??
+        (idea.hasEvaluationAggregate
+            ? EvaluationAggregationService.fromIdeaFields(
+                averageScore: idea.averageScore,
+                highestScore: idea.highestScore,
+                lowestScore: idea.lowestScore,
+                totalEvaluators: idea.totalEvaluators,
+              )
+            : const IdeaEvaluationAggregate.empty());
 
     if (!aggregate.hasScores) {
       return const Text(

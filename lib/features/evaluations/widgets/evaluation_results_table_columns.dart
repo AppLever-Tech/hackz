@@ -19,10 +19,11 @@ abstract final class EvaluationResultsTableColumns {
 
   static List<DataTableColumn<EvaluationResultsRow>> build({
     required EvaluationResultsTableActions actions,
+    bool ideathonScoped = false,
   }) {
     return <DataTableColumn<EvaluationResultsRow>>[
       DataTableColumn<EvaluationResultsRow>(
-        label: 'Rank',
+        label: ideathonScoped ? 'Order' : 'Rank',
         flex: 1,
         minWidth: 52,
         align: Alignment.center,
@@ -70,7 +71,11 @@ abstract final class EvaluationResultsTableColumns {
         align: Alignment.center,
         sortKey: 'average',
         cell: (_, EvaluationResultsRow row) => Center(
-          child: _ScoreText(value: row.aggregate.averageScore, emphasized: true),
+          child: _ScoreText(
+            value: ideathonScoped && !row.evaluationComplete ? null : row.aggregate.averageScore,
+            emphasized: true,
+            pending: ideathonScoped && !row.evaluationComplete && row.aggregate.hasScores,
+          ),
         ),
       ),
       DataTableColumn<EvaluationResultsRow>(
@@ -94,13 +99,15 @@ abstract final class EvaluationResultsTableColumns {
         ),
       ),
       DataTableColumn<EvaluationResultsRow>(
-        label: 'Evaluators',
+        label: ideathonScoped ? 'Submitted' : 'Evaluators',
         flex: 1,
         minWidth: 72,
         align: Alignment.center,
         cell: (_, EvaluationResultsRow row) => Center(
           child: Text(
-            '${row.aggregate.totalEvaluators}',
+            ideathonScoped && row.assignedJudges > 0
+                ? '${row.aggregate.totalEvaluators}/${row.assignedJudges}'
+                : '${row.aggregate.totalEvaluators}',
             style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
         ),
@@ -112,7 +119,9 @@ abstract final class EvaluationResultsTableColumns {
         align: Alignment.center,
         sortKey: 'status',
         cell: (_, EvaluationResultsRow row) => Center(
-          child: _StatusCell(status: row.idea.status),
+          child: ideathonScoped
+              ? _CompletionCell(complete: row.evaluationComplete)
+              : _StatusCell(status: row.idea.status),
         ),
       ),
     ];
@@ -125,15 +134,27 @@ class EvaluationResultsRowCard extends StatelessWidget {
     super.key,
     required this.row,
     required this.actions,
+    this.ideathonScoped = false,
   });
 
   final EvaluationResultsRow row;
   final EvaluationResultsTableActions actions;
+  final bool ideathonScoped;
 
   @override
   Widget build(BuildContext context) {
     final String title = row.idea.ideaTitle.trim().isEmpty ? row.idea.ideaId : row.idea.ideaTitle.trim();
-    final Color statusColor = IdeaStatusHelpers.color(row.idea.status);
+    final Color statusColor = ideathonScoped
+        ? (row.evaluationComplete ? const Color(0xFF059669) : const Color(0xFFEA580C))
+        : IdeaStatusHelpers.color(row.idea.status);
+    final String statusLabel = ideathonScoped
+        ? (row.evaluationComplete ? 'Evaluated' : 'Pending')
+        : IdeaStatusHelpers.label(row.idea.status);
+    final IconData statusIcon = ideathonScoped
+        ? (row.evaluationComplete ? Icons.check_circle_outline : Icons.hourglass_empty)
+        : IdeaStatusHelpers.icon(row.idea.status);
+    final double? averageDisplay =
+        ideathonScoped && !row.evaluationComplete ? null : row.aggregate.averageScore;
 
     return Container(
       width: double.infinity,
@@ -191,10 +212,17 @@ class EvaluationResultsRowCard extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              _MetricChip(label: 'Avg', value: row.aggregate.averageScore, accent: true),
+              _MetricChip(label: 'Avg', value: averageDisplay, accent: true),
               _MetricChip(label: 'High', value: row.aggregate.highestScore),
               _MetricChip(label: 'Low', value: row.aggregate.lowestScore),
-              _MetricChip(label: 'Judges', value: row.aggregate.totalEvaluators.toDouble(), isCount: true),
+              _MetricChip(
+                label: ideathonScoped ? 'In' : 'Judges',
+                value: ideathonScoped && row.assignedJudges > 0
+                    ? row.aggregate.totalEvaluators.toDouble()
+                    : row.aggregate.totalEvaluators.toDouble(),
+                isCount: true,
+                countSuffix: ideathonScoped && row.assignedJudges > 0 ? '/${row.assignedJudges}' : null,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -205,10 +233,10 @@ class EvaluationResultsRowCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Icon(IdeaStatusHelpers.icon(row.idea.status), size: 12, color: statusColor),
+                    Icon(statusIcon, size: 12, color: statusColor),
                     const SizedBox(width: 4),
                     Text(
-                      IdeaStatusHelpers.label(row.idea.status),
+                      statusLabel,
                       style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: statusColor),
                     ),
                   ],
@@ -228,19 +256,21 @@ class _MetricChip extends StatelessWidget {
     required this.value,
     this.accent = false,
     this.isCount = false,
+    this.countSuffix,
   });
 
   final String label;
   final double? value;
   final bool accent;
   final bool isCount;
+  final String? countSuffix;
 
   @override
   Widget build(BuildContext context) {
     final String display = value == null
         ? '—'
         : isCount
-            ? value!.toInt().toString()
+            ? '${value!.toInt()}${countSuffix ?? ''}'
             : value!.toStringAsFixed(1);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -276,22 +306,57 @@ class _MetricChip extends StatelessWidget {
 }
 
 class _ScoreText extends StatelessWidget {
-  const _ScoreText({required this.value, this.emphasized = false});
+  const _ScoreText({
+    required this.value,
+    this.emphasized = false,
+    this.pending = false,
+  });
 
   final double? value;
   final bool emphasized;
+  final bool pending;
 
   @override
   Widget build(BuildContext context) {
-    final String text = value == null ? '—' : value!.toStringAsFixed(1);
+    final String text = value == null ? (pending ? 'Pending' : '—') : value!.toStringAsFixed(1);
     return Text(
       text,
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: emphasized ? 13 : 12.5,
         fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
-        color: emphasized ? const Color(0xFF6A38FF) : const Color(0xFF334155),
+        color: value == null
+            ? const Color(0xFF94A3B8)
+            : emphasized
+                ? const Color(0xFF6A38FF)
+                : const Color(0xFF334155),
       ),
+    );
+  }
+}
+
+class _CompletionCell extends StatelessWidget {
+  const _CompletionCell({required this.complete});
+
+  final bool complete;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = complete ? const Color(0xFF059669) : const Color(0xFFEA580C);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(complete ? Icons.check_circle_outline : Icons.hourglass_empty, size: 14, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            complete ? 'Evaluated' : 'Pending',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color),
+          ),
+        ),
+      ],
     );
   }
 }

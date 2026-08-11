@@ -59,6 +59,7 @@ abstract final class EvaluationRankingService {
             lowestScore: idea.lowestScore,
             totalEvaluators: idea.totalEvaluators,
           ),
+          evaluationComplete: true,
         ),
       );
     }
@@ -81,11 +82,91 @@ abstract final class EvaluationRankingService {
             lowestScore: idea.lowestScore,
             totalEvaluators: idea.totalEvaluators,
           ),
+          evaluationComplete: false,
         ),
       );
     }
 
     return rows;
+  }
+
+  /// Builds rows from Ideathon-scoped aggregates (does not mutate Idea docs).
+  ///
+  /// Only [completeIdeaIds] receive a display order (rank). Incomplete ideas keep
+  /// submitted-score aggregates for progress visibility but are not presented as final.
+  static List<EvaluationResultsRow> buildRowsFromAggregates({
+    required List<IdeaModel> ideas,
+    required Map<String, ProblemModel> problems,
+    required Map<String, IdeaEvaluationAggregate> aggregatesByIdeaId,
+    required Set<String> completeIdeaIds,
+    Map<String, int> assignedJudgesByIdeaId = const <String, int>{},
+  }) {
+    final List<IdeaModel> complete = ideas
+        .where((IdeaModel i) => completeIdeaIds.contains(i.ideaId))
+        .toList(growable: true)
+      ..sort((IdeaModel a, IdeaModel b) {
+        final double av = aggregatesByIdeaId[a.ideaId]?.averageScore ?? 0;
+        final double bv = aggregatesByIdeaId[b.ideaId]?.averageScore ?? 0;
+        final int byScore = bv.compareTo(av);
+        if (byScore != 0) return byScore;
+        return a.ideaId.compareTo(b.ideaId);
+      });
+
+    final List<EvaluationResultsRow> rows = <EvaluationResultsRow>[];
+    for (int i = 0; i < complete.length; i++) {
+      final IdeaModel idea = complete[i];
+      rows.add(
+        _rowFromAggregate(
+          rank: i + 1,
+          idea: idea,
+          problem: problems[idea.problemId],
+          aggregate: aggregatesByIdeaId[idea.ideaId] ?? const IdeaEvaluationAggregate.empty(),
+          evaluationComplete: true,
+          assignedJudges: assignedJudgesByIdeaId[idea.ideaId] ?? 0,
+        ),
+      );
+    }
+
+    final Set<String> completeIds = complete.map((IdeaModel i) => i.ideaId).toSet();
+    for (final IdeaModel idea in ideas) {
+      if (completeIds.contains(idea.ideaId)) continue;
+      final IdeaEvaluationAggregate aggregate =
+          aggregatesByIdeaId[idea.ideaId] ?? const IdeaEvaluationAggregate.empty();
+      // Incomplete: show submitted scores for progress, never a final display rank.
+      rows.add(
+        _rowFromAggregate(
+          rank: 0,
+          idea: idea,
+          problem: problems[idea.problemId],
+          aggregate: aggregate,
+          evaluationComplete: false,
+          assignedJudges: assignedJudgesByIdeaId[idea.ideaId] ?? 0,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  static EvaluationResultsRow _rowFromAggregate({
+    required int rank,
+    required IdeaModel idea,
+    required ProblemModel? problem,
+    required IdeaEvaluationAggregate aggregate,
+    required bool evaluationComplete,
+    required int assignedJudges,
+  }) {
+    return EvaluationResultsRow(
+      rank: rank,
+      idea: idea,
+      problemTitle: (problem?.title ?? idea.problemTitle).trim().isEmpty
+          ? idea.problemId
+          : (problem?.title ?? idea.problemTitle).trim(),
+      category: (problem?.category ?? '').trim(),
+      aggregate: aggregate,
+      evaluationComplete: evaluationComplete,
+      assignedJudges: assignedJudges,
+    );
   }
 }
 
@@ -97,6 +178,8 @@ class EvaluationResultsRow {
     required this.problemTitle,
     required this.category,
     required this.aggregate,
+    this.evaluationComplete = true,
+    this.assignedJudges = 0,
   });
 
   final int rank;
@@ -104,4 +187,10 @@ class EvaluationResultsRow {
   final String problemTitle;
   final String category;
   final IdeaEvaluationAggregate aggregate;
+
+  /// True when all assigned judges for the Ideathon have submitted (or pipeline aggregate exists).
+  final bool evaluationComplete;
+
+  /// Assigned judges for this idea in the current Ideathon (0 in pipeline mode).
+  final int assignedJudges;
 }

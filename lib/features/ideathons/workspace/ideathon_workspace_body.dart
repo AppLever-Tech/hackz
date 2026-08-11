@@ -23,6 +23,7 @@ class IdeathonWorkspaceBody extends StatelessWidget {
     this.onOpenPayments,
     this.onOpenJudgeAssignment,
     this.onOpenEvaluation,
+    this.onOpenResults,
   });
 
   final IdeathonWorkspaceViewModel vm;
@@ -31,6 +32,7 @@ class IdeathonWorkspaceBody extends StatelessWidget {
   final VoidCallback? onOpenPayments;
   final VoidCallback? onOpenJudgeAssignment;
   final VoidCallback? onOpenEvaluation;
+  final VoidCallback? onOpenResults;
 
   @override
   Widget build(BuildContext context) {
@@ -128,6 +130,29 @@ class IdeathonWorkspaceBody extends StatelessWidget {
                   icon: AppIcons.scoring,
                   semantic: ProblemWorkflowPillSemantic.filledBrand,
                   onTap: onOpenEvaluation,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _sectionCard(
+          title: 'Evaluation Results',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text(
+                'Review Ideathon-scoped scores, completion status, and judge feedback for registered ideas. Results from other events are never included.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ProblemWorkflowActionPill(
+                  label: 'Open Ideathon Evaluation Results',
+                  icon: AppIcons.results,
+                  semantic: ProblemWorkflowPillSemantic.filledBrand,
+                  onTap: onOpenResults,
                 ),
               ),
             ],
