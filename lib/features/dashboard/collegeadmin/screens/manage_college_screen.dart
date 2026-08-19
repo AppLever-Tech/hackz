@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
+import '../../../../features/domain/services/domain_service.dart';
 import '../../../../features/organization/models/department_model.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
@@ -191,10 +192,14 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
               setState(() => isSaving = true);
               var didPop = false;
               try {
-                await FirestoreUtils.addDepartment(
+                final String departmentId = await FirestoreUtils.addDepartment(
                   orgId: widget.user.orgId,
                   name: departmentName,
                   code: departmentCode,
+                );
+                await DomainService.ensureGeneralProblem(
+                  orgId: widget.user.orgId,
+                  departmentId: departmentId,
                 );
                 if (!context.mounted) return;
                 didPop = true;

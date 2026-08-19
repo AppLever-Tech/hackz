@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../user/constants/csv_import_role_constants.dart';
 import '../services/import_department_lookup.dart';
-import '../services/import_domain_lookup.dart';
 import 'reference_values_viewer.dart';
 
 /// Compact entry points for supported CSV reference data (opens [showReferenceValuesViewer]).
@@ -12,17 +11,14 @@ class ImportSupportedValuesSection extends StatelessWidget {
     super.key,
     required this.departments,
     required this.supportedRoles,
-    this.domains = const <ImportDomainInfo>[],
     this.loading = false,
   });
 
   final List<ImportDepartmentInfo> departments;
-  final List<ImportDomainInfo> domains;
   final Set<String>? supportedRoles;
   final bool loading;
 
   static const int _departmentSearchThreshold = 10;
-  static const int _domainSearchThreshold = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -64,18 +60,6 @@ class ImportSupportedValuesSection extends StatelessWidget {
                     ),
             subtitle: departments.isEmpty ? 'No departments found yet' : null,
           ),
-          if (domains.isNotEmpty || supportedRoles == null)
-            _ReferenceTile(
-              icon: AppIcons.domains,
-              title: 'Domain Codes',
-              onTap: domains.isEmpty
-                  ? null
-                  : () => showReferenceValuesViewer(
-                        context: context,
-                        config: _domainsConfig(domains),
-                      ),
-              subtitle: domains.isEmpty ? 'No domains found yet' : null,
-            ),
         ],
       ],
     );
@@ -111,28 +95,6 @@ class ImportSupportedValuesSection extends StatelessWidget {
       enableSearch: true,
       searchThreshold: _departmentSearchThreshold,
       emptyMessage: 'No departments found. Create departments under Department Management first.',
-    );
-  }
-
-  static ReferenceValuesViewerConfig _domainsConfig(List<ImportDomainInfo> domains) {
-    final List<ReferenceValueItem> items = domains
-        .map(
-          (ImportDomainInfo d) => ReferenceValueItem(
-            primary: d.code,
-            secondary: d.name.isEmpty
-                ? d.departmentCode
-                : '${d.name} · ${d.departmentCode}',
-            searchTerms: <String>[d.code, d.name, d.departmentCode],
-          ),
-        )
-        .toList(growable: false);
-    return ReferenceValuesViewerConfig(
-      title: 'Domain Codes',
-      subtitle: 'Domain codes must belong to the department code in the same row.',
-      items: items,
-      enableSearch: true,
-      searchThreshold: _domainSearchThreshold,
-      emptyMessage: 'No domains found. Create domains under Domains first.',
     );
   }
 }

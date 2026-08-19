@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../domain/models/domain_model.dart';
+import '../../domain/services/domain_department_resolver.dart';
+import '../../domain/services/domain_service.dart';
 import '../../problems/constants/problem_constants.dart';
 import '../../problems/models/problem_model.dart';
+import '../../problems/models/problem_statement_source.dart';
 import '../../problems/models/problem_status.dart';
 import '../../problems/services/problem_utils.dart';
 import '../../../utils/firestore_utils.dart';
@@ -11,21 +15,18 @@ import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
+import 'csv_parser_service.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
-import 'import_domain_lookup.dart';
-import 'import_domain_validator.dart';
 import 'import_handler.dart';
 
 class ProblemsImportHandler implements ImportHandler {
   static const List<String> headers = <String>[
-    'title',
-    'description',
-    'category',
-    ImportConstants.departmentColumnKey,
-    ImportConstants.domainCodeColumnKey,
-    'theme',
-    'tags',
+    ImportConstants.titleColumnKey,
+    ImportConstants.descriptionColumnKey,
+    ImportConstants.issuingOrganisationColumnKey,
+    ImportConstants.issuingDepartmentColumnKey,
+    ImportConstants.externalProblemIdColumnKey,
   ];
 
   @override
@@ -39,47 +40,63 @@ class ProblemsImportHandler implements ImportHandler {
 
   @override
   String get templateCsv => '''
-title,description,category,${ImportConstants.departmentColumnKey},${ImportConstants.domainCodeColumnKey},theme,tags
-Smart Campus Navigation,Help students find classrooms quickly,Software,CSE,CLOUDSEC,Mobility,"IoT,Mobile"
-Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,Environment,"IoT,AI/ML"
+title,description,issuingOrganisation,issuingDepartment,externalProblemId
+Smart Campus Navigation,Help students find classrooms quickly,,,
+Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hackathon,MoE,SIH-2026-001
 '''.trim();
 
   @override
   List<String> get requiredHeaders => const <String>[
-        'title',
-        'category',
-        ImportConstants.departmentColumnKey,
-        ImportConstants.domainCodeColumnKey,
+        ImportConstants.titleColumnKey,
+        ImportConstants.descriptionColumnKey,
       ];
+
+  @override
+  List<String> get reviewHeaders => const <String>[
+        ImportConstants.titleColumnKey,
+        ImportConstants.descriptionColumnKey,
+      ];
+
+  @override
+  List<String> get expansionHeaders => const <String>[
+        ImportConstants.issuingOrganisationColumnKey,
+        ImportConstants.issuingDepartmentColumnKey,
+        ImportConstants.externalProblemIdColumnKey,
+      ];
+
+  @override
+  String get columnGuidance =>
+      'Required: title, description. Issuer fields are optional. '
+      'Category is always Software; you can change it after import. '
+      'Organisation, department, domain, and source come from this screen — not the CSV.';
 
   @override
   Future<List<ImportReviewRow>> validateRows(
     List<Map<String, String>> rows,
     ImportHandlerContext context,
   ) async {
-    final _ProblemImportLookup lookup = await _ProblemImportLookup.load(context.orgId);
+    final ProblemsImportHandlerContext problemContext = _requireContext(context);
+    final _ProblemImportLookup lookup = await _ProblemImportLookup.load(problemContext);
+
     final Set<String> titlesInFile = <String>{};
     final List<ImportReviewRow> review = <ImportReviewRow>[];
 
     for (var i = 0; i < rows.length; i++) {
       final Map<String, String> row = rows[i];
-      final int rowNumber = i + 2;
-      final String title = _cell(row, 'title');
-      final String description = _cell(row, 'description');
-      final String category = _cell(row, 'category');
-      final String departmentRaw = _cell(row, ImportConstants.departmentColumnKey);
-      final String domainRaw = _cell(row, ImportConstants.domainCodeColumnKey);
-      final String theme = _cell(row, 'theme');
-      final String tagsRaw = _cell(row, 'tags');
+      final int rowNumber = i + 1;
+      final String title = CsvParserService.cell(row, ImportConstants.titleColumnKey);
+      final String description = CsvParserService.cell(row, ImportConstants.descriptionColumnKey);
+      final String issuingOrganisation =
+          CsvParserService.cell(row, ImportConstants.issuingOrganisationColumnKey);
+      final String issuingDepartment =
+          CsvParserService.cell(row, ImportConstants.issuingDepartmentColumnKey);
+      final String externalProblemId =
+          CsvParserService.cell(row, ImportConstants.externalProblemIdColumnKey);
 
       final List<String> issues = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
-      String? departmentCode;
-      String? departmentName;
-      String? domainId;
-      String? domainCode;
 
       if (title.isEmpty) {
         issues.add('Missing title');
@@ -88,49 +105,11 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,
         statusLabel = 'Missing Title';
       }
 
-      final ImportDepartmentValidation deptResult = ImportDepartmentValidator.validate(
-        rawInput: departmentRaw,
-        lookup: lookup.departments,
-      );
-      if (!deptResult.isValid) {
-        issues.add(deptResult.errorMessage ?? 'Invalid department code');
+      if (description.isEmpty) {
+        issues.add('Missing description');
         severity = ImportRowSeverity.error;
         importable = false;
-        statusLabel = deptResult.statusLabel ?? 'Invalid Department';
-      } else {
-        departmentCode = deptResult.canonicalCode;
-        departmentName = deptResult.departmentName;
-      }
-
-      final ImportDomainValidation domainResult = ImportDomainValidator.validate(
-        rawInput: domainRaw,
-        departmentCode: departmentCode,
-        lookup: lookup.domains,
-      );
-      if (!domainResult.isValid) {
-        issues.add(domainResult.errorMessage ?? 'Invalid domain code');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = domainResult.statusLabel ?? 'Invalid Domain';
-      } else {
-        domainId = domainResult.domainId;
-        domainCode = domainResult.canonicalCode;
-      }
-
-      String? resolvedCategory;
-      if (category.isEmpty) {
-        issues.add('Missing category');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Missing Category';
-      } else {
-        resolvedCategory = ProblemConstants.resolveCategory(category);
-        if (resolvedCategory == null) {
-          issues.add('Category must be Software or Hardware');
-          severity = ImportRowSeverity.error;
-          importable = false;
-          statusLabel = 'Invalid Category';
-        }
+        statusLabel = 'Missing Description';
       }
 
       final String normalizedTitle = title.trim().toLowerCase();
@@ -157,25 +136,26 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,
         ImportReviewRow(
           rowNumber: rowNumber,
           values: <String, String>{
-            'title': title,
-            'description': description,
-            'category': resolvedCategory ?? category,
-            ImportConstants.departmentColumnKey: departmentCode ?? departmentRaw,
-            ImportConstants.domainCodeColumnKey: domainCode ?? domainRaw,
-            'theme': theme,
-            'tags': tagsRaw,
+            ImportConstants.titleColumnKey: title,
+            ImportConstants.descriptionColumnKey: description,
+            ImportConstants.issuingOrganisationColumnKey: issuingOrganisation,
+            ImportConstants.issuingDepartmentColumnKey: issuingDepartment,
+            ImportConstants.externalProblemIdColumnKey: externalProblemId,
           },
           severity: severity,
           statusLabel: statusLabel,
           messages: issues,
           importable: importable,
           metadata: <String, String>{
-            if (departmentCode != null) 'departmentCode': departmentCode,
-            if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
-            if (domainId != null) 'domainId': domainId,
-            if (domainCode != null) 'domainCode': domainCode,
-            if (resolvedCategory != null) 'category': resolvedCategory,
-            if (tagsRaw.isNotEmpty) 'tags': tagsRaw,
+            'departmentCode': lookup.departmentCode,
+            if (lookup.departmentName.isNotEmpty) 'departmentName': lookup.departmentName,
+            'domainId': lookup.domain.domainId,
+            'domainCode': lookup.domain.code,
+            'category': ProblemConstants.categorySoftware,
+            'source': problemContext.problemSource.value,
+            if (issuingOrganisation.isNotEmpty) 'issuingOrganisation': issuingOrganisation,
+            if (issuingDepartment.isNotEmpty) 'issuingDepartment': issuingDepartment,
+            if (externalProblemId.isNotEmpty) 'externalProblemId': externalProblemId,
           },
         ),
       );
@@ -189,6 +169,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,
     List<ImportReviewRow> rows,
     ImportHandlerContext context,
   ) async {
+    final ProblemsImportHandlerContext problemContext = _requireContext(context);
     final List<ImportReviewRow> importable =
         rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
 
@@ -200,30 +181,36 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,
     for (final ImportReviewRow row in importable) {
       try {
         final String departmentCode =
-            row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+            row.metadata['departmentCode'] ?? problemContext.defaultDepartmentCode;
         final String domainId = row.metadata['domainId'] ?? '';
+        if (domainId.isEmpty) {
+          throw StateError(ImportConstants.generalProblemDomainFailedMessage);
+        }
         final String problemId =
             FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
         final String problemNumber = await ProblemUtils.generateProblemNumber();
-        final List<String> tags = _parseTags(row.metadata['tags'] ?? row.valueFor('tags'));
 
         final ProblemModel problem = ProblemModel(
           problemId: problemId,
           problemNumber: problemNumber,
-          title: row.valueFor('title'),
-          description: row.valueFor('description'),
-          orgId: context.orgId,
-          orgType: 'college',
+          title: row.valueFor(ImportConstants.titleColumnKey),
+          description: row.valueFor(ImportConstants.descriptionColumnKey),
+          orgId: problemContext.orgId,
+          orgType: problemContext.orgType,
           departmentCode: departmentCode,
           domainId: domainId,
-          createdBy: context.actorUserId,
-          category: row.metadata['category'] ?? row.valueFor('category'),
-          theme: row.valueFor('theme'),
-          tags: tags,
+          createdBy: problemContext.actorUserId,
+          category: ProblemConstants.categorySoftware,
+          theme: '',
+          tags: const <String>[],
           attachments: const <String>[],
           status: ProblemStatus.draft,
           createdAt: DateTime.now(),
           createdSource: ImportCreatedSource.csvImport.value,
+          source: row.metadata['source'] ?? problemContext.problemSource.value,
+          issuingOrganisation: row.valueFor(ImportConstants.issuingOrganisationColumnKey),
+          issuingDepartment: row.valueFor(ImportConstants.issuingDepartmentColumnKey),
+          externalProblemId: row.valueFor(ImportConstants.externalProblemIdColumnKey),
         );
 
         await FirestoreUtils.createProblemWithId(problem: problem, problemId: problemId);
@@ -242,41 +229,109 @@ Waste Segregation Monitor,Track recycling compliance on campus,Hardware,CSE,IAM,
     );
   }
 
-  static String _cell(Map<String, String> row, String key) => (row[key] ?? '').trim();
+  static ProblemsImportHandlerContext _requireContext(ImportHandlerContext context) {
+    if (context is ProblemsImportHandlerContext) return context;
+    throw StateError('Problem import requires organisation and department context.');
+  }
+}
 
-  static List<String> _parseTags(String raw) {
-    if (raw.trim().isEmpty) return const <String>[];
-    return raw
-        .split(RegExp(r'[;,]'))
-        .map((String t) => t.trim())
-        .where((String t) => t.isNotEmpty)
-        .toList(growable: false);
+class ProblemsImportHandlerContext extends ImportHandlerContext {
+  ProblemsImportHandlerContext({
+    required super.actorUserId,
+    required super.orgId,
+    required super.defaultDepartmentName,
+    required super.defaultDepartmentCode,
+    this.orgName = '',
+    this.orgType = 'college',
+    this.lockDepartment = false,
+    this.problemSource = ProblemStatementSource.internal,
+  });
+
+  final String orgName;
+  final String orgType;
+  final bool lockDepartment;
+  final ProblemStatementSource problemSource;
+
+  ProblemsImportHandlerContext copyWith({
+    String? defaultDepartmentName,
+    String? defaultDepartmentCode,
+    String? orgName,
+    ProblemStatementSource? problemSource,
+  }) {
+    return ProblemsImportHandlerContext(
+      actorUserId: actorUserId,
+      orgId: orgId,
+      defaultDepartmentName: defaultDepartmentName ?? this.defaultDepartmentName,
+      defaultDepartmentCode: defaultDepartmentCode ?? this.defaultDepartmentCode,
+      orgName: orgName ?? this.orgName,
+      orgType: orgType,
+      lockDepartment: lockDepartment,
+      problemSource: problemSource ?? this.problemSource,
+    );
   }
 }
 
 class _ProblemImportLookup {
   _ProblemImportLookup({
     required this.existingTitles,
-    required this.departments,
-    required this.domains,
+    required this.departmentCode,
+    required this.departmentName,
+    required this.domain,
   });
 
   final Set<String> existingTitles;
-  final ImportDepartmentLookup departments;
-  final ImportDomainLookup domains;
+  final String departmentCode;
+  final String departmentName;
+  final DomainModel domain;
 
-  static Future<_ProblemImportLookup> load(String orgId) async {
-    final List<ProblemModel> problems = await FirestoreUtils.getProblemModelsByCollege(orgId);
-    final ImportDepartmentLookup departments = await ImportDepartmentLookup.load(orgId);
-    final ImportDomainLookup domains = await ImportDomainLookup.load(orgId);
+  static Future<_ProblemImportLookup> load(ProblemsImportHandlerContext context) async {
+    final String departmentCode = context.defaultDepartmentCode.trim().toUpperCase();
+    if (departmentCode.isEmpty) {
+      throw StateError(ImportConstants.missingImportDepartmentMessage);
+    }
+
+    final ImportDepartmentLookup departments = await ImportDepartmentLookup.load(context.orgId);
+    final ImportDepartmentValidation deptResult = ImportDepartmentValidator.validate(
+      rawInput: departmentCode,
+      lookup: departments,
+    );
+    if (!deptResult.isValid) {
+      throw StateError(deptResult.errorMessage ?? ImportConstants.missingImportDepartmentMessage);
+    }
+
+    final String? departmentId = await DomainDepartmentResolver.departmentIdForCode(
+      orgId: context.orgId,
+      departmentCode: departmentCode,
+    );
+    if (departmentId == null || departmentId.isEmpty) {
+      throw StateError(ImportConstants.generalProblemDomainFailedMessage);
+    }
+
+    final DomainModel domain;
+    try {
+      domain = await DomainService.ensureGeneralProblem(
+        orgId: context.orgId,
+        departmentId: departmentId,
+      );
+    } catch (e) {
+      throw StateError(
+        '${ImportConstants.generalProblemDomainFailedMessage} $e',
+      );
+    }
+    if (domain.domainId.trim().isEmpty) {
+      throw StateError(ImportConstants.generalProblemDomainFailedMessage);
+    }
+
+    final List<ProblemModel> problems = await FirestoreUtils.getProblemModelsByCollege(context.orgId);
 
     return _ProblemImportLookup(
       existingTitles: problems
           .map((ProblemModel p) => p.title.trim().toLowerCase())
           .where((String t) => t.isNotEmpty)
           .toSet(),
-      departments: departments,
-      domains: domains,
+      departmentCode: deptResult.canonicalCode ?? departmentCode,
+      departmentName: (deptResult.departmentName ?? context.defaultDepartmentName).trim(),
+      domain: domain,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
+import '../constants/domain_constants.dart';
 import '../models/domain_model.dart';
 
 /// CRUD and queries for [DomainModel] in `hkzDomains`.
@@ -116,6 +117,78 @@ abstract final class DomainService {
     );
     await ref.set(domain.toMap());
     return domain;
+  }
+
+  /// Resolves the department's default [DomainConstants.generalProblemName] domain,
+  /// creating it with [DomainService.create] when missing.
+  static Future<DomainModel> ensureGeneralProblem({
+    required String orgId,
+    required String departmentId,
+  }) async {
+    final String org = orgId.trim();
+    final String deptId = departmentId.trim();
+    if (org.isEmpty) {
+      throw StateError('Could not resolve or create the "${DomainConstants.generalProblemName}" domain: organisation is missing.');
+    }
+    if (deptId.isEmpty) {
+      throw StateError('Could not resolve or create the "${DomainConstants.generalProblemName}" domain: department is missing.');
+    }
+
+    DomainModel? existing = await findByName(
+      orgId: org,
+      departmentId: deptId,
+      name: DomainConstants.generalProblemName,
+    );
+    if (existing != null) return existing;
+
+    const List<String> candidateCodes = <String>[
+      DomainConstants.generalProblemCode,
+      'GENPROB',
+      'GENERALPROBLEM',
+    ];
+    Object? lastError;
+    for (final String code in candidateCodes) {
+      try {
+        return await create(
+          orgId: org,
+          departmentId: deptId,
+          code: code,
+          name: DomainConstants.generalProblemName,
+        );
+      } catch (e) {
+        lastError = e;
+        existing = await findByName(
+          orgId: org,
+          departmentId: deptId,
+          name: DomainConstants.generalProblemName,
+        );
+        if (existing != null) return existing;
+      }
+    }
+
+    throw StateError(
+      'Could not resolve or create the "${DomainConstants.generalProblemName}" domain for this department.'
+      '${lastError == null ? '' : ' $lastError'}',
+    );
+  }
+
+  /// Resolve domain by display name within a department (org-scoped).
+  static Future<DomainModel?> findByName({
+    required String orgId,
+    required String departmentId,
+    required String name,
+  }) async {
+    final String wanted = name.trim();
+    if (wanted.isEmpty) return null;
+    final List<DomainModel> domains = await listByOrg(orgId: orgId, departmentId: departmentId);
+    for (final DomainModel d in domains) {
+      if (d.name.trim() == wanted) return d;
+    }
+    final String wantedLower = wanted.toLowerCase();
+    for (final DomainModel d in domains) {
+      if (d.name.trim().toLowerCase() == wantedLower) return d;
+    }
+    return null;
   }
 
   static Future<void> update(DomainModel domain) async {

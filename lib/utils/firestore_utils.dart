@@ -580,18 +580,20 @@ class FirestoreUtils {
     ];
   }
 
-  static Future<void> addDepartment({
+  static Future<String> addDepartment({
     required String orgId,
     required String name,
     required String code,
   }) async {
-    await _db.collection(hkzDepartments).add(<String, dynamic>{
+    final DocumentReference<Map<String, dynamic>> ref =
+        await _db.collection(hkzDepartments).add(<String, dynamic>{
       'orgId': orgId,
       'name': name.trim(),
       'code': code.trim().toUpperCase(),
       'adminUserId': '',
       'createdAt': FieldValue.serverTimestamp(),
     });
+    return ref.id;
   }
 
   static Future<void> updateDepartment({

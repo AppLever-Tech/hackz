@@ -23,6 +23,10 @@ class ProblemModel {
     required this.createdAt,
     this.createdSource,
     this.updatedAt,
+    this.source = '',
+    this.issuingOrganisation = '',
+    this.issuingDepartment = '',
+    this.externalProblemId = '',
     this.summary = '',
     this.background = '',
     this.impact = '',
@@ -64,6 +68,12 @@ class ProblemModel {
   final DateTime createdAt;
   final String? createdSource;
   final DateTime? updatedAt;
+
+  /// Internal vs external origin (`INTERNAL` / `EXTERNAL`). Distinct from [createdSource].
+  final String source;
+  final String issuingOrganisation;
+  final String issuingDepartment;
+  final String externalProblemId;
 
   // Innovation context (Section 2).
   final String summary;
@@ -125,6 +135,10 @@ class ProblemModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
       if ((createdSource ?? '').trim().isNotEmpty) 'createdSource': createdSource!.trim(),
+      if (source.trim().isNotEmpty) 'source': source.trim(),
+      if (issuingOrganisation.trim().isNotEmpty) 'issuingOrganisation': issuingOrganisation.trim(),
+      if (issuingDepartment.trim().isNotEmpty) 'issuingDepartment': issuingDepartment.trim(),
+      if (externalProblemId.trim().isNotEmpty) 'externalProblemId': externalProblemId.trim(),
       'summary': summary,
       'background': background,
       'impact': impact,
@@ -181,6 +195,10 @@ class ProblemModel {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdSource: (map['createdSource'] as String?)?.trim(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+      source: str('source'),
+      issuingOrganisation: str('issuingOrganisation'),
+      issuingDepartment: str('issuingDepartment'),
+      externalProblemId: str('externalProblemId'),
       summary: str('summary'),
       background: str('background'),
       impact: str('impact'),
@@ -229,6 +247,10 @@ class ProblemModel {
       createdAt: createdAt,
       createdSource: createdSource ?? this.createdSource,
       updatedAt: updatedAt ?? this.updatedAt,
+      source: source,
+      issuingOrganisation: issuingOrganisation,
+      issuingDepartment: issuingDepartment,
+      externalProblemId: externalProblemId,
       summary: summary,
       background: background,
       impact: impact,

@@ -173,7 +173,7 @@ abstract final class DocsRegistry {
       category: DocCategory.reference,
       builder: (_) => const PlaceholderDocPage(
         title: 'CSV Import',
-        description: 'Templates, validation, department codes, and domain codes.',
+        description: 'Templates, validation, and CSV import for users and problems.',
       ),
     ),
     DocPageDefinition(

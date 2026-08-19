@@ -1,6 +1,7 @@
 /// Domain feature barrel.
 library;
 
+export 'constants/domain_constants.dart';
 export 'models/domain_model.dart';
 export 'services/domain_service.dart';
 export 'services/domain_department_resolver.dart';

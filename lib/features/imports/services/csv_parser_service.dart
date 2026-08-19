@@ -35,6 +35,21 @@ abstract final class CsvParserService {
     return parse(utf8.decode(bytes));
   }
 
+  /// Reads a cell using the parser's lowercased headers, with a case-insensitive fallback.
+  static String cell(Map<String, String> row, String key) {
+    final String wanted = key.trim();
+    if (wanted.isEmpty) return '';
+    final String? direct = row[wanted];
+    if (direct != null) return direct.trim();
+    final String lower = wanted.toLowerCase();
+    final String? lowered = row[lower];
+    if (lowered != null) return lowered.trim();
+    for (final MapEntry<String, String> entry in row.entries) {
+      if (entry.key.toLowerCase() == lower) return entry.value.trim();
+    }
+    return '';
+  }
+
   static String _normalizeHeader(String raw) => raw.trim().toLowerCase();
 
   static List<String> _splitLine(String line) {

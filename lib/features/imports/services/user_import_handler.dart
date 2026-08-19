@@ -48,6 +48,16 @@ Robert Lee,robert@test.com,9876543212,${CsvImportRoleConstants.judge},CSE
   List<String> get requiredHeaders => headers;
 
   @override
+  List<String> get reviewHeaders => headers;
+
+  @override
+  List<String> get expansionHeaders => const <String>[];
+
+  @override
+  String get columnGuidance =>
+      'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.';
+
+  @override
   Future<List<ImportReviewRow>> validateRows(
     List<Map<String, String>> rows,
     ImportHandlerContext context,

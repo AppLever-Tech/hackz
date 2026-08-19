@@ -242,6 +242,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       orgId: widget.config.orgId,
       defaultDepartmentName: widget.currentUser.department.trim(),
       defaultDepartmentCode: widget.currentUser.departmentCode,
+      orgType: widget.currentUser.orgType?.name ?? 'college',
+      lockDepartment: UserRole.fromCode(widget.currentUser.role) == UserRole.departmentAdmin,
     );
     if (imported == true && mounted) {
       _loadProblems();

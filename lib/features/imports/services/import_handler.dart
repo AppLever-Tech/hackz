@@ -14,6 +14,15 @@ abstract class ImportHandler {
 
   List<String> get requiredHeaders;
 
+  /// Columns shown in the review table. Defaults to [requiredHeaders].
+  List<String> get reviewHeaders => requiredHeaders;
+
+  /// Extra template help shown under the required-columns hint.
+  String get columnGuidance => '';
+
+  /// Optional columns shown only when a review row is expanded.
+  List<String> get expansionHeaders => const <String>[];
+
   /// Validates parsed CSV rows and returns review rows (never imports here).
   Future<List<ImportReviewRow>> validateRows(
     List<Map<String, String>> rows,

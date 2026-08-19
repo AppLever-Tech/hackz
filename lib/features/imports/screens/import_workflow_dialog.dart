@@ -1,25 +1,29 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/loading/hkz_async_loader.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../../features/docs/widgets/help_action_button.dart';
+import '../../problems/models/problem_statement_source.dart';
+import '../constants/import_constants.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
 import '../services/import_department_lookup.dart';
-import '../services/import_domain_lookup.dart';
 import '../services/import_handler.dart';
 import '../services/import_platform_support.dart';
 import '../services/import_registry.dart';
 import '../services/import_template_service.dart';
-import '../constants/import_constants.dart';
+import '../services/problems_import_handler.dart';
+import '../widgets/import_problem_context_section.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_summary_metrics.dart';
-import '../../../features/docs/widgets/help_action_button.dart';
 import '../widgets/import_supported_values_section.dart';
 
 enum _ImportStep { template, review, result }
@@ -46,15 +50,31 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   ImportSummary? _summary;
   ImportExecutionResult? _result;
   ImportDepartmentLookup? _departments;
-  ImportDomainLookup? _domains;
-  bool _departmentsLoading = true;
+  bool _lookupsLoading = true;
+  String _orgName = '';
+  String _selectedDepartmentCode = '';
+  String _selectedDepartmentName = '';
+  ProblemStatementSource _problemSource = ProblemStatementSource.internal;
 
   ImportHandler get _handler => widget.handler;
   bool get _isProblemsImport => _handler.type == ImportType.problems;
+  ProblemsImportHandlerContext? get _problemContext =>
+      widget.contextData is ProblemsImportHandlerContext
+          ? widget.contextData as ProblemsImportHandlerContext
+          : null;
+
+  bool get _hasDepartment => _selectedDepartmentCode.trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
+    final ProblemsImportHandlerContext? problemContext = _problemContext;
+    _orgName = problemContext?.orgName.trim().isNotEmpty == true
+        ? problemContext!.orgName.trim()
+        : widget.contextData.orgId;
+    _selectedDepartmentCode = widget.contextData.defaultDepartmentCode.trim().toUpperCase();
+    _selectedDepartmentName = widget.contextData.defaultDepartmentName.trim();
+    _problemSource = problemContext?.problemSource ?? ProblemStatementSource.internal;
     _loadReferenceLookups();
   }
 
@@ -62,20 +82,36 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     try {
       final ImportDepartmentLookup deptLookup =
           await ImportDepartmentLookup.load(widget.contextData.orgId);
-      ImportDomainLookup? domainLookup;
+      String orgName = _orgName;
       if (_isProblemsImport) {
-        domainLookup = await ImportDomainLookup.load(widget.contextData.orgId);
+        final org = await FirestoreUtils.fetchOrganization(widget.contextData.orgId);
+        final String fetched = (org?.name ?? '').trim();
+        if (fetched.isNotEmpty) orgName = fetched;
+      }
+      if (_selectedDepartmentName.isEmpty && _selectedDepartmentCode.isNotEmpty) {
+        _selectedDepartmentName = deptLookup.codeToName[_selectedDepartmentCode] ?? '';
       }
       if (!mounted) return;
       setState(() {
         _departments = deptLookup;
-        _domains = domainLookup;
-        _departmentsLoading = false;
+        _orgName = orgName;
+        _lookupsLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _departmentsLoading = false);
+      setState(() => _lookupsLoading = false);
     }
+  }
+
+  ImportHandlerContext _effectiveContext() {
+    final ProblemsImportHandlerContext? problemContext = _problemContext;
+    if (problemContext == null) return widget.contextData;
+    return problemContext.copyWith(
+      defaultDepartmentCode: _selectedDepartmentCode,
+      defaultDepartmentName: _selectedDepartmentName,
+      orgName: _orgName,
+      problemSource: _problemSource,
+    );
   }
 
   Future<void> _downloadTemplate() async {
@@ -118,32 +154,16 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     );
   }
 
-  Future<void> _downloadDomainCodes() async {
-    final ImportDomainLookup? lookup = _domains;
-    if (lookup == null || lookup.domains.isEmpty) {
+  Future<void> _pickCsv() async {
+    if (_isProblemsImport && !_hasDepartment) {
       FeedbackService.showWarning(
         context,
-        title: 'No domains',
-        message: 'Create domains under Domains first.',
+        title: 'Department required',
+        message: ImportConstants.missingImportDepartmentMessage,
       );
       return;
     }
 
-    final bool saved = await ImportTemplateService.downloadTemplate(
-      fileName: ImportDomainInfo.domainCodesFileName,
-      csvContent: lookup.buildDomainCodesCsv(),
-    );
-    if (!mounted) return;
-    FeedbackService.showSuccess(
-      context,
-      title: saved ? 'Domain codes downloaded' : 'Domain codes copied',
-      message: saved
-          ? 'Domain codes CSV saved to your device.'
-          : 'Domain codes copied to clipboard. Paste into a spreadsheet and save as .csv',
-    );
-  }
-
-  Future<void> _pickCsv() async {
     final FilePickerResult? picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: <String>['csv'],
@@ -168,7 +188,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         return;
       }
 
-      final List<ImportReviewRow> validated = await _handler.validateRows(parsed, widget.contextData);
+      final List<ImportReviewRow> validated = await _handler.validateRows(parsed, _effectiveContext());
       if (!mounted) return;
       setState(() {
         _fileName = file.name;
@@ -202,7 +222,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         context,
         title: 'Importing',
         message: 'Creating ${importable.length} record${importable.length == 1 ? '' : 's'}...',
-        task: () => _handler.executeImport(_rows, widget.contextData),
+        task: () => _handler.executeImport(_rows, _effectiveContext()),
       );
       if (!mounted) return;
       setState(() {
@@ -226,29 +246,46 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool compact = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        Text(
+          _handler.title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 4),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Expanded(
               child: Text(
-                _handler.title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+                _step == _ImportStep.template
+                    ? 'Download the template, fill it in, then upload for validation.'
+                    : _step == _ImportStep.review
+                        ? 'Review validated rows before importing.'
+                        : 'Import completed.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               ),
             ),
             const HelpActionButton(pageId: 'csv-import'),
+            if (_step == _ImportStep.template) ...<Widget>[
+              const SizedBox(width: 4),
+              FilledButton.icon(
+                onPressed: _busy || (_isProblemsImport && !_hasDepartment) ? null : _pickCsv,
+                icon: const Icon(AppIcons.attachments, size: 16),
+                label: Text(compact ? 'Upload' : 'Upload CSV'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14, vertical: 10),
+                ),
+              ),
+            ],
           ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          _step == _ImportStep.template
-              ? 'Download the template, fill it in, then upload for validation.'
-              : _step == _ImportStep.review
-                  ? 'Review validated rows before importing.'
-                  : 'Import completed.',
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 14),
         if (_busy) const LinearProgressIndicator(minHeight: 2),
@@ -271,15 +308,34 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   Widget _buildTemplateStep() {
     return ListView(
       children: <Widget>[
-        ImportSupportedValuesSection(
-          departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
-          domains: _isProblemsImport
-              ? (_domains?.domains ?? const <ImportDomainInfo>[])
-              : const <ImportDomainInfo>[],
-          supportedRoles: widget.contextData.supportedCsvRoles,
-          loading: _departmentsLoading,
-        ),
-        const SizedBox(height: 12),
+        if (_isProblemsImport) ...<Widget>[
+          ImportProblemContextSection(
+            orgName: _orgName,
+            departmentCode: _selectedDepartmentCode,
+            departmentName: _selectedDepartmentName,
+            lockDepartment: _problemContext?.lockDepartment ?? false,
+            departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
+            source: _problemSource,
+            loading: _lookupsLoading,
+            enabled: !_busy,
+            onDepartmentChanged: (ImportDepartmentInfo dept) {
+              setState(() {
+                _selectedDepartmentCode = dept.code;
+                _selectedDepartmentName = dept.name;
+              });
+            },
+            onSourceChanged: (ProblemStatementSource source) {
+              setState(() => _problemSource = source);
+            },
+          ),
+          const SizedBox(height: 12),
+        ] else
+          ImportSupportedValuesSection(
+            departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
+            supportedRoles: widget.contextData.supportedCsvRoles,
+            loading: _lookupsLoading,
+          ),
+        if (!_isProblemsImport) const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -291,7 +347,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const Text(
-                'Step 1 · Download template',
+                'Download template',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
@@ -299,13 +355,13 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               ),
-              const SizedBox(height: 4),
-              Text(
-                _isProblemsImport
-                    ? 'Use department and domain codes (e.g. CSE, CLOUDSEC), not display names. Role values are case-sensitive.'
-                    : 'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-              ),
+              if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 4),
+                Text(
+                  _handler.columnGuidance,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                ),
+              ],
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -316,51 +372,15 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                     icon: const Icon(AppIcons.download, size: 16),
                     label: const Text('Download CSV Template'),
                   ),
-                  OutlinedButton.icon(
-                    onPressed: _busy || _departmentsLoading || (_departments?.departments.isEmpty ?? true)
-                        ? null
-                        : _downloadDepartmentCodes,
-                    icon: const Icon(AppIcons.download, size: 16),
-                    label: const Text('Download Department Codes'),
-                  ),
-                  if (_isProblemsImport)
+                  if (!_isProblemsImport)
                     OutlinedButton.icon(
-                      onPressed: _busy || _departmentsLoading || (_domains?.domains.isEmpty ?? true)
+                      onPressed: _busy || _lookupsLoading || (_departments?.departments.isEmpty ?? true)
                           ? null
-                          : _downloadDomainCodes,
+                          : _downloadDepartmentCodes,
                       icon: const Icon(AppIcons.download, size: 16),
-                      label: const Text('Download Domain Codes'),
+                      label: const Text('Download Department Codes'),
                     ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFCFDFF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                'Step 2 · Upload CSV',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Rows are validated before import. Invalid rows are excluded automatically.',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                onPressed: _busy ? null : _pickCsv,
-                icon: const Icon(AppIcons.attachments, size: 16),
-                label: const Text('Upload CSV'),
               ),
             ],
           ),
@@ -371,8 +391,11 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   Widget _buildReviewStep() {
     final ImportSummary summary = _summary ?? ImportSummary.fromRows(_rows);
-    final List<ImportReviewColumn> columns = _handler.requiredHeaders
-        .map((String h) => ImportReviewColumn(key: h, label: _labelFor(h)))
+    final List<ImportReviewColumn> columns = _handler.reviewHeaders
+        .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
+        .toList(growable: false);
+    final List<ImportReviewColumn> expansionColumns = _handler.expansionHeaders
+        .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
         .toList(growable: false);
 
     return ListView(
@@ -387,7 +410,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
         ImportSummaryMetrics(summary: summary),
         const SizedBox(height: 12),
-        ImportReviewTable(rows: _rows, columns: columns),
+        ImportReviewTable(rows: _rows, columns: columns, expansionColumns: expansionColumns),
       ],
     );
   }
@@ -446,14 +469,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   Widget _buildActions() {
     return Row(
       children: <Widget>[
-        TextButton(
-          onPressed: _busy
-              ? null
-              : () => Navigator.of(context).pop(
-                    _step == _ImportStep.result && (_result?.imported ?? 0) > 0,
-                  ),
-          child: Text(_step == _ImportStep.result ? 'Close' : 'Cancel'),
-        ),
         const Spacer(),
         if (_step == _ImportStep.review) ...<Widget>[
           OutlinedButton(
@@ -472,16 +487,18 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             onPressed: _busy || (_summary?.validRows ?? 0) == 0 ? null : _runImport,
             child: Text('Import ${_summary?.validRows ?? 0}'),
           ),
+          const SizedBox(width: 8),
         ],
+        TextButton(
+          onPressed: _busy
+              ? null
+              : () => Navigator.of(context).pop(
+                    _step == _ImportStep.result && (_result?.imported ?? 0) > 0,
+                  ),
+          child: Text(_step == _ImportStep.result ? 'Close' : 'Cancel'),
+        ),
       ],
     );
-  }
-
-  String _labelFor(String key) {
-    if (key == ImportConstants.departmentColumnKey) return 'Department Code';
-    if (key == ImportConstants.domainCodeColumnKey) return 'Domain Code';
-    if (key.isEmpty) return key;
-    return '${key[0].toUpperCase()}${key.substring(1)}';
   }
 }
 
@@ -496,13 +513,17 @@ Future<bool?> showImportWorkflow({
   }
 
   final ImportHandler handler = ImportRegistry.handlerFor(type);
+  final bool mobile = ResponsiveHelper.isMobile(context);
+  final double dialogHeight = mobile
+      ? (MediaQuery.sizeOf(context).height * 0.86).clamp(420.0, 720.0)
+      : 560;
   return showAppDialog<bool>(
     context: context,
     barrierDismissible: false,
     width: DialogWidthPreset.wide,
     maxWidth: 980,
     child: SizedBox(
-      height: 560,
+      height: dialogHeight,
       child: ImportWorkflowDialog(handler: handler, contextData: contextData),
     ),
   );
