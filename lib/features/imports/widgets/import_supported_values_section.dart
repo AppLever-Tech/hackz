@@ -1,28 +1,72 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import '../../user/constants/csv_import_role_constants.dart';
 import '../services/import_department_lookup.dart';
+import '../services/import_template_service.dart';
 import 'reference_values_viewer.dart';
 
-/// Compact entry points for supported CSV reference data (opens [showReferenceValuesViewer]).
-class ImportSupportedValuesSection extends StatelessWidget {
+/// User-import reference data: allowed roles and department codes.
+class ImportSupportedValuesSection extends StatefulWidget {
   const ImportSupportedValuesSection({
     super.key,
     required this.departments,
     required this.supportedRoles,
     this.loading = false,
+    this.enabled = true,
   });
 
   final List<ImportDepartmentInfo> departments;
   final Set<String>? supportedRoles;
   final bool loading;
+  final bool enabled;
 
   static const int _departmentSearchThreshold = 10;
 
   @override
+  State<ImportSupportedValuesSection> createState() => _ImportSupportedValuesSectionState();
+}
+
+class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSection> {
+  bool _downloadingCodes = false;
+
+  Future<void> _downloadDepartmentCodes() async {
+    if (widget.departments.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'No departments',
+        message: 'Create departments under Department Management first.',
+      );
+      return;
+    }
+
+    setState(() => _downloadingCodes = true);
+    try {
+      final ImportTemplateDownloadResult result = await ImportTemplateService.downloadTemplate(
+        fileName: ImportDepartmentInfo.departmentCodesFileName,
+        csvContent: ImportDepartmentLookup(departments: widget.departments).buildDepartmentCodesCsv(),
+      );
+      if (!mounted || result == ImportTemplateDownloadResult.cancelled) return;
+      await FeedbackService.showSuccess(
+        context,
+        title: result == ImportTemplateDownloadResult.saved ? 'Department codes downloaded' : 'Department codes copied',
+        message: result == ImportTemplateDownloadResult.saved
+            ? 'Department codes CSV saved to your device.'
+            : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not save department codes', message: '$e');
+    } finally {
+      if (mounted) setState(() => _downloadingCodes = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final bool showRoles = supportedRoles != null && supportedRoles!.isNotEmpty;
+    final bool showRoles = widget.supportedRoles != null && widget.supportedRoles!.isNotEmpty;
+    final bool canDownload = widget.enabled && !_downloadingCodes && widget.departments.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -32,7 +76,7 @@ class ImportSupportedValuesSection extends StatelessWidget {
           style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
         ),
         const SizedBox(height: 4),
-        if (loading)
+        if (widget.loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Center(
@@ -46,19 +90,28 @@ class ImportSupportedValuesSection extends StatelessWidget {
               title: 'Supported Roles',
               onTap: () => showReferenceValuesViewer(
                 context: context,
-                config: _rolesConfig(supportedRoles!),
+                config: _rolesConfig(widget.supportedRoles!),
               ),
             ),
           _ReferenceTile(
             icon: AppIcons.departments,
             title: 'Department Codes',
-            onTap: departments.isEmpty
+            onTap: widget.departments.isEmpty
                 ? null
                 : () => showReferenceValuesViewer(
                       context: context,
-                      config: _departmentsConfig(departments),
+                      config: _departmentsConfig(widget.departments),
                     ),
-            subtitle: departments.isEmpty ? 'No departments found yet' : null,
+            subtitle: widget.departments.isEmpty ? 'No departments found yet' : null,
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: canDownload ? _downloadDepartmentCodes : null,
+              icon: const Icon(AppIcons.download, size: 16),
+              label: const Text('Download Department Codes'),
+            ),
           ),
         ],
       ],
@@ -93,7 +146,7 @@ class ImportSupportedValuesSection extends StatelessWidget {
       subtitle: 'Use department codes in CSV imports, not display names.',
       items: items,
       enableSearch: true,
-      searchThreshold: _departmentSearchThreshold,
+      searchThreshold: ImportSupportedValuesSection._departmentSearchThreshold,
       emptyMessage: 'No departments found. Create departments under Department Management first.',
     );
   }

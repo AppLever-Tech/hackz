@@ -154,8 +154,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
           metadata: <String, String>{
             'departmentCode': lookup.departmentCode,
             if (lookup.departmentName.isNotEmpty) 'departmentName': lookup.departmentName,
-            'domainId': lookup.domain.domainId,
-            'domainCode': lookup.domain.code,
+            'domainId': lookup.domainId,
             'category': ProblemConstants.categorySoftware,
             'source': problemContext.problemSource.value,
             'theme': theme,
@@ -289,13 +288,13 @@ class _ProblemImportLookup {
     required this.existingTitles,
     required this.departmentCode,
     required this.departmentName,
-    required this.domain,
+    required this.domainId,
   });
 
   final Set<String> existingTitles;
   final String departmentCode;
   final String departmentName;
-  final DomainModel domain;
+  final String domainId;
 
   static Future<_ProblemImportLookup> load(ProblemsImportHandlerContext context) async {
     final String departmentCode = context.defaultDepartmentCode.trim().toUpperCase();
@@ -344,7 +343,7 @@ class _ProblemImportLookup {
           .toSet(),
       departmentCode: deptResult.canonicalCode ?? departmentCode,
       departmentName: (deptResult.departmentName ?? context.defaultDepartmentName).trim(),
-      domain: domain,
+      domainId: domain.domainId,
     );
   }
 }

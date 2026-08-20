@@ -134,36 +134,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     }
   }
 
-  Future<void> _downloadDepartmentCodes() async {
-    final ImportDepartmentLookup? lookup = _departments;
-    if (lookup == null || lookup.departments.isEmpty) {
-      FeedbackService.showWarning(
-        context,
-        title: 'No departments',
-        message: 'Create departments under Department Management first.',
-      );
-      return;
-    }
-
-    try {
-      final ImportTemplateDownloadResult result = await ImportTemplateService.downloadTemplate(
-        fileName: ImportDepartmentInfo.departmentCodesFileName,
-        csvContent: lookup.buildDepartmentCodesCsv(),
-      );
-      if (!mounted || result == ImportTemplateDownloadResult.cancelled) return;
-      await FeedbackService.showSuccess(
-        context,
-        title: result == ImportTemplateDownloadResult.saved ? 'Department codes downloaded' : 'Department codes copied',
-        message: result == ImportTemplateDownloadResult.saved
-            ? 'Department codes CSV saved to your device.'
-            : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      FeedbackService.showError(context, title: 'Could not save department codes', message: '$e');
-    }
-  }
-
   Future<void> _pickCsv() async {
     if (_isProblemsImport && !_hasDepartment) {
       FeedbackService.showWarning(
@@ -339,13 +309,15 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             },
           ),
           const SizedBox(height: 12),
-        ] else
+        ] else ...<Widget>[
           ImportSupportedValuesSection(
             departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
             supportedRoles: widget.contextData.supportedCsvRoles,
             loading: _lookupsLoading,
+            enabled: !_busy,
           ),
-        if (!_isProblemsImport) const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -373,24 +345,10 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 ),
               ],
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  OutlinedButton.icon(
-                    onPressed: _busy ? null : _downloadTemplate,
-                    icon: const Icon(AppIcons.download, size: 16),
-                    label: const Text('Download CSV Template'),
-                  ),
-                  if (!_isProblemsImport)
-                    OutlinedButton.icon(
-                      onPressed: _busy || _lookupsLoading || (_departments?.departments.isEmpty ?? true)
-                          ? null
-                          : _downloadDepartmentCodes,
-                      icon: const Icon(AppIcons.download, size: 16),
-                      label: const Text('Download Department Codes'),
-                    ),
-                ],
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _downloadTemplate,
+                icon: const Icon(AppIcons.download, size: 16),
+                label: const Text('Download CSV Template'),
               ),
             ],
           ),
