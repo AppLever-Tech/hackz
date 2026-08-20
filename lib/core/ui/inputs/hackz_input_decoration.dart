@@ -29,6 +29,39 @@ abstract final class HackzInputDecoration {
     letterSpacing: 0.1,
   );
 
+  /// Field label with optional required asterisk — same chrome as Create user.
+  static Widget fieldLabel(String text, {bool required = false}) {
+    return Text.rich(
+      TextSpan(
+        text: text,
+        style: labelStyle,
+        children: required
+            ? const <TextSpan>[
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: errorColor, fontWeight: FontWeight.w700),
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+
+  static Widget labeledField({
+    required String label,
+    required Widget field,
+    bool required = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        fieldLabel(label, required: required),
+        const SizedBox(height: 6),
+        field,
+      ],
+    );
+  }
+
   static const TextStyle fieldTextStyle = TextStyle(
     fontSize: 14,
     height: 1.5,

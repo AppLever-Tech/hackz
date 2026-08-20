@@ -11,6 +11,8 @@ class OrganizationModel {
     required this.website,
     required this.contact,
     required this.createdAt,
+    this.photoUrl,
+    this.thumbnailUrl,
   });
 
   final String id;
@@ -20,6 +22,14 @@ class OrganizationModel {
   final String website;
   final String contact;
   final DateTime createdAt;
+  final String? photoUrl;
+  final String? thumbnailUrl;
+
+  String get avatarUrl {
+    final String thumb = (thumbnailUrl ?? '').trim();
+    if (thumb.isNotEmpty) return thumb;
+    return (photoUrl ?? '').trim();
+  }
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -30,6 +40,8 @@ class OrganizationModel {
       'website': website,
       'contact': contact,
       'createdAt': Timestamp.fromDate(createdAt),
+      'photoUrl': (photoUrl ?? '').trim(),
+      'thumbnailUrl': (thumbnailUrl ?? '').trim(),
     };
   }
 
@@ -42,7 +54,14 @@ class OrganizationModel {
       website: (map['website'] as String?) ?? '',
       contact: (map['contact'] as String?) ?? '',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      photoUrl: _optionalUrl(map['photoUrl']),
+      thumbnailUrl: _optionalUrl(map['thumbnailUrl']),
     );
+  }
+
+  static String? _optionalUrl(Object? value) {
+    final String trimmed = (value as String? ?? '').trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   OrganizationModel copyWith({
@@ -53,6 +72,9 @@ class OrganizationModel {
     String? website,
     String? contact,
     DateTime? createdAt,
+    String? photoUrl,
+    String? thumbnailUrl,
+    bool clearPhoto = false,
   }) {
     return OrganizationModel(
       id: id ?? this.id,
@@ -62,6 +84,8 @@ class OrganizationModel {
       website: website ?? this.website,
       contact: contact ?? this.contact,
       createdAt: createdAt ?? this.createdAt,
+      photoUrl: clearPhoto ? null : (photoUrl ?? this.photoUrl),
+      thumbnailUrl: clearPhoto ? null : (thumbnailUrl ?? this.thumbnailUrl),
     );
   }
 }

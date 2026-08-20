@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 
-/// Premium section card for user create/edit workflows.
+/// Premium section card for create/edit dialogs.
 class UserFormSection extends StatelessWidget {
   const UserFormSection({
     super.key,

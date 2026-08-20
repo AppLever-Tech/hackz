@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/inputs/network_image_compat.dart';
 
-/// Profile photo picker with avatar preview for user workflows.
+/// Photo / icon picker with preview — used by user and organisation workflows.
 class UserProfilePhotoField extends StatelessWidget {
   const UserProfilePhotoField({
     super.key,
@@ -14,6 +14,10 @@ class UserProfilePhotoField extends StatelessWidget {
     required this.onPick,
     required this.onClear,
     this.enabled = true,
+    this.title = 'Profile photo',
+    this.subtitle = 'Used on user cards, workspace pills, and assignments.',
+    this.buttonLabel = 'Upload photo',
+    this.circular = true,
   });
 
   final String displayName;
@@ -22,6 +26,10 @@ class UserProfilePhotoField extends StatelessWidget {
   final VoidCallback onPick;
   final VoidCallback onClear;
   final bool enabled;
+  final String title;
+  final String subtitle;
+  final String buttonLabel;
+  final bool circular;
 
   static const double _avatarRadius = 36;
 
@@ -36,14 +44,14 @@ class UserProfilePhotoField extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text(
-                'Profile photo',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF0F172A)),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Used on user cards, workspace pills, and assignments.',
-                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -52,7 +60,7 @@ class UserProfilePhotoField extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: enabled ? onPick : null,
                     icon: const Icon(AppIcons.attachments, size: 16),
-                    label: const Text('Upload photo'),
+                    label: Text(buttonLabel),
                   ),
                   if (localFile != null || _remoteUrl != null)
                     TextButton(
@@ -79,8 +87,8 @@ class UserProfilePhotoField extends StatelessWidget {
 
     final PlatformFile? file = localFile;
     if (file?.bytes != null && file!.bytes!.isNotEmpty) {
-      return ClipOval(
-        child: Image.memory(
+      return _clip(
+        Image.memory(
           file.bytes!,
           width: size,
           height: size,
@@ -91,8 +99,8 @@ class UserProfilePhotoField extends StatelessWidget {
 
     final String? url = _remoteUrl;
     if (url != null) {
-      return ClipOval(
-        child: NetworkImageCompat(
+      return _clip(
+        NetworkImageCompat(
           url: url,
           width: size,
           height: size,
@@ -106,15 +114,33 @@ class UserProfilePhotoField extends StatelessWidget {
     return _initialsAvatar(initials);
   }
 
+  Widget _clip(Widget child) {
+    if (circular) return ClipOval(child: child);
+    return ClipRRect(borderRadius: BorderRadius.circular(16), child: child);
+  }
+
   Widget _initialsAvatar(String initials) {
-    return CircleAvatar(
-      radius: _avatarRadius,
-      backgroundColor: const Color(0xFFEEF2FF),
-      foregroundColor: const Color(0xFF4F46E5),
-      child: Text(
-        initials,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+    final Text label = Text(
+      initials,
+      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF4F46E5)),
+    );
+    if (circular) {
+      return CircleAvatar(
+        radius: _avatarRadius,
+        backgroundColor: const Color(0xFFEEF2FF),
+        foregroundColor: const Color(0xFF4F46E5),
+        child: label,
+      );
+    }
+    return Container(
+      width: _avatarRadius * 2,
+      height: _avatarRadius * 2,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(16),
       ),
+      child: label,
     );
   }
 

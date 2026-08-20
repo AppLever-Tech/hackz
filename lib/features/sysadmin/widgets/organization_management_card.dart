@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
+import '../../organization/widgets/organization_thumbnail.dart';
 import '../../user/models/user_model.dart';
 import '../../user/screens/create_user_dialog.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -177,21 +178,7 @@ class OrganizationManagementCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F0FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE8ECF8)),
-                ),
-                child: Icon(
-                  AppIcons.forOrganizationType(type),
-                  size: 22,
-                  color: const Color(0xFF6A38FF),
-                ),
-              ),
+              OrganizationThumbnail(organization: organization),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
