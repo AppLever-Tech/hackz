@@ -17,7 +17,8 @@ abstract final class ImportTemplateService {
         fileName: fileName,
         csvContent: csvContent,
       );
-      return saved ? ImportTemplateDownloadResult.saved : ImportTemplateDownloadResult.cancelled;
+      if (!saved) return ImportTemplateDownloadResult.cancelled;
+      return ImportTemplateDownloadResult.saved;
     } on UnsupportedError {
       await Clipboard.setData(ClipboardData(text: csvContent));
       return ImportTemplateDownloadResult.copied;
