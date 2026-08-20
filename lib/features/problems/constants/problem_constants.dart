@@ -3,6 +3,7 @@ class ProblemConstants {
 
   static const String categorySoftware = 'Software';
   static const String categoryHardware = 'Hardware';
+  static const String defaultTheme = 'Miscellaneous';
 
   static const List<String> categories = <String>[
     categorySoftware,

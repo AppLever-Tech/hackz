@@ -115,18 +115,23 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   Future<void> _downloadTemplate() async {
-    final bool saved = await ImportTemplateService.downloadTemplate(
-      fileName: _handler.templateFileName,
-      csvContent: _handler.templateCsv,
-    );
-    if (!mounted) return;
-    FeedbackService.showSuccess(
-      context,
-      title: saved ? 'Template downloaded' : 'Template copied',
-      message: saved
-          ? 'CSV template saved to your device.'
-          : 'CSV template copied to clipboard. Paste into a spreadsheet and save as .csv',
-    );
+    try {
+      final ImportTemplateDownloadResult result = await ImportTemplateService.downloadTemplate(
+        fileName: _handler.templateFileName,
+        csvContent: _handler.templateCsv,
+      );
+      if (!mounted || result == ImportTemplateDownloadResult.cancelled) return;
+      await FeedbackService.showSuccess(
+        context,
+        title: result == ImportTemplateDownloadResult.saved ? 'Template downloaded' : 'Template copied',
+        message: result == ImportTemplateDownloadResult.saved
+            ? 'CSV template saved to your device.'
+            : 'CSV template copied to clipboard. Paste into a spreadsheet and save as .csv',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not save template', message: '$e');
+    }
   }
 
   Future<void> _downloadDepartmentCodes() async {
@@ -140,18 +145,23 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       return;
     }
 
-    final bool saved = await ImportTemplateService.downloadTemplate(
-      fileName: ImportDepartmentInfo.departmentCodesFileName,
-      csvContent: lookup.buildDepartmentCodesCsv(),
-    );
-    if (!mounted) return;
-    FeedbackService.showSuccess(
-      context,
-      title: saved ? 'Department codes downloaded' : 'Department codes copied',
-      message: saved
-          ? 'Department codes CSV saved to your device.'
-          : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
-    );
+    try {
+      final ImportTemplateDownloadResult result = await ImportTemplateService.downloadTemplate(
+        fileName: ImportDepartmentInfo.departmentCodesFileName,
+        csvContent: lookup.buildDepartmentCodesCsv(),
+      );
+      if (!mounted || result == ImportTemplateDownloadResult.cancelled) return;
+      await FeedbackService.showSuccess(
+        context,
+        title: result == ImportTemplateDownloadResult.saved ? 'Department codes downloaded' : 'Department codes copied',
+        message: result == ImportTemplateDownloadResult.saved
+            ? 'Department codes CSV saved to your device.'
+            : 'Department codes copied to clipboard. Paste into a spreadsheet and save as .csv',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not save department codes', message: '$e');
+    }
   }
 
   Future<void> _pickCsv() async {
@@ -398,19 +408,24 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
         .toList(growable: false);
 
-    return ListView(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (_fileName != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
               'File: $_fileName',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
         ImportSummaryMetrics(summary: summary),
         const SizedBox(height: 12),
-        ImportReviewTable(rows: _rows, columns: columns, expansionColumns: expansionColumns),
+        Expanded(
+          child: ImportReviewTable(rows: _rows, columns: columns, expansionColumns: expansionColumns),
+        ),
       ],
     );
   }

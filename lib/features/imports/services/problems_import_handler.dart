@@ -24,6 +24,7 @@ class ProblemsImportHandler implements ImportHandler {
   static const List<String> headers = <String>[
     ImportConstants.titleColumnKey,
     ImportConstants.descriptionColumnKey,
+    ImportConstants.themeColumnKey,
     ImportConstants.issuingOrganisationColumnKey,
     ImportConstants.issuingDepartmentColumnKey,
     ImportConstants.externalProblemIdColumnKey,
@@ -40,9 +41,9 @@ class ProblemsImportHandler implements ImportHandler {
 
   @override
   String get templateCsv => '''
-title,description,issuingOrganisation,issuingDepartment,externalProblemId
-Smart Campus Navigation,Help students find classrooms quickly,,,
-Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hackathon,MoE,SIH-2026-001
+title,description,theme,issuingOrganisation,issuingDepartment,externalProblemId
+Smart Campus Navigation,Help students find classrooms quickly,,,,
+Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart India Hackathon,MoE,SIH-2026-001
 '''.trim();
 
   @override
@@ -59,15 +60,16 @@ Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hacka
 
   @override
   List<String> get expansionHeaders => const <String>[
+        ImportConstants.externalProblemIdColumnKey,
+        ImportConstants.themeColumnKey,
         ImportConstants.issuingOrganisationColumnKey,
         ImportConstants.issuingDepartmentColumnKey,
-        ImportConstants.externalProblemIdColumnKey,
       ];
 
   @override
   String get columnGuidance =>
-      'Required: title, description. Issuer fields are optional. '
-      'Category is always Software; you can change it after import. '
+      'Required: title, description. Theme defaults to Miscellaneous when blank. '
+      'Issuer fields are optional. Category is always Software; you can change it after import. '
       'Organisation, department, domain, and source come from this screen — not the CSV.';
 
   @override
@@ -86,6 +88,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hacka
       final int rowNumber = i + 1;
       final String title = CsvParserService.cell(row, ImportConstants.titleColumnKey);
       final String description = CsvParserService.cell(row, ImportConstants.descriptionColumnKey);
+      final String themeRaw = CsvParserService.cell(row, ImportConstants.themeColumnKey);
+      final String theme = themeRaw.isEmpty ? ProblemConstants.defaultTheme : themeRaw;
       final String issuingOrganisation =
           CsvParserService.cell(row, ImportConstants.issuingOrganisationColumnKey);
       final String issuingDepartment =
@@ -138,6 +142,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hacka
           values: <String, String>{
             ImportConstants.titleColumnKey: title,
             ImportConstants.descriptionColumnKey: description,
+            ImportConstants.themeColumnKey: themeRaw,
             ImportConstants.issuingOrganisationColumnKey: issuingOrganisation,
             ImportConstants.issuingDepartmentColumnKey: issuingDepartment,
             ImportConstants.externalProblemIdColumnKey: externalProblemId,
@@ -153,6 +158,12 @@ Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hacka
             'domainCode': lookup.domain.code,
             'category': ProblemConstants.categorySoftware,
             'source': problemContext.problemSource.value,
+            'theme': theme,
+            if (themeRaw.isNotEmpty ||
+                issuingOrganisation.isNotEmpty ||
+                issuingDepartment.isNotEmpty ||
+                externalProblemId.isNotEmpty)
+              'expandable': '1',
             if (issuingOrganisation.isNotEmpty) 'issuingOrganisation': issuingOrganisation,
             if (issuingDepartment.isNotEmpty) 'issuingDepartment': issuingDepartment,
             if (externalProblemId.isNotEmpty) 'externalProblemId': externalProblemId,
@@ -201,7 +212,9 @@ Waste Segregation Monitor,Track recycling compliance on campus,Smart India Hacka
           domainId: domainId,
           createdBy: problemContext.actorUserId,
           category: ProblemConstants.categorySoftware,
-          theme: '',
+          theme: (row.metadata['theme'] ?? '').trim().isEmpty
+              ? ProblemConstants.defaultTheme
+              : row.metadata['theme']!.trim(),
           tags: const <String>[],
           attachments: const <String>[],
           status: ProblemStatus.draft,

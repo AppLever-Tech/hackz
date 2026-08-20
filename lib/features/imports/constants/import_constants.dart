@@ -7,6 +7,7 @@ abstract final class ImportConstants {
   static const String departmentColumnKey = 'department';
   static const String titleColumnKey = 'title';
   static const String descriptionColumnKey = 'description';
+  static const String themeColumnKey = 'theme';
   static const String issuingOrganisationColumnKey = 'issuingOrganisation';
   static const String issuingDepartmentColumnKey = 'issuingDepartment';
   static const String externalProblemIdColumnKey = 'externalProblemId';
@@ -15,6 +16,7 @@ abstract final class ImportConstants {
       'Required columns: ${headers.join(', ')}';
 
   static String headerLabel(String key) {
+    if (key == externalProblemIdColumnKey) return 'Problem ID';
     if (key.isEmpty) return key;
     final String spaced = key.replaceAllMapped(RegExp(r'[A-Z]'), (Match m) => ' ${m[0]}').trim();
     return '${spaced[0].toUpperCase()}${spaced.substring(1)}';

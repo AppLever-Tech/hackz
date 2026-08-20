@@ -4,9 +4,11 @@ import 'import_template_download_stub.dart'
     if (dart.library.html) 'import_template_download_web.dart'
     if (dart.library.io) 'import_template_download_io.dart';
 
-/// Downloads or copies CSV templates for import workflows.
+enum ImportTemplateDownloadResult { saved, cancelled, copied }
+
+/// Downloads CSV templates. Success is reported only after the user confirms Save.
 abstract final class ImportTemplateService {
-  static Future<bool> downloadTemplate({
+  static Future<ImportTemplateDownloadResult> downloadTemplate({
     required String fileName,
     required String csvContent,
   }) async {
@@ -15,12 +17,10 @@ abstract final class ImportTemplateService {
         fileName: fileName,
         csvContent: csvContent,
       );
-      if (saved) return true;
-    } catch (_) {
-      // Fall through to clipboard on unsupported platforms.
+      return saved ? ImportTemplateDownloadResult.saved : ImportTemplateDownloadResult.cancelled;
+    } on UnsupportedError {
+      await Clipboard.setData(ClipboardData(text: csvContent));
+      return ImportTemplateDownloadResult.copied;
     }
-
-    await Clipboard.setData(ClipboardData(text: csvContent));
-    return false;
   }
 }
