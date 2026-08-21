@@ -2,7 +2,6 @@ enum UserRole {
   sysAdmin('SADM'),
   collegeAdmin('CADM'),
   departmentAdmin('DADM'),
-  faculty('FAC'),
   judge('JUD'),
   student('STU'),
   coordinator('COO');

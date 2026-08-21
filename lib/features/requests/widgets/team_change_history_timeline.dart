@@ -165,7 +165,7 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${request.requestedByName.isEmpty ? 'Faculty' : request.requestedByName} · ${formatDateTime(request.resolvedAt)}',
+                  '${request.requestedByName.isEmpty ? 'Team Leader' : request.requestedByName} · ${formatDateTime(request.resolvedAt)}',
                   style: const TextStyle(
                     fontSize: 10.5,
                     color: Color(0xFF94A3B8),

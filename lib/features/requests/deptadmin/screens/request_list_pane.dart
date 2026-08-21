@@ -160,7 +160,7 @@ class _RequestListPaneState extends State<RequestListPane> {
         controller: _searchController,
         onChanged: _onSearch,
         decoration: InputDecoration(
-          hintText: 'Search by team, faculty, reason…',
+          hintText: 'Search by team, team leader, reason…',
           prefixIcon: const Icon(AppIcons.search, size: 18),
           isDense: true,
           filled: true,
@@ -388,11 +388,11 @@ class _RequestListTile extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: <Widget>[
-                  const Icon(AppIcons.faculty, size: 12, color: Color(0xFF64748B)),
+                  const Icon(AppIcons.student, size: 12, color: Color(0xFF64748B)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      request.requestedByName.isEmpty ? 'Faculty' : request.requestedByName,
+                      request.requestedByName.isEmpty ? 'Team Leader' : request.requestedByName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 10.5, color: Color(0xFF475569), fontWeight: FontWeight.w700),

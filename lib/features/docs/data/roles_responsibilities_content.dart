@@ -31,7 +31,7 @@ abstract final class RolesResponsibilitiesSections {
   ];
 
   static List<String> get searchCorpus => const <String>[
-        'college admin department admin faculty coordinator judge student team member',
+        'college admin department admin coordinator judge student team member',
         'activate draft deactivate reactivate assign judges ideathon',
         'verify payment evaluate idea org evaluation config catalog',
         'least privilege department scope ownership permissions catalog',
@@ -125,17 +125,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                       'Judge assignments',
                       'Ideathon assignment',
                       'Ideathon management',
-                    ],
-                    cols,
-                    c.maxWidth,
-                  ),
-                  _roleCard(
-                    context,
-                    'Faculty',
-                    DocStatusKind.draft,
-                    const <String>[
-                      'Team mentoring',
-                      'Problem guidance',
                     ],
                     cols,
                     c.maxWidth,
@@ -254,7 +243,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   ],
                   <String>[
                     'View Problem Catalog',
-                    'College Admin, Dept Admin, Faculty, Team Member',
+                    'College Admin, Dept Admin, Team Member',
                     'Org-wide catalog (all departments)',
                   ],
                 ],
@@ -291,15 +280,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   'Assign judges (Ideathon / evaluation infrastructure)',
                   'Assign submitted ideas to Ideathons',
                   'Manage ideathons, prototypes, and winners',
-                ]),
-              ),
-              const SizedBox(height: 12),
-              DocumentationCard(
-                title: 'Faculty',
-                child: _bulletList(context, const <String>[
-                  'Mentor teams',
-                  'Participate as Internal Judge (only if enabled in Org Settings)',
-                  'Cannot evaluate own mentored ideas',
                 ]),
               ),
               const SizedBox(height: 12),
@@ -345,7 +325,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.information,
                 title: 'Problem Lifecycle',
                 body:
-                    'College Admin governs activation and catalog control. Department Admin authors problems (typically for their department) and can edit their own problems. Faculty and Team Member view the org-wide problem catalog. Judge and Coordinator use problem context during idea operations.',
+                    'College Admin governs activation and catalog control. Department Admin authors problems (typically for their department) and can edit their own problems. Team Members view the org-wide problem catalog. Judge and Coordinator use problem context during idea operations.',
               ),
               const SizedBox(height: 12),
               DocumentationTable(
@@ -353,7 +333,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 rows: const <List<String>>[
                   <String>[
                     'Problem Lifecycle',
-                    'College Admin, Department Admin, Faculty, Team Member, Judge, Coordinator',
+                    'College Admin, Department Admin, Team Member, Judge, Coordinator',
                   ],
                   <String>[
                     'Idea Lifecycle',
@@ -385,7 +365,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 'College Admin has organization-wide permissions.',
                 'Department Admin manages users and domains for assigned departments; the problem catalog is org-wide for viewing.',
                 'Department Admin edits problems they own (and College Admin can edit any).',
-                'Team Leaders submit ideas for Active Problems and complete idea payment. Faculty is not part of submission or payment.',
+                'Team Leaders submit ideas for Active Problems and complete idea payment.',
                 'Judges evaluate only assigned ideas.',
                 'Team Members participate through team workflows and can view the org-wide problem catalog. A Team Leader is a Team Member designated on a team (not a separate user role) and can manage that team, submit its ideas and make payments.',
                 'Coordinators cannot modify evaluations; payment verification is department-scoped.',
@@ -430,14 +410,14 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.warning,
                 title: 'Department scope for management',
                 body:
-                    'Department Admin user/domain management is limited to assigned departments. Problem catalog viewing is org-wide for Dept Admin, Faculty, and Team Member; problem editing remains limited to own problems for Dept Admin.',
+                    'Department Admin user/domain management is limited to assigned departments. Problem catalog viewing is org-wide for Dept Admin and Team Member; problem editing remains limited to own problems for Dept Admin.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
                 tone: DocInfoTone.success,
                 title: 'System-controlled lifecycle transitions',
                 body:
-                    'Evaluation aggregation used for Ideathon evaluation is never manually forced by judges or faculty.',
+                    'Evaluation aggregation used for Ideathon evaluation is never manually forced by judges.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
@@ -456,7 +436,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               DocumentationInfoCard(
                 tone: DocInfoTone.important,
                 title: 'Organization Settings govern configurable behavior',
-                body: 'Thresholds such as requiredJudgeEvaluations and internal-judge rules come from Org Settings.',
+                body: 'Thresholds such as requiredJudgeEvaluations come from Org Settings.',
               ),
             ],
           ),
@@ -480,11 +460,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 title: 'Who assigns judges?',
                 body:
                     'Department Admin assigns judges from the Evaluation Assignment workspace for ideas that have entered the evaluation pipeline.',
-              ),
-              (
-                title: 'Can Faculty become Judges?',
-                body:
-                    'Yes, as Internal Judges only when enabled in Organization Settings. Faculty cannot evaluate their own mentored ideas.',
               ),
               (
                 title: 'Can Judges assign ideas to an Ideathon?',

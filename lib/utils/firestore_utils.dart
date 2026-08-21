@@ -437,9 +437,7 @@ class FirestoreUtils {
       if (role == 'DADM' && fullName.isNotEmpty) {
         current['departmentAdmin'] = fullName;
       }
-      if (role == 'FAC') {
-        current['facultyCount'] = (current['facultyCount'] as int) + 1;
-      } else if (role == 'STU') {
+      if (role == 'STU') {
         current['studentCount'] = (current['studentCount'] as int) + 1;
       }
 
@@ -718,18 +716,6 @@ class FirestoreUtils {
     return mapped;
   }
 
-  static Future<List<TeamModel>> getFacultyTeams(String facultyId) async {
-    final snapshot = await _db
-        .collection(hkzTeams)
-        .where('mentorId', isEqualTo: facultyId)
-        .get();
-    final teams = snapshot.docs
-        .map((d) => TeamModel.fromMap(d.id, d.data()))
-        .toList(growable: false);
-    teams.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return teams;
-  }
-
   static Future<List<TeamModel>> getTeamsLedBy(String userId) async {
     final String id = userId.trim();
     if (id.isEmpty) return const <TeamModel>[];
@@ -811,7 +797,6 @@ class FirestoreUtils {
     final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
 
     int totalStudents = 0;
-    int totalFaculty = 0;
     int totalIdeas = 0;
     int activeIdeas = 0;
     int submitted = 0;
@@ -824,8 +809,6 @@ class FirestoreUtils {
       final role = ((data['role'] as String?) ?? '').trim();
       if (role == 'STU') {
         totalStudents++;
-      } else if (role == 'FAC') {
-        totalFaculty++;
       }
     }
 
@@ -851,7 +834,6 @@ class FirestoreUtils {
 
     return <String, dynamic>{
       'totalStudents': totalStudents,
-      'totalFaculty': totalFaculty,
       'totalIdeas': totalIdeas,
       'activeIdeas': activeIdeas,
       'totalJudges': totalJudges,
@@ -941,43 +923,6 @@ class FirestoreUtils {
     }
     return grouped.entries
         .map((e) => <String, dynamic>{'problem': e.key, 'ideas': e.value})
-        .toList(growable: false);
-  }
-
-  static Future<List<Map<String, dynamic>>> getDepartmentPayments({
-    required String orgId,
-    required String department,
-  }) async {
-    final departmentCode = _resolveDepartmentCode(department);
-    final faculty = await getDepartmentUsers(
-      orgId: orgId,
-      department: department,
-      roleCodes: <String>['FAC'],
-      limit: 500,
-    );
-    final paymentsSnapshot = await _db.collection(hkzPayments).where('orgId', isEqualTo: orgId).get();
-    final paymentsByUser = <String, List<Map<String, dynamic>>>{};
-    for (final p in paymentsSnapshot.docs) {
-      final data = p.data();
-      if (!_matchesDepartmentCode(data, departmentCode)) continue;
-      final userId = ((data['userId'] as String?) ?? '').trim();
-      if (userId.isEmpty) continue;
-      paymentsByUser.putIfAbsent(userId, () => <Map<String, dynamic>>[]).add(data);
-    }
-
-    return faculty
-        .map((f) {
-          final history = paymentsByUser[f.userId] ?? <Map<String, dynamic>>[];
-          final total = history.fold<double>(
-            0,
-            (sum, p) => sum + (((p['amount'] as num?) ?? 0).toDouble()),
-          );
-          return <String, dynamic>{
-            'user': f,
-            'totalPayment': total,
-            'history': history,
-          };
-        })
         .toList(growable: false);
   }
 

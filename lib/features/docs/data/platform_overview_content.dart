@@ -37,7 +37,7 @@ abstract final class PlatformOverviewSections {
 
   static List<String> get searchCorpus => const <String>[
         'hackz platform overview innovation lifecycle ideathon hackathon',
-        'college admin department admin faculty coordinator judge student team member',
+        'college admin department admin coordinator judge student team member',
         'problem statements ideas evaluations teams domains csv import',
         'ideathon prototype transparent evaluation multi-tenant',
         'organization settings reports analytics feedback app metadata',
@@ -414,17 +414,6 @@ class PlatformOverviewDocBody extends StatelessWidget {
                   ),
                   _roleCard(
                     context,
-                    'Faculty',
-                    DocStatusKind.draft,
-                    const <String>[
-                      'Mentor teams',
-                      'Guide team members',
-                    ],
-                    cols,
-                    c.maxWidth,
-                  ),
-                  _roleCard(
-                    context,
                     'Coordinator',
                     DocStatusKind.inactive,
                     const <String>[
@@ -507,7 +496,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     (
                       title: 'Analytics & collaboration',
                       body:
-                          'Dashboards, role-based workspaces and shared context keep faculty, team members and admins aligned.',
+                          'Dashboards, role-based workspaces and shared context keep team members and admins aligned.',
                     ),
                   ];
                   return Wrap(
@@ -973,12 +962,6 @@ class PlatformOverviewDocBody extends StatelessWidget {
               const SizedBox(height: 12),
               _readingGroup(
                 context,
-                role: 'Faculty',
-                pageIds: const <String>['problem-lifecycle', 'idea-lifecycle'],
-              ),
-              const SizedBox(height: 12),
-              _readingGroup(
-                context,
                 role: 'Judge',
                 pageIds: const <String>['evaluation-lifecycle', 'roles-responsibilities'],
               ),
@@ -1034,7 +1017,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'Who can use Hackz?',
                 body:
-                    'College Admin, Department Admin, Faculty, Coordinator, Judge and Team Member roles—each with role-based workspaces and permissions.',
+                    'College Admin, Department Admin, Coordinator, Judge and Team Member roles—each with role-based workspaces and permissions.',
               ),
               (
                 title: 'Can Hackz be used outside engineering colleges?',

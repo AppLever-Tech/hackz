@@ -39,9 +39,8 @@ class UserImportHandler implements ImportHandler {
   @override
   String get templateCsv => '''
 name,email,phone,role,${ImportConstants.departmentColumnKey}
-John Doe,john@test.com,9876543210,${CsvImportRoleConstants.faculty},CSE
-Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.student},CSE
-Robert Lee,robert@test.com,9876543212,${CsvImportRoleConstants.judge},CSE
+John Doe,john@test.com,9876543210,${CsvImportRoleConstants.student},CSE
+Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
 '''.trim();
 
   @override

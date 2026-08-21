@@ -71,11 +71,6 @@ abstract final class LandingRoleData {
       accent: Color(0xFF6A38FF),
     ),
     LandingRoleTile(
-      icon: AppIcons.faculty,
-      title: 'Faculty',
-      accent: Color(0xFF0EA5E9),
-    ),
-    LandingRoleTile(
       icon: AppIcons.judges,
       title: 'Judge',
       accent: Color(0xFFEA580C),

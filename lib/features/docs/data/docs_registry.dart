@@ -253,13 +253,6 @@ abstract final class DocsRegistry {
           'csv-import',
           'roles-responsibilities',
         ],
-      UserRole.faculty => const <String>[
-          'platform-overview',
-          'problem-lifecycle',
-          'idea-lifecycle',
-          'roles-responsibilities',
-          'innovation-submission',
-        ],
       UserRole.judge => const <String>[
           'platform-overview',
           'evaluation-lifecycle',

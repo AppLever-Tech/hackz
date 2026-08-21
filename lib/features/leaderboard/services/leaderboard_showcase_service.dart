@@ -113,10 +113,6 @@ class LeaderboardShowcaseService {
     bundles.sort((a, b) => b.composite.compareTo(a.composite));
 
     var teamScoped = teams;
-    if (role == UserRole.faculty && (config.facultyMentorId ?? '').isNotEmpty) {
-      final mid = config.facultyMentorId!.trim();
-      teamScoped = teams.where((t) => t.mentorId == mid).toList(growable: false);
-    }
     if (role == UserRole.student && config.scopeDepartmentCode != null) {
       final code = config.scopeDepartmentCode!.toUpperCase();
       teamScoped = teamScoped.where((t) => t.departmentCode.toUpperCase() == code).toList(growable: false);
@@ -221,7 +217,14 @@ class LeaderboardShowcaseService {
       );
     }
 
-    final mentors = usersById.values.where((u) => UserRole.fromCode(u.role) == UserRole.faculty).toList(growable: false);
+    final Set<String> mentorIds = teams
+        .map((TeamModel t) => t.mentorId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+    final List<UserModel> mentors = mentorIds
+        .map((String id) => usersById[id])
+        .whereType<UserModel>()
+        .toList(growable: false);
     final mentorRows = <MentorShowcaseRow>[];
     for (final m in mentors) {
       final mentoredTeams = teams.where((t) => t.mentorId == m.userId).toList(growable: false);

@@ -179,17 +179,6 @@ class _RoleMenuConfig {
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
-      case UserRole.faculty:
-        return const _RoleMenuConfig(
-          primaryMenus: <DashboardMenuItem>[
-            DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
-            DashboardMenuItem(label: 'Teams', icon: AppIcons.users),
-            DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
-            DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
-            DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
-          ],
-          secondaryMenus: <DashboardMenuItem>[],
-        );
       case UserRole.judge:
         return const _RoleMenuConfig(
           primaryMenus: <DashboardMenuItem>[

@@ -24,9 +24,6 @@ class TeamService {
   TeamService._();
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static Future<List<TeamModel>> getFacultyTeams(String facultyId) =>
-      FirestoreUtils.getFacultyTeams(facultyId);
-
   static Future<List<TeamModel>> getTeamsLedBy(String userId) =>
       FirestoreUtils.getTeamsLedBy(userId);
 
@@ -52,14 +49,13 @@ class TeamService {
     final String id = actor.userId.trim();
     if (id.isEmpty) return false;
     final UserRole role = UserRole.fromCode(actor.role);
-    if (role == UserRole.faculty) return team.mentorId.trim() == id;
     if (role == UserRole.student) return isActingTeamLeader(actor, team);
     return false;
   }
 
   static void assertCanManageTeam(UserModel actor, TeamModel team) {
     if (!canManageTeam(actor, team)) {
-      throw TeamRuleException('You can only manage teams you lead or mentor.');
+      throw TeamRuleException('You can only manage teams you lead.');
     }
   }
 
@@ -128,18 +124,17 @@ class TeamService {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedStudentIds);
 
     final UserRole role = UserRole.fromCode(actor.role);
-    if (role == UserRole.student) {
-      if (!selectedStudentIds.contains(actor.userId.trim())) {
-        throw TeamRuleException('The team leader must be a member of the team.');
-      }
-      if (teamLeaderId.trim() != actor.userId.trim()) {
-        throw TeamRuleException('You can only designate yourself as team leader of your team.');
-      }
-      if (editingTeam == null && existingTeams.isNotEmpty) {
-        throw TeamRuleException('A team member can belong to only one team.');
-      }
-    } else if (editingTeam == null && existingTeams.length >= 3) {
-      throw TeamRuleException('Maximum 3 teams per faculty reached.');
+    if (role != UserRole.student) {
+      throw TeamRuleException('Only a team leader can create or update a team.');
+    }
+    if (!selectedStudentIds.contains(actor.userId.trim())) {
+      throw TeamRuleException('The team leader must be a member of the team.');
+    }
+    if (teamLeaderId.trim() != actor.userId.trim()) {
+      throw TeamRuleException('You can only designate yourself as team leader of your team.');
+    }
+    if (editingTeam == null && existingTeams.isNotEmpty) {
+      throw TeamRuleException('A team member can belong to only one team.');
     }
 
     if (editingTeam != null) {
@@ -180,13 +175,11 @@ class TeamService {
     required String teamLeaderId,
   }) async {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: studentIds);
-    final UserRole role = UserRole.fromCode(actor.role);
-    final String mentorId = role == UserRole.faculty ? actor.userId : '';
     final doc = _db.collection(FirestoreUtils.hkzTeams).doc();
     final team = TeamModel(
       teamId: doc.id,
       teamName: teamName.trim(),
-      mentorId: mentorId,
+      mentorId: '',
       teamLeaderId: teamLeaderId.trim(),
       studentIds: studentIds.toList(growable: false),
       orgId: actor.orgId,

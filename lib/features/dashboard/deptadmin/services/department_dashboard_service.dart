@@ -112,7 +112,6 @@ class DepartmentDashboardAnalytics {
     required this.pendingApprovals,
     required this.activeProblems,
     required this.ideasSubmitted,
-    required this.facultyCount,
     required this.studentCount,
     required this.coordinatorCount,
     required this.judgeCount,
@@ -139,7 +138,6 @@ class DepartmentDashboardAnalytics {
   final int pendingApprovals;
   final int activeProblems;
   final int ideasSubmitted;
-  final int facultyCount;
   final int studentCount;
   final int coordinatorCount;
   final int judgeCount;
@@ -257,7 +255,6 @@ class DepartmentDashboardService {
       pendingApprovals: pendingApprovals,
       activeProblems: problems.where((doc) => (doc.data()['status'] as String?) == 'active').length,
       ideasSubmitted: ideas.length,
-      facultyCount: roleCount('FAC', status: UserStatus.active),
       studentCount: roleCount('STU', status: UserStatus.active),
       coordinatorCount: roleCount('COO', status: UserStatus.active),
       judgeCount: roleCount('JUD', status: UserStatus.active),
@@ -399,7 +396,7 @@ class DepartmentDashboardService {
   }
 
   static List<DepartmentDistributionSegment> _roleDistribution(_FirestoreDocs users) {
-    final counts = <String, int>{'Faculty': 0, 'Team Members': 0, 'Coordinators': 0, 'Judges': 0, 'Pending': 0};
+    final counts = <String, int>{'Team Members': 0, 'Coordinators': 0, 'Judges': 0, 'Pending': 0};
     for (final doc in users) {
       final data = doc.data();
       final status = UserStatus.fromRaw((data['status'] as String?) ?? '');
@@ -408,9 +405,6 @@ class DepartmentDashboardService {
         continue;
       }
       switch (((data['role'] as String?) ?? '').trim().toUpperCase()) {
-        case 'FAC':
-          counts['Faculty'] = counts['Faculty']! + 1;
-          break;
         case 'STU':
           counts['Team Members'] = counts['Team Members']! + 1;
           break;
@@ -422,9 +416,8 @@ class DepartmentDashboardService {
           break;
       }
     }
-    const colors = <Color>[Color(0xFF6A38FF), Color(0xFF0EA5E9), Color(0xFF16A34A), Color(0xFFEA580C), Color(0xFFF59E0B)];
+    const colors = <Color>[Color(0xFF6A38FF), Color(0xFF16A34A), Color(0xFFEA580C), Color(0xFFF59E0B)];
     const icons = <IconData>[
-      AppIcons.faculty,
       AppIcons.student,
       AppIcons.coordinator,
       AppIcons.judges,

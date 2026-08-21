@@ -239,12 +239,12 @@ class TeamWorkspaceCard extends StatelessWidget {
   UserModel _resolveMentor() {
     final String mentorId = team.mentorId.trim();
     if (mentorId.isEmpty) {
-      return _stubUser('', '—', role: 'FAC');
+      return _stubUser('', '—', role: '');
     }
     if (mentorUser.userId == mentorId) {
       return mentorUser;
     }
-    return studentsById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: 'FAC');
+    return studentsById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: '');
   }
 
   UserModel _resolveStudent(String studentId) {

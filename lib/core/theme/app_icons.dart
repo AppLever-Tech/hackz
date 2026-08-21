@@ -153,8 +153,6 @@ class AppIcons {
         return organizations;
       case UserRole.departmentAdmin:
         return departments;
-      case UserRole.faculty:
-        return faculty;
       case UserRole.judge:
         return judges;
       case UserRole.student:

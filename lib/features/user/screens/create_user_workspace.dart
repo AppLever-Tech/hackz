@@ -16,7 +16,6 @@ import '../models/enums/user_role.dart';
 import '../models/enums/user_status.dart';
 import '../models/profiles/college_admin_profile.dart';
 import '../models/profiles/department_admin_profile.dart';
-import '../models/profiles/faculty_profile.dart';
 import '../models/profiles/judge_profile.dart';
 import '../models/profiles/professional_profile.dart';
 import '../models/profiles/student_profile.dart';
@@ -96,7 +95,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   final TextEditingController _yearsController = TextEditingController();
   final TextEditingController _programController = TextEditingController();
   final TextEditingController _yearOfStudyController = TextEditingController();
-  final TextEditingController _specializationController = TextEditingController();
   final TextEditingController _deptAdminDesignationController = TextEditingController();
   final TextEditingController _collegeAdminDesignationController = TextEditingController();
 
@@ -107,7 +105,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   String? _remoteThumbUrl;
   List<String> _expertiseAreas = <String>[];
   List<String> _skills = <String>[];
-  List<String> _researchInterests = <String>[];
   List<String> _evaluationDomains = <String>[];
   JudgeType? _judgeType;
   bool _saving = false;
@@ -157,8 +154,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     _programController.text = profile?.studentProfile?.program ?? '';
     _yearOfStudyController.text = profile?.studentProfile?.yearOfStudy ?? '';
     _skills = List<String>.from(profile?.studentProfile?.skills ?? const <String>[]);
-    _specializationController.text = profile?.facultyProfile?.specialization ?? '';
-    _researchInterests = List<String>.from(profile?.facultyProfile?.researchInterests ?? const <String>[]);
     _evaluationDomains = List<String>.from(profile?.judgeProfile?.evaluationDomains ?? const <String>[]);
     _judgeType = profile?.judgeProfile?.judgeType;
     _deptAdminDesignationController.text = profile?.departmentAdminProfile?.officeDesignation ?? '';
@@ -239,7 +234,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     _yearsController.dispose();
     _programController.dispose();
     _yearOfStudyController.dispose();
-    _specializationController.dispose();
     _deptAdminDesignationController.dispose();
     _collegeAdminDesignationController.dispose();
     super.dispose();
@@ -328,10 +322,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         program: _programController.text,
         yearOfStudy: _yearOfStudyController.text,
         skills: _skills,
-      ),
-      faculty: FacultyProfile(
-        specialization: _specializationController.text,
-        researchInterests: _researchInterests,
       ),
       judge: JudgeProfile(
         evaluationDomains: _evaluationDomains,
@@ -605,7 +595,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         _profileBlock(
           icon: AppIcons.adminProfile,
           title: 'Professional information',
-          subtitle: 'Applicable for faculty and judges',
+          subtitle: 'Applicable for judges',
           children: <Widget>[
             _labeledField('Company', TextField(controller: _companyController, decoration: _fieldDecoration('Company'))),
             const SizedBox(height: 10),
@@ -638,25 +628,6 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
             _labeledField('Year of study', TextField(controller: _yearOfStudyController, decoration: _fieldDecoration('Year'))),
             const SizedBox(height: 10),
             UserTagsField(label: 'Skills', values: _skills, enabled: !_saving, onChanged: (List<String> v) => setState(() => _skills = v)),
-          ],
-        ),
-      );
-    }
-
-    if (UserProfileRules.needsFaculty(_selectedRoles)) {
-      sections.add(
-        _profileBlock(
-          icon: AppIcons.faculty,
-          title: 'Faculty information',
-          children: <Widget>[
-            _labeledField('Specialization', TextField(controller: _specializationController, decoration: _fieldDecoration('Specialization'))),
-            const SizedBox(height: 10),
-            UserTagsField(
-              label: 'Research interests',
-              values: _researchInterests,
-              enabled: !_saving,
-              onChanged: (List<String> v) => setState(() => _researchInterests = v),
-            ),
           ],
         ),
       );

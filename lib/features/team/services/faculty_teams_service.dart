@@ -5,7 +5,6 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
-import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -53,7 +52,7 @@ class FacultyTeamsWorkspaceData {
 class FacultyTeamsService {
   FacultyTeamsService._();
 
-  static const int maxTeamsPerFaculty = 3;
+  static const int maxTeamsPerLeader = 1;
   static const int minStudentsPerTeam = 2;
   static const int maxStudentsPerTeam = 4;
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -79,9 +78,7 @@ class FacultyTeamsService {
     }
 
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      UserRole.fromCode(faculty.role) == UserRole.student
-          ? TeamService.getTeamsLedBy(faculty.userId)
-          : TeamService.getFacultyTeams(faculty.userId),
+      TeamService.getTeamsLedBy(faculty.userId),
       TeamService.getDepartmentStudents(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
       TeamService.getDepartmentProblems(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: faculty.orgId).get(),
@@ -147,16 +144,15 @@ class FacultyTeamsService {
     return data;
   }
 
-  static int maxTeamsFor(UserModel actor) =>
-      UserRole.fromCode(actor.role) == UserRole.student ? 1 : maxTeamsPerFaculty;
+  static int maxTeamsFor(UserModel actor) => maxTeamsPerLeader;
 
   static bool canCreateTeam(List<TeamModel> existingTeams, {UserModel? actor}) {
-    final int max = actor == null ? maxTeamsPerFaculty : maxTeamsFor(actor);
+    final int max = actor == null ? maxTeamsPerLeader : maxTeamsFor(actor);
     return existingTeams.length < max;
   }
 
   static String capacityMessage(int teamCount, {int? maxTeams}) {
-    final int max = maxTeams ?? maxTeamsPerFaculty;
+    final int max = maxTeams ?? maxTeamsPerLeader;
     final remaining = (max - teamCount).clamp(0, max).toInt();
     if (remaining == 0) return 'Team capacity reached';
     return remaining == 1 ? '1 team slot remaining' : '$remaining team slots remaining';

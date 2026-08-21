@@ -13,7 +13,7 @@ import 'workflow_request_service.dart';
 
 /// Submitting + approving a team change request.
 ///
-/// Approval is the only path that mutates an active team — faculty edits are
+/// Approval is the only path that mutates an active team — team leader edits are
 /// always indirect through this workflow.
 class TeamChangeRequestService {
   TeamChangeRequestService._();

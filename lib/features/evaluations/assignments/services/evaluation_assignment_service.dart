@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../features/team/models/team_model.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../models/evaluation_assignment_conflict.dart';
@@ -243,14 +242,6 @@ class EvaluationAssignmentService {
 
   static const String mentorConflictReason = 'Mentor Conflict';
 
-  static bool isFacultyOnlyEvaluator(UserModel user) {
-    final bool isFaculty =
-        user.hasRoleCode(UserRole.faculty.code) || user.role.trim() == UserRole.faculty.code;
-    final bool isJudge =
-        user.hasRoleCode(UserRole.judge.code) || user.role.trim() == UserRole.judge.code;
-    return isFaculty && !isJudge;
-  }
-
   static EvaluationAssignmentConflict validateConflict({
     required UserModel judge,
     required IdeaModel idea,
@@ -265,18 +256,14 @@ class EvaluationAssignmentService {
       );
     }
 
-    final bool facultyOnly = isFacultyOnlyEvaluator(judge);
-    if (!facultyOnly) {
-      if (idea.createdBy.trim() == judgeId) {
-        reasons.add('Self-submitted idea');
-      }
-      final TeamModel? t = team;
-      if (t != null && t.studentIds.contains(judgeId)) {
-        reasons.add('Judge is a member of this team');
-      }
+    if (idea.createdBy.trim() == judgeId) {
+      reasons.add('Self-submitted idea');
+    }
+    final TeamModel? t = team;
+    if (t != null && t.studentIds.contains(judgeId)) {
+      reasons.add('Judge is a member of this team');
     }
 
-    final TeamModel? t = team;
     if (t != null && t.mentorId.trim() == judgeId) {
       reasons.add(mentorConflictReason);
     }

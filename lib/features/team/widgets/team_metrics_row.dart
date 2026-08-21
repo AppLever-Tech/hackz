@@ -5,7 +5,7 @@ import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../services/faculty_teams_service.dart';
 
-/// Reusable metric row for faculty team workspace screens.
+/// Reusable metric row for team workspace screens.
 class TeamMetricsRow extends StatelessWidget {
   const TeamMetricsRow({
     super.key,
@@ -24,7 +24,7 @@ class TeamMetricsRow extends StatelessWidget {
   final double spacing;
   final double runSpacing;
 
-  int get _maxTeams => maxTeams ?? FacultyTeamsService.maxTeamsPerFaculty;
+  int get _maxTeams => maxTeams ?? FacultyTeamsService.maxTeamsPerLeader;
 
   int get _remainingSlots =>
       (_maxTeams - teamCount).clamp(0, _maxTeams).toInt();

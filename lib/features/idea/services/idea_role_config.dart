@@ -10,27 +10,6 @@ class IdeaRoleConfig {
     final scope = RoleVisibilityHelpers.ideaDepartmentScopeFor(role);
     final canViewIdeas = RoleVisibilityHelpers.canViewIdeas(role);
     switch (role) {
-      case UserRole.faculty:
-        return IdeaListConfig(
-          canViewIdeas: canViewIdeas,
-          canCreateIdea: false,
-          canEvaluate: false,
-          canViewStatus: true,
-          canUploadPayment: false,
-          canAssignJudge: false,
-          ideaDepartmentScope: scope,
-          orgId: user.orgId,
-          departmentCode: user.departmentCode,
-          enabledFilters: const <IdeaFilterType>{
-            IdeaFilterType.status,
-            IdeaFilterType.problem,
-          },
-          enabledSorts: const <IdeaSortType>{
-            IdeaSortType.newest,
-            IdeaSortType.oldest,
-            IdeaSortType.status,
-          },
-        );
       case UserRole.judge:
         return IdeaListConfig(
           canViewIdeas: canViewIdeas,

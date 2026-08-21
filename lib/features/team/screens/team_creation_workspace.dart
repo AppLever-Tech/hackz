@@ -216,16 +216,16 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           const SizedBox(height: 10),
           _section(
             title: _isTeamMemberActor ? 'Team Leader' : 'Mentor',
-            subtitle: _isTeamMemberActor ? 'You lead this team' : 'Faculty mentor for this team',
+            subtitle: 'You lead this team',
             compact: true,
             child: Align(
               alignment: Alignment.centerLeft,
               child: ContextPill(
                 label: mentorName.isEmpty
-                    ? (_isTeamMemberActor ? 'Team Leader' : 'Faculty mentor')
+                    ? 'Team Leader'
                     : mentorName,
                 semantic: ContextPillSemantic.user,
-                icon: _isTeamMemberActor ? AppIcons.student : AppIcons.faculty,
+                icon: AppIcons.student,
                 onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
                 compact: true,
               ),
@@ -337,7 +337,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             runSpacing: 6,
             children: <Widget>[
               _heroChip('${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} team members'),
-              _heroChip('Faculty mentor'),
+              _heroChip('Team Leader'),
               _heroChip('Submission ready'),
             ],
           ),

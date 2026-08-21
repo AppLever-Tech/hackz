@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../models/evaluator_source.dart';
 
-/// Lightweight All / Judges / Faculty filter row for the evaluator panel.
+/// Lightweight All / Judges filter row for the evaluator panel.
 class EvaluatorFilterChips extends StatelessWidget {
   const EvaluatorFilterChips({
     super.key,
@@ -22,7 +22,6 @@ class EvaluatorFilterChips extends StatelessWidget {
         <({String label, EvaluatorListFilter value})>[
       (label: 'All', value: EvaluatorListFilter.all),
       (label: 'Judges', value: EvaluatorListFilter.judges),
-      (label: 'Faculty', value: EvaluatorListFilter.faculty),
     ];
 
     return SingleChildScrollView(

@@ -238,7 +238,6 @@ class IdeaLifecycleDocBody extends StatelessWidget {
             headers: const <String>['Role', 'Responsibilities'],
             rows: const <List<String>>[
               <String>['Team Leader', 'Submit and finalize innovation, upload idea payment, manage own team'],
-              <String>['Faculty', 'Mentor teams; view mentored ideas (no submission or payment)'],
               <String>['Coordinator', 'Verify idea payment'],
               <String>[
                 'Department Admin',

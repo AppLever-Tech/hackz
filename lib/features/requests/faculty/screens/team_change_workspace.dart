@@ -24,7 +24,7 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
-/// Full-screen "Request Team Change" workspace for faculty.
+/// Full-screen "Request Team Change" workspace for team leaders.
 ///
 /// Replaces the previous direct-edit dialog and routes every membership
 /// change through an approval workflow. Reuses the platform's responsive
@@ -711,7 +711,7 @@ class _Hero extends StatelessWidget {
               ContextPill(
                 label: userDisplayName(faculty),
                 semantic: ContextPillSemantic.user,
-                icon: AppIcons.faculty,
+                icon: AppIcons.student,
                 onTap: () => WorkspaceNavigator.openUser(context, faculty.userId),
                 compact: true,
               ),

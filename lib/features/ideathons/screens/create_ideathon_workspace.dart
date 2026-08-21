@@ -145,11 +145,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       FirebaseFirestore.instance
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: orgId)
-          .where('role', isEqualTo: UserRole.faculty.code)
-          .get(),
-      FirebaseFirestore.instance
-          .collection(FirestoreUtils.hkzUsers)
-          .where('orgId', isEqualTo: orgId)
           .where('role', isEqualTo: UserRole.departmentAdmin.code)
           .get(),
     ];
@@ -176,12 +171,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return users;
   }
 
-  /// Coordinator assignees: department coordinator → faculty → department admin.
+  /// Coordinator assignees: department coordinator → department admin.
   static int _coordinatorListRoleRank(String roleCode) {
     return switch (UserRole.fromCode(roleCode)) {
       UserRole.coordinator => 0,
-      UserRole.faculty => 1,
-      UserRole.departmentAdmin => 2,
+      UserRole.departmentAdmin => 1,
       _ => 3,
     };
   }

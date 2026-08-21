@@ -16,7 +16,6 @@ class LeaderboardRoleConfig {
     required this.scopeDepartmentCode,
     required this.platformWide,
     required this.judgeEvaluationAnalyticsOnly,
-    required this.facultyMentorId,
     required this.studentTeamId,
   });
 
@@ -34,9 +33,6 @@ class LeaderboardRoleConfig {
 
   /// Judge: analytics / distributions only — no competitive final rankings UI.
   final bool judgeEvaluationAnalyticsOnly;
-
-  /// Faculty: optional mentor scope for team rankings.
-  final String? facultyMentorId;
 
   /// Student: optional team scope for team tab emphasis.
   final String? studentTeamId;
@@ -57,21 +53,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: null,
           studentTeamId: user.teamId?.trim().isEmpty ?? true ? null : user.teamId!.trim(),
-        );
-      case UserRole.faculty:
-        return LeaderboardRoleConfig(
-          visibleTabs: {
-            LeaderboardShowcaseTab.teams,
-            LeaderboardShowcaseTab.mentors,
-          },
-          scopeOrgId: org,
-          scopeDepartmentCode: null,
-          platformWide: false,
-          judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: user.userId.trim(),
-          studentTeamId: null,
         );
       case UserRole.departmentAdmin:
         return LeaderboardRoleConfig(
@@ -84,7 +66,6 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: null,
           studentTeamId: null,
         );
       case UserRole.collegeAdmin:
@@ -94,7 +75,6 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: null,
           studentTeamId: null,
         );
       case UserRole.coordinator:
@@ -108,7 +88,6 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: null,
           studentTeamId: null,
         );
       case UserRole.judge:
@@ -120,7 +99,6 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: true,
-          facultyMentorId: null,
           studentTeamId: null,
         );
       case UserRole.sysAdmin:
@@ -130,7 +108,6 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: true,
           judgeEvaluationAnalyticsOnly: false,
-          facultyMentorId: null,
           studentTeamId: null,
         );
     }

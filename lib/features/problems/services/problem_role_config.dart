@@ -46,36 +46,7 @@ class ProblemRoleConfig {
           canSubmitIdea: false,
           // Phase 1: pre-Ideathon judge assignment removed; infrastructure kept for Ideathon phases.
           canAssignJudge: false,
-          // All problem statements should be shown for department admin, faculty, and student views.
-          restrictToDepartment: false,
-          orgId: user.orgId,
-          departmentCode: user.departmentCode,
-          enabledFilters: const <ProblemFilterType>{
-            ProblemFilterType.domain,
-            ProblemFilterType.status,
-            ProblemFilterType.source,
-            ProblemFilterType.tags,
-            ProblemFilterType.attachments,
-          },
-          enabledSorts: const <ProblemSortType>{
-            ProblemSortType.newest,
-            ProblemSortType.oldest,
-            ProblemSortType.psNumber,
-            ProblemSortType.titleAZ,
-            ProblemSortType.department,
-            ProblemSortType.category,
-            ProblemSortType.ideasCount,
-            ProblemSortType.deadline,
-          },
-        );
-      case UserRole.faculty:
-        return ProblemListConfig(
-          canCreate: false,
-          canEdit: false,
-          canToggleActive: false,
-          canDeleteDraft: false,
-          canSubmitIdea: false,
-          canAssignJudge: false,
+          // All problem statements should be shown for department admin and team member views.
           restrictToDepartment: false,
           orgId: user.orgId,
           departmentCode: user.departmentCode,

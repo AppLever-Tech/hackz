@@ -6,7 +6,6 @@ abstract final class OrgSettingKeys {
   // Team — formation
   static const String minStudentsPerTeam = 'minStudentsPerTeam';
   static const String maxStudentsPerTeam = 'maxStudentsPerTeam';
-  static const String maxTeamsPerFaculty = 'maxTeamsPerFaculty';
 
   // Team — edit
   static const String allowPendingSubmissionTeamEdit = 'allowPendingSubmissionTeamEdit';
@@ -19,7 +18,6 @@ abstract final class OrgSettingKeys {
   static const String minJudgesPerIdea = 'minJudgesPerIdea';
   static const String maxJudgesPerIdea = 'maxJudgesPerIdea';
   static const String showJudgeCommentsToStudents = 'showJudgeCommentsToStudents';
-  static const String allowFacultyAsJudges = 'allowFacultyAsJudges';
   static const String requiredJudgeEvaluations = 'requiredJudgeEvaluations';
 
   // Problem

@@ -2,20 +2,18 @@
 abstract final class CsvImportRoleConstants {
   CsvImportRoleConstants._();
 
-  static const String faculty = 'FACULTY';
   static const String student = 'STUDENT';
   static const String judge = 'JUDGE';
 
-  static const List<String> all = <String>[faculty, student, judge];
+  static const List<String> all = <String>[student, judge];
 
-  static const Set<String> allSet = <String>{faculty, student, judge};
+  static const Set<String> allSet = <String>{student, judge};
 
   static const Set<String> judgesPanelOnly = <String>{judge};
 
   /// Maps a validated CSV role label to the internal [UserRole] code.
   static String? toRoleCode(String csvRole) {
     return switch (csvRole) {
-      faculty => 'FAC',
       student => 'STU',
       judge => 'JUD',
       _ => null,

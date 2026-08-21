@@ -232,7 +232,7 @@ class _EmptyReviewState extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'When faculty submit approval requests, you will see them here.',
+              'When team leaders submit approval requests, you will see them here.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
             ),

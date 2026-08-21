@@ -385,7 +385,6 @@ class _DepartmentOverviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int faculty = (dept['facultyCount'] as int?) ?? 0;
     final int students = (dept['studentCount'] as int?) ?? 0;
     final String admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
     final bool hasAdmin = admin.isNotEmpty && admin != '-';
@@ -403,14 +402,12 @@ class _DepartmentOverviewTile extends StatelessWidget {
               name: name,
               admin: admin,
               hasAdmin: hasAdmin,
-              faculty: faculty,
               students: students,
             )
           : _buildDesktopLayout(
               name: name,
               admin: admin,
               hasAdmin: hasAdmin,
-              faculty: faculty,
               students: students,
             ),
     );
@@ -420,7 +417,6 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String name,
     required String admin,
     required bool hasAdmin,
-    required int faculty,
     required int students,
   }) {
     return Row(
@@ -458,11 +454,6 @@ class _DepartmentOverviewTile extends StatelessWidget {
                     tooltip: 'Department admin',
                   ),
                 _DepartmentMetricPill(
-                  icon: AppIcons.faculty,
-                  label: '$faculty',
-                  tooltip: 'Faculty',
-                ),
-                _DepartmentMetricPill(
                   icon: AppIcons.student,
                   label: '$students',
                   tooltip: 'Team Members',
@@ -479,7 +470,6 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String name,
     required String admin,
     required bool hasAdmin,
-    required int faculty,
     required int students,
   }) {
     return Column(
@@ -521,12 +511,6 @@ class _DepartmentOverviewTile extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _DepartmentMetricCount(
-                  icon: AppIcons.faculty,
-                  count: faculty,
-                  tooltip: 'Faculty',
-                ),
-                const SizedBox(width: 14),
                 _DepartmentMetricCount(
                   icon: AppIcons.student,
                   count: students,

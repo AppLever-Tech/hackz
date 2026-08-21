@@ -266,7 +266,6 @@ stateDiagram-v2
             rows: const <List<String>>[
               <String>['College Admin', 'Activate Draft, Deactivate, Reactivate, manage complete catalog'],
               <String>['Department Admin', 'Create/import problems, edit own problems; view org-wide catalog'],
-              <String>['Faculty', 'View org-wide catalog; mentor teams'],
               <String>['Team Member', 'View org-wide catalog; Team Leader submits ideas on Active problems'],
               <String>['Judge', 'View problem context via assigned ideas'],
               <String>['Coordinator', 'View department-scoped problems for coordination / payments'],
@@ -323,7 +322,7 @@ stateDiagram-v2
               (
                 title: 'Can an Inactive problem receive ideas?',
                 body:
-                    'No. New submissions are blocked. Faculty see the gate as inactive.',
+                    'No. New submissions are blocked. Team Members see the gate as inactive.',
               ),
               (
                 title: 'What happens to existing ideas?',

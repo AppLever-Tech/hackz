@@ -396,16 +396,6 @@ class IdeaQueryService {
   static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {
     if (viewer == null) return items;
     final role = UserRole.fromCode(viewer.role);
-    if (role == UserRole.faculty) {
-      final facultyId = viewer.userId.trim();
-      if (facultyId.isEmpty) return items;
-      return items.where((item) {
-        if (item.idea.createdBy.trim() == facultyId) return true;
-        final team = item.team;
-        if (team == null) return false;
-        return team.mentorId.trim() == facultyId;
-      }).toList(growable: false);
-    }
     if (role == UserRole.student) {
       final studentId = viewer.userId.trim();
       final studentTeamId = (viewer.teamId ?? '').trim();

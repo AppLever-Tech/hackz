@@ -24,12 +24,6 @@ abstract final class UserProfileDetails {
       _addList(rows, 'Skills', student.skills);
     }
 
-    final faculty = profile.facultyProfile;
-    if (faculty != null && !faculty.isEmpty) {
-      _add(rows, 'Specialization', faculty.specialization);
-      _addList(rows, 'Research interests', faculty.researchInterests);
-    }
-
     final judge = profile.judgeProfile;
     if (judge != null && !judge.isEmpty) {
       if (judge.judgeType != null) {

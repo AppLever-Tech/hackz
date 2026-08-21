@@ -1,11 +1,9 @@
-/// Whether an evaluator row originated from the judge pool or faculty pool.
+/// Whether an evaluator row originated from the judge pool.
 enum EvaluatorSource {
   judge,
-  faculty,
 }
 
 enum EvaluatorListFilter {
   all,
   judges,
-  faculty,
 }

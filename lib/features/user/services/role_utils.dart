@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../features/dashboard/collegeadmin/screens/collegeadmin_dashboard.dart';
 import '../../../features/dashboard/coordinator/screens/coordinator_dashboard.dart';
 import '../../../features/dashboard/deptadmin/screens/deptadmin_dashboard.dart';
-import '../../../features/dashboard/faculty/screens/faculty_dashboard.dart';
 import '../../../features/dashboard/judge/screens/judge_dashboard.dart';
 import '../../../features/dashboard/student/screens/student_dashboard.dart';
 import '../../../features/dashboard/sysadmin/screens/sysadmin_dashboard.dart';
@@ -28,8 +27,6 @@ class RoleUtils {
         return CollegeAdminDashboard(user: user);
       case UserRole.departmentAdmin:
         return DeptAdminDashboard(user: user);
-      case UserRole.faculty:
-        return FacultyDashboard(user: user);
       case UserRole.student:
         return StudentDashboard(user: user);
       case UserRole.judge:

@@ -95,7 +95,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     if (departmentId.isEmpty || adminUserId.trim().isEmpty) return;
     await FirestoreUtils.clearDepartmentAdmin(departmentId: departmentId);
     await FirestoreUtils.updateUser(adminUserId, <String, dynamic>{
-      'role': 'FAC',
       'department': '',
       'departmentCode': '',
     });
@@ -115,17 +114,15 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       return;
     }
 
-    final int facultyCount = (dept['facultyCount'] as int?) ?? 0;
     final int studentCount = (dept['studentCount'] as int?) ?? 0;
     final String adminUserId = ((dept['adminUserId'] as String?) ?? '').trim();
-    final bool hasUsers = facultyCount > 0 || studentCount > 0;
+    final bool hasUsers = studentCount > 0;
     final bool hasAdmin = adminUserId.isNotEmpty;
 
     final StringBuffer warning = StringBuffer('Delete "$name"?');
     if (hasUsers || hasAdmin) {
       warning.write('\n\nThis removes the department record from your college.');
       final List<String> parts = <String>[];
-      if (facultyCount > 0) parts.add('$facultyCount faculty');
       if (studentCount > 0) parts.add('$studentCount team members');
       if (hasAdmin) parts.add('the assigned department admin');
       if (parts.isNotEmpty) {
@@ -147,7 +144,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       if (hasAdmin) {
         await FirestoreUtils.clearDepartmentAdmin(departmentId: departmentId);
         await FirestoreUtils.updateUser(adminUserId, <String, dynamic>{
-          'role': 'FAC',
           'department': '',
           'departmentCode': '',
         });
@@ -501,7 +497,6 @@ class _DepartmentCard extends StatelessWidget {
     final String adminUserId = ((department['adminUserId'] as String?) ?? '').trim();
     final UserModel? adminUser = department['adminUser'] as UserModel?;
     final String departmentId = ((department['id'] as String?) ?? '').trim();
-    final int facultyCount = (department['facultyCount'] as int?) ?? 0;
     final int studentCount = (department['studentCount'] as int?) ?? 0;
     final bool hasAdmin = adminUserId.isNotEmpty && admin.isNotEmpty && admin != '-';
     final UserModel adminIdentity = adminUser ??
@@ -619,7 +614,6 @@ class _DepartmentCard extends StatelessWidget {
             ),
           const SizedBox(height: 6),
           _DepartmentCountsChip(
-            facultyCount: facultyCount,
             studentCount: studentCount,
           ),
         ],
@@ -631,11 +625,9 @@ class _DepartmentCard extends StatelessWidget {
 /// Single-line chip: faculty and student counts with icon, label, and bold count.
 class _DepartmentCountsChip extends StatelessWidget {
   const _DepartmentCountsChip({
-    required this.facultyCount,
     required this.studentCount,
   });
 
-  final int facultyCount;
   final int studentCount;
 
   @override
@@ -645,22 +637,11 @@ class _DepartmentCountsChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFD9E2F5)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          _DepartmentCountSegment(
-            icon: AppIcons.faculty,
-            label: 'Faculty',
-            count: facultyCount,
-          ),
-          Container(
-            width: 1,
-            height: 14,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: const Color(0xFFE2E8F0),
-          ),
           _DepartmentCountSegment(
             icon: AppIcons.student,
             label: 'Team Members',

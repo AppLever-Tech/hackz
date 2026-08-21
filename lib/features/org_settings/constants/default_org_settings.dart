@@ -43,20 +43,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     step: 1,
   ),
   const OrgSettingDefinition(
-    key: OrgSettingKeys.maxTeamsPerFaculty,
-    displayName: 'Maximum teams per faculty',
-    type: OrgSettingValueType.integer,
-    defaultValue: 8,
-    sectionKey: 'team',
-    sectionTitle: 'Team rules',
-    groupKey: 'formation',
-    groupTitle: 'Formation rules',
-    description: 'Cap on how many teams a faculty advisor can oversee.',
-    min: 1,
-    max: 50,
-    step: 1,
-  ),
-  const OrgSettingDefinition(
     key: OrgSettingKeys.allowPendingSubmissionTeamEdit,
     displayName: 'Allow team edits while submission is pending',
     type: OrgSettingValueType.boolean,
@@ -159,17 +145,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   ),
 
   // —— Evaluation settings ——
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.allowFacultyAsJudges,
-    displayName: 'Allow faculty as judges',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'evaluationSettings',
-    sectionTitle: 'Evaluation settings',
-    groupKey: 'general',
-    groupTitle: 'General',
-    description: 'When enabled, faculty members can be assigned as internal evaluators.',
-  ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.requiredJudgeEvaluations,
     displayName: 'Required judge evaluations',

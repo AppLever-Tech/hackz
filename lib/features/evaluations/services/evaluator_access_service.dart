@@ -7,12 +7,7 @@ class EvaluatorAccessService {
   EvaluatorAccessService._();
 
   static Future<bool> shouldShowAssignedEvaluations(UserModel user) async {
-    if (user.hasRoleCode(UserRole.judge.code)) return true;
-    if (!user.hasRoleCode(UserRole.faculty.code) &&
-        user.role.trim() != UserRole.faculty.code) {
-      return false;
-    }
-    return hasActiveAssignments(orgId: user.orgId, evaluatorId: user.userId);
+    return user.hasRoleCode(UserRole.judge.code) || user.role.trim() == UserRole.judge.code;
   }
 
   static Future<bool> hasActiveAssignments({

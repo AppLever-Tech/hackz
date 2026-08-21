@@ -245,7 +245,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
   Widget _buildReasonSection(WorkflowRequest request) {
     return RequestWorkspaceSection(
       title: 'Reason for change',
-      subtitle: 'Submitted by the requesting faculty',
+      subtitle: 'Submitted by the requesting team leader',
       leading: _sectionIcon(Icons.notes_rounded, const Color(0xFF7C3AED)),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -267,7 +267,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
     final Color tone = rejected ? const Color(0xFFB91C1C) : const Color(0xFF047857);
     return RequestWorkspaceSection(
       title: rejected ? 'Rejection comments' : 'Approval comments',
-      subtitle: 'Visible to the requesting faculty',
+      subtitle: 'Visible to the requesting team leader',
       leading: _sectionIcon(
         rejected ? AppIcons.workflowRejected : AppIcons.workflowApproved,
         tone,
@@ -294,7 +294,7 @@ class _RequestReviewPaneState extends State<RequestReviewPane> {
         icon: Icons.send_rounded,
         title: 'Submitted',
         detail:
-            '${request.requestedByName.isEmpty ? 'Faculty' : request.requestedByName} · ${formatDateTime(request.requestedAt)}',
+            '${request.requestedByName.isEmpty ? 'Team Leader' : request.requestedByName} · ${formatDateTime(request.requestedAt)}',
         tone: const Color(0xFF6A38FF),
       ),
       if (request.status == WorkflowStatus.approved && request.approvedAt != null)
@@ -424,7 +424,7 @@ class _ReviewHero extends StatelessWidget {
                 ContextPill(
                   label: request.requestedByName.isEmpty ? 'Requester' : request.requestedByName,
                   semantic: ContextPillSemantic.user,
-                  icon: AppIcons.faculty,
+                  icon: AppIcons.student,
                   onTap: () => WorkspaceNavigator.openUser(context, request.requestedBy),
                   compact: true,
                 ),
@@ -617,7 +617,7 @@ Future<String?> _promptForRejectionReason(BuildContext context) {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           const Text(
-            'A reason is required so faculty understand why the request was rejected.',
+            'A reason is required so the team leader understands why the request was rejected.',
             style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),

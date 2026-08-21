@@ -1,6 +1,5 @@
 import 'college_admin_profile.dart';
 import 'department_admin_profile.dart';
-import 'faculty_profile.dart';
 import 'judge_profile.dart';
 import 'professional_profile.dart';
 import 'student_profile.dart';
@@ -10,7 +9,6 @@ class UserProfile {
   const UserProfile({
     this.professionalProfile,
     this.studentProfile,
-    this.facultyProfile,
     this.judgeProfile,
     this.departmentAdminProfile,
     this.collegeAdminProfile,
@@ -18,7 +16,6 @@ class UserProfile {
 
   final ProfessionalProfile? professionalProfile;
   final StudentProfile? studentProfile;
-  final FacultyProfile? facultyProfile;
   final JudgeProfile? judgeProfile;
   final DepartmentAdminProfile? departmentAdminProfile;
   final CollegeAdminProfile? collegeAdminProfile;
@@ -26,7 +23,6 @@ class UserProfile {
   bool get isEmpty =>
       (professionalProfile == null || professionalProfile!.isEmpty) &&
       (studentProfile == null || studentProfile!.isEmpty) &&
-      (facultyProfile == null || facultyProfile!.isEmpty) &&
       (judgeProfile == null || judgeProfile!.isEmpty) &&
       (departmentAdminProfile == null || departmentAdminProfile!.isEmpty) &&
       (collegeAdminProfile == null || collegeAdminProfile!.isEmpty);
@@ -38,9 +34,6 @@ class UserProfile {
     }
     if (studentProfile != null && !studentProfile!.isEmpty) {
       map['studentProfile'] = studentProfile!.toMap();
-    }
-    if (facultyProfile != null && !facultyProfile!.isEmpty) {
-      map['facultyProfile'] = facultyProfile!.toMap();
     }
     if (judgeProfile != null && !judgeProfile!.isEmpty) {
       map['judgeProfile'] = judgeProfile!.toMap();
@@ -68,12 +61,6 @@ class UserProfile {
       student = StudentProfile.fromMap(studentRaw);
       if (student.isEmpty) student = null;
     }
-    FacultyProfile? faculty;
-    final dynamic facultyRaw = map['facultyProfile'];
-    if (facultyRaw is Map<String, dynamic>) {
-      faculty = FacultyProfile.fromMap(facultyRaw);
-      if (faculty.isEmpty) faculty = null;
-    }
     JudgeProfile? judge;
     final dynamic judgeRaw = map['judgeProfile'];
     if (judgeRaw is Map<String, dynamic>) {
@@ -95,7 +82,6 @@ class UserProfile {
     return UserProfile(
       professionalProfile: professional,
       studentProfile: student,
-      facultyProfile: faculty,
       judgeProfile: judge,
       departmentAdminProfile: deptAdmin,
       collegeAdminProfile: collegeAdmin,
@@ -105,7 +91,6 @@ class UserProfile {
   UserProfile copyWith({
     ProfessionalProfile? professionalProfile,
     StudentProfile? studentProfile,
-    FacultyProfile? facultyProfile,
     JudgeProfile? judgeProfile,
     DepartmentAdminProfile? departmentAdminProfile,
     CollegeAdminProfile? collegeAdminProfile,
@@ -113,7 +98,6 @@ class UserProfile {
     return UserProfile(
       professionalProfile: professionalProfile ?? this.professionalProfile,
       studentProfile: studentProfile ?? this.studentProfile,
-      facultyProfile: facultyProfile ?? this.facultyProfile,
       judgeProfile: judgeProfile ?? this.judgeProfile,
       departmentAdminProfile: departmentAdminProfile ?? this.departmentAdminProfile,
       collegeAdminProfile: collegeAdminProfile ?? this.collegeAdminProfile,
