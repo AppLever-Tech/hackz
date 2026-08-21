@@ -164,11 +164,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
               labelText: 'Role',
               border: OutlineInputBorder(),
             ),
-            items: const <DropdownMenuItem<String>>[
-              DropdownMenuItem<String>(value: 'FAC', child: Text('Faculty')),
+            items: <DropdownMenuItem<String>>[
+              DropdownMenuItem<String>(value: 'FAC', child: Text(UserRoleLabels.labelForCode('FAC'))),
               DropdownMenuItem<String>(value: 'STU', child: Text(UserRoleLabels.labelForCode('STU'))),
-              DropdownMenuItem<String>(value: 'COO', child: Text('Coordinator')),
-              DropdownMenuItem<String>(value: 'JUD', child: Text('Judge')),
+              DropdownMenuItem<String>(value: 'COO', child: Text(UserRoleLabels.labelForCode('COO'))),
+              DropdownMenuItem<String>(value: 'JUD', child: Text(UserRoleLabels.labelForCode('JUD'))),
             ],
             onChanged: (value) {
               if (value == null) return;
