@@ -91,6 +91,7 @@ class TeamChangeRequestService {
     required Set<String> proposedStudentIds,
     required Set<String> currentStudentIds,
     required String reason,
+    String teamLeaderId = '',
   }) {
     if (proposedStudentIds.length < minStudentsPerTeam) {
       throw WorkflowRequestException(
@@ -103,6 +104,10 @@ class TeamChangeRequestService {
     if (proposedStudentIds.length == currentStudentIds.length &&
         proposedStudentIds.containsAll(currentStudentIds)) {
       throw WorkflowRequestException('No member changes to submit.');
+    }
+    final String leaderId = teamLeaderId.trim();
+    if (leaderId.isNotEmpty && !proposedStudentIds.contains(leaderId)) {
+      throw WorkflowRequestException('The team leader must remain a team member.');
     }
     if (reason.trim().isEmpty) {
       throw WorkflowRequestException('Please describe why this change is needed.');

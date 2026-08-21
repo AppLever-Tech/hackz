@@ -8,6 +8,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../utils/common_helpers.dart';
@@ -82,7 +83,9 @@ class FacultyTeamsService {
     }
 
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      TeamService.getFacultyTeams(faculty.userId),
+      UserRole.fromCode(faculty.role) == UserRole.student
+          ? TeamService.getTeamsLedBy(faculty.userId)
+          : TeamService.getFacultyTeams(faculty.userId),
       TeamService.getDepartmentStudents(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
       TeamService.getDepartmentProblems(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: faculty.orgId).get(),
@@ -148,10 +151,17 @@ class FacultyTeamsService {
     return data;
   }
 
-  static bool canCreateTeam(List<TeamModel> existingTeams) => existingTeams.length < maxTeamsPerFaculty;
+  static int maxTeamsFor(UserModel actor) =>
+      UserRole.fromCode(actor.role) == UserRole.student ? 1 : maxTeamsPerFaculty;
 
-  static String capacityMessage(int teamCount) {
-    final remaining = (maxTeamsPerFaculty - teamCount).clamp(0, maxTeamsPerFaculty).toInt();
+  static bool canCreateTeam(List<TeamModel> existingTeams, {UserModel? actor}) {
+    final int max = actor == null ? maxTeamsPerFaculty : maxTeamsFor(actor);
+    return existingTeams.length < max;
+  }
+
+  static String capacityMessage(int teamCount, {int? maxTeams}) {
+    final int max = maxTeams ?? maxTeamsPerFaculty;
+    final remaining = (max - teamCount).clamp(0, max).toInt();
     if (remaining == 0) return 'Team capacity reached';
     return remaining == 1 ? '1 team slot remaining' : '$remaining team slots remaining';
   }
@@ -160,27 +170,40 @@ class FacultyTeamsService {
     required UserModel faculty,
     required String teamName,
     required Set<String> studentIds,
+    required String teamLeaderId,
     required List<TeamModel> existingTeams,
     required List<UserModel> departmentStudents,
     TeamModel? editingTeam,
   }) async {
     await TeamService.validateTeamUpsert(
-      faculty: faculty,
+      actor: faculty,
       teamName: teamName,
       selectedStudentIds: studentIds,
+      teamLeaderId: teamLeaderId,
       existingTeams: existingTeams,
       departmentStudents: departmentStudents,
       editingTeam: editingTeam,
     );
     if (editingTeam == null) {
-      await TeamService.createTeam(faculty: faculty, teamName: teamName, studentIds: studentIds);
+      await TeamService.createTeam(
+        actor: faculty,
+        teamName: teamName,
+        studentIds: studentIds,
+        teamLeaderId: teamLeaderId,
+      );
     } else {
-      await TeamService.updateTeam(team: editingTeam, teamName: teamName, studentIds: studentIds);
+      await TeamService.updateTeam(
+        team: editingTeam,
+        teamName: teamName,
+        studentIds: studentIds,
+        teamLeaderId: teamLeaderId,
+      );
     }
     _invalidate(faculty.userId);
   }
 
-  static Future<void> disableTeam(TeamModel team) async {
+  static Future<void> disableTeam(TeamModel team, {required UserModel actor}) async {
+    TeamService.assertCanManageTeam(actor, team);
     final batch = _db.batch();
     batch.set(
       _db.collection(FirestoreUtils.hkzTeams).doc(team.teamId),
@@ -204,6 +227,7 @@ class FacultyTeamsService {
     String gitRepositoryUrl = '',
     String youtubeDemoUrl = '',
   }) async {
+    TeamService.assertCanManageTeam(faculty, team);
     await TeamService.validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
     final teamDept = DepartmentModel.resolveCode(team.departmentCode);
     final problemDept = DepartmentModel.resolveCode(problem.departmentCode);

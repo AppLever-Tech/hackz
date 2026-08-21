@@ -92,6 +92,19 @@ class TeamMembersSection extends StatelessWidget {
               ),
             ),
           ),
+          if (member.isLeader)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Leader',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
+              ),
+            ),
         ],
       ),
     );

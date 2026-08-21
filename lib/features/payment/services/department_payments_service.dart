@@ -140,15 +140,20 @@ class DepartmentPaymentsService {
     _cacheAt.clear();
   }
 
-  static String _cacheKey(UserModel user) => '${user.orgId}::${user.departmentCode.trim().toUpperCase()}';
+  static String _cacheKey(UserModel user, {required bool ledTeamsOnly}) =>
+      '${user.orgId}::${user.departmentCode.trim().toUpperCase()}::leader:${ledTeamsOnly ? user.userId : 'all'}';
 
   static Future<_Docs> _fetchOrg(String collection, String orgId) async {
     final snap = await _db.collection(collection).where('orgId', isEqualTo: orgId).get();
     return snap.docs;
   }
 
-  static Future<DepartmentPaymentsWorkspace> load(UserModel user, {bool forceRefresh = false}) async {
-    final key = _cacheKey(user);
+  static Future<DepartmentPaymentsWorkspace> load(
+    UserModel user, {
+    bool forceRefresh = false,
+    bool ledTeamsOnly = false,
+  }) async {
+    final key = _cacheKey(user, ledTeamsOnly: ledTeamsOnly);
     final cached = _cache[key];
     final cachedAt = _cacheAt[key];
     if (!forceRefresh && cached != null && cachedAt != null && DateTime.now().difference(cachedAt) < _cacheTtl) {
@@ -168,8 +173,22 @@ class DepartmentPaymentsService {
       _fetchOrg(FirestoreUtils.hkzAttachments, user.orgId),
     ]);
 
+    final Set<String> ledTeamIds = ledTeamsOnly
+        ? results[2]
+            .map((doc) => TeamModel.fromMap(doc.id, doc.data()))
+            .where((TeamModel t) => t.isLedBy(user.userId))
+            .map((TeamModel t) => t.teamId)
+            .toSet()
+        : <String>{};
+
     final payments = results[0]
-        .where((doc) => inFinanceDept(doc.data()))
+        .where((doc) {
+          if (ledTeamsOnly) {
+            final String teamId = ((doc.data()['teamId'] as String?) ?? '').trim();
+            return ledTeamIds.contains(teamId);
+          }
+          return inFinanceDept(doc.data());
+        })
         .map((doc) => PaymentModel.fromMap(doc.id, doc.data()))
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -177,7 +196,13 @@ class DepartmentPaymentsService {
     final paymentTeamIds = payments.map((p) => p.teamId.trim()).where((id) => id.isNotEmpty).toSet();
 
     final ideas = results[1]
-        .where((doc) => IdeaDepartmentHelpers.matchesProblemDept(doc.data(), dept))
+        .where((doc) {
+          if (ledTeamsOnly) {
+            final String teamId = ((doc.data()['teamId'] as String?) ?? '').trim();
+            return ledTeamIds.contains(teamId);
+          }
+          return IdeaDepartmentHelpers.matchesProblemDept(doc.data(), dept);
+        })
         .map((doc) => IdeaModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
     final teams = results[2]
@@ -213,6 +238,10 @@ class DepartmentPaymentsService {
     final attachments = results[5]
         .where((doc) {
           final data = doc.data();
+          if (ledTeamsOnly) {
+            final entityId = ((data['entityId'] as String?) ?? '').trim();
+            return paymentIds.contains(entityId);
+          }
           if (!inFinanceDept(data)) return false;
           final entityId = ((data['entityId'] as String?) ?? '').trim();
           return paymentIds.contains(entityId);

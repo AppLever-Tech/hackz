@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/faculty_teams_service.dart';
@@ -62,13 +64,22 @@ class TeamCreationWorkspace extends StatefulWidget {
 class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   final TextEditingController _nameController = TextEditingController();
   final Set<String> _selectedStudentIds = <String>{};
+  String _teamLeaderId = '';
   bool _saving = false;
+
+  bool get _isTeamMemberActor => UserRole.fromCode(widget.currentUser.role) == UserRole.student;
 
   @override
   void initState() {
     super.initState();
     _nameController.text = widget.initialTeam?.teamName ?? '';
     _selectedStudentIds.addAll(widget.initialTeam?.studentIds ?? const <String>[]);
+    if (_isTeamMemberActor) {
+      _selectedStudentIds.add(widget.currentUser.userId);
+      _teamLeaderId = widget.currentUser.userId;
+    } else {
+      _teamLeaderId = widget.initialTeam?.teamLeaderId.trim() ?? '';
+    }
   }
 
   @override
@@ -77,9 +88,17 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     super.dispose();
   }
 
+  List<UserModel> get _studentsForSave {
+    if (!_isTeamMemberActor) return widget.departmentStudents;
+    if (widget.departmentStudents.any((UserModel u) => u.userId == widget.currentUser.userId)) {
+      return widget.departmentStudents;
+    }
+    return <UserModel>[widget.currentUser, ...widget.departmentStudents];
+  }
+
   List<UserModel> get _eligibleStudents {
     final String editingTeamId = widget.initialTeam?.teamId ?? '';
-    return widget.departmentStudents.where((UserModel student) {
+    return _studentsForSave.where((UserModel student) {
       final String assignedTeamId = (student.teamId ?? '').trim();
       return assignedTeamId.isEmpty ||
           assignedTeamId == editingTeamId ||
@@ -91,7 +110,10 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     if (_saving) return false;
     if (_nameController.text.trim().isEmpty) return false;
     final int count = _selectedStudentIds.length;
-    return count >= FacultyTeamsService.minStudentsPerTeam && count <= FacultyTeamsService.maxStudentsPerTeam;
+    return count >= FacultyTeamsService.minStudentsPerTeam &&
+        count <= FacultyTeamsService.maxStudentsPerTeam &&
+        _teamLeaderId.trim().isNotEmpty &&
+        _selectedStudentIds.contains(_teamLeaderId.trim());
   }
 
   /// Trims only leading/trailing whitespace; internal spaces are preserved.
@@ -139,8 +161,9 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
         faculty: widget.currentUser,
         teamName: trimmedName,
         studentIds: _selectedStudentIds,
+        teamLeaderId: _teamLeaderId,
         existingTeams: widget.existingTeams,
-        departmentStudents: widget.departmentStudents,
+        departmentStudents: _studentsForSave,
         editingTeam: widget.initialTeam,
       );
       if (!mounted) return;
@@ -192,15 +215,17 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           ),
           const SizedBox(height: 10),
           _section(
-            title: 'Mentor',
-            subtitle: 'Faculty mentor for this team',
+            title: _isTeamMemberActor ? 'Team Leader' : 'Mentor',
+            subtitle: _isTeamMemberActor ? 'You lead this team' : 'Faculty mentor for this team',
             compact: true,
             child: Align(
               alignment: Alignment.centerLeft,
               child: ContextPill(
-                label: mentorName.isEmpty ? 'Faculty mentor' : mentorName,
+                label: mentorName.isEmpty
+                    ? (_isTeamMemberActor ? 'Team Leader' : 'Faculty mentor')
+                    : mentorName,
                 semantic: ContextPillSemantic.user,
-                icon: AppIcons.faculty,
+                icon: _isTeamMemberActor ? AppIcons.student : AppIcons.faculty,
                 onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
                 compact: true,
               ),
@@ -223,10 +248,20 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
                     _selectedStudentIds
                       ..clear()
                       ..addAll(next);
+                    if (_isTeamMemberActor) {
+                      _selectedStudentIds.add(widget.currentUser.userId);
+                      _teamLeaderId = widget.currentUser.userId;
+                    } else if (_teamLeaderId.isNotEmpty && !_selectedStudentIds.contains(_teamLeaderId)) {
+                      _teamLeaderId = '';
+                    }
                   }),
                 ),
                 const SizedBox(height: 8),
                 _buildRulesHint(context),
+                if (!_isTeamMemberActor) ...<Widget>[
+                  const SizedBox(height: 12),
+                  _buildTeamLeaderField(),
+                ],
               ],
             ),
           ),
@@ -355,6 +390,37 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTeamLeaderField() {
+    final List<UserModel> selectedMembers = _studentsForSave
+        .where((UserModel u) => _selectedStudentIds.contains(u.userId))
+        .toList(growable: false);
+    final String? value = selectedMembers.any((UserModel u) => u.userId == _teamLeaderId) ? _teamLeaderId : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const Text(
+          'Team Leader',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 6),
+        HackzSelectField<String>(
+          value: value,
+          hint: selectedMembers.isEmpty ? 'Select members first' : 'Select team leader',
+          enabled: !_saving && selectedMembers.isNotEmpty,
+          prefixIcon: AppIcons.student,
+          options: selectedMembers.map((UserModel u) => u.userId).toList(growable: false),
+          labelBuilder: (String id) {
+            for (final UserModel u in selectedMembers) {
+              if (u.userId == id) return userDisplayName(u);
+            }
+            return id;
+          },
+          onChanged: (String id) => setState(() => _teamLeaderId = id),
+        ),
+      ],
     );
   }
 

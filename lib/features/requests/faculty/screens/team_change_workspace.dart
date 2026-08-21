@@ -7,6 +7,7 @@ import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../team/services/faculty_teams_service.dart';
+import '../../../team/services/team_service.dart';
 import '../../../team/widgets/team_student_selector.dart';
 import '../../models/team_change_request.dart';
 import '../../models/workflow_request.dart';
@@ -141,6 +142,10 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     if (_reasonController.text.trim().isEmpty) {
       return 'Reason for change is required.';
     }
+    final String leaderId = widget.team.teamLeaderId.trim();
+    if (leaderId.isNotEmpty && !_proposedIds.contains(leaderId)) {
+      return 'The team leader must remain a team member.';
+    }
     return null;
   }
 
@@ -156,10 +161,12 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     if (!_canSubmit) return;
     setState(() => _submitting = true);
     try {
+      TeamService.assertCanManageTeam(widget.faculty, widget.team);
       TeamChangeRequestService.validateProposed(
         proposedStudentIds: _proposedIds,
         currentStudentIds: _currentIds,
         reason: _reasonController.text,
+        teamLeaderId: widget.team.teamLeaderId,
       );
       final WorkflowRequest request = TeamChangeRequestService.buildRequest(
         team: widget.team,

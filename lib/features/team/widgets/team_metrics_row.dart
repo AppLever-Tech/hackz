@@ -12,6 +12,7 @@ class TeamMetricsRow extends StatelessWidget {
     required this.teamCount,
     required this.totalStudents,
     required this.activeIdeas,
+    this.maxTeams,
     this.spacing = 10,
     this.runSpacing = 10,
   });
@@ -19,15 +20,18 @@ class TeamMetricsRow extends StatelessWidget {
   final int teamCount;
   final int totalStudents;
   final int activeIdeas;
+  final int? maxTeams;
   final double spacing;
   final double runSpacing;
 
+  int get _maxTeams => maxTeams ?? FacultyTeamsService.maxTeamsPerFaculty;
+
   int get _remainingSlots =>
-      (FacultyTeamsService.maxTeamsPerFaculty - teamCount).clamp(0, FacultyTeamsService.maxTeamsPerFaculty).toInt();
+      (_maxTeams - teamCount).clamp(0, _maxTeams).toInt();
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment(
-          value: '$teamCount/${FacultyTeamsService.maxTeamsPerFaculty}',
+          value: '$teamCount/$_maxTeams',
           label: 'Teams',
         ),
         MetricKpiSegment.count(totalStudents, 'Team Members'),
@@ -39,7 +43,7 @@ class TeamMetricsRow extends StatelessWidget {
         DashboardMetricChipData.ratio(
           label: 'Total Teams',
           primary: '$teamCount',
-          secondary: '${FacultyTeamsService.maxTeamsPerFaculty}',
+          secondary: '$_maxTeams',
           subtitle: 'Teams created',
           color: const Color(0xFF6A38FF),
           icon: AppIcons.teams,
@@ -58,7 +62,7 @@ class TeamMetricsRow extends StatelessWidget {
         ),
         DashboardMetricChipData.single(
           label: 'Team Capacity',
-          value: FacultyTeamsService.capacityMessage(teamCount),
+          value: FacultyTeamsService.capacityMessage(teamCount, maxTeams: _maxTeams),
           color: const Color(0xFF16A34A),
           icon: AppIcons.verification,
         ),

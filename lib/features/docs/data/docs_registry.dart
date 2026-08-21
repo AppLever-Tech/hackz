@@ -361,8 +361,9 @@ abstract final class DocsRegistry {
         'platform-overview',
       'problem statements' || 'problem workspace' || 'problem details' || 'problems' =>
         'problem-lifecycle',
-      'ideas dashboard' || 'idea workspace' || 'idea details' || 'innovation submission' =>
+      'ideas dashboard' || 'idea workspace' || 'idea details' || 'innovation submission' || 'my ideas' || 'ideas' =>
         'idea-lifecycle',
+      'my teams' => 'idea-lifecycle',
       'problem import' || 'csv import' || 'import' => 'csv-import',
       'evaluation results' ||
       'evaluation assignment' ||

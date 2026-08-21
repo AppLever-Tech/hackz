@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/team/services/team_service.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/core/ui/dialog/app_dialog_template.dart';
@@ -107,6 +108,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
           final authUid = FirebaseAuth.instance.currentUser?.uid;
           if (authUid == null || authUid.isEmpty) {
             throw StateError('Not signed in.');
+          }
+          if (!TeamService.canManageTeam(widget.currentUser, widget.team)) {
+            throw TeamRuleException('Only the team leader or faculty mentor can submit payment.');
           }
           final paymentId = widget.idea.ideaId;
           HkzAsyncLoader.update(

@@ -81,6 +81,15 @@ class StudentTeamOverviewCard extends StatelessWidget {
         FormValueRow(
           labelWidth: _labelWidth,
           labelGap: _labelGap,
+          label: 'Leader',
+          labelIcon: AppIcons.student,
+          labelAlignment: _labelAlignment,
+          child: _leaderLead(),
+        ),
+        SizedBox(height: _rowGap),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
           label: 'Team Members',
           labelIcon: AppIcons.student,
           labelAlignment: _labelAlignment,
@@ -102,6 +111,20 @@ class StudentTeamOverviewCard extends StatelessWidget {
     }
     return UserListIdentityLead(
       user: mentor,
+      avatarRadius: 12,
+    );
+  }
+
+  Widget _leaderLead() {
+    final UserModel? leader = vm.teamLeaderUser;
+    final String name = vm.teamLeaderName.trim().isEmpty || vm.teamLeaderName.trim() == '-'
+        ? '—'
+        : vm.teamLeaderName.trim();
+    if (leader == null || leader.userId.trim().isEmpty) {
+      return EntityCardPills.plainValue(name);
+    }
+    return UserListIdentityLead(
+      user: leader,
       avatarRadius: 12,
     );
   }

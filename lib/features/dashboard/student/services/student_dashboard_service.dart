@@ -149,6 +149,7 @@ class StudentDashboardService {
     final rejectedPayments = scopedPayments.where((p) => p.status == PaymentRecordStatus.rejected).length;
 
     final mentor = usersById[resolvedTeam.mentorId];
+    final UserModel? teamLeader = usersById[resolvedTeam.teamLeaderId];
     final teamMembers = resolvedTeam.studentIds
         .map((id) => usersById[id])
         .whereType<UserModel>()
@@ -217,6 +218,8 @@ class StudentDashboardService {
       mentorUser: mentor,
       mentorId: mentor?.userId ?? '',
       mentorName: _fullName(mentor),
+      teamLeaderUser: teamLeader,
+      teamLeaderName: _fullName(teamLeader),
       departmentAdminUser: departmentAdmin,
       departmentAdminId: departmentAdmin.userId,
       departmentAdminName: _fullName(departmentAdmin),
@@ -279,6 +282,8 @@ class StudentDashboardVm {
     required this.mentorUser,
     required this.mentorId,
     required this.mentorName,
+    required this.teamLeaderUser,
+    required this.teamLeaderName,
     required this.departmentAdminUser,
     required this.departmentAdminId,
     required this.departmentAdminName,
@@ -312,6 +317,8 @@ class StudentDashboardVm {
   final UserModel? mentorUser;
   final String mentorId;
   final String mentorName;
+  final UserModel? teamLeaderUser;
+  final String teamLeaderName;
   final UserModel departmentAdminUser;
   final String departmentAdminId;
   final String departmentAdminName;

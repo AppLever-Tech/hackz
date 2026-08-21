@@ -5,7 +5,7 @@ import '../models/problem_list_config.dart';
 class ProblemRoleConfig {
   ProblemRoleConfig._();
 
-  static ProblemListConfig configFor(UserRole role, UserModel user) {
+  static ProblemListConfig configFor(UserRole role, UserModel user, {bool teamLeader = false}) {
     switch (role) {
       case UserRole.collegeAdmin:
         return ProblemListConfig(
@@ -103,7 +103,7 @@ class ProblemRoleConfig {
           canEdit: false,
           canToggleActive: false,
           canDeleteDraft: false,
-          canSubmitIdea: false,
+          canSubmitIdea: teamLeader,
           canAssignJudge: false,
           restrictToDepartment: false,
           orgId: user.orgId,

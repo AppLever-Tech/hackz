@@ -121,6 +121,14 @@ class TeamWorkspaceCard extends StatelessWidget {
           FormValueRow(
             labelWidth: _labelWidth,
             labelGap: _labelGap,
+            label: 'Leader',
+            labelAlignment: _labelAlignment,
+            child: _buildLeaderValue(context),
+          ),
+          const SizedBox(height: 8),
+          FormValueRow(
+            labelWidth: _labelWidth,
+            labelGap: _labelGap,
             label: 'Team Members',
             labelAlignment: _labelAlignment,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,15 +225,26 @@ class TeamWorkspaceCard extends StatelessWidget {
     );
   }
 
+  Widget _buildLeaderValue(BuildContext context) {
+    final String leaderId = team.teamLeaderId.trim();
+    if (leaderId.isEmpty) {
+      return const Text('—', style: EntityCardStyles.plainValue);
+    }
+    return UserListIdentityLead(
+      user: _resolveStudent(leaderId),
+      avatarRadius: 12,
+    );
+  }
+
   UserModel _resolveMentor() {
     final String mentorId = team.mentorId.trim();
-    if (mentorId.isNotEmpty && mentorUser.userId == mentorId) {
+    if (mentorId.isEmpty) {
+      return _stubUser('', '—', role: 'FAC');
+    }
+    if (mentorUser.userId == mentorId) {
       return mentorUser;
     }
-    if (mentorId.isNotEmpty) {
-      return studentsById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: 'FAC');
-    }
-    return mentorUser;
+    return studentsById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: 'FAC');
   }
 
   UserModel _resolveStudent(String studentId) {

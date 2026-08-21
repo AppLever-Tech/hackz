@@ -18,6 +18,9 @@ import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
+import '../../../../features/team/screens/teams_screen.dart';
+import '../../../../features/team/services/team_service.dart';
+import '../../../../features/payment/screens/payments_screen.dart';
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 import '../../../../core/ui/common/entity_card_pills.dart';
 import '../../../../core/ui/common/form_value_row.dart';
@@ -27,39 +30,103 @@ import '../../../../core/workspace/user_list_identity_lead.dart';
 import '../../../../core/workspace/user_workspace_avatar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
-class StudentDashboard extends StatelessWidget {
+class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key, required this.user});
 
   final UserModel user;
 
   @override
-  Widget build(BuildContext context) {
-    return DashboardPageTemplate(
-      user: user,
-      bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
-        if (selectedMenuIndex == 1) {
-          return ProblemStatementsTableScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: ProblemRoleConfig.configFor(UserRole.student, user),
-          );
-        }
-        if (selectedMenuIndex == 2) {
-          return IdeasListScreen(
-            key: ValueKey<int>(refreshToken),
-            currentUser: user,
-            config: IdeaRoleConfig.configFor(UserRole.student, user),
-          );
-        }
-        if (selectedMenuIndex == 3) {
-          return LeaderboardShowcaseScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
+  State<StudentDashboard> createState() => _StudentDashboardState();
+}
+
+class _StudentDashboardState extends State<StudentDashboard> {
+  late Future<bool> _isTeamLeaderFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _isTeamLeaderFuture = TeamService.userLeadsAnyTeam(widget.user.userId);
+  }
+
+  List<DashboardMenuItem> _menus(bool isTeamLeader) {
+    return <DashboardMenuItem>[
+      const DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
+      if (isTeamLeader) const DashboardMenuItem(label: 'My Teams', icon: AppIcons.users),
+      const DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
+      const DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
+      if (isTeamLeader) ...<DashboardMenuItem>[
+        const DashboardMenuItem(label: 'My Ideas', icon: AppIcons.submissions),
+        const DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
+      ],
+      const DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
+    ];
+  }
+
+  Widget _bodyForMenu({
+    required String label,
+    required int refreshToken,
+    required bool isTeamLeader,
+  }) {
+    final UserModel user = widget.user;
+    switch (label) {
+      case 'My Teams':
+        return TeamsScreen(key: ValueKey<int>(refreshToken), user: user);
+      case 'Problems':
+        return ProblemStatementsTableScreen(
+          key: ValueKey<int>(refreshToken),
+          currentUser: user,
+          config: ProblemRoleConfig.configFor(UserRole.student, user, teamLeader: isTeamLeader),
+        );
+      case 'Ideas':
+        return IdeasListScreen(
+          key: ValueKey<int>(refreshToken),
+          currentUser: user,
+          config: IdeaRoleConfig.configFor(UserRole.student, user),
+        );
+      case 'My Ideas':
+        return IdeasListScreen(
+          key: ValueKey<int>(refreshToken),
+          currentUser: user,
+          config: IdeaRoleConfig.configFor(UserRole.student, user, teamLeader: true),
+        );
+      case 'Payments':
+        return PaymentsScreen(
+          key: ValueKey<int>(refreshToken),
+          user: user,
+          ledTeamsOnly: true,
+        );
+      case 'Leaderboard':
+        return LeaderboardShowcaseScreen(
+          key: ValueKey<int>(refreshToken),
+          user: user,
+        );
+      default:
         return _StudentDashboardHome(
           key: ValueKey<int>(refreshToken),
           user: user,
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _isTeamLeaderFuture,
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        final bool isTeamLeader = snapshot.data ?? false;
+        final List<DashboardMenuItem> menus = _menus(isTeamLeader);
+        return DashboardPageTemplate(
+          user: widget.user,
+          primaryMenusOverride: menus,
+          bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
+            final String label =
+                selectedMenuIndex >= 0 && selectedMenuIndex < menus.length ? menus[selectedMenuIndex].label : 'Dashboard';
+            return _bodyForMenu(
+              label: label,
+              refreshToken: refreshToken,
+              isTeamLeader: isTeamLeader,
+            );
+          },
         );
       },
     );

@@ -8,6 +8,7 @@ import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../services/faculty_teams_service.dart';
+import '../services/team_service.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../widgets/team_capacity_widget.dart';
@@ -50,7 +51,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Future<void> _openCreateTeamDialog(FacultyTeamsWorkspaceData data) async {
-    if (!FacultyTeamsService.canCreateTeam(data.teams)) return;
+    if (!FacultyTeamsService.canCreateTeam(data.teams, actor: widget.user)) return;
     final result = await showTeamCreationWorkspace(
       context: context,
       currentUser: widget.user,
@@ -87,7 +88,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
       dangerConfirm: true,
     );
     if (!ok) return;
-    await FacultyTeamsService.disableTeam(team);
+    await FacultyTeamsService.disableTeam(team, actor: widget.user);
     if (mounted) _refresh();
   }
 
@@ -134,7 +135,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         }
 
         final teams = data.teams;
-        final canCreate = FacultyTeamsService.canCreateTeam(teams);
+        final canCreate = FacultyTeamsService.canCreateTeam(teams, actor: widget.user);
         final bool mobile = ResponsiveHelper.isMobile(context);
         final Map<String, UserModel> studentsById = <String, UserModel>{
           for (final UserModel student in data.students) student.userId: student,
@@ -147,6 +148,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
               teamCount: teams.length,
               totalStudents: data.totalStudents,
               activeIdeas: data.activeIdeas,
+              maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
               spacing: mobile ? 8 : 10,
               runSpacing: mobile ? 8 : 10,
             );
@@ -159,6 +161,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     mentorUser: widget.user,
                     studentsById: studentsById,
                     onEdit: (TeamModel team) {
+                      if (!TeamService.canManageTeam(widget.user, team)) return;
                       final FacultyTeamInsight insight = data.insightsByTeamId[team.teamId] ??
                           FacultyTeamInsight(
                             team: team,
@@ -179,6 +182,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 children: <Widget>[
                   _MobileCreateBar(
                     teamCount: teams.length,
+                    maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
                     onCreate: onCreate,
                   ),
                   const SizedBox(height: 8),
@@ -221,6 +225,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     _CreateTeamCta(
                       canCreate: canCreate,
                       teamCount: teams.length,
+                      maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
                       onCreate: () => _openCreateTeamDialog(data),
                     ),
                     const SizedBox(height: 14),
@@ -239,10 +244,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
 class _MobileCreateBar extends StatelessWidget {
   const _MobileCreateBar({
     required this.teamCount,
+    required this.maxTeams,
     required this.onCreate,
   });
 
   final int teamCount;
+  final int maxTeams;
   final VoidCallback? onCreate;
 
   @override
@@ -260,7 +267,7 @@ class _MobileCreateBar extends StatelessWidget {
         const SizedBox(width: 8),
         TeamCapacityWidget(
           teamCount: teamCount,
-          maxTeams: FacultyTeamsService.maxTeamsPerFaculty,
+          maxTeams: maxTeams,
         ),
       ],
     );
@@ -271,11 +278,13 @@ class _CreateTeamCta extends StatelessWidget {
   const _CreateTeamCta({
     required this.canCreate,
     required this.teamCount,
+    required this.maxTeams,
     required this.onCreate,
   });
 
   final bool canCreate;
   final int teamCount;
+  final int maxTeams;
   final VoidCallback onCreate;
 
   @override
@@ -305,7 +314,7 @@ class _CreateTeamCta extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              TeamCapacityWidget(teamCount: teamCount, maxTeams: FacultyTeamsService.maxTeamsPerFaculty),
+              TeamCapacityWidget(teamCount: teamCount, maxTeams: maxTeams),
               FilledButton.icon(
                 onPressed: canCreate ? onCreate : null,
                 icon: const Icon(AppIcons.add, size: 16),

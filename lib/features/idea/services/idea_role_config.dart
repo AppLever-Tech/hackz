@@ -6,7 +6,7 @@ import '../../user/services/role_visibility_helpers.dart';
 class IdeaRoleConfig {
   IdeaRoleConfig._();
 
-  static IdeaListConfig configFor(UserRole role, UserModel user) {
+  static IdeaListConfig configFor(UserRole role, UserModel user, {bool teamLeader = false}) {
     final scope = RoleVisibilityHelpers.ideaDepartmentScopeFor(role);
     final canViewIdeas = RoleVisibilityHelpers.canViewIdeas(role);
     switch (role) {
@@ -98,10 +98,10 @@ class IdeaRoleConfig {
       case UserRole.student:
         return IdeaListConfig(
           canViewIdeas: canViewIdeas,
-          canCreateIdea: false,
+          canCreateIdea: teamLeader,
           canEvaluate: false,
           canViewStatus: true,
-          canUploadPayment: false,
+          canUploadPayment: teamLeader,
           canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,

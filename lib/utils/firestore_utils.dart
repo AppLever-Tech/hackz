@@ -730,6 +730,20 @@ class FirestoreUtils {
     return teams;
   }
 
+  static Future<List<TeamModel>> getTeamsLedBy(String userId) async {
+    final String id = userId.trim();
+    if (id.isEmpty) return const <TeamModel>[];
+    final snapshot = await _db
+        .collection(hkzTeams)
+        .where('teamLeaderId', isEqualTo: id)
+        .get();
+    final teams = snapshot.docs
+        .map((d) => TeamModel.fromMap(d.id, d.data()))
+        .toList(growable: false);
+    teams.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return teams;
+  }
+
   static Future<List<ProblemModel>> getActiveProblemsByDepartment({
     required String orgId,
     required String departmentCode,

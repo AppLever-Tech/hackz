@@ -17,12 +17,14 @@ class TeamMemberPreview {
     required this.userId,
     required this.displayName,
     required this.isMentor,
+    this.isLeader = false,
     this.user,
   });
 
   final String userId;
   final String displayName;
   final bool isMentor;
+  final bool isLeader;
   final UserModel? user;
 }
 
@@ -170,6 +172,7 @@ abstract final class TeamWorkspaceLoader {
           userId: id,
           displayName: name,
           isMentor: false,
+          isLeader: team.isLedBy(id),
           user: student,
         );
       }),

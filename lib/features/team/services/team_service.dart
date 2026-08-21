@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../models/enums/team_status.dart';
 import '../../../utils/firestore_utils.dart';
@@ -21,6 +22,42 @@ class TeamService {
 
   static Future<List<TeamModel>> getFacultyTeams(String facultyId) =>
       FirestoreUtils.getFacultyTeams(facultyId);
+
+  static Future<List<TeamModel>> getTeamsLedBy(String userId) =>
+      FirestoreUtils.getTeamsLedBy(userId);
+
+  static Future<bool> userLeadsAnyTeam(String userId) async {
+    final List<TeamModel> teams = await getTeamsLedBy(userId);
+    return teams.any((TeamModel t) => t.status != TeamStatus.inactive);
+  }
+
+  static void requireTeamLeaderInMembers({
+    required String teamLeaderId,
+    required Iterable<String> memberIds,
+  }) {
+    final String leaderId = teamLeaderId.trim();
+    if (leaderId.isEmpty) {
+      throw TeamRuleException('A team leader is required.');
+    }
+    if (!memberIds.map((String id) => id.trim()).contains(leaderId)) {
+      throw TeamRuleException('Team leader must be a team member.');
+    }
+  }
+
+  static bool canManageTeam(UserModel actor, TeamModel team) {
+    final String id = actor.userId.trim();
+    if (id.isEmpty) return false;
+    final UserRole role = UserRole.fromCode(actor.role);
+    if (role == UserRole.faculty) return team.mentorId.trim() == id;
+    if (role == UserRole.student) return team.isLedBy(id) && team.isMember(id);
+    return false;
+  }
+
+  static void assertCanManageTeam(UserModel actor, TeamModel team) {
+    if (!canManageTeam(actor, team)) {
+      throw TeamRuleException('You can only manage teams you lead or mentor.');
+    }
+  }
 
   static Future<List<UserModel>> getDepartmentStudents({
     required String orgId,
@@ -44,9 +81,10 @@ class TeamService {
       FirestoreUtils.getActiveProblemsByCollege(orgId);
 
   static Future<void> validateTeamUpsert({
-    required UserModel faculty,
+    required UserModel actor,
     required String teamName,
     required Set<String> selectedStudentIds,
+    required String teamLeaderId,
     required List<TeamModel> existingTeams,
     required List<UserModel> departmentStudents,
     TeamModel? editingTeam,
@@ -65,11 +103,28 @@ class TeamService {
     if (selectedStudentIds.length < 2 || selectedStudentIds.length > 4) {
       throw TeamRuleException('Team size must be between 2 and 4 team members.');
     }
-    if (editingTeam == null && existingTeams.length >= 3) {
+    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedStudentIds);
+
+    final UserRole role = UserRole.fromCode(actor.role);
+    if (role == UserRole.student) {
+      if (!selectedStudentIds.contains(actor.userId.trim())) {
+        throw TeamRuleException('The team leader must be a member of the team.');
+      }
+      if (teamLeaderId.trim() != actor.userId.trim()) {
+        throw TeamRuleException('You can only designate yourself as team leader of your team.');
+      }
+      if (editingTeam == null && existingTeams.isNotEmpty) {
+        throw TeamRuleException('A team member can belong to only one team.');
+      }
+    } else if (editingTeam == null && existingTeams.length >= 3) {
       throw TeamRuleException('Maximum 3 teams per faculty reached.');
     }
 
-    final deptCode = faculty.departmentCode.trim().toUpperCase();
+    if (editingTeam != null) {
+      assertCanManageTeam(actor, editingTeam);
+    }
+
+    final deptCode = actor.departmentCode.trim().toUpperCase();
     final studentsById = <String, UserModel>{for (final s in departmentStudents) s.userId: s};
     for (final studentId in selectedStudentIds) {
       final student = studentsById[studentId];
@@ -97,18 +152,23 @@ class TeamService {
   }
 
   static Future<String> createTeam({
-    required UserModel faculty,
+    required UserModel actor,
     required String teamName,
     required Set<String> studentIds,
+    required String teamLeaderId,
   }) async {
+    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: studentIds);
+    final UserRole role = UserRole.fromCode(actor.role);
+    final String mentorId = role == UserRole.faculty ? actor.userId : '';
     final doc = _db.collection(FirestoreUtils.hkzTeams).doc();
     final team = TeamModel(
       teamId: doc.id,
       teamName: teamName.trim(),
-      mentorId: faculty.userId,
+      mentorId: mentorId,
+      teamLeaderId: teamLeaderId.trim(),
       studentIds: studentIds.toList(growable: false),
-      orgId: faculty.orgId,
-      departmentCode: faculty.departmentCode.trim().toUpperCase(),
+      orgId: actor.orgId,
+      departmentCode: actor.departmentCode.trim().toUpperCase(),
       status: TeamStatus.active,
       createdAt: DateTime.now(),
     );
@@ -126,7 +186,9 @@ class TeamService {
     required TeamModel team,
     required String teamName,
     required Set<String> studentIds,
+    required String teamLeaderId,
   }) async {
+    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: studentIds);
     final prev = team.studentIds.toSet();
     final next = studentIds.toSet();
     final removed = prev.difference(next);
@@ -138,6 +200,7 @@ class TeamService {
       teamRef,
       <String, dynamic>{
         'teamName': teamName.trim(),
+        'teamLeaderId': teamLeaderId.trim(),
         'studentIds': next.toList(growable: false),
       },
       SetOptions(merge: true),

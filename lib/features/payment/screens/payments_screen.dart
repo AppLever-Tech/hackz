@@ -17,9 +17,14 @@ import '../widgets/payment_metrics_row.dart';
 import '../widgets/payment_table_columns.dart';
 
 class PaymentsScreen extends StatefulWidget {
-  const PaymentsScreen({super.key, required this.user});
+  const PaymentsScreen({
+    super.key,
+    required this.user,
+    this.ledTeamsOnly = false,
+  });
 
   final UserModel user;
+  final bool ledTeamsOnly;
 
   @override
   State<PaymentsScreen> createState() => _PaymentsScreenState();
@@ -38,7 +43,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   @override
   void initState() {
     super.initState();
-    _future = DepartmentPaymentsService.load(widget.user);
+    _future = DepartmentPaymentsService.load(widget.user, ledTeamsOnly: widget.ledTeamsOnly);
     _searchController.addListener(() => setState(() {}));
   }
 
