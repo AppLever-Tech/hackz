@@ -4,15 +4,15 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
-import '../../idea/services/idea_status_helpers.dart';
-import '../../payment/models/payment_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
+import '../models/ideathon_type.dart';
 import 'ideathon_participation_service.dart';
 import 'ideathon_settings_service.dart';
+import 'ideathon_team_eligibility.dart';
 
 class CreateIdeathonInput {
   const CreateIdeathonInput({
@@ -25,6 +25,7 @@ class CreateIdeathonInput {
     required this.coordinatorIds,
     required this.evaluationTemplateId,
     this.problemId = '',
+    this.ideathonType = IdeathonType.internal,
   });
 
   final String name;
@@ -37,6 +38,7 @@ class CreateIdeathonInput {
   final String evaluationTemplateId;
   /// Optional — not required for creation; does not limit the Ideathon to one Problem.
   final String problemId;
+  final IdeathonType ideathonType;
 }
 
 abstract final class IdeathonService {
@@ -46,33 +48,15 @@ abstract final class IdeathonService {
 
   /// Submitted ideas with a **verified** idea payment — eligible for Ideathon create.
   ///
-  /// Org-wide (any department). Unpaid or pending-payment ideas are excluded.
-  static Future<List<IdeaModel>> fetchEligibleIdeasForIdeathon({
+  /// [ideathonType] filters teams: Internal = host-organisation only (no mixed
+  /// members); External = host, other-organisation, and mixed teams.
+  static Future<List<IdeathonEligibleIdea>> fetchEligibleIdeasForIdeathon({
     required String orgId,
+    IdeathonType ideathonType = IdeathonType.internal,
   }) async {
-    final String org = orgId.trim();
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestoreUtils.hkzIdeas)
-        .where('orgId', isEqualTo: org)
-        .get();
-    final List<IdeaModel> submitted = snap.docs
-        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => IdeaModel.fromMap(doc.id, doc.data()))
-        .where((IdeaModel idea) => IdeaStatusHelpers.isEligibleForIdeathon(idea.status))
-        .toList(growable: false);
-
-    if (submitted.isEmpty) return const <IdeaModel>[];
-
-    final List<PaymentModel> payments = await FirestoreUtils.getPaymentsByOrg(org);
-    final Set<String> verifiedIdeaIds = payments
-        .where((PaymentModel p) => p.status == PaymentRecordStatus.verified)
-        .map((PaymentModel p) => p.ideaId.trim())
-        .where((String id) => id.isNotEmpty)
-        .toSet();
-
-    return submitted
-        .where((IdeaModel idea) => verifiedIdeaIds.contains(idea.ideaId.trim()))
-        .toList(growable: false)
-      ..sort((IdeaModel a, IdeaModel b) => a.ideaTitle.compareTo(b.ideaTitle));
+    final List<IdeathonEligibleIdea> catalog =
+        await IdeathonTeamEligibility.loadPaidIdeas(hostOrgId: orgId);
+    return IdeathonTeamEligibility.filterForType(catalog, ideathonType);
   }
 
   static Future<String> createIdeathon({
@@ -105,34 +89,31 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final List<IdeaModel> eligible = await fetchEligibleIdeasForIdeathon(orgId: orgId);
-    final Map<String, IdeaModel> eligibleById = <String, IdeaModel>{
-      for (final IdeaModel idea in eligible) idea.ideaId: idea,
+    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
+      orgId: orgId,
+      ideathonType: input.ideathonType,
+    );
+    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
+      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
     };
 
     final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
     for (final String rawId in input.ideaIds) {
       final String ideaId = rawId.trim();
-      final IdeaModel? idea = eligibleById[ideaId];
-      if (idea == null) {
+      final IdeathonEligibleIdea? row = eligibleById[ideaId];
+      if (row == null) {
         throw StateError(
-          'Only submitted ideas with verified payment can be added to an Ideathon.',
+          'Only paid ideas from teams eligible for this Ideathon type can be added.',
         );
       }
-      final TeamModel? team = idea.teamId.trim().isEmpty
-          ? null
-          : await _db.collection(FirestoreUtils.hkzTeams).doc(idea.teamId.trim()).get().then(
-                (DocumentSnapshot<Map<String, dynamic>> doc) {
-                  if (!doc.exists || doc.data() == null) return null;
-                  return TeamModel.fromMap(doc.id, doc.data()!);
-                },
-              );
+      final IdeaModel idea = row.idea;
+      final String teamName = row.teamName;
       snapshots.add(
         IdeathonIdeaSnapshot(
           ideaId: idea.ideaId,
           ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
           problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
-          teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : '—',
+          teamName: teamName.isEmpty ? '—' : teamName,
           addedAt: DateTime.now(),
         ),
       );
@@ -144,6 +125,7 @@ abstract final class IdeathonService {
     final IdeathonModel ideathon = IdeathonModel(
       ideathonId: ref.id,
       orgId: orgId,
+      ideathonType: input.ideathonType,
       name: input.name.trim(),
       description: input.description.trim(),
       departmentId: dept,
@@ -175,7 +157,7 @@ abstract final class IdeathonService {
       orgId: orgId,
       actorUserId: actor.userId,
       ideathonId: ideathon.ideathonId,
-      ideas: snapshots.map((IdeathonIdeaSnapshot s) => eligibleById[s.ideaId]!).toList(),
+      ideas: snapshots.map((IdeathonIdeaSnapshot s) => eligibleById[s.ideaId]!.idea).toList(),
       judgeIds: ideathon.judgeIds,
     );
 

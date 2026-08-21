@@ -418,6 +418,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     DocStatusKind.inactive,
                     const <String>[
                       'Team registration',
+                      'Ideathons',
                       'Payment verification',
                       'Event coordination',
                     ],
@@ -1043,7 +1044,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Authorized department administrators create Ideathons from submitted ideas that already have verified Team Leader payment. Unpaid ideas do not appear in Create Ideathon. The idea itself keeps its Submitted status.',
+                    'Authorized department administrators and coordinators create Ideathons from submitted ideas that already have verified Team Leader payment. Choose Internal (host-organisation teams only) or External (host, other-organisation, and mixed teams). Unpaid ideas do not appear in Create Ideathon. The idea itself keeps its Submitted status.',
               ),
               (
                 title: 'Can Hackz manage multiple departments?',

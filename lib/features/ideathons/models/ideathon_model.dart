@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
+import 'ideathon_type.dart';
 
 class IdeathonModel {
   const IdeathonModel({
@@ -21,10 +22,12 @@ class IdeathonModel {
     required this.createdAt,
     required this.updatedAt,
     this.problemId = '',
+    this.ideathonType = IdeathonType.internal,
   });
 
   final String ideathonId;
   final String orgId;
+  final IdeathonType ideathonType;
   final String name;
   final String description;
   final String departmentId;
@@ -50,6 +53,7 @@ class IdeathonModel {
     return <String, dynamic>{
       'ideathonId': ideathonId,
       'orgId': orgId,
+      'ideathonType': ideathonType.value,
       'name': name,
       'description': description,
       'departmentId': departmentId,
@@ -84,6 +88,7 @@ class IdeathonModel {
           ? ((map['ideathonId'] as String?) ?? '').trim()
           : id,
       orgId: (map['orgId'] as String? ?? '').trim(),
+      ideathonType: IdeathonType.fromRaw(map['ideathonType'] as String?),
       name: (map['name'] as String? ?? '').trim(),
       description: (map['description'] as String? ?? '').trim(),
       departmentId: (map['departmentId'] as String? ?? '').trim(),

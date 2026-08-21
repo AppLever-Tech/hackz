@@ -11,6 +11,7 @@ import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_prototype_service.dart';
 import '../widgets/ideathon_status_pill.dart';
+import '../widgets/ideathon_type_pill.dart';
 import 'ideathon_workspace_loader.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
@@ -79,7 +80,14 @@ class IdeathonWorkspaceBody extends StatelessWidget {
             children: <Widget>[
               Text(ideathon.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              IdeathonStatusPill(status: ideathon.status, compact: false),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: <Widget>[
+                  IdeathonTypePill(type: ideathon.ideathonType, compact: false),
+                  IdeathonStatusPill(status: ideathon.status, compact: false),
+                ],
+              ),
               const SizedBox(height: 10),
               _detailRow('Department', ideathon.departmentId.isEmpty ? '—' : ideathon.departmentId),
               _detailRow('Starts', formatDateTime(ideathon.startDateTime.toLocal())),

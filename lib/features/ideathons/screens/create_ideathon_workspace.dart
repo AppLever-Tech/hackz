@@ -19,12 +19,15 @@ import '../../idea/models/idea_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
+import '../models/ideathon_type.dart';
 import '../services/ideathon_service.dart';
 import '../services/ideathon_settings_service.dart';
+import '../services/ideathon_team_eligibility.dart';
 import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_idea_select_row.dart';
+import '../widgets/ideathon_type_selector.dart';
 
-/// Department-admin Ideathon creation form (paid submitted ideas only).
+/// Ideathon creation form (paid submitted ideas only).
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({super.key, required this.user, required this.onCreated});
 
@@ -45,8 +48,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool _loading = true;
   bool _saving = false;
-  List<IdeaModel> _eligibleIdeas = <IdeaModel>[];
-  Map<String, String> _teamNameByIdeaId = <String, String>{};
+  IdeathonType _ideathonType = IdeathonType.internal;
+  List<IdeathonEligibleIdea> _catalog = <IdeathonEligibleIdea>[];
   List<UserModel> _evaluators = <UserModel>[];
   List<UserModel> _coordinators = <UserModel>[];
   List<EvaluationTemplate> _templates = <EvaluationTemplate>[];
@@ -92,19 +95,17 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
 
-    final List<IdeaModel> ideas =
-        await IdeathonService.fetchEligibleIdeasForIdeathon(orgId: orgId);
+    final List<IdeathonEligibleIdea> catalog =
+        await IdeathonTeamEligibility.loadPaidIdeas(hostOrgId: orgId);
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
-    final Map<String, String> teamNames = await _loadTeamNames(ideas);
     final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
     final String defaultTemplateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
     final int minimum = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
 
     if (!mounted) return;
     setState(() {
-      _eligibleIdeas = ideas;
-      _teamNameByIdeaId = teamNames;
+      _catalog = catalog;
       _evaluators = evaluators;
       _coordinators = coordinators;
       _templates = templates;
@@ -116,21 +117,15 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     });
   }
 
-  Future<Map<String, String>> _loadTeamNames(List<IdeaModel> ideas) async {
-    final Map<String, String> byIdea = <String, String>{};
-    final Map<String, String> teamCache = <String, String>{};
-    for (final IdeaModel idea in ideas) {
-      final String teamId = idea.teamId.trim();
-      if (teamId.isEmpty) continue;
-      if (!teamCache.containsKey(teamId)) {
-        final DocumentSnapshot<Map<String, dynamic>> doc =
-            await FirebaseFirestore.instance.collection(FirestoreUtils.hkzTeams).doc(teamId).get();
-        final String name = ((doc.data()?['teamName'] as String?) ?? '').trim();
-        teamCache[teamId] = name;
-      }
-      byIdea[idea.ideaId] = teamCache[teamId] ?? '';
-    }
-    return byIdea;
+  List<IdeathonEligibleIdea> get _eligibleRows =>
+      IdeathonTeamEligibility.filterForType(_catalog, _ideathonType);
+
+  void _setIdeathonType(IdeathonType type) {
+    setState(() {
+      _ideathonType = type;
+      final Set<String> allowed = _eligibleRows.map((IdeathonEligibleIdea r) => r.idea.ideaId).toSet();
+      _selectedIdeaIds.removeWhere((String id) => !allowed.contains(id));
+    });
   }
 
   Future<List<UserModel>> _loadCoordinators({required String orgId, required String dept}) async {
@@ -182,7 +177,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   List<({String id, String label})> get _problemOptions {
     final Map<String, String> byId = <String, String>{};
-    for (final IdeaModel idea in _eligibleIdeas) {
+    for (final IdeathonEligibleIdea row in _eligibleRows) {
+      final IdeaModel idea = row.idea;
       final String id = idea.problemId.trim();
       if (id.isEmpty) continue;
       final String title = idea.problemTitle.trim().isEmpty ? id : idea.problemTitle.trim();
@@ -195,10 +191,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         .toList(growable: false);
   }
 
-  List<IdeaModel> get _filteredIdeas {
+  List<IdeathonEligibleIdea> get _filteredRows {
     final String q = _ideaSearchController.text.trim().toLowerCase();
     final String? problemId = _optionalProblemId;
-    return _eligibleIdeas.where((IdeaModel idea) {
+    return _eligibleRows.where((IdeathonEligibleIdea row) {
+      final IdeaModel idea = row.idea;
       if (problemId != null && problemId.isNotEmpty && idea.problemId.trim() != problemId) {
         return false;
       }
@@ -208,7 +205,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         idea.description,
         idea.problemTitle,
         idea.problemDepartmentCode,
-        _teamNameByIdeaId[idea.ideaId] ?? '',
+        row.teamName,
+        row.organisationName,
+        row.origin.pillLabel,
       ].join(' ').toLowerCase();
       return hay.contains(q);
     }).toList(growable: false);
@@ -278,6 +277,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           coordinatorIds: _selectedCoordinatorIds.toList(),
           evaluationTemplateId: _selectedTemplateId ?? '',
           problemId: _optionalProblemId ?? '',
+          ideathonType: _ideathonType,
         ),
       );
       if (!mounted) return;
@@ -324,6 +324,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
             maxLines: 8,
             style: HackzInputDecoration.fieldTextStyle,
             decoration: HackzInputDecoration.decorate(labelText: 'Description (optional)'),
+          ),
+          const SizedBox(height: 14),
+          IdeathonTypeSelector(
+            value: _ideathonType,
+            onChanged: _setIdeathonType,
           ),
         ],
       ),
@@ -450,24 +455,28 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                       ),
                     ],
                     const SizedBox(height: 10),
-                    if (_filteredIdeas.isEmpty)
-                      const Text(
-                        'No paid ideas available. The Team Leader must pay and a coordinator must verify payment before ideas appear here.',
-                        style: TextStyle(color: Color(0xFF64748B)),
+                    if (_filteredRows.isEmpty)
+                      Text(
+                        _ideathonType == IdeathonType.internal
+                            ? 'No paid host-organisation teams are eligible. Mixed and other-organisation teams appear only in an External Ideathon.'
+                            : 'No paid ideas available. The Team Leader must pay and a coordinator must verify payment before ideas appear here.',
+                        style: const TextStyle(color: Color(0xFF64748B)),
                       )
                     else
-                      ..._filteredIdeas.map(
-                        (IdeaModel idea) => Padding(
+                      ..._filteredRows.map(
+                        (IdeathonEligibleIdea row) => Padding(
                           padding: const EdgeInsets.only(bottom: 6),
                           child: IdeathonIdeaSelectRow(
-                            idea: idea,
-                            selected: _selectedIdeaIds.contains(idea.ideaId),
-                            teamName: _teamNameByIdeaId[idea.ideaId] ?? '',
+                            idea: row.idea,
+                            selected: _selectedIdeaIds.contains(row.idea.ideaId),
+                            teamName: row.teamName,
+                            organisationName: row.organisationName,
+                            origin: row.origin,
                             onToggle: () => setState(() {
-                              if (_selectedIdeaIds.contains(idea.ideaId)) {
-                                _selectedIdeaIds.remove(idea.ideaId);
+                              if (_selectedIdeaIds.contains(row.idea.ideaId)) {
+                                _selectedIdeaIds.remove(row.idea.ideaId);
                               } else {
-                                _selectedIdeaIds.add(idea.ideaId);
+                                _selectedIdeaIds.add(row.idea.ideaId);
                               }
                             }),
                           ),
@@ -732,6 +741,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         : '${_selectedCoordinatorIds.length} selected';
     return Column(
       children: <Widget>[
+        _summaryRow('Type', value: _ideathonType.label),
         _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
         _summaryRow('Paid ideas selected', value: '${_selectedIdeaIds.length}'),
         _summaryRow(

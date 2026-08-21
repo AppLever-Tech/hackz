@@ -52,7 +52,8 @@ abstract final class IdeathonQueryService {
         continue;
       }
       if (search.isNotEmpty) {
-        final String haystack = '${ideathon.name} ${ideathon.description}'.toLowerCase();
+        final String haystack =
+            '${ideathon.name} ${ideathon.description} ${ideathon.ideathonType.label}'.toLowerCase();
         if (!haystack.contains(search)) continue;
       }
       rows.add(IdeathonListRow(ideathon: ideathon));

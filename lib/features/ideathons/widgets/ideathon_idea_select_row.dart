@@ -8,6 +8,7 @@ import '../../../core/workspace/workspace_navigator.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../organization/models/department_model.dart';
+import '../services/ideathon_team_eligibility.dart';
 
 /// Compact premium selectable idea row for Ideathon creation.
 class IdeathonIdeaSelectRow extends StatelessWidget {
@@ -17,12 +18,16 @@ class IdeathonIdeaSelectRow extends StatelessWidget {
     required this.selected,
     required this.onToggle,
     this.teamName = '',
+    this.organisationName = '',
+    this.origin,
   });
 
   final IdeaModel idea;
   final bool selected;
   final VoidCallback onToggle;
   final String teamName;
+  final String organisationName;
+  final IdeathonTeamOrigin? origin;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +39,8 @@ class IdeathonIdeaSelectRow extends StatelessWidget {
     final String deptCode = DepartmentModel.resolveCode(idea.problemDepartmentCode);
     final String branch = deptCode.isEmpty ? '' : (DepartmentModel.byCode(deptCode)?.code ?? deptCode);
     final String team = teamName.trim();
+    final String organisation = organisationName.trim();
+    final bool showOrigin = origin != null && origin != IdeathonTeamOrigin.host;
 
     final Widget ideaPill = EntityCardPills.workspace(
       title,
@@ -94,6 +101,14 @@ class IdeathonIdeaSelectRow extends StatelessWidget {
                             const SizedBox(width: 6),
                             EntityCardPills.meta(team, icon: AppIcons.teams),
                           ],
+                          if (organisation.isNotEmpty) ...<Widget>[
+                            const SizedBox(width: 6),
+                            EntityCardPills.meta(organisation, icon: AppIcons.organizations),
+                          ],
+                          if (showOrigin) ...<Widget>[
+                            const SizedBox(width: 6),
+                            EntityCardPills.meta(origin!.pillLabel, icon: AppIcons.users),
+                          ],
                           if (branch.isNotEmpty) ...<Widget>[
                             const SizedBox(width: 6),
                             EntityCardPills.meta(branch, icon: AppIcons.departments),
@@ -107,7 +122,30 @@ class IdeathonIdeaSelectRow extends StatelessWidget {
                 problemPill,
               ] else ...<Widget>[
                 Flexible(
-                  child: Align(alignment: Alignment.centerLeft, child: ideaPill),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          ideaPill,
+                          if (team.isNotEmpty) ...<Widget>[
+                            const SizedBox(width: 6),
+                            EntityCardPills.meta(team, icon: AppIcons.teams),
+                          ],
+                          if (organisation.isNotEmpty) ...<Widget>[
+                            const SizedBox(width: 6),
+                            EntityCardPills.meta(organisation, icon: AppIcons.organizations),
+                          ],
+                          if (showOrigin) ...<Widget>[
+                            const SizedBox(width: 6),
+                            EntityCardPills.meta(origin!.pillLabel, icon: AppIcons.users),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 problemPill,

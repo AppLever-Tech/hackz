@@ -15,6 +15,7 @@ import '../models/ideathon_status.dart';
 import '../services/ideathon_query_service.dart';
 import '../services/ideathon_status_helpers.dart';
 import '../widgets/ideathon_status_pill.dart';
+import '../widgets/ideathon_type_pill.dart';
 import 'create_ideathon_workspace.dart';
 import '../workspace/ideathon_workspace.dart';
 
@@ -329,6 +330,8 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                               ],
                                             ),
                                           ),
+                                          IdeathonTypePill(type: row.ideathonType),
+                                          const SizedBox(width: 6),
                                           IdeathonStatusPill(status: row.status),
                                         ],
                                       ),

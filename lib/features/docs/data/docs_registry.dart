@@ -265,6 +265,7 @@ abstract final class DocsRegistry {
           'idea-lifecycle',
           'payment-verification',
           'csv-import',
+          'ideathon',
           'roles-responsibilities',
         ],
       UserRole.student => const <String>[
