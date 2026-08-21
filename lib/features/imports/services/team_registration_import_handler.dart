@@ -257,6 +257,10 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
         continue;
       }
       try {
+        final String affiliationOrg = (row.metadata['organisationName'] ?? '').trim();
+        final String affiliationDept = (row.metadata['affiliationDepartment'] ?? '').trim();
+        final String hackzDept = row.metadata['departmentName'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+        final String hackzDeptCode = row.metadata['departmentCode'] ?? '';
         final String createdId = await UserService.createUser(
           user: UserModel(
             userId: '',
@@ -268,8 +272,10 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
             roles: const <String>['STU'],
             orgType: teamContext.actor.orgType,
             orgId: row.metadata['orgId'] ?? teamContext.orgId,
-            department: row.metadata['departmentName'] ?? row.valueFor(ImportConstants.departmentColumnKey),
-            departmentCode: row.metadata['departmentCode'] ?? '',
+            organisationName: affiliationOrg,
+            department: affiliationOrg.isNotEmpty && hackzDeptCode.isEmpty ? '' : hackzDept,
+            departmentCode: hackzDeptCode,
+            departmentName: affiliationDept,
             status: UserStatus.active,
             createdAt: DateTime.now(),
             approvedAt: DateTime.now(),
@@ -444,8 +450,6 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
       row.departmentName = context.defaultDepartmentName.trim().isEmpty
           ? row.departmentCode
           : context.defaultDepartmentName.trim();
-    } else if (row.departmentName.isEmpty) {
-      row.departmentName = row.organisation;
     }
 
     final bool? leader = _parseFlag(row.isTeamLeaderRaw);
@@ -627,6 +631,8 @@ class _ParsedRow {
         if (resolvedOrgId != null) 'orgId': resolvedOrgId!,
         'departmentCode': departmentCode,
         'departmentName': departmentName.isEmpty ? departmentRaw : departmentName,
+        'organisationName': isOwningOrg ? '' : (resolvedOrgName.trim().isEmpty ? organisation : resolvedOrgName.trim()),
+        'affiliationDepartment': isOwningOrg ? '' : departmentRaw,
         'isTeamLeader': isTeamLeader == true ? '1' : '0',
         if ((existingUser?.userId ?? '').trim().isNotEmpty) 'existingUserId': existingUser!.userId,
       },

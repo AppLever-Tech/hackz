@@ -57,6 +57,7 @@ abstract final class IdeathonTeamEligibility {
     required String hostOrgId,
     required TeamModel team,
     required Iterable<UserModel> members,
+    String hostOrgName = '',
   }) {
     final String host = hostOrgId.trim();
     final String teamOrg = team.orgId.trim();
@@ -65,16 +66,29 @@ abstract final class IdeathonTeamEligibility {
     }
 
     for (final UserModel member in members) {
-      final String memberOrg = member.orgId.trim();
-      if (memberOrg.isEmpty) continue;
-      if (teamOrg.isNotEmpty && memberOrg != teamOrg) {
-        return IdeathonTeamOrigin.mixed;
-      }
-      if (host.isNotEmpty && memberOrg != host) {
+      if (_isExternalMember(member, hostOrgId: host, hostOrgName: hostOrgName, teamOrgId: teamOrg)) {
         return IdeathonTeamOrigin.mixed;
       }
     }
     return IdeathonTeamOrigin.host;
+  }
+
+  static bool _isExternalMember(
+    UserModel member, {
+    required String hostOrgId,
+    required String hostOrgName,
+    required String teamOrgId,
+  }) {
+    final String affiliation = member.organisationName.trim();
+    if (affiliation.isNotEmpty) {
+      final String hostName = hostOrgName.trim();
+      if (hostName.isEmpty) return true;
+      return affiliation.toLowerCase() != hostName.toLowerCase();
+    }
+    final String memberOrg = member.orgId.trim();
+    if (memberOrg.isEmpty) return false;
+    if (teamOrgId.isNotEmpty && memberOrg != teamOrgId) return true;
+    return hostOrgId.isNotEmpty && memberOrg != hostOrgId;
   }
 
   static List<IdeathonEligibleIdea> filterForType(
@@ -128,7 +142,12 @@ abstract final class IdeathonTeamEligibility {
           .map((String id) => membersById[id.trim()])
           .whereType<UserModel>()
           .toList(growable: false);
-      final IdeathonTeamOrigin origin = classify(hostOrgId: host, team: team, members: members);
+      final IdeathonTeamOrigin origin = classify(
+        hostOrgId: host,
+        hostOrgName: orgNames[host] ?? '',
+        team: team,
+        members: members,
+      );
       final String orgId = team.orgId.trim().isEmpty ? host : team.orgId.trim();
       rows.add(
         IdeathonEligibleIdea(
