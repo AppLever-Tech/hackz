@@ -399,7 +399,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     const Text(
-                      'Only submitted ideas with coordinator-confirmed Faculty payment appear here. '
+                      'Only submitted ideas with coordinator-confirmed Team Leader payment appear here. '
                       'Select at least the org minimum of paid ideas to create the Ideathon.',
                       style: TextStyle(
                         fontSize: 12,
@@ -458,7 +458,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                     const SizedBox(height: 10),
                     if (_filteredIdeas.isEmpty)
                       const Text(
-                        'No paid ideas available. Faculty must pay and a coordinator must verify payment before ideas appear here.',
+                        'No paid ideas available. The Team Leader must pay and a coordinator must verify payment before ideas appear here.',
                         style: TextStyle(color: Color(0xFF64748B)),
                       )
                     else

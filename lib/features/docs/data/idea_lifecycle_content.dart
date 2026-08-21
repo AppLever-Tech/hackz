@@ -36,7 +36,7 @@ abstract final class IdeaLifecycleSections {
         'problem draft submitted idea status',
         'ideathon participation payment pending ready for execution',
         'evaluation aggregate score reused for ideathon evaluation',
-        'faculty coordinator department admin judges system',
+        'team leader coordinator department admin judges system',
         'ideathon participation minimum ideas org setting',
         'submitted idea added to ideathon via participation record',
       ];
@@ -76,7 +76,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
         DocumentationHero(
           title: 'Idea Lifecycle',
           description:
-              'An innovation idea has just two statuses — Draft and Submitted. Faculty pays for the idea; a coordinator verifies payment; only then can the idea be selected when creating an Ideathon.',
+              'An innovation idea has just two statuses — Draft and Submitted. The Team Leader pays for the idea; a coordinator verifies payment; only then can the idea be selected when creating an Ideathon.',
           lastUpdated: DateTime(2026, 8, 10),
           readingMinutes: 5,
           imageAsset: DocsAssetPaths.ideaLifecycle,
@@ -106,7 +106,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                 runSpacing: 12,
                 children: <Widget>[
                   _summaryCard(context, 'Problem', 'Active problem catalog', DocStatusKind.active, cols, c.maxWidth),
-                  _summaryCard(context, 'Idea Draft', 'Being authored by faculty', DocStatusKind.draft, cols, c.maxWidth),
+                  _summaryCard(context, 'Idea Draft', 'Being authored by the Team Leader', DocStatusKind.draft, cols, c.maxWidth),
                   _summaryCard(context, 'Idea Submitted', 'Locked for editing', DocStatusKind.custom, cols, c.maxWidth),
                   _summaryCard(context, 'Paid + Verified', 'Eligible for Ideathon create', DocStatusKind.active, cols, c.maxWidth),
                 ],
@@ -127,25 +127,25 @@ class IdeaLifecycleDocBody extends StatelessWidget {
                   (
                     title: 'Problem',
                     body:
-                        'An Active problem is published in the catalog. Faculty can submit innovations only against Active problems.',
+                        'An Active problem is published in the catalog. The Team Leader can submit innovations only against Active problems.',
                     pill: const DocumentationStatusPill(label: 'problem', kind: DocStatusKind.active),
                   ),
                   (
                     title: 'Idea Draft',
                     body:
-                        'Status: draft. Faculty submits an innovation from the Innovation Submission Workspace. The idea can still be edited while in this status.',
+                        'Status: draft. The Team Leader submits an innovation from the Innovation Submission Workspace. The idea can still be edited while in this status.',
                     pill: const DocumentationStatusPill(label: 'draft', kind: DocStatusKind.draft),
                   ),
                   (
                     title: 'Idea Submitted',
                     body:
-                        'Status: submitted. The idea is finalized and locked. Faculty can upload payment for the idea.',
+                        'Status: submitted. The idea is finalized and locked. The Team Leader can upload payment for the idea.',
                     pill: const DocumentationStatusPill(label: 'submitted'),
                   ),
                   (
                     title: 'Payment verified',
                     body:
-                        'Faculty pays for the idea; a coordinator verifies the payment. Only then does the idea appear when creating an Ideathon. IdeaStatus stays submitted.',
+                        'The Team Leader pays for the idea; a coordinator verifies the payment. Only then does the idea appear when creating an Ideathon. IdeaStatus stays submitted.',
                     pill: const DocumentationStatusPill(label: 'payment: verified', kind: DocStatusKind.active),
                   ),
                   (
@@ -175,9 +175,9 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               DocumentationTable(
                 headers: const <String>['Status', 'Naming', 'Trigger', 'Role'],
                 rows: const <List<String>>[
-                  <String>['Idea Draft', 'draft', 'Faculty submits on an Active problem', 'Faculty'],
-                  <String>['Idea Submitted', 'submitted', 'Faculty finalizes and locks the idea', 'Faculty'],
-                  <String>['Payment Pending', 'pending', 'Faculty uploads idea payment', 'Faculty'],
+                  <String>['Idea Draft', 'draft', 'Team Leader submits on an Active problem', 'Team Leader'],
+                  <String>['Idea Submitted', 'submitted', 'Team Leader finalizes and locks the idea', 'Team Leader'],
+                  <String>['Payment Pending', 'pending', 'Team Leader uploads idea payment', 'Team Leader'],
                   <String>['Payment Verified', 'verified', 'Coordinator confirms idea payment', 'Coordinator'],
                   <String>['Ideathon Member', 'active', 'Paid idea added when creating an Ideathon', 'Department Admin'],
                 ],
@@ -202,11 +202,11 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               children: <Widget>[
                 _flowLine(context, 'Problem Active'),
                 _flowArrow(context),
-                _flowLine(context, 'Faculty submits idea → Draft'),
+                _flowLine(context, 'Team Leader submits idea → Draft'),
                 _flowArrow(context),
-                _flowLine(context, 'Faculty finalizes → Submitted'),
+                _flowLine(context, 'Team Leader finalizes → Submitted'),
                 _flowArrow(context),
-                _flowLine(context, 'Faculty pays for the idea'),
+                _flowLine(context, 'Team Leader pays for the idea'),
                 _flowArrow(context),
                 _flowLine(context, 'Coordinator verifies payment'),
                 _flowArrow(context),
@@ -237,7 +237,8 @@ class IdeaLifecycleDocBody extends StatelessWidget {
           child: DocumentationTable(
             headers: const <String>['Role', 'Responsibilities'],
             rows: const <List<String>>[
-              <String>['Faculty', 'Submit and finalize innovation, upload idea payment, maintain team'],
+              <String>['Team Leader', 'Submit and finalize innovation, upload idea payment, manage own team'],
+              <String>['Faculty', 'Mentor teams; view mentored ideas (no submission or payment)'],
               <String>['Coordinator', 'Verify idea payment'],
               <String>[
                 'Department Admin',
@@ -263,9 +264,9 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               DocumentationTable(
                 headers: const <String>['Type', 'Action'],
                 rows: const <List<String>>[
-                  <String>['Manual', 'Faculty submits idea (Draft)'],
-                  <String>['Manual', 'Faculty finalizes idea (Submitted)'],
-                  <String>['Manual', 'Faculty uploads idea payment'],
+                  <String>['Manual', 'Team Leader submits idea (Draft)'],
+                  <String>['Manual', 'Team Leader finalizes idea (Submitted)'],
+                  <String>['Manual', 'Team Leader uploads idea payment'],
                   <String>['Manual', 'Coordinator verifies idea payment'],
                   <String>['Manual', 'Department Admin creates Ideathon with paid ideas'],
                   <String>['Automatic', 'Evaluation aggregation sync on the idea (average score, evaluator count)'],
@@ -289,9 +290,9 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <String>[
                 'Ideas can only be submitted against Active Problems.',
-                'Faculty creates Draft ideas; finalizing moves Draft → Submitted.',
+                'The Team Leader creates Draft ideas; finalizing moves Draft → Submitted.',
                 'IdeaStatus only ever has two values: draft and submitted.',
-                'Faculty payment + coordinator verification are required before an idea can appear in Create Ideathon.',
+                'Team Leader payment + coordinator verification are required before an idea can appear in Create Ideathon.',
                 'An Ideathon can be created only when at least the org minimum of paid ideas is selected.',
                 'Adding an idea to an Ideathon creates an IdeathonParticipation membership record; the idea keeps its Submitted status.',
                 'Judges never change Idea Status directly — they submit scores that update the idea\'s evaluation aggregate.',
@@ -322,12 +323,12 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'When does an idea become Submitted?',
                 body:
-                    'After Faculty finalizes a Draft idea from the Innovation Submission Workspace. That action advances Draft → Submitted and locks the idea for editing.',
+                    'After the Team Leader finalizes a Draft idea from the Innovation Submission Workspace. That action advances Draft → Submitted and locks the idea for editing.',
               ),
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Faculty pays for the idea and a coordinator verifies payment. The idea then appears in Create Ideathon. A Department Admin selects paid ideas (meeting the org minimum) when creating the event. IdeaStatus stays Submitted.',
+                    'The Team Leader pays for the idea and a coordinator verifies payment. The idea then appears in Create Ideathon. A Department Admin selects paid ideas (meeting the org minimum) when creating the event. IdeaStatus stays Submitted.',
               ),
               (
                 title: 'Does the idea status change once it joins an Ideathon?',
@@ -337,7 +338,7 @@ class IdeaLifecycleDocBody extends StatelessWidget {
               (
                 title: 'Why is my idea missing from Create Ideathon?',
                 body:
-                    'Only submitted ideas with verified Faculty payment are listed. Upload payment and wait for coordinator verification.',
+                    'Only submitted ideas with verified Team Leader payment are listed. Upload payment and wait for coordinator verification.',
               ),
               (
                 title: 'Can judges decide Ideathon entry?',

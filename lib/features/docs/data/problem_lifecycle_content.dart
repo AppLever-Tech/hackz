@@ -42,7 +42,7 @@ abstract final class ProblemLifecycleSections {
         'csv import manual authoring',
         'college admin activate deactivate',
         'department admin domain category theme',
-        'faculty submit ideas submission deadline max ideas',
+        'team leader submit ideas submission deadline max ideas',
         'idea lifecycle begins after active',
       ];
 }
@@ -266,8 +266,8 @@ stateDiagram-v2
             rows: const <List<String>>[
               <String>['College Admin', 'Activate Draft, Deactivate, Reactivate, manage complete catalog'],
               <String>['Department Admin', 'Create/import problems, edit own problems; view org-wide catalog'],
-              <String>['Faculty', 'View org-wide catalog; submit ideas on Active problems'],
-              <String>['Team Member', 'View org-wide catalog; participate via teams'],
+              <String>['Faculty', 'View org-wide catalog; mentor teams'],
+              <String>['Team Member', 'View org-wide catalog; Team Leader submits ideas on Active problems'],
               <String>['Judge', 'View problem context via assigned ideas'],
               <String>['Coordinator', 'View department-scoped problems for coordination / payments'],
             ],

@@ -1,8 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:file_picker/file_picker.dart';
 
-import 'package:hackz/features/attachment/models/attachment_model.dart';
-import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
@@ -10,7 +7,6 @@ import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
-import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'team_service.dart';
@@ -215,63 +211,5 @@ class FacultyTeamsService {
     }
     await batch.commit();
     clearCache();
-  }
-
-  static Future<void> submitIdea({
-    required UserModel faculty,
-    required TeamModel team,
-    required ProblemModel problem,
-    required String ideaTitle,
-    required String description,
-    required List<PlatformFile> attachmentFiles,
-    String gitRepositoryUrl = '',
-    String youtubeDemoUrl = '',
-  }) async {
-    TeamService.assertCanManageTeam(faculty, team);
-    await TeamService.validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
-    final teamDept = DepartmentModel.resolveCode(team.departmentCode);
-    final problemDept = DepartmentModel.resolveCode(problem.departmentCode);
-    final doc = _db.collection(FirestoreUtils.hkzIdeas).doc();
-    final idea = IdeaModel(
-      ideaId: doc.id,
-      problemId: problem.problemId,
-      teamId: team.teamId,
-      ideaTitle: ideaTitle.trim(),
-      description: description.trim(),
-      files: const <String>[],
-      status: IdeaStatus.submitted,
-      createdAt: DateTime.now(),
-      orgId: faculty.orgId,
-      teamDepartmentCode: teamDept,
-      problemDepartmentCode: problemDept,
-      problemNumber: problem.problemNumber,
-      problemTitle: problem.title,
-      createdBy: faculty.userId,
-      gitRepositoryUrl: gitRepositoryUrl.trim(),
-      youtubeDemoUrl: youtubeDemoUrl.trim(),
-    );
-    final batch = _db.batch();
-    batch.set(doc, idea.toMap());
-    batch.set(
-      _db.collection(FirestoreUtils.hkzTeams).doc(team.teamId),
-      <String, dynamic>{'status': TeamStatus.locked.value},
-      SetOptions(merge: true),
-    );
-    await batch.commit();
-
-    if (attachmentFiles.isNotEmpty) {
-      final uploaded = await AttachmentService.uploadAttachments(
-        entityType: AttachmentEntityType.idea,
-        entityId: doc.id,
-        orgId: faculty.orgId,
-        departmentCode: teamDept,
-        uploadedBy: faculty.userId,
-        files: attachmentFiles,
-        fileType: 'idea',
-      );
-      final urls = uploaded.map((e) => e.downloadUrl).toList(growable: false);
-      await doc.update(<String, dynamic>{'files': urls});
-    }
-    _invalidate(faculty.userId);
   }
 }

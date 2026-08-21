@@ -48,7 +48,7 @@ class IdeathonReadinessBanner extends StatelessWidget {
                 Text(
                   ready
                       ? 'Enough paid ideas are available to create an Ideathon.'
-                      : 'Submit ideas, complete Faculty payment, and get coordinator verification to unlock Ideathon creation.',
+                      : 'Submit ideas, complete Team Leader payment, and get coordinator verification to unlock Ideathon creation.',
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
                 ),
               ],

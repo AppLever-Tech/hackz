@@ -418,7 +418,6 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     DocStatusKind.draft,
                     const <String>[
                       'Mentor teams',
-                      'Submit innovations',
                       'Guide team members',
                     ],
                     cols,
@@ -454,7 +453,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     const <String>[
                       'Participate in innovation',
                       'Build teams',
-                      'Develop solutions',
+                      'Team Leaders submit ideas and payments',
                     ],
                     cols,
                     c.maxWidth,
@@ -1060,7 +1059,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'How do ideas enter an Ideathon?',
                 body:
-                    'Authorized department administrators create Ideathons from submitted ideas that already have verified Faculty payment. Unpaid ideas do not appear in Create Ideathon. The idea itself keeps its Submitted status.',
+                    'Authorized department administrators create Ideathons from submitted ideas that already have verified Team Leader payment. Unpaid ideas do not appear in Create Ideathon. The idea itself keeps its Submitted status.',
               ),
               (
                 title: 'Can Hackz manage multiple departments?',

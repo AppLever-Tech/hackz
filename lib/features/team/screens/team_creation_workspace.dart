@@ -19,7 +19,7 @@ import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 enum TeamFormDialogAction { none, saved }
 
-/// Premium team creation / edit workspace for faculty.
+/// Premium team creation / edit workspace.
 Future<TeamFormDialogAction?> showTeamCreationWorkspace({
   required BuildContext context,
   required UserModel currentUser,

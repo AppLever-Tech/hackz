@@ -95,12 +95,19 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   Future<void> _loadTeams() async {
     setState(() => _loadingTeams = true);
     try {
-      final data = await FacultyTeamsService.load(widget.currentUser);
+      final List<TeamModel> led = await TeamService.getTeamsLedBy(widget.currentUser.userId);
       if (!mounted) return;
       setState(() {
-        _teams = data.teams.where((t) => t.status != TeamStatus.inactive).toList(growable: false);
+        _teams = led
+            .where(
+              (TeamModel t) =>
+                  t.status != TeamStatus.inactive && TeamService.isActingTeamLeader(widget.currentUser, t),
+            )
+            .toList(growable: false);
         if (_selectedTeam == null && _teams.isNotEmpty) {
           _selectedTeam = _teams.first;
+        } else if (_selectedTeam != null && !_teams.any((TeamModel t) => t.teamId == _selectedTeam!.teamId)) {
+          _selectedTeam = _teams.isEmpty ? null : _teams.first;
         }
       });
     } finally {
@@ -126,6 +133,16 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   Future<void> _submit() async {
     final team = _selectedTeam;
     if (!_canSubmit || team == null) return;
+    try {
+      TeamService.assertCanSubmitIdea(widget.currentUser, team);
+    } on TeamRuleException catch (e) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot submit innovation',
+        message: e.message,
+      );
+      return;
+    }
 
     // Defense-in-depth: re-check the gate right before save. The caller is
     // expected to keep [widget.gate] fresh, but if the cap was hit while the
@@ -158,8 +175,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
               message: 'Uploading $fileCount file${fileCount == 1 ? '' : 's'} securely...',
             );
           }
-          await FacultyTeamsService.submitIdea(
-            faculty: widget.currentUser,
+          await TeamService.submitIdea(
+            actor: widget.currentUser,
             team: team,
             problem: widget.problem,
             ideaTitle: title,
@@ -168,6 +185,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             gitRepositoryUrl: _gitRepositoryController.text,
             youtubeDemoUrl: _youtubeDemoController.text,
           );
+          FacultyTeamsService.clearCache();
         },
       );
       if (!mounted) return;
@@ -295,7 +313,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           const SizedBox(height: 12),
           _section(
             title: 'Your team',
-            subtitle: 'Select the team submitting this innovation',
+            subtitle: 'Team Leader submits for their own team only',
             child: _buildTeamSelection(context),
           ),
           const SizedBox(height: 12),
@@ -393,6 +411,12 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   }
 
   Widget _buildTeamSelection(BuildContext context) {
+    if (_teams.isEmpty) {
+      return const Text(
+        'You can submit an innovation only as Team Leader of an active team.',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+      );
+    }
     return InnovationSubmissionTeamSelector(
       teams: _teams,
       selectedTeam: _selectedTeam,

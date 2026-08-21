@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/enums/user_role.dart';
@@ -49,13 +53,31 @@ class TeamService {
     if (id.isEmpty) return false;
     final UserRole role = UserRole.fromCode(actor.role);
     if (role == UserRole.faculty) return team.mentorId.trim() == id;
-    if (role == UserRole.student) return team.isLedBy(id) && team.isMember(id);
+    if (role == UserRole.student) return isActingTeamLeader(actor, team);
     return false;
   }
 
   static void assertCanManageTeam(UserModel actor, TeamModel team) {
     if (!canManageTeam(actor, team)) {
       throw TeamRuleException('You can only manage teams you lead or mentor.');
+    }
+  }
+
+  /// Team Leader capability: `currentUserId == team.teamLeaderId` and membership.
+  static bool isActingTeamLeader(UserModel actor, TeamModel team) {
+    final String id = actor.userId.trim();
+    return id.isNotEmpty && team.isLedBy(id) && team.isMember(id);
+  }
+
+  static void assertCanSubmitIdea(UserModel actor, TeamModel team) {
+    if (!isActingTeamLeader(actor, team)) {
+      throw TeamRuleException('Only the team leader can submit an idea for this team.');
+    }
+  }
+
+  static void assertCanPayForTeam(UserModel actor, TeamModel team) {
+    if (!isActingTeamLeader(actor, team)) {
+      throw TeamRuleException('Only the team leader can submit payment for this team.');
     }
   }
 
@@ -253,6 +275,63 @@ class TeamService {
         .get();
     if (snapshot.docs.isNotEmpty) {
       throw TeamRuleException('Only one active idea allowed per team and problem.');
+    }
+  }
+
+  static Future<void> submitIdea({
+    required UserModel actor,
+    required TeamModel team,
+    required ProblemModel problem,
+    required String ideaTitle,
+    required String description,
+    required List<PlatformFile> attachmentFiles,
+    String gitRepositoryUrl = '',
+    String youtubeDemoUrl = '',
+  }) async {
+    assertCanSubmitIdea(actor, team);
+    await validateIdeaCreation(teamId: team.teamId, problemId: problem.problemId);
+    final teamDept = DepartmentModel.resolveCode(team.departmentCode);
+    final problemDept = DepartmentModel.resolveCode(problem.departmentCode);
+    final doc = _db.collection(FirestoreUtils.hkzIdeas).doc();
+    final idea = IdeaModel(
+      ideaId: doc.id,
+      problemId: problem.problemId,
+      teamId: team.teamId,
+      ideaTitle: ideaTitle.trim(),
+      description: description.trim(),
+      files: const <String>[],
+      status: IdeaStatus.submitted,
+      createdAt: DateTime.now(),
+      orgId: actor.orgId,
+      teamDepartmentCode: teamDept,
+      problemDepartmentCode: problemDept,
+      problemNumber: problem.problemNumber,
+      problemTitle: problem.title,
+      createdBy: actor.userId,
+      gitRepositoryUrl: gitRepositoryUrl.trim(),
+      youtubeDemoUrl: youtubeDemoUrl.trim(),
+    );
+    final batch = _db.batch();
+    batch.set(doc, idea.toMap());
+    batch.set(
+      _db.collection(FirestoreUtils.hkzTeams).doc(team.teamId),
+      <String, dynamic>{'status': TeamStatus.locked.value},
+      SetOptions(merge: true),
+    );
+    await batch.commit();
+
+    if (attachmentFiles.isNotEmpty) {
+      final uploaded = await AttachmentService.uploadAttachments(
+        entityType: AttachmentEntityType.idea,
+        entityId: doc.id,
+        orgId: actor.orgId,
+        departmentCode: teamDept,
+        uploadedBy: actor.userId,
+        files: attachmentFiles,
+        fileType: 'idea',
+      );
+      final urls = uploaded.map((e) => e.downloadUrl).toList(growable: false);
+      await doc.update(<String, dynamic>{'files': urls});
     }
   }
 

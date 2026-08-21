@@ -109,8 +109,8 @@ class _PaymentDialogState extends State<_PaymentDialog> {
           if (authUid == null || authUid.isEmpty) {
             throw StateError('Not signed in.');
           }
-          if (!TeamService.canManageTeam(widget.currentUser, widget.team)) {
-            throw TeamRuleException('Only the team leader or faculty mentor can submit payment.');
+          if (!TeamService.isActingTeamLeader(widget.currentUser, widget.team)) {
+            throw TeamRuleException('Only the team leader can submit payment for this team.');
           }
           final paymentId = widget.idea.ideaId;
           HkzAsyncLoader.update(

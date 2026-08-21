@@ -13,10 +13,10 @@ class IdeaRoleConfig {
       case UserRole.faculty:
         return IdeaListConfig(
           canViewIdeas: canViewIdeas,
-          canCreateIdea: true,
+          canCreateIdea: false,
           canEvaluate: false,
           canViewStatus: true,
-          canUploadPayment: true,
+          canUploadPayment: false,
           canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,

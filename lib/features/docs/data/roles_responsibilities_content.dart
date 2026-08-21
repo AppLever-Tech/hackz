@@ -136,7 +136,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                     const <String>[
                       'Team mentoring',
                       'Problem guidance',
-                      'Innovation submission',
                     ],
                     cols,
                     c.maxWidth,
@@ -230,8 +229,8 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   ],
                   <String>[
                     'Submit Idea',
-                    'Faculty',
-                    'Only when problem is Active and gates pass',
+                    'Team Leader',
+                    'Team Member designated on the team; only when problem is Active and gates pass',
                   ],
                   <String>[
                     'Verify Payment',
@@ -299,7 +298,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 title: 'Faculty',
                 child: _bulletList(context, const <String>[
                   'Mentor teams',
-                  'Submit innovations',
                   'Participate as Internal Judge (only if enabled in Org Settings)',
                   'Cannot evaluate own mentored ideas',
                 ]),
@@ -359,7 +357,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   ],
                   <String>[
                     'Idea Lifecycle',
-                    'Faculty, Coordinator, Department Admin, Judge, System',
+                    'Team Leader, Coordinator, Department Admin, Judge, System',
                   ],
                   <String>[
                     'Ideathon Lifecycle',
@@ -387,7 +385,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 'College Admin has organization-wide permissions.',
                 'Department Admin manages users and domains for assigned departments; the problem catalog is org-wide for viewing.',
                 'Department Admin edits problems they own (and College Admin can edit any).',
-                'Faculty can only submit ideas for Active Problems.',
+                'Team Leaders submit ideas for Active Problems and complete idea payment. Faculty is not part of submission or payment.',
                 'Judges evaluate only assigned ideas.',
                 'Team Members participate through team workflows and can view the org-wide problem catalog. A Team Leader is a Team Member designated on a team (not a separate user role) and can manage that team, submit its ideas and make payments.',
                 'Coordinators cannot modify evaluations; payment verification is department-scoped.',
@@ -496,7 +494,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               (
                 title: 'Who verifies payments?',
                 body:
-                    'Coordinator verifies Faculty idea payments. Only after verification can an idea appear when creating an Ideathon. Payment does not change IdeaStatus.',
+                    'Coordinator verifies Team Leader idea payments. Only after verification can an idea appear when creating an Ideathon. Payment does not change IdeaStatus.',
               ),
               (
                 title: 'Who manages Ideathons?',

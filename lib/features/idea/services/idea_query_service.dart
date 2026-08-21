@@ -9,6 +9,7 @@ import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../team/models/team_model.dart';
+import '../../team/services/team_service.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_visibility_helpers.dart';
@@ -383,16 +384,7 @@ class IdeaQueryService {
     if (idea.status != IdeaStatus.draft && idea.status != IdeaStatus.submitted) return false;
     if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
     if (team == null) return false;
-    final role = UserRole.fromCode(viewer.role);
-    if (role == UserRole.faculty) {
-      final String facultyId = viewer.userId.trim();
-      if (facultyId.isEmpty) return false;
-      return team.mentorId.trim() == facultyId || idea.createdBy.trim() == facultyId;
-    }
-    if (role == UserRole.student) {
-      return team.isLedBy(viewer.userId);
-    }
-    return false;
+    return TeamService.isActingTeamLeader(viewer, team);
   }
 
   static String? _displayName(UserModel? user) {

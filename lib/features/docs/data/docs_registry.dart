@@ -130,13 +130,13 @@ abstract final class DocsRegistry {
     DocPageDefinition(
       id: 'innovation-submission',
       title: 'Innovation Submission',
-      description: 'How faculty submit innovations against Active problems.',
+      description: 'How Team Leaders submit innovations against Active problems.',
       icon: AppIcons.ideas,
       isPlaceholder: true,
       category: DocCategory.workflows,
       builder: (_) => const PlaceholderDocPage(
         title: 'Innovation Submission',
-        description: 'Faculty innovation submission workspace guide (coming soon).',
+        description: 'Team Leader innovation submission workspace guide (coming soon).',
       ),
     ),
     DocPageDefinition(

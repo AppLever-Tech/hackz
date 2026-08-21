@@ -74,7 +74,7 @@ class ProblemRoleConfig {
           canEdit: false,
           canToggleActive: false,
           canDeleteDraft: false,
-          canSubmitIdea: true,
+          canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
           orgId: user.orgId,
