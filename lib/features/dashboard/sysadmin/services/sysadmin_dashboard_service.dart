@@ -629,7 +629,7 @@ class SysAdminDashboardService {
       case 'COO':
         return 'Coordinators';
       case 'STU':
-        return 'Students';
+        return 'Team Members';
       default:
         return code;
     }

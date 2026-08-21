@@ -304,7 +304,7 @@ class _FacultyDashboardHomeState extends State<_FacultyDashboardHome> {
           icon: AppIcons.teams,
         ),
         DashboardMetricChipData.single(
-          label: 'Students',
+          label: 'Team Members',
           value: '${vm.studentCount}',
           color: const Color(0xFF16A34A),
           icon: AppIcons.student,

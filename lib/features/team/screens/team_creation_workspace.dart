@@ -208,9 +208,9 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           ),
           const SizedBox(height: 10),
           _section(
-            title: 'Students',
+            title: 'Team Members',
             subtitle:
-                'Select ${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} students for collaborative submission',
+                'Select ${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} team members for collaborative submission',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -301,7 +301,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
-              _heroChip('${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} students'),
+              _heroChip('${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} team members'),
               _heroChip('Faculty mentor'),
               _heroChip('Submission ready'),
             ],
@@ -374,8 +374,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
         Expanded(
           child: Text(
             belowMin
-                ? 'Add at least ${FacultyTeamsService.minStudentsPerTeam} students to continue.'
-                : 'Minimum ${FacultyTeamsService.minStudentsPerTeam} students · maximum ${FacultyTeamsService.maxStudentsPerTeam} students.',
+                ? 'Add at least ${FacultyTeamsService.minStudentsPerTeam} team members to continue.'
+                : 'Minimum ${FacultyTeamsService.minStudentsPerTeam} team members · maximum ${FacultyTeamsService.maxStudentsPerTeam} team members.',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -416,7 +416,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              _footerMeta(AppIcons.student, '$count student${count == 1 ? '' : 's'} selected'),
+              _footerMeta(AppIcons.student, '$count team member${count == 1 ? '' : 's'} selected'),
               _footerMeta(AppIcons.teams, '$remaining slot${remaining == 1 ? '' : 's'} left'),
               _footerMeta(
                 ready ? AppIcons.workflowApproved : AppIcons.workflowPendingReview,

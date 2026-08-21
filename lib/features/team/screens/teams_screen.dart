@@ -82,7 +82,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
     final bool ok = await FeedbackService.showConfirmation(
       context,
       title: 'Disable team?',
-      message: 'This will mark ${team.teamName} inactive and release assigned students.',
+      message: 'This will mark ${team.teamName} inactive and release assigned team members.',
       confirmLabel: 'Disable',
       dangerConfirm: true,
     );
@@ -294,7 +294,7 @@ class _CreateTeamCta extends StatelessWidget {
                   children: <Widget>[
                     Text('Create an innovation team', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                     SizedBox(height: 3),
-                    Text('Build a compact 2-4 student team for idea submission.', style: TextStyle(color: Color(0xFF64748B))),
+                    Text('Build a compact 2-4 member team for idea submission.', style: TextStyle(color: Color(0xFF64748B))),
                   ],
                 ),
               ),
@@ -434,7 +434,7 @@ class _EmptyTeamsState extends StatelessWidget {
             const SizedBox(height: 14),
             const Text('Create your first innovation team', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
-            const Text('Select students, assign yourself as mentor, and start the idea submission workflow.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B))),
+            const Text('Select team members, assign yourself as mentor, and start the idea submission workflow.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B))),
             const SizedBox(height: 16),
             FilledButton.icon(onPressed: onCreate, icon: const Icon(AppIcons.add), label: const Text('Create Team')),
           ],

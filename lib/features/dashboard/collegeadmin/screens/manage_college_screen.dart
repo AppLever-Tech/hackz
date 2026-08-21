@@ -126,7 +126,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       warning.write('\n\nThis removes the department record from your college.');
       final List<String> parts = <String>[];
       if (facultyCount > 0) parts.add('$facultyCount faculty');
-      if (studentCount > 0) parts.add('$studentCount students');
+      if (studentCount > 0) parts.add('$studentCount team members');
       if (hasAdmin) parts.add('the assigned department admin');
       if (parts.isNotEmpty) {
         warning.write(' ${parts.join(', ')} will remain in the college but are no longer tied to this department entry.');
@@ -663,7 +663,7 @@ class _DepartmentCountsChip extends StatelessWidget {
           ),
           _DepartmentCountSegment(
             icon: AppIcons.student,
-            label: 'Students',
+            label: 'Team Members',
             count: studentCount,
           ),
         ],

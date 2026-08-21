@@ -931,7 +931,7 @@ class InnovationToStartupDocBody extends StatelessWidget {
                     context,
                     icon: AppIcons.users,
                     title: 'Role-based Workflows',
-                    body: 'Clear ownership for admins, faculty, judges and students.',
+                    body: 'Clear ownership for admins, faculty, judges and team members.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),

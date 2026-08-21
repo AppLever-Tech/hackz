@@ -94,11 +94,11 @@ class TeamChangeRequestService {
   }) {
     if (proposedStudentIds.length < minStudentsPerTeam) {
       throw WorkflowRequestException(
-          'Team must have at least $minStudentsPerTeam students.');
+          'Team must have at least $minStudentsPerTeam team members.');
     }
     if (proposedStudentIds.length > maxStudentsPerTeam) {
       throw WorkflowRequestException(
-          'Team can have at most $maxStudentsPerTeam students.');
+          'Team can have at most $maxStudentsPerTeam team members.');
     }
     if (proposedStudentIds.length == currentStudentIds.length &&
         proposedStudentIds.containsAll(currentStudentIds)) {

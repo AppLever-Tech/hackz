@@ -36,7 +36,7 @@ class VerificationTimelineWidget extends StatelessWidget {
   static List<VerificationTimelineEvent> eventsFor(PaymentModel payment, {String? remarks}) {
     final submitted = VerificationTimelineEvent(
       title: 'Payment submitted',
-      subtitle: 'Student uploaded payment proof',
+      subtitle: 'Team member uploaded payment proof',
       when: payment.createdAt,
       icon: AppIcons.submissions,
       color: const Color(0xFF475569),

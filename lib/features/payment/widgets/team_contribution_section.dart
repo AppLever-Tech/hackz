@@ -75,7 +75,7 @@ class TeamContributionSection extends StatelessWidget {
         ),
         PaymentFormRow(
           icon: AppIcons.student,
-          label: 'Students',
+          label: 'Team Members',
           value: _studentsValue(context),
         ),
         PaymentFormRow(
@@ -141,7 +141,7 @@ class TeamContributionSection extends StatelessWidget {
 
   Widget _studentsValue(BuildContext context) {
     if (students.isEmpty) {
-      return PaymentFormRow.plainValue('No students linked');
+      return PaymentFormRow.plainValue('No team members linked');
     }
 
     final List<Widget> rows = <Widget>[];

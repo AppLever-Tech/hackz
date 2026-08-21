@@ -99,7 +99,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Text('Unable to load student dashboard: ${snapshot.error}');
+          return Text('Unable to load dashboard: ${snapshot.error}');
         }
         final vm = snapshot.data!;
         final gap = ResponsiveHelper.dashboardSectionGap(context);
@@ -198,7 +198,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   Widget _buildMyDetailsCard(StudentDashboardVm vm) {
     final Widget details = _buildStudentDetailsContent(vm);
-    final String titleName = vm.studentName.trim().isEmpty ? 'Student' : vm.studentName.trim();
+    final String titleName = vm.studentName.trim().isEmpty ? 'Team Member' : vm.studentName.trim();
     return SectionContainer(
       child: DashboardBoundedBody(
         headers: <Widget>[

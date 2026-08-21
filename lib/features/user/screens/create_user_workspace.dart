@@ -631,7 +631,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
       sections.add(
         _profileBlock(
           icon: AppIcons.student,
-          title: 'Student information',
+          title: 'Team Member information',
           children: <Widget>[
             _labeledField('Program', TextField(controller: _programController, decoration: _fieldDecoration('Program'))),
             const SizedBox(height: 10),

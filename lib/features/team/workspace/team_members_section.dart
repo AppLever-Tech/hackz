@@ -44,12 +44,12 @@ class TeamMembersSection extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           const Text(
-            'Students',
+            'Team Members',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 8),
           if (students.isEmpty)
-            const Text('No students assigned.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))
+            const Text('No team members assigned.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))
           else
             Column(
               children: students

@@ -63,7 +63,7 @@ class TeamService {
       }
     }
     if (selectedStudentIds.length < 2 || selectedStudentIds.length > 4) {
-      throw TeamRuleException('Team size must be between 2 and 4 students.');
+      throw TeamRuleException('Team size must be between 2 and 4 team members.');
     }
     if (editingTeam == null && existingTeams.length >= 3) {
       throw TeamRuleException('Maximum 3 teams per faculty reached.');
@@ -74,14 +74,14 @@ class TeamService {
     for (final studentId in selectedStudentIds) {
       final student = studentsById[studentId];
       if (student == null) {
-        throw TeamRuleException('Selected student not found in department.');
+        throw TeamRuleException('Selected team member not found in department.');
       }
       if (student.departmentCode.trim().toUpperCase() != deptCode) {
-        throw TeamRuleException('All students must belong to the same department.');
+        throw TeamRuleException('All team members must belong to the same department.');
       }
       final existingTeamId = (student.teamId ?? '').trim();
       if (existingTeamId.isNotEmpty && existingTeamId != editingTeam?.teamId) {
-        throw TeamRuleException('A student can belong to only one team.');
+        throw TeamRuleException('A team member can belong to only one team.');
       }
     }
 

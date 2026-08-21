@@ -121,7 +121,7 @@ class TeamWorkspaceCard extends StatelessWidget {
           FormValueRow(
             labelWidth: _labelWidth,
             labelGap: _labelGap,
-            label: 'Students',
+            label: 'Team Members',
             labelAlignment: _labelAlignment,
             crossAxisAlignment: CrossAxisAlignment.start,
             labelTopInset: _studentLabelTopInset,
@@ -161,7 +161,7 @@ class TeamWorkspaceCard extends StatelessWidget {
 
   Widget _buildStudentsValue(BuildContext context, List<String> sortedStudentIds) {
     if (sortedStudentIds.isEmpty) {
-      return const Text('No students assigned', style: EntityCardStyles.plainValue);
+      return const Text('No team members assigned', style: EntityCardStyles.plainValue);
     }
 
     final bool mobile = ResponsiveHelper.isMobile(context);

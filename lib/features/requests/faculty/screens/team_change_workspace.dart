@@ -130,13 +130,13 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   /// faculty always know what to fix.
   String? get _blockingReason {
     if (_proposedIds.length < TeamChangeRequestService.minStudentsPerTeam) {
-      return 'Add at least ${TeamChangeRequestService.minStudentsPerTeam} students.';
+      return 'Add at least ${TeamChangeRequestService.minStudentsPerTeam} team members.';
     }
     if (_proposedIds.length > TeamChangeRequestService.maxStudentsPerTeam) {
-      return 'Remove a student — teams allow at most ${TeamChangeRequestService.maxStudentsPerTeam}.';
+      return 'Remove a team member — teams allow at most ${TeamChangeRequestService.maxStudentsPerTeam}.';
     }
     if (!_hasChanges) {
-      return 'No member changes — add or remove at least one student.';
+      return 'No member changes — add or remove at least one team member.';
     }
     if (_reasonController.text.trim().isEmpty) {
       return 'Reason for change is required.';
@@ -344,8 +344,8 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     return RequestWorkspaceSection(
       title: 'Proposed team',
       subtitle:
-          'Pick the students who should be on this team. Range: ${TeamChangeRequestService.minStudentsPerTeam}–${TeamChangeRequestService.maxStudentsPerTeam}. '
-          '$freeCount student${freeCount == 1 ? '' : 's'} available to add.',
+          'Pick the team members who should be on this team. Range: ${TeamChangeRequestService.minStudentsPerTeam}–${TeamChangeRequestService.maxStudentsPerTeam}. '
+          '$freeCount team member${freeCount == 1 ? '' : 's'} available to add.',
       leading: _sectionIcon(AppIcons.add, const Color(0xFF6A38FF)),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -403,17 +403,17 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     final IconData icon;
     if (belowMin) {
       message =
-          'Add at least ${TeamChangeRequestService.minStudentsPerTeam} students. Free students from the department appear in the list above.';
+          'Add at least ${TeamChangeRequestService.minStudentsPerTeam} team members. Available members from the department appear in the list above.';
       tone = const Color(0xFFB45309);
       icon = AppIcons.workflowPendingReview;
     } else if (atMax) {
       message =
-          'Team is at the maximum of ${TeamChangeRequestService.maxStudentsPerTeam} students. Remove a member to add a different student.';
+          'Team is at the maximum of ${TeamChangeRequestService.maxStudentsPerTeam} team members. Remove a member to add a different team member.';
       tone = const Color(0xFF047857);
       icon = AppIcons.workflowApproved;
     } else {
       message =
-          'Minimum ${TeamChangeRequestService.minStudentsPerTeam} · Maximum ${TeamChangeRequestService.maxStudentsPerTeam} students. Only department students not already on another team are shown.';
+          'Minimum ${TeamChangeRequestService.minStudentsPerTeam} · Maximum ${TeamChangeRequestService.maxStudentsPerTeam} team members. Only department team members not already on another team are shown.';
       tone = const Color(0xFF64748B);
       icon = AppIcons.statusActive;
     }
@@ -500,7 +500,7 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
             border: InputBorder.none,
             isDense: true,
             hintText:
-                'Describe why this team change is needed (e.g. student dropped out, joining for a specific skillset...).',
+                'Describe why this team change is needed (e.g. a team member dropped out, joining for a specific skillset...).',
             hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF94A3B8)),
           ),
           style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A), height: 1.4),
@@ -799,7 +799,7 @@ class _Footer extends StatelessWidget {
               canSubmit
                   ? 'Ready to submit · workflow status will move to Pending Approval.'
                   : (blockingReason ??
-                      'No member changes — add or remove students to enable submission.'),
+                      'No member changes — add or remove team members to enable submission.'),
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,

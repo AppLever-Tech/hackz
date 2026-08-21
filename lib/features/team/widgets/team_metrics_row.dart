@@ -30,7 +30,7 @@ class TeamMetricsRow extends StatelessWidget {
           value: '$teamCount/${FacultyTeamsService.maxTeamsPerFaculty}',
           label: 'Teams',
         ),
-        MetricKpiSegment.count(totalStudents, 'Students'),
+        MetricKpiSegment.count(totalStudents, 'Team Members'),
         MetricKpiSegment.count(activeIdeas, 'Ideas'),
         MetricKpiSegment.count(_remainingSlots, 'Slots'),
       ];
@@ -45,7 +45,7 @@ class TeamMetricsRow extends StatelessWidget {
           icon: AppIcons.teams,
         ),
         DashboardMetricChipData.single(
-          label: 'Total Students',
+          label: 'Team Members',
           value: '$totalStudents',
           color: const Color(0xFF0EA5E9),
           icon: AppIcons.student,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../user/constants/csv_import_role_constants.dart';
+import '../../user/services/user_role_labels.dart';
 import '../services/import_department_lookup.dart';
 import '../services/import_template_service.dart';
 import 'reference_values_viewer.dart';
@@ -121,7 +122,13 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
   static ReferenceValuesViewerConfig _rolesConfig(Set<String> allowedRoles) {
     final List<ReferenceValueItem> items = CsvImportRoleConstants.all
         .where(allowedRoles.contains)
-        .map((String role) => ReferenceValueItem(primary: role))
+        .map((String role) {
+          final String? code = CsvImportRoleConstants.toRoleCode(role);
+          return ReferenceValueItem(
+            primary: role,
+            secondary: code == null ? null : UserRoleLabels.labelForCode(code),
+          );
+        })
         .toList(growable: false);
     return ReferenceValuesViewerConfig(
       title: 'Supported Roles',

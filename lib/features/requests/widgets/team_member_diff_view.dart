@@ -332,7 +332,7 @@ class TeamMemberDiffSummary extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 6),
         child: Text(
-          'No member changes yet — add or remove students above.',
+          'No member changes yet — add or remove team members above.',
           style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
         ),
       );

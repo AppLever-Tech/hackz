@@ -67,7 +67,7 @@ abstract final class LandingRoleData {
   static const List<LandingRoleTile> roles = <LandingRoleTile>[
     LandingRoleTile(
       icon: AppIcons.student,
-      title: 'Student',
+      title: 'Team Member',
       accent: Color(0xFF6A38FF),
     ),
     LandingRoleTile(

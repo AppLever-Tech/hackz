@@ -31,7 +31,7 @@ abstract final class RolesResponsibilitiesSections {
   ];
 
   static List<String> get searchCorpus => const <String>[
-        'college admin department admin faculty coordinator judge student',
+        'college admin department admin faculty coordinator judge student team member',
         'activate draft deactivate reactivate assign judges ideathon',
         'verify payment evaluate idea org evaluation config catalog',
         'least privilege department scope ownership permissions catalog',
@@ -167,7 +167,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   ),
                   _roleCard(
                     context,
-                    'Student',
+                    'Team Member',
                     DocStatusKind.archived,
                     const <String>[
                       'Participate in teams',
@@ -255,7 +255,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   ],
                   <String>[
                     'View Problem Catalog',
-                    'College Admin, Dept Admin, Faculty, Student',
+                    'College Admin, Dept Admin, Faculty, Team Member',
                     'Org-wide catalog (all departments)',
                   ],
                 ],
@@ -298,7 +298,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               DocumentationCard(
                 title: 'Faculty',
                 child: _bulletList(context, const <String>[
-                  'Mentor student teams',
+                  'Mentor teams',
                   'Submit innovations',
                   'Participate as Internal Judge (only if enabled in Org Settings)',
                   'Cannot evaluate own mentored ideas',
@@ -325,7 +325,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               DocumentationCard(
-                title: 'Student',
+                title: 'Team Member',
                 child: _bulletList(context, const <String>[
                   'Join teams',
                   'Participate in innovation',
@@ -346,7 +346,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.information,
                 title: 'Problem Lifecycle',
                 body:
-                    'College Admin governs activation and catalog control. Department Admin authors problems (typically for their department) and can edit their own problems. Faculty and Student view the org-wide problem catalog. Judge and Coordinator use problem context during idea operations.',
+                    'College Admin governs activation and catalog control. Department Admin authors problems (typically for their department) and can edit their own problems. Faculty and Team Member view the org-wide problem catalog. Judge and Coordinator use problem context during idea operations.',
               ),
               const SizedBox(height: 12),
               DocumentationTable(
@@ -354,7 +354,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 rows: const <List<String>>[
                   <String>[
                     'Problem Lifecycle',
-                    'College Admin, Department Admin, Faculty, Student, Judge, Coordinator',
+                    'College Admin, Department Admin, Faculty, Team Member, Judge, Coordinator',
                   ],
                   <String>[
                     'Idea Lifecycle',
@@ -388,7 +388,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 'Department Admin edits problems they own (and College Admin can edit any).',
                 'Faculty can only submit ideas for Active Problems.',
                 'Judges evaluate only assigned ideas.',
-                'Students participate through team workflows and can view the org-wide problem catalog.',
+                'Team Members participate through team workflows and can view the org-wide problem catalog.',
                 'Coordinators cannot modify evaluations; payment verification is department-scoped.',
                 'Lifecycle transitions remain role controlled.',
                 'Automatic transitions are performed only by the System.',
@@ -431,7 +431,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 tone: DocInfoTone.warning,
                 title: 'Department scope for management',
                 body:
-                    'Department Admin user/domain management is limited to assigned departments. Problem catalog viewing is org-wide for Dept Admin, Faculty, and Student; problem editing remains limited to own problems for Dept Admin.',
+                    'Department Admin user/domain management is limited to assigned departments. Problem catalog viewing is org-wide for Dept Admin, Faculty, and Team Member; problem editing remains limited to own problems for Dept Admin.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(

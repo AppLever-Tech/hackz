@@ -11,7 +11,7 @@ class StudentMemberChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (names.isEmpty) {
-      return const Text('No students assigned', style: TextStyle(color: Color(0xFF64748B)));
+      return const Text('No team members assigned', style: TextStyle(color: Color(0xFF64748B)));
     }
     return Wrap(
       spacing: 8,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/user_model.dart';
+import '../../../user/services/user_role_labels.dart';
 
 class RegistrationInfoCard extends StatelessWidget {
   const RegistrationInfoCard({
@@ -18,15 +19,7 @@ class RegistrationInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = '${user.firstName} ${user.lastName}'.trim().isEmpty ? '—' : '${user.firstName} ${user.lastName}'.trim();
     final role = UserRole.fromCode(user.role);
-    final roleLabel = switch (role) {
-      UserRole.student => 'Student',
-      UserRole.faculty => 'Faculty',
-      UserRole.departmentAdmin => 'Department admin',
-      UserRole.collegeAdmin => 'College admin',
-      UserRole.judge => 'Judge',
-      UserRole.coordinator => 'Coordinator',
-      UserRole.sysAdmin => 'System admin',
-    };
+    final roleLabel = UserRoleLabels.labelFor(role);
     final dept = user.department.trim().isEmpty ? user.departmentCode : user.department;
 
     return Column(

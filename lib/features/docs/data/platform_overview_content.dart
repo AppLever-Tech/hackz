@@ -37,7 +37,7 @@ abstract final class PlatformOverviewSections {
 
   static List<String> get searchCorpus => const <String>[
         'hackz platform overview innovation lifecycle ideathon hackathon',
-        'college admin department admin faculty coordinator judge student',
+        'college admin department admin faculty coordinator judge student team member',
         'problem statements ideas evaluations teams domains csv import',
         'ideathon prototype transparent evaluation multi-tenant',
         'organization settings reports analytics feedback app metadata',
@@ -419,7 +419,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     const <String>[
                       'Mentor teams',
                       'Submit innovations',
-                      'Guide students',
+                      'Guide team members',
                     ],
                     cols,
                     c.maxWidth,
@@ -449,7 +449,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                   ),
                   _roleCard(
                     context,
-                    'Student',
+                    'Team Member',
                     DocStatusKind.archived,
                     const <String>[
                       'Participate in innovation',
@@ -508,7 +508,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     (
                       title: 'Analytics & collaboration',
                       body:
-                          'Dashboards, role-based workspaces and shared context keep faculty, students and admins aligned.',
+                          'Dashboards, role-based workspaces and shared context keep faculty, team members and admins aligned.',
                     ),
                   ];
                   return Wrap(
@@ -571,7 +571,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     context,
                     icon: AppIcons.teams,
                     title: 'Teams',
-                    body: 'Form and manage student teams participating in innovation programs.',
+                    body: 'Form and manage teams participating in innovation programs.',
                     cols: cols,
                     maxWidth: c.maxWidth,
                   ),
@@ -968,7 +968,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
             children: <Widget>[
               _readingGroup(
                 context,
-                role: 'For Students',
+                role: 'For Team Members',
                 pageIds: const <String>['idea-lifecycle', 'roles-responsibilities'],
               ),
               const SizedBox(height: 12),
@@ -1035,7 +1035,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
               (
                 title: 'Who can use Hackz?',
                 body:
-                    'College Admin, Department Admin, Faculty, Coordinator, Judge and Student roles—each with role-based workspaces and permissions.',
+                    'College Admin, Department Admin, Faculty, Coordinator, Judge and Team Member roles—each with role-based workspaces and permissions.',
               ),
               (
                 title: 'Can Hackz be used outside engineering colleges?',

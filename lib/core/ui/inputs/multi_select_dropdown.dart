@@ -12,7 +12,7 @@ class MultiSelectDropdown extends StatefulWidget {
     required this.orgId,
     required this.departmentCode,
     this.maxSelection = 4,
-    this.placeholder = 'Select Students',
+    this.placeholder = 'Select Team Members',
     this.enabled = true,
   });
 
@@ -133,14 +133,14 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                   onChanged: (_) => _overlayEntry?.markNeedsBuild(),
                   decoration: const InputDecoration(
                     isDense: true,
-                    hintText: 'Search students',
+                    hintText: 'Search team members',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Expanded(
                   child: students.isEmpty
-                      ? const Center(child: Text('No students found'))
+                      ? const Center(child: Text('No team members found'))
                       : ListView.builder(
                           itemCount: students.length,
                           itemBuilder: (context, index) {

@@ -465,7 +465,7 @@ class _DepartmentOverviewTile extends StatelessWidget {
                 _DepartmentMetricPill(
                   icon: AppIcons.student,
                   label: '$students',
-                  tooltip: 'Students',
+                  tooltip: 'Team Members',
                 ),
               ],
             ),
@@ -530,7 +530,7 @@ class _DepartmentOverviewTile extends StatelessWidget {
                 _DepartmentMetricCount(
                   icon: AppIcons.student,
                   count: students,
-                  tooltip: 'Students',
+                  tooltip: 'Team Members',
                 ),
               ],
             ),

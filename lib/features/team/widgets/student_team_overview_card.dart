@@ -81,7 +81,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
         FormValueRow(
           labelWidth: _labelWidth,
           labelGap: _labelGap,
-          label: 'Students',
+          label: 'Team Members',
           labelIcon: AppIcons.student,
           labelAlignment: _labelAlignment,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +108,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
 
   Widget _studentsLead(BuildContext context, List<UserModel> members) {
     if (members.isEmpty) {
-      return const Text('No students on team', style: EntityCardStyles.plainValue);
+      return const Text('No team members on team', style: EntityCardStyles.plainValue);
     }
 
     final bool mobile = ResponsiveHelper.isMobile(context);

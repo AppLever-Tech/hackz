@@ -25,6 +25,7 @@ import '../widgets/mobile_user_list_row_card.dart';
 import '../widgets/user_metrics_row.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
+import '../services/user_role_labels.dart';
 import 'create_user_dialog.dart';
 import '../../../core/ui/inputs/filter_pill.dart';
 
@@ -165,7 +166,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             ),
             items: const <DropdownMenuItem<String>>[
               DropdownMenuItem<String>(value: 'FAC', child: Text('Faculty')),
-              DropdownMenuItem<String>(value: 'STU', child: Text('Student')),
+              DropdownMenuItem<String>(value: 'STU', child: Text(UserRoleLabels.labelForCode('STU'))),
               DropdownMenuItem<String>(value: 'COO', child: Text('Coordinator')),
               DropdownMenuItem<String>(value: 'JUD', child: Text('Judge')),
             ],
@@ -323,17 +324,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  String _roleLabel(String role) {
-    switch (role) {
-      case 'FAC':
-        return 'Faculty';
-      case 'COO':
-        return 'Coordinator';
-      case 'STU':
-      default:
-        return 'Student';
-    }
-  }
+  String _roleLabel(String role) => UserRoleLabels.labelForCode(role);
 
   List<UserModel> _filteredUsers() {
     final q = _searchController.text.trim().toLowerCase();
@@ -749,7 +740,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             children: <Widget>[
               _userFilterChip(compact: compact, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
               _userFilterChip(compact: compact, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
-              _userFilterChip(compact: compact, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
+              _userFilterChip(compact: compact, filter: UsersFilter.students, icon: AppIcons.student, label: UserRoleLabels.labelForCode('STU')),
               _userFilterChip(
                 compact: compact,
                 filter: UsersFilter.coordinators,
@@ -780,7 +771,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
 
     final (IconData icon, String label) = switch (_filter) {
       UsersFilter.faculty => (AppIcons.faculty, 'Faculty'),
-      UsersFilter.students => (AppIcons.student, 'Student'),
+      UsersFilter.students => (AppIcons.student, UserRoleLabels.labelForCode('STU')),
       UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
       UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
       UsersFilter.rejected => (AppIcons.workflowRejected, 'Rejected'),
@@ -868,7 +859,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       children: <Widget>[
         _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
         _roleAccordion(title: 'Faculty', count: faculty.length, users: faculty),
-        _roleAccordion(title: 'Students', count: students.length, users: students),
+        _roleAccordion(title: UserRoleLabels.pluralLabelForCode('STU'), count: students.length, users: students),
         _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
         _roleAccordion(title: 'Rejected Users', count: rejected.length, users: rejected, highlighted: true),
       ],
@@ -959,7 +950,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           children: <Widget>[
             _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
             _userFilterChip(compact: false, filter: UsersFilter.faculty, icon: AppIcons.faculty, label: 'Faculty'),
-            _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: 'Student'),
+            _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: UserRoleLabels.labelForCode('STU')),
             _userFilterChip(
               compact: false,
               filter: UsersFilter.coordinators,

@@ -26,7 +26,7 @@ class UserMetricsRow extends StatelessWidget {
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(faculty, 'Faculty'),
-        MetricKpiSegment.count(students, 'Students'),
+        MetricKpiSegment.count(students, 'Team Members'),
         MetricKpiSegment.count(coordinators, 'Coordinators'),
         MetricKpiSegment.count(pending, 'Pending'),
       ];
@@ -41,10 +41,10 @@ class UserMetricsRow extends StatelessWidget {
         ).toChipData(),
         DepartmentMetricCard(
           value: '$students',
-          label: 'Students',
+          label: 'Team Members',
           icon: AppIcons.student,
           iconBgColor: const Color(0xFFF2EDFF),
-          tooltip: 'Active students in this department.',
+          tooltip: 'Active team members in this department.',
         ).toChipData(),
         DepartmentMetricCard(
           value: '$coordinators',

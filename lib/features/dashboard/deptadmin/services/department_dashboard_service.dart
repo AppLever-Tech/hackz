@@ -399,7 +399,7 @@ class DepartmentDashboardService {
   }
 
   static List<DepartmentDistributionSegment> _roleDistribution(_FirestoreDocs users) {
-    final counts = <String, int>{'Faculty': 0, 'Students': 0, 'Coordinators': 0, 'Judges': 0, 'Pending': 0};
+    final counts = <String, int>{'Faculty': 0, 'Team Members': 0, 'Coordinators': 0, 'Judges': 0, 'Pending': 0};
     for (final doc in users) {
       final data = doc.data();
       final status = UserStatus.fromRaw((data['status'] as String?) ?? '');
@@ -412,7 +412,7 @@ class DepartmentDashboardService {
           counts['Faculty'] = counts['Faculty']! + 1;
           break;
         case 'STU':
-          counts['Students'] = counts['Students']! + 1;
+          counts['Team Members'] = counts['Team Members']! + 1;
           break;
         case 'COO':
           counts['Coordinators'] = counts['Coordinators']! + 1;

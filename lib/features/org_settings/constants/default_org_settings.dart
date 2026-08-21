@@ -16,7 +16,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   // —— Team ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.minStudentsPerTeam,
-    displayName: 'Minimum students per team',
+    displayName: 'Minimum team members per team',
     type: OrgSettingValueType.integer,
     defaultValue: 2,
     sectionKey: 'team',
@@ -30,7 +30,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.maxStudentsPerTeam,
-    displayName: 'Maximum students per team',
+    displayName: 'Maximum team members per team',
     type: OrgSettingValueType.integer,
     defaultValue: 5,
     sectionKey: 'team',
@@ -118,7 +118,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.showJudgeCommentsToStudents,
-    displayName: 'Show judge comments to students',
+    displayName: 'Show judge comments to team members',
     type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'idea',

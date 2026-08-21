@@ -13,7 +13,23 @@ abstract final class UserRoleLabels {
       UserRole.faculty => 'Faculty',
       UserRole.judge => 'Judge',
       UserRole.coordinator => 'Coordinator',
-      UserRole.student => 'Student',
+      UserRole.student => 'Team Member',
+    };
+  }
+
+  static String pluralLabelForCode(String roleCode) {
+    return pluralLabelFor(UserRole.fromCode(roleCode));
+  }
+
+  static String pluralLabelFor(UserRole role) {
+    return switch (role) {
+      UserRole.sysAdmin => 'System Admins',
+      UserRole.collegeAdmin => 'College Admins',
+      UserRole.departmentAdmin => 'Department Admins',
+      UserRole.faculty => 'Faculty',
+      UserRole.judge => 'Judges',
+      UserRole.coordinator => 'Coordinators',
+      UserRole.student => 'Team Members',
     };
   }
 }

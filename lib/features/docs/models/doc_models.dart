@@ -50,7 +50,7 @@ class DocPageDefinition {
   final List<String> searchKeywords;
   final DocCategory category;
 
-  /// When true, hidden from non-admin Help browsers (Faculty/Judge/Coordinator/Student).
+  /// When true, hidden from non-admin Help browsers (Faculty/Judge/Coordinator/Team Member).
   final bool adminOnly;
 
   bool isVisibleTo(UserRole role) {

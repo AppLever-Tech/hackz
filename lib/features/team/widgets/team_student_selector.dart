@@ -104,7 +104,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
       children: <Widget>[
         if (sortedSelected.isEmpty)
           const Text(
-            'No students selected yet.',
+            'No team members selected yet.',
             style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
           )
         else
@@ -124,7 +124,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
               curve: Curves.easeOutCubic,
               child: const Icon(Icons.expand_more, size: 20),
             ),
-            label: Text(_expanded ? 'Hide student list' : 'Add students'),
+            label: Text(_expanded ? 'Hide team member list' : 'Add team members'),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF6A38FF),
               side: const BorderSide(color: Color(0xFFD9CBFF)),
@@ -164,7 +164,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
             icon: const Icon(Icons.close, size: 16),
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-            tooltip: 'Remove student',
+            tooltip: 'Remove team member',
             color: const Color(0xFF64748B),
           ),
       ],
@@ -190,7 +190,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
               enabled: widget.enabled,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
-                hintText: 'Search students',
+                hintText: 'Search team members',
                 prefixIcon: const Icon(AppIcons.search, size: 20),
                 isDense: true,
                 filled: true,
@@ -212,7 +212,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
           if (visible.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
-              child: Text('No students match your search.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              child: Text('No team members match your search.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
             )
           else
             ConstrainedBox(
