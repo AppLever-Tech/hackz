@@ -417,6 +417,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                     'Coordinator',
                     DocStatusKind.inactive,
                     const <String>[
+                      'Team registration',
                       'Payment verification',
                       'Event coordination',
                     ],

@@ -54,7 +54,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
           child: DataTable(
             headingRowHeight: 40,
             dataRowMinHeight: 44,
-            dataRowMaxHeight: 56,
+            dataRowMaxHeight: 88,
             columnSpacing: 16,
             columns: <DataColumn>[
               const DataColumn(label: Text('Row', style: TextStyle(fontWeight: FontWeight.w800))),
@@ -300,6 +300,11 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
       ImportConstants.themeColumnKey => AppIcons.orgType,
       ImportConstants.issuingOrganisationColumnKey => AppIcons.organizations,
       ImportConstants.issuingDepartmentColumnKey => AppIcons.departments,
+      ImportConstants.teamNameColumnKey => AppIcons.teams,
+      ImportConstants.phoneColumnKey => AppIcons.student,
+      ImportConstants.organisationColumnKey => AppIcons.organizations,
+      ImportConstants.departmentColumnKey => AppIcons.departments,
+      ImportConstants.isTeamLeaderColumnKey => AppIcons.users,
       _ => AppIcons.info,
     };
   }

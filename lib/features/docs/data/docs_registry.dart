@@ -167,13 +167,13 @@ abstract final class DocsRegistry {
     DocPageDefinition(
       id: 'csv-import',
       title: 'CSV Import',
-      description: 'Users and problems import pipelines.',
+      description: 'Users, problems, and team registration import pipelines.',
       icon: AppIcons.submissions,
       isPlaceholder: true,
       category: DocCategory.reference,
       builder: (_) => const PlaceholderDocPage(
         title: 'CSV Import',
-        description: 'Templates, validation, and CSV import for users and problems.',
+        description: 'Templates, validation, and CSV import for users, problems, and team registration.',
       ),
     ),
     DocPageDefinition(
@@ -264,6 +264,7 @@ abstract final class DocsRegistry {
           'evaluation-lifecycle',
           'idea-lifecycle',
           'payment-verification',
+          'csv-import',
           'roles-responsibilities',
         ],
       UserRole.student => const <String>[

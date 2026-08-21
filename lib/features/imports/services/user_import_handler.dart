@@ -18,7 +18,7 @@ import 'import_handler.dart';
 import 'import_role_validator.dart';
 import 'user_import_config.dart';
 
-class UserImportHandler implements ImportHandler {
+class UserImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
     'name',
     'email',

@@ -12,6 +12,7 @@ export 'services/team_service.dart';
 // Screens
 export 'screens/team_creation_workspace.dart';
 export 'screens/team_form_dialog.dart';
+export 'screens/team_registration_screen.dart';
 export 'screens/teams_screen.dart';
 
 // Widgets

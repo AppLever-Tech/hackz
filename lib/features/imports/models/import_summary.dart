@@ -1,6 +1,15 @@
 import 'import_review_row.dart';
 import 'import_row_severity.dart';
 
+/// Optional extra preview counts (e.g. Teams / Members) shown instead of the
+/// default Total / Valid row chips when non-empty.
+class ImportPreviewCount {
+  const ImportPreviewCount({required this.label, required this.value});
+
+  final String label;
+  final int value;
+}
+
 class ImportSummary {
   const ImportSummary({
     required this.totalRows,
@@ -8,6 +17,7 @@ class ImportSummary {
     required this.warningRows,
     required this.errorRows,
     required this.skippedRows,
+    this.previewCounts = const <ImportPreviewCount>[],
   });
 
   final int totalRows;
@@ -15,8 +25,12 @@ class ImportSummary {
   final int warningRows;
   final int errorRows;
   final int skippedRows;
+  final List<ImportPreviewCount> previewCounts;
 
-  factory ImportSummary.fromRows(List<ImportReviewRow> rows) {
+  factory ImportSummary.fromRows(
+    List<ImportReviewRow> rows, {
+    List<ImportPreviewCount> previewCounts = const <ImportPreviewCount>[],
+  }) {
     var valid = 0;
     var warnings = 0;
     var errors = 0;
@@ -31,7 +45,11 @@ class ImportSummary {
           }
         case ImportRowSeverity.warning:
           warnings++;
-          skipped++;
+          if (row.importable) {
+            valid++;
+          } else {
+            skipped++;
+          }
         case ImportRowSeverity.error:
           errors++;
       }
@@ -42,6 +60,7 @@ class ImportSummary {
       warningRows: warnings,
       errorRows: errors,
       skippedRows: skipped,
+      previewCounts: previewCounts,
     );
   }
 }

@@ -22,6 +22,7 @@ import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
+import '../../../../features/team/screens/team_registration_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/common/rich_tabs.dart';
 import '../../../../core/responsive/responsive_columns.dart';
@@ -43,12 +44,18 @@ class CoordinatorDashboard extends StatelessWidget {
       user: user,
       bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
         if (selectedMenuIndex == 1) {
-          return _CoordinatorPaymentsView(
+          return TeamRegistrationScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
         if (selectedMenuIndex == 2) {
+          return _CoordinatorPaymentsView(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 3) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

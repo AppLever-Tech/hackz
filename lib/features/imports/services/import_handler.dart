@@ -1,5 +1,6 @@
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
+import '../models/import_summary.dart';
 import '../models/import_type.dart';
 
 /// Contract for all Hackz CSV import types.
@@ -22,6 +23,12 @@ abstract class ImportHandler {
 
   /// Optional columns shown only when a review row is expanded.
   List<String> get expansionHeaders => const <String>[];
+
+  /// When true, Import is disabled if any row has a blocking error.
+  bool get blockImportOnAnyError => false;
+
+  /// Preview summary after validation. Override to add type-specific counts.
+  ImportSummary summarize(List<ImportReviewRow> rows) => ImportSummary.fromRows(rows);
 
   /// Validates parsed CSV rows and returns review rows (never imports here).
   Future<List<ImportReviewRow>> validateRows(

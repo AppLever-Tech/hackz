@@ -20,7 +20,7 @@ import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
 
-class ProblemsImportHandler implements ImportHandler {
+class ProblemsImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
     ImportConstants.titleColumnKey,
     ImportConstants.descriptionColumnKey,

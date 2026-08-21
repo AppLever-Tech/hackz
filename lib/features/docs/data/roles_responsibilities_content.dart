@@ -134,6 +134,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                     'Coordinator',
                     DocStatusKind.inactive,
                     const <String>[
+                      'Team registration',
                       'Payment verification',
                       'Event coordination',
                       'Operational support',
@@ -286,6 +287,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
               DocumentationCard(
                 title: 'Coordinator',
                 child: _bulletList(context, const <String>[
+                  'Register teams from CSV',
                   'Verify payments',
                   'Support event execution',
                   'Track operational readiness',

@@ -197,6 +197,17 @@ class TeamService {
     return doc.id;
   }
 
+  static Future<List<TeamModel>> getTeamsByOrg(String orgId) async {
+    final String id = orgId.trim();
+    if (id.isEmpty) return const <TeamModel>[];
+    final snapshot = await _db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: id).get();
+    final teams = snapshot.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => TeamModel.fromMap(d.id, d.data()))
+        .toList(growable: false);
+    teams.sort((TeamModel a, TeamModel b) => b.createdAt.compareTo(a.createdAt));
+    return teams;
+  }
+
   static Future<void> updateTeam({
     required TeamModel team,
     required String teamName,

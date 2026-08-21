@@ -5,6 +5,13 @@ abstract final class ImportConstants {
   ImportConstants._();
 
   static const String departmentColumnKey = 'department';
+  static const String teamNameColumnKey = 'teamName';
+  static const String phoneColumnKey = 'phone';
+  static const String firstNameColumnKey = 'firstName';
+  static const String lastNameColumnKey = 'lastName';
+  static const String emailColumnKey = 'email';
+  static const String organisationColumnKey = 'organisation';
+  static const String isTeamLeaderColumnKey = 'isTeamLeader';
   static const String titleColumnKey = 'title';
   static const String descriptionColumnKey = 'description';
   static const String themeColumnKey = 'theme';
@@ -17,6 +24,8 @@ abstract final class ImportConstants {
 
   static String headerLabel(String key) {
     if (key == externalProblemIdColumnKey) return 'Problem ID';
+    if (key == isTeamLeaderColumnKey) return 'Team Leader';
+    if (key == organisationColumnKey) return 'Organisation';
     if (key.isEmpty) return key;
     final String spaced = key.replaceAllMapped(RegExp(r'[A-Z]'), (Match m) => ' ${m[0]}').trim();
     return '${spaced[0].toUpperCase()}${spaced.substring(1)}';

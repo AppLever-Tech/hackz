@@ -173,7 +173,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       setState(() {
         _fileName = file.name;
         _rows = validated;
-        _summary = ImportSummary.fromRows(validated);
+        _summary = _handler.summarize(validated);
         _step = _ImportStep.review;
       });
     } catch (e) {
@@ -358,7 +358,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   Widget _buildReviewStep() {
-    final ImportSummary summary = _summary ?? ImportSummary.fromRows(_rows);
+    final ImportSummary summary = _summary ?? _handler.summarize(_rows);
     final List<ImportReviewColumn> columns = _handler.reviewHeaders
         .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
         .toList(growable: false);
@@ -439,6 +439,14 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     );
   }
 
+  bool get _canImport {
+    final ImportSummary? summary = _summary;
+    if (summary == null) return false;
+    if (summary.validRows <= 0) return false;
+    if (_handler.blockImportOnAnyError && summary.errorRows > 0) return false;
+    return true;
+  }
+
   Widget _buildActions() {
     return Row(
       children: <Widget>[
@@ -457,7 +465,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
           const SizedBox(width: 8),
           FilledButton(
-            onPressed: _busy || (_summary?.validRows ?? 0) == 0 ? null : _runImport,
+            onPressed: _busy || !_canImport ? null : _runImport,
             child: Text('Import ${_summary?.validRows ?? 0}'),
           ),
           const SizedBox(width: 8),
