@@ -13,8 +13,9 @@ abstract final class ImportReviewColumnLayout {
 
   static const double expand = 20;
   static const double rowNumber = 28;
-  static const double phone = 112;
+  static const double phone = 88;
   static const double role = 104;
+  static const double teamLeader = 88;
   static const double status = 176;
   static const double exclude = 32;
   static const double gap = 8;
@@ -27,12 +28,14 @@ class ImportReviewColumn {
     required this.label,
     this.width,
     this.flex,
+    this.center = false,
   });
 
   final String key;
   final String label;
   final double? width;
   final int? flex;
+  final bool center;
 
   bool get isFixed => width != null;
 
@@ -61,7 +64,18 @@ class ImportReviewColumn {
       ImportConstants.isTeamLeaderColumnKey => const ImportReviewColumn(
           key: ImportConstants.isTeamLeaderColumnKey,
           label: 'Team Leader',
-          width: ImportReviewColumnLayout.role,
+          width: ImportReviewColumnLayout.teamLeader,
+          center: true,
+        ),
+      ImportConstants.organisationColumnKey => ImportReviewColumn(
+          key: ImportConstants.organisationColumnKey,
+          label: ImportConstants.headerLabel(ImportConstants.organisationColumnKey),
+          flex: 3,
+        ),
+      ImportConstants.teamNameColumnKey => ImportReviewColumn(
+          key: ImportConstants.teamNameColumnKey,
+          label: ImportConstants.headerLabel(ImportConstants.teamNameColumnKey),
+          flex: 2,
         ),
       ImportConstants.titleColumnKey => ImportReviewColumn(
           key: ImportConstants.titleColumnKey,
@@ -151,7 +165,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
                     cells: <DataCell>[
                       DataCell(Text('${row.rowNumber}')),
                       ...widget.columns.map(
-                        (ImportReviewColumn c) => DataCell(_TruncatedText(text: row.valueFor(c.key))),
+                        (ImportReviewColumn c) => DataCell(_cellFor(c, row)),
                       ),
                       DataCell(_StatusCell(row: row)),
                     ],
@@ -178,7 +192,14 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
           if (!compact) ...<Widget>[
             for (final ImportReviewColumn column in widget.columns) ...<Widget>[
               const SizedBox(width: ImportReviewColumnLayout.gap),
-              _sized(column, Text(column.label, style: style)),
+              _sized(
+                column,
+                Text(
+                  column.label,
+                  style: style,
+                  textAlign: column.center ? TextAlign.center : TextAlign.start,
+                ),
+              ),
             ],
             const SizedBox(width: ImportReviewColumnLayout.gap),
             const SizedBox(
@@ -206,6 +227,13 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
       return SizedBox(width: column.width, child: child);
     }
     return Expanded(flex: column.flex ?? 1, child: child);
+  }
+
+  Widget _cellFor(ImportReviewColumn column, ImportReviewRow row) {
+    if (column.key == ImportConstants.isTeamLeaderColumnKey) {
+      return _TeamLeaderMark(isLeader: row.valueFor(column.key).toLowerCase() == 'true');
+    }
+    return _TruncatedText(text: row.valueFor(column.key));
   }
 
   bool _canExpand(ImportReviewRow row) {
@@ -292,7 +320,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
         ),
         for (final ImportReviewColumn column in widget.columns) ...<Widget>[
           const SizedBox(width: ImportReviewColumnLayout.gap),
-          _sized(column, _TruncatedText(text: row.valueFor(column.key))),
+          _sized(column, _cellFor(column, row)),
         ],
         const SizedBox(width: ImportReviewColumnLayout.gap),
         SizedBox(
@@ -322,7 +350,12 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
         .where((String v) => v.isNotEmpty)
         .join(' ');
     final String subtitle = fixedColumns
-        .map((ImportReviewColumn c) => row.valueFor(c.key))
+        .map((ImportReviewColumn c) {
+          if (c.key == ImportConstants.isTeamLeaderColumnKey) {
+            return row.valueFor(c.key).toLowerCase() == 'true' ? 'Team Leader' : '';
+          }
+          return row.valueFor(c.key);
+        })
         .where((String v) => v.isNotEmpty)
         .join(' · ');
     return Row(
@@ -477,6 +510,28 @@ class _DetailTile extends StatelessWidget {
             child: _TruncatedText(text: display),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TeamLeaderMark extends StatelessWidget {
+  const _TeamLeaderMark({required this.isLeader});
+
+  final bool isLeader;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: isLeader ? 'Team Leader' : 'Not Team Leader',
+      waitDuration: const Duration(milliseconds: 250),
+      child: Align(
+        alignment: Alignment.center,
+        child: Icon(
+          isLeader ? AppIcons.copied : AppIcons.remove,
+          size: 16,
+          color: isLeader ? const Color(0xFF047857) : const Color(0xFF94A3B8),
+        ),
       ),
     );
   }

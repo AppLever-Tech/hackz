@@ -21,6 +21,9 @@ abstract class ImportHandler {
   /// Extra template help shown under the required-columns hint.
   String get columnGuidance => '';
 
+  /// Bullet points shown under the required/optional column hints.
+  List<String> get columnGuidancePoints => const <String>[];
+
   /// Optional columns shown only when a review row is expanded.
   List<String> get expansionHeaders => const <String>[];
 

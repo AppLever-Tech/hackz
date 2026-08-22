@@ -84,17 +84,16 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
   bool get blockImportOnAnyError => true;
 
   @override
-  String get columnGuidance =>
-      'One row per team member. Group members with the same teamName. '
-      'Required: teamName, firstName, lastName, isTeamLeader, phone, organisation. '
-      'Optional (last columns): email, department. '
-      'phone is the unique user identifier (10-digit Indian mobile). '
-      'isTeamLeader: true/false — exactly one true per team. '
-      'Existing Hackz users are reused by phone; new users are created as Team Members. '
-      'Teams are always created under this college. '
-      'Internal members (this college) use a Hackz department; blank department defaults to the coordinator’s department. '
-      'Any other organisation name is stored as participant affiliation on this college — including names that match another Hackz college. '
-      'External department is optional free text, is not matched to this college’s departments, and is not created as a Hackz department.';
+  List<String> get columnGuidancePoints => const <String>[
+        'One row per team member. Group members with the same teamName.',
+        'phone is the unique user identifier (10-digit Indian mobile).',
+        'isTeamLeader: true/false — exactly one true per team.',
+        'Existing Hackz users are reused by phone; new users are created as Team Members.',
+        'Teams are always created under this college.',
+        'Internal members (this college) use a Hackz department; blank department defaults to the coordinator’s department.',
+        'Any other organisation name is stored as participant affiliation on this college — including names that match another Hackz college.',
+        'External department is optional free text, is not matched to this college’s departments, and is not created as a Hackz department.',
+      ];
 
   @override
   ImportSummary summarize(List<ImportReviewRow> rows) {
@@ -136,7 +135,7 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
 
     final List<_ParsedRow> parsed = <_ParsedRow>[];
     for (var i = 0; i < rows.length; i++) {
-      parsed.add(_parseRow(rows[i], i + 2, lookup, teamContext));
+      parsed.add(_parseRow(rows[i], i + 1, lookup, teamContext));
     }
 
     final Set<String> phones = parsed.map((_ParsedRow r) => r.phoneE164).whereType<String>().toSet();

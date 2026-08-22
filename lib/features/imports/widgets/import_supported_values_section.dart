@@ -16,14 +16,14 @@ class ImportSupportedValuesSection extends StatefulWidget {
     required this.supportedRoles,
     this.loading = false,
     this.enabled = true,
-    this.departmentCodesSubtitle,
+    this.showDepartmentCodesDownload = true,
   });
 
   final List<ImportDepartmentInfo> departments;
   final Set<String>? supportedRoles;
   final bool loading;
   final bool enabled;
-  final String? departmentCodesSubtitle;
+  final bool showDepartmentCodesDownload;
 
   static const int _departmentSearchThreshold = 10;
 
@@ -69,7 +69,8 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
   @override
   Widget build(BuildContext context) {
     final bool showRoles = widget.supportedRoles != null && widget.supportedRoles!.isNotEmpty;
-    final bool canDownload = widget.enabled && !_downloadingCodes && widget.departments.isNotEmpty;
+    final bool canDownload =
+        widget.showDepartmentCodesDownload && widget.enabled && !_downloadingCodes && widget.departments.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -103,24 +104,23 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
                 ? null
                 : () => showReferenceValuesViewer(
                       context: context,
-                      config: _departmentsConfig(
-                        widget.departments,
-                        subtitle: widget.departmentCodesSubtitle,
-                      ),
+                      config: _departmentsConfig(widget.departments),
                     ),
-            subtitle: widget.departments.isEmpty
+            subtitle: widget.showDepartmentCodesDownload && widget.departments.isEmpty
                 ? 'No departments found yet'
-                : widget.departmentCodesSubtitle,
+                : null,
           ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: canDownload ? _downloadDepartmentCodes : null,
-              icon: const Icon(AppIcons.download, size: 16),
-              label: const Text('Download Department Codes'),
+          if (widget.showDepartmentCodesDownload) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: canDownload ? _downloadDepartmentCodes : null,
+                icon: const Icon(AppIcons.download, size: 16),
+                label: const Text('Download Department Codes'),
+              ),
             ),
-          ),
+          ],
         ],
       ],
     );
@@ -145,10 +145,7 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
     );
   }
 
-  static ReferenceValuesViewerConfig _departmentsConfig(
-    List<ImportDepartmentInfo> departments, {
-    String? subtitle,
-  }) {
+  static ReferenceValuesViewerConfig _departmentsConfig(List<ImportDepartmentInfo> departments) {
     final List<ReferenceValueItem> items = departments
         .map(
           (ImportDepartmentInfo d) => ReferenceValueItem(
@@ -160,7 +157,7 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
         .toList(growable: false);
     return ReferenceValuesViewerConfig(
       title: 'Department Codes',
-      subtitle: subtitle ?? 'Use department codes in CSV imports, not display names.',
+      subtitle: 'Use department codes in CSV imports, not display names.',
       items: items,
       enableSearch: true,
       searchThreshold: ImportSupportedValuesSection._departmentSearchThreshold,

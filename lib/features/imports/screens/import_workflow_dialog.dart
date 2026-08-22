@@ -444,9 +444,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             supportedRoles: widget.contextData.supportedCsvRoles,
             loading: _lookupsLoading,
             enabled: !_busy,
-            departmentCodesSubtitle: _handler.type == ImportType.teamRegistration
-                ? 'Internal members use these codes. External department is optional free text and is not created as a Hackz department.'
-                : null,
+            showDepartmentCodesDownload: _handler.type != ImportType.teamRegistration,
           ),
           const SizedBox(height: 12),
         ],
@@ -463,23 +461,26 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
-                  'Download template',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                const Row(
+                  children: <Widget>[
+                    Icon(AppIcons.download, size: 16, color: Color(0xFF334155)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Download Template',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                ),
+                const SizedBox(height: 10),
+                _columnsLine(label: 'Required columns', columns: _handler.requiredHeaders),
                 if (_handler.type == ImportType.teamRegistration && _handler.expansionHeaders.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
-                  Text(
-                    ImportConstants.optionalColumnsHint(_handler.expansionHeaders),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                  ),
+                  _columnsLine(label: 'Optional columns', columns: _handler.expansionHeaders),
                 ],
-                if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
+                if (_handler.columnGuidancePoints.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  _guidancePoints(_handler.columnGuidancePoints),
+                ] else if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
                   Text(
                     _handler.columnGuidance,
@@ -513,6 +514,64 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
               ],
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _columnsLine({required String label, required List<String> columns}) {
+    const TextStyle base = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      height: 1.45,
+      color: Color(0xFF475569),
+    );
+    return Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(
+            text: '$label: ',
+            style: base.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+          ),
+          TextSpan(text: columns.join(', ')),
+        ],
+      ),
+      style: base,
+    );
+  }
+
+  Widget _guidancePoints(List<String> points) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (var i = 0; i < points.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: 7),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                margin: const EdgeInsets.only(top: 6),
+                width: 5,
+                height: 5,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF4F46E5),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  points[i],
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
