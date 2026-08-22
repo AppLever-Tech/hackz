@@ -68,7 +68,7 @@ class ProblemRoleConfig {
             ProblemSortType.deadline,
           },
         );
-      case UserRole.student:
+      case UserRole.teamMember:
         return ProblemListConfig(
           canCreate: false,
           canEdit: false,

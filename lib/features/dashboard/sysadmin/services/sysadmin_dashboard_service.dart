@@ -628,7 +628,7 @@ class SysAdminDashboardService {
         return 'Judges';
       case 'COO':
         return 'Coordinators';
-      case 'STU':
+      case 'TMEM':
         return 'Team Members';
       default:
         return code;

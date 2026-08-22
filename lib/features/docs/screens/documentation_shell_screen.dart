@@ -74,7 +74,7 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
   UserRole get _role {
     final UserModel? u =
         widget.user ?? DashboardSessionScope.maybeOf(context)?.user;
-    if (u == null) return UserRole.student;
+    if (u == null) return UserRole.teamMember;
     return UserRole.fromCode(u.role);
   }
 

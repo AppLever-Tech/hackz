@@ -396,7 +396,7 @@ class IdeaQueryService {
   static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {
     if (viewer == null) return items;
     final role = UserRole.fromCode(viewer.role);
-    if (role == UserRole.student) {
+    if (role == UserRole.teamMember) {
       final studentId = viewer.userId.trim();
       final studentTeamId = (viewer.teamId ?? '').trim();
       if (studentId.isEmpty && studentTeamId.isEmpty) return items;

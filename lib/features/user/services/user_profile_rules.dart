@@ -12,7 +12,7 @@ abstract final class UserProfileRules {
     return roleCodes.contains(UserRole.judge.code);
   }
 
-  static bool needsStudent(Set<String> roleCodes) => roleCodes.contains(UserRole.student.code);
+  static bool needsTeamMember(Set<String> roleCodes) => roleCodes.contains(UserRole.teamMember.code);
 
   static bool needsJudge(Set<String> roleCodes) => roleCodes.contains(UserRole.judge.code);
 
@@ -31,7 +31,7 @@ abstract final class UserProfileRules {
   }) {
     return UserProfile(
       professionalProfile: needsProfessional(roleCodes) ? professional : null,
-      studentProfile: needsStudent(roleCodes) ? student : null,
+      studentProfile: needsTeamMember(roleCodes) ? student : null,
       judgeProfile: needsJudge(roleCodes) ? judge : null,
       departmentAdminProfile: needsDepartmentAdmin(roleCodes) ? departmentAdmin : null,
       collegeAdminProfile: needsCollegeAdmin(roleCodes) ? collegeAdmin : null,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../../../../features/organization/models/department_model.dart';
+import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
@@ -255,7 +256,7 @@ class DepartmentDashboardService {
       pendingApprovals: pendingApprovals,
       activeProblems: problems.where((doc) => (doc.data()['status'] as String?) == 'active').length,
       ideasSubmitted: ideas.length,
-      studentCount: roleCount('STU', status: UserStatus.active),
+      studentCount: roleCount(UserRole.teamMember.code, status: UserStatus.active),
       coordinatorCount: roleCount('COO', status: UserStatus.active),
       judgeCount: roleCount('JUD', status: UserStatus.active),
       pendingCoordinatorJudgeCount: pendingCoordinatorJudge,
@@ -405,7 +406,7 @@ class DepartmentDashboardService {
         continue;
       }
       switch (((data['role'] as String?) ?? '').trim().toUpperCase()) {
-        case 'STU':
+        case 'TMEM':
           counts['Team Members'] = counts['Team Members']! + 1;
           break;
         case 'COO':

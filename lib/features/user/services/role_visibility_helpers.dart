@@ -28,7 +28,7 @@ abstract final class RoleVisibilityHelpers {
       case UserRole.coordinator:
         return IdeaDepartmentScope.problemDepartment;
       case UserRole.departmentAdmin:
-      case UserRole.student:
+      case UserRole.teamMember:
         return IdeaDepartmentScope.teamDepartment;
       case UserRole.judge:
       case UserRole.collegeAdmin:

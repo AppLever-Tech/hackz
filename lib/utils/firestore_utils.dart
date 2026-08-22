@@ -6,6 +6,7 @@ import 'package:hackz/features/idea/models/enums/idea_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../features/organization/models/organization_model.dart';
 import '../features/organization/models/enums/organization_type.dart';
+import '../features/user/models/enums/user_role.dart';
 import '../features/user/models/enums/user_status.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
@@ -437,7 +438,7 @@ class FirestoreUtils {
       if (role == 'DADM' && fullName.isNotEmpty) {
         current['departmentAdmin'] = fullName;
       }
-      if (role == 'STU') {
+      if (role == UserRole.teamMember.code) {
         current['studentCount'] = (current['studentCount'] as int) + 1;
       }
 
@@ -807,7 +808,7 @@ class FirestoreUtils {
       final data = user.data();
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       final role = ((data['role'] as String?) ?? '').trim();
-      if (role == 'STU') {
+      if (role == UserRole.teamMember.code) {
         totalStudents++;
       }
     }

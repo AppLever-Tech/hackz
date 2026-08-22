@@ -74,7 +74,7 @@ class IdeaRoleConfig {
             IdeaSortType.status,
           },
         );
-      case UserRole.student:
+      case UserRole.teamMember:
         return IdeaListConfig(
           canViewIdeas: canViewIdeas,
           canCreateIdea: teamLeader,

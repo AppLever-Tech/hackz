@@ -155,7 +155,7 @@ class AppIcons {
         return departments;
       case UserRole.judge:
         return judges;
-      case UserRole.student:
+      case UserRole.teamMember:
         return student;
       case UserRole.coordinator:
         return coordinator;
@@ -169,7 +169,7 @@ class AppIcons {
         return faculty;
       case 'COO':
         return coordinator;
-      case 'STU':
+      case 'TMEM':
         return student;
       case 'SADM':
         return settings;

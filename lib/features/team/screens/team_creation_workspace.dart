@@ -67,7 +67,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   String _teamLeaderId = '';
   bool _saving = false;
 
-  bool get _isTeamMemberActor => UserRole.fromCode(widget.currentUser.role) == UserRole.student;
+  bool get _isTeamMemberActor => UserRole.fromCode(widget.currentUser.role) == UserRole.teamMember;
 
   @override
   void initState() {

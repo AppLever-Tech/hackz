@@ -23,6 +23,7 @@ import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../widgets/mobile_user_list_row_card.dart';
 import '../widgets/user_metrics_row.dart';
+import '../models/enums/user_role.dart';
 import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import '../services/user_role_labels.dart';
@@ -43,7 +44,7 @@ class ManageUsersScreen extends StatefulWidget {
   State<ManageUsersScreen> createState() => _ManageUsersScreenState();
 }
 
-enum UsersFilter { all, students, coordinators, pending, rejected }
+enum UsersFilter { all, teamMembers, coordinators, pending, rejected }
 
 class _ManageUsersScreenState extends State<ManageUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
@@ -121,8 +122,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Future<void> _openCreateUser() async {
     final changed = await showCreateUserDialog(
       context: context,
-      roleOptions: const <String>['STU', 'COO'],
-      initialRoleCode: 'STU',
+      roleOptions: <String>[UserRole.teamMember.code, UserRole.coordinator.code],
+      initialRoleCode: UserRole.teamMember.code,
       organization: _organization,
       department: widget.user.department,
       onUserSaved: (savedUser) async {
@@ -142,7 +143,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Future<void> _openEditUser(UserModel user) async {
     final changed = await showCreateUserDialog(
       context: context,
-      roleOptions: const <String>['STU', 'COO'],
+      roleOptions: <String>[UserRole.teamMember.code, UserRole.coordinator.code],
       organization: _organization,
       department: widget.user.department,
       initialUser: user,
@@ -151,7 +152,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   Future<void> _approve(UserModel user) async {
-    String selectedRole = 'STU';
+    String selectedRole = UserRole.teamMember.code;
     final role = await showDialog<String>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -165,7 +166,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
               border: OutlineInputBorder(),
             ),
             items: <DropdownMenuItem<String>>[
-              DropdownMenuItem<String>(value: 'STU', child: Text(UserRoleLabels.labelForCode('STU'))),
+              DropdownMenuItem<String>(value: UserRole.teamMember.code, child: Text(UserRoleLabels.labelForCode(UserRole.teamMember.code))),
               DropdownMenuItem<String>(value: 'COO', child: Text(UserRoleLabels.labelForCode('COO'))),
               DropdownMenuItem<String>(value: 'JUD', child: Text(UserRoleLabels.labelForCode('JUD'))),
             ],
@@ -330,7 +331,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     return _allUsers.where((u) {
       final roleOk = switch (_filter) {
         UsersFilter.all => true,
-        UsersFilter.students => u.role == 'STU' && u.status == UserStatus.active,
+        UsersFilter.teamMembers => u.role == UserRole.teamMember.code && u.status == UserStatus.active,
         UsersFilter.coordinators => u.role == 'COO' && u.status == UserStatus.active,
         UsersFilter.pending => u.status == UserStatus.pendingApproval,
         UsersFilter.rejected => u.status == UserStatus.rejected,
@@ -353,7 +354,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   int _countForFilter(UsersFilter filter) {
     return switch (filter) {
       UsersFilter.all => _allUsers.length,
-      UsersFilter.students => _allUsers.where((UserModel u) => u.role == 'STU' && u.status == UserStatus.active).length,
+      UsersFilter.teamMembers => _allUsers.where((UserModel u) => u.role == UserRole.teamMember.code && u.status == UserStatus.active).length,
       UsersFilter.coordinators => _allUsers.where((UserModel u) => u.role == 'COO' && u.status == UserStatus.active).length,
       UsersFilter.pending => _allUsers.where((UserModel u) => u.status == UserStatus.pendingApproval).length,
       UsersFilter.rejected => _allUsers.where((UserModel u) => u.status == UserStatus.rejected).length,
@@ -736,7 +737,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             runSpacing: chipGap,
             children: <Widget>[
               _userFilterChip(compact: compact, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-              _userFilterChip(compact: compact, filter: UsersFilter.students, icon: AppIcons.student, label: UserRoleLabels.labelForCode('STU')),
+              _userFilterChip(compact: compact, filter: UsersFilter.teamMembers, icon: AppIcons.student, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
               _userFilterChip(
                 compact: compact,
                 filter: UsersFilter.coordinators,
@@ -766,7 +767,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     if (!_hasActiveFilter) return const SizedBox.shrink();
 
     final (IconData icon, String label) = switch (_filter) {
-      UsersFilter.students => (AppIcons.student, UserRoleLabels.labelForCode('STU')),
+      UsersFilter.teamMembers => (AppIcons.student, UserRoleLabels.labelForCode(UserRole.teamMember.code)),
       UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
       UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
       UsersFilter.rejected => (AppIcons.workflowRejected, 'Rejected'),
@@ -844,7 +845,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     }
 
     final pending = _section(users, status: UserStatus.pendingApproval);
-    final students = _section(users, role: 'STU');
+    final students = _section(users, role: UserRole.teamMember.code);
     final coordinators = _section(users, role: 'COO');
     final rejected = _section(users, status: UserStatus.rejected);
 
@@ -852,7 +853,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       padding: EdgeInsets.only(bottom: bottomPadding),
       children: <Widget>[
         _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
-        _roleAccordion(title: UserRoleLabels.pluralLabelForCode('STU'), count: students.length, users: students),
+        _roleAccordion(title: UserRoleLabels.pluralLabelForCode(UserRole.teamMember.code), count: students.length, users: students),
         _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
         _roleAccordion(title: 'Rejected Users', count: rejected.length, users: rejected, highlighted: true),
       ],
@@ -895,7 +896,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Widget _buildUserMetrics(BuildContext context) {
     final bool compact = ResponsiveHelper.isMobile(context);
     return UserMetricsRow(
-      students: _countForFilter(UsersFilter.students),
+      students: _countForFilter(UsersFilter.teamMembers),
       coordinators: _countForFilter(UsersFilter.coordinators),
       pending: _countForFilter(UsersFilter.pending),
       spacing: compact ? 8 : 10,
@@ -941,7 +942,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ResponsiveFilterChipRow(
           children: <Widget>[
             _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-            _userFilterChip(compact: false, filter: UsersFilter.students, icon: AppIcons.student, label: UserRoleLabels.labelForCode('STU')),
+            _userFilterChip(compact: false, filter: UsersFilter.teamMembers, icon: AppIcons.student, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
             _userFilterChip(
               compact: false,
               filter: UsersFilter.coordinators,

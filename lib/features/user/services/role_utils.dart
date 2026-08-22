@@ -27,7 +27,7 @@ class RoleUtils {
         return CollegeAdminDashboard(user: user);
       case UserRole.departmentAdmin:
         return DeptAdminDashboard(user: user);
-      case UserRole.student:
+      case UserRole.teamMember:
         return StudentDashboard(user: user);
       case UserRole.judge:
         return JudgeDashboard(user: user);

@@ -159,8 +159,8 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
       final UserModel? existing = lookup.usersByPhone[phone];
       if (existing == null) continue;
       row.existingUser = existing;
-      if (UserRole.fromCode(existing.role) != UserRole.student &&
-          !existing.hasRoleCode(UserRole.student.code)) {
+      if (UserRole.fromCode(existing.role) != UserRole.teamMember &&
+          !existing.hasRoleCode(UserRole.teamMember.code)) {
         row.addError(ImportConstants.phoneColumnKey, 'Existing Hackz user is not a Team Member and cannot be added to a team.');
       } else if (existing.status != UserStatus.active) {
         row.addError(ImportConstants.phoneColumnKey, 'Existing Hackz user is not active.');
@@ -268,8 +268,8 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
             firstName: row.valueFor(ImportConstants.firstNameColumnKey),
             lastName: row.valueFor(ImportConstants.lastNameColumnKey),
             email: row.valueFor(ImportConstants.emailColumnKey),
-            role: UserRole.student.code,
-            roles: const <String>['STU'],
+            role: UserRole.teamMember.code,
+            roles: <String>[UserRole.teamMember.code],
             orgType: teamContext.actor.orgType,
             orgId: row.metadata['orgId'] ?? teamContext.orgId,
             organisationName: affiliationOrg,

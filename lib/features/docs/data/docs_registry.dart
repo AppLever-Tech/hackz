@@ -268,7 +268,7 @@ abstract final class DocsRegistry {
           'ideathon',
           'roles-responsibilities',
         ],
-      UserRole.student => const <String>[
+      UserRole.teamMember => const <String>[
           'platform-overview',
           'idea-lifecycle',
           'roles-responsibilities',

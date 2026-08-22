@@ -12,7 +12,7 @@ abstract final class UserRoleLabels {
       UserRole.departmentAdmin => 'Department Admin',
       UserRole.judge => 'Judge',
       UserRole.coordinator => 'Coordinator',
-      UserRole.student => 'Team Member',
+      UserRole.teamMember => 'Team Member',
     };
   }
 
@@ -27,7 +27,7 @@ abstract final class UserRoleLabels {
       UserRole.departmentAdmin => 'Department Admins',
       UserRole.judge => 'Judges',
       UserRole.coordinator => 'Coordinators',
-      UserRole.student => 'Team Members',
+      UserRole.teamMember => 'Team Members',
     };
   }
 }

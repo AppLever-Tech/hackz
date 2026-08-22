@@ -3,7 +3,7 @@ enum UserRole {
   collegeAdmin('CADM'),
   departmentAdmin('DADM'),
   judge('JUD'),
-  student('STU'),
+  teamMember('TMEM'),
   coordinator('COO');
 
   final String code;
@@ -12,7 +12,7 @@ enum UserRole {
   static UserRole fromCode(String code) {
     return UserRole.values.firstWhere(
       (e) => e.code == code,
-      orElse: () => UserRole.student,
+      orElse: () => UserRole.teamMember,
     );
   }
 }

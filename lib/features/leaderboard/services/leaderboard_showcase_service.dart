@@ -113,7 +113,7 @@ class LeaderboardShowcaseService {
     bundles.sort((a, b) => b.composite.compareTo(a.composite));
 
     var teamScoped = teams;
-    if (role == UserRole.student && config.scopeDepartmentCode != null) {
+    if (role == UserRole.teamMember && config.scopeDepartmentCode != null) {
       final code = config.scopeDepartmentCode!.toUpperCase();
       teamScoped = teamScoped.where((t) => t.departmentCode.toUpperCase() == code).toList(growable: false);
     }
@@ -439,7 +439,7 @@ class LeaderboardShowcaseService {
     UserRole role,
   ) {
     Iterable<IdeaModel> out = ideas;
-    if (role == UserRole.student && config.scopeDepartmentCode != null) {
+    if (role == UserRole.teamMember && config.scopeDepartmentCode != null) {
       final code = config.scopeDepartmentCode!;
       out = out.where((i) {
         final p = problemsById[i.problemId];

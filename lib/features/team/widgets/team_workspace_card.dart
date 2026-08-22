@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../models/team_model.dart';
@@ -252,7 +253,7 @@ class TeamWorkspaceCard extends StatelessWidget {
         _stubUser(
           studentId,
           (studentNamesById[studentId] ?? studentId).trim(),
-          role: 'STU',
+          role: UserRole.teamMember.code,
         );
   }
 

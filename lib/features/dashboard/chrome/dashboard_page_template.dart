@@ -188,7 +188,7 @@ class _RoleMenuConfig {
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
-      case UserRole.student:
+      case UserRole.teamMember:
         return const _RoleMenuConfig(
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),

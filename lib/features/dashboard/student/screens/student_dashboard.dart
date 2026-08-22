@@ -75,19 +75,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
         return ProblemStatementsTableScreen(
           key: ValueKey<int>(refreshToken),
           currentUser: user,
-          config: ProblemRoleConfig.configFor(UserRole.student, user, teamLeader: isTeamLeader),
+          config: ProblemRoleConfig.configFor(UserRole.teamMember, user, teamLeader: isTeamLeader),
         );
       case 'Ideas':
         return IdeasListScreen(
           key: ValueKey<int>(refreshToken),
           currentUser: user,
-          config: IdeaRoleConfig.configFor(UserRole.student, user),
+          config: IdeaRoleConfig.configFor(UserRole.teamMember, user),
         );
       case 'My Ideas':
         return IdeasListScreen(
           key: ValueKey<int>(refreshToken),
           currentUser: user,
-          config: IdeaRoleConfig.configFor(UserRole.student, user, teamLeader: true),
+          config: IdeaRoleConfig.configFor(UserRole.teamMember, user, teamLeader: true),
         );
       case 'Payments':
         return PaymentsScreen(

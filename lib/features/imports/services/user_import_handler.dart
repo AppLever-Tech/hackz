@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../user/constants/csv_import_role_constants.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/user_service.dart';
@@ -39,7 +40,7 @@ class UserImportHandler extends ImportHandler {
   @override
   String get templateCsv => '''
 name,email,phone,role,${ImportConstants.departmentColumnKey}
-John Doe,john@test.com,9876543210,${CsvImportRoleConstants.student},CSE
+John Doe,john@test.com,9876543210,${CsvImportRoleConstants.teamMember},CSE
 Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
 '''.trim();
 
@@ -231,7 +232,7 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
         final String departmentName = row.metadata['departmentName'] ?? departmentCode;
 
         final (String firstName, String lastName) = _splitName(row.valueFor('name'));
-        final String roleCode = row.metadata['roleCode'] ?? 'STU';
+        final String roleCode = row.metadata['roleCode'] ?? UserRole.teamMember.code;
         final String phone = normalizePhoneE164(row.valueFor('phone'));
 
         final UserModel draft = UserModel(

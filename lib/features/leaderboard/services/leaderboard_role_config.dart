@@ -43,7 +43,7 @@ class LeaderboardRoleConfig {
     final dept = user.departmentCode.trim().isEmpty ? null : user.departmentCode.trim().toUpperCase();
 
     switch (role) {
-      case UserRole.student:
+      case UserRole.teamMember:
         return LeaderboardRoleConfig(
           visibleTabs: {
             LeaderboardShowcaseTab.teams,

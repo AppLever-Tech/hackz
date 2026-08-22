@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../organization/models/enums/organization_type.dart';
+import 'enums/user_role.dart';
 import 'enums/user_status.dart';
 import 'profiles/user_profile.dart';
 
@@ -122,7 +123,7 @@ class UserModel {
     final List<String> parsedRoles = _parseRoles(map);
     final String primaryRole = parsedRoles.isNotEmpty
         ? parsedRoles.first
-        : ((map['role'] as String?) ?? 'STU').trim();
+        : ((map['role'] as String?) ?? UserRole.teamMember.code).trim();
     UserProfile? parsedProfile;
     final dynamic profileRaw = map['profile'];
     if (profileRaw is Map<String, dynamic>) {

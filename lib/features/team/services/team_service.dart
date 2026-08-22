@@ -49,7 +49,7 @@ class TeamService {
     final String id = actor.userId.trim();
     if (id.isEmpty) return false;
     final UserRole role = UserRole.fromCode(actor.role);
-    if (role == UserRole.student) return isActingTeamLeader(actor, team);
+    if (role == UserRole.teamMember) return isActingTeamLeader(actor, team);
     return false;
   }
 
@@ -84,7 +84,7 @@ class TeamService {
       FirestoreUtils.getDepartmentUsers(
         orgId: orgId,
         department: departmentCode,
-        roleCodes: const <String>['STU'],
+        roleCodes: <String>[UserRole.teamMember.code],
         limit: 500,
       );
 
@@ -124,7 +124,7 @@ class TeamService {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedStudentIds);
 
     final UserRole role = UserRole.fromCode(actor.role);
-    if (role != UserRole.student) {
+    if (role != UserRole.teamMember) {
       throw TeamRuleException('Only a team leader can create or update a team.');
     }
     if (!selectedStudentIds.contains(actor.userId.trim())) {

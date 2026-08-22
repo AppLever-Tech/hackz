@@ -139,7 +139,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     } else if (user != null && user.effectiveRoles.isNotEmpty) {
       _selectedRoles = user.effectiveRoles.toSet();
     } else {
-      final String initial = (widget.initialRoleCode ?? 'STU').trim();
+      final String initial = (widget.initialRoleCode ?? UserRole.teamMember.code).trim();
       _selectedRoles = <String>{options.contains(initial) ? initial : (options.isNotEmpty ? options.first : initial)};
     }
 
@@ -617,7 +617,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
       );
     }
 
-    if (UserProfileRules.needsStudent(_selectedRoles)) {
+    if (UserProfileRules.needsTeamMember(_selectedRoles)) {
       sections.add(
         _profileBlock(
           icon: AppIcons.student,

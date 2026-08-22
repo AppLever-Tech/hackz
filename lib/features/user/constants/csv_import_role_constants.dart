@@ -1,21 +1,23 @@
+import '../models/enums/user_role.dart';
+
 /// Strict CSV role labels for user import (case-sensitive — exact match required).
 abstract final class CsvImportRoleConstants {
   CsvImportRoleConstants._();
 
-  static const String student = 'STUDENT';
+  static const String teamMember = 'TEAM_MEMBER';
   static const String judge = 'JUDGE';
 
-  static const List<String> all = <String>[student, judge];
+  static const List<String> all = <String>[teamMember, judge];
 
-  static const Set<String> allSet = <String>{student, judge};
+  static const Set<String> allSet = <String>{teamMember, judge};
 
   static const Set<String> judgesPanelOnly = <String>{judge};
 
   /// Maps a validated CSV role label to the internal [UserRole] code.
   static String? toRoleCode(String csvRole) {
     return switch (csvRole) {
-      student => 'STU',
-      judge => 'JUD',
+      teamMember => UserRole.teamMember.code,
+      judge => UserRole.judge.code,
       _ => null,
     };
   }
