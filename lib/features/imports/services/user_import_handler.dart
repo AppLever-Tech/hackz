@@ -13,6 +13,7 @@ import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
+import 'csv_parser_service.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
@@ -21,10 +22,11 @@ import 'user_import_config.dart';
 
 class UserImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
-    'name',
-    'email',
-    'phone',
-    'role',
+    ImportConstants.firstNameColumnKey,
+    ImportConstants.lastNameColumnKey,
+    ImportConstants.phoneColumnKey,
+    ImportConstants.emailColumnKey,
+    ImportConstants.roleColumnKey,
     ImportConstants.departmentColumnKey,
   ];
 
@@ -39,23 +41,38 @@ class UserImportHandler extends ImportHandler {
 
   @override
   String get templateCsv => '''
-name,email,phone,role,${ImportConstants.departmentColumnKey}
-John Doe,john@test.com,9876543210,${CsvImportRoleConstants.teamMember},CSE
-Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
+firstname,lastname,phone,email,role,department
+Ravi,Kumar,9876543210,ravi@test.com,${CsvImportRoleConstants.teamMember},CSE
+Anita,Sharma,9876543211,anita@test.com,${CsvImportRoleConstants.coordinator},
+Rahul,Das,9876543212,,,
 '''.trim();
 
   @override
-  List<String> get requiredHeaders => headers;
+  List<String> get requiredHeaders => const <String>[
+        ImportConstants.firstNameColumnKey,
+        ImportConstants.lastNameColumnKey,
+        ImportConstants.phoneColumnKey,
+      ];
 
   @override
-  List<String> get reviewHeaders => headers;
+  List<String> get reviewHeaders => const <String>[
+        ImportConstants.firstNameColumnKey,
+        ImportConstants.lastNameColumnKey,
+        ImportConstants.phoneColumnKey,
+        ImportConstants.roleColumnKey,
+      ];
 
   @override
-  List<String> get expansionHeaders => const <String>[];
+  List<String> get expansionHeaders => const <String>[
+        ImportConstants.emailColumnKey,
+        ImportConstants.departmentColumnKey,
+      ];
 
   @override
   String get columnGuidance =>
-      'Use department codes (e.g. CSE), not display names. Role values are case-sensitive.';
+      'Required: first name, last name, phone. Email, role, and department are optional. '
+      'Blank role defaults to ${CsvImportRoleConstants.teamMember}. '
+      'Blank department defaults to your department. Role values are case-sensitive.';
 
   @override
   Future<List<ImportReviewRow>> validateRows(
@@ -64,6 +81,7 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
   ) async {
     final UserImportConfig? config = context is UserImportHandlerContext ? context.config : null;
     final Set<String> allowedRoles = config?.allowedCsvRoles ?? CsvImportRoleConstants.allSet;
+    final bool allowTeamMemberDefault = allowedRoles.contains(CsvImportRoleConstants.teamMember);
 
     final _UserImportLookup lookup = await _UserImportLookup.load(context.orgId);
     final Set<String> phonesInFile = <String>{};
@@ -72,72 +90,75 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
 
     for (var i = 0; i < rows.length; i++) {
       final Map<String, String> row = rows[i];
-      final int rowNumber = i + 2;
-      final String name = _cell(row, 'name');
-      final String email = _cell(row, 'email');
-      final String phoneRaw = _cell(row, 'phone');
-      final String roleRaw = _cell(row, 'role');
-      final String departmentRaw = _cell(row, ImportConstants.departmentColumnKey);
+      final int rowNumber = i + 1;
+      final String firstName = CsvParserService.cell(row, ImportConstants.firstNameColumnKey);
+      final String lastName = CsvParserService.cell(row, ImportConstants.lastNameColumnKey);
+      final String email = CsvParserService.cell(row, ImportConstants.emailColumnKey);
+      final String phoneRaw = CsvParserService.cell(row, ImportConstants.phoneColumnKey);
+      final String roleRaw = CsvParserService.cell(row, ImportConstants.roleColumnKey);
+      final String departmentRaw = CsvParserService.cell(row, ImportConstants.departmentColumnKey);
 
       final List<String> issues = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
       String? roleCode;
+      String displayRole = roleRaw;
       String? departmentCode;
       String? departmentName;
 
-      if (name.isEmpty) {
-        issues.add('Missing name');
+      void markError(String message, String label) {
+        issues.add(message);
         severity = ImportRowSeverity.error;
         importable = false;
-        statusLabel = 'Missing Name';
+        statusLabel = label;
       }
-      if (email.isEmpty) {
-        issues.add('Missing email');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Missing Email';
-      } else if (!isValidEmailInput(email)) {
-        issues.add('Invalid email');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Invalid Email';
+
+      void markWarning(String message, String label) {
+        issues.add(message);
+        if (severity != ImportRowSeverity.error) {
+          severity = ImportRowSeverity.warning;
+          importable = false;
+          statusLabel = label;
+        }
+      }
+
+      if (firstName.isEmpty) {
+        markError('Missing first name', 'Missing First Name');
+      }
+      if (lastName.isEmpty) {
+        markError('Missing last name', 'Missing Last Name');
       }
       if (phoneRaw.isEmpty) {
-        issues.add('Missing phone');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Missing Phone';
+        markError('Missing phone', 'Missing Phone');
       } else if (!isValidPhoneInput(phoneRaw)) {
-        issues.add('Invalid phone');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = 'Invalid Phone';
+        markError('Invalid phone', 'Invalid Phone');
+      }
+
+      if (email.isNotEmpty && !isValidEmailInput(email)) {
+        markError('Invalid email', 'Invalid Email');
       }
 
       final ImportRoleValidation roleResult = ImportRoleValidator.validate(
         rawInput: roleRaw,
         allowedCsvRoles: allowedRoles,
+        defaultCsvRole: allowTeamMemberDefault ? CsvImportRoleConstants.teamMember : null,
       );
       if (!roleResult.isValid) {
-        issues.add(roleResult.errorMessage ?? 'Invalid role');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = roleResult.statusLabel ?? 'Invalid Role';
+        markError(roleResult.errorMessage ?? 'Invalid role', roleResult.statusLabel ?? 'Invalid Role');
       } else {
         roleCode = roleResult.roleCode;
+        displayRole = roleRaw.isEmpty ? CsvImportRoleConstants.teamMember : roleRaw;
       }
 
       final ImportDepartmentValidation deptResult = ImportDepartmentValidator.validate(
         rawInput: departmentRaw,
         lookup: lookup.departments,
+        defaultCode: context.defaultDepartmentCode,
+        defaultName: context.defaultDepartmentName,
       );
       if (!deptResult.isValid) {
-        issues.add(deptResult.errorMessage ?? 'Invalid department code');
-        severity = ImportRowSeverity.error;
-        importable = false;
-        statusLabel = deptResult.statusLabel ?? 'Invalid Department';
+        markError(deptResult.errorMessage ?? 'Invalid department code', deptResult.statusLabel ?? 'Invalid Department');
       } else {
         departmentCode = deptResult.canonicalCode;
         departmentName = deptResult.departmentName;
@@ -146,17 +167,11 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
       if (phoneRaw.isNotEmpty && isValidPhoneInput(phoneRaw)) {
         final String phone = normalizePhoneE164(phoneRaw);
         if (phonesInFile.contains(phone)) {
-          issues.add('Duplicate phone in file');
-          severity = ImportRowSeverity.warning;
-          importable = false;
-          statusLabel = 'Duplicate Phone';
+          markWarning('Duplicate phone in file', 'Duplicate Phone');
         } else {
           phonesInFile.add(phone);
           if (lookup.existingPhones.contains(phone)) {
-            issues.add('Phone already exists');
-            severity = ImportRowSeverity.warning;
-            importable = false;
-            statusLabel = 'Duplicate Phone';
+            markWarning('Phone already exists', 'Duplicate Phone');
           }
         }
       }
@@ -164,38 +179,33 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
       if (email.isNotEmpty && isValidEmailInput(email)) {
         final String normalizedEmail = email.toLowerCase();
         if (emailsInFile.contains(normalizedEmail)) {
-          issues.add('Duplicate email in file');
-          if (severity == ImportRowSeverity.valid) {
-            severity = ImportRowSeverity.warning;
-            importable = false;
-            statusLabel = 'Duplicate Email';
-          }
+          markWarning('Duplicate email in file', 'Duplicate Email');
         } else {
           emailsInFile.add(normalizedEmail);
           if (lookup.existingEmails.contains(normalizedEmail)) {
-            issues.add('Email already exists');
-            if (severity == ImportRowSeverity.valid) {
-              severity = ImportRowSeverity.warning;
-              importable = false;
-              statusLabel = 'Duplicate Email';
-            }
+            markWarning('Email already exists', 'Duplicate Email');
           }
         }
       }
 
-      if (severity == ImportRowSeverity.valid && importable) {
+      if (issues.isEmpty) {
+        severity = ImportRowSeverity.valid;
+        importable = true;
         statusLabel = 'Valid';
       }
+
+      final String departmentDisplay = departmentCode ?? departmentRaw;
 
       review.add(
         ImportReviewRow(
           rowNumber: rowNumber,
           values: <String, String>{
-            'name': name,
-            'email': email,
-            'phone': phoneRaw,
-            'role': roleRaw,
-            ImportConstants.departmentColumnKey: departmentCode ?? departmentRaw,
+            ImportConstants.firstNameColumnKey: firstName,
+            ImportConstants.lastNameColumnKey: lastName,
+            ImportConstants.phoneColumnKey: phoneRaw,
+            ImportConstants.emailColumnKey: email,
+            ImportConstants.roleColumnKey: displayRole,
+            ImportConstants.departmentColumnKey: departmentDisplay,
           },
           severity: severity,
           statusLabel: statusLabel,
@@ -205,6 +215,7 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
             if (roleCode != null) 'roleCode': roleCode,
             if (departmentCode != null) 'departmentCode': departmentCode,
             if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
+            if (email.isNotEmpty || departmentDisplay.isNotEmpty) 'expandable': '1',
           },
         ),
       );
@@ -228,19 +239,18 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
 
     for (final ImportReviewRow row in importable) {
       try {
-        final String departmentCode = row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+        final String departmentCode =
+            row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
         final String departmentName = row.metadata['departmentName'] ?? departmentCode;
-
-        final (String firstName, String lastName) = _splitName(row.valueFor('name'));
         final String roleCode = row.metadata['roleCode'] ?? UserRole.teamMember.code;
-        final String phone = normalizePhoneE164(row.valueFor('phone'));
+        final String phone = normalizePhoneE164(row.valueFor(ImportConstants.phoneColumnKey));
 
         final UserModel draft = UserModel(
           userId: '',
           phone: phone,
-          firstName: firstName,
-          lastName: lastName,
-          email: row.valueFor('email'),
+          firstName: row.valueFor(ImportConstants.firstNameColumnKey),
+          lastName: row.valueFor(ImportConstants.lastNameColumnKey),
+          email: row.valueFor(ImportConstants.emailColumnKey),
           role: roleCode,
           roles: <String>[roleCode],
           orgType: userContext.config.organizationType,
@@ -276,15 +286,6 @@ Jane Smith,jane@test.com,9876543211,${CsvImportRoleConstants.judge},CSE
       failed: failed,
       failures: failures,
     );
-  }
-
-  static String _cell(Map<String, String> row, String key) => (row[key] ?? '').trim();
-
-  static (String, String) _splitName(String fullName) {
-    final List<String> parts = fullName.trim().split(RegExp(r'\s+')).where((String p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return ('User', '');
-    if (parts.length == 1) return (parts.first, '');
-    return (parts.first, parts.sublist(1).join(' '));
   }
 }
 

@@ -26,13 +26,25 @@ abstract final class ImportDepartmentValidator {
   static ImportDepartmentValidation validate({
     required String rawInput,
     required ImportDepartmentLookup lookup,
+    String? defaultCode,
+    String? defaultName,
   }) {
     final String trimmed = rawInput.trim();
     if (trimmed.isEmpty) {
-      return const ImportDepartmentValidation(
-        isValid: false,
-        errorMessage: ImportConstants.missingDepartmentCodeMessage,
-        statusLabel: 'Missing Department',
+      final String code = (defaultCode ?? '').trim().toUpperCase();
+      if (code.isEmpty) {
+        return const ImportDepartmentValidation(
+          isValid: false,
+          errorMessage: ImportConstants.missingDepartmentCodeMessage,
+          statusLabel: 'Missing Department',
+        );
+      }
+      final String name = (defaultName ?? '').trim();
+      return ImportDepartmentValidation(
+        isValid: true,
+        canonicalCode: code,
+        departmentName: name.isNotEmpty ? name : lookup.codeToName[code],
+        statusLabel: 'Valid',
       );
     }
 

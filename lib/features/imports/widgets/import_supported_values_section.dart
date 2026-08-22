@@ -87,7 +87,7 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
         else ...<Widget>[
           if (showRoles)
             _ReferenceTile(
-              icon: AppIcons.faculty,
+              icon: AppIcons.users,
               title: 'Supported Roles',
               onTap: () => showReferenceValuesViewer(
                 context: context,

@@ -360,10 +360,10 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   Widget _buildReviewStep() {
     final ImportSummary summary = _summary ?? _handler.summarize(_rows);
     final List<ImportReviewColumn> columns = _handler.reviewHeaders
-        .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
+        .map(ImportReviewColumn.fromKey)
         .toList(growable: false);
     final List<ImportReviewColumn> expansionColumns = _handler.expansionHeaders
-        .map((String h) => ImportReviewColumn(key: h, label: ImportConstants.headerLabel(h)))
+        .map(ImportReviewColumn.fromKey)
         .toList(growable: false);
 
     return Column(

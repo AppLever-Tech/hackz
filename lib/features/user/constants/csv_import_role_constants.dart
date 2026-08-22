@@ -5,11 +5,12 @@ abstract final class CsvImportRoleConstants {
   CsvImportRoleConstants._();
 
   static const String teamMember = 'TEAM_MEMBER';
+  static const String coordinator = 'COORDINATOR';
   static const String judge = 'JUDGE';
 
-  static const List<String> all = <String>[teamMember, judge];
+  static const List<String> all = <String>[teamMember, coordinator, judge];
 
-  static const Set<String> allSet = <String>{teamMember, judge};
+  static const Set<String> allSet = <String>{teamMember, coordinator, judge};
 
   static const Set<String> judgesPanelOnly = <String>{judge};
 
@@ -17,6 +18,7 @@ abstract final class CsvImportRoleConstants {
   static String? toRoleCode(String csvRole) {
     return switch (csvRole) {
       teamMember => UserRole.teamMember.code,
+      coordinator => UserRole.coordinator.code,
       judge => UserRole.judge.code,
       _ => null,
     };

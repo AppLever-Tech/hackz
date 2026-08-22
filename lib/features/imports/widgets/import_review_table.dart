@@ -3,10 +3,74 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/form_value_row.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
-import '../../../core/responsive/responsive_helper.dart';
 import '../constants/import_constants.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
+
+/// Shared review-table metrics for problem and user CSV import.
+abstract final class ImportReviewColumnLayout {
+  ImportReviewColumnLayout._();
+
+  static const double expand = 20;
+  static const double rowNumber = 28;
+  static const double phone = 112;
+  static const double role = 104;
+  static const double status = 176;
+  static const double gap = 8;
+  static const double compactBreakpoint = 760;
+}
+
+class ImportReviewColumn {
+  const ImportReviewColumn({
+    required this.key,
+    required this.label,
+    this.width,
+    this.flex,
+  });
+
+  final String key;
+  final String label;
+  final double? width;
+  final int? flex;
+
+  bool get isFixed => width != null;
+
+  static ImportReviewColumn fromKey(String key) {
+    return switch (key) {
+      ImportConstants.firstNameColumnKey => const ImportReviewColumn(
+          key: ImportConstants.firstNameColumnKey,
+          label: 'First name',
+          flex: 2,
+        ),
+      ImportConstants.lastNameColumnKey => const ImportReviewColumn(
+          key: ImportConstants.lastNameColumnKey,
+          label: 'Last name',
+          flex: 2,
+        ),
+      ImportConstants.phoneColumnKey => const ImportReviewColumn(
+          key: ImportConstants.phoneColumnKey,
+          label: 'Phone',
+          width: ImportReviewColumnLayout.phone,
+        ),
+      ImportConstants.roleColumnKey => const ImportReviewColumn(
+          key: ImportConstants.roleColumnKey,
+          label: 'Role',
+          width: ImportReviewColumnLayout.role,
+        ),
+      ImportConstants.titleColumnKey => ImportReviewColumn(
+          key: ImportConstants.titleColumnKey,
+          label: ImportConstants.headerLabel(ImportConstants.titleColumnKey),
+          flex: 2,
+        ),
+      ImportConstants.descriptionColumnKey => ImportReviewColumn(
+          key: ImportConstants.descriptionColumnKey,
+          label: ImportConstants.headerLabel(ImportConstants.descriptionColumnKey),
+          flex: 3,
+        ),
+      _ => ImportReviewColumn(key: key, label: ImportConstants.headerLabel(key), flex: 1),
+    };
+  }
+}
 
 class ImportReviewTable extends StatefulWidget {
   const ImportReviewTable({
@@ -30,18 +94,24 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   @override
   Widget build(BuildContext context) {
     if (widget.expansionColumns.isEmpty) return _buildDataTable();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _header(compact: ResponsiveHelper.isMobile(context)),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.rows.length,
-            itemBuilder: (BuildContext context, int index) => _expandableRow(widget.rows[index]),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compact = constraints.maxWidth < ImportReviewColumnLayout.compactBreakpoint;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _header(compact: compact),
+            const Divider(height: 1, color: Color(0xFFE2E8F0)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.rows.length,
+                itemBuilder: (BuildContext context, int index) =>
+                    _expandableRow(widget.rows[index], compact: compact),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -85,38 +155,43 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   }
 
   Widget _header({required bool compact}) {
+    const TextStyle style = TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A));
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(2, 6, 4, 6),
       child: Row(
         children: <Widget>[
-          const SizedBox(width: 28),
-          SizedBox(
-            width: compact ? 28 : 40,
-            child: const Text('Row', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+          const SizedBox(width: ImportReviewColumnLayout.expand),
+          const SizedBox(
+            width: ImportReviewColumnLayout.rowNumber,
+            child: Text('Row', style: style),
           ),
           if (!compact) ...<Widget>[
-            for (var i = 0; i < widget.columns.length; i++) ...<Widget>[
-              if (i > 0) const SizedBox(width: 12),
-              Expanded(
-                flex: i == 0 ? 2 : 3,
-                child: Text(
-                  widget.columns[i].label,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                ),
-              ),
+            for (final ImportReviewColumn column in widget.columns) ...<Widget>[
+              const SizedBox(width: ImportReviewColumnLayout.gap),
+              _sized(column, Text(column.label, style: style)),
             ],
-            const SizedBox(width: 12),
-            const Expanded(
-              flex: 3,
-              child: Text('Status', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+            const SizedBox(width: ImportReviewColumnLayout.gap),
+            const SizedBox(
+              width: ImportReviewColumnLayout.status,
+              child: Text('Status', style: style),
             ),
           ] else
-            const Expanded(
-              child: Text('Problem', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+            Expanded(
+              child: Text(
+                widget.columns.isEmpty ? 'Details' : widget.columns.first.label,
+                style: style,
+              ),
             ),
         ],
       ),
     );
+  }
+
+  Widget _sized(ImportReviewColumn column, Widget child) {
+    if (column.isFixed) {
+      return SizedBox(width: column.width, child: child);
+    }
+    return Expanded(flex: column.flex ?? 1, child: child);
   }
 
   bool _canExpand(ImportReviewRow row) {
@@ -124,10 +199,9 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     return widget.expansionColumns.any((ImportReviewColumn c) => row.valueFor(c.key).isNotEmpty);
   }
 
-  Widget _expandableRow(ImportReviewRow row) {
+  Widget _expandableRow(ImportReviewRow row, {required bool compact}) {
     final bool canExpand = _canExpand(row);
     final bool expanded = canExpand && _expandedRows.contains(row.rowNumber);
-    final bool compact = ResponsiveHelper.isMobile(context);
 
     return Container(
       decoration: const BoxDecoration(
@@ -147,8 +221,10 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
                     })
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              child: compact ? _compactCollapsed(row, canExpand: canExpand, expanded: expanded) : _wideCollapsed(row, canExpand: canExpand, expanded: expanded),
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              child: compact
+                  ? _compactCollapsed(row, canExpand: canExpand, expanded: expanded)
+                  : _wideCollapsed(row, canExpand: canExpand, expanded: expanded),
             ),
           ),
           if (expanded) _expansionPanel(row, compact: compact),
@@ -161,32 +237,29 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     return Row(
       children: <Widget>[
         SizedBox(
-          width: 28,
+          width: ImportReviewColumnLayout.expand,
           child: canExpand
               ? Icon(
                   expanded ? AppIcons.expandLess : AppIcons.expandMore,
-                  size: 18,
+                  size: 16,
                   color: const Color(0xFF64748B),
                 )
               : null,
         ),
         SizedBox(
-          width: 40,
+          width: ImportReviewColumnLayout.rowNumber,
           child: Text(
             '${row.rowNumber}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
         ),
-        for (var i = 0; i < widget.columns.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(width: 12),
-          Expanded(
-            flex: i == 0 ? 2 : 3,
-            child: _TruncatedText(text: row.valueFor(widget.columns[i].key)),
-          ),
+        for (final ImportReviewColumn column in widget.columns) ...<Widget>[
+          const SizedBox(width: ImportReviewColumnLayout.gap),
+          _sized(column, _TruncatedText(text: row.valueFor(column.key))),
         ],
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 3,
+        const SizedBox(width: ImportReviewColumnLayout.gap),
+        SizedBox(
+          width: ImportReviewColumnLayout.status,
           child: _StatusCell(row: row),
         ),
       ],
@@ -194,28 +267,38 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   }
 
   Widget _compactCollapsed(ImportReviewRow row, {required bool canExpand, required bool expanded}) {
-    final String title = widget.columns.isNotEmpty ? row.valueFor(widget.columns.first.key) : '';
-    final String description = widget.columns.length > 1 ? row.valueFor(widget.columns[1].key) : '';
+    final List<ImportReviewColumn> flexColumns =
+        widget.columns.where((ImportReviewColumn c) => !c.isFixed).toList(growable: false);
+    final List<ImportReviewColumn> fixedColumns =
+        widget.columns.where((ImportReviewColumn c) => c.isFixed).toList(growable: false);
+    final String title = flexColumns
+        .map((ImportReviewColumn c) => row.valueFor(c.key))
+        .where((String v) => v.isNotEmpty)
+        .join(' ');
+    final String subtitle = fixedColumns
+        .map((ImportReviewColumn c) => row.valueFor(c.key))
+        .where((String v) => v.isNotEmpty)
+        .join(' · ');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         SizedBox(
-          width: 28,
+          width: ImportReviewColumnLayout.expand,
           child: canExpand
               ? Icon(
                   expanded ? AppIcons.expandLess : AppIcons.expandMore,
-                  size: 18,
+                  size: 16,
                   color: const Color(0xFF64748B),
                 )
               : null,
         ),
         SizedBox(
-          width: 28,
+          width: ImportReviewColumnLayout.rowNumber,
           child: Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: 1),
             child: Text(
               '${row.rowNumber}',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
             ),
           ),
         ),
@@ -224,11 +307,11 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               _TruncatedText(text: title),
-              if (description.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 2),
-                _TruncatedText(text: description, muted: true),
+              if (subtitle.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 1),
+                _TruncatedText(text: subtitle, muted: true),
               ],
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               _StatusCell(row: row),
             ],
           ),
@@ -244,7 +327,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     if (provided.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(compact ? 12 : 72, 0, 12, 10),
+      padding: EdgeInsets.fromLTRB(compact ? 8 : 56, 0, 8, 8),
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           final bool twoCol = constraints.hasBoundedWidth && constraints.maxWidth >= 520 && provided.length > 1;
@@ -301,20 +384,15 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
       ImportConstants.issuingOrganisationColumnKey => AppIcons.organizations,
       ImportConstants.issuingDepartmentColumnKey => AppIcons.departments,
       ImportConstants.teamNameColumnKey => AppIcons.teams,
-      ImportConstants.phoneColumnKey => AppIcons.teamMember,
+      ImportConstants.phoneColumnKey => AppIcons.phone,
+      ImportConstants.emailColumnKey => AppIcons.email,
       ImportConstants.organisationColumnKey => AppIcons.organizations,
       ImportConstants.departmentColumnKey => AppIcons.departments,
       ImportConstants.isTeamLeaderColumnKey => AppIcons.users,
+      ImportConstants.roleColumnKey => AppIcons.teamMember,
       _ => AppIcons.info,
     };
   }
-}
-
-class ImportReviewColumn {
-  const ImportReviewColumn({required this.key, required this.label});
-
-  final String key;
-  final String label;
 }
 
 class _DetailTile extends StatelessWidget {
@@ -362,7 +440,7 @@ class _TruncatedText extends StatelessWidget {
   final bool muted;
 
   TextStyle get _style => TextStyle(
-        fontSize: muted ? 12 : 13,
+        fontSize: muted ? 11 : 12,
         fontWeight: muted ? FontWeight.w500 : FontWeight.w600,
         color: muted ? const Color(0xFF64748B) : const Color(0xFF0F172A),
       );
@@ -371,7 +449,7 @@ class _TruncatedText extends StatelessWidget {
   Widget build(BuildContext context) {
     final String value = text.trim();
     if (value.isEmpty) {
-      return const Text('—', style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)));
+      return const Text('—', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)));
     }
 
     final TextStyle style = _style;
@@ -416,7 +494,7 @@ class _StatusCell extends StatelessWidget {
       ImportRowSeverity.warning => const Color(0xFFB45309),
       ImportRowSeverity.error => const Color(0xFFB91C1C),
     };
-    final String detail = row.messages.isNotEmpty ? row.messages.join('\n') : '';
+    final String detail = row.messages.isNotEmpty ? row.messages.join(' · ') : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -424,15 +502,24 @@ class _StatusCell extends StatelessWidget {
       children: <Widget>[
         Text(
           row.statusLabel,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color),
         ),
         if (detail.isNotEmpty)
-          Text(
-            detail,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color.withValues(alpha: 0.9),
+          Tooltip(
+            message: row.messages.join('\n'),
+            waitDuration: const Duration(milliseconds: 250),
+            child: Text(
+              detail,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+                color: color.withValues(alpha: 0.9),
+              ),
             ),
           ),
       ],

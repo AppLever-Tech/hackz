@@ -23,9 +23,21 @@ abstract final class ImportRoleValidator {
   static ImportRoleValidation validate({
     required String rawInput,
     required Set<String> allowedCsvRoles,
+    String? defaultCsvRole,
   }) {
     final String trimmed = rawInput.trim();
     if (trimmed.isEmpty) {
+      final String fallback = (defaultCsvRole ?? '').trim();
+      if (fallback.isNotEmpty && allowedCsvRoles.contains(fallback)) {
+        final String? roleCode = CsvImportRoleConstants.toRoleCode(fallback);
+        if (roleCode != null) {
+          return ImportRoleValidation(
+            isValid: true,
+            roleCode: roleCode,
+            statusLabel: 'Valid',
+          );
+        }
+      }
       return const ImportRoleValidation(
         isValid: false,
         errorMessage: ImportConstants.missingRoleMessage,

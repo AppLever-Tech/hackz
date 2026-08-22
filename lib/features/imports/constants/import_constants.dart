@@ -10,6 +10,7 @@ abstract final class ImportConstants {
   static const String firstNameColumnKey = 'firstName';
   static const String lastNameColumnKey = 'lastName';
   static const String emailColumnKey = 'email';
+  static const String roleColumnKey = 'role';
   static const String organisationColumnKey = 'organisation';
   static const String isTeamLeaderColumnKey = 'isTeamLeader';
   static const String titleColumnKey = 'title';
@@ -20,7 +21,7 @@ abstract final class ImportConstants {
   static const String externalProblemIdColumnKey = 'externalProblemId';
 
   static String requiredColumnsHint(List<String> headers) =>
-      'Required columns: ${headers.join(', ')}';
+      'Required columns: ${headers.map(headerLabel).join(', ')}';
 
   static String headerLabel(String key) {
     if (key == externalProblemIdColumnKey) return 'Problem ID';
