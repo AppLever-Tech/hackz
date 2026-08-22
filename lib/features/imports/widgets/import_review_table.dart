@@ -58,6 +58,11 @@ class ImportReviewColumn {
           label: 'Role',
           width: ImportReviewColumnLayout.role,
         ),
+      ImportConstants.isTeamLeaderColumnKey => const ImportReviewColumn(
+          key: ImportConstants.isTeamLeaderColumnKey,
+          label: 'Team Leader',
+          width: ImportReviewColumnLayout.role,
+        ),
       ImportConstants.titleColumnKey => ImportReviewColumn(
           key: ImportConstants.titleColumnKey,
           label: ImportConstants.headerLabel(ImportConstants.titleColumnKey),

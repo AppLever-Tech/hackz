@@ -105,7 +105,7 @@ class _TeamRegistrationScreenState extends State<TeamRegistrationScreen> {
               Text(
                 _loadingOrg
                     ? 'Load a CSV of teams, Team Leaders and Team Members. Hackz validates the full file before creating users or teams.'
-                    : 'Register teams for $_orgName. One CSV includes team names, Team Leaders and Team Members. Existing users are matched by phone; new Team Members are created only after the file passes validation.',
+                    : 'Register teams for $_orgName. One CSV includes team names, Team Leaders and Team Members. Teams stay under this college. Existing users are matched by phone; new Team Members are created only after the file passes validation. Email and department are optional — department is free text for external participants only.',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -121,6 +121,8 @@ class _TeamRegistrationScreenState extends State<TeamRegistrationScreen> {
                   _HintChip(label: 'One row per member'),
                   _HintChip(label: 'Phone is unique'),
                   _HintChip(label: 'One Team Leader per team'),
+                  _HintChip(label: 'Email optional'),
+                  _HintChip(label: 'Department optional for external members'),
                 ],
               ),
               const SizedBox(height: 18),

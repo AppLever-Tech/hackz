@@ -28,13 +28,13 @@ import 'import_handler.dart';
 class TeamRegistrationImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
     ImportConstants.teamNameColumnKey,
-    ImportConstants.phoneColumnKey,
     ImportConstants.firstNameColumnKey,
     ImportConstants.lastNameColumnKey,
-    ImportConstants.emailColumnKey,
-    ImportConstants.organisationColumnKey,
-    ImportConstants.departmentColumnKey,
     ImportConstants.isTeamLeaderColumnKey,
+    ImportConstants.phoneColumnKey,
+    ImportConstants.organisationColumnKey,
+    ImportConstants.emailColumnKey,
+    ImportConstants.departmentColumnKey,
   ];
 
   @override
@@ -48,20 +48,37 @@ class TeamRegistrationImportHandler extends ImportHandler {
 
   @override
   String get templateCsv => '''
-teamName,phone,firstName,lastName,email,organisation,department,isTeamLeader
-Team Alpha,9876543210,Ravi,Kumar,ravi@example.com,SJBIT,CSE,true
-Team Alpha,9876543211,Anita,Sharma,anita@example.com,SJBIT,CSE,false
-Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
+teamName,firstName,lastName,isTeamLeader,phone,organisation,email,department
+Team Alpha,Ravi,Kumar,true,9876543210,SJBIT,ravi@example.com,CSE
+Team Alpha,Anita,Sharma,false,9876543211,SJBIT,anita@example.com,CSE
+Team Alpha,Rahul,Das,false,9876543212,ABC College,,
 '''.trim();
 
   @override
-  List<String> get requiredHeaders => headers;
+  List<String> get requiredHeaders => const <String>[
+        ImportConstants.teamNameColumnKey,
+        ImportConstants.firstNameColumnKey,
+        ImportConstants.lastNameColumnKey,
+        ImportConstants.isTeamLeaderColumnKey,
+        ImportConstants.phoneColumnKey,
+        ImportConstants.organisationColumnKey,
+      ];
 
   @override
-  List<String> get reviewHeaders => headers;
+  List<String> get reviewHeaders => const <String>[
+        ImportConstants.teamNameColumnKey,
+        ImportConstants.firstNameColumnKey,
+        ImportConstants.lastNameColumnKey,
+        ImportConstants.isTeamLeaderColumnKey,
+        ImportConstants.phoneColumnKey,
+        ImportConstants.organisationColumnKey,
+      ];
 
   @override
-  List<String> get expansionHeaders => const <String>[];
+  List<String> get expansionHeaders => const <String>[
+        ImportConstants.emailColumnKey,
+        ImportConstants.departmentColumnKey,
+      ];
 
   @override
   bool get blockImportOnAnyError => true;
@@ -69,12 +86,15 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
   @override
   String get columnGuidance =>
       'One row per team member. Group members with the same teamName. '
+      'Required: teamName, firstName, lastName, isTeamLeader, phone, organisation. '
+      'Optional (last columns): email, department. '
       'phone is the unique user identifier (10-digit Indian mobile). '
-      'Required: teamName, phone, firstName, lastName, organisation, isTeamLeader. '
-      'Optional: email, department. '
       'isTeamLeader: true/false — exactly one true per team. '
       'Existing Hackz users are reused by phone; new users are created as Team Members. '
-      'External participants use their own organisation name — no new college is created.';
+      'Teams are always created under this college. '
+      'Internal members (this college) use a Hackz department; blank department defaults to the coordinator’s department. '
+      'Any other organisation name is stored as participant affiliation on this college — including names that match another Hackz college. '
+      'External department is optional free text, is not matched to this college’s departments, and is not created as a Hackz department.';
 
   @override
   ImportSummary summarize(List<ImportReviewRow> rows) {
@@ -113,9 +133,6 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
   ) async {
     final TeamRegistrationImportHandlerContext teamContext = _requireContext(context);
     final _Lookup lookup = await _Lookup.load(teamContext);
-    await lookup.ensureDepartmentsFor(
-      rows.map((Map<String, String> r) => CsvParserService.cell(r, ImportConstants.organisationColumnKey)),
-    );
 
     final List<_ParsedRow> parsed = <_ParsedRow>[];
     for (var i = 0; i < rows.length; i++) {
@@ -259,7 +276,8 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
       try {
         final String affiliationOrg = (row.metadata['organisationName'] ?? '').trim();
         final String affiliationDept = (row.metadata['affiliationDepartment'] ?? '').trim();
-        final String hackzDept = row.metadata['departmentName'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+        final bool external = affiliationOrg.isNotEmpty;
+        final String hackzDept = row.metadata['departmentName'] ?? '';
         final String hackzDeptCode = row.metadata['departmentCode'] ?? '';
         final String createdId = await UserService.createUser(
           user: UserModel(
@@ -271,11 +289,11 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
             role: UserRole.teamMember.code,
             roles: <String>[UserRole.teamMember.code],
             orgType: teamContext.actor.orgType,
-            orgId: row.metadata['orgId'] ?? teamContext.orgId,
+            orgId: teamContext.orgId,
             organisationName: affiliationOrg,
-            department: affiliationOrg.isNotEmpty && hackzDeptCode.isEmpty ? '' : hackzDept,
-            departmentCode: hackzDeptCode,
-            departmentName: affiliationDept,
+            department: external ? '' : hackzDept,
+            departmentCode: external ? '' : hackzDeptCode,
+            departmentName: external ? affiliationDept : '',
             status: UserStatus.active,
             createdAt: DateTime.now(),
             approvedAt: DateTime.now(),
@@ -393,56 +411,35 @@ Team Alpha,9876543212,Rahul,Das,rahul@example.com,ABC College,CSE,false
     } else {
       final OrganizationModel? matched = lookup.orgByNormalizedName[_normalizeOrg(row.organisation)];
       final bool matchesOwningName = _normalizeOrg(row.organisation) == _normalizeOrg(context.orgName);
-      if (matched != null) {
-        row.resolvedOrgId = matched.id;
-        row.resolvedOrgName = matched.name;
-        row.isHackzOrganisation = true;
-        row.isOwningOrg = matched.id == context.orgId;
-        if (!row.isOwningOrg) {
+      final bool isOwningOrg = matchesOwningName || (matched != null && matched.id == context.orgId);
+      row.resolvedOrgId = context.orgId;
+      row.isOwningOrg = isOwningOrg;
+      if (!isOwningOrg) {
+        if (matched != null) {
           row.addWarning(
             ImportConstants.organisationColumnKey,
-            'External Hackz organisation — member will keep that affiliation.',
+            'Organisation name matches another Hackz college — stored as participant affiliation on this college. The user is not registered under that organisation.',
+          );
+        } else {
+          row.addWarning(
+            ImportConstants.organisationColumnKey,
+            'Organisation is not a registered Hackz college — stored as participant affiliation. No organisation will be created.',
           );
         }
-      } else if (matchesOwningName) {
-        row.resolvedOrgId = context.orgId;
-        row.resolvedOrgName = context.orgName.isEmpty ? row.organisation : context.orgName;
-        row.isHackzOrganisation = true;
-        row.isOwningOrg = true;
-      } else {
-        row.resolvedOrgId = context.orgId;
-        row.resolvedOrgName = row.organisation;
-        row.isHackzOrganisation = false;
-        row.isOwningOrg = false;
-        row.addWarning(
-          ImportConstants.organisationColumnKey,
-          'Organisation is not a registered Hackz college — stored as participant affiliation. No organisation will be created.',
-        );
       }
     }
 
-    final ImportDepartmentLookup deptLookup = row.resolvedOrgId != null && row.resolvedOrgId != context.orgId
-        ? (lookup.departmentsByOrg[row.resolvedOrgId!] ?? lookup.owningDepartments)
-        : lookup.owningDepartments;
     if (row.departmentRaw.isNotEmpty) {
-      if (row.isHackzOrganisation) {
+      if (row.isOwningOrg) {
         final ImportDepartmentValidation dept = ImportDepartmentValidator.validate(
           rawInput: row.departmentRaw,
-          lookup: deptLookup,
+          lookup: lookup.owningDepartments,
         );
         if (!dept.isValid) {
           row.addError(ImportConstants.departmentColumnKey, dept.errorMessage ?? 'Invalid department.');
         } else {
           row.departmentCode = dept.canonicalCode ?? '';
           row.departmentName = dept.departmentName ?? row.departmentRaw;
-        }
-      } else {
-        final String code = row.departmentRaw.trim().toUpperCase();
-        if (lookup.owningDepartments.codes.contains(code)) {
-          row.departmentCode = code;
-          row.departmentName = lookup.owningDepartments.codeToName[code] ?? row.departmentRaw;
-        } else {
-          row.departmentName = row.departmentRaw;
         }
       }
     } else if (row.isOwningOrg) {
@@ -576,8 +573,6 @@ class _ParsedRow {
 
   String? phoneE164;
   String? resolvedOrgId;
-  String resolvedOrgName = '';
-  bool isHackzOrganisation = false;
   bool isOwningOrg = false;
   String departmentCode = '';
   String departmentName = '';
@@ -629,9 +624,9 @@ class _ParsedRow {
       metadata: <String, String>{
         if (phoneE164 != null) 'phoneE164': phoneE164!,
         if (resolvedOrgId != null) 'orgId': resolvedOrgId!,
-        'departmentCode': departmentCode,
-        'departmentName': departmentName.isEmpty ? departmentRaw : departmentName,
-        'organisationName': isOwningOrg ? '' : (resolvedOrgName.trim().isEmpty ? organisation : resolvedOrgName.trim()),
+        'departmentCode': isOwningOrg ? departmentCode : '',
+        'departmentName': isOwningOrg ? (departmentName.isEmpty ? departmentRaw : departmentName) : '',
+        'organisationName': isOwningOrg ? '' : organisation,
         'affiliationDepartment': isOwningOrg ? '' : departmentRaw,
         'isTeamLeader': isTeamLeader == true ? '1' : '0',
         if ((existingUser?.userId ?? '').trim().isNotEmpty) 'existingUserId': existingUser!.userId,
@@ -643,7 +638,6 @@ class _ParsedRow {
 class _Lookup {
   _Lookup({
     required this.owningDepartments,
-    required this.departmentsByOrg,
     required this.orgByNormalizedName,
     required this.existingTeamNames,
     required this.usersByPhone,
@@ -652,7 +646,6 @@ class _Lookup {
   });
 
   final ImportDepartmentLookup owningDepartments;
-  final Map<String, ImportDepartmentLookup> departmentsByOrg;
   final Map<String, OrganizationModel> orgByNormalizedName;
   final Set<String> existingTeamNames;
   final Map<String, UserModel> usersByPhone;
@@ -682,32 +675,11 @@ class _Lookup {
 
     return _Lookup(
       owningDepartments: owningDepartments,
-      departmentsByOrg: <String, ImportDepartmentLookup>{context.orgId: owningDepartments},
       orgByNormalizedName: orgByName,
       existingTeamNames: teamNames,
       usersByPhone: <String, UserModel>{},
       minMembers: minMembers,
       maxMembers: maxMembers < minMembers ? minMembers : maxMembers,
     );
-  }
-
-  Future<void> ensureDepartmentsFor(Iterable<String> organisationNames) async {
-    final Set<String> neededOrgIds = <String>{};
-    for (final String raw in organisationNames) {
-      final OrganizationModel? matched = orgByNormalizedName[TeamRegistrationImportHandler._normalizeOrg(raw)];
-      if (matched != null && !departmentsByOrg.containsKey(matched.id)) {
-        neededOrgIds.add(matched.id);
-      }
-    }
-    if (neededOrgIds.isEmpty) return;
-    final List<MapEntry<String, ImportDepartmentLookup>> loaded = await Future.wait(
-      neededOrgIds.map((String id) async {
-        final ImportDepartmentLookup lookup = await ImportDepartmentLookup.load(id);
-        return MapEntry<String, ImportDepartmentLookup>(id, lookup);
-      }),
-    );
-    for (final MapEntry<String, ImportDepartmentLookup> entry in loaded) {
-      departmentsByOrg[entry.key] = entry.value;
-    }
   }
 }

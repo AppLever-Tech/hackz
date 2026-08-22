@@ -23,6 +23,9 @@ abstract final class ImportConstants {
   static String requiredColumnsHint(List<String> headers) =>
       'Required columns: ${headers.map(headerLabel).join(', ')}';
 
+  static String optionalColumnsHint(List<String> headers) =>
+      'Optional columns: ${headers.map(headerLabel).join(', ')}';
+
   static String headerLabel(String key) {
     if (key == externalProblemIdColumnKey) return 'Problem ID';
     if (key == isTeamLeaderColumnKey) return 'Team Leader';

@@ -16,12 +16,14 @@ class ImportSupportedValuesSection extends StatefulWidget {
     required this.supportedRoles,
     this.loading = false,
     this.enabled = true,
+    this.departmentCodesSubtitle,
   });
 
   final List<ImportDepartmentInfo> departments;
   final Set<String>? supportedRoles;
   final bool loading;
   final bool enabled;
+  final String? departmentCodesSubtitle;
 
   static const int _departmentSearchThreshold = 10;
 
@@ -101,9 +103,14 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
                 ? null
                 : () => showReferenceValuesViewer(
                       context: context,
-                      config: _departmentsConfig(widget.departments),
+                      config: _departmentsConfig(
+                        widget.departments,
+                        subtitle: widget.departmentCodesSubtitle,
+                      ),
                     ),
-            subtitle: widget.departments.isEmpty ? 'No departments found yet' : null,
+            subtitle: widget.departments.isEmpty
+                ? 'No departments found yet'
+                : widget.departmentCodesSubtitle,
           ),
           const SizedBox(height: 8),
           Align(
@@ -138,7 +145,10 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
     );
   }
 
-  static ReferenceValuesViewerConfig _departmentsConfig(List<ImportDepartmentInfo> departments) {
+  static ReferenceValuesViewerConfig _departmentsConfig(
+    List<ImportDepartmentInfo> departments, {
+    String? subtitle,
+  }) {
     final List<ReferenceValueItem> items = departments
         .map(
           (ImportDepartmentInfo d) => ReferenceValueItem(
@@ -150,7 +160,7 @@ class _ImportSupportedValuesSectionState extends State<ImportSupportedValuesSect
         .toList(growable: false);
     return ReferenceValuesViewerConfig(
       title: 'Department Codes',
-      subtitle: 'Use department codes in CSV imports, not display names.',
+      subtitle: subtitle ?? 'Use department codes in CSV imports, not display names.',
       items: items,
       enableSearch: true,
       searchThreshold: ImportSupportedValuesSection._departmentSearchThreshold,
@@ -204,6 +214,8 @@ class _ReferenceTile extends StatelessWidget {
                 ? null
                 : Text(
                     subtitle!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
                   ),
             trailing: Icon(

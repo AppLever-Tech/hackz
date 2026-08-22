@@ -444,6 +444,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             supportedRoles: widget.contextData.supportedCsvRoles,
             loading: _lookupsLoading,
             enabled: !_busy,
+            departmentCodesSubtitle: _handler.type == ImportType.teamRegistration
+                ? 'Internal members use these codes. External department is optional free text and is not created as a Hackz department.'
+                : null,
           ),
           const SizedBox(height: 12),
         ],
@@ -469,6 +472,13 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                   ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                 ),
+                if (_handler.type == ImportType.teamRegistration && _handler.expansionHeaders.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    ImportConstants.optionalColumnsHint(_handler.expansionHeaders),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                  ),
+                ],
                 if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
                   Text(
