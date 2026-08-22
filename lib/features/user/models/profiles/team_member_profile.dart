@@ -1,5 +1,5 @@
-class StudentProfile {
-  const StudentProfile({
+class TeamMemberProfile {
+  const TeamMemberProfile({
     this.program = '',
     this.yearOfStudy = '',
     this.skills = const <String>[],
@@ -21,8 +21,8 @@ class StudentProfile {
     return map;
   }
 
-  factory StudentProfile.fromMap(Map<String, dynamic>? map) {
-    if (map == null || map.isEmpty) return const StudentProfile();
+  factory TeamMemberProfile.fromMap(Map<String, dynamic>? map) {
+    if (map == null || map.isEmpty) return const TeamMemberProfile();
     final List<String> parsed = <String>[];
     final dynamic raw = map['skills'];
     if (raw is List) {
@@ -31,19 +31,19 @@ class StudentProfile {
         if (value.isNotEmpty) parsed.add(value);
       }
     }
-    return StudentProfile(
+    return TeamMemberProfile(
       program: (map['program'] as String?) ?? '',
       yearOfStudy: (map['yearOfStudy'] as String?) ?? '',
       skills: parsed,
     );
   }
 
-  StudentProfile copyWith({
+  TeamMemberProfile copyWith({
     String? program,
     String? yearOfStudy,
     List<String>? skills,
   }) {
-    return StudentProfile(
+    return TeamMemberProfile(
       program: program ?? this.program,
       yearOfStudy: yearOfStudy ?? this.yearOfStudy,
       skills: skills ?? this.skills,

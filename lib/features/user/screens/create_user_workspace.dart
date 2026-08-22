@@ -18,7 +18,7 @@ import '../models/profiles/college_admin_profile.dart';
 import '../models/profiles/department_admin_profile.dart';
 import '../models/profiles/judge_profile.dart';
 import '../models/profiles/professional_profile.dart';
-import '../models/profiles/student_profile.dart';
+import '../models/profiles/team_member_profile.dart';
 import '../models/profiles/user_profile.dart';
 import '../models/user_model.dart';
 import '../services/user_photo_service.dart';
@@ -151,9 +151,9 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         ? '${professional.yearsOfExperience}'
         : '';
     _expertiseAreas = List<String>.from(professional?.expertiseAreas ?? const <String>[]);
-    _programController.text = profile?.studentProfile?.program ?? '';
-    _yearOfStudyController.text = profile?.studentProfile?.yearOfStudy ?? '';
-    _skills = List<String>.from(profile?.studentProfile?.skills ?? const <String>[]);
+    _programController.text = profile?.teamMemberProfile?.program ?? '';
+    _yearOfStudyController.text = profile?.teamMemberProfile?.yearOfStudy ?? '';
+    _skills = List<String>.from(profile?.teamMemberProfile?.skills ?? const <String>[]);
     _evaluationDomains = List<String>.from(profile?.judgeProfile?.evaluationDomains ?? const <String>[]);
     _judgeType = profile?.judgeProfile?.judgeType;
     _deptAdminDesignationController.text = profile?.departmentAdminProfile?.officeDesignation ?? '';
@@ -318,7 +318,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         yearsOfExperience: years,
         expertiseAreas: _expertiseAreas,
       ),
-      student: StudentProfile(
+      teamMember: TeamMemberProfile(
         program: _programController.text,
         yearOfStudy: _yearOfStudyController.text,
         skills: _skills,
@@ -620,7 +620,7 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
     if (UserProfileRules.needsTeamMember(_selectedRoles)) {
       sections.add(
         _profileBlock(
-          icon: AppIcons.student,
+          icon: AppIcons.teamMember,
           title: 'Team Member information',
           children: <Widget>[
             _labeledField('Program', TextField(controller: _programController, decoration: _fieldDecoration('Program'))),

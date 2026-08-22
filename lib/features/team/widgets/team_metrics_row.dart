@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import '../services/faculty_teams_service.dart';
+import '../services/teams_workspace_service.dart';
 
 /// Reusable metric row for team workspace screens.
 class TeamMetricsRow extends StatelessWidget {
   const TeamMetricsRow({
     super.key,
     required this.teamCount,
-    required this.totalStudents,
+    required this.totalTeamMembers,
     required this.activeIdeas,
     this.maxTeams,
     this.spacing = 10,
@@ -18,13 +18,13 @@ class TeamMetricsRow extends StatelessWidget {
   });
 
   final int teamCount;
-  final int totalStudents;
+  final int totalTeamMembers;
   final int activeIdeas;
   final int? maxTeams;
   final double spacing;
   final double runSpacing;
 
-  int get _maxTeams => maxTeams ?? FacultyTeamsService.maxTeamsPerLeader;
+  int get _maxTeams => maxTeams ?? TeamsWorkspaceService.maxTeamsPerLeader;
 
   int get _remainingSlots =>
       (_maxTeams - teamCount).clamp(0, _maxTeams).toInt();
@@ -34,7 +34,7 @@ class TeamMetricsRow extends StatelessWidget {
           value: '$teamCount/$_maxTeams',
           label: 'Teams',
         ),
-        MetricKpiSegment.count(totalStudents, 'Team Members'),
+        MetricKpiSegment.count(totalTeamMembers, 'Team Members'),
         MetricKpiSegment.count(activeIdeas, 'Ideas'),
         MetricKpiSegment.count(_remainingSlots, 'Slots'),
       ];
@@ -50,9 +50,9 @@ class TeamMetricsRow extends StatelessWidget {
         ),
         DashboardMetricChipData.single(
           label: 'Team Members',
-          value: '$totalStudents',
+          value: '$totalTeamMembers',
           color: const Color(0xFF0EA5E9),
-          icon: AppIcons.student,
+          icon: AppIcons.teamMember,
         ),
         DashboardMetricChipData.single(
           label: 'Active Ideas',
@@ -62,7 +62,7 @@ class TeamMetricsRow extends StatelessWidget {
         ),
         DashboardMetricChipData.single(
           label: 'Team Capacity',
-          value: FacultyTeamsService.capacityMessage(teamCount, maxTeams: _maxTeams),
+          value: TeamsWorkspaceService.capacityMessage(teamCount, maxTeams: _maxTeams),
           color: const Color(0xFF16A34A),
           icon: AppIcons.verification,
         ),

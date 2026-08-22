@@ -385,7 +385,7 @@ class _DepartmentOverviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int students = (dept['studentCount'] as int?) ?? 0;
+    final int teamMemberCount = (dept['teamMemberCount'] as int?) ?? 0;
     final String admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
     final bool hasAdmin = admin.isNotEmpty && admin != '-';
     final String name = (dept['name'] as String?) ?? '-';
@@ -402,13 +402,13 @@ class _DepartmentOverviewTile extends StatelessWidget {
               name: name,
               admin: admin,
               hasAdmin: hasAdmin,
-              students: students,
+              teamMemberCount: teamMemberCount,
             )
           : _buildDesktopLayout(
               name: name,
               admin: admin,
               hasAdmin: hasAdmin,
-              students: students,
+              teamMemberCount: teamMemberCount,
             ),
     );
   }
@@ -417,7 +417,7 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String name,
     required String admin,
     required bool hasAdmin,
-    required int students,
+    required int teamMemberCount,
   }) {
     return Row(
       children: <Widget>[
@@ -454,8 +454,8 @@ class _DepartmentOverviewTile extends StatelessWidget {
                     tooltip: 'Department admin',
                   ),
                 _DepartmentMetricPill(
-                  icon: AppIcons.student,
-                  label: '$students',
+                  icon: AppIcons.teamMember,
+                  label: '$teamMemberCount',
                   tooltip: 'Team Members',
                 ),
               ],
@@ -470,7 +470,7 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String name,
     required String admin,
     required bool hasAdmin,
-    required int students,
+    required int teamMemberCount,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -512,8 +512,8 @@ class _DepartmentOverviewTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 _DepartmentMetricCount(
-                  icon: AppIcons.student,
-                  count: students,
+                  icon: AppIcons.teamMember,
+                  count: teamMemberCount,
                   tooltip: 'Team Members',
                 ),
               ],

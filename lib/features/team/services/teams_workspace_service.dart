@@ -10,8 +10,8 @@ import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'team_service.dart';
 
-class FacultyTeamInsight {
-  const FacultyTeamInsight({
+class TeamWorkspaceInsight {
+  const TeamWorkspaceInsight({
     required this.team,
     required this.ideas,
     required this.paymentStatuses,
@@ -30,33 +30,33 @@ class FacultyTeamInsight {
   bool get isLocked => team.status == TeamStatus.locked || hasIdeas;
 }
 
-class FacultyTeamsWorkspaceData {
-  const FacultyTeamsWorkspaceData({
+class TeamsWorkspaceData {
+  const TeamsWorkspaceData({
     required this.teams,
-    required this.students,
-    required this.studentNamesById,
+    required this.teamMembers,
+    required this.memberNamesById,
     required this.insightsByTeamId,
     required this.problems,
   });
 
   final List<TeamModel> teams;
-  final List<UserModel> students;
-  final Map<String, String> studentNamesById;
-  final Map<String, FacultyTeamInsight> insightsByTeamId;
+  final List<UserModel> teamMembers;
+  final Map<String, String> memberNamesById;
+  final Map<String, TeamWorkspaceInsight> insightsByTeamId;
   final List<ProblemModel> problems;
 
-  int get totalStudents => teams.expand((team) => team.studentIds).toSet().length;
+  int get totalTeamMembers => teams.expand((team) => team.studentIds).toSet().length;
   int get activeIdeas => insightsByTeamId.values.fold<int>(0, (sum, insight) => sum + insight.ideas.length);
 }
 
-class FacultyTeamsService {
-  FacultyTeamsService._();
+class TeamsWorkspaceService {
+  TeamsWorkspaceService._();
 
   static const int maxTeamsPerLeader = 1;
-  static const int minStudentsPerTeam = 2;
-  static const int maxStudentsPerTeam = 4;
+  static const int minMembersPerTeam = 2;
+  static const int maxMembersPerTeam = 4;
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static final Map<String, FacultyTeamsWorkspaceData> _cache = <String, FacultyTeamsWorkspaceData>{};
+  static final Map<String, TeamsWorkspaceData> _cache = <String, TeamsWorkspaceData>{};
   static final Map<String, DateTime> _cacheAt = <String, DateTime>{};
   static const Duration _cacheTtl = Duration(minutes: 3);
 
@@ -65,29 +65,29 @@ class FacultyTeamsService {
     _cacheAt.clear();
   }
 
-  static void _invalidate(String facultyId) {
-    _cache.remove(facultyId);
-    _cacheAt.remove(facultyId);
+  static void _invalidate(String actorId) {
+    _cache.remove(actorId);
+    _cacheAt.remove(actorId);
   }
 
-  static Future<FacultyTeamsWorkspaceData> load(UserModel faculty, {bool forceRefresh = false}) async {
-    final cached = _cache[faculty.userId];
-    final cachedAt = _cacheAt[faculty.userId];
+  static Future<TeamsWorkspaceData> load(UserModel actor, {bool forceRefresh = false}) async {
+    final cached = _cache[actor.userId];
+    final cachedAt = _cacheAt[actor.userId];
     if (!forceRefresh && cached != null && cachedAt != null && DateTime.now().difference(cachedAt) < _cacheTtl) {
       return cached;
     }
 
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      TeamService.getTeamsLedBy(faculty.userId),
-      TeamService.getDepartmentStudents(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
-      TeamService.getDepartmentProblems(orgId: faculty.orgId, departmentCode: faculty.departmentCode),
-      _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: faculty.orgId).get(),
-      _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: faculty.orgId).get(),
-      _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: faculty.orgId).get(),
+      TeamService.getTeamsLedBy(actor.userId),
+      TeamService.getDepartmentTeamMembers(orgId: actor.orgId, departmentCode: actor.departmentCode),
+      TeamService.getDepartmentProblems(orgId: actor.orgId, departmentCode: actor.departmentCode),
+      _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: actor.orgId).get(),
+      _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: actor.orgId).get(),
+      _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: actor.orgId).get(),
     ]);
 
     final teams = results[0] as List<TeamModel>;
-    final students = sortUsersByDisplayName(results[1] as List<UserModel>);
+    final teamMembers = sortUsersByDisplayName(results[1] as List<UserModel>);
     final problems = results[2] as List<ProblemModel>;
     final teamIds = teams.map((team) => team.teamId).toSet();
     final ideas = (results[3] as QuerySnapshot<Map<String, dynamic>>)
@@ -118,10 +118,10 @@ class FacultyTeamsService {
       scoresByIdea[ideaId] = (scoresByIdea[ideaId] ?? 0) + 1;
     }
 
-    final insights = <String, FacultyTeamInsight>{};
+    final insights = <String, TeamWorkspaceInsight>{};
     for (final team in teams) {
       final teamIdeas = ideasByTeam[team.teamId] ?? const <IdeaModel>[];
-      insights[team.teamId] = FacultyTeamInsight(
+      insights[team.teamId] = TeamWorkspaceInsight(
         team: team,
         ideas: teamIdeas,
         paymentStatuses: teamIdeas
@@ -132,15 +132,15 @@ class FacultyTeamsService {
       );
     }
 
-    final data = FacultyTeamsWorkspaceData(
+    final data = TeamsWorkspaceData(
       teams: teams,
-      students: students,
-      studentNamesById: <String, String>{for (final student in students) student.userId: userDisplayName(student)},
+      teamMembers: teamMembers,
+      memberNamesById: <String, String>{for (final member in teamMembers) member.userId: userDisplayName(member)},
       insightsByTeamId: insights,
       problems: problems,
     );
-    _cache[faculty.userId] = data;
-    _cacheAt[faculty.userId] = DateTime.now();
+    _cache[actor.userId] = data;
+    _cacheAt[actor.userId] = DateTime.now();
     return data;
   }
 
@@ -159,26 +159,26 @@ class FacultyTeamsService {
   }
 
   static Future<void> saveTeam({
-    required UserModel faculty,
+    required UserModel actor,
     required String teamName,
     required Set<String> studentIds,
     required String teamLeaderId,
     required List<TeamModel> existingTeams,
-    required List<UserModel> departmentStudents,
+    required List<UserModel> departmentTeamMembers,
     TeamModel? editingTeam,
   }) async {
     await TeamService.validateTeamUpsert(
-      actor: faculty,
+      actor: actor,
       teamName: teamName,
-      selectedStudentIds: studentIds,
+      selectedMemberIds: studentIds,
       teamLeaderId: teamLeaderId,
       existingTeams: existingTeams,
-      departmentStudents: departmentStudents,
+      departmentTeamMembers: departmentTeamMembers,
       editingTeam: editingTeam,
     );
     if (editingTeam == null) {
       await TeamService.createTeam(
-        actor: faculty,
+        actor: actor,
         teamName: teamName,
         studentIds: studentIds,
         teamLeaderId: teamLeaderId,
@@ -191,7 +191,7 @@ class FacultyTeamsService {
         teamLeaderId: teamLeaderId,
       );
     }
-    _invalidate(faculty.userId);
+    _invalidate(actor.userId);
   }
 
   static Future<void> disableTeam(TeamModel team, {required UserModel actor}) async {
@@ -202,8 +202,8 @@ class FacultyTeamsService {
       <String, dynamic>{'status': TeamStatus.inactive.value},
       SetOptions(merge: true),
     );
-    for (final studentId in team.studentIds) {
-      batch.set(_db.collection(FirestoreUtils.hkzUsers).doc(studentId), <String, dynamic>{'teamId': null}, SetOptions(merge: true));
+    for (final memberId in team.studentIds) {
+      batch.set(_db.collection(FirestoreUtils.hkzUsers).doc(memberId), <String, dynamic>{'teamId': null}, SetOptions(merge: true));
     }
     await batch.commit();
     clearCache();

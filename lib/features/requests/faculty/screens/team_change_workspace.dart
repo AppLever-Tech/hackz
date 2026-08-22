@@ -6,9 +6,9 @@ import '../../../user/models/user_model.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../utils/common_helpers.dart';
-import '../../../team/services/faculty_teams_service.dart';
+import '../../../team/services/teams_workspace_service.dart';
 import '../../../team/services/team_service.dart';
-import '../../../team/widgets/team_student_selector.dart';
+import '../../../team/widgets/team_member_selector.dart';
 import '../../models/team_change_request.dart';
 import '../../models/workflow_request.dart';
 import '../../models/workflow_request_type.dart';
@@ -28,13 +28,13 @@ import 'package:hackz/core/ui/common/context_pill_theme.dart';
 ///
 /// Replaces the previous direct-edit dialog and routes every membership
 /// change through an approval workflow. Reuses the platform's responsive
-/// helpers + the existing [TeamStudentSelector] for the add/remove UX.
+/// helpers + the existing [TeamMemberSelector] for the add/remove UX.
 class TeamChangeWorkspace extends StatefulWidget {
   const TeamChangeWorkspace({
     super.key,
     required this.faculty,
     required this.team,
-    required this.departmentStudents,
+    required this.departmentTeamMembers,
     required this.hasEvaluation,
     this.embedded = false,
     this.onBack,
@@ -43,7 +43,7 @@ class TeamChangeWorkspace extends StatefulWidget {
 
   final UserModel faculty;
   final TeamModel team;
-  final List<UserModel> departmentStudents;
+  final List<UserModel> departmentTeamMembers;
   final bool hasEvaluation;
   final bool embedded;
   final VoidCallback? onBack;
@@ -56,7 +56,7 @@ class TeamChangeWorkspace extends StatefulWidget {
 class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   late final Set<String> _proposedIds;
   late final Set<String> _currentIds;
-  late final Map<String, UserModel> _studentsById;
+  late final Map<String, UserModel> _membersById;
   final TextEditingController _reasonController = TextEditingController();
   bool _submitting = false;
 
@@ -67,8 +67,8 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     super.initState();
     _currentIds = widget.team.studentIds.toSet();
     _proposedIds = Set<String>.from(_currentIds);
-    _studentsById = <String, UserModel>{
-      for (final UserModel s in widget.departmentStudents) s.userId: s,
+    _membersById = <String, UserModel>{
+      for (final UserModel s in widget.departmentTeamMembers) s.userId: s,
     };
     _reasonController.addListener(() {
       if (mounted) setState(() {});
@@ -99,20 +99,20 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     final WorkflowRequest preview = TeamChangeRequestService.buildRequest(
       team: widget.team,
       faculty: widget.faculty,
-      proposedStudentIds: _proposedIds,
-      studentLookup: _studentsById,
+      proposedMemberIds: _proposedIds,
+      memberLookup: _membersById,
       reason: _reasonController.text,
       hasEvaluation: widget.hasEvaluation,
     );
     return TeamChangePayload.fromMap(preview.payload);
   }
 
-  List<UserModel> get _eligibleStudents {
-    return widget.departmentStudents.where((UserModel student) {
-      final String assignedTeamId = (student.teamId ?? '').trim();
+  List<UserModel> get _eligibleTeamMembers {
+    return widget.departmentTeamMembers.where((UserModel member) {
+      final String assignedTeamId = (member.teamId ?? '').trim();
       return assignedTeamId.isEmpty ||
           assignedTeamId == widget.team.teamId ||
-          _proposedIds.contains(student.userId);
+          _proposedIds.contains(member.userId);
     }).toList(growable: false);
   }
 
@@ -130,11 +130,11 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   /// when the request is ready to submit). Surfaced in the sticky footer so
   /// faculty always know what to fix.
   String? get _blockingReason {
-    if (_proposedIds.length < TeamChangeRequestService.minStudentsPerTeam) {
-      return 'Add at least ${TeamChangeRequestService.minStudentsPerTeam} team members.';
+    if (_proposedIds.length < TeamChangeRequestService.minMembersPerTeam) {
+      return 'Add at least ${TeamChangeRequestService.minMembersPerTeam} team members.';
     }
-    if (_proposedIds.length > TeamChangeRequestService.maxStudentsPerTeam) {
-      return 'Remove a team member — teams allow at most ${TeamChangeRequestService.maxStudentsPerTeam}.';
+    if (_proposedIds.length > TeamChangeRequestService.maxMembersPerTeam) {
+      return 'Remove a team member — teams allow at most ${TeamChangeRequestService.maxMembersPerTeam}.';
     }
     if (!_hasChanges) {
       return 'No member changes — add or remove at least one team member.';
@@ -163,16 +163,16 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     try {
       TeamService.assertCanManageTeam(widget.faculty, widget.team);
       TeamChangeRequestService.validateProposed(
-        proposedStudentIds: _proposedIds,
-        currentStudentIds: _currentIds,
+        proposedMemberIds: _proposedIds,
+        currentMemberIds: _currentIds,
         reason: _reasonController.text,
         teamLeaderId: widget.team.teamLeaderId,
       );
       final WorkflowRequest request = TeamChangeRequestService.buildRequest(
         team: widget.team,
         faculty: widget.faculty,
-        proposedStudentIds: _proposedIds,
-        studentLookup: _studentsById,
+        proposedMemberIds: _proposedIds,
+        memberLookup: _membersById,
         reason: _reasonController.text,
         hasEvaluation: widget.hasEvaluation,
       );
@@ -309,7 +309,7 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   Widget _buildCurrentTeamSection() {
     final List<TeamMemberSnapshot> current = widget.team.studentIds
         .map((String id) {
-          final UserModel? user = _studentsById[id];
+          final UserModel? user = _membersById[id];
           return TeamMemberSnapshot(
             userId: id,
             displayName: user == null ? id : userDisplayName(user),
@@ -343,15 +343,15 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
 
   Widget _buildProposedTeamSection() {
     final int count = _proposedIds.length;
-    final bool belowMin = count < TeamChangeRequestService.minStudentsPerTeam;
-    final bool atMax = count >= TeamChangeRequestService.maxStudentsPerTeam;
-    final int freeCount = _eligibleStudents
+    final bool belowMin = count < TeamChangeRequestService.minMembersPerTeam;
+    final bool atMax = count >= TeamChangeRequestService.maxMembersPerTeam;
+    final int freeCount = _eligibleTeamMembers
         .where((UserModel s) => !_proposedIds.contains(s.userId))
         .length;
     return RequestWorkspaceSection(
       title: 'Proposed team',
       subtitle:
-          'Pick the team members who should be on this team. Range: ${TeamChangeRequestService.minStudentsPerTeam}–${TeamChangeRequestService.maxStudentsPerTeam}. '
+          'Pick the team members who should be on this team. Range: ${TeamChangeRequestService.minMembersPerTeam}–${TeamChangeRequestService.maxMembersPerTeam}. '
           '$freeCount team member${freeCount == 1 ? '' : 's'} available to add.',
       leading: _sectionIcon(AppIcons.add, const Color(0xFF6A38FF)),
       trailing: Container(
@@ -368,7 +368,7 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
           ),
         ),
         child: Text(
-          '$count / ${TeamChangeRequestService.maxStudentsPerTeam}',
+          '$count / ${TeamChangeRequestService.maxMembersPerTeam}',
           style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
@@ -381,10 +381,10 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          TeamStudentSelector(
-            students: _eligibleStudents,
+          TeamMemberSelector(
+            members: _eligibleTeamMembers,
             selectedIds: _proposedIds,
-            maxSelection: TeamChangeRequestService.maxStudentsPerTeam,
+            maxSelection: TeamChangeRequestService.maxMembersPerTeam,
             enabled: !_submitting,
             initiallyExpanded: true,
             onChanged: (Set<String> next) => setState(() {
@@ -410,17 +410,17 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     final IconData icon;
     if (belowMin) {
       message =
-          'Add at least ${TeamChangeRequestService.minStudentsPerTeam} team members. Available members from the department appear in the list above.';
+          'Add at least ${TeamChangeRequestService.minMembersPerTeam} team members. Available members from the department appear in the list above.';
       tone = const Color(0xFFB45309);
       icon = AppIcons.workflowPendingReview;
     } else if (atMax) {
       message =
-          'Team is at the maximum of ${TeamChangeRequestService.maxStudentsPerTeam} team members. Remove a member to add a different team member.';
+          'Team is at the maximum of ${TeamChangeRequestService.maxMembersPerTeam} team members. Remove a member to add a different team member.';
       tone = const Color(0xFF047857);
       icon = AppIcons.workflowApproved;
     } else {
       message =
-          'Minimum ${TeamChangeRequestService.minStudentsPerTeam} · Maximum ${TeamChangeRequestService.maxStudentsPerTeam} team members. Only department team members not already on another team are shown.';
+          'Minimum ${TeamChangeRequestService.minMembersPerTeam} · Maximum ${TeamChangeRequestService.maxMembersPerTeam} team members. Only department team members not already on another team are shown.';
       tone = const Color(0xFF64748B);
       icon = AppIcons.statusActive;
     }
@@ -711,7 +711,7 @@ class _Hero extends StatelessWidget {
               ContextPill(
                 label: userDisplayName(faculty),
                 semantic: ContextPillSemantic.user,
-                icon: AppIcons.student,
+                icon: AppIcons.teamMember,
                 onTap: () => WorkspaceNavigator.openUser(context, faculty.userId),
                 compact: true,
               ),
@@ -851,11 +851,11 @@ class _Footer extends StatelessWidget {
   }
 }
 
-/// Tiny façade around the existing [FacultyTeamInsight] so callers can ask the
+/// Tiny façade around the existing [TeamWorkspaceInsight] so callers can ask the
 /// "should I show evaluation warnings?" question without depending on
 /// implementation details.
 class TeamChangeWorkspaceController {
   TeamChangeWorkspaceController._();
 
-  static bool hasEvaluation(FacultyTeamInsight insight) => insight.hasEvaluation;
+  static bool hasEvaluation(TeamWorkspaceInsight insight) => insight.hasEvaluation;
 }

@@ -38,7 +38,7 @@ class TeamMemberDiffChip extends StatelessWidget {
     final Widget pill = ContextPill(
       label: label,
       semantic: ContextPillSemantic.user,
-      icon: AppIcons.student,
+      icon: AppIcons.teamMember,
       onTap: () => WorkspaceNavigator.openUser(context, member.userId),
       compact: true,
     );

@@ -3,7 +3,7 @@ import '../models/profiles/college_admin_profile.dart';
 import '../models/profiles/department_admin_profile.dart';
 import '../models/profiles/judge_profile.dart';
 import '../models/profiles/professional_profile.dart';
-import '../models/profiles/student_profile.dart';
+import '../models/profiles/team_member_profile.dart';
 import '../models/profiles/user_profile.dart';
 
 /// Determines which profile sections apply for a set of role codes.
@@ -24,14 +24,14 @@ abstract final class UserProfileRules {
   static UserProfile buildProfile({
     required Set<String> roleCodes,
     ProfessionalProfile? professional,
-    StudentProfile? student,
+    TeamMemberProfile? teamMember,
     JudgeProfile? judge,
     DepartmentAdminProfile? departmentAdmin,
     CollegeAdminProfile? collegeAdmin,
   }) {
     return UserProfile(
       professionalProfile: needsProfessional(roleCodes) ? professional : null,
-      studentProfile: needsTeamMember(roleCodes) ? student : null,
+      teamMemberProfile: needsTeamMember(roleCodes) ? teamMember : null,
       judgeProfile: needsJudge(roleCodes) ? judge : null,
       departmentAdminProfile: needsDepartmentAdmin(roleCodes) ? departmentAdmin : null,
       collegeAdminProfile: needsCollegeAdmin(roleCodes) ? collegeAdmin : null,

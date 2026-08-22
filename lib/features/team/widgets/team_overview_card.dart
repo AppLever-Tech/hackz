@@ -4,27 +4,27 @@ import '../../../core/theme/app_icons.dart';
 import '../../user/models/user_model.dart';
 import '../models/enums/team_status.dart';
 import '../../../utils/common_helpers.dart' show formatDateTime, sortUsersByDisplayName;
-import '../../../features/dashboard/student/services/student_dashboard_service.dart';
+import '../../../features/dashboard/team_member/services/team_member_dashboard_service.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/common/form_value_row.dart';
 import '../../../core/workspace/user_list_identity_lead.dart';
 
-/// Student dashboard team panel — form layout aligned with [StudentDashboard] My Details.
-class StudentTeamOverviewCard extends StatelessWidget {
-  const StudentTeamOverviewCard({
+/// Team member dashboard team panel — form layout aligned with [TeamMemberDashboard] My Details.
+class TeamOverviewCard extends StatelessWidget {
+  const TeamOverviewCard({
     super.key,
     required this.vm,
     this.compact = false,
   });
 
-  final StudentDashboardVm vm;
+  final TeamMemberDashboardVm vm;
   final bool compact;
 
   static const double _labelWidth = 96;
   static const double _labelGap = EntityCardStyles.labelGap;
-  static const double _studentLabelTopInset = 7;
+  static const double _memberLabelTopInset = 7;
   static const Alignment _labelAlignment = Alignment.centerLeft;
 
   double get _rowGap => compact ? 8 : 8;
@@ -82,7 +82,7 @@ class StudentTeamOverviewCard extends StatelessWidget {
           labelWidth: _labelWidth,
           labelGap: _labelGap,
           label: 'Leader',
-          labelIcon: AppIcons.student,
+          labelIcon: AppIcons.teamMember,
           labelAlignment: _labelAlignment,
           child: _leaderLead(),
         ),
@@ -91,10 +91,10 @@ class StudentTeamOverviewCard extends StatelessWidget {
           labelWidth: _labelWidth,
           labelGap: _labelGap,
           label: 'Team Members',
-          labelIcon: AppIcons.student,
+          labelIcon: AppIcons.teamMember,
           labelAlignment: _labelAlignment,
           crossAxisAlignment: CrossAxisAlignment.start,
-          labelTopInset: _studentLabelTopInset,
+          labelTopInset: _memberLabelTopInset,
           child: _studentsLead(context, members),
         ),
         SizedBox(height: _rowGap),

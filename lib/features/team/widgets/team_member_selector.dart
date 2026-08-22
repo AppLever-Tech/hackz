@@ -7,11 +7,11 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
-/// Searchable inline student picker with selected user workspace pills.
-class TeamStudentSelector extends StatefulWidget {
-  const TeamStudentSelector({
+/// Searchable inline team member picker with selected user workspace pills.
+class TeamMemberSelector extends StatefulWidget {
+  const TeamMemberSelector({
     super.key,
-    required this.students,
+    required this.members,
     required this.selectedIds,
     required this.onChanged,
     required this.maxSelection,
@@ -22,7 +22,7 @@ class TeamStudentSelector extends StatefulWidget {
 
   static const double listMaxHeight = 200;
 
-  final List<UserModel> students;
+  final List<UserModel> members;
   final Set<String> selectedIds;
   final ValueChanged<Set<String>> onChanged;
   final int maxSelection;
@@ -33,14 +33,14 @@ class TeamStudentSelector extends StatefulWidget {
   /// When `null` (default) the picker auto-opens only when nothing is selected
   /// yet — which matches the create-team UX. Pass `true` in flows like
   /// "Request Team Change" where the team already has members but the user
-  /// still needs the picker visible to add/swap students.
+  /// still needs the picker visible to add/swap team members.
   final bool? initiallyExpanded;
 
   @override
-  State<TeamStudentSelector> createState() => _TeamStudentSelectorState();
+  State<TeamMemberSelector> createState() => _TeamMemberSelectorState();
 }
 
-class _TeamStudentSelectorState extends State<TeamStudentSelector> {
+class _TeamMemberSelectorState extends State<TeamMemberSelector> {
   final TextEditingController _searchController = TextEditingController();
   late bool _expanded;
 
@@ -50,7 +50,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
     _expanded = widget.initiallyExpanded ?? widget.selectedIds.isEmpty;
   }
 
-  bool get _showSearch => widget.students.length > widget.searchThreshold;
+  bool get _showSearch => widget.members.length > widget.searchThreshold;
 
   @override
   void dispose() {
@@ -58,9 +58,9 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
     super.dispose();
   }
 
-  List<UserModel> get _filteredStudents {
+  List<UserModel> get _filteredMembers {
     final String query = _searchController.text.trim().toLowerCase();
-    final Iterable<UserModel> source = widget.students.where((UserModel s) {
+    final Iterable<UserModel> source = widget.members.where((UserModel s) {
       if (query.isEmpty) return true;
       final String name = userDisplayName(s).toLowerCase();
       return name.contains(query) || s.email.toLowerCase().contains(query);
@@ -68,25 +68,25 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
     return sortUsersByDisplayName(source);
   }
 
-  void _toggleStudent(UserModel student) {
+  void _toggleMember(UserModel member) {
     final Set<String> next = Set<String>.from(widget.selectedIds);
-    if (next.contains(student.userId)) {
-      next.remove(student.userId);
+    if (next.contains(member.userId)) {
+      next.remove(member.userId);
     } else {
       if (next.length >= widget.maxSelection) return;
-      next.add(student.userId);
+      next.add(member.userId);
     }
     widget.onChanged(next);
   }
 
-  void _removeStudent(String userId) {
+  void _removeMember(String userId) {
     final Set<String> next = Set<String>.from(widget.selectedIds)..remove(userId);
     widget.onChanged(next);
   }
 
-  UserModel? _studentById(String id) {
-    for (final UserModel student in widget.students) {
-      if (student.userId == id) return student;
+  UserModel? _memberById(String id) {
+    for (final UserModel member in widget.members) {
+      if (member.userId == id) return member;
     }
     return null;
   }
@@ -94,7 +94,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
   @override
   Widget build(BuildContext context) {
     final List<UserModel> selected = widget.selectedIds
-        .map(_studentById)
+        .map(_memberById)
         .whereType<UserModel>()
         .toList(growable: false);
     final List<UserModel> sortedSelected = sortUsersByDisplayName(selected);
@@ -154,13 +154,13 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
         ContextPill(
           label: userDisplayName(student),
           semantic: ContextPillSemantic.user,
-          icon: AppIcons.student,
+          icon: AppIcons.teamMember,
           onTap: () => WorkspaceNavigator.openUser(context, student.userId),
           compact: true,
         ),
         if (widget.enabled)
           IconButton(
-            onPressed: () => _removeStudent(student.userId),
+            onPressed: () => _removeMember(student.userId),
             icon: const Icon(Icons.close, size: 16),
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
@@ -172,7 +172,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
   }
 
   Widget _buildPickerPanel(BuildContext context) {
-    final List<UserModel> visible = _filteredStudents;
+    final List<UserModel> visible = _filteredMembers;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -216,7 +216,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
             )
           else
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: TeamStudentSelector.listMaxHeight),
+              constraints: const BoxConstraints(maxHeight: TeamMemberSelector.listMaxHeight),
               child: ListView.separated(
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
@@ -224,7 +224,7 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
                 separatorBuilder: (_, __) => const SizedBox(height: 4),
                 itemBuilder: (BuildContext context, int index) {
                   final UserModel student = visible[index];
-                  return _studentPickerTile(context, student);
+                  return _memberPickerTile(context, student);
                 },
               ),
             ),
@@ -233,14 +233,14 @@ class _TeamStudentSelectorState extends State<TeamStudentSelector> {
     );
   }
 
-  Widget _studentPickerTile(BuildContext context, UserModel student) {
+  Widget _memberPickerTile(BuildContext context, UserModel student) {
     final bool selected = widget.selectedIds.contains(student.userId);
     final bool atLimit = !selected && widget.selectedIds.length >= widget.maxSelection;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.enabled && !atLimit ? () => _toggleStudent(student) : null,
+        onTap: widget.enabled && !atLimit ? () => _toggleMember(student) : null,
         borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),

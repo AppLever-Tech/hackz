@@ -77,7 +77,7 @@ class TeamService {
     }
   }
 
-  static Future<List<UserModel>> getDepartmentStudents({
+  static Future<List<UserModel>> getDepartmentTeamMembers({
     required String orgId,
     required String departmentCode,
   }) =>
@@ -101,10 +101,10 @@ class TeamService {
   static Future<void> validateTeamUpsert({
     required UserModel actor,
     required String teamName,
-    required Set<String> selectedStudentIds,
+    required Set<String> selectedMemberIds,
     required String teamLeaderId,
     required List<TeamModel> existingTeams,
-    required List<UserModel> departmentStudents,
+    required List<UserModel> departmentTeamMembers,
     TeamModel? editingTeam,
   }) async {
     final String trimmedName = teamName.trim();
@@ -118,16 +118,16 @@ class TeamService {
         throw TeamRuleException('A team with this name already exists. Choose a different name.');
       }
     }
-    if (selectedStudentIds.length < 2 || selectedStudentIds.length > 4) {
+    if (selectedMemberIds.length < 2 || selectedMemberIds.length > 4) {
       throw TeamRuleException('Team size must be between 2 and 4 team members.');
     }
-    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedStudentIds);
+    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedMemberIds);
 
     final UserRole role = UserRole.fromCode(actor.role);
     if (role != UserRole.teamMember) {
       throw TeamRuleException('Only a team leader can create or update a team.');
     }
-    if (!selectedStudentIds.contains(actor.userId.trim())) {
+    if (!selectedMemberIds.contains(actor.userId.trim())) {
       throw TeamRuleException('The team leader must be a member of the team.');
     }
     if (teamLeaderId.trim() != actor.userId.trim()) {
@@ -142,16 +142,16 @@ class TeamService {
     }
 
     final deptCode = actor.departmentCode.trim().toUpperCase();
-    final studentsById = <String, UserModel>{for (final s in departmentStudents) s.userId: s};
-    for (final studentId in selectedStudentIds) {
-      final student = studentsById[studentId];
-      if (student == null) {
+    final membersById = <String, UserModel>{for (final s in departmentTeamMembers) s.userId: s};
+    for (final memberId in selectedMemberIds) {
+      final member = membersById[memberId];
+      if (member == null) {
         throw TeamRuleException('Selected team member not found in department.');
       }
-      if (student.departmentCode.trim().toUpperCase() != deptCode) {
+      if (member.departmentCode.trim().toUpperCase() != deptCode) {
         throw TeamRuleException('All team members must belong to the same department.');
       }
-      final existingTeamId = (student.teamId ?? '').trim();
+      final existingTeamId = (member.teamId ?? '').trim();
       if (existingTeamId.isNotEmpty && existingTeamId != editingTeam?.teamId) {
         throw TeamRuleException('A team member can belong to only one team.');
       }
@@ -339,7 +339,7 @@ class TeamService {
     }
   }
 
-  static Future<bool> canSwitchStudentTeam({
+  static Future<bool> canSwitchMemberTeam({
     required String? currentTeamId,
   }) async {
     final teamId = (currentTeamId ?? '').trim();

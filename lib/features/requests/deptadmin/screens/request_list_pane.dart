@@ -388,7 +388,7 @@ class _RequestListTile extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: <Widget>[
-                  const Icon(AppIcons.student, size: 12, color: Color(0xFF64748B)),
+                  const Icon(AppIcons.teamMember, size: 12, color: Color(0xFF64748B)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(

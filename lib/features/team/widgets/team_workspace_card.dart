@@ -6,7 +6,7 @@ import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../models/team_model.dart';
 import '../../../utils/common_helpers.dart';
-import '../services/faculty_teams_service.dart';
+import '../services/teams_workspace_service.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../../core/ui/common/card_overflow_menu.dart';
@@ -22,30 +22,30 @@ class TeamWorkspaceCard extends StatelessWidget {
     required this.team,
     required this.insight,
     required this.mentorUser,
-    required this.studentsById,
-    required this.studentNamesById,
+    required this.membersById,
+    required this.memberNamesById,
     required this.onEdit,
     required this.onViewIdeas,
     required this.onDisable,
   });
 
   final TeamModel team;
-  final FacultyTeamInsight insight;
+  final TeamWorkspaceInsight insight;
   final UserModel mentorUser;
-  final Map<String, UserModel> studentsById;
-  final Map<String, String> studentNamesById;
+  final Map<String, UserModel> membersById;
+  final Map<String, String> memberNamesById;
   final VoidCallback onEdit;
   final VoidCallback onViewIdeas;
   final VoidCallback onDisable;
 
   static const double _labelWidth = 52;
   static const double _labelGap = 4;
-  static const double _studentLabelTopInset = 7;
+  static const double _memberLabelTopInset = 7;
   static const Alignment _labelAlignment = Alignment.centerLeft;
 
   @override
   Widget build(BuildContext context) {
-    final List<String> sortedStudentIds = sortUserIdsByDisplayName(team.studentIds, studentNamesById);
+    final List<String> sortedMemberIds = sortUserIdsByDisplayName(team.studentIds, memberNamesById);
     final bool isInactive = team.status.name == 'inactive';
 
     return Container(
@@ -133,8 +133,8 @@ class TeamWorkspaceCard extends StatelessWidget {
             label: 'Team Members',
             labelAlignment: _labelAlignment,
             crossAxisAlignment: CrossAxisAlignment.start,
-            labelTopInset: _studentLabelTopInset,
-            child: _buildStudentsValue(context, sortedStudentIds),
+            labelTopInset: _memberLabelTopInset,
+            child: _buildMembersValue(context, sortedMemberIds),
           ),
           const SizedBox(height: 8),
           TeamIdeaSummaryWidget(insight: insight),
@@ -168,24 +168,24 @@ class TeamWorkspaceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStudentsValue(BuildContext context, List<String> sortedStudentIds) {
-    if (sortedStudentIds.isEmpty) {
+  Widget _buildMembersValue(BuildContext context, List<String> sortedMemberIds) {
+    if (sortedMemberIds.isEmpty) {
       return const Text('No team members assigned', style: EntityCardStyles.plainValue);
     }
 
     final bool mobile = ResponsiveHelper.isMobile(context);
-    final List<UserModel> students = sortedStudentIds
-        .map((String id) => _resolveStudent(id))
+    final List<UserModel> members = sortedMemberIds
+        .map((String id) => _resolveMember(id))
         .toList(growable: false);
 
     if (mobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          for (int i = 0; i < students.length; i++) ...<Widget>[
+          for (int i = 0; i < members.length; i++) ...<Widget>[
             if (i > 0) const SizedBox(height: 6),
             UserListIdentityLead(
-              user: students[i],
+              user: members[i],
               avatarRadius: 12,
             ),
           ],
@@ -194,22 +194,22 @@ class TeamWorkspaceCard extends StatelessWidget {
     }
 
     final List<Widget> rows = <Widget>[];
-    for (int i = 0; i < students.length; i += 2) {
+    for (int i = 0; i < members.length; i += 2) {
       if (i > 0) rows.add(const SizedBox(height: 6));
       rows.add(
         Row(
           children: <Widget>[
             Expanded(
               child: UserListIdentityLead(
-                user: students[i],
+                user: members[i],
                 avatarRadius: 12,
               ),
             ),
-            if (i + 1 < students.length) ...<Widget>[
+            if (i + 1 < members.length) ...<Widget>[
               const SizedBox(width: 8),
               Expanded(
                 child: UserListIdentityLead(
-                  user: students[i + 1],
+                  user: members[i + 1],
                   avatarRadius: 12,
                 ),
               ),
@@ -232,7 +232,7 @@ class TeamWorkspaceCard extends StatelessWidget {
       return const Text('—', style: EntityCardStyles.plainValue);
     }
     return UserListIdentityLead(
-      user: _resolveStudent(leaderId),
+      user: _resolveMember(leaderId),
       avatarRadius: 12,
     );
   }
@@ -245,14 +245,14 @@ class TeamWorkspaceCard extends StatelessWidget {
     if (mentorUser.userId == mentorId) {
       return mentorUser;
     }
-    return studentsById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: '');
+    return membersById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: '');
   }
 
-  UserModel _resolveStudent(String studentId) {
-    return studentsById[studentId] ??
+  UserModel _resolveMember(String memberId) {
+    return membersById[memberId] ??
         _stubUser(
-          studentId,
-          (studentNamesById[studentId] ?? studentId).trim(),
+          memberId,
+          (memberNamesById[memberId] ?? memberId).trim(),
           role: UserRole.teamMember.code,
         );
   }

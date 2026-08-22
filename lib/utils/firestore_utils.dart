@@ -402,7 +402,7 @@ class FirestoreUtils {
           'departmentAdmin': '-',
           'totalUsers': 0,
           'facultyCount': 0,
-          'studentCount': 0,
+          'teamMemberCount': 0,
         },
       );
       current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
@@ -431,7 +431,7 @@ class FirestoreUtils {
           'departmentAdmin': '-',
           'totalUsers': 0,
           'facultyCount': 0,
-          'studentCount': 0,
+          'teamMemberCount': 0,
         },
       );
       current['totalUsers'] = (current['totalUsers'] as int) + 1;
@@ -439,7 +439,7 @@ class FirestoreUtils {
         current['departmentAdmin'] = fullName;
       }
       if (role == UserRole.teamMember.code) {
-        current['studentCount'] = (current['studentCount'] as int) + 1;
+        current['teamMemberCount'] = (current['teamMemberCount'] as int) + 1;
       }
 
       final userModel = UserModel.fromMap(data);
@@ -797,7 +797,7 @@ class FirestoreUtils {
     final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
     final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
 
-    int totalStudents = 0;
+    int totalTeamMembers = 0;
     int totalIdeas = 0;
     int activeIdeas = 0;
     int submitted = 0;
@@ -809,7 +809,7 @@ class FirestoreUtils {
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       final role = ((data['role'] as String?) ?? '').trim();
       if (role == UserRole.teamMember.code) {
-        totalStudents++;
+        totalTeamMembers++;
       }
     }
 
@@ -834,7 +834,7 @@ class FirestoreUtils {
     }).length;
 
     return <String, dynamic>{
-      'totalStudents': totalStudents,
+      'totalTeamMembers': totalTeamMembers,
       'totalIdeas': totalIdeas,
       'activeIdeas': activeIdeas,
       'totalJudges': totalJudges,
@@ -968,7 +968,7 @@ class FirestoreUtils {
 
   /// One payment document per idea: document id is [PaymentModel.ideaId].
   /// Creates new, or replaces a **rejected** record (legacy random doc ids are migrated away).
-  static Future<String> saveStudentIdeaPayment(PaymentModel payment) async {
+  static Future<String> saveIdeaPayment(PaymentModel payment) async {
     final ideaKey = payment.ideaId.trim();
     if (ideaKey.isEmpty) {
       throw StateError('ideaId is required for payment.');

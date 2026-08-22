@@ -17,11 +17,11 @@ abstract final class UserProfileDetails {
       _addList(rows, 'Expertise', professional.expertiseAreas);
     }
 
-    final student = profile.studentProfile;
-    if (student != null && !student.isEmpty) {
-      _add(rows, 'Program', student.program);
-      _add(rows, 'Year of study', student.yearOfStudy);
-      _addList(rows, 'Skills', student.skills);
+    final teamMember = profile.teamMemberProfile;
+    if (teamMember != null && !teamMember.isEmpty) {
+      _add(rows, 'Program', teamMember.program);
+      _add(rows, 'Year of study', teamMember.yearOfStudy);
+      _addList(rows, 'Skills', teamMember.skills);
     }
 
     final judge = profile.judgeProfile;

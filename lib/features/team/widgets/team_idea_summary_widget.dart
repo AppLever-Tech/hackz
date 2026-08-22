@@ -4,7 +4,7 @@ import '../../../core/theme/app_icons.dart';
 import '../models/enums/team_status.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../utils/common_helpers.dart';
-import '../services/faculty_teams_service.dart';
+import '../services/teams_workspace_service.dart';
 
 class TeamIdeaSummaryWidget extends StatelessWidget {
   const TeamIdeaSummaryWidget({
@@ -12,7 +12,7 @@ class TeamIdeaSummaryWidget extends StatelessWidget {
     required this.insight,
   });
 
-  final FacultyTeamInsight insight;
+  final TeamWorkspaceInsight insight;
 
   @override
   Widget build(BuildContext context) {

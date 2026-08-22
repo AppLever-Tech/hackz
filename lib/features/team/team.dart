@@ -6,7 +6,7 @@ export 'models/enums/team_status.dart';
 export 'models/team_model.dart';
 
 // Services
-export 'services/faculty_teams_service.dart';
+export 'services/teams_workspace_service.dart';
 export 'services/team_service.dart';
 
 // Screens
@@ -16,12 +16,12 @@ export 'screens/team_registration_screen.dart';
 export 'screens/teams_screen.dart';
 
 // Widgets
-export 'widgets/student_team_overview_card.dart';
+export 'widgets/team_overview_card.dart';
 export 'widgets/team_action_bar.dart';
 export 'widgets/team_capacity_widget.dart';
 export 'widgets/team_idea_summary_widget.dart';
 export 'widgets/team_status_pill.dart';
-export 'widgets/team_student_selector.dart';
+export 'widgets/team_member_selector.dart';
 export 'widgets/team_workspace_card.dart';
 
 // Workspace

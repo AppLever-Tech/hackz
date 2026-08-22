@@ -65,10 +65,10 @@ class ImportSummaryMetrics extends StatelessWidget {
   static (Color, IconData) _lookFor(String label) {
     return switch (label) {
       'Teams' => (const Color(0xFF4A67FF), AppIcons.teams),
-      'Members' => (const Color(0xFF6A38FF), AppIcons.student),
+      'Members' => (const Color(0xFF6A38FF), AppIcons.teamMember),
       'Team Leaders' => (const Color(0xFF0EA5E9), AppIcons.users),
       'Existing Users' => (const Color(0xFF047857), AppIcons.workflowApproved),
-      'New Users' => (const Color(0xFF7C3AED), AppIcons.student),
+      'New Users' => (const Color(0xFF7C3AED), AppIcons.teamMember),
       'Warnings' => (const Color(0xFFEA580C), AppIcons.info),
       'Errors' => (const Color(0xFFB91C1C), AppIcons.workflowRejected),
       _ => (const Color(0xFF4A67FF), AppIcons.attachments),

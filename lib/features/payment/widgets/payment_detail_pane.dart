@@ -111,7 +111,7 @@ class PaymentDetailPane extends StatelessWidget {
           child: TeamContributionSection.fromModels(
             team: detail.team,
             mentor: detail.mentor,
-            students: detail.students,
+            members: detail.members,
             idea: detail.idea,
             problem: detail.problem,
           ),

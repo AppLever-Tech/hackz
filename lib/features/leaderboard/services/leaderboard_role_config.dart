@@ -16,7 +16,7 @@ class LeaderboardRoleConfig {
     required this.scopeDepartmentCode,
     required this.platformWide,
     required this.judgeEvaluationAnalyticsOnly,
-    required this.studentTeamId,
+    required this.teamMemberTeamId,
   });
 
   /// Tabs shown in the tab bar (subset allowed per role).
@@ -34,8 +34,8 @@ class LeaderboardRoleConfig {
   /// Judge: analytics / distributions only — no competitive final rankings UI.
   final bool judgeEvaluationAnalyticsOnly;
 
-  /// Student: optional team scope for team tab emphasis.
-  final String? studentTeamId;
+  /// Team Member: optional team scope for team tab emphasis.
+  final String? teamMemberTeamId;
 
   factory LeaderboardRoleConfig.forUser(UserModel user) {
     final role = UserRole.fromCode(user.role);
@@ -53,7 +53,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          studentTeamId: user.teamId?.trim().isEmpty ?? true ? null : user.teamId!.trim(),
+          teamMemberTeamId: user.teamId?.trim().isEmpty ?? true ? null : user.teamId!.trim(),
         );
       case UserRole.departmentAdmin:
         return LeaderboardRoleConfig(
@@ -66,7 +66,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          studentTeamId: null,
+          teamMemberTeamId: null,
         );
       case UserRole.collegeAdmin:
         return LeaderboardRoleConfig(
@@ -75,7 +75,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          studentTeamId: null,
+          teamMemberTeamId: null,
         );
       case UserRole.coordinator:
         return LeaderboardRoleConfig(
@@ -88,7 +88,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: dept,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: false,
-          studentTeamId: null,
+          teamMemberTeamId: null,
         );
       case UserRole.judge:
         return LeaderboardRoleConfig(
@@ -99,7 +99,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: false,
           judgeEvaluationAnalyticsOnly: true,
-          studentTeamId: null,
+          teamMemberTeamId: null,
         );
       case UserRole.sysAdmin:
         return LeaderboardRoleConfig(
@@ -108,7 +108,7 @@ class LeaderboardRoleConfig {
           scopeDepartmentCode: null,
           platformWide: true,
           judgeEvaluationAnalyticsOnly: false,
-          studentTeamId: null,
+          teamMemberTeamId: null,
         );
     }
   }

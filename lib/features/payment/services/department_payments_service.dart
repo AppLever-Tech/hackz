@@ -22,7 +22,7 @@ class DepartmentPaymentContribution {
     required this.problemTitle,
     required this.teamName,
     required this.mentorName,
-    required this.studentCount,
+    required this.teamMemberCount,
     required this.coordinatorName,
     required this.hasProof,
     required this.isOverdue,
@@ -35,7 +35,7 @@ class DepartmentPaymentContribution {
   final String problemTitle;
   final String teamName;
   final String mentorName;
-  final int studentCount;
+  final int teamMemberCount;
   final String coordinatorName;
   final bool hasProof;
   final bool isOverdue;
@@ -69,7 +69,7 @@ class DepartmentPaymentDetail {
     required this.idea,
     required this.team,
     required this.problem,
-    required this.students,
+    required this.members,
     required this.proofAttachments,
     this.coordinator,
     this.mentor,
@@ -79,7 +79,7 @@ class DepartmentPaymentDetail {
   final IdeaModel? idea;
   final TeamModel? team;
   final ProblemModel? problem;
-  final List<UserModel> students;
+  final List<UserModel> members;
   final List<AttachmentModel> proofAttachments;
   final UserModel? coordinator;
   final UserModel? mentor;
@@ -210,9 +210,9 @@ class DepartmentPaymentsService {
         .map((doc) => TeamModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
     final teamMentorIds = teams.map((t) => t.mentorId.trim()).where((id) => id.isNotEmpty);
-    final teamStudentIds = teams.expand((t) => t.studentIds);
+    final teamMemberIds = teams.expand((t) => t.studentIds);
     final paymentVerifierIds = payments.map((p) => p.verifiedBy.trim()).where((id) => id.isNotEmpty);
-    final relatedUserIds = <String>{...teamMentorIds, ...teamStudentIds, ...paymentVerifierIds};
+    final relatedUserIds = <String>{...teamMentorIds, ...teamMemberIds, ...paymentVerifierIds};
     final users = results[3]
         .where((doc) {
           final data = doc.data();
@@ -278,7 +278,7 @@ class DepartmentPaymentsService {
         problemTitle: _problemTitle(idea, problem, payment),
         teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : payment.teamId,
         mentorName: mentor == null ? '-' : userDisplayName(mentor),
-        studentCount: team?.studentIds.length ?? 0,
+        teamMemberCount: team?.studentIds.length ?? 0,
         coordinatorName: coordinator == null
             ? (payment.status == PaymentRecordStatus.pending ? 'Awaiting coordinator' : '-')
             : userDisplayName(coordinator),
@@ -289,13 +289,13 @@ class DepartmentPaymentsService {
       );
       contributions.add(contribution);
 
-      var students = <UserModel>[];
+      var members = <UserModel>[];
       if (team != null) {
         for (final id in team.studentIds) {
-          final student = userById[id];
-          if (student != null) students.add(student);
+          final member = userById[id];
+          if (member != null) members.add(member);
         }
-        students = sortUsersByDisplayName(students);
+        members = sortUsersByDisplayName(members);
       }
 
       detailsByPaymentId[payment.paymentId] = DepartmentPaymentDetail(
@@ -303,7 +303,7 @@ class DepartmentPaymentsService {
         idea: idea,
         team: team,
         problem: problem,
-        students: students,
+        members: members,
         proofAttachments: proof,
         coordinator: coordinator,
         mentor: mentor,

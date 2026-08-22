@@ -301,7 +301,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
       ImportConstants.issuingOrganisationColumnKey => AppIcons.organizations,
       ImportConstants.issuingDepartmentColumnKey => AppIcons.departments,
       ImportConstants.teamNameColumnKey => AppIcons.teams,
-      ImportConstants.phoneColumnKey => AppIcons.student,
+      ImportConstants.phoneColumnKey => AppIcons.teamMember,
       ImportConstants.organisationColumnKey => AppIcons.organizations,
       ImportConstants.departmentColumnKey => AppIcons.departments,
       ImportConstants.isTeamLeaderColumnKey => AppIcons.users,

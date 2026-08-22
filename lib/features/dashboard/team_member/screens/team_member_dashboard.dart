@@ -6,9 +6,9 @@ import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/idea/services/idea_role_config.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
-import '../services/student_dashboard_service.dart';
+import '../services/team_member_dashboard_service.dart';
 import '../../../../utils/common_helpers.dart';
-import '../../../../features/team/widgets/student_team_overview_card.dart';
+import '../../../../features/team/widgets/team_overview_card.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/responsive/responsive_columns.dart';
 import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
@@ -30,16 +30,16 @@ import '../../../../core/workspace/user_list_identity_lead.dart';
 import '../../../../core/workspace/user_workspace_avatar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
-class StudentDashboard extends StatefulWidget {
-  const StudentDashboard({super.key, required this.user});
+class TeamMemberDashboard extends StatefulWidget {
+  const TeamMemberDashboard({super.key, required this.user});
 
   final UserModel user;
 
   @override
-  State<StudentDashboard> createState() => _StudentDashboardState();
+  State<TeamMemberDashboard> createState() => _TeamMemberDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard> {
+class _TeamMemberDashboardState extends State<TeamMemberDashboard> {
   late Future<bool> _isTeamLeaderFuture;
 
   @override
@@ -101,7 +101,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           user: user,
         );
       default:
-        return _StudentDashboardHome(
+        return _TeamMemberDashboardHome(
           key: ValueKey<int>(refreshToken),
           user: user,
         );
@@ -133,23 +133,23 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 }
 
-class _StudentDashboardHome extends StatefulWidget {
-  const _StudentDashboardHome({super.key, required this.user});
+class _TeamMemberDashboardHome extends StatefulWidget {
+  const _TeamMemberDashboardHome({super.key, required this.user});
 
   final UserModel user;
 
   @override
-  State<_StudentDashboardHome> createState() => _StudentDashboardHomeState();
+  State<_TeamMemberDashboardHome> createState() => _TeamMemberDashboardHomeState();
 }
 
-class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
+class _TeamMemberDashboardHomeState extends State<_TeamMemberDashboardHome> {
   static const double _kDashboardIconSize = 18;
   static const double _detailsLabelWidth = 96;
   static const double _detailsLabelGap = EntityCardStyles.labelGap;
   static const Alignment _detailsLabelAlignment = Alignment.centerLeft;
 
-  late Future<StudentDashboardVm> _future;
-  final StudentDashboardService _service = StudentDashboardService();
+  late Future<TeamMemberDashboardVm> _future;
+  final TeamMemberDashboardService _service = TeamMemberDashboardService();
 
   @override
   void initState() {
@@ -159,7 +159,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<StudentDashboardVm>(
+    return FutureBuilder<TeamMemberDashboardVm>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -186,7 +186,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildSummaryCards(StudentDashboardVm vm) {
+  Widget _buildSummaryCards(TeamMemberDashboardVm vm) {
     final inProgressIdeas = vm.pendingIdeas + vm.submittedIdeas;
     return ResponsiveMetricGrid(
       chips: <DashboardMetricChipData>[
@@ -251,21 +251,21 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildDetailsAndTeamRow(StudentDashboardVm vm) {
+  Widget _buildDetailsAndTeamRow(TeamMemberDashboardVm vm) {
     return DashboardPairRow(
       height: DashboardLayoutTokens.studentDetailsRowHeight,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         first: _buildMyDetailsCard(vm),
-        second: StudentTeamOverviewCard(vm: vm, compact: true),
+        second: TeamOverviewCard(vm: vm, compact: true),
       ),
     );
   }
 
-  Widget _buildMyDetailsCard(StudentDashboardVm vm) {
-    final Widget details = _buildStudentDetailsContent(vm);
-    final String titleName = vm.studentName.trim().isEmpty ? 'Team Member' : vm.studentName.trim();
+  Widget _buildMyDetailsCard(TeamMemberDashboardVm vm) {
+    final Widget details = _buildTeamMemberDetailsContent(vm);
+    final String titleName = vm.teamMemberName.trim().isEmpty ? 'Team Member' : vm.teamMemberName.trim();
     return SectionContainer(
       child: DashboardBoundedBody(
         headers: <Widget>[
@@ -285,11 +285,11 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildMyDetailsHeader(String studentName) {
+  Widget _buildMyDetailsHeader(String teamMemberName) {
     final String userId = widget.user.userId.trim();
     return Row(
       children: <Widget>[
-        Icon(AppIcons.student, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
+        Icon(AppIcons.teamMember, size: DashboardCardTitleStyle.iconSize, color: DashboardCardTitleStyle.iconColor),
         const SizedBox(width: DashboardCardTitleStyle.iconGap),
         const Text('My Details', style: DashboardCardTitleStyle.textStyle),
         const SizedBox(width: 10),
@@ -302,7 +302,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            studentName,
+            teamMemberName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DashboardCardTitleStyle.textStyle,
@@ -312,19 +312,19 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildIdeasAndActivityRow(StudentDashboardVm vm) {
+  Widget _buildIdeasAndActivityRow(TeamMemberDashboardVm vm) {
     return DashboardPairRow(
       height: DashboardLayoutTokens.pairRowList,
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        first: _StudentMyIdeasCard(vm: vm),
+        first: _TeamMemberMyIdeasCard(vm: vm),
         second: _buildRecentActivity(vm),
       ),
     );
   }
 
-  Widget _buildStudentDetailsContent(StudentDashboardVm vm) {
+  Widget _buildTeamMemberDetailsContent(TeamMemberDashboardVm vm) {
     final String department = vm.department.trim().isEmpty ? '—' : vm.department.trim();
     final String college = vm.organizationName.trim().isEmpty ? '—' : vm.organizationName.trim();
 
@@ -394,7 +394,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _buildRecentActivity(StudentDashboardVm vm) {
+  Widget _buildRecentActivity(TeamMemberDashboardVm vm) {
     return SectionContainer(
       child: DashboardListCard(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -413,7 +413,7 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
     );
   }
 
-  Widget _activityRow(StudentActivityItem activity) {
+  Widget _activityRow(TeamMemberActivityItem activity) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -433,10 +433,10 @@ class _StudentDashboardHomeState extends State<_StudentDashboardHome> {
   }
 }
 
-class _StudentMyIdeasCard extends StatelessWidget {
-  const _StudentMyIdeasCard({required this.vm});
+class _TeamMemberMyIdeasCard extends StatelessWidget {
+  const _TeamMemberMyIdeasCard({required this.vm});
 
-  final StudentDashboardVm vm;
+  final TeamMemberDashboardVm vm;
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +456,7 @@ class _StudentMyIdeasCard extends StatelessWidget {
     );
   }
 
-  Widget _ideaPreviewRow(BuildContext context, StudentIdeaItem item) {
+  Widget _ideaPreviewRow(BuildContext context, TeamMemberIdeaItem item) {
     final String title =
         item.idea.ideaTitle.trim().isEmpty ? 'Untitled Idea' : item.idea.ideaTitle.trim();
     return Row(
@@ -481,7 +481,7 @@ class _StudentMyIdeasCard extends StatelessWidget {
         const SizedBox(width: 8),
         StatusStyles.ideaStatusIcon(
           item.idea.status,
-          size: _StudentDashboardHomeState._kDashboardIconSize,
+          size: _TeamMemberDashboardHomeState._kDashboardIconSize,
         ),
       ],
     );

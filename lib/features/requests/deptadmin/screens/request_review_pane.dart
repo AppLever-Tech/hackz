@@ -424,7 +424,7 @@ class _ReviewHero extends StatelessWidget {
                 ContextPill(
                   label: request.requestedByName.isEmpty ? 'Requester' : request.requestedByName,
                   semantic: ContextPillSemantic.user,
-                  icon: AppIcons.student,
+                  icon: AppIcons.teamMember,
                   onTap: () => WorkspaceNavigator.openUser(context, request.requestedBy),
                   compact: true,
                 ),

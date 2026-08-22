@@ -9,30 +9,30 @@ import '../../../features/dashboard/deptadmin/widgets/department_metric_card.dar
 class UserMetricsRow extends StatelessWidget {
   const UserMetricsRow({
     super.key,
-    required this.students,
+    required this.teamMembers,
     required this.coordinators,
     required this.pending,
     this.spacing = 10,
     this.runSpacing = 10,
   });
 
-  final int students;
+  final int teamMembers;
   final int coordinators;
   final int pending;
   final double spacing;
   final double runSpacing;
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
-        MetricKpiSegment.count(students, 'Team Members'),
+        MetricKpiSegment.count(teamMembers, 'Team Members'),
         MetricKpiSegment.count(coordinators, 'Coordinators'),
         MetricKpiSegment.count(pending, 'Pending'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
         DepartmentMetricCard(
-          value: '$students',
+          value: '$teamMembers',
           label: 'Team Members',
-          icon: AppIcons.student,
+          icon: AppIcons.teamMember,
           iconBgColor: const Color(0xFFF2EDFF),
           tooltip: 'Active team members in this department.',
         ).toChipData(),

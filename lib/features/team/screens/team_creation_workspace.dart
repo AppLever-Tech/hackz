@@ -10,9 +10,9 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
-import '../services/faculty_teams_service.dart';
+import '../services/teams_workspace_service.dart';
 import '../services/team_service.dart';
-import '../widgets/team_student_selector.dart';
+import '../widgets/team_member_selector.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
@@ -24,7 +24,7 @@ Future<TeamFormDialogAction?> showTeamCreationWorkspace({
   required BuildContext context,
   required UserModel currentUser,
   required List<TeamModel> existingTeams,
-  required List<UserModel> departmentStudents,
+  required List<UserModel> departmentTeamMembers,
   TeamModel? initialTeam,
 }) {
   return showDialog<TeamFormDialogAction>(
@@ -34,7 +34,7 @@ Future<TeamFormDialogAction?> showTeamCreationWorkspace({
       return TeamCreationWorkspace(
         currentUser: currentUser,
         existingTeams: existingTeams,
-        departmentStudents: departmentStudents,
+        departmentTeamMembers: departmentTeamMembers,
         initialTeam: initialTeam,
       );
     },
@@ -46,13 +46,13 @@ class TeamCreationWorkspace extends StatefulWidget {
     super.key,
     required this.currentUser,
     required this.existingTeams,
-    required this.departmentStudents,
+    required this.departmentTeamMembers,
     this.initialTeam,
   });
 
   final UserModel currentUser;
   final List<TeamModel> existingTeams;
-  final List<UserModel> departmentStudents;
+  final List<UserModel> departmentTeamMembers;
   final TeamModel? initialTeam;
 
   bool get isEdit => initialTeam != null;
@@ -63,7 +63,7 @@ class TeamCreationWorkspace extends StatefulWidget {
 
 class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   final TextEditingController _nameController = TextEditingController();
-  final Set<String> _selectedStudentIds = <String>{};
+  final Set<String> _selectedMemberIds = <String>{};
   String _teamLeaderId = '';
   bool _saving = false;
 
@@ -73,9 +73,9 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   void initState() {
     super.initState();
     _nameController.text = widget.initialTeam?.teamName ?? '';
-    _selectedStudentIds.addAll(widget.initialTeam?.studentIds ?? const <String>[]);
+    _selectedMemberIds.addAll(widget.initialTeam?.studentIds ?? const <String>[]);
     if (_isTeamMemberActor) {
-      _selectedStudentIds.add(widget.currentUser.userId);
+      _selectedMemberIds.add(widget.currentUser.userId);
       _teamLeaderId = widget.currentUser.userId;
     } else {
       _teamLeaderId = widget.initialTeam?.teamLeaderId.trim() ?? '';
@@ -88,32 +88,32 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     super.dispose();
   }
 
-  List<UserModel> get _studentsForSave {
-    if (!_isTeamMemberActor) return widget.departmentStudents;
-    if (widget.departmentStudents.any((UserModel u) => u.userId == widget.currentUser.userId)) {
-      return widget.departmentStudents;
+  List<UserModel> get _membersForSave {
+    if (!_isTeamMemberActor) return widget.departmentTeamMembers;
+    if (widget.departmentTeamMembers.any((UserModel u) => u.userId == widget.currentUser.userId)) {
+      return widget.departmentTeamMembers;
     }
-    return <UserModel>[widget.currentUser, ...widget.departmentStudents];
+    return <UserModel>[widget.currentUser, ...widget.departmentTeamMembers];
   }
 
-  List<UserModel> get _eligibleStudents {
+  List<UserModel> get _eligibleTeamMembers {
     final String editingTeamId = widget.initialTeam?.teamId ?? '';
-    return _studentsForSave.where((UserModel student) {
-      final String assignedTeamId = (student.teamId ?? '').trim();
+    return _membersForSave.where((UserModel member) {
+      final String assignedTeamId = (member.teamId ?? '').trim();
       return assignedTeamId.isEmpty ||
           assignedTeamId == editingTeamId ||
-          _selectedStudentIds.contains(student.userId);
+          _selectedMemberIds.contains(member.userId);
     }).toList(growable: false);
   }
 
   bool get _canSave {
     if (_saving) return false;
     if (_nameController.text.trim().isEmpty) return false;
-    final int count = _selectedStudentIds.length;
-    return count >= FacultyTeamsService.minStudentsPerTeam &&
-        count <= FacultyTeamsService.maxStudentsPerTeam &&
+    final int count = _selectedMemberIds.length;
+    return count >= TeamsWorkspaceService.minMembersPerTeam &&
+        count <= TeamsWorkspaceService.maxMembersPerTeam &&
         _teamLeaderId.trim().isNotEmpty &&
-        _selectedStudentIds.contains(_teamLeaderId.trim());
+        _selectedMemberIds.contains(_teamLeaderId.trim());
   }
 
   /// Trims only leading/trailing whitespace; internal spaces are preserved.
@@ -157,13 +157,13 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
 
     setState(() => _saving = true);
     try {
-      await FacultyTeamsService.saveTeam(
-        faculty: widget.currentUser,
+      await TeamsWorkspaceService.saveTeam(
+        actor: widget.currentUser,
         teamName: trimmedName,
-        studentIds: _selectedStudentIds,
+        studentIds: _selectedMemberIds,
         teamLeaderId: _teamLeaderId,
         existingTeams: widget.existingTeams,
-        departmentStudents: _studentsForSave,
+        departmentTeamMembers: _membersForSave,
         editingTeam: widget.initialTeam,
       );
       if (!mounted) return;
@@ -225,7 +225,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
                     ? 'Team Leader'
                     : mentorName,
                 semantic: ContextPillSemantic.user,
-                icon: AppIcons.student,
+                icon: AppIcons.teamMember,
                 onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
                 compact: true,
               ),
@@ -235,23 +235,23 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           _section(
             title: 'Team Members',
             subtitle:
-                'Select ${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} team members for collaborative submission',
+                'Select ${TeamsWorkspaceService.minMembersPerTeam}–${TeamsWorkspaceService.maxMembersPerTeam} team members for collaborative submission',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                TeamStudentSelector(
-                  students: _eligibleStudents,
-                  selectedIds: _selectedStudentIds,
-                  maxSelection: FacultyTeamsService.maxStudentsPerTeam,
+                TeamMemberSelector(
+                  members: _eligibleTeamMembers,
+                  selectedIds: _selectedMemberIds,
+                  maxSelection: TeamsWorkspaceService.maxMembersPerTeam,
                   enabled: !_saving,
                   onChanged: (Set<String> next) => setState(() {
-                    _selectedStudentIds
+                    _selectedMemberIds
                       ..clear()
                       ..addAll(next);
                     if (_isTeamMemberActor) {
-                      _selectedStudentIds.add(widget.currentUser.userId);
+                      _selectedMemberIds.add(widget.currentUser.userId);
                       _teamLeaderId = widget.currentUser.userId;
-                    } else if (_teamLeaderId.isNotEmpty && !_selectedStudentIds.contains(_teamLeaderId)) {
+                    } else if (_teamLeaderId.isNotEmpty && !_selectedMemberIds.contains(_teamLeaderId)) {
                       _teamLeaderId = '';
                     }
                   }),
@@ -336,7 +336,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
-              _heroChip('${FacultyTeamsService.minStudentsPerTeam}–${FacultyTeamsService.maxStudentsPerTeam} team members'),
+              _heroChip('${TeamsWorkspaceService.minMembersPerTeam}–${TeamsWorkspaceService.maxMembersPerTeam} team members'),
               _heroChip('Team Leader'),
               _heroChip('Submission ready'),
             ],
@@ -394,8 +394,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   }
 
   Widget _buildTeamLeaderField() {
-    final List<UserModel> selectedMembers = _studentsForSave
-        .where((UserModel u) => _selectedStudentIds.contains(u.userId))
+    final List<UserModel> selectedMembers = _membersForSave
+        .where((UserModel u) => _selectedMemberIds.contains(u.userId))
         .toList(growable: false);
     final String? value = selectedMembers.any((UserModel u) => u.userId == _teamLeaderId) ? _teamLeaderId : null;
     return Column(
@@ -410,7 +410,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           value: value,
           hint: selectedMembers.isEmpty ? 'Select members first' : 'Select team leader',
           enabled: !_saving && selectedMembers.isNotEmpty,
-          prefixIcon: AppIcons.student,
+          prefixIcon: AppIcons.teamMember,
           options: selectedMembers.map((UserModel u) => u.userId).toList(growable: false),
           labelBuilder: (String id) {
             for (final UserModel u in selectedMembers) {
@@ -425,9 +425,9 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   }
 
   Widget _buildRulesHint(BuildContext context) {
-    final int count = _selectedStudentIds.length;
-    final bool belowMin = count < FacultyTeamsService.minStudentsPerTeam;
-    final bool atMax = count >= FacultyTeamsService.maxStudentsPerTeam;
+    final int count = _selectedMemberIds.length;
+    final bool belowMin = count < TeamsWorkspaceService.minMembersPerTeam;
+    final bool atMax = count >= TeamsWorkspaceService.maxMembersPerTeam;
 
     return Row(
       children: <Widget>[
@@ -440,8 +440,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
         Expanded(
           child: Text(
             belowMin
-                ? 'Add at least ${FacultyTeamsService.minStudentsPerTeam} team members to continue.'
-                : 'Minimum ${FacultyTeamsService.minStudentsPerTeam} team members · maximum ${FacultyTeamsService.maxStudentsPerTeam} team members.',
+                ? 'Add at least ${TeamsWorkspaceService.minMembersPerTeam} team members to continue.'
+                : 'Minimum ${TeamsWorkspaceService.minMembersPerTeam} team members · maximum ${TeamsWorkspaceService.maxMembersPerTeam} team members.',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -454,9 +454,9 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   }
 
   Widget _buildFooter(BuildContext context) {
-    final int count = _selectedStudentIds.length;
+    final int count = _selectedMemberIds.length;
     final int remaining =
-        (FacultyTeamsService.maxStudentsPerTeam - count).clamp(0, FacultyTeamsService.maxStudentsPerTeam).toInt();
+        (TeamsWorkspaceService.maxMembersPerTeam - count).clamp(0, TeamsWorkspaceService.maxMembersPerTeam).toInt();
     final bool ready = _canSave;
 
     return Container(
@@ -482,7 +482,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              _footerMeta(AppIcons.student, '$count team member${count == 1 ? '' : 's'} selected'),
+              _footerMeta(AppIcons.teamMember, '$count team member${count == 1 ? '' : 's'} selected'),
               _footerMeta(AppIcons.teams, '$remaining slot${remaining == 1 ? '' : 's'} left'),
               _footerMeta(
                 ready ? AppIcons.workflowApproved : AppIcons.workflowPendingReview,

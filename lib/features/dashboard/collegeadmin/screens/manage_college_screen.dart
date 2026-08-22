@@ -114,16 +114,16 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       return;
     }
 
-    final int studentCount = (dept['studentCount'] as int?) ?? 0;
+    final int teamMemberCount = (dept['teamMemberCount'] as int?) ?? 0;
     final String adminUserId = ((dept['adminUserId'] as String?) ?? '').trim();
-    final bool hasUsers = studentCount > 0;
+    final bool hasUsers = teamMemberCount > 0;
     final bool hasAdmin = adminUserId.isNotEmpty;
 
     final StringBuffer warning = StringBuffer('Delete "$name"?');
     if (hasUsers || hasAdmin) {
       warning.write('\n\nThis removes the department record from your college.');
       final List<String> parts = <String>[];
-      if (studentCount > 0) parts.add('$studentCount team members');
+      if (teamMemberCount > 0) parts.add('$teamMemberCount team members');
       if (hasAdmin) parts.add('the assigned department admin');
       if (parts.isNotEmpty) {
         warning.write(' ${parts.join(', ')} will remain in the college but are no longer tied to this department entry.');
@@ -497,7 +497,7 @@ class _DepartmentCard extends StatelessWidget {
     final String adminUserId = ((department['adminUserId'] as String?) ?? '').trim();
     final UserModel? adminUser = department['adminUser'] as UserModel?;
     final String departmentId = ((department['id'] as String?) ?? '').trim();
-    final int studentCount = (department['studentCount'] as int?) ?? 0;
+    final int teamMemberCount = (department['teamMemberCount'] as int?) ?? 0;
     final bool hasAdmin = adminUserId.isNotEmpty && admin.isNotEmpty && admin != '-';
     final UserModel adminIdentity = adminUser ??
         UserModel(
@@ -614,7 +614,7 @@ class _DepartmentCard extends StatelessWidget {
             ),
           const SizedBox(height: 6),
           _DepartmentCountsChip(
-            studentCount: studentCount,
+            teamMemberCount: teamMemberCount,
           ),
         ],
       ),
@@ -625,10 +625,10 @@ class _DepartmentCard extends StatelessWidget {
 /// Single-line chip: faculty and student counts with icon, label, and bold count.
 class _DepartmentCountsChip extends StatelessWidget {
   const _DepartmentCountsChip({
-    required this.studentCount,
+    required this.teamMemberCount,
   });
 
-  final int studentCount;
+  final int teamMemberCount;
 
   @override
   Widget build(BuildContext context) {
@@ -643,9 +643,9 @@ class _DepartmentCountsChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           _DepartmentCountSegment(
-            icon: AppIcons.student,
+            icon: AppIcons.teamMember,
             label: 'Team Members',
-            count: studentCount,
+            count: teamMemberCount,
           ),
         ],
       ),

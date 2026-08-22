@@ -6,7 +6,7 @@ import '../../../features/user/models/enums/user_role.dart';
 import '../../../features/user/models/user_model.dart';
 import '../coordinator/services/coordinator_dashboard_service.dart';
 import '../deptadmin/services/department_dashboard_service.dart';
-import '../../../features/team/services/faculty_teams_service.dart';
+import '../../../features/team/services/teams_workspace_service.dart';
 import '../../../features/org_settings/services/org_settings_service.dart';
 import '../../../features/evaluations/services/judge_evaluation_service.dart';
 import '../sysadmin/services/sysadmin_dashboard_service.dart';
@@ -59,7 +59,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     OrgSettingsService.instance.clearCache();
     SysAdminDashboardService.clearCache();
     DepartmentDashboardService.clearCache();
-    FacultyTeamsService.clearCache();
+    TeamsWorkspaceService.clearCache();
     CoordinatorDashboardService.clearCache();
     JudgeEvaluationService.clearCache();
     await FirebaseAuth.instance.signOut();

@@ -2,27 +2,27 @@ import 'college_admin_profile.dart';
 import 'department_admin_profile.dart';
 import 'judge_profile.dart';
 import 'professional_profile.dart';
-import 'student_profile.dart';
+import 'team_member_profile.dart';
 
 /// Role-specific profile sections stored under `profile` on hkzUsers (not in identity fields).
 class UserProfile {
   const UserProfile({
     this.professionalProfile,
-    this.studentProfile,
+    this.teamMemberProfile,
     this.judgeProfile,
     this.departmentAdminProfile,
     this.collegeAdminProfile,
   });
 
   final ProfessionalProfile? professionalProfile;
-  final StudentProfile? studentProfile;
+  final TeamMemberProfile? teamMemberProfile;
   final JudgeProfile? judgeProfile;
   final DepartmentAdminProfile? departmentAdminProfile;
   final CollegeAdminProfile? collegeAdminProfile;
 
   bool get isEmpty =>
       (professionalProfile == null || professionalProfile!.isEmpty) &&
-      (studentProfile == null || studentProfile!.isEmpty) &&
+      (teamMemberProfile == null || teamMemberProfile!.isEmpty) &&
       (judgeProfile == null || judgeProfile!.isEmpty) &&
       (departmentAdminProfile == null || departmentAdminProfile!.isEmpty) &&
       (collegeAdminProfile == null || collegeAdminProfile!.isEmpty);
@@ -32,8 +32,8 @@ class UserProfile {
     if (professionalProfile != null && !professionalProfile!.isEmpty) {
       map['professionalProfile'] = professionalProfile!.toMap();
     }
-    if (studentProfile != null && !studentProfile!.isEmpty) {
-      map['studentProfile'] = studentProfile!.toMap();
+    if (teamMemberProfile != null && !teamMemberProfile!.isEmpty) {
+      map['studentProfile'] = teamMemberProfile!.toMap();
     }
     if (judgeProfile != null && !judgeProfile!.isEmpty) {
       map['judgeProfile'] = judgeProfile!.toMap();
@@ -55,11 +55,11 @@ class UserProfile {
       professional = ProfessionalProfile.fromMap(profRaw);
       if (professional.isEmpty) professional = null;
     }
-    StudentProfile? student;
-    final dynamic studentRaw = map['studentProfile'];
-    if (studentRaw is Map<String, dynamic>) {
-      student = StudentProfile.fromMap(studentRaw);
-      if (student.isEmpty) student = null;
+    TeamMemberProfile? teamMember;
+    final dynamic teamMemberRaw = map['studentProfile'];
+    if (teamMemberRaw is Map<String, dynamic>) {
+      teamMember = TeamMemberProfile.fromMap(teamMemberRaw);
+      if (teamMember.isEmpty) teamMember = null;
     }
     JudgeProfile? judge;
     final dynamic judgeRaw = map['judgeProfile'];
@@ -81,7 +81,7 @@ class UserProfile {
     }
     return UserProfile(
       professionalProfile: professional,
-      studentProfile: student,
+      teamMemberProfile: teamMember,
       judgeProfile: judge,
       departmentAdminProfile: deptAdmin,
       collegeAdminProfile: collegeAdmin,
@@ -90,14 +90,14 @@ class UserProfile {
 
   UserProfile copyWith({
     ProfessionalProfile? professionalProfile,
-    StudentProfile? studentProfile,
+    TeamMemberProfile? teamMemberProfile,
     JudgeProfile? judgeProfile,
     DepartmentAdminProfile? departmentAdminProfile,
     CollegeAdminProfile? collegeAdminProfile,
   }) {
     return UserProfile(
       professionalProfile: professionalProfile ?? this.professionalProfile,
-      studentProfile: studentProfile ?? this.studentProfile,
+      teamMemberProfile: teamMemberProfile ?? this.teamMemberProfile,
       judgeProfile: judgeProfile ?? this.judgeProfile,
       departmentAdminProfile: departmentAdminProfile ?? this.departmentAdminProfile,
       collegeAdminProfile: collegeAdminProfile ?? this.collegeAdminProfile,

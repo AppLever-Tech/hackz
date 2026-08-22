@@ -19,7 +19,7 @@ class TeamContributionSection extends StatelessWidget {
     this.teamId,
     required this.teamName,
     this.mentor,
-    required this.students,
+    required this.members,
     required this.ideaTitle,
     this.ideaId,
     required this.problemTitle,
@@ -29,7 +29,7 @@ class TeamContributionSection extends StatelessWidget {
   final String? teamId;
   final String teamName;
   final UserModel? mentor;
-  final List<UserModel> students;
+  final List<UserModel> members;
   final String ideaTitle;
   final String? ideaId;
   final String problemTitle;
@@ -38,7 +38,7 @@ class TeamContributionSection extends StatelessWidget {
   factory TeamContributionSection.fromModels({
     required TeamModel? team,
     UserModel? mentor,
-    required List<UserModel> students,
+    required List<UserModel> members,
     required IdeaModel? idea,
     required ProblemModel? problem,
   }) {
@@ -46,7 +46,7 @@ class TeamContributionSection extends StatelessWidget {
       teamId: team?.teamId,
       teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : (team?.teamId ?? '-'),
       mentor: mentor,
-      students: students,
+      members: members,
       ideaTitle: idea?.ideaTitle.trim().isNotEmpty == true ? idea!.ideaTitle.trim() : 'Untitled Idea',
       ideaId: idea?.ideaId,
       problemTitle: problem?.title.trim().isNotEmpty == true
@@ -74,9 +74,9 @@ class TeamContributionSection extends StatelessWidget {
           value: _mentorValue(context),
         ),
         PaymentFormRow(
-          icon: AppIcons.student,
+          icon: AppIcons.teamMember,
           label: 'Team Members',
-          value: _studentsValue(context),
+          value: _membersValue(context),
         ),
         PaymentFormRow(
           icon: AppIcons.ideas,
@@ -139,23 +139,23 @@ class TeamContributionSection extends StatelessWidget {
     );
   }
 
-  Widget _studentsValue(BuildContext context) {
-    if (students.isEmpty) {
+  Widget _membersValue(BuildContext context) {
+    if (members.isEmpty) {
       return PaymentFormRow.plainValue('No team members linked');
     }
 
     final List<Widget> rows = <Widget>[];
-    for (var i = 0; i < students.length; i += 2) {
+    for (var i = 0; i < members.length; i += 2) {
       rows.add(
         Padding(
-          padding: EdgeInsets.only(bottom: i + 2 < students.length ? 8 : 0),
+          padding: EdgeInsets.only(bottom: i + 2 < members.length ? 8 : 0),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(child: _studentRow(context, students[i])),
-              if (i + 1 < students.length) ...<Widget>[
+              Expanded(child: _memberRow(context, members[i])),
+              if (i + 1 < members.length) ...<Widget>[
                 const SizedBox(width: 12),
-                Expanded(child: _studentRow(context, students[i + 1])),
+                Expanded(child: _memberRow(context, members[i + 1])),
               ],
             ],
           ),
@@ -169,16 +169,16 @@ class TeamContributionSection extends StatelessWidget {
     );
   }
 
-  Widget _studentRow(BuildContext context, UserModel student) {
-    final String name = userDisplayName(student);
+  Widget _memberRow(BuildContext context, UserModel member) {
+    final String name = userDisplayName(member);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         UserWorkspaceAvatar(
-          user: student,
+          user: member,
           radius: 12,
           ringPadding: 2,
-          onTap: () => WorkspaceNavigator.openUser(context, student.userId),
+          onTap: () => WorkspaceNavigator.openUser(context, member.userId),
         ),
         const SizedBox(width: 8),
         Expanded(child: PaymentFormRow.plainValue(name)),

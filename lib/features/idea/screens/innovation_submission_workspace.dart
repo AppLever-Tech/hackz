@@ -12,7 +12,7 @@ import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
-import '../../team/services/faculty_teams_service.dart';
+import '../../team/services/teams_workspace_service.dart';
 import '../../team/services/team_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
@@ -185,7 +185,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             gitRepositoryUrl: _gitRepositoryController.text,
             youtubeDemoUrl: _youtubeDemoController.text,
           );
-          FacultyTeamsService.clearCache();
+          TeamsWorkspaceService.clearCache();
         },
       );
       if (!mounted) return;

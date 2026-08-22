@@ -31,7 +31,7 @@ abstract final class RolesResponsibilitiesSections {
   ];
 
   static List<String> get searchCorpus => const <String>[
-        'college admin department admin coordinator judge student team member',
+        'college admin department admin coordinator judge team member',
         'activate draft deactivate reactivate assign judges ideathon',
         'verify payment evaluate idea org evaluation config catalog',
         'least privilege department scope ownership permissions catalog',

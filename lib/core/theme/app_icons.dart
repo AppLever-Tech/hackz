@@ -67,7 +67,7 @@ class AppIcons {
   static const IconData verification = Icons.verified_user_outlined;
   static const IconData faculty = Icons.person_outline;
   static const IconData coordinator = Icons.manage_accounts_outlined;
-  static const IconData student = Icons.school_outlined;
+  static const IconData teamMember = Icons.school_outlined;
   static const IconData phone = Icons.phone_outlined;
   static const IconData email = Icons.email_outlined;
   static const IconData adminProfile = Icons.badge_outlined;
@@ -156,7 +156,7 @@ class AppIcons {
       case UserRole.judge:
         return judges;
       case UserRole.teamMember:
-        return student;
+        return teamMember;
       case UserRole.coordinator:
         return coordinator;
     }
@@ -170,7 +170,7 @@ class AppIcons {
       case 'COO':
         return coordinator;
       case 'TMEM':
-        return student;
+        return teamMember;
       case 'SADM':
         return settings;
       case 'CADM':

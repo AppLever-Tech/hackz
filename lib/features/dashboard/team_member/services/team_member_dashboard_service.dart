@@ -15,22 +15,22 @@ import '../../../../features/team/models/enums/team_status.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
 
-class StudentDashboardService {
-  StudentDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+class TeamMemberDashboardService {
+  TeamMemberDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
-  Future<StudentDashboardVm> load(UserModel student) async {
-    final teamId = (student.teamId ?? '').trim();
+  Future<TeamMemberDashboardVm> load(UserModel teamMember) async {
+    final teamId = (teamMember.teamId ?? '').trim();
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      _db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: student.orgId).get(),
-      _db.collection(FirestoreUtils.hkzAttachments).where('orgId', isEqualTo: student.orgId).where('isActive', isEqualTo: true).get(),
-      _db.collection(FirestoreUtils.hkzOrganizations).doc(student.orgId).get(),
+      _db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: teamMember.orgId).get(),
+      _db.collection(FirestoreUtils.hkzAttachments).where('orgId', isEqualTo: teamMember.orgId).where('isActive', isEqualTo: true).get(),
+      _db.collection(FirestoreUtils.hkzOrganizations).doc(teamMember.orgId).get(),
     ]);
 
     final teamDocs = (results[0] as QuerySnapshot<Map<String, dynamic>>).docs;
@@ -64,14 +64,14 @@ class StudentDashboardService {
     team ??= teamDocs
         .map((d) => TeamModel.fromMap(d.id, d.data()))
         .firstWhere(
-          (t) => t.studentIds.contains(student.userId),
+          (t) => t.studentIds.contains(teamMember.userId),
           orElse: () => TeamModel(
             teamId: '',
             teamName: '',
             mentorId: '',
             studentIds: const <String>[],
-            orgId: student.orgId,
-            departmentCode: student.departmentCode,
+            orgId: teamMember.orgId,
+            departmentCode: teamMember.departmentCode,
             status: teamDocs.isEmpty ? TeamStatus.inactive : TeamStatus.active,
             createdAt: DateTime.now(),
           ),
@@ -83,8 +83,8 @@ class StudentDashboardService {
           teamName: '',
           mentorId: '',
           studentIds: const <String>[],
-          orgId: student.orgId,
-          departmentCode: student.departmentCode,
+          orgId: teamMember.orgId,
+          departmentCode: teamMember.departmentCode,
           status: TeamStatus.inactive,
           createdAt: DateTime.now(),
         );
@@ -94,13 +94,13 @@ class StudentDashboardService {
     };
     final scopedIdeas = ideaDocs
         .map((d) => IdeaModel.fromMap(d.id, d.data()))
-        .where((idea) => idea.teamId == resolvedTeam.teamId || idea.createdBy == student.userId)
+        .where((idea) => idea.teamId == resolvedTeam.teamId || idea.createdBy == teamMember.userId)
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final ideaIds = scopedIdeas.map((e) => e.ideaId).toSet();
     final scopedPayments = paymentDocs
         .map((d) => PaymentModel.fromMap(d.id, d.data()))
-        .where((p) => ideaIds.contains(p.ideaId) || p.paidByStudentId == student.userId)
+        .where((p) => ideaIds.contains(p.ideaId) || p.paidByStudentId == teamMember.userId)
         .toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -155,7 +155,7 @@ class StudentDashboardService {
         .whereType<UserModel>()
         .toList(growable: false);
     final departmentAdmin = usersById.values.firstWhere(
-      (u) => UserRole.fromCode(u.role) == UserRole.departmentAdmin && u.departmentCode == student.departmentCode,
+      (u) => UserRole.fromCode(u.role) == UserRole.departmentAdmin && u.departmentCode == teamMember.departmentCode,
       orElse: () => _emptyUser('DADM'),
     );
     final collegeAdmin = usersById.values.firstWhere(
@@ -165,7 +165,7 @@ class StudentDashboardService {
 
     final ideaCards = scopedIdeas
         .map(
-          (idea) => StudentIdeaItem(
+          (idea) => TeamMemberIdeaItem(
             idea: idea,
             problemDepartment: problemsById[idea.problemId]?.departmentDisplayName ?? idea.problemDepartmentCode,
             payment: scopedPayments.where((p) => p.ideaId == idea.ideaId).cast<PaymentModel?>().firstWhere(
@@ -184,23 +184,23 @@ class StudentDashboardService {
         )
         .toList(growable: false);
 
-    final activities = <StudentActivityItem>[
+    final activities = <TeamMemberActivityItem>[
       ...scopedIdeas.map(
-        (i) => StudentActivityItem(
+        (i) => TeamMemberActivityItem(
           text: 'Idea submitted: ${i.ideaTitle.trim().isEmpty ? i.problemNumber : i.ideaTitle.trim()}',
           at: i.createdAt,
           icon: AppIcons.ideas,
         ),
       ),
       ...scopedPayments.map(
-        (p) => StudentActivityItem(
+        (p) => TeamMemberActivityItem(
           text: 'Payment ${p.status.value} for ${p.problemNumber}',
           at: p.createdAt,
           icon: AppIcons.payments,
         ),
       ),
       ...allScores.map(
-        (s) => StudentActivityItem(
+        (s) => TeamMemberActivityItem(
           text: 'Evaluation completed (${s.score.toStringAsFixed(1)})',
           at: s.createdAt,
           icon: AppIcons.statusEvaluated,
@@ -208,11 +208,11 @@ class StudentDashboardService {
       ),
     ]..sort((a, b) => b.at.compareTo(a.at));
 
-    return StudentDashboardVm(
-      studentId: student.userId,
-      studentName: _fullName(student),
-      department: student.department.isEmpty ? student.departmentCode : student.department,
-      organizationName: organizationName.isEmpty ? student.orgId : organizationName,
+    return TeamMemberDashboardVm(
+      teamMemberId: teamMember.userId,
+      teamMemberName: _fullName(teamMember),
+      department: teamMember.department.isEmpty ? teamMember.departmentCode : teamMember.department,
+      organizationName: organizationName.isEmpty ? teamMember.orgId : organizationName,
       team: resolvedTeam,
       teamMembers: teamMembers,
       mentorUser: mentor,
@@ -271,10 +271,10 @@ class StudentDashboardService {
   }
 }
 
-class StudentDashboardVm {
-  const StudentDashboardVm({
-    required this.studentId,
-    required this.studentName,
+class TeamMemberDashboardVm {
+  const TeamMemberDashboardVm({
+    required this.teamMemberId,
+    required this.teamMemberName,
     required this.department,
     required this.organizationName,
     required this.team,
@@ -308,8 +308,8 @@ class StudentDashboardVm {
     required this.paymentAttachmentCounts,
   });
 
-  final String studentId;
-  final String studentName;
+  final String teamMemberId;
+  final String teamMemberName;
   final String department;
   final String organizationName;
   final TeamModel team;
@@ -338,13 +338,13 @@ class StudentDashboardVm {
   final int pendingPayments;
   final int verifiedPayments;
   final int rejectedPayments;
-  final List<StudentIdeaItem> ideaCards;
-  final List<StudentActivityItem> activities;
+  final List<TeamMemberIdeaItem> ideaCards;
+  final List<TeamMemberActivityItem> activities;
   final Map<String, int> paymentAttachmentCounts;
 }
 
-class StudentIdeaItem {
-  const StudentIdeaItem({
+class TeamMemberIdeaItem {
+  const TeamMemberIdeaItem({
     required this.idea,
     required this.problemDepartment,
     required this.payment,
@@ -363,8 +363,8 @@ class StudentIdeaItem {
   final int attachmentCount;
 }
 
-class StudentActivityItem {
-  const StudentActivityItem({
+class TeamMemberActivityItem {
+  const TeamMemberActivityItem({
     required this.text,
     required this.at,
     required this.icon,

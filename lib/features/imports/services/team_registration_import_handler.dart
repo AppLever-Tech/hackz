@@ -4,7 +4,7 @@ import '../../organization/models/organization_model.dart';
 import '../../org_settings/constants/org_setting_keys.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../team/models/team_model.dart';
-import '../../team/services/faculty_teams_service.dart';
+import '../../team/services/teams_workspace_service.dart';
 import '../../team/services/team_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
@@ -663,9 +663,9 @@ class _Lookup {
     await OrgSettingsService.instance.ensureLoaded(orgId: context.orgId);
     final Map<String, dynamic> settings = OrgSettingsService.instance.valuesSnapshot;
     final int minMembers = (settings[OrgSettingKeys.minStudentsPerTeam] as num?)?.toInt() ??
-        FacultyTeamsService.minStudentsPerTeam;
+        TeamsWorkspaceService.minMembersPerTeam;
     final int maxMembers = (settings[OrgSettingKeys.maxStudentsPerTeam] as num?)?.toInt() ??
-        FacultyTeamsService.maxStudentsPerTeam;
+        TeamsWorkspaceService.maxMembersPerTeam;
 
     final List<OrganizationModel> orgs = await FirestoreUtils.getOrganizations();
     final Map<String, OrganizationModel> orgByName = <String, OrganizationModel>{};

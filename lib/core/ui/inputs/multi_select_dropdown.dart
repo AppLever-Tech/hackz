@@ -6,7 +6,7 @@ import '../../../utils/common_helpers.dart';
 class MultiSelectDropdown extends StatefulWidget {
   const MultiSelectDropdown({
     super.key,
-    required this.students,
+    required this.members,
     required this.selectedIds,
     required this.onChanged,
     required this.orgId,
@@ -16,7 +16,7 @@ class MultiSelectDropdown extends StatefulWidget {
     this.enabled = true,
   });
 
-  final List<UserModel> students;
+  final List<UserModel> members;
   final Set<String> selectedIds;
   final ValueChanged<Set<String>> onChanged;
   final String orgId;
@@ -78,29 +78,29 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
     if (notify && mounted) setState(() {});
   }
 
-  List<UserModel> get _filteredStudents {
+  List<UserModel> get _filteredMembers {
     final query = _searchController.text.trim().toLowerCase();
-    final filtered = widget.students.where((student) {
-      if (student.orgId.trim() != widget.orgId.trim()) return false;
-      if (student.departmentCode.trim().toUpperCase() != widget.departmentCode.trim().toUpperCase()) return false;
-      final name = '${student.firstName} ${student.lastName}'.trim().toLowerCase();
+    final filtered = widget.members.where((member) {
+      if (member.orgId.trim() != widget.orgId.trim()) return false;
+      if (member.departmentCode.trim().toUpperCase() != widget.departmentCode.trim().toUpperCase()) return false;
+      final name = '${member.firstName} ${member.lastName}'.trim().toLowerCase();
       if (query.isEmpty) return true;
-      return name.contains(query) || student.email.toLowerCase().contains(query);
+      return name.contains(query) || member.email.toLowerCase().contains(query);
     });
     return sortUsersByDisplayName(filtered);
   }
 
-  void _toggleSelection(UserModel student) {
+  void _toggleSelection(UserModel member) {
     final next = Set<String>.from(widget.selectedIds);
-    final selected = next.contains(student.userId);
+    final selected = next.contains(member.userId);
     if (selected) {
-      next.remove(student.userId);
+      next.remove(member.userId);
       widget.onChanged(next);
       _overlayEntry?.markNeedsBuild();
       return;
     }
     if (next.length >= widget.maxSelection) return;
-    next.add(student.userId);
+    next.add(member.userId);
     widget.onChanged(next);
     _overlayEntry?.markNeedsBuild();
   }
@@ -108,7 +108,7 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
   Widget _buildFollowerPanel() {
     final renderBox = _fieldKey.currentContext?.findRenderObject() as RenderBox?;
     final fieldSize = renderBox?.size ?? const Size(480, 44);
-    final students = _filteredStudents;
+    final members = _filteredMembers;
     return Positioned(
       width: fieldSize.width,
       child: CompositedTransformFollower(
@@ -139,21 +139,21 @@ class _MultiSelectDropdownState extends State<MultiSelectDropdown> {
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: students.isEmpty
+                  child: members.isEmpty
                       ? const Center(child: Text('No team members found'))
                       : ListView.builder(
-                          itemCount: students.length,
+                          itemCount: members.length,
                           itemBuilder: (context, index) {
-                            final student = students[index];
-                            final isSelected = widget.selectedIds.contains(student.userId);
+                            final member = members[index];
+                            final isSelected = widget.selectedIds.contains(member.userId);
                             final atLimit = !isSelected && widget.selectedIds.length >= widget.maxSelection;
                             return CheckboxListTile(
                               dense: true,
                               contentPadding: EdgeInsets.zero,
                               value: isSelected,
-                              onChanged: atLimit ? null : (_) => _toggleSelection(student),
-                              title: Text('${student.firstName} ${student.lastName}'.trim()),
-                              subtitle: Text(student.email, maxLines: 1, overflow: TextOverflow.ellipsis),
+                              onChanged: atLimit ? null : (_) => _toggleSelection(member),
+                              title: Text('${member.firstName} ${member.lastName}'.trim()),
+                              subtitle: Text(member.email, maxLines: 1, overflow: TextOverflow.ellipsis),
                             );
                           },
                         ),

@@ -113,7 +113,7 @@ class DepartmentDashboardAnalytics {
     required this.pendingApprovals,
     required this.activeProblems,
     required this.ideasSubmitted,
-    required this.studentCount,
+    required this.teamMemberCount,
     required this.coordinatorCount,
     required this.judgeCount,
     required this.pendingCoordinatorJudgeCount,
@@ -139,7 +139,7 @@ class DepartmentDashboardAnalytics {
   final int pendingApprovals;
   final int activeProblems;
   final int ideasSubmitted;
-  final int studentCount;
+  final int teamMemberCount;
   final int coordinatorCount;
   final int judgeCount;
   final int pendingCoordinatorJudgeCount;
@@ -256,7 +256,7 @@ class DepartmentDashboardService {
       pendingApprovals: pendingApprovals,
       activeProblems: problems.where((doc) => (doc.data()['status'] as String?) == 'active').length,
       ideasSubmitted: ideas.length,
-      studentCount: roleCount(UserRole.teamMember.code, status: UserStatus.active),
+      teamMemberCount: roleCount(UserRole.teamMember.code, status: UserStatus.active),
       coordinatorCount: roleCount('COO', status: UserStatus.active),
       judgeCount: roleCount('JUD', status: UserStatus.active),
       pendingCoordinatorJudgeCount: pendingCoordinatorJudge,
@@ -419,7 +419,7 @@ class DepartmentDashboardService {
     }
     const colors = <Color>[Color(0xFF6A38FF), Color(0xFF16A34A), Color(0xFFEA580C), Color(0xFFF59E0B)];
     const icons = <IconData>[
-      AppIcons.student,
+      AppIcons.teamMember,
       AppIcons.coordinator,
       AppIcons.judges,
       AppIcons.pendingUsers,

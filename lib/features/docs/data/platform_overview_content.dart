@@ -37,7 +37,7 @@ abstract final class PlatformOverviewSections {
 
   static List<String> get searchCorpus => const <String>[
         'hackz platform overview innovation lifecycle ideathon hackathon',
-        'college admin department admin coordinator judge student team member',
+        'college admin department admin coordinator judge team member',
         'problem statements ideas evaluations teams domains csv import',
         'ideathon prototype transparent evaluation multi-tenant',
         'organization settings reports analytics feedback app metadata',

@@ -397,14 +397,14 @@ class IdeaQueryService {
     if (viewer == null) return items;
     final role = UserRole.fromCode(viewer.role);
     if (role == UserRole.teamMember) {
-      final studentId = viewer.userId.trim();
-      final studentTeamId = (viewer.teamId ?? '').trim();
-      if (studentId.isEmpty && studentTeamId.isEmpty) return items;
+      final teamMemberId = viewer.userId.trim();
+      final teamMemberTeamId = (viewer.teamId ?? '').trim();
+      if (teamMemberId.isEmpty && teamMemberTeamId.isEmpty) return items;
       return items.where((item) {
-        if (item.idea.createdBy.trim() == studentId) return true;
+        if (item.idea.createdBy.trim() == teamMemberId) return true;
         final team = item.team;
-        if (team != null && team.studentIds.contains(studentId)) return true;
-        if (studentTeamId.isNotEmpty && item.idea.teamId.trim() == studentTeamId) return true;
+        if (team != null && team.studentIds.contains(teamMemberId)) return true;
+        if (teamMemberTeamId.isNotEmpty && item.idea.teamId.trim() == teamMemberTeamId) return true;
         return false;
       }).toList(growable: false);
     }

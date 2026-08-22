@@ -842,8 +842,8 @@ class InnovationToStartupDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.student,
-                    title: 'Student employability',
+                    icon: AppIcons.teamMember,
+                    title: 'Team Member employability',
                     body: 'Hands-on innovation experience that strengthens career readiness.',
                     cols: cols,
                     maxWidth: c.maxWidth,

@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
-import '../../team/services/faculty_teams_service.dart';
+import '../../team/services/teams_workspace_service.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/team_change_request.dart';
 import '../models/workflow_request.dart';
@@ -20,17 +20,17 @@ class TeamChangeRequestService {
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static const int minStudentsPerTeam = FacultyTeamsService.minStudentsPerTeam;
-  static const int maxStudentsPerTeam = FacultyTeamsService.maxStudentsPerTeam;
+  static const int minMembersPerTeam = TeamsWorkspaceService.minMembersPerTeam;
+  static const int maxMembersPerTeam = TeamsWorkspaceService.maxMembersPerTeam;
 
-  /// Builds a [WorkflowRequest] payload from a team + proposed student set.
-  /// Names are denormalized using [studentLookup] so the review pane never
+  /// Builds a [WorkflowRequest] payload from a team + proposed member set.
+  /// Names are denormalized using [memberLookup] so the review pane never
   /// has to re-fetch users.
   static WorkflowRequest buildRequest({
     required TeamModel team,
     required UserModel faculty,
-    required Set<String> proposedStudentIds,
-    required Map<String, UserModel> studentLookup,
+    required Set<String> proposedMemberIds,
+    required Map<String, UserModel> memberLookup,
     required String reason,
     required bool hasEvaluation,
     WorkflowStatus status = WorkflowStatus.pendingApproval,
@@ -38,16 +38,16 @@ class TeamChangeRequestService {
     final DocumentReference<Map<String, dynamic>> ref = WorkflowRequestService.newDocRef();
     final List<TeamMemberSnapshot> current = team.studentIds
         .map((String id) {
-          final UserModel? user = studentLookup[id];
+          final UserModel? user = memberLookup[id];
           return TeamMemberSnapshot(
             userId: id,
             displayName: user == null ? id : userDisplayName(user),
           );
         })
         .toList(growable: false);
-    final List<TeamMemberSnapshot> proposed = proposedStudentIds
+    final List<TeamMemberSnapshot> proposed = proposedMemberIds
         .map((String id) {
-          final UserModel? user = studentLookup[id];
+          final UserModel? user = memberLookup[id];
           return TeamMemberSnapshot(
             userId: id,
             displayName: user == null ? id : userDisplayName(user),
@@ -88,25 +88,25 @@ class TeamChangeRequestService {
   }
 
   static void validateProposed({
-    required Set<String> proposedStudentIds,
-    required Set<String> currentStudentIds,
+    required Set<String> proposedMemberIds,
+    required Set<String> currentMemberIds,
     required String reason,
     String teamLeaderId = '',
   }) {
-    if (proposedStudentIds.length < minStudentsPerTeam) {
+    if (proposedMemberIds.length < minMembersPerTeam) {
       throw WorkflowRequestException(
-          'Team must have at least $minStudentsPerTeam team members.');
+          'Team must have at least $minMembersPerTeam team members.');
     }
-    if (proposedStudentIds.length > maxStudentsPerTeam) {
+    if (proposedMemberIds.length > maxMembersPerTeam) {
       throw WorkflowRequestException(
-          'Team can have at most $maxStudentsPerTeam team members.');
+          'Team can have at most $maxMembersPerTeam team members.');
     }
-    if (proposedStudentIds.length == currentStudentIds.length &&
-        proposedStudentIds.containsAll(currentStudentIds)) {
+    if (proposedMemberIds.length == currentMemberIds.length &&
+        proposedMemberIds.containsAll(currentMemberIds)) {
       throw WorkflowRequestException('No member changes to submit.');
     }
     final String leaderId = teamLeaderId.trim();
-    if (leaderId.isNotEmpty && !proposedStudentIds.contains(leaderId)) {
+    if (leaderId.isNotEmpty && !proposedMemberIds.contains(leaderId)) {
       throw WorkflowRequestException('The team leader must remain a team member.');
     }
     if (reason.trim().isEmpty) {
@@ -119,7 +119,7 @@ class TeamChangeRequestService {
         ? request
         : request.copyWith(status: WorkflowStatus.pendingApproval);
     await WorkflowRequestService.save(pending);
-    FacultyTeamsService.clearCache();
+    TeamsWorkspaceService.clearCache();
     return pending;
   }
 
@@ -187,7 +187,7 @@ class TeamChangeRequestService {
     );
 
     await batch.commit();
-    FacultyTeamsService.clearCache();
+    TeamsWorkspaceService.clearCache();
     return approved;
   }
 

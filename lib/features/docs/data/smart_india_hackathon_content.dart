@@ -715,7 +715,7 @@ class SmartIndiaHackathonDocBody extends StatelessWidget {
                   ),
                   _featureCard(
                     context,
-                    icon: AppIcons.student,
+                    icon: AppIcons.teamMember,
                     title: 'Improved Student Participation',
                     body: 'Clear pathways from registration to nomination increase engagement.',
                     cols: cols,

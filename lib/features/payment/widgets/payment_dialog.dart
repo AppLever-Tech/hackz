@@ -146,7 +146,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
             createdAt: DateTime.now(),
             transactionId: _txnController.text.trim().isEmpty ? null : _txnController.text.trim(),
           );
-          await FirestoreUtils.saveStudentIdeaPayment(payment).timeout(_firestoreTimeout);
+          await FirestoreUtils.saveIdeaPayment(payment).timeout(_firestoreTimeout);
         },
       );
       if (!mounted) return;

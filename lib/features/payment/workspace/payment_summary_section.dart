@@ -106,7 +106,7 @@ class PaymentSummarySection extends StatelessWidget {
         children: <Widget>[
           SizedBox(
             width: _iconWidth,
-            child: const Icon(AppIcons.student, size: 16, color: Color(0xFF64748B)),
+            child: const Icon(AppIcons.teamMember, size: 16, color: Color(0xFF64748B)),
           ),
           SizedBox(
             width: _labelWidth,

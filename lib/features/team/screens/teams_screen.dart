@@ -7,7 +7,7 @@ import 'package:hackz/features/payment/models/payment_model.dart';
 import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/feedback/feedback.dart';
-import '../services/faculty_teams_service.dart';
+import '../services/teams_workspace_service.dart';
 import '../services/team_service.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -31,9 +31,9 @@ class TeamsScreen extends StatefulWidget {
 }
 
 class _TeamsScreenState extends State<TeamsScreen> {
-  late Future<FacultyTeamsWorkspaceData> _future;
+  late Future<TeamsWorkspaceData> _future;
   TeamModel? _teamChangeTarget;
-  FacultyTeamInsight? _teamChangeInsight;
+  TeamWorkspaceInsight? _teamChangeInsight;
 
   @override
   void initState() {
@@ -41,8 +41,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
     _future = _loadTeamsData(forceRefresh: true);
   }
 
-  Future<FacultyTeamsWorkspaceData> _loadTeamsData({bool forceRefresh = false}) =>
-      FacultyTeamsService.load(widget.user, forceRefresh: forceRefresh);
+  Future<TeamsWorkspaceData> _loadTeamsData({bool forceRefresh = false}) =>
+      TeamsWorkspaceService.load(widget.user, forceRefresh: forceRefresh);
 
   void _refresh() {
     setState(() {
@@ -50,13 +50,13 @@ class _TeamsScreenState extends State<TeamsScreen> {
     });
   }
 
-  Future<void> _openCreateTeamDialog(FacultyTeamsWorkspaceData data) async {
-    if (!FacultyTeamsService.canCreateTeam(data.teams, actor: widget.user)) return;
+  Future<void> _openCreateTeamDialog(TeamsWorkspaceData data) async {
+    if (!TeamsWorkspaceService.canCreateTeam(data.teams, actor: widget.user)) return;
     final result = await showTeamCreationWorkspace(
       context: context,
       currentUser: widget.user,
       existingTeams: data.teams,
-      departmentStudents: data.students,
+      departmentTeamMembers: data.teamMembers,
       initialTeam: null,
     );
     if (result == TeamFormDialogAction.saved && mounted) {
@@ -64,7 +64,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
     }
   }
 
-  void _openTeamChangeWorkspace(TeamModel team, FacultyTeamInsight insight) {
+  void _openTeamChangeWorkspace(TeamModel team, TeamWorkspaceInsight insight) {
     setState(() {
       _teamChangeTarget = team;
       _teamChangeInsight = insight;
@@ -88,11 +88,11 @@ class _TeamsScreenState extends State<TeamsScreen> {
       dangerConfirm: true,
     );
     if (!ok) return;
-    await FacultyTeamsService.disableTeam(team, actor: widget.user);
+    await TeamsWorkspaceService.disableTeam(team, actor: widget.user);
     if (mounted) _refresh();
   }
 
-  Future<void> _viewIdeas(FacultyTeamInsight insight) {
+  Future<void> _viewIdeas(TeamWorkspaceInsight insight) {
     return showAppDialog<void>(
       context: context,
       width: DialogWidthPreset.standard,
@@ -103,7 +103,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<FacultyTeamsWorkspaceData>(
+    return FutureBuilder<TeamsWorkspaceData>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -119,10 +119,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
           return TeamChangeWorkspace(
             faculty: widget.user,
             team: _teamChangeTarget!,
-            departmentStudents: data.students,
+            departmentTeamMembers: data.teamMembers,
             hasEvaluation:
                 TeamChangeWorkspaceController.hasEvaluation(_teamChangeInsight ?? data.insightsByTeamId[_teamChangeTarget!.teamId] ??
-                    FacultyTeamInsight(
+                    TeamWorkspaceInsight(
                       team: _teamChangeTarget!,
                       ideas: const <IdeaModel>[],
                       paymentStatuses: const <PaymentRecordStatus>[],
@@ -135,10 +135,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
         }
 
         final teams = data.teams;
-        final canCreate = FacultyTeamsService.canCreateTeam(teams, actor: widget.user);
+        final canCreate = TeamsWorkspaceService.canCreateTeam(teams, actor: widget.user);
         final bool mobile = ResponsiveHelper.isMobile(context);
-        final Map<String, UserModel> studentsById = <String, UserModel>{
-          for (final UserModel student in data.students) student.userId: student,
+        final Map<String, UserModel> membersById = <String, UserModel>{
+          for (final UserModel member in data.teamMembers) member.userId: member,
         };
 
         return LayoutBuilder(
@@ -146,9 +146,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
             final bool hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
             final Widget metrics = TeamMetricsRow(
               teamCount: teams.length,
-              totalStudents: data.totalStudents,
+              totalTeamMembers: data.totalTeamMembers,
               activeIdeas: data.activeIdeas,
-              maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
+              maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
               spacing: mobile ? 8 : 10,
               runSpacing: mobile ? 8 : 10,
             );
@@ -159,11 +159,11 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     teams: teams,
                     data: data,
                     mentorUser: widget.user,
-                    studentsById: studentsById,
+                    membersById: membersById,
                     onEdit: (TeamModel team) {
                       if (!TeamService.canManageTeam(widget.user, team)) return;
-                      final FacultyTeamInsight insight = data.insightsByTeamId[team.teamId] ??
-                          FacultyTeamInsight(
+                      final TeamWorkspaceInsight insight = data.insightsByTeamId[team.teamId] ??
+                          TeamWorkspaceInsight(
                             team: team,
                             ideas: const <IdeaModel>[],
                             paymentStatuses: const <PaymentRecordStatus>[],
@@ -182,7 +182,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 children: <Widget>[
                   _MobileCreateBar(
                     teamCount: teams.length,
-                    maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
+                    maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
                     onCreate: onCreate,
                   ),
                   const SizedBox(height: 8),
@@ -225,7 +225,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     _CreateTeamCta(
                       canCreate: canCreate,
                       teamCount: teams.length,
-                      maxTeams: FacultyTeamsService.maxTeamsFor(widget.user),
+                      maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
                       onCreate: () => _openCreateTeamDialog(data),
                     ),
                     const SizedBox(height: 14),
@@ -342,23 +342,23 @@ class _TeamList extends StatelessWidget {
     required this.teams,
     required this.data,
     required this.mentorUser,
-    required this.studentsById,
+    required this.membersById,
     required this.onEdit,
     required this.onViewIdeas,
     required this.onDisable,
   });
 
   final List<TeamModel> teams;
-  final FacultyTeamsWorkspaceData data;
+  final TeamsWorkspaceData data;
   final UserModel mentorUser;
-  final Map<String, UserModel> studentsById;
+  final Map<String, UserModel> membersById;
   final ValueChanged<TeamModel> onEdit;
-  final ValueChanged<FacultyTeamInsight> onViewIdeas;
+  final ValueChanged<TeamWorkspaceInsight> onViewIdeas;
   final ValueChanged<TeamModel> onDisable;
 
-  FacultyTeamInsight _insightFor(TeamModel team) {
+  TeamWorkspaceInsight _insightFor(TeamModel team) {
     return data.insightsByTeamId[team.teamId] ??
-        FacultyTeamInsight(
+        TeamWorkspaceInsight(
           team: team,
           ideas: const <IdeaModel>[],
           paymentStatuses: const <PaymentRecordStatus>[],
@@ -377,13 +377,13 @@ class _TeamList extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (BuildContext context, int index) {
           final TeamModel team = teams[index];
-          final FacultyTeamInsight insight = _insightFor(team);
+          final TeamWorkspaceInsight insight = _insightFor(team);
           return TeamWorkspaceCard(
             team: team,
             insight: insight,
             mentorUser: mentorUser,
-            studentsById: studentsById,
-            studentNamesById: data.studentNamesById,
+            membersById: membersById,
+            memberNamesById: data.memberNamesById,
             onEdit: () => onEdit(team),
             onViewIdeas: () => onViewIdeas(insight),
             onDisable: () => onDisable(team),
@@ -401,15 +401,15 @@ class _TeamList extends StatelessWidget {
           spacing: gap,
           runSpacing: gap,
           children: teams.map((TeamModel team) {
-            final FacultyTeamInsight insight = _insightFor(team);
+            final TeamWorkspaceInsight insight = _insightFor(team);
             return SizedBox(
               width: width,
               child: TeamWorkspaceCard(
                 team: team,
                 insight: insight,
                 mentorUser: mentorUser,
-                studentsById: studentsById,
-                studentNamesById: data.studentNamesById,
+                membersById: membersById,
+                memberNamesById: data.memberNamesById,
                 onEdit: () => onEdit(team),
                 onViewIdeas: () => onViewIdeas(insight),
                 onDisable: () => onDisable(team),
@@ -456,7 +456,7 @@ class _EmptyTeamsState extends StatelessWidget {
 class _TeamIdeasPreview extends StatelessWidget {
   const _TeamIdeasPreview({required this.insight});
 
-  final FacultyTeamInsight insight;
+  final TeamWorkspaceInsight insight;
 
   @override
   Widget build(BuildContext context) {

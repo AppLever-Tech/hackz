@@ -4,7 +4,7 @@ import '../../../features/dashboard/collegeadmin/screens/collegeadmin_dashboard.
 import '../../../features/dashboard/coordinator/screens/coordinator_dashboard.dart';
 import '../../../features/dashboard/deptadmin/screens/deptadmin_dashboard.dart';
 import '../../../features/dashboard/judge/screens/judge_dashboard.dart';
-import '../../../features/dashboard/student/screens/student_dashboard.dart';
+import '../../../features/dashboard/team_member/screens/team_member_dashboard.dart';
 import '../../../features/dashboard/sysadmin/screens/sysadmin_dashboard.dart';
 import '../models/enums/user_role.dart';
 import '../models/user_model.dart';
@@ -28,7 +28,7 @@ class RoleUtils {
       case UserRole.departmentAdmin:
         return DeptAdminDashboard(user: user);
       case UserRole.teamMember:
-        return StudentDashboard(user: user);
+        return TeamMemberDashboard(user: user);
       case UserRole.judge:
         return JudgeDashboard(user: user);
       case UserRole.coordinator:

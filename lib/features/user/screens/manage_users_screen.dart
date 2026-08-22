@@ -737,7 +737,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             runSpacing: chipGap,
             children: <Widget>[
               _userFilterChip(compact: compact, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-              _userFilterChip(compact: compact, filter: UsersFilter.teamMembers, icon: AppIcons.student, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
+              _userFilterChip(compact: compact, filter: UsersFilter.teamMembers, icon: AppIcons.teamMember, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
               _userFilterChip(
                 compact: compact,
                 filter: UsersFilter.coordinators,
@@ -767,7 +767,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     if (!_hasActiveFilter) return const SizedBox.shrink();
 
     final (IconData icon, String label) = switch (_filter) {
-      UsersFilter.teamMembers => (AppIcons.student, UserRoleLabels.labelForCode(UserRole.teamMember.code)),
+      UsersFilter.teamMembers => (AppIcons.teamMember, UserRoleLabels.labelForCode(UserRole.teamMember.code)),
       UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
       UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
       UsersFilter.rejected => (AppIcons.workflowRejected, 'Rejected'),
@@ -845,7 +845,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     }
 
     final pending = _section(users, status: UserStatus.pendingApproval);
-    final students = _section(users, role: UserRole.teamMember.code);
+    final teamMembers = _section(users, role: UserRole.teamMember.code);
     final coordinators = _section(users, role: 'COO');
     final rejected = _section(users, status: UserStatus.rejected);
 
@@ -853,7 +853,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       padding: EdgeInsets.only(bottom: bottomPadding),
       children: <Widget>[
         _roleAccordion(title: 'Pending Users', count: pending.length, users: pending, highlighted: true),
-        _roleAccordion(title: UserRoleLabels.pluralLabelForCode(UserRole.teamMember.code), count: students.length, users: students),
+        _roleAccordion(title: UserRoleLabels.pluralLabelForCode(UserRole.teamMember.code), count: teamMembers.length, users: teamMembers),
         _roleAccordion(title: 'Coordinators', count: coordinators.length, users: coordinators),
         _roleAccordion(title: 'Rejected Users', count: rejected.length, users: rejected, highlighted: true),
       ],
@@ -896,7 +896,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Widget _buildUserMetrics(BuildContext context) {
     final bool compact = ResponsiveHelper.isMobile(context);
     return UserMetricsRow(
-      students: _countForFilter(UsersFilter.teamMembers),
+      teamMembers: _countForFilter(UsersFilter.teamMembers),
       coordinators: _countForFilter(UsersFilter.coordinators),
       pending: _countForFilter(UsersFilter.pending),
       spacing: compact ? 8 : 10,
@@ -942,7 +942,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ResponsiveFilterChipRow(
           children: <Widget>[
             _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-            _userFilterChip(compact: false, filter: UsersFilter.teamMembers, icon: AppIcons.student, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
+            _userFilterChip(compact: false, filter: UsersFilter.teamMembers, icon: AppIcons.teamMember, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
             _userFilterChip(
               compact: false,
               filter: UsersFilter.coordinators,

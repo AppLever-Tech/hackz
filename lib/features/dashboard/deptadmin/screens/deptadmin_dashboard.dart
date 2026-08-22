@@ -231,7 +231,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
                 label: 'Total Active Users',
                 icon: AppIcons.users,
                 iconBgColor: const Color(0xFFEAF2FF),
-                footnote: '${analytics.studentCount} team members · ${analytics.coordinatorCount} coordinators',
+                footnote: '${analytics.teamMemberCount} team members · ${analytics.coordinatorCount} coordinators',
                 tooltip: 'Active team members, coordinators and judges in this department.',
               ).toChipData(),
               DepartmentMetricCard(
