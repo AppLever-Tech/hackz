@@ -81,7 +81,6 @@ class ImportReviewTable extends StatefulWidget {
     this.expansionColumns = const <ImportReviewColumn>[],
     this.editable = false,
     this.onToggleExclude,
-    this.onFieldEdited,
   });
 
   final List<ImportReviewRow> rows;
@@ -89,7 +88,6 @@ class ImportReviewTable extends StatefulWidget {
   final List<ImportReviewColumn> expansionColumns;
   final bool editable;
   final ValueChanged<int>? onToggleExclude;
-  final void Function(int index, String key, String value)? onFieldEdited;
 
   @override
   State<ImportReviewTable> createState() => _ImportReviewTableState();
@@ -206,7 +204,6 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   }
 
   bool _canExpand(ImportReviewRow row) {
-    if (widget.editable) return true;
     if (row.metadata['expandable'] == '1') return true;
     return widget.expansionColumns.any((ImportReviewColumn c) => row.valueFor(c.key).isNotEmpty);
   }
@@ -241,7 +238,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
                     : _wideCollapsed(row, index: index, canExpand: canExpand, expanded: expanded),
               ),
             ),
-            if (expanded) _expansionPanel(row, index: index, compact: compact),
+            if (expanded) _expansionPanel(row, compact: compact),
           ],
         ),
       ),
@@ -365,92 +362,58 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     );
   }
 
-  Widget _expansionPanel(ImportReviewRow row, {required int index, required bool compact}) {
-    final List<ImportReviewColumn> provided = widget.editable
-        ? <ImportReviewColumn>[
-            ...widget.columns,
-            ...widget.expansionColumns,
-          ]
-        : widget.expansionColumns
-            .where((ImportReviewColumn column) => row.valueFor(column.key).isNotEmpty)
-            .toList(growable: false);
+  Widget _expansionPanel(ImportReviewRow row, {required bool compact}) {
+    final List<ImportReviewColumn> provided = widget.expansionColumns
+        .where((ImportReviewColumn column) => row.valueFor(column.key).isNotEmpty)
+        .toList(growable: false);
     if (provided.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(compact ? 8 : 56, 0, 8, 8),
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          final List<Widget> primary = <Widget>[];
-          final List<Widget> secondary = <Widget>[];
-          for (var i = 0; i < provided.length; i++) {
-            final ImportReviewColumn column = provided[i];
-            final Widget tile = widget.editable
-                ? _EditableImportField(
-                    icon: _iconFor(column.key),
-                    label: column.label,
-                    value: row.valueFor(column.key),
-                    maxLines: column.key == ImportConstants.descriptionColumnKey ? 3 : 1,
-                    onCommit: (String value) => widget.onFieldEdited?.call(index, column.key, value),
-                  )
-                : _DetailTile(
-                    icon: _iconFor(column.key),
-                    label: column.label,
-                    value: row.valueFor(column.key),
-                  );
-            if (widget.editable &&
-                (column.key == ImportConstants.titleColumnKey ||
-                    column.key == ImportConstants.descriptionColumnKey)) {
-              primary.add(tile);
-            } else {
-              secondary.add(tile);
-            }
-          }
-          final List<Widget> rest = secondary;
-          final bool twoCol = constraints.hasBoundedWidth &&
-              constraints.maxWidth >= 520 &&
-              rest.length > 1;
+          final bool twoCol = constraints.hasBoundedWidth && constraints.maxWidth >= 520 && provided.length > 1;
+          final List<Widget> tiles = provided
+              .map(
+                (ImportReviewColumn column) => _DetailTile(
+                  icon: _iconFor(column.key),
+                  label: column.label,
+                  value: row.valueFor(column.key),
+                ),
+              )
+              .toList(growable: false);
 
-          List<Widget> paired(List<Widget> items) {
-            if (!twoCol) {
-              return <Widget>[
-                for (var i = 0; i < items.length; i++) ...<Widget>[
+          if (!twoCol) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                for (var i = 0; i < tiles.length; i++) ...<Widget>[
                   if (i > 0) const SizedBox(height: 6),
-                  items[i],
+                  tiles[i],
                 ],
-              ];
-            }
-            final List<Widget> rows = <Widget>[];
-            for (var i = 0; i < items.length; i += 2) {
-              if (i > 0) rows.add(const SizedBox(height: 6));
-              if (i + 1 < items.length) {
-                rows.add(
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(child: items[i]),
-                      const SizedBox(width: 8),
-                      Expanded(child: items[i + 1]),
-                    ],
-                  ),
-                );
-              } else {
-                rows.add(items[i]);
-              }
-            }
-            return rows;
+              ],
+            );
           }
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (var i = 0; i < primary.length; i++) ...<Widget>[
-                if (i > 0) const SizedBox(height: 6),
-                primary[i],
-              ],
-              if (primary.isNotEmpty && rest.isNotEmpty) const SizedBox(height: 6),
-              ...paired(rest),
-            ],
-          );
+          final List<Widget> rows = <Widget>[];
+          for (var i = 0; i < tiles.length; i += 2) {
+            if (i > 0) rows.add(const SizedBox(height: 6));
+            if (i + 1 < tiles.length) {
+              rows.add(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: tiles[i]),
+                    const SizedBox(width: 8),
+                    Expanded(child: tiles[i + 1]),
+                  ],
+                ),
+              );
+            } else {
+              rows.add(tiles[i]);
+            }
+          }
+          return Column(children: rows);
         },
       ),
     );
@@ -611,87 +574,6 @@ class _StatusCell extends StatelessWidget {
               ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-class _EditableImportField extends StatefulWidget {
-  const _EditableImportField({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.onCommit,
-    this.maxLines = 1,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final int maxLines;
-  final ValueChanged<String> onCommit;
-
-  @override
-  State<_EditableImportField> createState() => _EditableImportFieldState();
-}
-
-class _EditableImportFieldState extends State<_EditableImportField> {
-  late final TextEditingController _controller;
-  late final FocusNode _focus;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value);
-    _focus = FocusNode()..addListener(_handleFocus);
-  }
-
-  @override
-  void didUpdateWidget(covariant _EditableImportField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != oldWidget.value && widget.value != _controller.text) {
-      _controller.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _focus
-      ..removeListener(_handleFocus)
-      ..dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleFocus() {
-    if (!_focus.hasFocus) widget.onCommit(_controller.text);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Icon(widget.icon, size: 13, color: EntityCardStyles.fieldLabel.color),
-            const SizedBox(width: 6),
-            Text(widget.label, style: EntityCardStyles.fieldLabel),
-          ],
-        ),
-        const SizedBox(height: 4),
-        TextField(
-          controller: _controller,
-          focusNode: _focus,
-          maxLines: widget.maxLines,
-          minLines: 1,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-          decoration: HackzInputDecoration.decorate(
-            hintText: widget.label,
-            contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          ),
-          onSubmitted: widget.onCommit,
-        ),
       ],
     );
   }

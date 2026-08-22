@@ -62,7 +62,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   ProblemStatementSource _problemSource = ProblemStatementSource.internal;
   ProblemImportSourceKind _importSource = ProblemImportSourceKind.csv;
   final TextEditingController _sourceUrlController = TextEditingController();
-  List<Map<String, String>> _normalizedRows = const <Map<String, String>>[];
   List<ImportReviewRow> _validatedRows = const <ImportReviewRow>[];
   final Set<int> _excludedIndexes = <int>{};
 
@@ -74,6 +73,50 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           : null;
 
   bool get _hasDepartment => _selectedDepartmentCode.trim().isNotEmpty;
+
+  String get _headerTitle {
+    if (!_isProblemsImport || _step != _ImportStep.review) return _handler.title;
+    return switch (_importSource) {
+      ProblemImportSourceKind.csv => 'Import Problems from CSV',
+      ProblemImportSourceKind.googleSheet => 'Import Problems from Google Sheets',
+      ProblemImportSourceKind.googleDoc => 'Import Problems from Google Docs',
+    };
+  }
+
+  Widget? get _sourceCaption {
+    final bool google = _isProblemsImport && _importSource.isGoogle;
+    final String value = google ? _sourceUrlController.text.trim() : (_fileName ?? '').trim();
+    if (value.isEmpty) return null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            google ? 'URL:' : 'File:',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Tooltip(
+              message: value,
+              waitDuration: const Duration(milliseconds: 250),
+              child: Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -191,7 +234,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       if (!mounted) return;
       setState(() {
         _fileName = file.name;
-        _normalizedRows = parsed;
         _excludedIndexes.clear();
         _validatedRows = validated;
         _rows = validated;
@@ -237,7 +279,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       if (!mounted) return;
       setState(() {
         _fileName = _importSource.label;
-        _normalizedRows = extracted;
         _excludedIndexes.clear();
         _validatedRows = validated;
         _rows = validated;
@@ -265,26 +306,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     ];
   }
 
-  Future<void> _revalidateNormalized() async {
-    setState(() => _busy = true);
-    try {
-      final List<ImportReviewRow> validated =
-          await _handler.validateRows(_normalizedRows, _effectiveContext());
-      if (!mounted) return;
-      final List<ImportReviewRow> rows = _applyExcluded(validated);
-      setState(() {
-        _validatedRows = validated;
-        _rows = rows;
-        _summary = _handler.summarize(rows);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      FeedbackService.showError(context, title: 'Validation failed', message: '$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   void _toggleExclude(int index) {
     setState(() {
       if (!_excludedIndexes.add(index)) {
@@ -293,18 +314,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       _rows = _applyExcluded(_validatedRows);
       _summary = _handler.summarize(_rows);
     });
-  }
-
-  Future<void> _onFieldEdited(int index, String key, String value) async {
-    if (index < 0 || index >= _normalizedRows.length) return;
-    final String current = (_normalizedRows[index][key] ?? '').trim();
-    if (current == value.trim()) return;
-    final Map<String, String> next = Map<String, String>.from(_normalizedRows[index]);
-    next[key] = value;
-    _normalizedRows = <Map<String, String>>[
-      for (var i = 0; i < _normalizedRows.length; i++) i == index ? next : _normalizedRows[i],
-    ];
-    await _revalidateNormalized();
   }
 
   Future<void> _runImport() async {
@@ -349,13 +358,12 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final bool compact = ResponsiveHelper.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
-          _handler.title,
+          _headerTitle,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
         ),
         const SizedBox(height: 4),
@@ -377,19 +385,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
               ),
             ),
             const HelpActionButton(pageId: 'csv-import'),
-            if (_step == _ImportStep.template && (!_isProblemsImport || !_importSource.isGoogle)) ...<Widget>[
-              const SizedBox(width: 4),
-              FilledButton.icon(
-                onPressed: _busy || (_isProblemsImport && !_hasDepartment) ? null : _pickCsv,
-                icon: const Icon(AppIcons.attachments, size: 16),
-                label: Text(compact ? 'Upload' : 'Upload CSV'),
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14, vertical: 10),
-                ),
-              ),
-            ],
           ],
         ),
         const SizedBox(height: 14),
@@ -431,7 +426,12 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
               });
             },
             onImportSourceChanged: (ProblemImportSourceKind kind) {
-              setState(() => _importSource = kind);
+              setState(() {
+                _importSource = kind;
+                if (kind.isGoogle) {
+                  _problemSource = ProblemStatementSource.external;
+                }
+              });
             },
             onProblemSourceChanged: (ProblemStatementSource source) {
               setState(() => _problemSource = source);
@@ -477,10 +477,28 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                   ),
                 ],
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _busy ? null : _downloadTemplate,
-                  icon: const Icon(AppIcons.download, size: 16),
-                  label: const Text('Download CSV Template'),
+                Row(
+                  children: <Widget>[
+                    OutlinedButton.icon(
+                      onPressed: _busy ? null : _downloadTemplate,
+                      icon: const Icon(AppIcons.download, size: 16),
+                      label: const Text('Download CSV Template'),
+                    ),
+                    const Spacer(),
+                    FilledButton.icon(
+                      onPressed: _busy || (_isProblemsImport && !_hasDepartment) ? null : _pickCsv,
+                      icon: const Icon(AppIcons.attachments, size: 16),
+                      label: Text(ResponsiveHelper.isMobile(context) ? 'Upload' : 'Upload CSV'),
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveHelper.isMobile(context) ? 10 : 14,
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -576,18 +594,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (_fileName != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Text(
-              _importSource.isGoogle
-                  ? '${_importSource.label}: ${_sourceUrlController.text.trim()}'
-                  : 'File: $_fileName',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-            ),
-          ),
+        if (_sourceCaption != null) _sourceCaption!,
         ImportSummaryMetrics(summary: summary),
         if (summary.errorRows > 0) ...<Widget>[
           const SizedBox(height: 8),
@@ -604,7 +611,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             expansionColumns: expansionColumns,
             editable: _isProblemsImport,
             onToggleExclude: _isProblemsImport ? _toggleExclude : null,
-            onFieldEdited: _isProblemsImport ? _onFieldEdited : null,
           ),
         ),
       ],
@@ -682,7 +688,6 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                       _step = _ImportStep.template;
                       _rows = const <ImportReviewRow>[];
                       _validatedRows = const <ImportReviewRow>[];
-                      _normalizedRows = const <Map<String, String>>[];
                       _excludedIndexes.clear();
                       _summary = null;
                       _fileName = null;

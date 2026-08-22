@@ -38,7 +38,57 @@ class ImportProblemContextSection extends StatelessWidget {
   final bool loading;
   final bool enabled;
 
-  static const double _stackBreakpoint = 640;
+  static const double _rowGap = 10;
+  static const double _colGap = 16;
+
+  Widget _twoByTwoLayout() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: _labeledField(
+                icon: AppIcons.attachments,
+                label: 'Import from',
+                field: _importSourceSelect(),
+              ),
+            ),
+            const SizedBox(width: _colGap),
+            Expanded(
+              child: _labeledField(
+                icon: Icons.public_outlined,
+                label: 'Source',
+                field: _sourceSelect(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: _rowGap),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: _labeledField(
+                icon: AppIcons.departments,
+                label: 'Department',
+                field: lockDepartment ? _readOnlyValue(_departmentDisplay, locked: true) : _departmentSelect(),
+              ),
+            ),
+            const SizedBox(width: _colGap),
+            Expanded(
+              child: _labeledField(
+                icon: AppIcons.organizations,
+                label: 'Organisation',
+                field: _readOnlyValue(orgName.trim().isEmpty ? '—' : orgName.trim()),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,71 +104,7 @@ class ImportProblemContextSection extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 8),
               child: LinearProgressIndicator(minHeight: 2),
             )
-          : LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final bool stack = !constraints.hasBoundedWidth ||
-                    constraints.maxWidth < _stackBreakpoint;
-                final Widget department = _labeledField(
-                  icon: AppIcons.departments,
-                  label: 'Department',
-                  field: lockDepartment ? _readOnlyValue(_departmentDisplay, locked: true) : _departmentSelect(),
-                );
-                final Widget importFrom = _labeledField(
-                  icon: AppIcons.attachments,
-                  label: 'Import from',
-                  field: _importSourceSelect(),
-                );
-                final Widget organisation = _labeledField(
-                  icon: AppIcons.organizations,
-                  label: 'Organisation',
-                  field: _readOnlyValue(orgName.trim().isEmpty ? '—' : orgName.trim()),
-                );
-                final Widget? csvSource = importSource == ProblemImportSourceKind.csv
-                    ? _labeledField(
-                        icon: Icons.public_outlined,
-                        label: 'Source',
-                        field: _csvSourceSelect(),
-                      )
-                    : null;
-
-                if (stack) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      department,
-                      const SizedBox(height: 10),
-                      importFrom,
-                      if (csvSource != null) ...<Widget>[
-                        const SizedBox(height: 10),
-                        csvSource,
-                      ],
-                      const SizedBox(height: 10),
-                      organisation,
-                    ],
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        Expanded(child: department),
-                        const SizedBox(width: 16),
-                        Expanded(child: importFrom),
-                      ],
-                    ),
-                    if (csvSource != null) ...<Widget>[
-                      const SizedBox(height: 10),
-                      csvSource,
-                    ],
-                    const SizedBox(height: 10),
-                    organisation,
-                  ],
-                );
-              },
-            ),
+          : _twoByTwoLayout(),
     );
   }
 
@@ -175,31 +161,41 @@ class ImportProblemContextSection extends StatelessWidget {
     );
   }
 
-  Widget _csvSourceSelect() {
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<ProblemStatementSource>(
-        showSelectedIcon: false,
-        segments: const <ButtonSegment<ProblemStatementSource>>[
-          ButtonSegment<ProblemStatementSource>(
-            value: ProblemStatementSource.internal,
-            label: Text('Internal'),
-          ),
-          ButtonSegment<ProblemStatementSource>(
-            value: ProblemStatementSource.external,
-            label: Text('External'),
-          ),
-        ],
-        selected: <ProblemStatementSource>{problemSource},
-        onSelectionChanged: (Set<ProblemStatementSource> next) {
-          if (!enabled || next.isEmpty) return;
-          onProblemSourceChanged(next.first);
-        },
-        style: const ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          textStyle: WidgetStatePropertyAll(
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+  Widget _sourceSelect() {
+    final bool sourceEnabled = enabled && !importSource.isGoogle;
+    final ProblemStatementSource selected =
+        importSource.isGoogle ? ProblemStatementSource.external : problemSource;
+    return IgnorePointer(
+      ignoring: !sourceEnabled,
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<ProblemStatementSource>(
+          showSelectedIcon: false,
+          segments: const <ButtonSegment<ProblemStatementSource>>[
+            ButtonSegment<ProblemStatementSource>(
+              value: ProblemStatementSource.internal,
+              label: Text('Internal'),
+            ),
+            ButtonSegment<ProblemStatementSource>(
+              value: ProblemStatementSource.external,
+              label: Text('External'),
+            ),
+          ],
+          selected: <ProblemStatementSource>{selected},
+          onSelectionChanged: (Set<ProblemStatementSource> next) {
+            if (!sourceEnabled || next.isEmpty) return;
+            onProblemSourceChanged(next.first);
+          },
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: const WidgetStatePropertyAll(
+              TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith((Set<WidgetState> states) {
+              if (!sourceEnabled) return const Color(0xFF94A3B8);
+              return null;
+            }),
           ),
         ),
       ),
