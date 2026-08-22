@@ -5,8 +5,9 @@ import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../../problems/models/problem_statement_source.dart';
 import '../services/import_department_lookup.dart';
+import '../sources/problem_import_source_kind.dart';
 
-/// Organisation, department, and Internal/External source for problem CSV import.
+/// Organisation, department, and import-from source for problem import.
 class ImportProblemContextSection extends StatelessWidget {
   const ImportProblemContextSection({
     super.key,
@@ -15,9 +16,11 @@ class ImportProblemContextSection extends StatelessWidget {
     required this.departmentName,
     required this.lockDepartment,
     required this.departments,
-    required this.source,
+    required this.importSource,
+    required this.problemSource,
     required this.onDepartmentChanged,
-    required this.onSourceChanged,
+    required this.onImportSourceChanged,
+    required this.onProblemSourceChanged,
     this.loading = false,
     this.enabled = true,
   });
@@ -27,9 +30,11 @@ class ImportProblemContextSection extends StatelessWidget {
   final String departmentName;
   final bool lockDepartment;
   final List<ImportDepartmentInfo> departments;
-  final ProblemStatementSource source;
+  final ProblemImportSourceKind importSource;
+  final ProblemStatementSource problemSource;
   final ValueChanged<ImportDepartmentInfo> onDepartmentChanged;
-  final ValueChanged<ProblemStatementSource> onSourceChanged;
+  final ValueChanged<ProblemImportSourceKind> onImportSourceChanged;
+  final ValueChanged<ProblemStatementSource> onProblemSourceChanged;
   final bool loading;
   final bool enabled;
 
@@ -58,16 +63,23 @@ class ImportProblemContextSection extends StatelessWidget {
                   label: 'Department',
                   field: lockDepartment ? _readOnlyValue(_departmentDisplay, locked: true) : _departmentSelect(),
                 );
-                final Widget sourceField = _labeledField(
-                  icon: Icons.public_outlined,
-                  label: 'Source',
-                  field: _sourceSelect(),
+                final Widget importFrom = _labeledField(
+                  icon: AppIcons.attachments,
+                  label: 'Import from',
+                  field: _importSourceSelect(),
                 );
                 final Widget organisation = _labeledField(
                   icon: AppIcons.organizations,
                   label: 'Organisation',
                   field: _readOnlyValue(orgName.trim().isEmpty ? '—' : orgName.trim()),
                 );
+                final Widget? csvSource = importSource == ProblemImportSourceKind.csv
+                    ? _labeledField(
+                        icon: Icons.public_outlined,
+                        label: 'Source',
+                        field: _csvSourceSelect(),
+                      )
+                    : null;
 
                 if (stack) {
                   return Column(
@@ -75,7 +87,11 @@ class ImportProblemContextSection extends StatelessWidget {
                     children: <Widget>[
                       department,
                       const SizedBox(height: 10),
-                      sourceField,
+                      importFrom,
+                      if (csvSource != null) ...<Widget>[
+                        const SizedBox(height: 10),
+                        csvSource,
+                      ],
                       const SizedBox(height: 10),
                       organisation,
                     ],
@@ -90,9 +106,13 @@ class ImportProblemContextSection extends StatelessWidget {
                       children: <Widget>[
                         Expanded(child: department),
                         const SizedBox(width: 16),
-                        Expanded(child: sourceField),
+                        Expanded(child: importFrom),
                       ],
                     ),
+                    if (csvSource != null) ...<Widget>[
+                      const SizedBox(height: 10),
+                      csvSource,
+                    ],
                     const SizedBox(height: 10),
                     organisation,
                   ],
@@ -143,7 +163,19 @@ class ImportProblemContextSection extends StatelessWidget {
     );
   }
 
-  Widget _sourceSelect() {
+  Widget _importSourceSelect() {
+    return HackzSelectField<ProblemImportSourceKind>(
+      value: importSource,
+      hint: 'Select source',
+      enabled: enabled,
+      options: ProblemImportSourceKind.values,
+      labelBuilder: (ProblemImportSourceKind kind) => kind.label,
+      iconBuilder: (ProblemImportSourceKind kind) => kind.icon,
+      onChanged: onImportSourceChanged,
+    );
+  }
+
+  Widget _csvSourceSelect() {
     return SizedBox(
       width: double.infinity,
       child: SegmentedButton<ProblemStatementSource>(
@@ -158,10 +190,10 @@ class ImportProblemContextSection extends StatelessWidget {
             label: Text('External'),
           ),
         ],
-        selected: <ProblemStatementSource>{source},
+        selected: <ProblemStatementSource>{problemSource},
         onSelectionChanged: (Set<ProblemStatementSource> next) {
           if (!enabled || next.isEmpty) return;
-          onSourceChanged(next.first);
+          onProblemSourceChanged(next.first);
         },
         style: const ButtonStyle(
           visualDensity: VisualDensity.compact,

@@ -16,6 +16,7 @@ abstract final class ImportReviewColumnLayout {
   static const double phone = 112;
   static const double role = 104;
   static const double status = 176;
+  static const double exclude = 32;
   static const double gap = 8;
   static const double compactBreakpoint = 760;
 }
@@ -78,11 +79,17 @@ class ImportReviewTable extends StatefulWidget {
     required this.rows,
     required this.columns,
     this.expansionColumns = const <ImportReviewColumn>[],
+    this.editable = false,
+    this.onToggleExclude,
+    this.onFieldEdited,
   });
 
   final List<ImportReviewRow> rows;
   final List<ImportReviewColumn> columns;
   final List<ImportReviewColumn> expansionColumns;
+  final bool editable;
+  final ValueChanged<int>? onToggleExclude;
+  final void Function(int index, String key, String value)? onFieldEdited;
 
   @override
   State<ImportReviewTable> createState() => _ImportReviewTableState();
@@ -93,7 +100,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.expansionColumns.isEmpty) return _buildDataTable();
+    if (widget.expansionColumns.isEmpty && !widget.editable) return _buildDataTable();
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool compact = constraints.maxWidth < ImportReviewColumnLayout.compactBreakpoint;
@@ -106,7 +113,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               child: ListView.builder(
                 itemCount: widget.rows.length,
                 itemBuilder: (BuildContext context, int index) =>
-                    _expandableRow(widget.rows[index], compact: compact),
+                    _expandableRow(widget.rows[index], index: index, compact: compact),
               ),
             ),
           ],
@@ -175,6 +182,10 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               width: ImportReviewColumnLayout.status,
               child: Text('Status', style: style),
             ),
+            if (widget.editable) ...<Widget>[
+              const SizedBox(width: ImportReviewColumnLayout.gap),
+              const SizedBox(width: ImportReviewColumnLayout.exclude),
+            ],
           ] else
             Expanded(
               child: Text(
@@ -195,45 +206,69 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   }
 
   bool _canExpand(ImportReviewRow row) {
+    if (widget.editable) return true;
     if (row.metadata['expandable'] == '1') return true;
     return widget.expansionColumns.any((ImportReviewColumn c) => row.valueFor(c.key).isNotEmpty);
   }
 
-  Widget _expandableRow(ImportReviewRow row, {required bool compact}) {
+  Widget _expandableRow(ImportReviewRow row, {required int index, required bool compact}) {
     final bool canExpand = _canExpand(row);
     final bool expanded = canExpand && _expandedRows.contains(row.rowNumber);
 
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          InkWell(
-            onTap: canExpand
-                ? () => setState(() {
-                      if (expanded) {
-                        _expandedRows.remove(row.rowNumber);
-                      } else {
-                        _expandedRows.add(row.rowNumber);
-                      }
-                    })
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-              child: compact
-                  ? _compactCollapsed(row, canExpand: canExpand, expanded: expanded)
-                  : _wideCollapsed(row, canExpand: canExpand, expanded: expanded),
+    return Opacity(
+      opacity: row.excluded ? 0.45 : 1,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            InkWell(
+              onTap: canExpand
+                  ? () => setState(() {
+                        if (expanded) {
+                          _expandedRows.remove(row.rowNumber);
+                        } else {
+                          _expandedRows.add(row.rowNumber);
+                        }
+                      })
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                child: compact
+                    ? _compactCollapsed(row, index: index, canExpand: canExpand, expanded: expanded)
+                    : _wideCollapsed(row, index: index, canExpand: canExpand, expanded: expanded),
+              ),
             ),
-          ),
-          if (expanded) _expansionPanel(row, compact: compact),
-        ],
+            if (expanded) _expansionPanel(row, index: index, compact: compact),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _wideCollapsed(ImportReviewRow row, {required bool canExpand, required bool expanded}) {
+  Widget _excludeControl(int index, ImportReviewRow row) {
+    return SizedBox(
+      width: ImportReviewColumnLayout.exclude,
+      child: IconButton(
+        tooltip: row.excluded ? 'Include in import' : 'Exclude from import',
+        onPressed: widget.onToggleExclude == null ? null : () => widget.onToggleExclude!(index),
+        icon: Icon(row.excluded ? AppIcons.preview : AppIcons.remove, size: 16),
+        color: row.excluded ? const Color(0xFF047857) : const Color(0xFF64748B),
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      ),
+    );
+  }
+
+  Widget _wideCollapsed(
+    ImportReviewRow row, {
+    required int index,
+    required bool canExpand,
+    required bool expanded,
+  }) {
     return Row(
       children: <Widget>[
         SizedBox(
@@ -262,11 +297,20 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
           width: ImportReviewColumnLayout.status,
           child: _StatusCell(row: row),
         ),
+        if (widget.editable) ...<Widget>[
+          const SizedBox(width: ImportReviewColumnLayout.gap),
+          _excludeControl(index, row),
+        ],
       ],
     );
   }
 
-  Widget _compactCollapsed(ImportReviewRow row, {required bool canExpand, required bool expanded}) {
+  Widget _compactCollapsed(
+    ImportReviewRow row, {
+    required int index,
+    required bool canExpand,
+    required bool expanded,
+  }) {
     final List<ImportReviewColumn> flexColumns =
         widget.columns.where((ImportReviewColumn c) => !c.isFixed).toList(growable: false);
     final List<ImportReviewColumn> fixedColumns =
@@ -316,62 +360,97 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
             ],
           ),
         ),
+        if (widget.editable) _excludeControl(index, row),
       ],
     );
   }
 
-  Widget _expansionPanel(ImportReviewRow row, {required bool compact}) {
-    final List<ImportReviewColumn> provided = widget.expansionColumns
-        .where((ImportReviewColumn column) => row.valueFor(column.key).isNotEmpty)
-        .toList(growable: false);
+  Widget _expansionPanel(ImportReviewRow row, {required int index, required bool compact}) {
+    final List<ImportReviewColumn> provided = widget.editable
+        ? <ImportReviewColumn>[
+            ...widget.columns,
+            ...widget.expansionColumns,
+          ]
+        : widget.expansionColumns
+            .where((ImportReviewColumn column) => row.valueFor(column.key).isNotEmpty)
+            .toList(growable: false);
     if (provided.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(compact ? 8 : 56, 0, 8, 8),
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          final bool twoCol = constraints.hasBoundedWidth && constraints.maxWidth >= 520 && provided.length > 1;
-          final List<Widget> tiles = provided
-              .map(
-                (ImportReviewColumn column) => _DetailTile(
-                  icon: _iconFor(column.key),
-                  label: column.label,
-                  value: row.valueFor(column.key),
-                ),
-              )
-              .toList(growable: false);
-
-          if (!twoCol) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (var i = 0; i < tiles.length; i++) ...<Widget>[
-                  if (i > 0) const SizedBox(height: 6),
-                  tiles[i],
-                ],
-              ],
-            );
-          }
-
-          final List<Widget> rows = <Widget>[];
-          for (var i = 0; i < tiles.length; i += 2) {
-            if (i > 0) rows.add(const SizedBox(height: 6));
-            if (i + 1 < tiles.length) {
-              rows.add(
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(child: tiles[i]),
-                    const SizedBox(width: 8),
-                    Expanded(child: tiles[i + 1]),
-                  ],
-                ),
-              );
+          final List<Widget> primary = <Widget>[];
+          final List<Widget> secondary = <Widget>[];
+          for (var i = 0; i < provided.length; i++) {
+            final ImportReviewColumn column = provided[i];
+            final Widget tile = widget.editable
+                ? _EditableImportField(
+                    icon: _iconFor(column.key),
+                    label: column.label,
+                    value: row.valueFor(column.key),
+                    maxLines: column.key == ImportConstants.descriptionColumnKey ? 3 : 1,
+                    onCommit: (String value) => widget.onFieldEdited?.call(index, column.key, value),
+                  )
+                : _DetailTile(
+                    icon: _iconFor(column.key),
+                    label: column.label,
+                    value: row.valueFor(column.key),
+                  );
+            if (widget.editable &&
+                (column.key == ImportConstants.titleColumnKey ||
+                    column.key == ImportConstants.descriptionColumnKey)) {
+              primary.add(tile);
             } else {
-              rows.add(tiles[i]);
+              secondary.add(tile);
             }
           }
-          return Column(children: rows);
+          final List<Widget> rest = secondary;
+          final bool twoCol = constraints.hasBoundedWidth &&
+              constraints.maxWidth >= 520 &&
+              rest.length > 1;
+
+          List<Widget> paired(List<Widget> items) {
+            if (!twoCol) {
+              return <Widget>[
+                for (var i = 0; i < items.length; i++) ...<Widget>[
+                  if (i > 0) const SizedBox(height: 6),
+                  items[i],
+                ],
+              ];
+            }
+            final List<Widget> rows = <Widget>[];
+            for (var i = 0; i < items.length; i += 2) {
+              if (i > 0) rows.add(const SizedBox(height: 6));
+              if (i + 1 < items.length) {
+                rows.add(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(child: items[i]),
+                      const SizedBox(width: 8),
+                      Expanded(child: items[i + 1]),
+                    ],
+                  ),
+                );
+              } else {
+                rows.add(items[i]);
+              }
+            }
+            return rows;
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              for (var i = 0; i < primary.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(height: 6),
+                primary[i],
+              ],
+              if (primary.isNotEmpty && rest.isNotEmpty) const SizedBox(height: 6),
+              ...paired(rest),
+            ],
+          );
         },
       ),
     );
@@ -379,6 +458,8 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
 
   IconData _iconFor(String key) {
     return switch (key) {
+      ImportConstants.titleColumnKey => AppIcons.problems,
+      ImportConstants.descriptionColumnKey => AppIcons.info,
       ImportConstants.externalProblemIdColumnKey => AppIcons.key,
       ImportConstants.themeColumnKey => AppIcons.orgType,
       ImportConstants.issuingOrganisationColumnKey => AppIcons.organizations,
@@ -489,6 +570,14 @@ class _StatusCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (row.excluded) {
+      return const Text(
+        'Excluded',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B)),
+      );
+    }
     final Color color = switch (row.severity) {
       ImportRowSeverity.valid => const Color(0xFF047857),
       ImportRowSeverity.warning => const Color(0xFFB45309),
@@ -522,6 +611,87 @@ class _StatusCell extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _EditableImportField extends StatefulWidget {
+  const _EditableImportField({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onCommit,
+    this.maxLines = 1,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final int maxLines;
+  final ValueChanged<String> onCommit;
+
+  @override
+  State<_EditableImportField> createState() => _EditableImportFieldState();
+}
+
+class _EditableImportFieldState extends State<_EditableImportField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focus = FocusNode()..addListener(_handleFocus);
+  }
+
+  @override
+  void didUpdateWidget(covariant _EditableImportField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focus
+      ..removeListener(_handleFocus)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleFocus() {
+    if (!_focus.hasFocus) widget.onCommit(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Icon(widget.icon, size: 13, color: EntityCardStyles.fieldLabel.color),
+            const SizedBox(width: 6),
+            Text(widget.label, style: EntityCardStyles.fieldLabel),
+          ],
+        ),
+        const SizedBox(height: 4),
+        TextField(
+          controller: _controller,
+          focusNode: _focus,
+          maxLines: widget.maxLines,
+          minLines: 1,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+          decoration: HackzInputDecoration.decorate(
+            hintText: widget.label,
+            contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          ),
+          onSubmitted: widget.onCommit,
+        ),
       ],
     );
   }

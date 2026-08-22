@@ -78,6 +78,8 @@ class AppIcons {
   static const IconData info = Icons.info_outline_rounded;
   static const IconData domains = Icons.hub_outlined;
   static const IconData docs = Icons.menu_book_outlined;
+  static const IconData spreadsheet = Icons.table_chart_outlined;
+  static const IconData link = Icons.link_rounded;
   static const IconData feedback = Icons.rate_review_outlined;
 
   // ── Attachments & media ──────────────────────────────────────────────────

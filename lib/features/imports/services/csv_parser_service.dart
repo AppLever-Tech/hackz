@@ -3,22 +3,15 @@ import 'dart:convert';
 /// Shared CSV parsing for all Hackz import types.
 abstract final class CsvParserService {
   static List<Map<String, String>> parse(String raw) {
-    final String normalized = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n').trim();
-    if (normalized.isEmpty) return const <Map<String, String>>[];
+    final List<List<String>> matrix = parseMatrix(raw);
+    if (matrix.isEmpty) return const <Map<String, String>>[];
 
-    final List<String> lines = normalized
-        .split('\n')
-        .map((String line) => line.trim())
-        .where((String line) => line.isNotEmpty)
-        .toList(growable: false);
-    if (lines.isEmpty) return const <Map<String, String>>[];
-
-    final List<String> headers = _splitLine(lines.first).map(_normalizeHeader).toList(growable: false);
+    final List<String> headers = matrix.first.map(_normalizeHeader).toList(growable: false);
     if (headers.isEmpty) return const <Map<String, String>>[];
 
     final List<Map<String, String>> rows = <Map<String, String>>[];
-    for (var i = 1; i < lines.length; i++) {
-      final List<String> cells = _splitLine(lines[i]);
+    for (var i = 1; i < matrix.length; i++) {
+      final List<String> cells = matrix[i];
       final Map<String, String> row = <String, String>{};
       for (var h = 0; h < headers.length; h++) {
         final String key = headers[h];
@@ -27,6 +20,52 @@ abstract final class CsvParserService {
       }
       if (row.values.every((String v) => v.isEmpty)) continue;
       rows.add(row);
+    }
+    return rows;
+  }
+
+  /// Splits CSV text into rows/cells, preserving quoted newlines.
+  static List<List<String>> parseMatrix(String raw) {
+    String source = raw.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    if (source.startsWith('\uFEFF')) source = source.substring(1);
+    if (source.trim().isEmpty) return const <List<String>>[];
+
+    final List<List<String>> rows = <List<String>>[];
+    List<String> currentRow = <String>[];
+    final StringBuffer current = StringBuffer();
+    var inQuotes = false;
+
+    for (var i = 0; i < source.length; i++) {
+      final String char = source[i];
+      if (char == '"') {
+        if (inQuotes && i + 1 < source.length && source[i + 1] == '"') {
+          current.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+      if (char == ',' && !inQuotes) {
+        currentRow.add(current.toString());
+        current.clear();
+        continue;
+      }
+      if (char == '\n' && !inQuotes) {
+        currentRow.add(current.toString());
+        current.clear();
+        if (currentRow.any((String cell) => cell.trim().isNotEmpty)) {
+          rows.add(currentRow);
+        }
+        currentRow = <String>[];
+        continue;
+      }
+      current.write(char);
+    }
+
+    currentRow.add(current.toString());
+    if (currentRow.any((String cell) => cell.trim().isNotEmpty)) {
+      rows.add(currentRow);
     }
     return rows;
   }
@@ -51,30 +90,4 @@ abstract final class CsvParserService {
   }
 
   static String _normalizeHeader(String raw) => raw.trim().toLowerCase();
-
-  static List<String> _splitLine(String line) {
-    final List<String> cells = <String>[];
-    final StringBuffer current = StringBuffer();
-    var inQuotes = false;
-    for (var i = 0; i < line.length; i++) {
-      final String char = line[i];
-      if (char == '"') {
-        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
-          current.write('"');
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-        continue;
-      }
-      if (char == ',' && !inQuotes) {
-        cells.add(current.toString());
-        current.clear();
-        continue;
-      }
-      current.write(char);
-    }
-    cells.add(current.toString());
-    return cells;
-  }
 }

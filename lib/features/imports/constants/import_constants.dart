@@ -50,4 +50,31 @@ abstract final class ImportConstants {
 
   static const String generalProblemDomainFailedMessage =
       'Could not resolve or create the "General Problem" domain for this department.';
+
+  static const String invalidGoogleUrlMessage =
+      'Enter a valid Google Doc or Google Sheet URL.';
+
+  static const String unsupportedGoogleUrlMessage =
+      'This URL is not a supported Google Doc or Google Sheet link.';
+
+  static const String googleDocExpectedMessage =
+      'This looks like a Google Sheet. Choose Google Sheet as the import source.';
+
+  static const String googleSheetExpectedMessage =
+      'This looks like a Google Doc. Choose Google Doc as the import source.';
+
+  static const String googleSourcePrivateMessage =
+      'This Google file is private or not shared. Share it as “Anyone with the link can view” and try again.';
+
+  static const String googleSourceInaccessibleMessage =
+      'This Google file could not be reached. Check the URL, sharing settings, and your connection.';
+
+  static const String googleSourceEmptyMessage =
+      'The Google file did not contain any content to import.';
+
+  static const String googleSourceNoProblemsMessage =
+      'No problem statements could be identified in this source. Use a table or headings with titles and descriptions.';
+
+  static const String googleSourceTimeoutMessage =
+      'Timed out while fetching the Google file. Try again.';
 }

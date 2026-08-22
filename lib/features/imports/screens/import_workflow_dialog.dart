@@ -5,11 +5,13 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
 import '../../problems/models/problem_statement_source.dart';
 import '../constants/import_constants.dart';
+import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_summary.dart';
@@ -21,6 +23,9 @@ import '../services/import_platform_support.dart';
 import '../services/import_registry.dart';
 import '../services/import_template_service.dart';
 import '../services/problems_import_handler.dart';
+import '../sources/problem_import_source_kind.dart';
+import '../sources/problem_source_extract_exception.dart';
+import '../sources/problem_source_extractors.dart';
 import '../widgets/import_problem_context_section.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_summary_metrics.dart';
@@ -55,6 +60,11 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   String _selectedDepartmentCode = '';
   String _selectedDepartmentName = '';
   ProblemStatementSource _problemSource = ProblemStatementSource.internal;
+  ProblemImportSourceKind _importSource = ProblemImportSourceKind.csv;
+  final TextEditingController _sourceUrlController = TextEditingController();
+  List<Map<String, String>> _normalizedRows = const <Map<String, String>>[];
+  List<ImportReviewRow> _validatedRows = const <ImportReviewRow>[];
+  final Set<int> _excludedIndexes = <int>{};
 
   ImportHandler get _handler => widget.handler;
   bool get _isProblemsImport => _handler.type == ImportType.problems;
@@ -76,6 +86,12 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     _selectedDepartmentName = widget.contextData.defaultDepartmentName.trim();
     _problemSource = problemContext?.problemSource ?? ProblemStatementSource.internal;
     _loadReferenceLookups();
+  }
+
+  @override
+  void dispose() {
+    _sourceUrlController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadReferenceLookups() async {
@@ -110,7 +126,10 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       defaultDepartmentCode: _selectedDepartmentCode,
       defaultDepartmentName: _selectedDepartmentName,
       orgName: _orgName,
-      problemSource: _problemSource,
+      problemSource: _importSource.isGoogle ? ProblemStatementSource.external : _problemSource,
+      sourceUrl: _importSource.isGoogle ? _sourceUrlController.text.trim() : '',
+      createdSource:
+          _importSource.isGoogle ? ImportCreatedSource.googleImport : ImportCreatedSource.csvImport,
     );
   }
 
@@ -172,6 +191,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       if (!mounted) return;
       setState(() {
         _fileName = file.name;
+        _normalizedRows = parsed;
+        _excludedIndexes.clear();
+        _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
         _step = _ImportStep.review;
@@ -184,9 +206,110 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     }
   }
 
+  Future<void> _fetchFromSource() async {
+    if (_isProblemsImport && !_hasDepartment) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Department required',
+        message: ImportConstants.missingImportDepartmentMessage,
+      );
+      return;
+    }
+
+    final String url = _sourceUrlController.text.trim();
+    if (url.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'URL required',
+        message: ImportConstants.invalidGoogleUrlMessage,
+      );
+      return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      final List<Map<String, String>> extracted =
+          await ProblemSourceExtractors.forKind(_importSource).extract(url);
+      if (extracted.isEmpty) {
+        throw ProblemSourceExtractException(ImportConstants.googleSourceNoProblemsMessage);
+      }
+      final List<ImportReviewRow> validated = await _handler.validateRows(extracted, _effectiveContext());
+      if (!mounted) return;
+      setState(() {
+        _fileName = _importSource.label;
+        _normalizedRows = extracted;
+        _excludedIndexes.clear();
+        _validatedRows = validated;
+        _rows = validated;
+        _summary = _handler.summarize(validated);
+        _step = _ImportStep.review;
+      });
+    } on ProblemSourceExtractException catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not fetch problems', message: e.message);
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not fetch problems', message: '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  List<ImportReviewRow> _applyExcluded(List<ImportReviewRow> rows) {
+    return <ImportReviewRow>[
+      for (var i = 0; i < rows.length; i++)
+        if (_excludedIndexes.contains(i))
+          rows[i].copyWith(excluded: true, importable: false, statusLabel: 'Excluded')
+        else
+          rows[i],
+    ];
+  }
+
+  Future<void> _revalidateNormalized() async {
+    setState(() => _busy = true);
+    try {
+      final List<ImportReviewRow> validated =
+          await _handler.validateRows(_normalizedRows, _effectiveContext());
+      if (!mounted) return;
+      final List<ImportReviewRow> rows = _applyExcluded(validated);
+      setState(() {
+        _validatedRows = validated;
+        _rows = rows;
+        _summary = _handler.summarize(rows);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Validation failed', message: '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _toggleExclude(int index) {
+    setState(() {
+      if (!_excludedIndexes.add(index)) {
+        _excludedIndexes.remove(index);
+      }
+      _rows = _applyExcluded(_validatedRows);
+      _summary = _handler.summarize(_rows);
+    });
+  }
+
+  Future<void> _onFieldEdited(int index, String key, String value) async {
+    if (index < 0 || index >= _normalizedRows.length) return;
+    final String current = (_normalizedRows[index][key] ?? '').trim();
+    if (current == value.trim()) return;
+    final Map<String, String> next = Map<String, String>.from(_normalizedRows[index]);
+    next[key] = value;
+    _normalizedRows = <Map<String, String>>[
+      for (var i = 0; i < _normalizedRows.length; i++) i == index ? next : _normalizedRows[i],
+    ];
+    await _revalidateNormalized();
+  }
+
   Future<void> _runImport() async {
     final List<ImportReviewRow> importable =
-        _rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
+        _rows.where((ImportReviewRow r) => r.importable && !r.excluded).toList(growable: false);
     if (importable.isEmpty) {
       FeedbackService.showWarning(
         context,
@@ -242,7 +365,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             Expanded(
               child: Text(
                 _step == _ImportStep.template
-                    ? 'Download the template, fill it in, then upload for validation.'
+                    ? (_importSource.isGoogle
+                        ? 'Paste a public URL, fetch problem statements, then review before import.'
+                        : 'Download the template, fill it in, then upload for validation.')
                     : _step == _ImportStep.review
                         ? 'Review validated rows before importing.'
                         : 'Import completed.',
@@ -252,7 +377,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
               ),
             ),
             const HelpActionButton(pageId: 'csv-import'),
-            if (_step == _ImportStep.template) ...<Widget>[
+            if (_step == _ImportStep.template && (!_isProblemsImport || !_importSource.isGoogle)) ...<Widget>[
               const SizedBox(width: 4),
               FilledButton.icon(
                 onPressed: _busy || (_isProblemsImport && !_hasDepartment) ? null : _pickCsv,
@@ -295,7 +420,8 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             departmentName: _selectedDepartmentName,
             lockDepartment: _problemContext?.lockDepartment ?? false,
             departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
-            source: _problemSource,
+            importSource: _importSource,
+            problemSource: _problemSource,
             loading: _lookupsLoading,
             enabled: !_busy,
             onDepartmentChanged: (ImportDepartmentInfo dept) {
@@ -304,7 +430,10 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 _selectedDepartmentName = dept.name;
               });
             },
-            onSourceChanged: (ProblemStatementSource source) {
+            onImportSourceChanged: (ProblemImportSourceKind kind) {
+              setState(() => _importSource = kind);
+            },
+            onProblemSourceChanged: (ProblemStatementSource source) {
               setState(() => _problemSource = source);
             },
           ),
@@ -318,42 +447,120 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
           const SizedBox(height: 12),
         ],
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                'Download template',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-              ),
-              if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 4),
+        if (_isProblemsImport && _importSource.isGoogle)
+          _buildGoogleSourcePanel()
+        else
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Download template',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  _handler.columnGuidance,
+                  ImportConstants.requiredColumnsHint(_handler.requiredHeaders),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                 ),
+                if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 4),
+                  Text(
+                    _handler.columnGuidance,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : _downloadTemplate,
+                  icon: const Icon(AppIcons.download, size: 16),
+                  label: const Text('Download CSV Template'),
+                ),
               ],
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _downloadTemplate,
-                icon: const Icon(AppIcons.download, size: 16),
-                label: const Text('Download CSV Template'),
-              ),
-            ],
+            ),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildGoogleSourcePanel() {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final String hint = _importSource == ProblemImportSourceKind.googleDoc
+        ? 'https://docs.google.com/document/d/…'
+        : 'https://docs.google.com/spreadsheets/d/…';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            _importSource == ProblemImportSourceKind.googleDoc ? 'Google Doc URL' : 'Google Sheet URL',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Must be shared as “Anyone with the link can view”. Problems are extracted for review — nothing is imported yet.',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              final bool stack = !constraints.hasBoundedWidth || constraints.maxWidth < 520;
+              final Widget field = TextField(
+                controller: _sourceUrlController,
+                enabled: !_busy,
+                style: HackzInputDecoration.fieldTextStyle,
+                decoration: HackzInputDecoration.decorate(
+                  hintText: hint,
+                  prefixIcon: const Icon(AppIcons.link, size: 18),
+                ),
+                onSubmitted: (_) {
+                  if (!_busy) _fetchFromSource();
+                },
+              );
+              final Widget fetch = FilledButton.icon(
+                onPressed: _busy || !_hasDepartment ? null : _fetchFromSource,
+                icon: const Icon(AppIcons.search, size: 16),
+                label: Text(compact ? 'Fetch' : 'Fetch Problems'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              );
+              if (stack) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    field,
+                    const SizedBox(height: 8),
+                    Align(alignment: Alignment.centerRight, child: fetch),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(child: field),
+                  const SizedBox(width: 8),
+                  fetch,
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -373,16 +580,32 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              'File: $_fileName',
+              _importSource.isGoogle
+                  ? '${_importSource.label}: ${_sourceUrlController.text.trim()}'
+                  : 'File: $_fileName',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
         ImportSummaryMetrics(summary: summary),
+        if (summary.errorRows > 0) ...<Widget>[
+          const SizedBox(height: 8),
+          const Text(
+            'Fix or exclude invalid records to enable import.',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
+          ),
+        ],
         const SizedBox(height: 12),
         Expanded(
-          child: ImportReviewTable(rows: _rows, columns: columns, expansionColumns: expansionColumns),
+          child: ImportReviewTable(
+            rows: _rows,
+            columns: columns,
+            expansionColumns: expansionColumns,
+            editable: _isProblemsImport,
+            onToggleExclude: _isProblemsImport ? _toggleExclude : null,
+            onFieldEdited: _isProblemsImport ? _onFieldEdited : null,
+          ),
         ),
       ],
     );
@@ -458,6 +681,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 : () => setState(() {
                       _step = _ImportStep.template;
                       _rows = const <ImportReviewRow>[];
+                      _validatedRows = const <ImportReviewRow>[];
+                      _normalizedRows = const <Map<String, String>>[];
+                      _excludedIndexes.clear();
                       _summary = null;
                       _fileName = null;
                     }),

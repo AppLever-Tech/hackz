@@ -14,7 +14,9 @@ import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
+import '../models/import_summary.dart';
 import '../models/import_type.dart';
+import '../sources/problem_normalized_row_mapper.dart';
 import 'csv_parser_service.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
@@ -67,9 +69,30 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
       ];
 
   @override
+  bool get blockImportOnAnyError => true;
+
+  @override
+  ImportSummary summarize(List<ImportReviewRow> rows) {
+    final ImportSummary summary = ImportSummary.fromRows(rows);
+    return ImportSummary(
+      totalRows: summary.totalRows,
+      validRows: summary.validRows,
+      warningRows: summary.warningRows,
+      errorRows: summary.errorRows,
+      skippedRows: summary.skippedRows,
+      previewCounts: <ImportPreviewCount>[
+        ImportPreviewCount(label: 'Extracted', value: summary.totalRows),
+        ImportPreviewCount(label: 'Valid', value: summary.validRows),
+        ImportPreviewCount(label: 'Needs review', value: summary.warningRows),
+        ImportPreviewCount(label: 'Invalid', value: summary.errorRows),
+      ],
+    );
+  }
+
+  @override
   String get columnGuidance =>
       'Required: title, description. Theme defaults to Miscellaneous when blank. '
-      'Issuer fields are optional. Category is always Software; you can change it after import. '
+      'Issuer fields are optional. Category defaults to Software when blank. '
       'Organisation, department, domain, and source come from this screen — not the CSV.';
 
   @override
@@ -96,6 +119,11 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
           CsvParserService.cell(row, ImportConstants.issuingDepartmentColumnKey);
       final String externalProblemId =
           CsvParserService.cell(row, ImportConstants.externalProblemIdColumnKey);
+      final String categoryRaw =
+          CsvParserService.cell(row, ProblemNormalizedRowMapper.categoryColumnKey);
+      final String tagsRaw = CsvParserService.cell(row, ProblemNormalizedRowMapper.tagsColumnKey);
+      final String category =
+          ProblemConstants.resolveCategory(categoryRaw) ?? ProblemConstants.categorySoftware;
 
       final List<String> issues = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
@@ -146,6 +174,8 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
             ImportConstants.issuingOrganisationColumnKey: issuingOrganisation,
             ImportConstants.issuingDepartmentColumnKey: issuingDepartment,
             ImportConstants.externalProblemIdColumnKey: externalProblemId,
+            if (tagsRaw.isNotEmpty) ProblemNormalizedRowMapper.tagsColumnKey: tagsRaw,
+            if (categoryRaw.isNotEmpty) ProblemNormalizedRowMapper.categoryColumnKey: categoryRaw,
           },
           severity: severity,
           statusLabel: statusLabel,
@@ -155,7 +185,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
             'departmentCode': lookup.departmentCode,
             if (lookup.departmentName.isNotEmpty) 'departmentName': lookup.departmentName,
             'domainId': lookup.domainId,
-            'category': ProblemConstants.categorySoftware,
+            'category': category,
             'source': problemContext.problemSource.value,
             'theme': theme,
             if (themeRaw.isNotEmpty ||
@@ -181,7 +211,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
   ) async {
     final ProblemsImportHandlerContext problemContext = _requireContext(context);
     final List<ImportReviewRow> importable =
-        rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
+        rows.where((ImportReviewRow r) => r.importable && !r.excluded).toList(growable: false);
 
     var imported = 0;
     var skipped = rows.length - importable.length;
@@ -210,19 +240,22 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
           departmentCode: departmentCode,
           domainId: domainId,
           createdBy: problemContext.actorUserId,
-          category: ProblemConstants.categorySoftware,
+          category: row.metadata['category'] ?? ProblemConstants.categorySoftware,
           theme: (row.metadata['theme'] ?? '').trim().isEmpty
               ? ProblemConstants.defaultTheme
               : row.metadata['theme']!.trim(),
-          tags: const <String>[],
+          tags: _tagsFor(row),
           attachments: const <String>[],
           status: ProblemStatus.draft,
           createdAt: DateTime.now(),
-          createdSource: ImportCreatedSource.csvImport.value,
+          createdSource: problemContext.createdSource.value,
           source: row.metadata['source'] ?? problemContext.problemSource.value,
           issuingOrganisation: row.valueFor(ImportConstants.issuingOrganisationColumnKey),
           issuingDepartment: row.valueFor(ImportConstants.issuingDepartmentColumnKey),
           externalProblemId: row.valueFor(ImportConstants.externalProblemIdColumnKey),
+          referenceLinks: problemContext.sourceUrl.trim().isEmpty
+              ? const <String>[]
+              : <String>[problemContext.sourceUrl.trim()],
         );
 
         await FirestoreUtils.createProblemWithId(problem: problem, problemId: problemId);
@@ -245,6 +278,16 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
     if (context is ProblemsImportHandlerContext) return context;
     throw StateError('Problem import requires organisation and department context.');
   }
+
+  static List<String> _tagsFor(ImportReviewRow row) {
+    final String raw = row.valueFor(ProblemNormalizedRowMapper.tagsColumnKey);
+    if (raw.isEmpty) return const <String>[];
+    return raw
+        .split(RegExp(r'[,;]'))
+        .map((String tag) => tag.trim())
+        .where((String tag) => tag.isNotEmpty)
+        .toList(growable: false);
+  }
 }
 
 class ProblemsImportHandlerContext extends ImportHandlerContext {
@@ -257,18 +300,24 @@ class ProblemsImportHandlerContext extends ImportHandlerContext {
     this.orgType = 'college',
     this.lockDepartment = false,
     this.problemSource = ProblemStatementSource.internal,
+    this.sourceUrl = '',
+    this.createdSource = ImportCreatedSource.csvImport,
   });
 
   final String orgName;
   final String orgType;
   final bool lockDepartment;
   final ProblemStatementSource problemSource;
+  final String sourceUrl;
+  final ImportCreatedSource createdSource;
 
   ProblemsImportHandlerContext copyWith({
     String? defaultDepartmentName,
     String? defaultDepartmentCode,
     String? orgName,
     ProblemStatementSource? problemSource,
+    String? sourceUrl,
+    ImportCreatedSource? createdSource,
   }) {
     return ProblemsImportHandlerContext(
       actorUserId: actorUserId,
@@ -279,6 +328,8 @@ class ProblemsImportHandlerContext extends ImportHandlerContext {
       orgType: orgType,
       lockDepartment: lockDepartment,
       problemSource: problemSource ?? this.problemSource,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
+      createdSource: createdSource ?? this.createdSource,
     );
   }
 }

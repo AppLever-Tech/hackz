@@ -36,6 +36,10 @@ class ImportSummary {
     var errors = 0;
     var skipped = 0;
     for (final ImportReviewRow row in rows) {
+      if (row.excluded) {
+        skipped++;
+        continue;
+      }
       switch (row.severity) {
         case ImportRowSeverity.valid:
           if (row.importable) {

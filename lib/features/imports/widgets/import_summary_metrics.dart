@@ -70,6 +70,10 @@ class ImportSummaryMetrics extends StatelessWidget {
       'Existing Users' => (const Color(0xFF047857), AppIcons.workflowApproved),
       'New Users' => (const Color(0xFF7C3AED), AppIcons.teamMember),
       'Warnings' => (const Color(0xFFEA580C), AppIcons.info),
+      'Needs review' => (const Color(0xFFEA580C), AppIcons.info),
+      'Invalid' => (const Color(0xFFB91C1C), AppIcons.workflowRejected),
+      'Extracted' => (const Color(0xFF4A67FF), AppIcons.problems),
+      'Valid' => (const Color(0xFF047857), AppIcons.workflowApproved),
       'Errors' => (const Color(0xFFB91C1C), AppIcons.workflowRejected),
       _ => (const Color(0xFF4A67FF), AppIcons.attachments),
     };
