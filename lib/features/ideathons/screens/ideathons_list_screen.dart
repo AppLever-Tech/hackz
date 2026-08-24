@@ -17,7 +17,7 @@ import '../services/ideathon_status_helpers.dart';
 import '../widgets/ideathon_status_pill.dart';
 import '../widgets/ideathon_type_pill.dart';
 import 'create_ideathon_workspace.dart';
-import '../workspace/ideathon_workspace.dart';
+import 'ideathon_details_pane.dart';
 
 class IdeathonsListScreen extends StatefulWidget {
   const IdeathonsListScreen({super.key, required this.user});
@@ -60,7 +60,8 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     });
   }
 
-  void _openIdeathon(String id) => IdeathonWorkspace.open(context, id, actor: widget.user);
+  void _openIdeathon(String id) =>
+      showIdeathonDetailsPane(context, ideathonId: id, actor: widget.user);
 
   void _clearAllFilters() {
     setState(() {

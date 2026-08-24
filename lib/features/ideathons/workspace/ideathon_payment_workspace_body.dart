@@ -23,10 +23,14 @@ class IdeathonPaymentWorkspaceBody extends StatefulWidget {
     super.key,
     required this.vm,
     this.actor,
+    this.embedded = false,
   });
 
   final IdeathonPaymentWorkspaceViewModel vm;
   final UserModel? actor;
+
+  /// When true, skip the event title/status (used inside Event Details).
+  final bool embedded;
 
   @override
   State<IdeathonPaymentWorkspaceBody> createState() => _IdeathonPaymentWorkspaceBodyState();
@@ -162,13 +166,15 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
         ListView(
           padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 28),
           children: <Widget>[
-            Text(
-              _vm.ideathon.name,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 6),
-            IdeathonStatusPill(status: _vm.ideathon.status, compact: true),
-            const SizedBox(height: 12),
+            if (!widget.embedded) ...<Widget>[
+              Text(
+                _vm.ideathon.name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              ),
+              const SizedBox(height: 6),
+              IdeathonStatusPill(status: _vm.ideathon.status, compact: true),
+              const SizedBox(height: 12),
+            ],
             ResponsiveMetricGrid(
               chips: <DashboardMetricChipData>[
                 DashboardMetricChipData.single(

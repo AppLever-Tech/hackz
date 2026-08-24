@@ -27,11 +27,15 @@ class EvaluationResultsScreen extends StatefulWidget {
     required this.user,
     this.ideathonId = '',
     this.ideathonName = '',
+    this.embedded = false,
   });
 
   final UserModel user;
   final String ideathonId;
   final String ideathonName;
+
+  /// When true, skip the Ideathon context banner (used inside Event Details).
+  final bool embedded;
 
   @override
   State<EvaluationResultsScreen> createState() => _EvaluationResultsScreenState();
@@ -267,7 +271,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required bool ideathonScoped,
   }) {
     final bool compact = ResponsiveHelper.isMobile(context);
-    final Widget? contextBanner = ideathonScoped ? _buildIdeathonBanner(compact: compact) : null;
+    final Widget? contextBanner =
+        ideathonScoped && !widget.embedded ? _buildIdeathonBanner(compact: compact) : null;
     final Widget metricsRow = EvaluationResultsMetricsRow(
       metrics: metrics,
       spacing: compact ? 8 : 10,

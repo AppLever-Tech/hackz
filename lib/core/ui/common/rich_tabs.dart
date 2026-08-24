@@ -21,11 +21,16 @@ class RichTabBar extends StatelessWidget {
     required this.controller,
     required this.tabs,
     this.isScrollable = false,
+    this.switcherMaxWidth,
   }) : assert(tabs.length > 0);
 
   final TabController controller;
   final List<RichTabItem> tabs;
   final bool isScrollable;
+
+  /// When the window is narrower than this, use [WorkspaceSectionSwitcher]
+  /// even on desktop so many tabs never overflow horizontally.
+  final double? switcherMaxWidth;
 
   /// Minimal horizontal inset for tab navigation. Mobile uses full width.
   static double horizontalInset(BuildContext context) {
@@ -34,7 +39,17 @@ class RichTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (ResponsiveHelper.isMobile(context)) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool useSwitcher = ResponsiveHelper.isMobile(context) ||
+            (switcherMaxWidth != null && constraints.maxWidth < switcherMaxWidth!);
+        return _buildBar(context, useSwitcher: useSwitcher);
+      },
+    );
+  }
+
+  Widget _buildBar(BuildContext context, {required bool useSwitcher}) {
+    if (useSwitcher) {
       return SizedBox(
         width: double.infinity,
         child: AnimatedBuilder(
@@ -152,6 +167,7 @@ class RichTabs extends StatefulWidget {
     this.fitBodyHeight = false,
     this.bodyHeight = 400,
     this.padding,
+    this.switcherMaxWidth,
   }) : assert(tabs.length > 0),
        assert(children.length == tabs.length);
 
@@ -161,6 +177,9 @@ class RichTabs extends StatefulWidget {
   final ValueChanged<int>? onIndexChanged;
   final bool isScrollable;
   final double spacingAfterBar;
+
+  /// Forwarded to [RichTabBar.switcherMaxWidth].
+  final double? switcherMaxWidth;
 
   /// When null, uses [RichTabs.resolvePadding] (full width on mobile).
   final EdgeInsetsGeometry? padding;
@@ -218,7 +237,12 @@ class _RichTabsState extends State<RichTabs> with SingleTickerProviderStateMixin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          RichTabBar(controller: _controller, tabs: widget.tabs, isScrollable: widget.isScrollable),
+          RichTabBar(
+            controller: _controller,
+            tabs: widget.tabs,
+            isScrollable: widget.isScrollable,
+            switcherMaxWidth: widget.switcherMaxWidth,
+          ),
           SizedBox(height: widget.spacingAfterBar),
           if (widget.fitBodyHeight)
             SizedBox(height: widget.bodyHeight, child: body)
