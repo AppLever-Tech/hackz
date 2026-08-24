@@ -9,10 +9,14 @@ class IdeathonPaymentsTab extends StatefulWidget {
     super.key,
     required this.ideathonId,
     this.actor,
+    this.loadFuture,
   });
 
   final String ideathonId;
   final UserModel? actor;
+
+  /// When set (e.g. details pane prefetch), reuse the in-flight load.
+  final Future<IdeathonPaymentWorkspaceViewModel>? loadFuture;
 
   @override
   State<IdeathonPaymentsTab> createState() => _IdeathonPaymentsTabState();
@@ -24,7 +28,15 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
   @override
   void initState() {
     super.initState();
-    _future = IdeathonPaymentService.load(widget.ideathonId);
+    _future = widget.loadFuture ?? IdeathonPaymentService.load(widget.ideathonId);
+  }
+
+  @override
+  void didUpdateWidget(covariant IdeathonPaymentsTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.loadFuture != null && widget.loadFuture != oldWidget.loadFuture) {
+      setState(() => _future = widget.loadFuture!);
+    }
   }
 
   @override

@@ -18,6 +18,7 @@ import 'package:hackz/features/ideathons/screens/tabs/ideathon_reports_tab.dart'
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_results_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_winners_tab.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
+import 'package:hackz/features/ideathons/services/ideathon_payment_service.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
 import 'package:hackz/features/user/models/user_model.dart';
@@ -63,16 +64,19 @@ class IdeathonDetailsPane extends StatefulWidget {
 
 class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   late Future<IdeathonDetailsViewModel> _future;
+  late Future<IdeathonPaymentWorkspaceViewModel> _paymentsFuture;
 
   @override
   void initState() {
     super.initState();
     _future = IdeathonDetailsLoader.load(widget.ideathonId);
+    _paymentsFuture = IdeathonPaymentService.load(widget.ideathonId);
   }
 
   void _reload() {
     setState(() {
       _future = IdeathonDetailsLoader.load(widget.ideathonId);
+      _paymentsFuture = IdeathonPaymentService.load(widget.ideathonId);
     });
   }
 
@@ -143,8 +147,13 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
 
           final IdeathonDetailsViewModel vm = snapshot.data!;
           final event = vm.ideathon;
-          final String schedule =
-              '${formatDateTime(event.startDateTime.toLocal())} – ${formatDateTime(event.endDateTime.toLocal())}';
+          final DateTime start = event.startDateTime.toLocal();
+          final DateTime end = event.endDateTime.toLocal();
+          final bool sameDay = start.year == end.year && start.month == end.month && start.day == end.day;
+          final String dateLabel = sameDay
+              ? formatShortDate(start)
+              : '${formatShortDate(start)} – ${formatShortDate(end)}';
+          final String timeLabel = '${formatShortTime(start)} – ${formatShortTime(end)}';
           final String org = vm.organisationName.trim().isEmpty ? event.orgId : vm.organisationName.trim();
 
           return Column(
@@ -156,7 +165,8 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                 child: EventDetailsShell(
                   headerPills: <Widget>[
                     IdeathonStatusPill(status: event.status, compact: false),
-                    EventMetaChip(icon: AppIcons.event, label: schedule, color: const Color(0xFF0369A1)),
+                    EventMetaChip(icon: AppIcons.event, label: dateLabel, color: const Color(0xFF0369A1)),
+                    EventMetaChip(icon: AppIcons.clock, label: timeLabel, color: const Color(0xFF0369A1)),
                     IdeathonTypePill(type: event.ideathonType, compact: false),
                     if (org.isNotEmpty)
                       EventMetaChip(icon: AppIcons.organizations, label: org, color: const Color(0xFF0F766E)),
@@ -182,7 +192,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                     EventDetailsModule(
                       id: 'payments',
                       label: 'Payments',
-                      child: IdeathonPaymentsTab(ideathonId: event.ideathonId, actor: widget.actor),
+                      child: IdeathonPaymentsTab(
+                        ideathonId: event.ideathonId,
+                        actor: widget.actor,
+                        loadFuture: _paymentsFuture,
+                      ),
                     ),
                     EventDetailsModule(
                       id: 'lifecycle',

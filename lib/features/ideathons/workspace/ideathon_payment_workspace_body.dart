@@ -4,7 +4,11 @@ import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_dialog.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
+import '../../../core/ui/data_view/data_table_column.dart';
+import '../../../core/ui/data_view/data_table_view.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/workspace/workspace_navigator.dart';
@@ -160,117 +164,143 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
     final bool mobile = ResponsiveHelper.isMobile(context);
     final IdeathonPaymentMetrics metrics = _vm.metrics;
     final List<IdeathonPaymentRow> rows = _filteredRows;
+    final EdgeInsets pad = EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 28);
+
+    final List<Widget> toolbar = <Widget>[
+      if (!widget.embedded) ...<Widget>[
+        Text(
+          _vm.ideathon.name,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 6),
+        IdeathonStatusPill(status: _vm.ideathon.status, compact: true),
+        const SizedBox(height: 12),
+      ],
+      if (!widget.embedded) ...<Widget>[
+        ResponsiveMetricGrid(
+          chips: <DashboardMetricChipData>[
+            DashboardMetricChipData.single(
+              label: 'Total Ideas',
+              value: '${metrics.totalIdeas}',
+              color: const Color(0xFF4A67FF),
+              icon: AppIcons.ideas,
+            ),
+            DashboardMetricChipData.single(
+              label: 'Payment Pending',
+              value: '${metrics.paymentPending}',
+              color: const Color(0xFFEA580C),
+              icon: AppIcons.workflowPendingReview,
+            ),
+            DashboardMetricChipData.single(
+              label: 'Payment Completed',
+              value: '${metrics.paymentCompleted}',
+              color: const Color(0xFF047857),
+              icon: AppIcons.workflowApproved,
+            ),
+            DashboardMetricChipData.single(
+              label: 'Payment Exception',
+              value: '${metrics.paymentException}',
+              color: const Color(0xFFB91C1C),
+              icon: AppIcons.workflowRejected,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+      ],
+      TextField(
+        onChanged: (String v) => setState(() => _search = v),
+        decoration: InputDecoration(
+          hintText: 'Search idea, team, participant, remarks…',
+          prefixIcon: const Icon(AppIcons.search, size: 18),
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: <Widget>[
+          _filterChip(label: 'All', selected: _statusFilter == null, onTap: () => setState(() => _statusFilter = null)),
+          _filterChip(
+            label: 'Pending',
+            selected: _statusFilter == PaymentRecordStatus.pending,
+            onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
+          ),
+          _filterChip(
+            label: 'Completed',
+            selected: _statusFilter == PaymentRecordStatus.verified,
+            onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
+          ),
+          _filterChip(
+            label: 'Exception',
+            selected: _statusFilter == PaymentRecordStatus.rejected,
+            onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+    ];
+
+    final Widget body = rows.isEmpty
+        ? Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: kDashboardCardDecoration,
+            child: const Text(
+              'No idea payments match your filters for this Ideathon.',
+              style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+            ),
+          )
+        : widget.embedded
+            ? _paymentsTable(context, rows)
+            : Column(
+                children: rows
+                    .map(
+                      (IdeathonPaymentRow row) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _IdeathonPaymentRowCard(
+                          row: row,
+                          enabled: !_busy && widget.actor != null,
+                          onOpenIdea: () => WorkspaceNavigator.openIdea(context, row.ideaId),
+                          onOpenTeam: row.teamId.isEmpty
+                              ? null
+                              : () => WorkspaceNavigator.openTeam(context, row.teamId),
+                          onOpenPayment: row.payment == null
+                              ? null
+                              : () => WorkspaceNavigator.openPayment(context, row.payment!.paymentId),
+                          onOpenPayer: row.payerId.isEmpty
+                              ? null
+                              : () => WorkspaceNavigator.openUser(context, row.payerId),
+                          onVerify: row.canVerify ? () => _verify(row) : null,
+                          onReject: row.canReject ? () => _reject(row) : null,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
 
     return Stack(
       children: <Widget>[
-        ListView(
-          padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 28),
-          children: <Widget>[
-            if (!widget.embedded) ...<Widget>[
-              Text(
-                _vm.ideathon.name,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-              ),
-              const SizedBox(height: 6),
-              IdeathonStatusPill(status: _vm.ideathon.status, compact: true),
-              const SizedBox(height: 12),
-            ],
-            ResponsiveMetricGrid(
-              chips: <DashboardMetricChipData>[
-                DashboardMetricChipData.single(
-                  label: 'Total Ideas',
-                  value: '${metrics.totalIdeas}',
-                  color: const Color(0xFF4A67FF),
-                  icon: AppIcons.ideas,
-                ),
-                DashboardMetricChipData.single(
-                  label: 'Payment Pending',
-                  value: '${metrics.paymentPending}',
-                  color: const Color(0xFFEA580C),
-                  icon: AppIcons.workflowPendingReview,
-                ),
-                DashboardMetricChipData.single(
-                  label: 'Payment Completed',
-                  value: '${metrics.paymentCompleted}',
-                  color: const Color(0xFF047857),
-                  icon: AppIcons.workflowApproved,
-                ),
-                DashboardMetricChipData.single(
-                  label: 'Payment Exception',
-                  value: '${metrics.paymentException}',
-                  color: const Color(0xFFB91C1C),
-                  icon: AppIcons.workflowRejected,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              onChanged: (String v) => setState(() => _search = v),
-              decoration: InputDecoration(
-                hintText: 'Search idea, team, participant, remarks…',
-                prefixIcon: const Icon(AppIcons.search, size: 18),
-                isDense: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+        if (widget.embedded)
+          Padding(
+            padding: pad,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _filterChip(label: 'All', selected: _statusFilter == null, onTap: () => setState(() => _statusFilter = null)),
-                _filterChip(
-                  label: 'Pending',
-                  selected: _statusFilter == PaymentRecordStatus.pending,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
-                ),
-                _filterChip(
-                  label: 'Completed',
-                  selected: _statusFilter == PaymentRecordStatus.verified,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
-                ),
-                _filterChip(
-                  label: 'Exception',
-                  selected: _statusFilter == PaymentRecordStatus.rejected,
-                  onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
-                ),
+                ...toolbar,
+                Expanded(child: body),
               ],
             ),
-            const SizedBox(height: 14),
-            if (rows.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: kDashboardCardDecoration,
-                child: const Text(
-                  'No idea payments match your filters for this Ideathon.',
-                  style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                ),
-              )
-            else
-              ...rows.map(
-                (IdeathonPaymentRow row) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _IdeathonPaymentRowCard(
-                    row: row,
-                    enabled: !_busy && widget.actor != null,
-                    onOpenIdea: () => WorkspaceNavigator.openIdea(context, row.ideaId),
-                    onOpenTeam: row.teamId.isEmpty
-                        ? null
-                        : () => WorkspaceNavigator.openTeam(context, row.teamId),
-                    onOpenPayment: row.payment == null
-                        ? null
-                        : () => WorkspaceNavigator.openPayment(context, row.payment!.paymentId),
-                    onOpenPayer: row.payerId.isEmpty
-                        ? null
-                        : () => WorkspaceNavigator.openUser(context, row.payerId),
-                    onVerify: row.canVerify ? () => _verify(row) : null,
-                    onReject: row.canReject ? () => _reject(row) : null,
-                  ),
-                ),
-              ),
-          ],
-        ),
+          )
+        else
+          ListView(
+            padding: pad,
+            children: <Widget>[
+              ...toolbar,
+              body,
+            ],
+          ),
         if (_busy)
           const Positioned.fill(
             child: ColoredBox(
@@ -278,6 +308,115 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _paymentsTable(BuildContext context, List<IdeathonPaymentRow> rows) {
+    return DataTableView<IdeathonPaymentRow>(
+      items: rows,
+      columns: <DataTableColumn<IdeathonPaymentRow>>[
+        DataTableColumn<IdeathonPaymentRow>(
+          label: 'Idea',
+          flex: 4,
+          minWidth: 160,
+          gapAfter: 12,
+          cell: (BuildContext context, IdeathonPaymentRow row) => Align(
+            alignment: Alignment.centerLeft,
+            child: UnconstrainedBox(
+              alignment: Alignment.centerLeft,
+              constrainedAxis: Axis.vertical,
+              child: ContextPill(
+                label: row.ideaTitle.isEmpty ? row.ideaId : row.ideaTitle,
+                semantic: ContextPillSemantic.idea,
+                onTap: () => WorkspaceNavigator.openIdea(context, row.ideaId),
+                compact: true,
+                fitContent: true,
+                expandWidth: false,
+              ),
+            ),
+          ),
+        ),
+        DataTableColumn<IdeathonPaymentRow>(
+          label: 'Team',
+          flex: 3,
+          minWidth: 130,
+          gapAfter: 12,
+          cell: (BuildContext context, IdeathonPaymentRow row) => Align(
+            alignment: Alignment.centerLeft,
+            child: UnconstrainedBox(
+              alignment: Alignment.centerLeft,
+              constrainedAxis: Axis.vertical,
+              child: ContextPill(
+                label: row.teamName.isEmpty ? '—' : row.teamName,
+                semantic: ContextPillSemantic.team,
+                onTap: row.teamId.isEmpty ? () {} : () => WorkspaceNavigator.openTeam(context, row.teamId),
+                enabled: row.teamId.isNotEmpty,
+                compact: true,
+                fitContent: true,
+                expandWidth: false,
+              ),
+            ),
+          ),
+        ),
+        DataTableColumn<IdeathonPaymentRow>(
+          label: 'Amount',
+          flex: 2,
+          minWidth: 100,
+          gapAfter: 12,
+          align: Alignment.centerRight,
+          cell: (_, IdeathonPaymentRow row) => Text(
+            row.payment == null ? '—' : PaymentFinanceHelpers.formatCurrency(row.payment!.amount),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+          ),
+        ),
+        DataTableColumn<IdeathonPaymentRow>(
+          label: 'Status',
+          flex: 2,
+          minWidth: 150,
+          align: Alignment.center,
+          cell: (BuildContext context, IdeathonPaymentRow row) => UnconstrainedBox(
+            alignment: Alignment.center,
+            constrainedAxis: Axis.vertical,
+            child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ContextPill(
+                label: PaymentFinanceHelpers.statusLabel(row.displayPaymentStatus),
+                semantic: ContextPillSemantic.payment,
+                onTap: row.payment == null
+                    ? () {}
+                    : () => WorkspaceNavigator.openPayment(context, row.payment!.paymentId),
+                enabled: row.payment != null,
+                compact: true,
+                fitContent: true,
+                expandWidth: false,
+              ),
+              if (row.canVerify) ...<Widget>[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Verify payment',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  onPressed: _busy || widget.actor == null ? null : () => _verify(row),
+                  icon: const Icon(AppIcons.workflowApproved, size: 16, color: Color(0xFF047857)),
+                ),
+              ],
+              if (row.canReject) ...<Widget>[
+                IconButton(
+                  tooltip: 'Exception',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  onPressed: _busy || widget.actor == null ? null : () => _reject(row),
+                  icon: const Icon(AppIcons.workflowRejected, size: 16, color: Color(0xFFB91C1C)),
+                ),
+              ],
+            ],
+          ),
+          ),
+        ),
       ],
     );
   }

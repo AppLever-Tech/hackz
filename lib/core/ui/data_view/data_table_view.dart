@@ -242,7 +242,6 @@ class DataTableView<T> extends StatelessWidget {
     final Widget bounded = ClipRect(
       child: Align(
         alignment: column.align,
-        widthFactor: 1,
         child: child,
       ),
     );

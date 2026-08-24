@@ -131,7 +131,7 @@ abstract final class IdeathonService {
       departmentId: dept,
       startDateTime: input.startDateTime,
       endDateTime: input.endDateTime,
-      status: IdeathonStatus.draft,
+      status: IdeathonStatus.scheduled,
       judgeIds: input.judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
       coordinatorIds:
           input.coordinatorIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),

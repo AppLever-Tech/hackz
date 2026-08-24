@@ -100,65 +100,16 @@ abstract final class IdeathonPaymentService {
       }
     }
 
-    final List<IdeathonPaymentRow> rows = <IdeathonPaymentRow>[];
-    for (final IdeathonParticipation participation in participations) {
-      PaymentModel? payment = byParticipationId[participation.participationId];
-      payment ??= byIdeaId[participation.ideaId];
-
-      if (payment == null && participation.ideaId.trim().isNotEmpty) {
-        final DocumentSnapshot<Map<String, dynamic>> ideaPay =
-            await _db.collection(FirestoreUtils.hkzPayments).doc(participation.ideaId.trim()).get();
-        if (ideaPay.exists && ideaPay.data() != null) {
-          payment = PaymentModel.fromMap(ideaPay.id, ideaPay.data()!);
-        }
-      }
-
-      final IdeaModel? idea = await _fetchIdea(participation.ideaId);
-
-      String teamId = payment?.teamId.trim() ?? '';
-      String teamName = '';
-      if (idea != null && idea.teamId.trim().isNotEmpty) {
-        teamId = teamId.isEmpty ? idea.teamId.trim() : teamId;
-      }
-      if (teamId.isNotEmpty) {
-        final DocumentSnapshot<Map<String, dynamic>> teamDoc =
-            await _db.collection(FirestoreUtils.hkzTeams).doc(teamId).get();
-        if (teamDoc.exists && teamDoc.data() != null) {
-          teamName = ((teamDoc.data()!['teamName'] as String?) ?? '').trim();
-        }
-      }
-
-      final String payerId = (payment?.paidByStudentId.trim().isNotEmpty == true)
-          ? payment!.paidByStudentId.trim()
-          : (idea?.createdBy.trim() ?? '');
-      final UserModel? payer =
-          payerId.isEmpty ? null : await FirestoreUtils.fetchUser(payerId);
-
-      String ideaTitle = idea?.ideaTitle.trim() ?? '';
-      if (ideaTitle.isEmpty) {
-        for (final snapshot in ideathon.ideas) {
-          if (snapshot.ideaId == participation.ideaId) {
-            ideaTitle = snapshot.ideaTitle;
-            if (teamName.isEmpty) teamName = snapshot.teamName;
-            break;
-          }
-        }
-      }
-
-      rows.add(
-        IdeathonPaymentRow(
+    final List<IdeathonPaymentRow> rows = await Future.wait(
+      participations.map(
+        (IdeathonParticipation participation) => _loadRow(
+          ideathon: ideathon,
           participation: participation,
-          ideaTitle: ideaTitle.isEmpty ? participation.ideaId : ideaTitle,
-          teamName: teamName.isEmpty ? '—' : teamName,
-          teamId: teamId,
-          payerName: payer == null
-              ? (payerId.isEmpty ? '—' : payerId)
-              : userDisplayName(payer),
-          payerId: payerId,
-          payment: payment,
+          byParticipationId: byParticipationId,
+          byIdeaId: byIdeaId,
         ),
-      );
-    }
+      ),
+    );
 
     rows.sort((IdeathonPaymentRow a, IdeathonPaymentRow b) {
       final int statusCmp =
@@ -265,6 +216,66 @@ abstract final class IdeathonPaymentService {
     };
   }
 
+  static Future<IdeathonPaymentRow> _loadRow({
+    required IdeathonModel ideathon,
+    required IdeathonParticipation participation,
+    required Map<String, PaymentModel> byParticipationId,
+    required Map<String, PaymentModel> byIdeaId,
+  }) async {
+    PaymentModel? payment = byParticipationId[participation.participationId];
+    payment ??= byIdeaId[participation.ideaId];
+
+    final String ideaId = participation.ideaId.trim();
+    late final IdeaModel? idea;
+    if (payment == null && ideaId.isNotEmpty) {
+      final Future<DocumentSnapshot<Map<String, dynamic>>> payDocFuture =
+          _db.collection(FirestoreUtils.hkzPayments).doc(ideaId).get();
+      final Future<IdeaModel?> ideaFuture = _fetchIdea(ideaId);
+      final DocumentSnapshot<Map<String, dynamic>> ideaPay = await payDocFuture;
+      idea = await ideaFuture;
+      if (ideaPay.exists && ideaPay.data() != null) {
+        payment = PaymentModel.fromMap(ideaPay.id, ideaPay.data()!);
+      }
+    } else {
+      idea = await _fetchIdea(ideaId);
+    }
+
+    String teamId = payment?.teamId.trim() ?? '';
+    if (idea != null && idea.teamId.trim().isNotEmpty) {
+      teamId = teamId.isEmpty ? idea.teamId.trim() : teamId;
+    }
+
+    final String payerId = (payment?.paidByStudentId.trim().isNotEmpty == true)
+        ? payment!.paidByStudentId.trim()
+        : (idea?.createdBy.trim() ?? '');
+    final Future<String> teamNameFuture = _fetchTeamName(teamId);
+    final Future<UserModel?> payerFuture =
+        payerId.isEmpty ? Future<UserModel?>.value(null) : FirestoreUtils.fetchUser(payerId);
+    String teamName = await teamNameFuture;
+    final UserModel? payer = await payerFuture;
+
+    String ideaTitle = idea?.ideaTitle.trim() ?? '';
+    if (ideaTitle.isEmpty) {
+      for (final snapshot in ideathon.ideas) {
+        if (snapshot.ideaId == participation.ideaId) {
+          ideaTitle = snapshot.ideaTitle;
+          if (teamName.isEmpty) teamName = snapshot.teamName;
+          break;
+        }
+      }
+    }
+
+    return IdeathonPaymentRow(
+      participation: participation,
+      ideaTitle: ideaTitle.isEmpty ? participation.ideaId : ideaTitle,
+      teamName: teamName.isEmpty ? '—' : teamName,
+      teamId: teamId,
+      payerName: payer == null ? (payerId.isEmpty ? '—' : payerId) : userDisplayName(payer),
+      payerId: payerId,
+      payment: payment,
+    );
+  }
+
   static Future<IdeaModel?> _fetchIdea(String ideaId) async {
     final String id = ideaId.trim();
     if (id.isEmpty) return null;
@@ -272,5 +283,14 @@ abstract final class IdeathonPaymentService {
         await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
     if (!doc.exists || doc.data() == null) return null;
     return IdeaModel.fromMap(doc.id, doc.data()!);
+  }
+
+  static Future<String> _fetchTeamName(String teamId) async {
+    final String id = teamId.trim();
+    if (id.isEmpty) return '';
+    final DocumentSnapshot<Map<String, dynamic>> teamDoc =
+        await _db.collection(FirestoreUtils.hkzTeams).doc(id).get();
+    if (!teamDoc.exists || teamDoc.data() == null) return '';
+    return ((teamDoc.data()!['teamName'] as String?) ?? '').trim();
   }
 }

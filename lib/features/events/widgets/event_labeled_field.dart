@@ -23,9 +23,9 @@ class EventLabeledField extends StatelessWidget {
   Widget build(BuildContext context) {
     final double labelWidth = ResponsiveHelper.isMobile(context) ? 96 : 124;
     return Padding(
-      padding: EdgeInsets.only(bottom: isLast ? 0 : 6),
+      padding: EdgeInsets.only(bottom: isLast ? 2 : 8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           SizedBox(
             width: labelWidth,
@@ -35,11 +35,15 @@ class EventLabeledField extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: trailing ??
-                Text(
-                  (value ?? '').trim().isEmpty ? '—' : value!.trim(),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                ),
+            child: trailing != null
+                ? ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 34),
+                    child: Align(alignment: Alignment.centerLeft, child: trailing),
+                  )
+                : Text(
+                    (value ?? '').trim().isEmpty ? '—' : value!.trim(),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                  ),
           ),
         ],
       ),
@@ -70,16 +74,15 @@ class EventLabeledPill extends StatelessWidget {
     return EventLabeledField(
       label: label,
       isLast: isLast,
-      trailing: Align(
-        alignment: Alignment.centerLeft,
-        child: ContextPill(
-          label: pillLabel,
-          semantic: semantic,
-          onTap: onTap,
-          enabled: enabled,
-          compact: true,
-          fitContent: true,
-        ),
+      trailing: ContextPill(
+        label: pillLabel,
+        semantic: semantic,
+        onTap: onTap,
+        enabled: enabled,
+        compact: true,
+        fitContent: false,
+        expandWidth: false,
+        allowHoverScale: false,
       ),
     );
   }

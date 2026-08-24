@@ -45,6 +45,18 @@ class _ReportCard extends StatelessWidget {
     return EventDetailSection(
       title: item.title,
       icon: item.icon,
+      titleFontSize: 14,
+      titleFontWeight: FontWeight.w900,
+      titleColor: const Color(0xFF0F172A),
+      trailing: FilledButton.tonalIcon(
+        onPressed: item.available ? item.onDownload : null,
+        icon: const Icon(AppIcons.download, size: 16),
+        label: const Text('Download'),
+        style: FilledButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -52,21 +64,13 @@ class _ReportCard extends StatelessWidget {
             item.description,
             style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF475569)),
           ),
-          const SizedBox(height: 10),
-          if (!item.available)
+          if (!item.available && item.unavailableReason.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
             Text(
               item.unavailableReason,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
-            )
-          else
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: item.onDownload,
-                icon: const Icon(AppIcons.download, size: 16),
-                label: const Text('Download'),
-              ),
             ),
+          ],
         ],
       ),
     );

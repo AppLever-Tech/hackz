@@ -158,12 +158,22 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
   EvaluationResultsTableActions _tableActions(BuildContext context) {
     return EvaluationResultsTableActions(
-      onOpenIdea: (EvaluationResultsRow row) => showEvaluationDetailsPane(
-        context,
-        ideaId: row.idea.ideaId,
-        ideathonId: _eventId,
-        backTooltip: _isIdeathonScoped ? 'Back to Ideathon Results' : 'Back to Evaluation Results',
-      ),
+      onOpenIdea: (EvaluationResultsRow row) {
+        if (widget.embedded) {
+          WorkspaceNavigator.openEvaluation(
+            context,
+            row.idea.ideaId,
+            ideathonId: _eventId,
+          );
+          return;
+        }
+        showEvaluationDetailsPane(
+          context,
+          ideaId: row.idea.ideaId,
+          ideathonId: _eventId,
+          backTooltip: _isIdeathonScoped ? 'Back to Ideathon Results' : 'Back to Evaluation Results',
+        );
+      },
     );
   }
 

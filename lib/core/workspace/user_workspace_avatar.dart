@@ -15,6 +15,8 @@ class UserWorkspaceAvatar extends StatelessWidget {
     this.enabled = true,
     this.tooltip,
     this.ringPadding = 2,
+    this.semantic = ContextPillSemantic.user,
+    this.allowHoverScale = true,
   });
 
   final UserModel user;
@@ -23,6 +25,8 @@ class UserWorkspaceAvatar extends StatelessWidget {
   final bool enabled;
   final String? tooltip;
   final double ringPadding;
+  final ContextPillSemantic semantic;
+  final bool allowHoverScale;
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +34,12 @@ class UserWorkspaceAvatar extends StatelessWidget {
     final double outerRadius = radius + ringPadding;
 
     return ContextLaunchSurface(
-      semantic: ContextPillSemantic.user,
+      semantic: semantic,
       onTap: onTap,
       enabled: enabled,
       tooltip: tooltip,
-      semanticsLabel: '$displayName. ${ContextPillTheme.workspaceTooltipFor(ContextPillSemantic.user)}',
+      allowHoverScale: allowHoverScale,
+      semanticsLabel: '$displayName. ${ContextPillTheme.workspaceTooltipFor(semantic)}',
       padding: EdgeInsets.all(ringPadding),
       borderRadius: BorderRadius.circular(outerRadius + 1),
       child: UserAvatar(user: user, radius: radius),

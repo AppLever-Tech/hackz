@@ -23,6 +23,7 @@ class ContextPill extends StatelessWidget {
     this.minWidth,
     this.iconSize,
     this.allowHoverScale,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -46,6 +47,9 @@ class ContextPill extends StatelessWidget {
   final double? minWidth;
   /// When false, hover avoids scale so clipped parents do not crop the pill.
   final bool? allowHoverScale;
+  /// Label lines before clipping. Values other than `1` wrap instead of ellipsizing
+  /// so a long name can stay fully visible inside a bounded parent.
+  final int? maxLines;
 
   bool _fitContent(ContextPillSemantic semantic, bool? fitContent) =>
       fitContent ?? ContextPillTheme.defaultsToFitContent(semantic);
@@ -99,9 +103,12 @@ class ContextPill extends StatelessWidget {
       semantic: semantic,
       maxWidth: maxWidth,
     );
-    final double? layoutMaxWidth = expandWidth
+    double? layoutMaxWidth = expandWidth
         ? (maxWidth ?? (boundedWidth ? constraints.maxWidth : null))
         : (themeMaxWidth ?? (boundedWidth && !fitContent ? constraints.maxWidth : null));
+    if (layoutMaxWidth != null && boundedWidth && layoutMaxWidth > constraints.maxWidth) {
+      layoutMaxWidth = constraints.maxWidth;
+    }
     final double resolvedHeight = ContextPillMetrics.resolvedHeight(
       context: context,
       compact: effectiveCompact,
@@ -121,11 +128,13 @@ class ContextPill extends StatelessWidget {
     final bool tightWidth = boundedWidth && constraints.maxWidth < 168;
     final bool resolvedAllowHoverScale =
         allowHoverScale ?? (!tightWidth && !expandWidth);
+    final bool wrapLabel = maxLines != 1;
 
     final Widget labelText = Text(
       display,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      maxLines: wrapLabel ? maxLines : 1,
+      overflow: wrapLabel ? TextOverflow.visible : TextOverflow.ellipsis,
+      softWrap: wrapLabel,
       textAlign: TextAlign.left,
       style: labelStyle,
     );
@@ -187,15 +196,17 @@ class ContextPill extends StatelessWidget {
       padding: ContextPillMetrics.resolvedPadding(context, compact: effectiveCompact),
       constraints: BoxConstraints(
         minHeight: resolvedHeight,
-        maxHeight: resolvedHeight,
+        maxHeight: wrapLabel ? double.infinity : resolvedHeight,
         minWidth: minWidth ?? 0,
         maxWidth: pillMaxWidth,
       ),
-      child: SizedBox(
-        height: resolvedHeight,
-        width: expandWidth ? double.infinity : null,
-        child: content,
-      ),
+      child: wrapLabel
+          ? labelRow
+          : SizedBox(
+              height: resolvedHeight,
+              width: expandWidth ? double.infinity : null,
+              child: content,
+            ),
     );
   }
 }

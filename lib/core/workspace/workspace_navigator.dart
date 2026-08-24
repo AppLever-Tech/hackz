@@ -55,8 +55,12 @@ class WorkspaceNavigator extends StatelessWidget {
   }
 
   /// Opens the read-only evaluation workspace for [evaluationId] (score id or idea id).
-  static void openEvaluation(BuildContext context, String evaluationId) {
-    EvaluationWorkspace.open(context, evaluationId);
+  static void openEvaluation(
+    BuildContext context,
+    String evaluationId, {
+    String ideathonId = '',
+  }) {
+    EvaluationWorkspace.open(context, evaluationId, ideathonId: ideathonId);
   }
 
   /// Opens the read-only evaluation template workspace for [templateId].

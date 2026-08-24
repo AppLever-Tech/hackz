@@ -8,15 +8,16 @@ import '../../../core/workspace/workspace_route.dart';
 
 /// Read-only evaluation report workspace (evaluation-centric).
 abstract final class EvaluationWorkspace {
-  static WorkspaceRoute _route(String id) {
+  static WorkspaceRoute _route(String id, {String ideathonId = ''}) {
     late EvaluationDetailsViewModel vm;
+    final String eventId = ideathonId.trim();
     return WorkspaceRoute(
-      id: 'evaluation:$id',
+      id: eventId.isEmpty ? 'evaluation:$id' : 'evaluation:$id:$eventId',
       title: 'Evaluation Details',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'evaluation-lifecycle',
       prepare: () async {
-        vm = await EvaluationDetailsLoader.load(ideaId: id);
+        vm = await EvaluationDetailsLoader.load(ideaId: id, ideathonId: eventId);
       },
       builder: (BuildContext context) => EvaluationDetailsBody(
         vm: vm,
@@ -25,21 +26,21 @@ abstract final class EvaluationWorkspace {
     );
   }
 
-  static void open(BuildContext context, String evaluationId) {
+  static void open(BuildContext context, String evaluationId, {String ideathonId = ''}) {
     final String id = evaluationId.trim();
     if (id.isEmpty) return;
-    final String routeId = 'evaluation:$id';
+    final WorkspaceRoute route = _route(id, ideathonId: ideathonId);
     final current = HkzWorkspace.controllerOf(context).current;
-    if (current != null && current.id == routeId) return;
-    HkzWorkspace.open(context, _route(id));
+    if (current != null && current.id == route.id) return;
+    HkzWorkspace.open(context, route);
   }
 
-  static void push(BuildContext context, String evaluationId) {
+  static void push(BuildContext context, String evaluationId, {String ideathonId = ''}) {
     final String id = evaluationId.trim();
     if (id.isEmpty) return;
-    final String routeId = 'evaluation:$id';
+    final WorkspaceRoute route = _route(id, ideathonId: ideathonId);
     final current = HkzWorkspace.controllerOf(context).current;
-    if (current != null && current.id == routeId) return;
-    HkzWorkspace.push(context, _route(id));
+    if (current != null && current.id == route.id) return;
+    HkzWorkspace.push(context, route);
   }
 }
