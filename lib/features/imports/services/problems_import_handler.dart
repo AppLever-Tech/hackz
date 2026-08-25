@@ -38,6 +38,8 @@ class ProblemsImportHandler extends ImportHandler {
   @override
   String get title => 'Import Problems';
 
+  static const String templateExcelFileName = 'hackz_problems_import_template.xlsx';
+
   @override
   String get templateFileName => 'hackz_problems_import_template.csv';
 
@@ -69,6 +71,14 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
       ];
 
   @override
+  List<String> get optionalHeaders => const <String>[
+        ImportConstants.themeColumnKey,
+        ImportConstants.issuingOrganisationColumnKey,
+        ImportConstants.issuingDepartmentColumnKey,
+        ImportConstants.externalProblemIdColumnKey,
+      ];
+
+  @override
   bool get blockImportOnAnyError => true;
 
   @override
@@ -90,10 +100,11 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
   }
 
   @override
-  String get columnGuidance =>
-      'Required: title, description. Theme defaults to Miscellaneous when blank. '
-      'Issuer fields are optional. Category defaults to Software when blank. '
-      'Organisation, department, domain, and source come from this screen — not the CSV.';
+  List<String> get columnGuidancePoints => const <String>[
+        'Theme defaults to Miscellaneous when blank.',
+        'Category defaults to Software when blank.',
+        'Organisation, department, domain, and source come from this screen — not the file.',
+      ];
 
   @override
   Future<List<ImportReviewRow>> validateRows(

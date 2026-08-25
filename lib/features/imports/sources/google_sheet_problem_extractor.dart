@@ -30,7 +30,7 @@ class GoogleSheetProblemExtractor implements ProblemSourceExtractor {
       throw ProblemSourceExtractException(ImportConstants.googleSourceEmptyMessage);
     }
 
-    final List<Map<String, String>> rows = _identifyProblems(matrix);
+    final List<Map<String, String>> rows = ProblemNormalizedRowMapper.rowsFromDetectedHeaders(matrix);
     if (rows.isEmpty) {
       throw ProblemSourceExtractException(ImportConstants.googleSourceNoProblemsMessage);
     }
@@ -55,28 +55,5 @@ class GoogleSheetProblemExtractor implements ProblemSourceExtractor {
     return Uri.parse(
       'https://docs.google.com/spreadsheets/d/${ref.id}/gviz/tq?tqx=out:csv&gid=$gid',
     );
-  }
-
-  List<Map<String, String>> _identifyProblems(List<List<String>> matrix) {
-    final int? headerIndex = ProblemNormalizedRowMapper.detectHeaderRow(matrix);
-    final List<Map<String, String>> rows = <Map<String, String>>[];
-
-    if (headerIndex != null) {
-      final List<String> headers = matrix[headerIndex];
-      for (var i = headerIndex + 1; i < matrix.length; i++) {
-        final Map<String, String> mapped = ProblemNormalizedRowMapper.mapCells(headers, matrix[i]);
-        if (ProblemNormalizedRowMapper.isCandidate(mapped)) rows.add(mapped);
-      }
-    }
-
-    if (rows.isEmpty) {
-      for (final List<String> cells in matrix) {
-        if (cells.every((String cell) => cell.trim().isEmpty)) continue;
-        final Map<String, String> mapped = ProblemNormalizedRowMapper.fallbackTwoColumn(cells);
-        if (ProblemNormalizedRowMapper.isCandidate(mapped)) rows.add(mapped);
-      }
-    }
-
-    return rows;
   }
 }

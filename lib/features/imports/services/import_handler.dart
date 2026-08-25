@@ -21,8 +21,14 @@ abstract class ImportHandler {
   /// Extra template help shown under the required-columns hint.
   String get columnGuidance => '';
 
+  /// Optional template columns shown under required columns on the shared card.
+  List<String> get optionalHeaders => expansionHeaders;
+
   /// Bullet points shown under the required/optional column hints.
   List<String> get columnGuidancePoints => const <String>[];
+
+  /// Template bullets for the current import context (roles, defaults, etc.).
+  List<String> templateGuidancePoints(ImportHandlerContext context) => columnGuidancePoints;
 
   /// Optional columns shown only when a review row is expanded.
   List<String> get expansionHeaders => const <String>[];

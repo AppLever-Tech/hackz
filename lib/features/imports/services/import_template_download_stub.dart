@@ -1,6 +1,7 @@
-Future<bool> downloadCsvFile({
+Future<bool> downloadImportFile({
   required String fileName,
-  required String csvContent,
+  required List<int> bytes,
+  required String mimeType,
 }) async {
-  throw UnsupportedError('CSV download is not supported on this platform.');
+  throw UnsupportedError('Template download is not supported on this platform.');
 }

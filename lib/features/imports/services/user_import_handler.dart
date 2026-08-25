@@ -69,10 +69,26 @@ Rahul,Das,9876543212,,,
       ];
 
   @override
-  String get columnGuidance =>
-      'Required: first name, last name, phone. Email, role, and department are optional. '
-      'Blank role defaults to ${CsvImportRoleConstants.teamMember}. '
-      'Blank department defaults to your department. Role values are case-sensitive.';
+  List<String> get optionalHeaders => const <String>[
+        ImportConstants.emailColumnKey,
+        ImportConstants.roleColumnKey,
+        ImportConstants.departmentColumnKey,
+      ];
+
+  @override
+  List<String> templateGuidancePoints(ImportHandlerContext context) {
+    final UserImportConfig? config = context is UserImportHandlerContext ? context.config : null;
+    final Set<String> allowedRoles = config?.allowedCsvRoles ?? CsvImportRoleConstants.allSet;
+    final bool allowTeamMemberDefault = allowedRoles.contains(CsvImportRoleConstants.teamMember);
+    return <String>[
+      if (allowTeamMemberDefault)
+        'Blank role defaults to ${CsvImportRoleConstants.teamMember}.'
+      else
+        'Role is required. Use ${allowedRoles.join(', ')}.',
+      'Blank department defaults to your department.',
+      'Role values are case-sensitive.',
+    ];
+  }
 
   @override
   Future<List<ImportReviewRow>> validateRows(

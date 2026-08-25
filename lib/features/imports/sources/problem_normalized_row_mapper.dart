@@ -102,6 +102,8 @@ abstract final class ProblemNormalizedRowMapper {
   static Map<String, String> mapRow(Map<String, String> row) {
     final Map<String, String> out = <String, String>{
       for (final String key in canonicalKeys) key: '',
+      categoryColumnKey: '',
+      tagsColumnKey: '',
     };
     for (final MapEntry<String, String> entry in row.entries) {
       final String? key = canonicalKeyFor(entry.key);
@@ -121,6 +123,46 @@ abstract final class ProblemNormalizedRowMapper {
       raw[header] = i < cells.length ? cells[i].trim() : '';
     }
     return mapRow(raw);
+  }
+
+  /// CSV/Excel convention: first non-empty row is headers; skip fully empty rows.
+  static List<Map<String, String>> rowsFromFirstHeaderRow(List<List<String>> matrix) {
+    final List<List<String>> nonempty = matrix
+        .where((List<String> row) => row.any((String cell) => cell.trim().isNotEmpty))
+        .toList(growable: false);
+    if (nonempty.length < 2) return const <Map<String, String>>[];
+
+    final List<String> headers = nonempty.first;
+    final List<Map<String, String>> rows = <Map<String, String>>[];
+    for (var i = 1; i < nonempty.length; i++) {
+      final Map<String, String> mapped = mapCells(headers, nonempty[i]);
+      if (!isEmpty(mapped)) rows.add(mapped);
+    }
+    return rows;
+  }
+
+  /// Tabular sources where the header row may not be first (Google Sheets).
+  static List<Map<String, String>> rowsFromDetectedHeaders(List<List<String>> matrix) {
+    final int? headerIndex = detectHeaderRow(matrix);
+    final List<Map<String, String>> rows = <Map<String, String>>[];
+
+    if (headerIndex != null) {
+      final List<String> headers = matrix[headerIndex];
+      for (var i = headerIndex + 1; i < matrix.length; i++) {
+        if (matrix[i].every((String cell) => cell.trim().isEmpty)) continue;
+        final Map<String, String> mapped = mapCells(headers, matrix[i]);
+        if (isCandidate(mapped)) rows.add(mapped);
+      }
+    }
+
+    if (rows.isEmpty) {
+      for (final List<String> cells in matrix) {
+        if (cells.every((String cell) => cell.trim().isEmpty)) continue;
+        final Map<String, String> mapped = fallbackTwoColumn(cells);
+        if (isCandidate(mapped)) rows.add(mapped);
+      }
+    }
+    return rows;
   }
 
   static Map<String, String> fallbackTwoColumn(List<String> cells) {

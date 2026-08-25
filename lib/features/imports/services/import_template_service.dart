@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 
 import 'import_template_download_stub.dart'
@@ -6,21 +8,42 @@ import 'import_template_download_stub.dart'
 
 enum ImportTemplateDownloadResult { saved, cancelled, copied }
 
-/// Downloads CSV templates. Success is reported only after the user confirms Save.
+/// Downloads import templates. Success is reported only after the user confirms Save.
 abstract final class ImportTemplateService {
+  static const String csvMimeType = 'text/csv;charset=utf-8';
+  static const String xlsxMimeType =
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
   static Future<ImportTemplateDownloadResult> downloadTemplate({
     required String fileName,
     required String csvContent,
+  }) {
+    return downloadBytes(
+      fileName: fileName,
+      bytes: utf8.encode(csvContent),
+      mimeType: csvMimeType,
+      copyTextOnUnsupported: csvContent,
+    );
+  }
+
+  static Future<ImportTemplateDownloadResult> downloadBytes({
+    required String fileName,
+    required List<int> bytes,
+    required String mimeType,
+    String? copyTextOnUnsupported,
   }) async {
     try {
-      final bool saved = await downloadCsvFile(
+      final bool saved = await downloadImportFile(
         fileName: fileName,
-        csvContent: csvContent,
+        bytes: bytes,
+        mimeType: mimeType,
       );
       if (!saved) return ImportTemplateDownloadResult.cancelled;
       return ImportTemplateDownloadResult.saved;
     } on UnsupportedError {
-      await Clipboard.setData(ClipboardData(text: csvContent));
+      final String? text = copyTextOnUnsupported;
+      if (text == null || text.isEmpty) rethrow;
+      await Clipboard.setData(ClipboardData(text: text));
       return ImportTemplateDownloadResult.copied;
     }
   }

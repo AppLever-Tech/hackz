@@ -1,19 +1,20 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 
 /// Desktop save: native Save As, then write. Cancel returns false.
-Future<bool> downloadCsvFile({
+Future<bool> downloadImportFile({
   required String fileName,
-  required String csvContent,
+  required List<int> bytes,
+  required String mimeType,
 }) async {
+  final String extension = _extensionOf(fileName);
   final FileSaveLocation? location = await getSaveLocation(
     suggestedName: fileName,
-    acceptedTypeGroups: const <XTypeGroup>[
+    acceptedTypeGroups: <XTypeGroup>[
       XTypeGroup(
-        label: 'CSV',
-        extensions: <String>['csv'],
+        label: extension.toUpperCase(),
+        extensions: <String>[extension],
       ),
     ],
   );
@@ -21,10 +22,16 @@ Future<bool> downloadCsvFile({
 
   String resolved = location.path.trim();
   if (resolved.isEmpty) return false;
-  if (!resolved.toLowerCase().endsWith('.csv')) {
-    resolved = '$resolved.csv';
+  if (extension.isNotEmpty && !resolved.toLowerCase().endsWith('.$extension')) {
+    resolved = '$resolved.$extension';
   }
 
-  await File(resolved).writeAsBytes(utf8.encode(csvContent), flush: true);
+  await File(resolved).writeAsBytes(bytes, flush: true);
   return true;
+}
+
+String _extensionOf(String fileName) {
+  final int dot = fileName.lastIndexOf('.');
+  if (dot < 0 || dot == fileName.length - 1) return '';
+  return fileName.substring(dot + 1).toLowerCase();
 }

@@ -17,6 +17,7 @@ import '../models/import_review_row.dart';
 import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
+import '../services/excel_parser_service.dart';
 import '../services/import_department_lookup.dart';
 import '../services/import_handler.dart';
 import '../services/import_platform_support.dart';
@@ -26,8 +27,10 @@ import '../services/problems_import_handler.dart';
 import '../sources/problem_import_source_kind.dart';
 import '../sources/problem_source_extract_exception.dart';
 import '../sources/problem_source_extractors.dart';
+import '../widgets/import_download_template_section.dart';
 import '../widgets/import_problem_context_section.dart';
 import '../widgets/import_review_table.dart';
+import '../widgets/import_sheet_select_dialog.dart';
 import '../widgets/import_summary_metrics.dart';
 import '../widgets/import_supported_values_section.dart';
 
@@ -64,6 +67,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   final TextEditingController _sourceUrlController = TextEditingController();
   List<ImportReviewRow> _validatedRows = const <ImportReviewRow>[];
   final Set<int> _excludedIndexes = <int>{};
+  String? _excelSheetName;
 
   ImportHandler get _handler => widget.handler;
   bool get _isProblemsImport => _handler.type == ImportType.problems;
@@ -78,6 +82,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     if (!_isProblemsImport || _step != _ImportStep.review) return _handler.title;
     return switch (_importSource) {
       ProblemImportSourceKind.csv => 'Import Problems from CSV',
+      ProblemImportSourceKind.excel => 'Import Problems from Excel',
       ProblemImportSourceKind.googleSheet => 'Import Problems from Google Sheets',
       ProblemImportSourceKind.googleDoc => 'Import Problems from Google Docs',
     };
@@ -85,7 +90,11 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   Widget? get _sourceCaption {
     final bool google = _isProblemsImport && _importSource.isGoogle;
-    final String value = google ? _sourceUrlController.text.trim() : (_fileName ?? '').trim();
+    final String fileLabel = (_fileName ?? '').trim();
+    final String sheet = (_excelSheetName ?? '').trim();
+    final String value = google
+        ? _sourceUrlController.text.trim()
+        : (sheet.isEmpty ? fileLabel : '$fileLabel · $sheet');
     if (value.isEmpty) return null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -171,23 +180,41 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       orgName: _orgName,
       problemSource: _importSource.isGoogle ? ProblemStatementSource.external : _problemSource,
       sourceUrl: _importSource.isGoogle ? _sourceUrlController.text.trim() : '',
-      createdSource:
-          _importSource.isGoogle ? ImportCreatedSource.googleImport : ImportCreatedSource.csvImport,
+      createdSource: switch (_importSource) {
+        ProblemImportSourceKind.googleDoc || ProblemImportSourceKind.googleSheet =>
+          ImportCreatedSource.googleImport,
+        ProblemImportSourceKind.excel => ImportCreatedSource.excelImport,
+        ProblemImportSourceKind.csv => ImportCreatedSource.csvImport,
+      },
     );
   }
 
+  bool get _isExcelImport =>
+      _isProblemsImport && _importSource == ProblemImportSourceKind.excel;
+
   Future<void> _downloadTemplate() async {
     try {
-      final ImportTemplateDownloadResult result = await ImportTemplateService.downloadTemplate(
-        fileName: _handler.templateFileName,
-        csvContent: _handler.templateCsv,
-      );
+      final ImportTemplateDownloadResult result;
+      final bool excel = _isExcelImport;
+      if (excel) {
+        result = await ImportTemplateService.downloadBytes(
+          fileName: ProblemsImportHandler.templateExcelFileName,
+          bytes: ExcelParserService.workbookBytesFromCsv(_handler.templateCsv),
+          mimeType: ImportTemplateService.xlsxMimeType,
+        );
+      } else {
+        result = await ImportTemplateService.downloadTemplate(
+          fileName: _handler.templateFileName,
+          csvContent: _handler.templateCsv,
+        );
+      }
       if (!mounted || result == ImportTemplateDownloadResult.cancelled) return;
+      final String format = excel ? 'Excel' : 'CSV';
       await FeedbackService.showSuccess(
         context,
         title: result == ImportTemplateDownloadResult.saved ? 'Template downloaded' : 'Template copied',
         message: result == ImportTemplateDownloadResult.saved
-            ? 'CSV template saved to your device.'
+            ? '$format template saved to your device.'
             : 'CSV template copied to clipboard. Paste into a spreadsheet and save as .csv',
       );
     } catch (e) {
@@ -197,6 +224,29 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   Future<void> _pickCsv() async {
+    await _pickTabularFile(
+      extensions: const <String>['csv'],
+      emptyTitle: 'Empty file',
+      emptyMessage: 'No data rows found in the CSV.',
+      readFailedMessage: 'Could not read the selected CSV file.',
+    );
+  }
+
+  Future<void> _pickExcel() async {
+    await _pickTabularFile(
+      extensions: const <String>['xlsx', 'xls'],
+      emptyTitle: 'Empty file',
+      emptyMessage: ImportConstants.emptyExcelFileMessage,
+      readFailedMessage: ImportConstants.invalidExcelFileMessage,
+    );
+  }
+
+  Future<void> _pickTabularFile({
+    required List<String> extensions,
+    required String emptyTitle,
+    required String emptyMessage,
+    required String readFailedMessage,
+  }) async {
     if (_isProblemsImport && !_hasDepartment) {
       FeedbackService.showWarning(
         context,
@@ -208,7 +258,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
     final FilePickerResult? picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: <String>['csv'],
+      allowedExtensions: extensions,
       withData: true,
       allowMultiple: false,
     );
@@ -217,16 +267,26 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     final List<int>? bytes = file.bytes;
     if (bytes == null || bytes.isEmpty) {
       if (!mounted) return;
-      FeedbackService.showWarning(context, title: 'Upload failed', message: 'Could not read the selected CSV file.');
+      FeedbackService.showWarning(context, title: 'Upload failed', message: readFailedMessage);
       return;
     }
 
     setState(() => _busy = true);
     try {
-      final List<Map<String, String>> parsed = CsvParserService.parseBytes(bytes);
+      final List<Map<String, String>> parsed;
+      String? sheetName;
+      if (_importSource == ProblemImportSourceKind.excel) {
+        final ({List<Map<String, String>> rows, String sheetName})? selected =
+            await _rowsFromExcel(bytes);
+        if (selected == null) return;
+        parsed = selected.rows;
+        sheetName = selected.sheetName;
+      } else {
+        parsed = CsvParserService.parseBytes(bytes);
+      }
       if (parsed.isEmpty) {
         if (!mounted) return;
-        FeedbackService.showWarning(context, title: 'Empty file', message: 'No data rows found in the CSV.');
+        FeedbackService.showWarning(context, title: emptyTitle, message: emptyMessage);
         return;
       }
 
@@ -234,18 +294,54 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       if (!mounted) return;
       setState(() {
         _fileName = file.name;
+        _excelSheetName = sheetName;
         _excludedIndexes.clear();
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
         _step = _ImportStep.review;
       });
+    } on ProblemSourceExtractException catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not read file', message: e.message);
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Validation failed', message: '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<({List<Map<String, String>> rows, String sheetName})?> _rowsFromExcel(List<int> bytes) async {
+    final List<ExcelSheetTable> sheets = ExcelParserService.usableSheets(
+      await ExcelParserService.parseBytes(bytes),
+    );
+    if (sheets.isEmpty) {
+      throw ProblemSourceExtractException(ImportConstants.noUsableExcelSheetsMessage);
+    }
+
+    ExcelSheetTable selected = sheets.first;
+    if (sheets.length > 1) {
+      if (mounted) setState(() => _busy = false);
+      if (!mounted) return null;
+      final String? name = await showImportSheetSelectDialog(
+        context: context,
+        sheetNames: sheets.map((ExcelSheetTable s) => s.name).toList(growable: false),
+        initialSheet: sheets.first.name,
+      );
+      if (name == null || name.trim().isEmpty) return null;
+      if (mounted) setState(() => _busy = true);
+      selected = sheets.firstWhere(
+        (ExcelSheetTable sheet) => sheet.name == name,
+        orElse: () => sheets.first,
+      );
+    }
+
+    final List<Map<String, String>> rows = ExcelParserService.rowsFromSheet(selected);
+    if (rows.isEmpty) {
+      throw ProblemSourceExtractException(ImportConstants.emptyExcelSheetMessage);
+    }
+    return (rows: rows, sheetName: selected.name);
   }
 
   Future<void> _fetchFromSource() async {
@@ -375,7 +471,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 _step == _ImportStep.template
                     ? (_importSource.isGoogle
                         ? 'Paste a public URL, fetch problem statements, then review before import.'
-                        : 'Download the template, fill it in, then upload for validation.')
+                        : _importSource == ProblemImportSourceKind.excel
+                            ? 'Upload an Excel workbook (.xlsx or .xls), pick a sheet if needed, then review before import.'
+                            : 'Download the template, fill it in, then upload for validation.')
                     : _step == _ImportStep.review
                         ? 'Review validated rows before importing.'
                         : 'Import completed.',
@@ -428,6 +526,8 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             onImportSourceChanged: (ProblemImportSourceKind kind) {
               setState(() {
                 _importSource = kind;
+                _fileName = null;
+                _excelSheetName = null;
                 if (kind.isGoogle) {
                   _problemSource = ProblemStatementSource.external;
                 }
@@ -451,129 +551,36 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         if (_isProblemsImport && _importSource.isGoogle)
           _buildGoogleSourcePanel()
         else
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Row(
-                  children: <Widget>[
-                    Icon(AppIcons.download, size: 16, color: Color(0xFF334155)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Download Template',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _columnsLine(label: 'Required columns', columns: _handler.requiredHeaders),
-                if (_handler.type == ImportType.teamRegistration && _handler.expansionHeaders.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 4),
-                  _columnsLine(label: 'Optional columns', columns: _handler.expansionHeaders),
-                ],
-                if (_handler.columnGuidancePoints.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 10),
-                  _guidancePoints(_handler.columnGuidancePoints),
-                ] else if (_handler.columnGuidance.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 4),
-                  Text(
-                    _handler.columnGuidance,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Row(
-                  children: <Widget>[
-                    OutlinedButton.icon(
-                      onPressed: _busy ? null : _downloadTemplate,
-                      icon: const Icon(AppIcons.download, size: 16),
-                      label: const Text('Download CSV Template'),
-                    ),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed: _busy || (_isProblemsImport && !_hasDepartment) ? null : _pickCsv,
-                      icon: const Icon(AppIcons.attachments, size: 16),
-                      label: Text(ResponsiveHelper.isMobile(context) ? 'Upload' : 'Upload CSV'),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: ResponsiveHelper.isMobile(context) ? 10 : 14,
-                          vertical: 10,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          ImportDownloadTemplateSection(
+            requiredColumns: _handler.requiredHeaders,
+            optionalColumns: _handler.optionalHeaders,
+            guidancePoints: _templateGuidancePoints(),
+            downloadLabel: ResponsiveHelper.isMobile(context)
+                ? 'Template'
+                : (_isExcelImport ? 'Download XLS Template' : 'Download CSV Template'),
+            uploadLabel: ResponsiveHelper.isMobile(context)
+                ? 'Upload'
+                : (_isExcelImport ? 'Upload Excel' : 'Upload CSV'),
+            uploadIcon: _isExcelImport ? AppIcons.spreadsheet : AppIcons.attachments,
+            compact: ResponsiveHelper.isMobile(context),
+            enabled: !_busy,
+            uploadEnabled: !_isProblemsImport || _hasDepartment,
+            onDownload: _downloadTemplate,
+            onUpload: _isExcelImport ? _pickExcel : _pickCsv,
           ),
       ],
     );
   }
 
-  Widget _columnsLine({required String label, required List<String> columns}) {
-    const TextStyle base = TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w500,
-      height: 1.45,
-      color: Color(0xFF475569),
-    );
-    return Text.rich(
-      TextSpan(
-        children: <InlineSpan>[
-          TextSpan(
-            text: '$label: ',
-            style: base.copyWith(fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
-          ),
-          TextSpan(text: columns.join(', ')),
-        ],
-      ),
-      style: base,
-    );
-  }
-
-  Widget _guidancePoints(List<String> points) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        for (var i = 0; i < points.length; i++) ...<Widget>[
-          if (i > 0) const SizedBox(height: 7),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.only(top: 6),
-                width: 5,
-                height: 5,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF4F46E5),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  points[i],
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1.45,
-                    color: Color(0xFF475569),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
+  List<String> _templateGuidancePoints() {
+    final List<String> points = List<String>.from(_handler.templateGuidancePoints(widget.contextData));
+    if (_isExcelImport) {
+      points.addAll(const <String>[
+        'First row is treated as headers. Completely empty rows are ignored.',
+        'If the workbook has more than one sheet, you will pick one before review.',
+      ]);
+    }
+    return points;
   }
 
   Widget _buildGoogleSourcePanel() {
@@ -758,6 +765,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                       _rows = const <ImportReviewRow>[];
                       _validatedRows = const <ImportReviewRow>[];
                       _excludedIndexes.clear();
+                      _excelSheetName = null;
                       _summary = null;
                       _fileName = null;
                     }),

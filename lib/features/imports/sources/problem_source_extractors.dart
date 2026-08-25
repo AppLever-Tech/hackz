@@ -8,8 +8,8 @@ abstract final class ProblemSourceExtractors {
     return switch (kind) {
       ProblemImportSourceKind.googleDoc => const GoogleDocProblemExtractor(),
       ProblemImportSourceKind.googleSheet => const GoogleSheetProblemExtractor(),
-      ProblemImportSourceKind.csv =>
-        throw StateError('CSV import uses the existing file-picker flow.'),
+      ProblemImportSourceKind.csv || ProblemImportSourceKind.excel =>
+        throw StateError('File import uses the existing file-picker flow.'),
     };
   }
 }

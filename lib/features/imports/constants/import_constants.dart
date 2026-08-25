@@ -80,4 +80,16 @@ abstract final class ImportConstants {
 
   static const String googleSourceTimeoutMessage =
       'Timed out while fetching the Google file. Try again.';
+
+  static const String invalidExcelFileMessage =
+      'Could not read the Excel file. Use a valid .xlsx or .xls workbook.';
+
+  static const String emptyExcelFileMessage =
+      'No data rows found in the Excel file.';
+
+  static const String noUsableExcelSheetsMessage =
+      'No usable sheets were found in this Excel file.';
+
+  static const String emptyExcelSheetMessage =
+      'The selected sheet did not contain any data to import.';
 }
