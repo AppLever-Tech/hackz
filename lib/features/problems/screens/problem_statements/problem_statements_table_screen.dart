@@ -377,7 +377,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
             final bool mobile = ResponsiveHelper.isMobile(context);
 
-            final ProblemTableActions tableActions = _problemTableActions();
+            final ProblemTableActions tableActions = _problemTableActions(problems);
 
             final Widget contentBody = problems.isEmpty
                 ? _EmptyTableState(onClearSearch: () {
@@ -791,7 +791,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
-  ProblemTableActions _problemTableActions() {
+  ProblemTableActions _problemTableActions(List<ProblemModel> displayedProblems) {
     final Map<String, String> domainLabelById = <String, String>{
       for (final DomainModel d in _domainsById.values)
         d.domainId: d.name.trim().isEmpty ? d.code : d.name.trim(),
@@ -812,6 +812,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       domainLabelById: domainLabelById,
       onActivateProblem: widget.config.canToggleActive ? _activateProblem : null,
       onDeactivateProblem: widget.config.canToggleActive ? _deactivateProblem : null,
+      displayedProblems: displayedProblems,
     );
   }
 

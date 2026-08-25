@@ -5,6 +5,7 @@ import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';
 import '../models/problem_status.dart';
 import '../services/problem_status_helpers.dart';
+import '../services/problem_title_display.dart';
 import '../validators/problem_submission_validators.dart';
 import 'problem_context_pill.dart';
 import 'problem_workflow_action_pill.dart';
@@ -34,6 +35,7 @@ class ProblemTableActions {
     this.domainLabelById = const <String, String>{},
     this.onActivateProblem,
     this.onDeactivateProblem,
+    this.displayedProblems = const <ProblemModel>[],
   });
 
   final ProblemListConfig config;
@@ -50,6 +52,7 @@ class ProblemTableActions {
   final Map<String, String> domainLabelById;
   final void Function(ProblemModel problem)? onActivateProblem;
   final void Function(ProblemModel problem)? onDeactivateProblem;
+  final List<ProblemModel> displayedProblems;
 
   IdeaSubmissionGate gateFor(ProblemModel problem) => computeIdeaSubmissionGate(
         problem: problem,
@@ -129,7 +132,10 @@ abstract final class ProblemTableColumns {
         minWidth: 180,
         sortKey: enabledSorts.contains(ProblemSortType.titleAZ) ? 'title' : null,
         cell: (BuildContext context, ProblemModel problem) {
-          final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
+          final String title = ProblemTitleDisplay.forProblem(
+            problem,
+            actions.displayedProblems,
+          );
           return InkWell(
             onTap: () => actions.onOpenDetails(problem),
             borderRadius: BorderRadius.circular(6),
@@ -300,7 +306,7 @@ class ProblemListRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
+    final String title = ProblemTitleDisplay.forProblem(problem, actions.displayedProblems);
     final String problemLabel = ProblemContextPill.resolveLabel(
       problemNumber: problem.problemNumber,
       problemId: problem.problemId,

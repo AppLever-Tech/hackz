@@ -7,6 +7,7 @@ import '../../problems/constants/problem_constants.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/models/problem_statement_source.dart';
 import '../../problems/models/problem_status.dart';
+import '../../problems/services/problem_source_identity.dart';
 import '../../problems/services/problem_utils.dart';
 import '../../../utils/firestore_utils.dart';
 import '../constants/import_constants.dart';
@@ -95,6 +96,10 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
         ImportPreviewCount(label: 'Valid', value: summary.validRows),
         ImportPreviewCount(label: 'Needs review', value: summary.warningRows),
         ImportPreviewCount(label: 'Invalid', value: summary.errorRows),
+        ImportPreviewCount(
+          label: 'Updates',
+          value: rows.where((ImportReviewRow r) => (r.metadata['existingProblemId'] ?? '').isNotEmpty).length,
+        ),
       ],
     );
   }
@@ -114,7 +119,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
     final ProblemsImportHandlerContext problemContext = _requireContext(context);
     final _ProblemImportLookup lookup = await _ProblemImportLookup.load(problemContext);
 
-    final Set<String> titlesInFile = <String>{};
+    final Set<String> identitiesInFile = <String>{};
     final List<ImportReviewRow> review = <ImportReviewRow>[];
 
     for (var i = 0; i < rows.length; i++) {
@@ -128,18 +133,24 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
           CsvParserService.cell(row, ImportConstants.issuingOrganisationColumnKey);
       final String issuingDepartment =
           CsvParserService.cell(row, ImportConstants.issuingDepartmentColumnKey);
-      final String externalProblemId =
+      final String sourceProblemId =
           CsvParserService.cell(row, ImportConstants.externalProblemIdColumnKey);
       final String categoryRaw =
           CsvParserService.cell(row, ProblemNormalizedRowMapper.categoryColumnKey);
       final String tagsRaw = CsvParserService.cell(row, ProblemNormalizedRowMapper.tagsColumnKey);
       final String category =
           ProblemConstants.resolveCategory(categoryRaw) ?? ProblemConstants.categorySoftware;
+      final String catalogSource = ProblemSourceIdentity.resolveForImport(
+        sourceProblemId: sourceProblemId,
+        issuingOrganisation: issuingOrganisation,
+        internal: problemContext.problemSource == ProblemStatementSource.internal,
+      );
 
       final List<String> issues = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
+      String existingProblemId = '';
 
       if (title.isEmpty) {
         issues.add('Missing title');
@@ -155,23 +166,25 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
         statusLabel = 'Missing Description';
       }
 
-      final String normalizedTitle = title.trim().toLowerCase();
-      if (normalizedTitle.isNotEmpty) {
-        if (titlesInFile.contains(normalizedTitle)) {
-          issues.add('Duplicate title in file');
+      final String? identityKey = ProblemSourceIdentity.key(catalogSource, sourceProblemId);
+      if (identityKey != null && importable) {
+        if (identitiesInFile.contains(identityKey)) {
+          issues.add('Duplicate source ID in file');
           severity = ImportRowSeverity.error;
           importable = false;
-          statusLabel = 'Duplicate Title';
-        } else if (lookup.existingTitles.contains(normalizedTitle)) {
-          issues.add('Problem title already exists');
-          severity = ImportRowSeverity.warning;
-          importable = false;
-          statusLabel = 'Duplicate';
+          statusLabel = 'Duplicate Source ID';
+        } else {
+          identitiesInFile.add(identityKey);
+          final ProblemModel? existing = lookup.byIdentity[identityKey];
+          if (existing != null) {
+            existingProblemId = existing.problemId;
+            issues.add('Existing $catalogSource problem will be updated');
+            statusLabel = 'Update';
+          }
         }
-        titlesInFile.add(normalizedTitle);
       }
 
-      if (severity == ImportRowSeverity.valid && importable) {
+      if (severity == ImportRowSeverity.valid && importable && statusLabel != 'Update') {
         statusLabel = 'Valid';
       }
 
@@ -184,7 +197,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
             ImportConstants.themeColumnKey: themeRaw,
             ImportConstants.issuingOrganisationColumnKey: issuingOrganisation,
             ImportConstants.issuingDepartmentColumnKey: issuingDepartment,
-            ImportConstants.externalProblemIdColumnKey: externalProblemId,
+            ImportConstants.externalProblemIdColumnKey: sourceProblemId,
             if (tagsRaw.isNotEmpty) ProblemNormalizedRowMapper.tagsColumnKey: tagsRaw,
             if (categoryRaw.isNotEmpty) ProblemNormalizedRowMapper.categoryColumnKey: categoryRaw,
           },
@@ -197,16 +210,18 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
             if (lookup.departmentName.isNotEmpty) 'departmentName': lookup.departmentName,
             'domainId': lookup.domainId,
             'category': category,
-            'source': problemContext.problemSource.value,
+            'source': catalogSource,
             'theme': theme,
             if (themeRaw.isNotEmpty ||
                 issuingOrganisation.isNotEmpty ||
                 issuingDepartment.isNotEmpty ||
-                externalProblemId.isNotEmpty)
+                sourceProblemId.isNotEmpty)
               'expandable': '1',
             if (issuingOrganisation.isNotEmpty) 'issuingOrganisation': issuingOrganisation,
             if (issuingDepartment.isNotEmpty) 'issuingDepartment': issuingDepartment,
-            if (externalProblemId.isNotEmpty) 'externalProblemId': externalProblemId,
+            if (sourceProblemId.isNotEmpty) 'sourceProblemId': sourceProblemId,
+            if (sourceProblemId.isNotEmpty) 'externalProblemId': sourceProblemId,
+            if (existingProblemId.isNotEmpty) 'existingProblemId': existingProblemId,
           },
         ),
       );
@@ -237,6 +252,32 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
         if (domainId.isEmpty) {
           throw StateError(ImportConstants.generalProblemDomainFailedMessage);
         }
+        final String sourceProblemId = (row.metadata['sourceProblemId'] ??
+                row.valueFor(ImportConstants.externalProblemIdColumnKey))
+            .trim();
+        final String catalogSource =
+            (row.metadata['source'] ?? ProblemSourceIdentity.college).trim();
+        final String existingProblemId = (row.metadata['existingProblemId'] ?? '').trim();
+
+        if (existingProblemId.isNotEmpty) {
+          await FirestoreUtils.updateProblem(existingProblemId, <String, dynamic>{
+            'title': row.valueFor(ImportConstants.titleColumnKey),
+            'description': row.valueFor(ImportConstants.descriptionColumnKey),
+            'category': row.metadata['category'] ?? ProblemConstants.categorySoftware,
+            'theme': (row.metadata['theme'] ?? '').trim().isEmpty
+                ? ProblemConstants.defaultTheme
+                : row.metadata['theme']!.trim(),
+            'tags': _tagsFor(row),
+            'source': catalogSource,
+            'issuingOrganisation': row.valueFor(ImportConstants.issuingOrganisationColumnKey),
+            'issuingDepartment': row.valueFor(ImportConstants.issuingDepartmentColumnKey),
+            if (sourceProblemId.isNotEmpty) 'sourceProblemId': sourceProblemId,
+            if (sourceProblemId.isNotEmpty) 'externalProblemId': sourceProblemId,
+          });
+          imported++;
+          continue;
+        }
+
         final String problemId =
             FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
         final String problemNumber = await ProblemUtils.generateProblemNumber();
@@ -260,10 +301,10 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
           status: ProblemStatus.draft,
           createdAt: DateTime.now(),
           createdSource: problemContext.createdSource.value,
-          source: row.metadata['source'] ?? problemContext.problemSource.value,
+          source: catalogSource,
           issuingOrganisation: row.valueFor(ImportConstants.issuingOrganisationColumnKey),
           issuingDepartment: row.valueFor(ImportConstants.issuingDepartmentColumnKey),
-          externalProblemId: row.valueFor(ImportConstants.externalProblemIdColumnKey),
+          sourceProblemId: sourceProblemId,
           referenceLinks: problemContext.sourceUrl.trim().isEmpty
               ? const <String>[]
               : <String>[problemContext.sourceUrl.trim()],
@@ -347,13 +388,13 @@ class ProblemsImportHandlerContext extends ImportHandlerContext {
 
 class _ProblemImportLookup {
   _ProblemImportLookup({
-    required this.existingTitles,
+    required this.byIdentity,
     required this.departmentCode,
     required this.departmentName,
     required this.domainId,
   });
 
-  final Set<String> existingTitles;
+  final Map<String, ProblemModel> byIdentity;
   final String departmentCode;
   final String departmentName;
   final String domainId;
@@ -397,12 +438,15 @@ class _ProblemImportLookup {
     }
 
     final List<ProblemModel> problems = await FirestoreUtils.getProblemModelsByCollege(context.orgId);
+    final Map<String, ProblemModel> byIdentity = <String, ProblemModel>{};
+    for (final ProblemModel problem in problems) {
+      final String? key = problem.sourceIdentityKey;
+      if (key == null || byIdentity.containsKey(key)) continue;
+      byIdentity[key] = problem;
+    }
 
     return _ProblemImportLookup(
-      existingTitles: problems
-          .map((ProblemModel p) => p.title.trim().toLowerCase())
-          .where((String t) => t.isNotEmpty)
-          .toSet(),
+      byIdentity: byIdentity,
       departmentCode: deptResult.canonicalCode ?? departmentCode,
       departmentName: (deptResult.departmentName ?? context.defaultDepartmentName).trim(),
       domainId: domain.domainId,

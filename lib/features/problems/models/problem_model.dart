@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../imports/models/import_created_source.dart';
 import '../../organization/models/department_model.dart';
+import '../services/problem_source_identity.dart';
 import 'problem_status.dart';
 
 class ProblemModel {
@@ -26,7 +27,7 @@ class ProblemModel {
     this.source = '',
     this.issuingOrganisation = '',
     this.issuingDepartment = '',
-    this.externalProblemId = '',
+    this.sourceProblemId = '',
     this.summary = '',
     this.background = '',
     this.impact = '',
@@ -69,11 +70,24 @@ class ProblemModel {
   final String? createdSource;
   final DateTime? updatedAt;
 
-  /// Internal vs external origin (`INTERNAL` / `EXTERNAL`). Distinct from [createdSource].
+  /// Catalogue origin (`SIH`, `College`, `External`). Distinct from [createdSource].
   final String source;
   final String issuingOrganisation;
   final String issuingDepartment;
-  final String externalProblemId;
+
+  /// Original ID from the originating catalogue (e.g. SIH problem ID).
+  final String sourceProblemId;
+
+  /// Backward-compatible alias for [sourceProblemId].
+  String get externalProblemId => sourceProblemId;
+
+  String get catalogSource => ProblemSourceIdentity.catalogSource(
+        storedSource: source,
+        sourceProblemId: sourceProblemId,
+        issuingOrganisation: issuingOrganisation,
+      );
+
+  String? get sourceIdentityKey => ProblemSourceIdentity.key(catalogSource, sourceProblemId);
 
   // Innovation context (Section 2).
   final String summary;
@@ -138,7 +152,8 @@ class ProblemModel {
       if (source.trim().isNotEmpty) 'source': source.trim(),
       if (issuingOrganisation.trim().isNotEmpty) 'issuingOrganisation': issuingOrganisation.trim(),
       if (issuingDepartment.trim().isNotEmpty) 'issuingDepartment': issuingDepartment.trim(),
-      if (externalProblemId.trim().isNotEmpty) 'externalProblemId': externalProblemId.trim(),
+      if (sourceProblemId.trim().isNotEmpty) 'sourceProblemId': sourceProblemId.trim(),
+      if (sourceProblemId.trim().isNotEmpty) 'externalProblemId': sourceProblemId.trim(),
       'summary': summary,
       'background': background,
       'impact': impact,
@@ -198,7 +213,11 @@ class ProblemModel {
       source: str('source'),
       issuingOrganisation: str('issuingOrganisation'),
       issuingDepartment: str('issuingDepartment'),
-      externalProblemId: str('externalProblemId'),
+      sourceProblemId: () {
+        final String id = str('sourceProblemId');
+        if (id.isNotEmpty) return id;
+        return str('externalProblemId');
+      }(),
       summary: str('summary'),
       background: str('background'),
       impact: str('impact'),
@@ -250,7 +269,7 @@ class ProblemModel {
       source: source,
       issuingOrganisation: issuingOrganisation,
       issuingDepartment: issuingDepartment,
-      externalProblemId: externalProblemId,
+      sourceProblemId: sourceProblemId,
       summary: summary,
       background: background,
       impact: impact,

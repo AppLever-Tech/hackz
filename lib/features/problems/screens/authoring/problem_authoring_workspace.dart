@@ -19,6 +19,7 @@ import '../../../imports/models/import_created_source.dart';
 import '../../../domain/domain.dart';
 import '../../models/problem_model.dart';
 import '../../models/problem_status.dart';
+import '../../services/problem_source_identity.dart';
 import '../../services/problem_utils.dart';
 import '../../validators/problem_authoring_validators.dart';
 import 'problem_authoring_inputs.dart';
@@ -555,6 +556,14 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
             ? widget.initialProblem!.createdSource
             : ImportCreatedSource.manual.value,
         updatedAt: _isEdit ? DateTime.now() : null,
+        source: _isEdit
+            ? (widget.initialProblem!.source.trim().isEmpty
+                ? ProblemSourceIdentity.college
+                : widget.initialProblem!.source)
+            : ProblemSourceIdentity.college,
+        issuingOrganisation: widget.initialProblem?.issuingOrganisation ?? '',
+        issuingDepartment: widget.initialProblem?.issuingDepartment ?? '',
+        sourceProblemId: widget.initialProblem?.sourceProblemId ?? '',
         summary: _summaryController.text.trim(),
         background: _backgroundController.text.trim(),
         impact: _impactController.text.trim(),
