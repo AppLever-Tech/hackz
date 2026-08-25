@@ -19,7 +19,7 @@ abstract final class ImportReviewColumnLayout {
   static const double role = 104;
   static const double teamLeader = 88;
   static const double status = 132;
-  static const double actions = 108;
+  static const double actions = 72;
   static const double gap = 8;
   static const double compactBreakpoint = 760;
 }
@@ -318,6 +318,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
 
   Widget _actionsCell(ImportReviewRow row) {
     if (!widget.showActions) return const SizedBox.shrink();
+    final VoidCallback? onToggle = _includeExcludeTap(row);
     final List<Widget> actions = <Widget>[
       if (widget.onView != null)
         MobileRowCardIconAction(
@@ -325,26 +326,14 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
           icon: AppIcons.preview,
           onTap: () => widget.onView!(row),
         ),
-      if (widget.onInclude != null)
+      if (onToggle != null)
         MobileRowCardIconAction(
-          tooltip: 'Include',
-          icon: AppIcons.workflowApproved,
-          onTap: () => widget.onInclude!(row),
-          foregroundColor: row.excluded ? const Color(0xFF047857) : MobileRowCardIconActionMetrics.foregroundColor,
-        ),
-      if (widget.onExclude != null)
-        MobileRowCardIconAction(
-          tooltip: 'Exclude',
-          icon: AppIcons.remove,
-          onTap: () => widget.onExclude!(row),
-          foregroundColor: row.excluded ? const Color(0xFFB91C1C) : MobileRowCardIconActionMetrics.foregroundColor,
-        ),
-      if (widget.onToggleExclude != null && widget.onInclude == null && widget.onExclude == null)
-        MobileRowCardIconAction(
-          tooltip: row.excluded ? 'Include in import' : 'Exclude from import',
+          tooltip: row.excluded ? 'Include' : 'Exclude',
           icon: row.excluded ? AppIcons.workflowApproved : AppIcons.remove,
-          onTap: () => widget.onToggleExclude!(row.rowNumber),
-          foregroundColor: row.excluded ? const Color(0xFF047857) : MobileRowCardIconActionMetrics.foregroundColor,
+          onTap: onToggle,
+          foregroundColor: row.excluded
+              ? const Color(0xFF047857)
+              : MobileRowCardIconActionMetrics.foregroundColor,
         ),
     ];
     return SizedBox(
@@ -354,6 +343,17 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
         children: spacedMobileRowCardIconActions(actions),
       ),
     );
+  }
+
+  VoidCallback? _includeExcludeTap(ImportReviewRow row) {
+    if (row.excluded) {
+      if (widget.onInclude != null) return () => widget.onInclude!(row);
+      if (widget.onToggleExclude != null) return () => widget.onToggleExclude!(row.rowNumber);
+      return null;
+    }
+    if (widget.onExclude != null) return () => widget.onExclude!(row);
+    if (widget.onToggleExclude != null) return () => widget.onToggleExclude!(row.rowNumber);
+    return null;
   }
 
   Widget _wideCollapsed(
