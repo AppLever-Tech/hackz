@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/form_value_row.dart';
+import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../constants/import_constants.dart';
 import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
+import 'import_review_title_display.dart';
 
 /// Shared review-table metrics for problem and user CSV import.
 abstract final class ImportReviewColumnLayout {
@@ -16,8 +18,8 @@ abstract final class ImportReviewColumnLayout {
   static const double phone = 88;
   static const double role = 104;
   static const double teamLeader = 88;
-  static const double status = 176;
-  static const double exclude = 32;
+  static const double status = 132;
+  static const double actions = 108;
   static const double gap = 8;
   static const double compactBreakpoint = 760;
 }
@@ -100,6 +102,9 @@ class ImportReviewTable extends StatefulWidget {
     this.expansionColumns = const <ImportReviewColumn>[],
     this.editable = false,
     this.onToggleExclude,
+    this.onView,
+    this.onInclude,
+    this.onExclude,
   });
 
   final List<ImportReviewRow> rows;
@@ -107,6 +112,11 @@ class ImportReviewTable extends StatefulWidget {
   final List<ImportReviewColumn> expansionColumns;
   final bool editable;
   final ValueChanged<int>? onToggleExclude;
+  final ValueChanged<ImportReviewRow>? onView;
+  final ValueChanged<ImportReviewRow>? onInclude;
+  final ValueChanged<ImportReviewRow>? onExclude;
+
+  bool get showActions => onView != null || onInclude != null || onExclude != null || editable;
 
   @override
   State<ImportReviewTable> createState() => _ImportReviewTableState();
@@ -130,7 +140,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               child: ListView.builder(
                 itemCount: widget.rows.length,
                 itemBuilder: (BuildContext context, int index) =>
-                    _expandableRow(widget.rows[index], index: index, compact: compact),
+                    _expandableRow(widget.rows[index], compact: compact),
               ),
             ),
           ],
@@ -206,17 +216,28 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               width: ImportReviewColumnLayout.status,
               child: Text('Status', style: style),
             ),
-            if (widget.editable) ...<Widget>[
+            if (widget.showActions) ...<Widget>[
               const SizedBox(width: ImportReviewColumnLayout.gap),
-              const SizedBox(width: ImportReviewColumnLayout.exclude),
+              const SizedBox(
+                width: ImportReviewColumnLayout.actions,
+                child: Text('Action', style: style),
+              ),
             ],
-          ] else
+          ] else ...<Widget>[
             Expanded(
               child: Text(
                 widget.columns.isEmpty ? 'Details' : widget.columns.first.label,
                 style: style,
               ),
             ),
+            if (widget.showActions) ...<Widget>[
+              const SizedBox(width: ImportReviewColumnLayout.gap),
+              const SizedBox(
+                width: ImportReviewColumnLayout.actions,
+                child: Text('Action', style: style, textAlign: TextAlign.end),
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -233,7 +254,13 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     if (column.key == ImportConstants.isTeamLeaderColumnKey) {
       return _TeamLeaderMark(isLeader: row.valueFor(column.key).toLowerCase() == 'true');
     }
-    return _TruncatedText(text: row.valueFor(column.key));
+    if (column.key == ImportConstants.titleColumnKey) {
+      return _TruncatedText(text: ImportReviewTitleDisplay.forRow(row, widget.rows));
+    }
+    return _TruncatedText(
+      text: row.valueFor(column.key),
+      enableTooltip: column.key != ImportConstants.descriptionColumnKey,
+    );
   }
 
   bool _canExpand(ImportReviewRow row) {
@@ -241,7 +268,7 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     return widget.expansionColumns.any((ImportReviewColumn c) => row.valueFor(c.key).isNotEmpty);
   }
 
-  Widget _expandableRow(ImportReviewRow row, {required int index, required bool compact}) {
+  Widget _expandableRow(ImportReviewRow row, {required bool compact}) {
     final bool canExpand = _canExpand(row);
     final bool expanded = canExpand && _expandedRows.contains(row.rowNumber);
 
@@ -254,21 +281,32 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            InkWell(
-              onTap: canExpand
-                  ? () => setState(() {
-                        if (expanded) {
-                          _expandedRows.remove(row.rowNumber);
-                        } else {
-                          _expandedRows.add(row.rowNumber);
-                        }
-                      })
-                  : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                child: compact
-                    ? _compactCollapsed(row, index: index, canExpand: canExpand, expanded: expanded)
-                    : _wideCollapsed(row, index: index, canExpand: canExpand, expanded: expanded),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: InkWell(
+                      onTap: canExpand
+                          ? () => setState(() {
+                                if (expanded) {
+                                  _expandedRows.remove(row.rowNumber);
+                                } else {
+                                  _expandedRows.add(row.rowNumber);
+                                }
+                              })
+                          : null,
+                      child: compact
+                          ? _compactCollapsed(row, canExpand: canExpand, expanded: expanded)
+                          : _wideCollapsed(row, canExpand: canExpand, expanded: expanded),
+                    ),
+                  ),
+                  if (widget.showActions) ...<Widget>[
+                    const SizedBox(width: ImportReviewColumnLayout.gap),
+                    _actionsCell(row),
+                  ],
+                ],
               ),
             ),
             if (expanded) _expansionPanel(row, compact: compact),
@@ -278,24 +316,48 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     );
   }
 
-  Widget _excludeControl(int index, ImportReviewRow row) {
+  Widget _actionsCell(ImportReviewRow row) {
+    if (!widget.showActions) return const SizedBox.shrink();
+    final List<Widget> actions = <Widget>[
+      if (widget.onView != null)
+        MobileRowCardIconAction(
+          tooltip: 'View',
+          icon: AppIcons.preview,
+          onTap: () => widget.onView!(row),
+        ),
+      if (widget.onInclude != null)
+        MobileRowCardIconAction(
+          tooltip: 'Include',
+          icon: AppIcons.workflowApproved,
+          onTap: () => widget.onInclude!(row),
+          foregroundColor: row.excluded ? const Color(0xFF047857) : MobileRowCardIconActionMetrics.foregroundColor,
+        ),
+      if (widget.onExclude != null)
+        MobileRowCardIconAction(
+          tooltip: 'Exclude',
+          icon: AppIcons.remove,
+          onTap: () => widget.onExclude!(row),
+          foregroundColor: row.excluded ? const Color(0xFFB91C1C) : MobileRowCardIconActionMetrics.foregroundColor,
+        ),
+      if (widget.onToggleExclude != null && widget.onInclude == null && widget.onExclude == null)
+        MobileRowCardIconAction(
+          tooltip: row.excluded ? 'Include in import' : 'Exclude from import',
+          icon: row.excluded ? AppIcons.workflowApproved : AppIcons.remove,
+          onTap: () => widget.onToggleExclude!(row.rowNumber),
+          foregroundColor: row.excluded ? const Color(0xFF047857) : MobileRowCardIconActionMetrics.foregroundColor,
+        ),
+    ];
     return SizedBox(
-      width: ImportReviewColumnLayout.exclude,
-      child: IconButton(
-        tooltip: row.excluded ? 'Include in import' : 'Exclude from import',
-        onPressed: widget.onToggleExclude == null ? null : () => widget.onToggleExclude!(index),
-        icon: Icon(row.excluded ? AppIcons.preview : AppIcons.remove, size: 16),
-        color: row.excluded ? const Color(0xFF047857) : const Color(0xFF64748B),
-        visualDensity: VisualDensity.compact,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+      width: ImportReviewColumnLayout.actions,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: spacedMobileRowCardIconActions(actions),
       ),
     );
   }
 
   Widget _wideCollapsed(
     ImportReviewRow row, {
-    required int index,
     required bool canExpand,
     required bool expanded,
   }) {
@@ -327,17 +389,12 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
           width: ImportReviewColumnLayout.status,
           child: _StatusCell(row: row),
         ),
-        if (widget.editable) ...<Widget>[
-          const SizedBox(width: ImportReviewColumnLayout.gap),
-          _excludeControl(index, row),
-        ],
       ],
     );
   }
 
   Widget _compactCollapsed(
     ImportReviewRow row, {
-    required int index,
     required bool canExpand,
     required bool expanded,
   }) {
@@ -345,19 +402,24 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
         widget.columns.where((ImportReviewColumn c) => !c.isFixed).toList(growable: false);
     final List<ImportReviewColumn> fixedColumns =
         widget.columns.where((ImportReviewColumn c) => c.isFixed).toList(growable: false);
-    final String title = flexColumns
-        .map((ImportReviewColumn c) => row.valueFor(c.key))
-        .where((String v) => v.isNotEmpty)
-        .join(' ');
-    final String subtitle = fixedColumns
-        .map((ImportReviewColumn c) {
-          if (c.key == ImportConstants.isTeamLeaderColumnKey) {
-            return row.valueFor(c.key).toLowerCase() == 'true' ? 'Team Leader' : '';
-          }
-          return row.valueFor(c.key);
-        })
-        .where((String v) => v.isNotEmpty)
-        .join(' · ');
+    final bool hasTitle = widget.columns.any((ImportReviewColumn c) => c.key == ImportConstants.titleColumnKey);
+    final String title = hasTitle
+        ? ImportReviewTitleDisplay.forRow(row, widget.rows)
+        : flexColumns
+            .map((ImportReviewColumn c) => row.valueFor(c.key))
+            .where((String v) => v.isNotEmpty)
+            .join(' ');
+    final String subtitle = hasTitle
+        ? row.valueFor(ImportConstants.descriptionColumnKey)
+        : fixedColumns
+            .map((ImportReviewColumn c) {
+              if (c.key == ImportConstants.isTeamLeaderColumnKey) {
+                return row.valueFor(c.key).toLowerCase() == 'true' ? 'Team Leader' : '';
+              }
+              return row.valueFor(c.key);
+            })
+            .where((String v) => v.isNotEmpty)
+            .join(' · ');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -388,14 +450,17 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               _TruncatedText(text: title),
               if (subtitle.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 1),
-                _TruncatedText(text: subtitle, muted: true),
+                _TruncatedText(
+                  text: subtitle,
+                  muted: true,
+                  enableTooltip: !hasTitle,
+                ),
               ],
               const SizedBox(height: 2),
               _StatusCell(row: row),
             ],
           ),
         ),
-        if (widget.editable) _excludeControl(index, row),
       ],
     );
   }
@@ -538,10 +603,11 @@ class _TeamLeaderMark extends StatelessWidget {
 }
 
 class _TruncatedText extends StatelessWidget {
-  const _TruncatedText({required this.text, this.muted = false});
+  const _TruncatedText({required this.text, this.muted = false, this.enableTooltip = true});
 
   final String text;
   final bool muted;
+  final bool enableTooltip;
 
   TextStyle get _style => TextStyle(
         fontSize: muted ? 11 : 12,
@@ -575,7 +641,7 @@ class _TruncatedText extends StatelessWidget {
           style: style,
         );
 
-        if (!overflowed) return label;
+        if (!overflowed || !enableTooltip) return label;
         return Tooltip(
           message: value,
           waitDuration: const Duration(milliseconds: 250),
@@ -624,7 +690,7 @@ class _StatusCell extends StatelessWidget {
             waitDuration: const Duration(milliseconds: 250),
             child: Text(
               detail,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,

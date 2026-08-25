@@ -6,9 +6,14 @@ import '../../../core/responsive/responsive_metric_grid.dart';
 import '../models/import_summary.dart';
 
 class ImportSummaryMetrics extends StatelessWidget {
-  const ImportSummaryMetrics({super.key, required this.summary});
+  const ImportSummaryMetrics({
+    super.key,
+    required this.summary,
+    this.compactSingleRow = false,
+  });
 
   final ImportSummary summary;
+  final bool compactSingleRow;
 
   @override
   Widget build(BuildContext context) {
@@ -17,8 +22,10 @@ class ImportSummaryMetrics extends StatelessWidget {
         : summary.previewCounts.map(_chipForPreview).toList(growable: false);
 
     return ResponsiveMetricGrid(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: compactSingleRow ? 6 : 10,
+      runSpacing: compactSingleRow ? 6 : 10,
+      maxDesktopColumns: compactSingleRow ? chips.length : null,
+      compact: compactSingleRow,
       chips: chips,
     );
   }
@@ -62,6 +69,8 @@ class ImportSummaryMetrics extends StatelessWidget {
     );
   }
 
+  static (Color, IconData) lookFor(String label) => _lookFor(label);
+
   static (Color, IconData) _lookFor(String label) {
     return switch (label) {
       'Teams' => (const Color(0xFF4A67FF), AppIcons.teams),
@@ -75,6 +84,7 @@ class ImportSummaryMetrics extends StatelessWidget {
       'Extracted' => (const Color(0xFF4A67FF), AppIcons.problems),
       'Valid' => (const Color(0xFF047857), AppIcons.workflowApproved),
       'Errors' => (const Color(0xFFB91C1C), AppIcons.workflowRejected),
+      'Updates' => (const Color(0xFF7C3AED), AppIcons.refresh),
       _ => (const Color(0xFF4A67FF), AppIcons.attachments),
     };
   }

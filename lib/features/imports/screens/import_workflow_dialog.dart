@@ -14,6 +14,7 @@ import '../constants/import_constants.dart';
 import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
+import '../models/import_row_severity.dart';
 import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
@@ -27,12 +28,16 @@ import '../services/problems_import_handler.dart';
 import '../sources/problem_import_source_kind.dart';
 import '../sources/problem_source_extract_exception.dart';
 import '../sources/problem_source_extractors.dart';
+import '../../../core/workspace/workspace_controller.dart';
+import '../../../core/workspace/workspace_host.dart';
 import '../widgets/import_download_template_section.dart';
 import '../widgets/import_problem_context_section.dart';
+import '../widgets/import_review_filter_bar.dart';
 import '../widgets/import_review_table.dart';
 import '../widgets/import_sheet_select_dialog.dart';
 import '../widgets/import_summary_metrics.dart';
 import '../widgets/import_supported_values_section.dart';
+import '../workspace/problem_import_preview_workspace.dart';
 
 enum _ImportStep { template, review, result }
 
@@ -65,8 +70,11 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   ProblemStatementSource _problemSource = ProblemStatementSource.internal;
   ProblemImportSourceKind _importSource = ProblemImportSourceKind.csv;
   final TextEditingController _sourceUrlController = TextEditingController();
+  final TextEditingController _reviewSearchController = TextEditingController();
+  final WorkspaceController _previewWorkspace = WorkspaceController();
   List<ImportReviewRow> _validatedRows = const <ImportReviewRow>[];
-  final Set<int> _excludedIndexes = <int>{};
+  final Set<int> _excludedRowNumbers = <int>{};
+  ImportReviewStatusFilter _reviewFilter = ImportReviewStatusFilter.all;
   String? _excelSheetName;
 
   ImportHandler get _handler => widget.handler;
@@ -137,12 +145,21 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     _selectedDepartmentCode = widget.contextData.defaultDepartmentCode.trim().toUpperCase();
     _selectedDepartmentName = widget.contextData.defaultDepartmentName.trim();
     _problemSource = problemContext?.problemSource ?? ProblemStatementSource.internal;
+    _reviewSearchController.addListener(_onReviewSearchChanged);
     _loadReferenceLookups();
+  }
+
+  void _onReviewSearchChanged() {
+    if (_step != _ImportStep.review || !_isProblemsImport) return;
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _reviewSearchController.removeListener(_onReviewSearchChanged);
     _sourceUrlController.dispose();
+    _reviewSearchController.dispose();
+    _previewWorkspace.dispose();
     super.dispose();
   }
 
@@ -295,7 +312,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       setState(() {
         _fileName = file.name;
         _excelSheetName = sheetName;
-        _excludedIndexes.clear();
+        _excludedRowNumbers.clear();
+        _reviewFilter = ImportReviewStatusFilter.all;
+        _reviewSearchController.clear();
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
@@ -375,7 +394,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       if (!mounted) return;
       setState(() {
         _fileName = _importSource.label;
-        _excludedIndexes.clear();
+        _excludedRowNumbers.clear();
+        _reviewFilter = ImportReviewStatusFilter.all;
+        _reviewSearchController.clear();
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
@@ -394,22 +415,58 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   List<ImportReviewRow> _applyExcluded(List<ImportReviewRow> rows) {
     return <ImportReviewRow>[
-      for (var i = 0; i < rows.length; i++)
-        if (_excludedIndexes.contains(i))
-          rows[i].copyWith(excluded: true, importable: false, statusLabel: 'Excluded')
+      for (final ImportReviewRow row in rows)
+        if (_excludedRowNumbers.contains(row.rowNumber))
+          row.copyWith(excluded: true, importable: false, statusLabel: 'Excluded')
         else
-          rows[i],
+          row,
     ];
   }
 
-  void _toggleExclude(int index) {
+  void _setRowExcluded(ImportReviewRow row, bool excluded) {
     setState(() {
-      if (!_excludedIndexes.add(index)) {
-        _excludedIndexes.remove(index);
+      if (excluded) {
+        _excludedRowNumbers.add(row.rowNumber);
+      } else {
+        _excludedRowNumbers.remove(row.rowNumber);
       }
       _rows = _applyExcluded(_validatedRows);
       _summary = _handler.summarize(_rows);
     });
+  }
+
+  List<ImportReviewRow> _displayedReviewRows() {
+    final String query = _reviewSearchController.text.trim().toLowerCase();
+    return _rows.where((ImportReviewRow row) {
+      if (!_matchesReviewFilter(row)) return false;
+      if (query.isEmpty) return true;
+      return _reviewSearchHaystack(row).contains(query);
+    }).toList(growable: false);
+  }
+
+  bool _matchesReviewFilter(ImportReviewRow row) {
+    return switch (_reviewFilter) {
+      ImportReviewStatusFilter.all => true,
+      ImportReviewStatusFilter.valid => row.importable && !row.excluded,
+      ImportReviewStatusFilter.needsReview =>
+        row.severity == ImportRowSeverity.warning && !row.excluded,
+      ImportReviewStatusFilter.invalid =>
+        row.severity == ImportRowSeverity.error && !row.excluded,
+      ImportReviewStatusFilter.updates => (row.metadata['existingProblemId'] ?? '').isNotEmpty,
+    };
+  }
+
+  String _reviewSearchHaystack(ImportReviewRow row) {
+    return <String>[
+      row.valueFor(ImportConstants.titleColumnKey),
+      row.valueFor(ImportConstants.descriptionColumnKey),
+      row.valueFor(ImportConstants.themeColumnKey),
+      row.valueFor(ImportConstants.externalProblemIdColumnKey),
+      row.metadata['sourceProblemId'] ?? '',
+      row.metadata['source'] ?? '',
+      row.statusLabel,
+      ...row.messages,
+    ].join(' ').toLowerCase();
   }
 
   Future<void> _runImport() async {
@@ -436,6 +493,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       setState(() {
         _result = result;
         _step = _ImportStep.result;
+        _previewWorkspace.close();
       });
       if (result.imported > 0) {
         FeedbackService.showSuccess(
@@ -454,7 +512,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final Widget body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -492,6 +550,25 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         const SizedBox(height: 12),
         _buildActions(),
       ],
+    );
+
+    if (!_isProblemsImport) return body;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final Size fallback = MediaQuery.sizeOf(context);
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            size: Size(
+              constraints.maxWidth.isFinite ? constraints.maxWidth : fallback.width,
+              constraints.maxHeight.isFinite ? constraints.maxHeight : fallback.height,
+            ),
+          ),
+          child: WorkspaceHost(
+            controller: _previewWorkspace,
+            child: SizedBox.expand(child: body),
+          ),
+        );
+      },
     );
   }
 
@@ -666,12 +743,13 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     final List<ImportReviewColumn> expansionColumns = _handler.expansionHeaders
         .map(ImportReviewColumn.fromKey)
         .toList(growable: false);
+    final List<ImportReviewRow> displayed = _isProblemsImport ? _displayedReviewRows() : _rows;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (_sourceCaption != null) _sourceCaption!,
-        ImportSummaryMetrics(summary: summary),
+        ImportSummaryMetrics(summary: summary, compactSingleRow: _isProblemsImport),
         if (summary.errorRows > 0) ...<Widget>[
           const SizedBox(height: 8),
           const Text(
@@ -679,14 +757,28 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
           ),
         ],
+        if (_isProblemsImport) ...<Widget>[
+          const SizedBox(height: 10),
+          ImportReviewFilterBar(
+            searchController: _reviewSearchController,
+            filter: _reviewFilter,
+            onFilterChanged: (ImportReviewStatusFilter next) {
+              setState(() => _reviewFilter = next);
+            },
+          ),
+        ],
         const SizedBox(height: 12),
         Expanded(
           child: ImportReviewTable(
-            rows: _rows,
+            rows: displayed,
             columns: columns,
             expansionColumns: expansionColumns,
             editable: _isProblemsImport,
-            onToggleExclude: _isProblemsImport ? _toggleExclude : null,
+            onView: _isProblemsImport
+                ? (ImportReviewRow row) => ProblemImportPreviewWorkspace.open(_previewWorkspace, row)
+                : null,
+            onInclude: _isProblemsImport ? (ImportReviewRow row) => _setRowExcluded(row, false) : null,
+            onExclude: _isProblemsImport ? (ImportReviewRow row) => _setRowExcluded(row, true) : null,
           ),
         ),
       ],
@@ -764,7 +856,10 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                       _step = _ImportStep.template;
                       _rows = const <ImportReviewRow>[];
                       _validatedRows = const <ImportReviewRow>[];
-                      _excludedIndexes.clear();
+                      _excludedRowNumbers.clear();
+                      _reviewFilter = ImportReviewStatusFilter.all;
+                      _reviewSearchController.clear();
+                      _previewWorkspace.close();
                       _excelSheetName = null;
                       _summary = null;
                       _fileName = null;

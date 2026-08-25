@@ -105,14 +105,15 @@ class DashboardMetricChipData {
 
 /// Single gradient metric chip.
 class DashboardMetricChip extends StatelessWidget {
-  const DashboardMetricChip({super.key, required this.data});
+  const DashboardMetricChip({super.key, required this.data, this.compact = false});
 
   final DashboardMetricChipData data;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12, vertical: compact ? 6 : 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -122,30 +123,32 @@ class DashboardMetricChip extends StatelessWidget {
             data.color.withValues(alpha: 0.02),
           ],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(compact ? 12 : 14),
         border: Border.all(color: data.color.withValues(alpha: 0.22)),
       ),
       child: Row(
         children: <Widget>[
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(compact ? 6 : 8),
             decoration: BoxDecoration(
               color: data.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(compact ? 8 : 10),
             ),
-            child: Icon(data.icon, size: 18, color: data.color),
+            child: Icon(data.icon, size: compact ? 15 : 18, color: data.color),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: compact ? 8 : 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   data.label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: compact ? 9 : 10,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                    letterSpacing: compact ? 0.4 : 0.8,
                     color: data.color,
                   ),
                 ),
@@ -193,10 +196,10 @@ class DashboardMetricChip extends StatelessWidget {
 
     return Text(
       data.displayValue,
-      style: const TextStyle(
-        fontSize: 20,
+      style: TextStyle(
+        fontSize: compact ? 16 : 20,
         fontWeight: FontWeight.w900,
-        color: Color(0xFF0F172A),
+        color: const Color(0xFF0F172A),
         height: 1.1,
       ),
       maxLines: 1,
@@ -242,16 +245,28 @@ class DashboardMetricChipGrid extends StatelessWidget {
     required this.chips,
     this.spacing,
     this.runSpacing,
+    this.maxDesktopColumns,
+    this.compact = false,
   });
 
   final List<DashboardMetricChipData> chips;
   final double? spacing;
   final double? runSpacing;
+  final int? maxDesktopColumns;
+  final bool compact;
 
-  int _columnCount(BuildContext context) {
+  int _columnCount(BuildContext context, double maxWidth, double gap) {
     if (chips.isEmpty) return 1;
+    if (compact && maxDesktopColumns != null && !ResponsiveHelper.isMobile(context)) {
+      final int desired = chips.length < maxDesktopColumns! ? chips.length : maxDesktopColumns!;
+      const double minChipWidth = 118;
+      final int fit = ((maxWidth + gap) / (minChipWidth + gap)).floor().clamp(1, desired);
+      if (ResponsiveHelper.isDesktopOrWider(context)) return desired;
+      return fit;
+    }
     if (ResponsiveHelper.isDesktopOrWider(context)) {
-      return chips.length < 4 ? chips.length : 4;
+      final int max = maxDesktopColumns ?? 4;
+      return chips.length < max ? chips.length : max;
     }
     return chips.length < 2 ? chips.length : 2;
   }
@@ -264,7 +279,7 @@ class DashboardMetricChipGrid extends StatelessWidget {
       builder: (BuildContext context, BoxConstraints constraints) {
         final gap = spacing ?? ResponsiveHelper.metricGridSpacing(context);
         final runGap = runSpacing ?? gap;
-        final columns = _columnCount(context);
+        final columns = _columnCount(context, constraints.maxWidth, gap);
         final tileWidth = (constraints.maxWidth - gap * (columns - 1)) / columns;
 
         return Wrap(
@@ -274,7 +289,7 @@ class DashboardMetricChipGrid extends StatelessWidget {
               .map(
                 (DashboardMetricChipData data) => SizedBox(
                   width: tileWidth,
-                  child: DashboardMetricChip(data: data),
+                  child: DashboardMetricChip(data: data, compact: compact),
                 ),
               )
               .toList(growable: false),

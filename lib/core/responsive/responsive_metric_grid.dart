@@ -10,11 +10,15 @@ class ResponsiveMetricGrid extends StatelessWidget {
     required this.chips,
     this.spacing,
     this.runSpacing,
+    this.maxDesktopColumns,
+    this.compact = false,
   });
 
   final List<DashboardMetricChipData> chips;
   final double? spacing;
   final double? runSpacing;
+  final int? maxDesktopColumns;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +26,8 @@ class ResponsiveMetricGrid extends StatelessWidget {
       chips: chips,
       spacing: spacing,
       runSpacing: runSpacing,
+      maxDesktopColumns: maxDesktopColumns,
+      compact: compact,
     );
   }
 }
