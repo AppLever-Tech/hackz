@@ -52,12 +52,12 @@ class _TeamMemberDashboardState extends State<TeamMemberDashboard> {
     return <DashboardMenuItem>[
       const DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
       if (isTeamLeader) const DashboardMenuItem(label: 'My Teams', icon: AppIcons.users),
+      if (isTeamLeader)
+        const DashboardMenuItem(label: 'My Ideas', icon: AppIcons.submissions)
+      else
+        const DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
       const DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
-      const DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
-      if (isTeamLeader) ...<DashboardMenuItem>[
-        const DashboardMenuItem(label: 'My Ideas', icon: AppIcons.submissions),
-        const DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
-      ],
+      if (isTeamLeader) const DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
       const DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
     ];
   }

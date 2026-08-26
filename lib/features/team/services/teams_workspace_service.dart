@@ -88,7 +88,8 @@ class TeamsWorkspaceService {
     ]);
 
     final teams = results[0] as List<TeamModel>;
-    final teamMembers = sortUsersByDisplayName(results[1] as List<UserModel>);
+    var teamMembers = sortUsersByDisplayName(results[1] as List<UserModel>);
+    teamMembers = await _withTeamMembers(teams, teamMembers);
     final problems = results[2] as List<ProblemModel>;
     final teamIds = teams.map((team) => team.teamId).toSet();
     final ideas = (results[3] as QuerySnapshot<Map<String, dynamic>>)
@@ -143,6 +144,43 @@ class TeamsWorkspaceService {
     _cache[actor.userId] = data;
     _cacheAt[actor.userId] = DateTime.now();
     return data;
+  }
+
+  /// Department-member queries skip external teammates (empty department).
+  /// Resolve those users by id so team cards show names instead of document ids.
+  static Future<List<UserModel>> _withTeamMembers(
+    List<TeamModel> teams,
+    List<UserModel> departmentMembers,
+  ) async {
+    final Set<String> knownIds = departmentMembers.map((UserModel u) => u.userId.trim()).where((String id) => id.isNotEmpty).toSet();
+    final Set<String> missingIds = <String>{};
+    for (final TeamModel team in teams) {
+      for (final String id in <String>[...team.studentIds, team.teamLeaderId]) {
+        final String trimmed = id.trim();
+        if (trimmed.isNotEmpty && !knownIds.contains(trimmed)) {
+          missingIds.add(trimmed);
+        }
+      }
+    }
+    if (missingIds.isEmpty) return departmentMembers;
+
+    final List<UserModel> extras = <UserModel>[];
+    const int chunkSize = 24;
+    final List<String> ids = missingIds.toList(growable: false);
+    for (int i = 0; i < ids.length; i += chunkSize) {
+      final int end = i + chunkSize > ids.length ? ids.length : i + chunkSize;
+      final List<UserModel?> fetched = await Future.wait<UserModel?>(
+        ids.sublist(i, end).map(FirestoreUtils.fetchUser),
+      );
+      for (int j = 0; j < fetched.length; j++) {
+        final UserModel? user = fetched[j];
+        if (user == null) continue;
+        final String requestedId = ids[i + j];
+        extras.add(user.userId.trim() == requestedId ? user : user.copyWith(userId: requestedId));
+      }
+    }
+    if (extras.isEmpty) return departmentMembers;
+    return sortUsersByDisplayName(<UserModel>[...departmentMembers, ...extras]);
   }
 
   static int maxTeamsFor(UserModel actor) => maxTeamsPerLeader;
