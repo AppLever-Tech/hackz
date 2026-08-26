@@ -234,8 +234,9 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
   @override
   Future<ImportExecutionResult> executeImport(
     List<ImportReviewRow> rows,
-    ImportHandlerContext context,
-  ) async {
+    ImportHandlerContext context, {
+    void Function(int current, int total)? onProgress,
+  }) async {
     final TeamRegistrationImportHandlerContext teamContext = _requireContext(context);
     if (UserRole.fromCode(teamContext.actor.role) != UserRole.coordinator) {
       return const ImportExecutionResult(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../../core/ui/inputs/icon_only_filter_button.dart';
 import 'import_summary_metrics.dart';
 
 enum ImportReviewStatusFilter { all, valid, needsReview, invalid, updates }
@@ -50,7 +51,6 @@ class ImportReviewFilterBar extends StatelessWidget {
   }
 
   Widget _icon(ImportReviewStatusFilter value, String tooltip, IconData icon) {
-    final bool selected = filter == value;
     final Color color = ImportSummaryMetrics.lookFor(switch (value) {
       ImportReviewStatusFilter.all => 'Extracted',
       ImportReviewStatusFilter.valid => 'Valid',
@@ -58,32 +58,12 @@ class ImportReviewFilterBar extends StatelessWidget {
       ImportReviewStatusFilter.invalid => 'Invalid',
       ImportReviewStatusFilter.updates => 'Updates',
     }).$1;
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => onFilterChanged(value),
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? color.withValues(alpha: 0.12) : const Color(0xFFF8FAFF),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: selected ? color.withValues(alpha: 0.55) : const Color(0xFFE2E8F0),
-                  width: selected ? 1.4 : 1,
-                ),
-              ),
-              child: Icon(icon, size: 16, color: selected ? color : const Color(0xFF475569)),
-            ),
-          ),
-        ),
-      ),
+    return IconOnlyFilterButton(
+      icon: icon,
+      tooltip: tooltip,
+      selected: filter == value,
+      color: color,
+      onTap: () => onFilterChanged(value),
     );
   }
 }

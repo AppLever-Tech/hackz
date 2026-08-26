@@ -46,10 +46,13 @@ abstract class ImportHandler {
   );
 
   /// Imports only rows marked [ImportReviewRow.importable].
+  ///
+  /// [onProgress] is invoked with 1-based [current] and [total] importable rows.
   Future<ImportExecutionResult> executeImport(
     List<ImportReviewRow> rows,
-    ImportHandlerContext context,
-  );
+    ImportHandlerContext context, {
+    void Function(int current, int total)? onProgress,
+  });
 }
 
 /// Shared runtime context passed to import handlers.

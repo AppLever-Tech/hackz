@@ -483,11 +483,23 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
     setState(() => _busy = true);
     try {
+      final int total = importable.length;
       final ImportExecutionResult result = await HkzAsyncLoader.run<ImportExecutionResult>(
         context,
-        title: 'Importing',
-        message: 'Creating ${importable.length} record${importable.length == 1 ? '' : 's'}...',
-        task: () => _handler.executeImport(_rows, _effectiveContext()),
+        title: _isProblemsImport ? 'Importing problems' : 'Importing',
+        message: _isProblemsImport
+            ? 'Importing 0 of $total…'
+            : 'Creating $total record${total == 1 ? '' : 's'}...',
+        task: () => _handler.executeImport(
+          _rows,
+          _effectiveContext(),
+          onProgress: _isProblemsImport
+              ? (int current, int count) => HkzAsyncLoader.update(
+                    message: 'Importing $current of $count…',
+                    progress: current / count,
+                  )
+              : null,
+        ),
       );
       if (!mounted) return;
       setState(() {

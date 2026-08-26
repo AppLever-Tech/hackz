@@ -14,12 +14,13 @@ import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
-import '../../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../core/ui/data_view/data_table_view.dart';
 import '../../../idea/screens/innovation_submission_workspace.dart';
 import '../../widgets/problem_table_columns.dart';
+import '../../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
@@ -223,6 +224,23 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     return true;
   }
 
+  bool get _isCollegeAdmin => UserRole.fromCode(widget.currentUser.role) == UserRole.collegeAdmin;
+
+  List<ProblemModel> _activatableProblems(List<ProblemModel> problems) {
+    if (!_isCollegeAdmin || !widget.config.canToggleActive) return const <ProblemModel>[];
+    return problems
+        .where(
+          (ProblemModel p) =>
+              p.status == ProblemStatus.draft || p.status == ProblemStatus.inactive,
+        )
+        .toList(growable: false);
+  }
+
+  List<ProblemModel> _deletableProblems(List<ProblemModel> problems) {
+    if (!_isCollegeAdmin) return const <ProblemModel>[];
+    return problems.where(_canDeleteProblem).toList(growable: false);
+  }
+
   Future<void> _activateProblem(ProblemModel problem) async {
     await ProblemStatusService.activate(problem.problemId);
     if (!mounted) return;
@@ -272,13 +290,111 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       dangerConfirm: true,
     );
     if (!shouldDelete) return;
+    await _deleteProblemRecord(problem);
+    if (!mounted) return;
+    _loadProblems();
+  }
+
+  Future<void> _deleteProblemRecord(ProblemModel problem) async {
     await AttachmentService.deactivateEntityAttachments(
       entityType: AttachmentEntityType.problem,
       entityId: problem.problemId,
     );
     await FirestoreUtils.deleteProblem(problem.problemId);
-    if (!mounted) return;
-    _loadProblems();
+  }
+
+  Future<void> _activateAllDisplayed(List<ProblemModel> problems) async {
+    final List<ProblemModel> targets = _activatableProblems(problems);
+    if (targets.isEmpty) return;
+    final int n = targets.length;
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Activate All',
+      message:
+          'Activate $n problem${n == 1 ? '' : 's'}? They will become available for idea submissions.',
+      confirmLabel: 'Activate All',
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Activating problems',
+        message: 'Activating 0 of $n…',
+        successMessage: 'Activated $n problem${n == 1 ? '' : 's'}.',
+        task: () async {
+          final List<String> failures = <String>[];
+          for (var i = 0; i < targets.length; i++) {
+            HkzAsyncLoader.update(
+              message: 'Activating ${i + 1} of $n…',
+              progress: (i + 1) / n,
+            );
+            try {
+              await ProblemStatusService.activate(targets[i].problemId);
+            } catch (_) {
+              failures.add(targets[i].problemId);
+            }
+          }
+          if (failures.isNotEmpty) {
+            throw Exception(
+              'Activated ${n - failures.length} of $n. ${failures.length} failed.',
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, title: 'Activate All failed', message: '$e');
+      }
+    }
+    if (mounted) _loadProblems();
+  }
+
+  Future<void> _deleteAllDisplayed(List<ProblemModel> problems) async {
+    final List<ProblemModel> targets = _deletableProblems(problems);
+    if (targets.isEmpty) return;
+    final int n = targets.length;
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete All',
+      message: 'Delete $n draft problem${n == 1 ? '' : 's'} permanently? This cannot be undone.',
+      confirmLabel: 'Delete All',
+      dangerConfirm: true,
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Deleting problems',
+        message: 'Deleting 0 of $n…',
+        successMessage: 'Deleted $n problem${n == 1 ? '' : 's'}.',
+        task: () async {
+          final List<String> failures = <String>[];
+          for (var i = 0; i < targets.length; i++) {
+            HkzAsyncLoader.update(
+              message: 'Deleting ${i + 1} of $n…',
+              progress: (i + 1) / n,
+            );
+            try {
+              await _deleteProblemRecord(targets[i]);
+            } catch (_) {
+              failures.add(targets[i].problemId);
+            }
+          }
+          if (failures.isNotEmpty) {
+            throw Exception(
+              'Deleted ${n - failures.length} of $n. ${failures.length} failed.',
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, title: 'Delete All failed', message: '$e');
+      }
+    }
+    if (mounted) _loadProblems();
   }
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
@@ -380,7 +496,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             final ProblemTableActions tableActions = _problemTableActions(problems);
 
             final Widget contentBody = problems.isEmpty
-                ? _EmptyTableState(onClearSearch: () {
+                ? EmptySearchState.problems(onClearSearch: () {
                     _searchController.clear();
                     _loadProblems();
                   })
@@ -410,6 +526,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
             final Widget header = _buildListHeader(
               context: context,
+              problems: problems,
               allDepartments: allDepartments,
               allDomains: allDomains,
               allTags: allTags,
@@ -571,6 +688,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
   Widget _buildListHeader({
     required BuildContext context,
+    required List<ProblemModel> problems,
     required List<String> allDepartments,
     required Map<String, String> allDomains,
     required List<String> allTags,
@@ -578,25 +696,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     final bool compact = ResponsiveHelper.isMobile(context);
 
     final Widget metrics = ProblemMetricsRow(metrics: _metrics);
-    final Widget viewToggle = Align(
-      alignment: Alignment.centerLeft,
-      child: SegmentedButton<bool>(
-        segments: const <ButtonSegment<bool>>[
-          ButtonSegment<bool>(value: false, label: Text('Table'), icon: Icon(Icons.table_rows_outlined, size: 16)),
-          ButtonSegment<bool>(value: true, label: Text('By Domain'), icon: Icon(Icons.hub_outlined, size: 16)),
-        ],
-        selected: <bool>{_groupByDomain},
-        onSelectionChanged: (Set<bool> next) {
-          setState(() => _groupByDomain = next.first);
-        },
-        style: ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          textStyle: WidgetStatePropertyAll(
-            TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ),
-    );
+    final Widget viewToggle = _buildViewToggleRow(problems: problems, compact: compact);
     final Widget searchBar = _buildSearchFilterBar(context);
     final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
@@ -716,6 +816,94 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           activeFilters,
         ],
         const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  Widget _buildViewToggleRow({
+    required List<ProblemModel> problems,
+    required bool compact,
+  }) {
+    final Widget toggle = SegmentedButton<bool>(
+      segments: const <ButtonSegment<bool>>[
+        ButtonSegment<bool>(
+          value: false,
+          label: Text('Table'),
+          icon: Icon(Icons.table_rows_outlined, size: 16),
+        ),
+        ButtonSegment<bool>(
+          value: true,
+          label: Text('By Domain'),
+          icon: Icon(AppIcons.domains, size: 16),
+        ),
+      ],
+      selected: <bool>{_groupByDomain},
+      onSelectionChanged: (Set<bool> next) {
+        setState(() => _groupByDomain = next.first);
+      },
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        textStyle: WidgetStatePropertyAll(
+          TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+
+    final Widget? bulk = _buildBulkActions(problems);
+    if (bulk == null) {
+      return Align(alignment: Alignment.centerLeft, child: toggle);
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        toggle,
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: bulk,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget? _buildBulkActions(List<ProblemModel> problems) {
+    final bool showActivate = _activatableProblems(problems).isNotEmpty;
+    final bool showDelete = _deletableProblems(problems).isNotEmpty;
+    if (!showActivate && !showDelete) return null;
+
+    final ButtonStyle outlined = MobileToolbarButtonStyles.outlined(compact: true);
+    final ButtonStyle filled = MobileToolbarButtonStyles.filled(compact: true);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (showActivate)
+          FilledButton.icon(
+            onPressed: () => _activateAllDisplayed(problems),
+            icon: const Icon(AppIcons.problemStatusActive, size: 16),
+            label: const Text('Activate All'),
+            style: filled,
+          ),
+        if (showActivate && showDelete) const SizedBox(width: 8),
+        if (showDelete)
+          OutlinedButton.icon(
+            onPressed: () => _deleteAllDisplayed(problems),
+            icon: const Icon(AppIcons.delete, size: 16),
+            label: const Text('Delete All'),
+            style: outlined.copyWith(
+              foregroundColor: const WidgetStatePropertyAll<Color>(Color(0xFFB91C1C)),
+              side: const WidgetStatePropertyAll<BorderSide>(
+                BorderSide(color: Color(0xFFF8C4C4), width: 1.2),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -871,41 +1059,4 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     _loadProblems();
   }
 
-}
-
-class _EmptyTableState extends StatelessWidget {
-  const _EmptyTableState({required this.onClearSearch});
-
-  final VoidCallback onClearSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        padding: const EdgeInsets.all(28),
-        decoration: kDashboardCardDecoration,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(AppIcons.problems, size: 40, color: Color(0xFF94A3B8)),
-            const SizedBox(height: 12),
-            const Text(
-              'No problem statements found',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Try adjusting your search or check back later.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextButton(onPressed: onClearSearch, child: const Text('Clear search')),
-          ],
-        ),
-      ),
-    );
-  }
 }

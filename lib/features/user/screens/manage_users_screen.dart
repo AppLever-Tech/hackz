@@ -13,14 +13,14 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
+import '../../../features/dashboard/chrome/empty_search_state.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
-import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
-import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/workspace/user_list_identity_lead.dart';
-import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../../core/ui/inputs/icon_only_filter_button.dart';
 import '../widgets/mobile_user_list_row_card.dart';
 import '../widgets/user_metrics_row.dart';
 import '../models/enums/user_role.dart';
@@ -28,7 +28,6 @@ import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import '../services/user_role_labels.dart';
 import 'create_user_dialog.dart';
-import '../../../core/ui/inputs/filter_pill.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -49,14 +48,15 @@ enum UsersFilter { all, teamMembers, coordinators, pending, rejected }
 class _ManageUsersScreenState extends State<ManageUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   UsersFilter _filter = UsersFilter.all;
-  bool _showFilters = false;
   bool _copied = false;
+  bool _showAccessCode = false;
   List<UserModel> _allUsers = <UserModel>[];
   String _inviteCode = '';
+  String _orgName = '';
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
-        name: '',
+        name: _orgName,
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
         website: '',
@@ -68,6 +68,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   void initState() {
     super.initState();
     _filter = widget.initialUsersFilter;
+    _orgName = widget.user.orgId;
     _searchController.addListener(() => setState(() {}));
     _loadAll();
   }
@@ -96,10 +97,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           .where('isActive', isEqualTo: true)
           .limit(1)
           .get();
+      String orgName = widget.user.orgId;
+      try {
+        final OrganizationModel? org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
+        final String fetched = (org?.name ?? '').trim();
+        if (fetched.isNotEmpty) orgName = fetched;
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _allUsers = users;
         _inviteCode = codeSnap.docs.isEmpty ? '' : ((codeSnap.docs.first.data()['code'] as String?) ?? '').trim();
+        _orgName = orgName;
       });
     } catch (_) {
       // Keep prior list on load failure.
@@ -664,167 +672,121 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  bool get _hasActiveFilter => _filter != UsersFilter.all;
-
-  void _clearAllFilters() {
-    setState(() => _filter = UsersFilter.all);
-  }
-
-  InputDecoration _searchDecoration(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    return InputDecoration(
+  InputDecoration _searchDecoration() {
+    return HackzInputDecoration.decorate(
       hintText: 'Search users',
-      prefixIcon: const Icon(AppIcons.search),
-      isDense: true,
-      filled: true,
-      fillColor: const Color(0xFFFCFDFF),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
-      ),
+      prefixIcon: const Icon(AppIcons.search, size: 18),
+      contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     );
   }
 
-  Widget _userFilterChip({
-    required bool compact,
-    required UsersFilter filter,
-    required IconData icon,
-    required String label,
-  }) {
-    final bool selected = _filter == filter;
-    final int count = _countForFilter(filter);
-    void selectFilter() => setState(() => _filter = filter);
+  static const Color _filterAll = Color(0xFF4A67FF);
+  static const Color _filterTeamMember = Color(0xFF7C3AED);
+  static const Color _filterCoordinator = Color(0xFF16A34A);
+  static const Color _filterPending = Color(0xFFEA580C);
+  static const Color _filterRejected = Color(0xFFB91C1C);
 
-    if (!compact) {
-      return FilterPill(
-        selected: selected,
-        icon: icon,
-        label: label,
-        count: count,
-        onTap: selectFilter,
-      );
-    }
-
-    final String text = count == 0 ? label : '$label ($count)';
-    return MobileCompactPill(
-      label: text,
-      icon: icon,
-      selected: selected,
-      onTap: selectFilter,
-    );
-  }
-
-  Widget _buildMobileFiltersPanel(BuildContext context) {
-    final bool compact = MobileFilterPaneStyles.useCompact(context);
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: compact,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ResponsiveFilterChipRow(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: <Widget>[
-              _userFilterChip(compact: compact, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-              _userFilterChip(compact: compact, filter: UsersFilter.teamMembers, icon: AppIcons.teamMember, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
-              _userFilterChip(
-                compact: compact,
-                filter: UsersFilter.coordinators,
-                icon: AppIcons.coordinator,
-                label: 'Coordinator',
-              ),
-              _userFilterChip(compact: compact, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
-              _userFilterChip(
-                compact: compact,
-                filter: UsersFilter.rejected,
-                icon: AppIcons.workflowRejected,
-                label: 'Rejected',
-              ),
-            ],
-          ),
-          SizedBox(height: MobileFilterPaneStyles.sectionGap(compact: compact)),
-          MobileFilterPaneStyles.footer(
-            compact: compact,
-            onClearAll: _clearAllFilters,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActiveFiltersRow() {
-    if (!_hasActiveFilter) return const SizedBox.shrink();
-
-    final (IconData icon, String label) = switch (_filter) {
-      UsersFilter.teamMembers => (AppIcons.teamMember, UserRoleLabels.labelForCode(UserRole.teamMember.code)),
-      UsersFilter.coordinators => (AppIcons.coordinator, 'Coordinator'),
-      UsersFilter.pending => (AppIcons.pendingUsers, 'Pending'),
-      UsersFilter.rejected => (AppIcons.workflowRejected, 'Rejected'),
-      UsersFilter.all => (AppIcons.users, 'All'),
-    };
-    final int count = _countForFilter(_filter);
-    final String text = count == 0 ? label : '$label ($count)';
-
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+  Widget _userFilterIcons() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        MobileCompactPill(
-          label: text,
-          icon: icon,
-          selected: true,
-          onDeleted: _clearAllFilters,
+        IconOnlyFilterButton(
+          icon: AppIcons.users,
+          tooltip: 'All',
+          selected: _filter == UsersFilter.all,
+          color: _filterAll,
+          onTap: () => setState(() => _filter = UsersFilter.all),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.teamMember,
+          tooltip: UserRoleLabels.labelForCode(UserRole.teamMember.code),
+          selected: _filter == UsersFilter.teamMembers,
+          color: _filterTeamMember,
+          onTap: () => setState(() => _filter = UsersFilter.teamMembers),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.coordinator,
+          tooltip: 'Coordinator',
+          selected: _filter == UsersFilter.coordinators,
+          color: _filterCoordinator,
+          onTap: () => setState(() => _filter = UsersFilter.coordinators),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.pendingUsers,
+          tooltip: 'Pending',
+          selected: _filter == UsersFilter.pending,
+          color: _filterPending,
+          onTap: () => setState(() => _filter = UsersFilter.pending),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.workflowRejected,
+          tooltip: 'Rejected',
+          selected: _filter == UsersFilter.rejected,
+          color: _filterRejected,
+          onTap: () => setState(() => _filter = UsersFilter.rejected),
         ),
       ],
     );
   }
 
-  Widget _buildSearchToolbar(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-
-    if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _accessCodeToggle({required bool compact}) {
+    return OutlinedButton(
+      onPressed: () => setState(() => _showAccessCode = !_showAccessCode),
+      style: MobileToolbarButtonStyles.outlined(compact: true),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ResponsiveSearchFilterBar(
-            searchController: _searchController,
-            searchHint: 'Search users',
-            searchDecoration: _searchDecoration(context),
-            filtersExpanded: _showFilters,
-            onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-            iconOnlyFilterOnMobile: true,
+          const Icon(AppIcons.key, size: 16),
+          const SizedBox(width: 6),
+          Text(compact ? 'Code' : 'Access Code'),
+          const SizedBox(width: 2),
+          Icon(_showAccessCode ? AppIcons.expandLess : AppIcons.expandMore, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool canImport = !mobile && ImportPlatformSupport.isSupported(context);
+
+    final Widget search = TextField(
+      controller: _searchController,
+      style: HackzInputDecoration.fieldTextStyle,
+      decoration: _searchDecoration(),
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        if (!mobile) ...<Widget>[
+          FilledButton.icon(
+            onPressed: _openCreateUser,
+            icon: const Icon(AppIcons.add, size: 16),
+            label: const Text('Create User'),
+            style: MobileToolbarButtonStyles.filled(compact: true),
           ),
-          const SizedBox(height: 6),
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: _buildMobileFiltersPanel(context),
-            crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 220),
-          ),
-          if (_hasActiveFilter) ...<Widget>[
-            const SizedBox(height: 6),
-            _buildActiveFiltersRow(),
+          const SizedBox(width: 8),
+          if (canImport) ...<Widget>[
+            OutlinedButton.icon(
+              onPressed: _openImportUsers,
+              icon: const Icon(AppIcons.attachments, size: 16),
+              label: const Text('Import Users'),
+              style: MobileToolbarButtonStyles.outlined(compact: true),
+            ),
+            const SizedBox(width: 8),
           ],
         ],
-      );
-    }
-
-    return ResponsiveSearchFilterBar(
-      searchController: _searchController,
-      searchHint: 'Search users',
-      searchDecoration: _searchDecoration(context),
-      showFilterButton: false,
+        _accessCodeToggle(compact: mobile),
+        const SizedBox(width: 8),
+        Expanded(child: search),
+        const SizedBox(width: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: _userFilterIcons(),
+        ),
+      ],
     );
   }
 
@@ -834,7 +796,15 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         : 12;
 
     if (users.isEmpty) {
-      return const Center(child: Text('No users match the selected filter.'));
+      return EmptySearchState.users(
+        onClearSearch: () {
+          if (_searchController.text.trim().isEmpty && _filter == UsersFilter.all) return;
+          setState(() {
+            _searchController.clear();
+            _filter = UsersFilter.all;
+          });
+        },
+      );
     }
 
     if (_filter != UsersFilter.all) {
@@ -860,39 +830,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  Widget _buildCreateImportToolbar(BuildContext context) {
-    if (ResponsiveHelper.isMobile(context)) {
-      return const SizedBox.shrink();
-    }
-
-    final Widget createButton = FilledButton.icon(
-      onPressed: _openCreateUser,
-      icon: const Icon(AppIcons.add, size: 16),
-      label: const Text('Create User'),
-      style: MobileToolbarButtonStyles.filled(compact: false),
-    );
-
-    if (!ImportPlatformSupport.isSupported(context)) {
-      return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[createButton]);
-    }
-
-    final Widget importButton = OutlinedButton.icon(
-      onPressed: _openImportUsers,
-      icon: const Icon(AppIcons.attachments, size: 16),
-      label: const Text('Import Users'),
-      style: MobileToolbarButtonStyles.outlined(compact: false),
-    );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        createButton,
-        const SizedBox(width: 8),
-        importButton,
-      ],
-    );
-  }
-
   Widget _buildUserMetrics(BuildContext context) {
     final bool compact = ResponsiveHelper.isMobile(context);
     return UserMetricsRow(
@@ -904,8 +841,49 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  Widget _buildContextSubtitle() {
+    final String department = widget.user.department.trim().isEmpty
+        ? DepartmentModel.resolveCode(widget.user.departmentCode)
+        : widget.user.department.trim();
+    final String org = _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim();
+    return Row(
+      children: <Widget>[
+        const Icon(AppIcons.departments, size: 16, color: Color(0xFF64748B)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            department.isEmpty ? '—' : department,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+              height: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Icon(AppIcons.organizations, size: 16, color: Color(0xFF64748B)),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            org,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+              height: 1.2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeader(BuildContext context, {required double gap}) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
     final Widget metrics = _buildUserMetrics(context);
     final Widget accessCodeBar = DepartmentAccessCodeBar(
       displayCode: _formatCode(_inviteCode),
@@ -915,51 +893,25 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       onRegenerate: _regenerateInviteCode,
     );
 
-    if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          metrics,
-          const SizedBox(height: 8),
-          accessCodeBar,
-          const SizedBox(height: 8),
-          _buildSearchToolbar(context),
-          const SizedBox(height: 6),
-        ],
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        _buildContextSubtitle(),
+        SizedBox(height: gap),
         metrics,
         SizedBox(height: gap),
-        _buildCreateImportToolbar(context),
-        SizedBox(height: gap),
-        accessCodeBar,
-        SizedBox(height: gap),
-        ResponsiveFilterChipRow(
-          children: <Widget>[
-            _userFilterChip(compact: false, filter: UsersFilter.all, icon: AppIcons.users, label: 'All'),
-            _userFilterChip(compact: false, filter: UsersFilter.teamMembers, icon: AppIcons.teamMember, label: UserRoleLabels.labelForCode(UserRole.teamMember.code)),
-            _userFilterChip(
-              compact: false,
-              filter: UsersFilter.coordinators,
-              icon: AppIcons.coordinator,
-              label: 'Coordinator',
-            ),
-            _userFilterChip(compact: false, filter: UsersFilter.pending, icon: AppIcons.pendingUsers, label: 'Pending'),
-            _userFilterChip(
-              compact: false,
-              filter: UsersFilter.rejected,
-              icon: AppIcons.workflowRejected,
-              label: 'Rejected',
-            ),
-          ],
+        _buildToolbar(context),
+        AnimatedCrossFade(
+          alignment: Alignment.topCenter,
+          firstChild: const SizedBox(width: double.infinity),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: accessCodeBar,
+          ),
+          crossFadeState: _showAccessCode ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
         ),
-        const SizedBox(height: 12),
-        _buildSearchToolbar(context),
         const SizedBox(height: 10),
       ],
     );

@@ -233,8 +233,9 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
   @override
   Future<ImportExecutionResult> executeImport(
     List<ImportReviewRow> rows,
-    ImportHandlerContext context,
-  ) async {
+    ImportHandlerContext context, {
+    void Function(int current, int total)? onProgress,
+  }) async {
     final ProblemsImportHandlerContext problemContext = _requireContext(context);
     final List<ImportReviewRow> importable =
         rows.where((ImportReviewRow r) => r.importable && !r.excluded).toList(growable: false);
@@ -243,8 +244,11 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
     var skipped = rows.length - importable.length;
     var failed = 0;
     final List<String> failures = <String>[];
+    final int total = importable.length;
 
-    for (final ImportReviewRow row in importable) {
+    for (var i = 0; i < importable.length; i++) {
+      final ImportReviewRow row = importable[i];
+      onProgress?.call(i + 1, total);
       try {
         final String departmentCode =
             row.metadata['departmentCode'] ?? problemContext.defaultDepartmentCode;

@@ -242,8 +242,9 @@ Rahul,Das,9876543212,,,
   @override
   Future<ImportExecutionResult> executeImport(
     List<ImportReviewRow> rows,
-    ImportHandlerContext context,
-  ) async {
+    ImportHandlerContext context, {
+    void Function(int current, int total)? onProgress,
+  }) async {
     final UserImportHandlerContext userContext = context as UserImportHandlerContext;
     final List<ImportReviewRow> importable =
         rows.where((ImportReviewRow r) => r.importable).toList(growable: false);

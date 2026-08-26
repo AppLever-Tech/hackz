@@ -20,6 +20,7 @@ import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
 import '../../evaluations/workspace/evaluation_assignment_details_pane.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 class IdeasListScreen extends StatefulWidget {
@@ -170,7 +171,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             );
 
             final Widget contentWidget = displayItems.isEmpty
-                ? _EmptyIdeasState(
+                ? EmptySearchState.ideas(
                     onClearSearch: () {
                       if (_searchController.text.trim().isEmpty) return;
                       _searchController.clear();
@@ -571,39 +572,3 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       _statusFilters.isNotEmpty || _problemFilters.isNotEmpty || _departmentFilters.isNotEmpty;
 }
 
-class _EmptyIdeasState extends StatelessWidget {
-  const _EmptyIdeasState({required this.onClearSearch});
-
-  final VoidCallback onClearSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        padding: const EdgeInsets.all(28),
-        decoration: kDashboardCardDecoration,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(AppIcons.ideas, size: 40, color: Color(0xFF94A3B8)),
-            const SizedBox(height: 12),
-            const Text(
-              'No ideas found',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Try adjusting your search or check back later.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextButton(onPressed: onClearSearch, child: const Text('Clear search')),
-          ],
-        ),
-      ),
-    );
-  }
-}

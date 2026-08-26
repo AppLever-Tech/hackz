@@ -30,15 +30,36 @@ class ManageCollegeScreen extends StatefulWidget {
 }
 
 class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
+  String _orgName = '';
+
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
-        name: '',
+        name: _orgName,
         type: widget.user.orgType ?? OrganizationType.college,
         address: '',
         website: '',
         contact: '',
         createdAt: DateTime.now(),
       );
+
+  @override
+  void initState() {
+    super.initState();
+    _orgName = widget.user.orgId;
+    _loadOrganization();
+  }
+
+  Future<void> _loadOrganization() async {
+    try {
+      final OrganizationModel? org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
+      final String name = (org?.name ?? '').trim();
+      if (!mounted) return;
+      setState(() => _orgName = name.isEmpty ? widget.user.orgId : name);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _orgName = widget.user.orgId);
+    }
+  }
 
   Future<void> _openEditDepartmentAdmin(Map<String, dynamic> dept, UserModel adminUser) async {
     final changed = await showCreateUserDialog(
@@ -375,6 +396,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
           'Departments ($deptCount)',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         );
+        final Widget orgName = _OrganizationNameRow(name: _orgName);
         final Widget addDepartmentButton = FilledButton.icon(
           onPressed: _showAddDepartmentDialog,
           icon: const Icon(AppIcons.add),
@@ -447,6 +469,8 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   addDepartmentButton,
                 ],
               ),
+            const SizedBox(height: 8),
+            orgName,
             const SizedBox(height: 12),
             departmentList,
           ],
@@ -469,6 +493,36 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
 
         return SingleChildScrollView(child: body);
       },
+    );
+  }
+}
+
+class _OrganizationNameRow extends StatelessWidget {
+  const _OrganizationNameRow({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final String label = name.trim().isEmpty ? '—' : name.trim();
+    return Row(
+      children: <Widget>[
+        const Icon(AppIcons.organizations, size: 16, color: Color(0xFF64748B)),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+              height: 1.2,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -547,7 +601,7 @@ class _DepartmentCard extends StatelessWidget {
               ),
               if (departmentId.isNotEmpty)
                 HoverIconActionButton(
-                  icon: AppIcons.remove,
+                  icon: AppIcons.delete,
                   tooltip: 'Delete department',
                   destructive: true,
                   iconSize: 17,
@@ -588,7 +642,7 @@ class _DepartmentCard extends StatelessWidget {
                         onTap: () => onEditAdmin(adminUser ?? adminIdentity),
                       ),
                       HoverIconActionButton(
-                        icon: AppIcons.remove,
+                        icon: AppIcons.delete,
                         tooltip: 'Remove department admin',
                         destructive: true,
                         onTap: () => onRemoveAdmin(adminUserId, admin),
