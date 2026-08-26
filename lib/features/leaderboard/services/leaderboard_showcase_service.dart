@@ -40,9 +40,6 @@ class LeaderboardShowcaseService {
         config.platformWide
             ? _db.collection(FirestoreUtils.hkzPayments).get()
             : _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: config.scopeOrgId).get(),
-        config.platformWide
-            ? _db.collection(FirestoreUtils.hkzUsers).get()
-            : _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: config.scopeOrgId).get(),
       ].map((f) => f.then((s) => s.docs)),
     );
 
@@ -51,7 +48,6 @@ class LeaderboardShowcaseService {
     final teamDocs = snapshots[2];
     final problemDocs = snapshots[3];
     final paymentDocs = snapshots[4];
-    final userDocs = snapshots[5];
 
     var ideas = ideaDocs.map((d) => IdeaModel.fromMap(d.id, d.data())).toList(growable: false);
     final scores = scoreDocs.map((d) => ScoreModel.fromMap(d.id, d.data())).toList(growable: false);
@@ -61,13 +57,6 @@ class LeaderboardShowcaseService {
     };
     final payments = paymentDocs.map((d) => PaymentModel.fromMap(d.id, d.data())).toList(growable: false);
     final paymentByIdea = _bestPaymentByIdea(payments);
-
-    final usersById = <String, UserModel>{};
-    for (final d in userDocs) {
-      final u = UserModel.fromMap(d.data());
-      final id = u.userId.trim().isEmpty ? d.id : u.userId.trim();
-      usersById[id] = u.userId.trim().isEmpty ? u.copyWith(userId: id) : u;
-    }
 
     ideas = _applyVisibilityFilters(ideas, problemsById, config, role).toList(growable: false);
 
@@ -217,71 +206,6 @@ class LeaderboardShowcaseService {
       );
     }
 
-    final Set<String> mentorIds = teams
-        .map((TeamModel t) => t.mentorId.trim())
-        .where((String id) => id.isNotEmpty)
-        .toSet();
-    final List<UserModel> mentors = mentorIds
-        .map((String id) => usersById[id])
-        .whereType<UserModel>()
-        .toList(growable: false);
-    final mentorRows = <MentorShowcaseRow>[];
-    for (final m in mentors) {
-      final mentoredTeams = teams.where((t) => t.mentorId == m.userId).toList(growable: false);
-      if (mentoredTeams.isEmpty) continue;
-      final bundlesForMentor = <_IdeaScoreBundle>[];
-      for (final t in mentoredTeams) {
-        bundlesForMentor.addAll(teamIdeas[t.teamId] ?? const <_IdeaScoreBundle>[]);
-      }
-      if (bundlesForMentor.isEmpty) continue;
-      final avgTeam = bundlesForMentor.map((e) => e.composite).reduce((a, b) => a + b) / bundlesForMentor.length;
-      final success = bundlesForMentor.where((e) => e.idea.hasEvaluationAggregate).length /
-          bundlesForMentor.length *
-          100;
-      final approvedPct = bundlesForMentor.isEmpty
-          ? 0.0
-          : bundlesForMentor.where((e) => e.idea.hasEvaluationAggregate).length / bundlesForMentor.length * 100;
-
-      final entryByTeamId = {for (final e in teamEntries) e.team.teamId: e};
-      _TeamAgg? topRankedTeam;
-      for (final t in mentoredTeams) {
-        final e = entryByTeamId[t.teamId];
-        if (e == null) continue;
-        if (topRankedTeam == null || e.spotlight.composite > topRankedTeam.spotlight.composite) {
-          topRankedTeam = e;
-        }
-      }
-
-      mentorRows.add(
-        MentorShowcaseRow(
-          rank: 0,
-          mentorId: m.userId,
-          mentorName: _displayName(m),
-          teamsMentored: mentoredTeams.length,
-          avgTeamScore: avgTeam,
-          innovationSuccessPct: success,
-          approvedIdeasPct: approvedPct,
-          highestRankedTeamName:
-              topRankedTeam == null || topRankedTeam.team.teamName.isEmpty ? '-' : topRankedTeam.team.teamName,
-          trend: TrendDirection.stable,
-        ),
-      );
-    }
-    mentorRows.sort((a, b) => b.avgTeamScore.compareTo(a.avgTeamScore));
-    for (var i = 0; i < mentorRows.length; i++) {
-      mentorRows[i] = MentorShowcaseRow(
-        rank: i + 1,
-        mentorId: mentorRows[i].mentorId,
-        mentorName: mentorRows[i].mentorName,
-        teamsMentored: mentorRows[i].teamsMentored,
-        avgTeamScore: mentorRows[i].avgTeamScore,
-        innovationSuccessPct: mentorRows[i].innovationSuccessPct,
-        approvedIdeasPct: mentorRows[i].approvedIdeasPct,
-        highestRankedTeamName: mentorRows[i].highestRankedTeamName,
-        trend: mentorRows[i].trend,
-      );
-    }
-
     final ideaRows = <IdeaShowcaseRow>[];
     final ideaLimit = bundles.length > 200 ? 200 : bundles.length;
     for (var i = 0; i < ideaLimit; i++) {
@@ -357,7 +281,6 @@ class LeaderboardShowcaseService {
       config: config,
       teamRows: teamRows,
       departmentRows: deptRows,
-      mentorRows: mentorRows,
       ideaRows: ideaRows,
       hero: hero,
       podium: podium,
@@ -412,7 +335,6 @@ class LeaderboardShowcaseService {
       config: config,
       teamRows: const <TeamShowcaseRow>[],
       departmentRows: const <DepartmentShowcaseRow>[],
-      mentorRows: const <MentorShowcaseRow>[],
       ideaRows: const <IdeaShowcaseRow>[],
       hero: null,
       podium: const <TeamShowcaseRow>[],
@@ -550,11 +472,6 @@ class LeaderboardShowcaseService {
     return idea.ideaId;
   }
 
-  static String _displayName(UserModel u) {
-    final n = '${u.firstName} ${u.lastName}'.trim();
-    return n.isEmpty ? u.userId : n;
-  }
-
 }
 
 class LeaderboardShowcaseVm {
@@ -562,7 +479,6 @@ class LeaderboardShowcaseVm {
     required this.config,
     required this.teamRows,
     required this.departmentRows,
-    required this.mentorRows,
     required this.ideaRows,
     required this.hero,
     required this.podium,
@@ -582,7 +498,6 @@ class LeaderboardShowcaseVm {
   final LeaderboardRoleConfig config;
   final List<TeamShowcaseRow> teamRows;
   final List<DepartmentShowcaseRow> departmentRows;
-  final List<MentorShowcaseRow> mentorRows;
   final List<IdeaShowcaseRow> ideaRows;
   final LeaderboardHeroVm? hero;
   final List<TeamShowcaseRow> podium;
@@ -662,30 +577,6 @@ class DepartmentShowcaseRow {
   final double approvedIdeasPct;
   final double innovationIndex;
   final String topTeamName;
-  final TrendDirection trend;
-}
-
-class MentorShowcaseRow {
-  const MentorShowcaseRow({
-    required this.rank,
-    required this.mentorId,
-    required this.mentorName,
-    required this.teamsMentored,
-    required this.avgTeamScore,
-    required this.innovationSuccessPct,
-    required this.approvedIdeasPct,
-    required this.highestRankedTeamName,
-    required this.trend,
-  });
-
-  final int rank;
-  final String mentorId;
-  final String mentorName;
-  final int teamsMentored;
-  final double avgTeamScore;
-  final double innovationSuccessPct;
-  final double approvedIdeasPct;
-  final String highestRankedTeamName;
   final TrendDirection trend;
 }
 

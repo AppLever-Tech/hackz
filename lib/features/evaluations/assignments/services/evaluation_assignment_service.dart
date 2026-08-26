@@ -240,8 +240,6 @@ class EvaluationAssignmentService {
     };
   }
 
-  static const String mentorConflictReason = 'Mentor Conflict';
-
   static EvaluationAssignmentConflict validateConflict({
     required UserModel judge,
     required IdeaModel idea,
@@ -262,10 +260,6 @@ class EvaluationAssignmentService {
     final TeamModel? t = team;
     if (t != null && t.studentIds.contains(judgeId)) {
       reasons.add('Judge is a member of this team');
-    }
-
-    if (t != null && t.mentorId.trim() == judgeId) {
-      reasons.add(mentorConflictReason);
     }
 
     return EvaluationAssignmentConflict(

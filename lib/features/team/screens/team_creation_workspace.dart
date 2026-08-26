@@ -199,7 +199,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   }
 
   Widget _buildBody(BuildContext context) {
-    final String mentorName = userDisplayName(widget.currentUser);
+    final String leaderName = userDisplayName(widget.currentUser);
 
     return Padding(
       padding: _contentPadding,
@@ -213,24 +213,24 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             subtitle: 'Give your innovation team a clear, memorable name',
             child: _buildTeamNameField(context),
           ),
-          const SizedBox(height: 10),
-          _section(
-            title: _isTeamMemberActor ? 'Team Leader' : 'Mentor',
-            subtitle: 'You lead this team',
-            compact: true,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ContextPill(
-                label: mentorName.isEmpty
-                    ? 'Team Leader'
-                    : mentorName,
-                semantic: ContextPillSemantic.user,
-                icon: AppIcons.teamMember,
-                onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
-                compact: true,
+          if (_isTeamMemberActor) ...<Widget>[
+            const SizedBox(height: 10),
+            _section(
+              title: 'Team Leader',
+              subtitle: 'You lead this team',
+              compact: true,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ContextPill(
+                  label: leaderName.isEmpty ? 'Team Leader' : leaderName,
+                  semantic: ContextPillSemantic.user,
+                  icon: AppIcons.teamMember,
+                  onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
+                  compact: true,
+                ),
               ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
           _section(
             title: 'Team Members',

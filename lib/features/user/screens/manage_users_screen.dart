@@ -31,6 +31,9 @@ import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import '../services/user_role_labels.dart';
 import 'create_user_dialog.dart';
+import '../../team/models/team_model.dart';
+import '../../team/screens/team_creation_workspace.dart';
+import '../../team/services/team_service.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -180,6 +183,35 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       },
     );
     if (changed && mounted) _loadAll();
+  }
+
+  Future<void> _openCreateTeam() async {
+    try {
+      final String deptCode = DepartmentModel.resolveCode(widget.user.departmentCode);
+      final List<TeamModel> orgTeams = await TeamService.getTeamsByOrg(widget.user.orgId);
+      final List<TeamModel> deptTeams = orgTeams
+          .where((TeamModel t) => t.departmentCode.trim().toUpperCase() == deptCode)
+          .toList(growable: false);
+      final List<UserModel> members = await TeamService.getDepartmentTeamMembers(
+        orgId: widget.user.orgId,
+        departmentCode: deptCode,
+      );
+      if (!mounted) return;
+      final TeamFormDialogAction? result = await showTeamCreationWorkspace(
+        context: context,
+        currentUser: widget.user,
+        existingTeams: deptTeams,
+        departmentTeamMembers: members,
+      );
+      if (result == TeamFormDialogAction.saved && mounted) _loadAll();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Cannot create team',
+        message: e.toString(),
+      );
+    }
   }
 
   Future<void> _openEditUser(UserModel user) async {
@@ -811,6 +843,13 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             const SizedBox(width: 8),
           ],
         ],
+        OutlinedButton.icon(
+          onPressed: _openCreateTeam,
+          icon: const Icon(AppIcons.teams, size: 16),
+          label: const Text('Create Team'),
+          style: MobileToolbarButtonStyles.outlined(compact: true),
+        ),
+        const SizedBox(width: 8),
         _accessCodeToggle(compact: mobile),
         const SizedBox(width: 8),
         Expanded(child: search),

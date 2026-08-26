@@ -1247,9 +1247,6 @@ class _EvaluationAssignmentWorkspaceState extends State<EvaluationAssignmentWork
         team: row.team,
       );
       if (conflict.isConflict) {
-        if (conflict.reasons.contains(EvaluationAssignmentService.mentorConflictReason)) {
-          return EvaluationAssignmentService.mentorConflictReason;
-        }
         return conflict.reasons.first;
       }
     }

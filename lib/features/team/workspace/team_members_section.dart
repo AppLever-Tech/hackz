@@ -20,42 +20,20 @@ class TeamMembersSection extends StatelessWidget {
       );
     }
 
-    TeamMemberPreview? mentor;
-    for (final TeamMemberPreview m in vm.members) {
-      if (m.isMentor) {
-        mentor = m;
-        break;
-      }
-    }
-    final List<TeamMemberPreview> students =
-        vm.members.where((TeamMemberPreview m) => !m.isMentor).toList(growable: false);
-
     return _SectionShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          if (mentor != null) ...<Widget>[
-            const Text(
-              'Mentor',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 8),
-            _memberRow(context, mentor),
-            const SizedBox(height: 12),
-          ],
           const Text(
             'Team Members',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 8),
-          if (students.isEmpty)
-            const Text('No team members assigned.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B)))
-          else
-            Column(
-              children: students
-                  .map((TeamMemberPreview m) => _memberRow(context, m))
-                  .toList(growable: false),
-            ),
+          Column(
+            children: vm.members
+                .map((TeamMemberPreview m) => _memberRow(context, m))
+                .toList(growable: false),
+          ),
         ],
       ),
     );

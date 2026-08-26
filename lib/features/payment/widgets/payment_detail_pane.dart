@@ -110,7 +110,6 @@ class PaymentDetailPane extends StatelessWidget {
           padding: sectionPadding,
           child: TeamContributionSection.fromModels(
             team: detail.team,
-            mentor: detail.mentor,
             members: detail.members,
             idea: detail.idea,
             problem: detail.problem,

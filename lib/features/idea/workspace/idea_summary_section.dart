@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
-import '../../user/models/user_model.dart';
-import '../../user/workspace/user_workspace.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 
@@ -84,8 +81,6 @@ class IdeaSummarySection extends StatelessWidget {
         const SizedBox(height: 4),
         _teamField(context),
         const SizedBox(height: 4),
-        _mentorField(context),
-        const SizedBox(height: 4),
         _labeledField(
           label: 'Department',
           child: _iconValue(AppIcons.departments, dept),
@@ -129,33 +124,6 @@ class IdeaSummarySection extends StatelessWidget {
               semantic: ContextPillSemantic.team,
               onTap: () => IdeaWorkspace.openTeamFromIdea(context, vm),
             ),
-    );
-  }
-
-  Widget _mentorField(BuildContext context) {
-    final String mentorId = vm.mentorId.trim();
-    final String mentorName = vm.mentorName.trim().isEmpty ? '—' : vm.mentorName.trim();
-    final UserModel? mentor = vm.mentor;
-    final UserModel? mentorUser = canOpenMentor(mentor, mentorId) ? mentor : null;
-
-    return _labeledField(
-      label: 'Mentor',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          if (mentorUser != null)
-            UserWorkspaceAvatar(
-              user: mentorUser,
-              radius: 12,
-              ringPadding: 2,
-              onTap: () => UserWorkspace.push(context, mentorId),
-            )
-          else
-            _fallbackAvatar(mentorName),
-          const SizedBox(width: 8),
-          Expanded(child: _plainValue(mentorName)),
-        ],
-      ),
     );
   }
 
@@ -223,20 +191,6 @@ class IdeaSummarySection extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  static bool canOpenMentor(UserModel? mentor, String mentorId) =>
-      mentor != null && mentorId.isNotEmpty;
-
-  static Widget _fallbackAvatar(String displayName) {
-    final String trimmed = displayName.trim();
-    final String initial = trimmed.isEmpty || trimmed == '—' ? '?' : trimmed.substring(0, 1).toUpperCase();
-    return CircleAvatar(
-      radius: 14,
-      backgroundColor: const Color(0xFFEEF2FF),
-      foregroundColor: const Color(0xFF4F46E5),
-      child: Text(initial, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
     );
   }
 }

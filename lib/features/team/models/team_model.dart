@@ -5,7 +5,6 @@ class TeamModel {
   const TeamModel({
     required this.teamId,
     required this.teamName,
-    required this.mentorId,
     required this.studentIds,
     required this.orgId,
     required this.departmentCode,
@@ -17,7 +16,6 @@ class TeamModel {
 
   final String teamId;
   final String teamName;
-  final String mentorId;
   /// User id of the single Team Leader. Must be one of [studentIds].
   final String teamLeaderId;
   final List<String> studentIds;
@@ -25,7 +23,7 @@ class TeamModel {
   final String departmentCode;
   final TeamStatus status;
   final DateTime createdAt;
-  /// User id of the coordinator or faculty who created this team (CSV import or form).
+  /// User id of the actor who created this team (CSV import or form).
   final String createdBy;
 
   bool isLedBy(String userId) {
@@ -42,7 +40,6 @@ class TeamModel {
     return <String, dynamic>{
       'teamId': teamId,
       'teamName': teamName,
-      'mentorId': mentorId,
       'teamLeaderId': teamLeaderId,
       'studentIds': studentIds,
       'orgId': orgId,
@@ -57,7 +54,6 @@ class TeamModel {
     return TeamModel(
       teamId: ((map['teamId'] as String?) ?? '').trim().isEmpty ? teamId : ((map['teamId'] as String?) ?? '').trim(),
       teamName: ((map['teamName'] as String?) ?? '').trim(),
-      mentorId: ((map['mentorId'] as String?) ?? '').trim(),
       teamLeaderId: ((map['teamLeaderId'] as String?) ?? '').trim(),
       studentIds: (map['studentIds'] as List<dynamic>? ?? const <dynamic>[]).map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList(growable: false),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
@@ -71,7 +67,6 @@ class TeamModel {
   TeamModel copyWith({
     String? teamId,
     String? teamName,
-    String? mentorId,
     String? teamLeaderId,
     List<String>? studentIds,
     String? orgId,
@@ -83,7 +78,6 @@ class TeamModel {
     return TeamModel(
       teamId: teamId ?? this.teamId,
       teamName: teamName ?? this.teamName,
-      mentorId: mentorId ?? this.mentorId,
       teamLeaderId: teamLeaderId ?? this.teamLeaderId,
       studentIds: studentIds ?? this.studentIds,
       orgId: orgId ?? this.orgId,

@@ -23,9 +23,6 @@ class IdeaWorkspaceViewModel {
     required this.organizationName,
     required this.problemTitle,
     required this.teamName,
-    required this.mentorName,
-    required this.mentorId,
-    this.mentor,
     required this.submittedByName,
     required this.payment,
     required this.scores,
@@ -43,9 +40,6 @@ class IdeaWorkspaceViewModel {
   final String organizationName;
   final String problemTitle;
   final String teamName;
-  final String mentorName;
-  final String mentorId;
-  final UserModel? mentor;
   final String submittedByName;
   final PaymentModel? payment;
   final List<ScoreModel> scores;
@@ -121,7 +115,6 @@ abstract final class IdeaWorkspaceLoader {
         : TeamModel(
             teamId: idea.teamId,
             teamName: '',
-            mentorId: '',
             studentIds: const <String>[],
             orgId: idea.orgId,
             departmentCode: idea.teamDepartmentCode,
@@ -146,10 +139,6 @@ abstract final class IdeaWorkspaceLoader {
           status: ProblemStatus.active,
           createdAt: idea.createdAt,
         );
-
-    final UserModel? mentor = team.mentorId.trim().isEmpty
-        ? null
-        : await FirestoreUtils.fetchUser(team.mentorId.trim());
 
     final List<ScoreModel> scores = scoresSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => ScoreModel.fromMap(d.id, d.data()))
@@ -192,9 +181,6 @@ abstract final class IdeaWorkspaceLoader {
     final String problemTitle = problem.title.trim().isEmpty
         ? (problem.problemNumber.trim().isEmpty ? 'Problem' : problem.problemNumber.trim())
         : problem.title.trim();
-    final String mentorName = mentor == null
-        ? (team.mentorId.trim().isEmpty ? '—' : team.mentorId.trim())
-        : userDisplayName(mentor);
     final String submittedByName = submittedBy == null
         ? (idea.createdBy.trim().isEmpty ? '—' : idea.createdBy.trim())
         : userDisplayName(submittedBy);
@@ -206,9 +192,6 @@ abstract final class IdeaWorkspaceLoader {
       organizationName: orgName,
       problemTitle: problemTitle,
       teamName: teamName,
-      mentorName: mentorName,
-      mentorId: team.mentorId.trim(),
-      mentor: mentor,
       submittedByName: submittedByName,
       payment: payment,
       scores: scores,

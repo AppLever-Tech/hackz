@@ -5,6 +5,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -147,15 +148,11 @@ class TeamsWorkspaceService {
   static int maxTeamsFor(UserModel actor) => maxTeamsPerLeader;
 
   static bool canCreateTeam(List<TeamModel> existingTeams, {UserModel? actor}) {
+    if (actor != null && UserRole.fromCode(actor.role) == UserRole.departmentAdmin) {
+      return true;
+    }
     final int max = actor == null ? maxTeamsPerLeader : maxTeamsFor(actor);
     return existingTeams.length < max;
-  }
-
-  static String capacityMessage(int teamCount, {int? maxTeams}) {
-    final int max = maxTeams ?? maxTeamsPerLeader;
-    final remaining = (max - teamCount).clamp(0, max).toInt();
-    if (remaining == 0) return 'Team capacity reached';
-    return remaining == 1 ? '1 team slot remaining' : '$remaining team slots remaining';
   }
 
   static Future<void> saveTeam({

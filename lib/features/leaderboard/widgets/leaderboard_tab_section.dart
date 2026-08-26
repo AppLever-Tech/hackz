@@ -48,7 +48,6 @@ class LeaderboardTabSection extends StatelessWidget {
               switch (t) {
                 LeaderboardShowcaseTab.teams => 'Teams',
                 LeaderboardShowcaseTab.departments => 'Departments',
-                LeaderboardShowcaseTab.mentors => 'Mentors',
                 LeaderboardShowcaseTab.ideas => 'Ideas',
               },
             ),

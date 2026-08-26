@@ -159,7 +159,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     );
     final Widget searchBar = ResponsiveSearchFilterBar(
       searchController: _searchController,
-      searchHint: 'Search idea, problem, team, mentor…',
+      searchHint: 'Search idea, problem, team…',
       filtersExpanded: _showFilters,
       onToggleFilters: () => setState(() => _showFilters = !_showFilters),
       iconOnlyFilterOnMobile: true,

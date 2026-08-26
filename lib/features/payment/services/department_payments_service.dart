@@ -21,7 +21,6 @@ class DepartmentPaymentContribution {
     required this.ideaTitle,
     required this.problemTitle,
     required this.teamName,
-    required this.mentorName,
     required this.teamMemberCount,
     required this.coordinatorName,
     required this.hasProof,
@@ -34,7 +33,6 @@ class DepartmentPaymentContribution {
   final String ideaTitle;
   final String problemTitle;
   final String teamName;
-  final String mentorName;
   final int teamMemberCount;
   final String coordinatorName;
   final bool hasProof;
@@ -72,7 +70,6 @@ class DepartmentPaymentDetail {
     required this.members,
     required this.proofAttachments,
     this.coordinator,
-    this.mentor,
   });
 
   final DepartmentPaymentContribution contribution;
@@ -82,7 +79,6 @@ class DepartmentPaymentDetail {
   final List<UserModel> members;
   final List<AttachmentModel> proofAttachments;
   final UserModel? coordinator;
-  final UserModel? mentor;
 }
 
 class DepartmentPaymentsWorkspace {
@@ -209,10 +205,9 @@ class DepartmentPaymentsService {
         .where((doc) => paymentTeamIds.contains(doc.id))
         .map((doc) => TeamModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
-    final teamMentorIds = teams.map((t) => t.mentorId.trim()).where((id) => id.isNotEmpty);
     final teamMemberIds = teams.expand((t) => t.studentIds);
     final paymentVerifierIds = payments.map((p) => p.verifiedBy.trim()).where((id) => id.isNotEmpty);
-    final relatedUserIds = <String>{...teamMentorIds, ...teamMemberIds, ...paymentVerifierIds};
+    final relatedUserIds = <String>{...teamMemberIds, ...paymentVerifierIds};
     final users = results[3]
         .where((doc) {
           final data = doc.data();
@@ -269,7 +264,6 @@ class DepartmentPaymentsService {
       final problem = problemById[payment.problemId];
       final proof = attachmentsByPayment[payment.paymentId] ?? const <AttachmentModel>[];
       final hasProof = payment.paymentProofUrl.trim().isNotEmpty || proof.isNotEmpty;
-      final mentor = team == null ? null : userById[team.mentorId];
       final coordinator = payment.verifiedBy.trim().isEmpty ? null : userById[payment.verifiedBy.trim()];
 
       final contribution = DepartmentPaymentContribution(
@@ -277,7 +271,6 @@ class DepartmentPaymentsService {
         ideaTitle: _ideaTitle(idea),
         problemTitle: _problemTitle(idea, problem, payment),
         teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : payment.teamId,
-        mentorName: mentor == null ? '-' : userDisplayName(mentor),
         teamMemberCount: team?.studentIds.length ?? 0,
         coordinatorName: coordinator == null
             ? (payment.status == PaymentRecordStatus.pending ? 'Awaiting coordinator' : '-')
@@ -306,7 +299,6 @@ class DepartmentPaymentsService {
         members: members,
         proofAttachments: proof,
         coordinator: coordinator,
-        mentor: mentor,
       );
     }
 
@@ -410,7 +402,6 @@ class DepartmentPaymentsService {
         item.ideaTitle,
         item.problemTitle,
         item.teamName,
-        item.mentorName,
         payment.transactionId ?? '',
       ].join(' ').toLowerCase();
       return haystack.contains(q);

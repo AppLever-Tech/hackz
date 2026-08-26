@@ -72,15 +72,6 @@ class TeamOverviewCard extends StatelessWidget {
         FormValueRow(
           labelWidth: _labelWidth,
           labelGap: _labelGap,
-          label: 'Mentor',
-          labelIcon: AppIcons.faculty,
-          labelAlignment: _labelAlignment,
-          child: _mentorLead(),
-        ),
-        SizedBox(height: _rowGap),
-        FormValueRow(
-          labelWidth: _labelWidth,
-          labelGap: _labelGap,
           label: 'Leader',
           labelIcon: AppIcons.teamMember,
           labelAlignment: _labelAlignment,
@@ -100,18 +91,6 @@ class TeamOverviewCard extends StatelessWidget {
         SizedBox(height: _rowGap),
         _buildMetricsRows(),
       ],
-    );
-  }
-
-  Widget _mentorLead() {
-    final UserModel? mentor = vm.mentorUser;
-    final String name = vm.mentorName.trim().isEmpty ? '—' : vm.mentorName.trim();
-    if (mentor == null || mentor.userId.trim().isEmpty) {
-      return EntityCardPills.plainValue(name);
-    }
-    return UserListIdentityLead(
-      user: mentor,
-      avatarRadius: 12,
     );
   }
 

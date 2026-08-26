@@ -68,7 +68,6 @@ class TeamMemberDashboardService {
           orElse: () => TeamModel(
             teamId: '',
             teamName: '',
-            mentorId: '',
             studentIds: const <String>[],
             orgId: teamMember.orgId,
             departmentCode: teamMember.departmentCode,
@@ -81,7 +80,6 @@ class TeamMemberDashboardService {
         TeamModel(
           teamId: '',
           teamName: '',
-          mentorId: '',
           studentIds: const <String>[],
           orgId: teamMember.orgId,
           departmentCode: teamMember.departmentCode,
@@ -148,7 +146,6 @@ class TeamMemberDashboardService {
     final verifiedPayments = scopedPayments.where((p) => p.status == PaymentRecordStatus.verified).length;
     final rejectedPayments = scopedPayments.where((p) => p.status == PaymentRecordStatus.rejected).length;
 
-    final mentor = usersById[resolvedTeam.mentorId];
     final UserModel? teamLeader = usersById[resolvedTeam.teamLeaderId];
     final teamMembers = resolvedTeam.studentIds
         .map((id) => usersById[id])
@@ -215,9 +212,6 @@ class TeamMemberDashboardService {
       organizationName: organizationName.isEmpty ? teamMember.orgId : organizationName,
       team: resolvedTeam,
       teamMembers: teamMembers,
-      mentorUser: mentor,
-      mentorId: mentor?.userId ?? '',
-      mentorName: _fullName(mentor),
       teamLeaderUser: teamLeader,
       teamLeaderName: _fullName(teamLeader),
       departmentAdminUser: departmentAdmin,
@@ -279,9 +273,6 @@ class TeamMemberDashboardVm {
     required this.organizationName,
     required this.team,
     required this.teamMembers,
-    required this.mentorUser,
-    required this.mentorId,
-    required this.mentorName,
     required this.teamLeaderUser,
     required this.teamLeaderName,
     required this.departmentAdminUser,
@@ -314,9 +305,6 @@ class TeamMemberDashboardVm {
   final String organizationName;
   final TeamModel team;
   final List<UserModel> teamMembers;
-  final UserModel? mentorUser;
-  final String mentorId;
-  final String mentorName;
   final UserModel? teamLeaderUser;
   final String teamLeaderName;
   final UserModel departmentAdminUser;

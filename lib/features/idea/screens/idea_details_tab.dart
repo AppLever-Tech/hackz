@@ -95,17 +95,6 @@ class IdeaDetailsTab extends StatelessWidget {
                 )
               else
                 _metaRow(context, labelWidth: labelWidth, label: 'Team', value: vm.teamName),
-              if (vm.mentorId.trim().isNotEmpty)
-                _labeledContextPillRow(
-                  context: context,
-                  labelWidth: labelWidth,
-                  label: 'Mentor',
-                  pillLabel: vm.mentorName.trim().isEmpty ? vm.mentorId.trim() : vm.mentorName.trim(),
-                  semantic: ContextPillSemantic.user,
-                  onTap: () => WorkspaceNavigator.openUser(context, vm.mentorId.trim()),
-                )
-              else
-                _metaRow(context, labelWidth: labelWidth, label: 'Mentor', value: vm.mentorName),
               _metaRow(
                 context,
                 labelWidth: labelWidth,

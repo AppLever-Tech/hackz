@@ -4,7 +4,6 @@ import '../../user/models/user_model.dart';
 enum LeaderboardShowcaseTab {
   teams,
   departments,
-  mentors,
   ideas,
 }
 
@@ -82,7 +81,6 @@ class LeaderboardRoleConfig {
           visibleTabs: {
             LeaderboardShowcaseTab.teams,
             LeaderboardShowcaseTab.departments,
-            LeaderboardShowcaseTab.mentors,
           },
           scopeOrgId: org,
           scopeDepartmentCode: dept,

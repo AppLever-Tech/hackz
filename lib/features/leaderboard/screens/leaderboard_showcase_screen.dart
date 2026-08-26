@@ -43,7 +43,6 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
     const order = <LeaderboardShowcaseTab>[
       LeaderboardShowcaseTab.teams,
       LeaderboardShowcaseTab.departments,
-      LeaderboardShowcaseTab.mentors,
       LeaderboardShowcaseTab.ideas,
     ];
     return order.where((t) => vm.config.visibleTabs.contains(t)).toList(growable: false);
@@ -166,11 +165,6 @@ class _LeaderboardShowcaseScreenState extends State<LeaderboardShowcaseScreen> {
           return ListView(
             padding: const EdgeInsets.only(right: 8),
             children: vm.departmentRows.map((d) => _DepartmentShowcaseTile(row: d)).toList(),
-          );
-        case LeaderboardShowcaseTab.mentors:
-          return ListView(
-            padding: const EdgeInsets.only(right: 8),
-            children: vm.mentorRows.map((m) => _MentorShowcaseTile(row: m)).toList(),
           );
         case LeaderboardShowcaseTab.ideas:
           return ListView(
@@ -408,75 +402,6 @@ class _DepartmentShowcaseTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MentorShowcaseTile extends StatelessWidget {
-  const _MentorShowcaseTile({required this.row});
-
-  final MentorShowcaseRow row;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(colors: <Color>[Color(0xFFFFF7ED), Color(0xFFEFF6FF)]),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: const Color(0xFFEA580C),
-                child: Text('${row.rank}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(row.mentorName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    Text(
-                      '${row.teamsMentored} teams • Highest: ${row.highestRankedTeamName}',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-              TrendIndicatorWidget(direction: row.trend, compact: true),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _chip('Avg team score', row.avgTeamScore.toStringAsFixed(1)),
-              _chip('Innovation success', '${row.innovationSuccessPct.toStringAsFixed(0)}%'),
-              _chip('Approved', '${row.approvedIdeasPct.toStringAsFixed(0)}%'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _chip(String k, String v) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Text('$k: $v', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

@@ -335,15 +335,6 @@ class _TeamMemberDashboardHomeState extends State<_TeamMemberDashboardHome> {
         FormValueRow(
           labelWidth: _detailsLabelWidth,
           labelGap: _detailsLabelGap,
-          label: 'Mentor',
-          labelIcon: AppIcons.faculty,
-          labelAlignment: _detailsLabelAlignment,
-          child: _userIdentityLead(user: vm.mentorUser, fallbackName: vm.mentorName),
-        ),
-        const SizedBox(height: 8),
-        FormValueRow(
-          labelWidth: _detailsLabelWidth,
-          labelGap: _detailsLabelGap,
           label: 'Dept Admin',
           labelIcon: AppIcons.departments,
           labelAlignment: _detailsLabelAlignment,

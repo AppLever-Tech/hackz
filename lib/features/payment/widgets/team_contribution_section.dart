@@ -18,7 +18,6 @@ class TeamContributionSection extends StatelessWidget {
     super.key,
     this.teamId,
     required this.teamName,
-    this.mentor,
     required this.members,
     required this.ideaTitle,
     this.ideaId,
@@ -28,7 +27,6 @@ class TeamContributionSection extends StatelessWidget {
 
   final String? teamId;
   final String teamName;
-  final UserModel? mentor;
   final List<UserModel> members;
   final String ideaTitle;
   final String? ideaId;
@@ -37,7 +35,6 @@ class TeamContributionSection extends StatelessWidget {
 
   factory TeamContributionSection.fromModels({
     required TeamModel? team,
-    UserModel? mentor,
     required List<UserModel> members,
     required IdeaModel? idea,
     required ProblemModel? problem,
@@ -45,7 +42,6 @@ class TeamContributionSection extends StatelessWidget {
     return TeamContributionSection(
       teamId: team?.teamId,
       teamName: team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : (team?.teamId ?? '-'),
-      mentor: mentor,
       members: members,
       ideaTitle: idea?.ideaTitle.trim().isNotEmpty == true ? idea!.ideaTitle.trim() : 'Untitled Idea',
       ideaId: idea?.ideaId,
@@ -67,11 +63,6 @@ class TeamContributionSection extends StatelessWidget {
           icon: AppIcons.teams,
           label: 'Team',
           value: _teamValue(context),
-        ),
-        PaymentFormRow(
-          icon: AppIcons.faculty,
-          label: 'Mentor',
-          value: _mentorValue(context),
         ),
         PaymentFormRow(
           icon: AppIcons.teamMember,
@@ -112,30 +103,6 @@ class TeamContributionSection extends StatelessWidget {
       label: teamName,
       semantic: ContextPillSemantic.team,
       onTap: () => WorkspaceNavigator.openTeam(context, id),
-    );
-  }
-
-  Widget _mentorValue(BuildContext context) {
-    final UserModel? mentorUser = mentor;
-    final String name = mentorUser == null
-        ? '-'
-        : userDisplayName(mentorUser);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        if (mentorUser != null)
-          UserWorkspaceAvatar(
-            user: mentorUser,
-            radius: 12,
-            ringPadding: 2,
-            onTap: () => WorkspaceNavigator.openUser(context, mentorUser.userId),
-          )
-        else
-          PaymentFormRow.fallbackAvatar(name, radius: 12),
-        const SizedBox(width: 8),
-        Expanded(child: PaymentFormRow.plainValue(name)),
-      ],
     );
   }
 

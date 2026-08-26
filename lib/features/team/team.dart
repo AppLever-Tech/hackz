@@ -19,7 +19,6 @@ export 'screens/teams_screen.dart';
 // Widgets
 export 'widgets/team_overview_card.dart';
 export 'widgets/team_action_bar.dart';
-export 'widgets/team_capacity_widget.dart';
 export 'widgets/team_idea_summary_widget.dart';
 export 'widgets/team_status_pill.dart';
 export 'widgets/team_member_selector.dart';

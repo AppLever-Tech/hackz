@@ -21,7 +21,6 @@ class TeamWorkspaceCard extends StatelessWidget {
     super.key,
     required this.team,
     required this.insight,
-    required this.mentorUser,
     required this.membersById,
     required this.memberNamesById,
     required this.onEdit,
@@ -31,7 +30,6 @@ class TeamWorkspaceCard extends StatelessWidget {
 
   final TeamModel team;
   final TeamWorkspaceInsight insight;
-  final UserModel mentorUser;
   final Map<String, UserModel> membersById;
   final Map<String, String> memberNamesById;
   final VoidCallback onEdit;
@@ -114,14 +112,6 @@ class TeamWorkspaceCard extends StatelessWidget {
           FormValueRow(
             labelWidth: _labelWidth,
             labelGap: _labelGap,
-            label: 'Mentor',
-            labelAlignment: _labelAlignment,
-            child: _buildMentorValue(context),
-          ),
-          const SizedBox(height: 8),
-          FormValueRow(
-            labelWidth: _labelWidth,
-            labelGap: _labelGap,
             label: 'Leader',
             labelAlignment: _labelAlignment,
             child: _buildLeaderValue(context),
@@ -157,14 +147,6 @@ class TeamWorkspaceCard extends StatelessWidget {
       onTap: () => WorkspaceNavigator.openTeam(context, teamId),
       compact: true,
       fitContent: true,
-    );
-  }
-
-  Widget _buildMentorValue(BuildContext context) {
-    final UserModel mentor = _resolveMentor();
-    return UserListIdentityLead(
-      user: mentor,
-      avatarRadius: 12,
     );
   }
 
@@ -235,17 +217,6 @@ class TeamWorkspaceCard extends StatelessWidget {
       user: _resolveMember(leaderId),
       avatarRadius: 12,
     );
-  }
-
-  UserModel _resolveMentor() {
-    final String mentorId = team.mentorId.trim();
-    if (mentorId.isEmpty) {
-      return _stubUser('', '—', role: '');
-    }
-    if (mentorUser.userId == mentorId) {
-      return mentorUser;
-    }
-    return membersById[mentorId] ?? _stubUser(mentorId, mentorUser.displayName, role: '');
   }
 
   UserModel _resolveMember(String memberId) {

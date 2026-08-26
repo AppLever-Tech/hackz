@@ -36,7 +36,7 @@ abstract final class ContextPillTheme {
   static ContextPillSemantic semanticFromEntityLabel(String? label) {
     final String key = (label ?? '').trim().toLowerCase();
     return switch (key) {
-      'user' || 'mentor' || 'student' || 'judge' || 'payer' => ContextPillSemantic.user,
+      'user' || 'student' || 'judge' || 'payer' => ContextPillSemantic.user,
       'team' => ContextPillSemantic.team,
       'idea' => ContextPillSemantic.idea,
       'problem' => ContextPillSemantic.problem,

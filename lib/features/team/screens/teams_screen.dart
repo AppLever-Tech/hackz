@@ -11,7 +11,6 @@ import '../services/teams_workspace_service.dart';
 import '../services/team_service.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../widgets/team_capacity_widget.dart';
 import 'team_creation_workspace.dart';
 import '../widgets/team_metrics_row.dart';
 import '../widgets/team_workspace_card.dart';
@@ -148,7 +147,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
               teamCount: teams.length,
               totalTeamMembers: data.totalTeamMembers,
               activeIdeas: data.activeIdeas,
-              maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
               spacing: mobile ? 8 : 10,
               runSpacing: mobile ? 8 : 10,
             );
@@ -158,7 +156,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 : _TeamList(
                     teams: teams,
                     data: data,
-                    mentorUser: widget.user,
                     membersById: membersById,
                     onEdit: (TeamModel team) {
                       if (!TeamService.canManageTeam(widget.user, team)) return;
@@ -181,8 +178,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   _MobileCreateBar(
-                    teamCount: teams.length,
-                    maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
                     onCreate: onCreate,
                   ),
                   const SizedBox(height: 8),
@@ -224,8 +219,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     const SizedBox(height: 14),
                     _CreateTeamCta(
                       canCreate: canCreate,
-                      teamCount: teams.length,
-                      maxTeams: TeamsWorkspaceService.maxTeamsFor(widget.user),
                       onCreate: () => _openCreateTeamDialog(data),
                     ),
                     const SizedBox(height: 14),
@@ -243,13 +236,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
 class _MobileCreateBar extends StatelessWidget {
   const _MobileCreateBar({
-    required this.teamCount,
-    required this.maxTeams,
     required this.onCreate,
   });
 
-  final int teamCount;
-  final int maxTeams;
   final VoidCallback? onCreate;
 
   @override
@@ -264,11 +253,6 @@ class _MobileCreateBar extends StatelessWidget {
             style: MobileToolbarButtonStyles.filled(compact: true),
           ),
         ),
-        const SizedBox(width: 8),
-        TeamCapacityWidget(
-          teamCount: teamCount,
-          maxTeams: maxTeams,
-        ),
       ],
     );
   }
@@ -277,14 +261,10 @@ class _MobileCreateBar extends StatelessWidget {
 class _CreateTeamCta extends StatelessWidget {
   const _CreateTeamCta({
     required this.canCreate,
-    required this.teamCount,
-    required this.maxTeams,
     required this.onCreate,
   });
 
   final bool canCreate;
-  final int teamCount;
-  final int maxTeams;
   final VoidCallback onCreate;
 
   @override
@@ -314,7 +294,6 @@ class _CreateTeamCta extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              TeamCapacityWidget(teamCount: teamCount, maxTeams: maxTeams),
               FilledButton.icon(
                 onPressed: canCreate ? onCreate : null,
                 icon: const Icon(AppIcons.add, size: 16),
@@ -341,7 +320,6 @@ class _TeamList extends StatelessWidget {
   const _TeamList({
     required this.teams,
     required this.data,
-    required this.mentorUser,
     required this.membersById,
     required this.onEdit,
     required this.onViewIdeas,
@@ -350,7 +328,6 @@ class _TeamList extends StatelessWidget {
 
   final List<TeamModel> teams;
   final TeamsWorkspaceData data;
-  final UserModel mentorUser;
   final Map<String, UserModel> membersById;
   final ValueChanged<TeamModel> onEdit;
   final ValueChanged<TeamWorkspaceInsight> onViewIdeas;
@@ -381,7 +358,6 @@ class _TeamList extends StatelessWidget {
           return TeamWorkspaceCard(
             team: team,
             insight: insight,
-            mentorUser: mentorUser,
             membersById: membersById,
             memberNamesById: data.memberNamesById,
             onEdit: () => onEdit(team),
@@ -407,7 +383,6 @@ class _TeamList extends StatelessWidget {
               child: TeamWorkspaceCard(
                 team: team,
                 insight: insight,
-                mentorUser: mentorUser,
                 membersById: membersById,
                 memberNamesById: data.memberNamesById,
                 onEdit: () => onEdit(team),
@@ -443,7 +418,7 @@ class _EmptyTeamsState extends StatelessWidget {
             const SizedBox(height: 14),
             const Text('Create your first innovation team', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
             const SizedBox(height: 6),
-            const Text('Select team members, assign yourself as mentor, and start the idea submission workflow.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B))),
+            const Text('Select team members, assign yourself as Team Leader, and start the idea submission workflow.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF64748B))),
             const SizedBox(height: 16),
             FilledButton.icon(onPressed: onCreate, icon: const Icon(AppIcons.add), label: const Text('Create Team')),
           ],

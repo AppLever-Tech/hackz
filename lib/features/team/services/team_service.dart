@@ -124,21 +124,25 @@ class TeamService {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedMemberIds);
 
     final UserRole role = UserRole.fromCode(actor.role);
-    if (role != UserRole.teamMember) {
+    if (role == UserRole.teamMember) {
+      if (!selectedMemberIds.contains(actor.userId.trim())) {
+        throw TeamRuleException('The team leader must be a member of the team.');
+      }
+      if (teamLeaderId.trim() != actor.userId.trim()) {
+        throw TeamRuleException('You can only designate yourself as team leader of your team.');
+      }
+      if (editingTeam == null && existingTeams.isNotEmpty) {
+        throw TeamRuleException('A team member can belong to only one team.');
+      }
+      if (editingTeam != null) {
+        assertCanManageTeam(actor, editingTeam);
+      }
+    } else if (role == UserRole.departmentAdmin) {
+      if (editingTeam != null) {
+        throw TeamRuleException('You can only manage teams you lead.');
+      }
+    } else {
       throw TeamRuleException('Only a team leader can create or update a team.');
-    }
-    if (!selectedMemberIds.contains(actor.userId.trim())) {
-      throw TeamRuleException('The team leader must be a member of the team.');
-    }
-    if (teamLeaderId.trim() != actor.userId.trim()) {
-      throw TeamRuleException('You can only designate yourself as team leader of your team.');
-    }
-    if (editingTeam == null && existingTeams.isNotEmpty) {
-      throw TeamRuleException('A team member can belong to only one team.');
-    }
-
-    if (editingTeam != null) {
-      assertCanManageTeam(actor, editingTeam);
     }
 
     final deptCode = actor.departmentCode.trim().toUpperCase();
@@ -179,7 +183,6 @@ class TeamService {
     final team = TeamModel(
       teamId: doc.id,
       teamName: teamName.trim(),
-      mentorId: '',
       teamLeaderId: teamLeaderId.trim(),
       studentIds: studentIds.toList(growable: false),
       orgId: actor.orgId,

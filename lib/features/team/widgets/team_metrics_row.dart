@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import '../services/teams_workspace_service.dart';
 
 /// Reusable metric row for team workspace screens.
 class TeamMetricsRow extends StatelessWidget {
@@ -12,7 +11,6 @@ class TeamMetricsRow extends StatelessWidget {
     required this.teamCount,
     required this.totalTeamMembers,
     required this.activeIdeas,
-    this.maxTeams,
     this.spacing = 10,
     this.runSpacing = 10,
   });
@@ -20,31 +18,19 @@ class TeamMetricsRow extends StatelessWidget {
   final int teamCount;
   final int totalTeamMembers;
   final int activeIdeas;
-  final int? maxTeams;
   final double spacing;
   final double runSpacing;
 
-  int get _maxTeams => maxTeams ?? TeamsWorkspaceService.maxTeamsPerLeader;
-
-  int get _remainingSlots =>
-      (_maxTeams - teamCount).clamp(0, _maxTeams).toInt();
-
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
-        MetricKpiSegment(
-          value: '$teamCount/$_maxTeams',
-          label: 'Teams',
-        ),
+        MetricKpiSegment.count(teamCount, 'Teams'),
         MetricKpiSegment.count(totalTeamMembers, 'Team Members'),
         MetricKpiSegment.count(activeIdeas, 'Ideas'),
-        MetricKpiSegment.count(_remainingSlots, 'Slots'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
-        DashboardMetricChipData.ratio(
-          label: 'Total Teams',
-          primary: '$teamCount',
-          secondary: '$_maxTeams',
-          subtitle: 'Teams created',
+        DashboardMetricChipData.single(
+          label: 'Teams',
+          value: '$teamCount',
           color: const Color(0xFF6A38FF),
           icon: AppIcons.teams,
         ),
@@ -59,12 +45,6 @@ class TeamMetricsRow extends StatelessWidget {
           value: '$activeIdeas',
           color: const Color(0xFFEA580C),
           icon: AppIcons.ideas,
-        ),
-        DashboardMetricChipData.single(
-          label: 'Team Capacity',
-          value: TeamsWorkspaceService.capacityMessage(teamCount, maxTeams: _maxTeams),
-          color: const Color(0xFF16A34A),
-          icon: AppIcons.verification,
         ),
       ];
 

@@ -16,14 +16,12 @@ class TeamMemberPreview {
   const TeamMemberPreview({
     required this.userId,
     required this.displayName,
-    required this.isMentor,
     this.isLeader = false,
     this.user,
   });
 
   final String userId;
   final String displayName;
-  final bool isMentor;
   final bool isLeader;
   final UserModel? user;
 }
@@ -94,7 +92,6 @@ abstract final class TeamWorkspaceLoader {
     final String departmentLabel = dept?.name ?? team.departmentCode;
 
     final Set<String> userIds = <String>{
-      if (team.mentorId.trim().isNotEmpty) team.mentorId.trim(),
       ...team.studentIds.map((e) => e.trim()).where((e) => e.isNotEmpty),
     };
 
@@ -151,32 +148,17 @@ abstract final class TeamWorkspaceLoader {
       scoresByIdea.putIfAbsent(s.ideaId, () => <ScoreModel>[]).add(s);
     }
 
-    final UserModel? mentor = usersById[team.mentorId.trim()];
-    final String mentorName = mentor == null
-        ? (team.mentorId.trim().isEmpty ? '—' : team.mentorId.trim())
-        : userDisplayName(mentor);
-
-    final List<TeamMemberPreview> members = <TeamMemberPreview>[
-      if (team.mentorId.trim().isNotEmpty)
-        TeamMemberPreview(
-          userId: team.mentorId.trim(),
-          displayName: mentorName,
-          isMentor: true,
-          user: mentor,
-        ),
-      ...team.studentIds.map((String studentId) {
-        final String id = studentId.trim();
-        final UserModel? student = usersById[id];
-        final String name = student == null ? id : userDisplayName(student);
-        return TeamMemberPreview(
-          userId: id,
-          displayName: name,
-          isMentor: false,
-          isLeader: team.isLedBy(id),
-          user: student,
-        );
-      }),
-    ];
+    final List<TeamMemberPreview> members = team.studentIds.map((String studentId) {
+      final String id = studentId.trim();
+      final UserModel? student = usersById[id];
+      final String name = student == null ? id : userDisplayName(student);
+      return TeamMemberPreview(
+        userId: id,
+        displayName: name,
+        isLeader: team.isLedBy(id),
+        user: student,
+      );
+    }).toList(growable: false);
 
     final List<TeamIdeaPreview> ideaPreviews = ideas.map((IdeaModel idea) {
       final List<ScoreModel> sc = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
