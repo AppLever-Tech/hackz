@@ -24,6 +24,11 @@ import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/icon_only_filter_button.dart';
+import '../../../core/ui/common/rich_tabs.dart';
+import '../../../core/ui/common/card_overflow_menu.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
+import '../../../core/workspace/workspace_navigator.dart';
+import '../../../utils/common_helpers.dart';
 import '../widgets/mobile_user_list_row_card.dart';
 import '../widgets/user_metrics_row.dart';
 import '../models/enums/user_role.dart';
@@ -34,6 +39,11 @@ import 'create_user_dialog.dart';
 import '../../team/models/team_model.dart';
 import '../../team/screens/team_creation_workspace.dart';
 import '../../team/services/team_service.dart';
+import '../../team/services/teams_workspace_service.dart';
+import '../../team/widgets/team_metrics_row.dart';
+import '../../team/widgets/team_workspace_card.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -51,12 +61,15 @@ class ManageUsersScreen extends StatefulWidget {
 
 enum UsersFilter { all, teamMembers, coordinators, pending, rejected }
 
-class _ManageUsersScreenState extends State<ManageUsersScreen> {
+class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _teamSearchController = TextEditingController();
+  late final TabController _sectionController;
   UsersFilter _filter = UsersFilter.all;
   bool _copied = false;
   bool _showAccessCode = false;
   List<UserModel> _allUsers = <UserModel>[];
+  TeamsWorkspaceData? _teamsData;
   String _inviteCode = '';
   String _orgName = '';
   bool _hasLoaded = false;
@@ -77,7 +90,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     super.initState();
     _filter = widget.initialUsersFilter;
     _orgName = widget.user.orgId;
+    _sectionController = TabController(length: 2, vsync: this);
+    _sectionController.addListener(() {
+      if (!_sectionController.indexIsChanging) setState(() {});
+    });
     _searchController.addListener(() => setState(() {}));
+    _teamSearchController.addListener(() => setState(() {}));
     _loadAll();
   }
 
@@ -91,6 +109,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _teamSearchController.dispose();
+    _sectionController.dispose();
     super.dispose();
   }
 
@@ -113,24 +133,37 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     ]);
   }
 
+  bool get _isTeamsSection => _sectionController.index == 1;
+
+  List<TeamModel> get _departmentTeams => _teamsData?.teams ?? const <TeamModel>[];
+
   Future<void> _loadAll() async {
     try {
-      final query = await FirebaseFirestore.instance
+      final String deptCode = DepartmentModel.resolveCode(widget.user.departmentCode);
+      final queryFuture = FirebaseFirestore.instance
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: widget.user.orgId)
-          .where('departmentCode', isEqualTo: DepartmentModel.resolveCode(widget.user.departmentCode))
+          .where('departmentCode', isEqualTo: deptCode)
           .get();
+      final codeFuture = FirebaseFirestore.instance
+          .collection(FirestoreUtils.hkzInviteCodes)
+          .where('orgId', isEqualTo: widget.user.orgId)
+          .where('departmentCode', isEqualTo: deptCode)
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+      final teamsFuture = TeamsWorkspaceService.loadDepartment(widget.user, forceRefresh: true);
+
+      final query = await queryFuture;
       final users = query.docs
           .map((d) => UserModel.fromMap(d.data()))
           .map((u) => u.userId.isNotEmpty ? u : u.copyWith(userId: u.phone))
           .toList(growable: false);
-      final codeSnap = await FirebaseFirestore.instance
-          .collection(FirestoreUtils.hkzInviteCodes)
-          .where('orgId', isEqualTo: widget.user.orgId)
-          .where('departmentCode', isEqualTo: DepartmentModel.resolveCode(widget.user.departmentCode))
-          .where('isActive', isEqualTo: true)
-          .limit(1)
-          .get();
+      final codeSnap = await codeFuture;
+      TeamsWorkspaceData? teamsData;
+      try {
+        teamsData = await teamsFuture;
+      } catch (_) {}
       String orgName = widget.user.orgId;
       try {
         final OrganizationModel? org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
@@ -140,6 +173,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       if (!mounted) return;
       setState(() {
         _allUsers = users;
+        _teamsData = teamsData;
         _inviteCode = codeSnap.docs.isEmpty ? '' : ((codeSnap.docs.first.data()['code'] as String?) ?? '').trim();
         _orgName = orgName;
         _hasLoaded = true;
@@ -203,7 +237,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         existingTeams: deptTeams,
         departmentTeamMembers: members,
       );
-      if (result == TeamFormDialogAction.saved && mounted) _loadAll();
+      if (result == TeamFormDialogAction.saved && mounted) {
+        _sectionController.animateTo(1);
+        await _loadAll();
+      }
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(
@@ -211,6 +248,122 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         title: 'Cannot create team',
         message: e.toString(),
       );
+    }
+  }
+
+  Future<void> _openImportTeam() async {
+    final bool? imported = await showTeamRegistrationImportWorkflow(
+      context: context,
+      actor: widget.user,
+      orgName: _organizationLabel,
+    );
+    if (imported == true && mounted) {
+      _sectionController.animateTo(1);
+      await _loadAll();
+    }
+  }
+
+  Future<void> _assignTeamLeader(UserModel member) async {
+    if (UserRole.fromCode(member.role) != UserRole.teamMember || member.status != UserStatus.active) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot assign leader',
+        message: 'Select an active team member.',
+      );
+      return;
+    }
+    final List<TeamModel> memberTeams =
+        _departmentTeams.where((TeamModel t) => t.isMember(member.userId)).toList(growable: false);
+    if (memberTeams.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Not on a team',
+        message: '${userDisplayName(member)} is not a member of an existing team.',
+      );
+      return;
+    }
+
+    TeamModel? selected = memberTeams.length == 1 ? memberTeams.first : null;
+    if (memberTeams.length > 1) {
+      String selectedId = memberTeams.first.teamId;
+      selected = await showDialog<TeamModel>(
+        context: context,
+        builder: (BuildContext ctx) => StatefulBuilder(
+          builder: (BuildContext ctx, void Function(void Function()) setDialogState) {
+            return ResponsiveAlertDialog(
+              title: const Text('Assign Team Leader'),
+              widthPreset: DialogWidthPreset.standard,
+              content: HackzSelectField<String>(
+                value: selectedId,
+                hint: 'Select team',
+                prefixIcon: AppIcons.teams,
+                options: memberTeams.map((TeamModel t) => t.teamId).toList(growable: false),
+                labelBuilder: (String id) {
+                  for (final TeamModel t in memberTeams) {
+                    if (t.teamId == id) return t.teamName;
+                  }
+                  return id;
+                },
+                onChanged: (String id) => setDialogState(() => selectedId = id),
+              ),
+              actions: <Widget>[
+                OutlinedButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+                FilledButton(
+                  onPressed: () {
+                    TeamModel? team;
+                    for (final TeamModel t in memberTeams) {
+                      if (t.teamId == selectedId) team = t;
+                    }
+                    Navigator.of(ctx).pop(team);
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+    if (selected == null || !mounted) return;
+
+    if (selected.isLedBy(member.userId)) {
+      FeedbackService.showInfo(
+        context,
+        title: 'Already Team Leader',
+        message: '${userDisplayName(member)} already leads ${selected.teamName}.',
+      );
+      return;
+    }
+
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Assign Team Leader',
+      message:
+          'Make ${userDisplayName(member)} the Team Leader of ${selected.teamName}? They remain a Team Member.',
+      confirmLabel: 'Assign',
+    );
+    if (!ok || !mounted) return;
+    try {
+      await TeamService.assignTeamLeader(
+        actor: widget.user,
+        team: selected,
+        teamLeaderId: member.userId,
+      );
+      TeamsWorkspaceService.clearCache();
+      if (!mounted) return;
+      await _loadAll();
+      if (!mounted) return;
+      FeedbackService.showSuccess(
+        context,
+        title: 'Team Leader assigned',
+        message: '${userDisplayName(member)} now leads ${selected.teamName}.',
+      );
+    } on TeamRuleException catch (e) {
+      if (!mounted) return;
+      FeedbackService.showWarning(context, title: 'Cannot assign leader', message: e.message);
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Cannot assign leader', message: e.toString());
     }
   }
 
@@ -520,6 +673,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  Widget _assignLeaderIconButton(UserModel u) {
+    return IconButton(
+      tooltip: 'Assign Team Leader',
+      onPressed: () => _assignTeamLeader(u),
+      icon: const Icon(AppIcons.teams, size: 20),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
+
+  bool _canAssignLeader(UserModel u) =>
+      u.status == UserStatus.active && UserRole.fromCode(u.role) == UserRole.teamMember;
+
   Widget _userRowTrailing(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
     if (isPending) {
@@ -573,6 +739,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        if (_canAssignLeader(u)) _assignLeaderIconButton(u),
         _editIconButton(u),
         IconButton(
           tooltip: 'Delete user',
@@ -657,6 +824,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     }
 
     return <Widget>[
+      if (_canAssignLeader(u))
+        MobileRowCardIconAction(
+          tooltip: 'Assign Team Leader',
+          icon: AppIcons.teams,
+          onTap: () => _assignTeamLeader(u),
+        ),
       MobileRowCardIconAction(
         tooltip: 'Edit user',
         icon: AppIcons.edit,
@@ -795,20 +968,36 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  Widget _accessCodeToggle({required bool compact}) {
-    return OutlinedButton(
-      onPressed: () => setState(() => _showAccessCode = !_showAccessCode),
-      style: MobileToolbarButtonStyles.outlined(compact: true),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(AppIcons.key, size: 16),
-          const SizedBox(width: 6),
-          Text(compact ? 'Code' : 'Access Code'),
-          const SizedBox(width: 2),
-          Icon(_showAccessCode ? AppIcons.expandLess : AppIcons.expandMore, size: 18),
-        ],
-      ),
+  Widget _buildPageSwitcher(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: RichTabBar(
+            controller: _sectionController,
+            tabs: <RichTabItem>[
+              RichTabItem('Users', count: _allUsers.length),
+              RichTabItem('Teams', count: _departmentTeams.length),
+            ],
+            useSwitcherOnMobile: false,
+          ),
+        ),
+        const SizedBox(width: 8),
+        CardOverflowMenuButton(
+          tooltip: 'Page actions',
+          onSelected: (String value) {
+            if (value == 'accessCode') {
+              setState(() => _showAccessCode = !_showAccessCode);
+            }
+          },
+          actions: <CardOverflowMenuAction>[
+            CardOverflowMenuAction(
+              value: 'accessCode',
+              icon: AppIcons.key,
+              label: _showAccessCode ? 'Hide Access Code' : 'Access Code',
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -843,15 +1032,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             const SizedBox(width: 8),
           ],
         ],
-        OutlinedButton.icon(
-          onPressed: _openCreateTeam,
-          icon: const Icon(AppIcons.teams, size: 16),
-          label: const Text('Create Team'),
-          style: MobileToolbarButtonStyles.outlined(compact: true),
-        ),
-        const SizedBox(width: 8),
-        _accessCodeToggle(compact: mobile),
-        const SizedBox(width: 8),
         Expanded(child: search),
         const SizedBox(width: 4),
         FittedBox(
@@ -921,8 +1101,153 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
+  Widget _buildTeamMetrics(BuildContext context) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final TeamsWorkspaceData? data = _teamsData;
+    return TeamMetricsRow(
+      teamCount: data?.teams.length ?? 0,
+      totalTeamMembers: data?.totalTeamMembers ?? 0,
+      activeIdeas: data?.activeIdeas ?? 0,
+      spacing: compact ? 8 : 10,
+      runSpacing: compact ? 8 : 10,
+    );
+  }
+
+  InputDecoration _teamSearchDecoration() {
+    return HackzInputDecoration.decorate(
+      hintText: 'Search teams',
+      prefixIcon: const Icon(AppIcons.search, size: 18),
+      contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    );
+  }
+
+  Widget _buildTeamsToolbar(BuildContext context) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool canImport = !mobile && ImportPlatformSupport.isSupported(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        if (!mobile) ...<Widget>[
+          FilledButton.icon(
+            onPressed: _openCreateTeam,
+            icon: const Icon(AppIcons.add, size: 16),
+            label: const Text('Create Team'),
+            style: MobileToolbarButtonStyles.filled(compact: true),
+          ),
+          const SizedBox(width: 8),
+          if (canImport) ...<Widget>[
+            OutlinedButton.icon(
+              onPressed: _openImportTeam,
+              icon: const Icon(AppIcons.attachments, size: 16),
+              label: const Text('Import Team'),
+              style: MobileToolbarButtonStyles.outlined(compact: true),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
+        Expanded(
+          child: TextField(
+            controller: _teamSearchController,
+            style: HackzInputDecoration.fieldTextStyle,
+            decoration: _teamSearchDecoration(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<TeamModel> _filteredTeams() {
+    final String q = _teamSearchController.text.trim().toLowerCase();
+    final List<TeamModel> teams = _departmentTeams;
+    if (q.isEmpty) return teams;
+    final Map<String, String> names = _teamsData?.memberNamesById ?? const <String, String>{};
+    return teams.where((TeamModel team) {
+      final String leaderName = names[team.teamLeaderId.trim()] ?? '';
+      return team.teamName.toLowerCase().contains(q) || leaderName.toLowerCase().contains(q);
+    }).toList(growable: false);
+  }
+
+  TeamWorkspaceInsight _insightFor(TeamModel team) {
+    return _teamsData?.insightsByTeamId[team.teamId] ??
+        TeamWorkspaceInsight(
+          team: team,
+          ideas: const <IdeaModel>[],
+          paymentStatuses: const <PaymentRecordStatus>[],
+          evaluationCount: 0,
+        );
+  }
+
+  Widget _buildTeamsList() {
+    final double bottomPadding = ResponsiveHelper.isMobile(context)
+        ? MobileCreateFabStyles.listBottomPadding
+        : 12;
+    if (!_hasLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final List<TeamModel> teams = _filteredTeams();
+    if (teams.isEmpty) {
+      return EmptySearchState.teams(
+        title: _departmentTeams.isEmpty ? 'No teams yet' : 'No teams found',
+        message: _departmentTeams.isEmpty
+            ? 'Create or import a team to get started.'
+            : 'Try adjusting your search.',
+        onClearSearch: () {
+          if (_teamSearchController.text.trim().isEmpty) return;
+          setState(_teamSearchController.clear);
+        },
+      );
+    }
+
+    final TeamsWorkspaceData data = _teamsData!;
+    final Map<String, UserModel> membersById = <String, UserModel>{
+      for (final UserModel member in data.teamMembers) member.userId: member,
+    };
+
+    Widget cardFor(TeamModel team) {
+      return TeamWorkspaceCard(
+        team: team,
+        insight: _insightFor(team),
+        membersById: membersById,
+        memberNamesById: data.memberNamesById,
+        compact: true,
+        onOpen: () => WorkspaceNavigator.openTeam(context, team.teamId),
+        onEdit: () {},
+        onViewIdeas: () {},
+        onDisable: () {},
+      );
+    }
+
+    if (ResponsiveHelper.isMobile(context)) {
+      return ListView.separated(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        itemCount: teams.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (BuildContext context, int index) => cardFor(teams[index]),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final int columns = ResponsiveHelper.useDashboardMultiColumn(context) ? 2 : 1;
+        const double gap = 14;
+        final double width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        return ListView(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          children: <Widget>[
+            Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: teams
+                  .map((TeamModel team) => SizedBox(width: width, child: cardFor(team)))
+                  .toList(growable: false),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildHeader(BuildContext context, {required double gap}) {
-    final Widget metrics = _buildUserMetrics(context);
     final Widget accessCodeBar = DepartmentAccessCodeBar(
       displayCode: _formatCode(_inviteCode),
       rawCode: _inviteCode,
@@ -935,9 +1260,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        metrics,
-        SizedBox(height: gap),
-        _buildToolbar(context),
+        _buildPageSwitcher(context),
         AnimatedCrossFade(
           alignment: Alignment.topCenter,
           firstChild: const SizedBox(width: double.infinity),
@@ -948,6 +1271,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           crossFadeState: _showAccessCode ? CrossFadeState.showSecond : CrossFadeState.showFirst,
           duration: const Duration(milliseconds: 220),
         ),
+        SizedBox(height: gap),
+        if (_isTeamsSection) _buildTeamMetrics(context) else _buildUserMetrics(context),
+        SizedBox(height: gap),
+        if (_isTeamsSection) _buildTeamsToolbar(context) else _buildToolbar(context),
         const SizedBox(height: 10),
       ],
     );
@@ -957,9 +1284,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   Widget build(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
     final double gap = ResponsiveHelper.dashboardSectionGap(context);
-    final List<UserModel> users = _filteredUsers();
     final Widget header = _buildHeader(context, gap: gap);
-    final Widget userList = _buildUserList(users);
+    final Widget body = _isTeamsSection ? _buildTeamsList() : _buildUserList(_filteredUsers());
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -970,7 +1296,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               header,
-              SizedBox(height: 480, child: userList),
+              SizedBox(height: 480, child: body),
             ],
           );
         }
@@ -982,12 +1308,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   header,
-                  Expanded(child: userList),
+                  Expanded(child: body),
                 ],
               ),
               MobileCreateFab(
-                onPressed: _openCreateUser,
-                tooltip: 'Create User',
+                onPressed: _isTeamsSection ? _openCreateTeam : _openCreateUser,
+                tooltip: _isTeamsSection ? 'Create Team' : 'Create User',
               ),
             ],
           );
@@ -997,7 +1323,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             header,
-            Expanded(child: userList),
+            Expanded(child: body),
           ],
         );
       },

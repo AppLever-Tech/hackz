@@ -68,18 +68,36 @@ class TeamsWorkspaceService {
 
   static void _invalidate(String actorId) {
     _cache.remove(actorId);
+    _cache.remove('dept:$actorId');
     _cacheAt.remove(actorId);
+    _cacheAt.remove('dept:$actorId');
   }
 
-  static Future<TeamsWorkspaceData> load(UserModel actor, {bool forceRefresh = false}) async {
-    final cached = _cache[actor.userId];
-    final cachedAt = _cacheAt[actor.userId];
+  static String _cacheKey(UserModel actor, {required bool departmentScoped}) =>
+      departmentScoped ? 'dept:${actor.userId}' : actor.userId;
+
+  static Future<TeamsWorkspaceData> load(UserModel actor, {bool forceRefresh = false}) =>
+      _load(actor, forceRefresh: forceRefresh, departmentScoped: false);
+
+  static Future<TeamsWorkspaceData> loadDepartment(UserModel actor, {bool forceRefresh = false}) =>
+      _load(actor, forceRefresh: forceRefresh, departmentScoped: true);
+
+  static Future<TeamsWorkspaceData> _load(
+    UserModel actor, {
+    required bool forceRefresh,
+    required bool departmentScoped,
+  }) async {
+    final String cacheKey = _cacheKey(actor, departmentScoped: departmentScoped);
+    final cached = _cache[cacheKey];
+    final cachedAt = _cacheAt[cacheKey];
     if (!forceRefresh && cached != null && cachedAt != null && DateTime.now().difference(cachedAt) < _cacheTtl) {
       return cached;
     }
 
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
-      TeamService.getTeamsLedBy(actor.userId),
+      departmentScoped
+          ? TeamService.getTeamsByOrg(actor.orgId)
+          : TeamService.getTeamsLedBy(actor.userId),
       TeamService.getDepartmentTeamMembers(orgId: actor.orgId, departmentCode: actor.departmentCode),
       TeamService.getDepartmentProblems(orgId: actor.orgId, departmentCode: actor.departmentCode),
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: actor.orgId).get(),
@@ -87,7 +105,13 @@ class TeamsWorkspaceService {
       _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: actor.orgId).get(),
     ]);
 
-    final teams = results[0] as List<TeamModel>;
+    final List<TeamModel> rawTeams = results[0] as List<TeamModel>;
+    final String dept = actor.departmentCode.trim().toUpperCase();
+    final List<TeamModel> teams = departmentScoped
+        ? rawTeams
+            .where((TeamModel t) => t.departmentCode.trim().toUpperCase() == dept)
+            .toList(growable: false)
+        : rawTeams;
     var teamMembers = sortUsersByDisplayName(results[1] as List<UserModel>);
     teamMembers = await _withTeamMembers(teams, teamMembers);
     final problems = results[2] as List<ProblemModel>;
@@ -141,8 +165,8 @@ class TeamsWorkspaceService {
       insightsByTeamId: insights,
       problems: problems,
     );
-    _cache[actor.userId] = data;
-    _cacheAt[actor.userId] = DateTime.now();
+    _cache[cacheKey] = data;
+    _cacheAt[cacheKey] = DateTime.now();
     return data;
   }
 

@@ -25,27 +25,34 @@ class UserListIdentityLead extends StatelessWidget {
             ? null
             : () => WorkspaceNavigator.openUser(context, user.userId));
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        UserWorkspaceAvatar(
-          user: user,
-          radius: avatarRadius,
-          onTap: openUser ?? () {},
-          enabled: openUser != null,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-      ],
+    final Text nameText = Text(
+      name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF0F172A),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool bounded = constraints.hasBoundedWidth;
+        return Row(
+          mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+          children: <Widget>[
+            UserWorkspaceAvatar(
+              user: user,
+              radius: avatarRadius,
+              onTap: openUser ?? () {},
+              enabled: openUser != null,
+            ),
+            const SizedBox(width: 8),
+            if (bounded) Expanded(child: nameText) else nameText,
+          ],
+        );
+      },
     );
   }
 }

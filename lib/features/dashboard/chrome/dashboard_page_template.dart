@@ -168,7 +168,7 @@ class _RoleMenuConfig {
         return const _RoleMenuConfig(
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
-            DashboardMenuItem(label: 'Manage Department', icon: AppIcons.departments),
+            DashboardMenuItem(label: 'People & Teams', icon: AppIcons.users),
             DashboardMenuItem(label: 'Domains', icon: AppIcons.domains),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),

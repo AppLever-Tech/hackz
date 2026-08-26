@@ -22,6 +22,7 @@ class RichTabBar extends StatelessWidget {
     required this.tabs,
     this.isScrollable = false,
     this.switcherMaxWidth,
+    this.useSwitcherOnMobile = true,
   }) : assert(tabs.length > 0);
 
   final TabController controller;
@@ -32,6 +33,9 @@ class RichTabBar extends StatelessWidget {
   /// even on desktop so many tabs never overflow horizontally.
   final double? switcherMaxWidth;
 
+  /// When false, keep the segmented pill bar on mobile (e.g. two short tabs).
+  final bool useSwitcherOnMobile;
+
   /// Minimal horizontal inset for tab navigation. Mobile uses full width.
   static double horizontalInset(BuildContext context) {
     return ResponsiveHelper.isMobile(context) ? 0 : 4;
@@ -41,7 +45,7 @@ class RichTabBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final bool useSwitcher = ResponsiveHelper.isMobile(context) ||
+        final bool useSwitcher = (useSwitcherOnMobile && ResponsiveHelper.isMobile(context)) ||
             (switcherMaxWidth != null && constraints.maxWidth < switcherMaxWidth!);
         return _buildBar(context, useSwitcher: useSwitcher);
       },

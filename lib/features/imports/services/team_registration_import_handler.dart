@@ -238,12 +238,13 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
     void Function(int current, int total)? onProgress,
   }) async {
     final TeamRegistrationImportHandlerContext teamContext = _requireContext(context);
-    if (UserRole.fromCode(teamContext.actor.role) != UserRole.coordinator) {
+    final UserRole actorRole = UserRole.fromCode(teamContext.actor.role);
+    if (actorRole != UserRole.coordinator && actorRole != UserRole.departmentAdmin) {
       return const ImportExecutionResult(
         imported: 0,
         skipped: 0,
         failed: 0,
-        failures: <String>['Team Registration import is available to Coordinators only.'],
+        failures: <String>['Team Registration import is available to Coordinators and Department Admins only.'],
       );
     }
     if (rows.any((ImportReviewRow r) => r.severity == ImportRowSeverity.error)) {

@@ -5,6 +5,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../models/team_model.dart';
+import '../models/enums/team_status.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/teams_workspace_service.dart';
 import '../../../core/responsive/responsive_helper.dart';
@@ -12,6 +13,7 @@ import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../../core/ui/common/card_overflow_menu.dart';
 import '../../../core/ui/common/form_value_row.dart';
 import 'team_idea_summary_widget.dart';
+import 'team_status_pill.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
@@ -26,6 +28,8 @@ class TeamWorkspaceCard extends StatelessWidget {
     required this.onEdit,
     required this.onViewIdeas,
     required this.onDisable,
+    this.compact = false,
+    this.onOpen,
   });
 
   final TeamModel team;
@@ -35,6 +39,8 @@ class TeamWorkspaceCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onViewIdeas;
   final VoidCallback onDisable;
+  final bool compact;
+  final VoidCallback? onOpen;
 
   static const double _labelWidth = 52;
   static const double _labelGap = 4;
@@ -45,78 +51,93 @@ class TeamWorkspaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<String> sortedMemberIds = sortUserIdsByDisplayName(team.studentIds, memberNamesById);
     final bool isInactive = team.status.name == 'inactive';
+    final VoidCallback? openTeam = onOpen ??
+        (team.teamId.trim().isEmpty ? null : () => WorkspaceNavigator.openTeam(context, team.teamId.trim()));
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x120F172A), blurRadius: 24, offset: Offset(0, 12)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(
-                child: FormValueRow(
-                  labelWidth: _labelWidth,
-                  labelGap: _labelGap,
-                  label: 'Team',
-                  labelAlignment: _labelAlignment,
-                  child: _buildTeamValue(context),
-                ),
+    final Widget body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: FormValueRow(
+                labelWidth: _labelWidth,
+                labelGap: _labelGap,
+                label: 'Team',
+                labelAlignment: _labelAlignment,
+                child: _buildTeamValue(context),
               ),
-              const SizedBox(width: 6),
-              CardOverflowMenuButton(
-                tooltip: 'Team actions',
-                dividersBefore: const <String>{'disable'},
-                onSelected: (String value) {
-                  switch (value) {
-                    case 'edit':
-                      onEdit();
-                    case 'view':
-                      onViewIdeas();
-                    case 'disable':
-                      onDisable();
-                  }
-                },
-                actions: <CardOverflowMenuAction>[
-                  CardOverflowMenuAction(
-                    value: 'edit',
-                    icon: Icons.published_with_changes_rounded,
-                    label: 'Request Team Change',
-                    enabled: !isInactive,
-                  ),
-                  const CardOverflowMenuAction(
-                    value: 'view',
-                    icon: AppIcons.preview,
-                    label: 'View Ideas',
-                  ),
-                  CardOverflowMenuAction(
-                    value: 'disable',
-                    icon: AppIcons.statusInactive,
-                    label: 'Disable Team',
-                    enabled: !isInactive,
-                    danger: true,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+            ),
+            const SizedBox(width: 6),
+            CardOverflowMenuButton(
+              tooltip: 'Team actions',
+              dividersBefore: compact ? const <String>{} : const <String>{'disable'},
+              onSelected: (String value) {
+                switch (value) {
+                  case 'open':
+                    openTeam?.call();
+                  case 'edit':
+                    onEdit();
+                  case 'view':
+                    onViewIdeas();
+                  case 'disable':
+                    onDisable();
+                }
+              },
+              actions: compact
+                  ? <CardOverflowMenuAction>[
+                      CardOverflowMenuAction(
+                        value: 'open',
+                        icon: AppIcons.openInNew,
+                        label: 'Open team',
+                        enabled: openTeam != null,
+                      ),
+                    ]
+                  : <CardOverflowMenuAction>[
+                      CardOverflowMenuAction(
+                        value: 'edit',
+                        icon: Icons.published_with_changes_rounded,
+                        label: 'Request Team Change',
+                        enabled: !isInactive,
+                      ),
+                      const CardOverflowMenuAction(
+                        value: 'view',
+                        icon: AppIcons.preview,
+                        label: 'View Ideas',
+                      ),
+                      CardOverflowMenuAction(
+                        value: 'disable',
+                        icon: AppIcons.statusInactive,
+                        label: 'Disable Team',
+                        enabled: !isInactive,
+                        danger: true,
+                      ),
+                    ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        FormValueRow(
+          labelWidth: _labelWidth,
+          labelGap: _labelGap,
+          label: 'Leader',
+          labelAlignment: _labelAlignment,
+          child: _buildLeaderValue(context),
+        ),
+        const SizedBox(height: 8),
+        if (compact)
           FormValueRow(
             labelWidth: _labelWidth,
             labelGap: _labelGap,
-            label: 'Leader',
+            label: 'Members',
             labelAlignment: _labelAlignment,
-            child: _buildLeaderValue(context),
-          ),
-          const SizedBox(height: 8),
+            child: Text(
+              '${sortedMemberIds.length} member${sortedMemberIds.length == 1 ? '' : 's'}',
+              style: EntityCardStyles.plainValue,
+            ),
+          )
+        else
           FormValueRow(
             labelWidth: _labelWidth,
             labelGap: _labelGap,
@@ -126,11 +147,56 @@ class TeamWorkspaceCard extends StatelessWidget {
             labelTopInset: _memberLabelTopInset,
             child: _buildMembersValue(context, sortedMemberIds),
           ),
-          const SizedBox(height: 8),
+        const SizedBox(height: 8),
+        if (compact)
+          FormValueRow(
+            labelWidth: _labelWidth,
+            labelGap: _labelGap,
+            label: 'Status',
+            labelAlignment: _labelAlignment,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                TeamStatusPill(
+                  status: team.status,
+                  lockedAfterSubmission: insight.isLocked && team.status != TeamStatus.inactive,
+                ),
+                Text(
+                  '${insight.ideas.length} idea${insight.ideas.length == 1 ? '' : 's'}',
+                  style: EntityCardStyles.plainValue,
+                ),
+              ],
+            ),
+          )
+        else
           TeamIdeaSummaryWidget(insight: insight),
+      ],
+    );
+
+    final Widget card = Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0x120F172A), blurRadius: 24, offset: Offset(0, 12)),
         ],
       ),
+      child: compact && openTeam != null
+          ? Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: openTeam,
+                borderRadius: BorderRadius.circular(18),
+                child: Padding(padding: const EdgeInsets.all(12), child: body),
+              ),
+            )
+          : Padding(padding: const EdgeInsets.all(12), child: body),
     );
+
+    return card;
   }
 
   Widget _buildTeamValue(BuildContext context) {

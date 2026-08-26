@@ -201,6 +201,29 @@ class TeamService {
     return doc.id;
   }
 
+  /// Department Admin: set [teamLeaderId] on an existing team. Leader stays a team member.
+  static Future<void> assignTeamLeader({
+    required UserModel actor,
+    required TeamModel team,
+    required String teamLeaderId,
+  }) async {
+    if (UserRole.fromCode(actor.role) != UserRole.departmentAdmin) {
+      throw TeamRuleException('Only a department admin can assign a team leader.');
+    }
+    if (team.status == TeamStatus.inactive) {
+      throw TeamRuleException('Cannot assign a leader on an inactive team.');
+    }
+    final String dept = actor.departmentCode.trim().toUpperCase();
+    if (team.orgId.trim() != actor.orgId.trim() || team.departmentCode.trim().toUpperCase() != dept) {
+      throw TeamRuleException('You can only assign leaders for teams in your department.');
+    }
+    requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: team.studentIds);
+    await _db.collection(FirestoreUtils.hkzTeams).doc(team.teamId).set(
+      <String, dynamic>{'teamLeaderId': teamLeaderId.trim()},
+      SetOptions(merge: true),
+    );
+  }
+
   static Future<List<TeamModel>> getTeamsByOrg(String orgId) async {
     final String id = orgId.trim();
     if (id.isEmpty) return const <TeamModel>[];
