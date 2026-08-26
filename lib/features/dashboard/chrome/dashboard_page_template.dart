@@ -206,7 +206,6 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Team Registration', icon: AppIcons.teams),
-            DashboardMenuItem(label: 'Ideathons', icon: AppIcons.ideathons),
             DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
             DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
           ],

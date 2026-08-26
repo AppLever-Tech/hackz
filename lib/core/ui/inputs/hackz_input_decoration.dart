@@ -21,6 +21,12 @@ abstract final class HackzInputDecoration {
   static const double radius = 12;
   static const double focusWidth = 1.4;
   static const EdgeInsets contentPadding = EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+  static const EdgeInsets compactContentPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+  static const BoxConstraints compactPrefixConstraints = BoxConstraints(
+    minWidth: 36,
+    minHeight: 36,
+    maxHeight: 36,
+  );
 
   static const TextStyle labelStyle = TextStyle(
     fontSize: 12.5,
@@ -68,6 +74,12 @@ abstract final class HackzInputDecoration {
     color: textColor,
   );
 
+  static const TextStyle compactFieldTextStyle = TextStyle(
+    fontSize: 13,
+    height: 1.2,
+    color: textColor,
+  );
+
   static OutlineInputBorder border({Color? color, double width = 1}) {
     return OutlineInputBorder(
       borderRadius: BorderRadius.circular(radius),
@@ -94,6 +106,7 @@ abstract final class HackzInputDecoration {
     Widget? suffixIcon,
     bool dense = true,
     bool filled = true,
+    bool compact = false,
     Color? fillColorOverride,
     EdgeInsetsGeometry? contentPaddingOverride,
   }) {
@@ -103,13 +116,14 @@ abstract final class HackzInputDecoration {
       labelText: labelText,
       helperText: helperText,
       errorText: hasError ? errorText : null,
-      hintStyle: TextStyle(color: Colors.grey.shade500, height: 1.4),
+      hintStyle: TextStyle(color: Colors.grey.shade500, height: compact ? 1.2 : 1.4),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       filled: filled,
       fillColor: hasError ? errorFillColor : (fillColorOverride ?? fillColor),
       isDense: dense,
-      contentPadding: contentPaddingOverride ?? contentPadding,
+      contentPadding: contentPaddingOverride ?? (compact ? compactContentPadding : contentPadding),
+      prefixIconConstraints: compact ? compactPrefixConstraints : null,
       border: enabledBorder,
       enabledBorder: hasError ? errorBorder : enabledBorder,
       focusedBorder: hasError ? focusedErrorBorder : focusedBorder,

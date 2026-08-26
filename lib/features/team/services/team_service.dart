@@ -186,6 +186,7 @@ class TeamService {
       departmentCode: actor.departmentCode.trim().toUpperCase(),
       status: TeamStatus.active,
       createdAt: DateTime.now(),
+      createdBy: actor.userId.trim(),
     );
     final batch = _db.batch();
     batch.set(doc, team.toMap(), SetOptions(merge: true));

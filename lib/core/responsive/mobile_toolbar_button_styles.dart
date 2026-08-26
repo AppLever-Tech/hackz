@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Shared compact toolbar button styles for mobile list screens.
+/// Shared list-toolbar filled/outlined styles (Manage Department, Problems, Ideas, …).
 abstract final class MobileToolbarButtonStyles {
   MobileToolbarButtonStyles._();
 
@@ -8,6 +8,7 @@ abstract final class MobileToolbarButtonStyles {
   static const double standardHeight = 44;
   static const double compactHorizontalPadding = 10;
   static const double standardHorizontalPadding = 16;
+  static const Color separatorColor = Color(0xFFD9E2F5);
 
   static ButtonStyle filled({bool compact = true}) => FilledButton.styleFrom(
         minimumSize: Size(0, compact ? compactHeight : standardHeight),
@@ -25,6 +26,15 @@ abstract final class MobileToolbarButtonStyles {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         foregroundColor: const Color(0xFF334155),
         backgroundColor: const Color(0xFFFCFDFF),
-        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
+        side: const BorderSide(color: separatorColor, width: 1.2),
       );
+
+  static Widget verticalSeparator({double height = compactHeight}) {
+    return Container(
+      width: 1,
+      height: height,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: separatorColor,
+    );
+  }
 }

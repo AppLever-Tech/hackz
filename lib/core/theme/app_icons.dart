@@ -36,6 +36,7 @@ class AppIcons {
   static const IconData clock = Icons.schedule_rounded;
   static const IconData event = Icons.event_rounded;
   static const IconData filter = Icons.filter_list_rounded;
+  static const IconData tableView = Icons.table_rows_outlined;
   static const IconData checklist = Icons.checklist_rounded;
   static const IconData expandLess = Icons.expand_less_rounded;
   static const IconData expandMore = Icons.expand_more_rounded;

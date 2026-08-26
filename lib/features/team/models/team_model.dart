@@ -12,6 +12,7 @@ class TeamModel {
     required this.status,
     required this.createdAt,
     this.teamLeaderId = '',
+    this.createdBy = '',
   });
 
   final String teamId;
@@ -24,6 +25,8 @@ class TeamModel {
   final String departmentCode;
   final TeamStatus status;
   final DateTime createdAt;
+  /// User id of the coordinator or faculty who created this team (CSV import or form).
+  final String createdBy;
 
   bool isLedBy(String userId) {
     final String id = userId.trim();
@@ -46,6 +49,7 @@ class TeamModel {
       'departmentCode': departmentCode,
       'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
+      'createdBy': createdBy,
     };
   }
 
@@ -60,6 +64,7 @@ class TeamModel {
       departmentCode: ((map['departmentCode'] as String?) ?? '').trim().toUpperCase(),
       status: TeamStatus.fromRaw((map['status'] as String?) ?? 'active'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdBy: ((map['createdBy'] as String?) ?? '').trim(),
     );
   }
 
@@ -73,6 +78,7 @@ class TeamModel {
     String? departmentCode,
     TeamStatus? status,
     DateTime? createdAt,
+    String? createdBy,
   }) {
     return TeamModel(
       teamId: teamId ?? this.teamId,
@@ -84,6 +90,7 @@ class TeamModel {
       departmentCode: departmentCode ?? this.departmentCode,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      createdBy: createdBy ?? this.createdBy,
     );
   }
 }

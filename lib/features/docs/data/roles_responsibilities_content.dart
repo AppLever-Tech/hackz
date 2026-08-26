@@ -289,7 +289,6 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                 title: 'Coordinator',
                 child: _bulletList(context, const <String>[
                   'Register teams from CSV',
-                  'Create Internal and External Ideathons',
                   'Verify payments',
                   'Support event execution',
                   'Track operational readiness',

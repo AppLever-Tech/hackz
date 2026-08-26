@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import 'dashboard_components.dart';
 
-/// Shared empty list card used by problem, idea, and user search tables.
+/// Shared empty list card used by problem, idea, user, and team search tables.
 class EmptySearchState extends StatelessWidget {
   const EmptySearchState({
     super.key,
@@ -43,6 +43,23 @@ class EmptySearchState extends StatelessWidget {
       key: key,
       title: 'No users found',
       icon: AppIcons.users,
+      onClearSearch: onClearSearch,
+    );
+  }
+
+  factory EmptySearchState.teams({
+    Key? key,
+    required VoidCallback onClearSearch,
+    String title = 'No teams found',
+    String message = 'Try adjusting your search or check back later.',
+    String clearLabel = 'Clear search',
+  }) {
+    return EmptySearchState(
+      key: key,
+      title: title,
+      icon: AppIcons.teams,
+      message: message,
+      clearLabel: clearLabel,
       onClearSearch: onClearSearch,
     );
   }

@@ -8,6 +8,7 @@ export 'models/team_model.dart';
 // Services
 export 'services/teams_workspace_service.dart';
 export 'services/team_service.dart';
+export 'services/coordinator_team_registration_service.dart';
 
 // Screens
 export 'screens/team_creation_workspace.dart';
@@ -23,6 +24,7 @@ export 'widgets/team_idea_summary_widget.dart';
 export 'widgets/team_status_pill.dart';
 export 'widgets/team_member_selector.dart';
 export 'widgets/team_workspace_card.dart';
+export 'widgets/team_registration_table_columns.dart';
 
 // Workspace
 export 'workspace/team_workspace.dart';

@@ -240,7 +240,7 @@ abstract final class ProblemTableColumns {
         label: 'Actions',
         flex: 3,
         minWidth: 180,
-        align: Alignment.centerLeft,
+        align: Alignment.center,
         cell: (BuildContext context, ProblemModel problem) => _ProblemRowActionArea(
           problem: problem,
           actions: actions,
@@ -676,24 +676,28 @@ class _ProblemRowActionArea extends StatelessWidget {
       flags: flags,
     );
 
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: <Widget>[
-        ...primaryPills,
-        if (menuActions.isNotEmpty)
-          CardOverflowMenuButton(
-            tooltip: 'Problem actions',
-            dividersBefore: const <String>{'delete'},
-            actions: menuActions,
-            onSelected: (String value) => _handleProblemMenuAction(
-              value: value,
-              problem: problem,
-              actions: actions,
+    return Align(
+      alignment: Alignment.center,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          ...primaryPills,
+          if (menuActions.isNotEmpty)
+            CardOverflowMenuButton(
+              tooltip: 'Problem actions',
+              dividersBefore: const <String>{'delete'},
+              actions: menuActions,
+              onSelected: (String value) => _handleProblemMenuAction(
+                value: value,
+                problem: problem,
+                actions: actions,
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

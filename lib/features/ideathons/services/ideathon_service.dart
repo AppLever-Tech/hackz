@@ -6,6 +6,8 @@ import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
+import '../../user/models/enums/user_role.dart';
+import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
@@ -63,6 +65,9 @@ abstract final class IdeathonService {
     required UserModel actor,
     required CreateIdeathonInput input,
   }) async {
+    if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
+      throw StateError('Only department admins can create Ideathons.');
+    }
     final String orgId = actor.orgId.trim();
     final String dept = actor.departmentCode.trim().toUpperCase();
     if (orgId.isEmpty) throw StateError('Organization is required.');

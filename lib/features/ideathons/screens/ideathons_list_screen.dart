@@ -10,6 +10,8 @@ import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../widgets/ideathon_metrics_row.dart';
 import '../../user/models/user_model.dart';
+import '../../user/models/enums/user_role.dart';
+import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
 import '../services/ideathon_query_service.dart';
@@ -105,6 +107,9 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     );
   }
 
+  bool get _canCreate =>
+      RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.user.role));
+
   Widget _buildCreateButton({required bool mobile}) {
     return FilledButton.icon(
       onPressed: () => setState(() => _showCreate = true),
@@ -168,7 +173,6 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     required IdeathonModel? latest,
   }) {
     final bool mobile = ResponsiveHelper.isMobile(context);
-    final Widget createButton = _buildCreateButton(mobile: mobile);
     final Widget metrics = IdeathonMetricsRow(
       rows: rows,
       spacing: mobile ? 8 : 10,
@@ -226,11 +230,14 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: () => setState(() => _showFilters = !_showFilters),
-              icon: const Icon(AppIcons.filter),
+              icon: const Icon(AppIcons.filter, size: 16),
               label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
+              style: MobileToolbarButtonStyles.outlined(compact: true),
             ),
-            const SizedBox(width: 8),
-            createButton,
+            if (_canCreate) ...<Widget>[
+              const SizedBox(width: 8),
+              _buildCreateButton(mobile: false),
+            ],
           ],
         ),
         if (_showFilters) ...<Widget>[
@@ -249,7 +256,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_showCreate) {
+    if (_showCreate && _canCreate) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -344,7 +351,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                 ],
               ),
             ),
-            if (mobile)
+            if (mobile && _canCreate)
               MobileCreateFab(
                 onPressed: () => setState(() => _showCreate = true),
                 tooltip: 'Create Ideathon',

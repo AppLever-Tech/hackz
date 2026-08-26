@@ -86,6 +86,17 @@ abstract final class IdeathonParticipationService {
         .toList(growable: false);
   }
 
+  static Future<List<IdeathonParticipation>> listByOrg(String orgId) async {
+    final String id = orgId.trim();
+    if (id.isEmpty) return const <IdeathonParticipation>[];
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _col.where('orgId', isEqualTo: id).get();
+    return snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
+            IdeathonParticipation.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
+  }
+
   static Future<List<IdeathonParticipation>> listByIdea(String ideaId) async {
     final QuerySnapshot<Map<String, dynamic>> snap =
         await _col.where('ideaId', isEqualTo: ideaId.trim()).get();

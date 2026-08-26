@@ -20,8 +20,11 @@ enum IdeaDepartmentScope {
 
 /// Centralized judge vs coordinator (and related) visibility rules.
 abstract final class RoleVisibilityHelpers {
-  /// Coordinators work on payments only — no idea lists, detail, or leaderboard idea views.
+  /// Coordinators register teams and verify payments — no idea lists, detail, or leaderboard idea views.
   static bool canViewIdeas(UserRole role) => role != UserRole.coordinator;
+
+  /// Only department admins create Ideathons. Coordinators cannot.
+  static bool canCreateIdeathon(UserRole role) => role == UserRole.departmentAdmin;
 
   static IdeaDepartmentScope ideaDepartmentScopeFor(UserRole role) {
     switch (role) {

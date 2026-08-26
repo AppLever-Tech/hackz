@@ -13,6 +13,8 @@ import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../../../core/ui/inputs/icon_only_filter_button.dart';
 import '../../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
@@ -696,7 +698,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     final bool compact = ResponsiveHelper.isMobile(context);
 
     final Widget metrics = ProblemMetricsRow(metrics: _metrics);
-    final Widget viewToggle = _buildViewToggleRow(problems: problems, compact: compact);
+    final Widget? bulk = _buildBulkActions(problems);
     final Widget searchBar = _buildSearchFilterBar(context);
     final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
@@ -786,9 +788,11 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         children: <Widget>[
           metrics,
           const SizedBox(height: 8),
-          viewToggle,
-          const SizedBox(height: 8),
           searchBar,
+          if (bulk != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: bulk),
+          ],
           const SizedBox(height: 6),
           filters,
           if (activeFilters != null) ...<Widget>[
@@ -806,9 +810,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       children: <Widget>[
         metrics,
         const SizedBox(height: 12),
-        _buildDesktopToolbar(context),
-        const SizedBox(height: 10),
-        viewToggle,
+        _buildDesktopToolbar(context, bulk: bulk),
         const SizedBox(height: 12),
         filters,
         if (activeFilters != null) ...<Widget>[
@@ -820,54 +822,23 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
-  Widget _buildViewToggleRow({
-    required List<ProblemModel> problems,
-    required bool compact,
-  }) {
-    final Widget toggle = SegmentedButton<bool>(
-      segments: const <ButtonSegment<bool>>[
-        ButtonSegment<bool>(
-          value: false,
-          label: Text('Table'),
-          icon: Icon(Icons.table_rows_outlined, size: 16),
-        ),
-        ButtonSegment<bool>(
-          value: true,
-          label: Text('By Domain'),
-          icon: Icon(AppIcons.domains, size: 16),
-        ),
-      ],
-      selected: <bool>{_groupByDomain},
-      onSelectionChanged: (Set<bool> next) {
-        setState(() => _groupByDomain = next.first);
-      },
-      style: ButtonStyle(
-        visualDensity: VisualDensity.compact,
-        textStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: compact ? 11 : 12, fontWeight: FontWeight.w700),
-        ),
-      ),
-    );
-
-    final Widget? bulk = _buildBulkActions(problems);
-    if (bulk == null) {
-      return Align(alignment: Alignment.centerLeft, child: toggle);
-    }
-
+  Widget _buildViewModeIcons() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        toggle,
-        const SizedBox(width: 8),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: bulk,
-            ),
-          ),
+        IconOnlyFilterButton(
+          icon: AppIcons.tableView,
+          tooltip: 'Table',
+          selected: !_groupByDomain,
+          color: const Color(0xFF4A67FF),
+          onTap: () => setState(() => _groupByDomain = false),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.domains,
+          tooltip: 'By Domain',
+          selected: _groupByDomain,
+          color: const Color(0xFF7C3AED),
+          onTap: () => setState(() => _groupByDomain = true),
         ),
       ],
     );
@@ -908,49 +879,31 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
-  InputDecoration _searchDecoration(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    return InputDecoration(
-      hintText: 'Search problem number, title, domain, tags…',
-      prefixIcon: const Icon(AppIcons.search),
-      isDense: true,
-      filled: true,
-      fillColor: const Color(0xFFFCFDFF),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
-      ),
-    );
-  }
-
   Widget _buildSearchFilterBar(BuildContext context) {
     return ResponsiveSearchFilterBar(
       searchController: _searchController,
       searchHint: 'Search problem number, title, department, tags…',
-      searchDecoration: _searchDecoration(context),
+      searchDecoration: HackzInputDecoration.decorate(
+        hintText: 'Search problem number, title, department, tags…',
+        prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
+        compact: true,
+      ),
+      searchTextStyle: HackzInputDecoration.compactFieldTextStyle,
       filtersExpanded: _showFilters,
       onToggleFilters: () => setState(() => _showFilters = !_showFilters),
       onSearchSubmitted: _loadProblems,
       iconOnlyFilterOnMobile: true,
+      trailing: <Widget>[_buildViewModeIcons()],
     );
   }
 
-  Widget _buildDesktopToolbar(BuildContext context) {
+  Widget _buildDesktopToolbar(BuildContext context, {Widget? bulk}) {
     final Widget? createButton = widget.config.canCreate
         ? FilledButton.icon(
             onPressed: _openCreateProblem,
             icon: const Icon(AppIcons.add, size: 16),
             label: const Text('Create Problem'),
-            style: MobileToolbarButtonStyles.filled(compact: false),
+            style: MobileToolbarButtonStyles.filled(compact: true),
           )
         : null;
 
@@ -959,12 +912,12 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             onPressed: _openImportProblems,
             icon: const Icon(Icons.upload_file_rounded, size: 16),
             label: const Text('Import Problems'),
-            style: MobileToolbarButtonStyles.outlined(compact: false),
+            style: MobileToolbarButtonStyles.outlined(compact: true),
           )
         : null;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         if (createButton != null) ...<Widget>[
           createButton,
@@ -975,6 +928,14 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           const SizedBox(width: 8),
         ],
         Expanded(child: _buildSearchFilterBar(context)),
+        if (bulk != null) ...<Widget>[
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: bulk,
+          ),
+        ],
       ],
     );
   }

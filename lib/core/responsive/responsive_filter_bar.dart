@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_icons.dart';
 import 'mobile_filter_pane_styles.dart';
+import 'mobile_toolbar_button_styles.dart';
 import 'responsive_helper.dart';
 
 /// Search field + filter toggle; stacks on narrow widths.
@@ -21,6 +22,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     this.showFilterButton = true,
     this.iconOnlyFilterOnMobile = false,
     this.searchDecoration,
+    this.searchTextStyle,
   });
 
   final TextEditingController searchController;
@@ -36,6 +38,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
   final bool showFilterButton;
   final bool iconOnlyFilterOnMobile;
   final InputDecoration? searchDecoration;
+  final TextStyle? searchTextStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -51,18 +54,16 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
               )
             : OutlinedButton.icon(
                 onPressed: onToggleFilters,
-                icon: const Icon(Icons.tune),
+                icon: const Icon(Icons.tune, size: 16),
                 label: Text(filterLabel ?? (filtersExpanded ? 'Hide Filters' : 'Filters')),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: Size(0, mobile ? 40 : 44),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                style: MobileToolbarButtonStyles.outlined(compact: true),
               )
         : null;
 
     final searchField = TextField(
       controller: searchController,
       onSubmitted: onSearchSubmitted == null ? null : (_) => onSearchSubmitted!(),
+      style: searchTextStyle,
       decoration: searchDecoration ??
           InputDecoration(
             hintText: searchHint,
@@ -134,7 +135,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     }
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         ...leading.expand(
           (Widget w) => <Widget>[w, const SizedBox(width: 8)],

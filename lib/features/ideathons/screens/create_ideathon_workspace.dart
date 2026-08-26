@@ -19,6 +19,7 @@ import '../../idea/models/idea_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
+import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_type.dart';
 import '../services/ideathon_service.dart';
 import '../services/ideathon_settings_service.dart';
@@ -263,6 +264,14 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   Future<void> _submit() async {
     if (!_canSubmit) return;
+    if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.user.role))) {
+      FeedbackService.showError(
+        context,
+        title: 'Not allowed',
+        message: 'Only department admins can create Ideathons.',
+      );
+      return;
+    }
     setState(() => _saving = true);
     try {
       final String id = await IdeathonService.createIdeathon(
