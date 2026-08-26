@@ -403,6 +403,8 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'teamMemberCount': 0,
+          'judgeCount': 0,
+          'coordinatorCount': 0,
         },
       );
       current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
@@ -432,6 +434,8 @@ class FirestoreUtils {
           'totalUsers': 0,
           'facultyCount': 0,
           'teamMemberCount': 0,
+          'judgeCount': 0,
+          'coordinatorCount': 0,
         },
       );
       current['totalUsers'] = (current['totalUsers'] as int) + 1;
@@ -440,6 +444,10 @@ class FirestoreUtils {
       }
       if (role == UserRole.teamMember.code) {
         current['teamMemberCount'] = (current['teamMemberCount'] as int) + 1;
+      } else if (role == UserRole.judge.code) {
+        current['judgeCount'] = (current['judgeCount'] as int? ?? 0) + 1;
+      } else if (role == UserRole.coordinator.code) {
+        current['coordinatorCount'] = (current['coordinatorCount'] as int? ?? 0) + 1;
       }
 
       final userModel = UserModel.fromMap(data);

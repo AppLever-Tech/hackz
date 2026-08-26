@@ -169,85 +169,79 @@ class OrganizationManagementCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: kDashboardCardDecoration,
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              OrganizationThumbnail(organization: organization),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  organization.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    height: 1.15,
-                    color: Color(0xFF0F172A),
-                  ),
+          DashboardCardTitleBand(
+            title: organization.name,
+            leading: OrganizationThumbnail(organization: organization, size: 32),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                HoverIconActionButton(
+                  icon: AppIcons.edit,
+                  tooltip: 'Edit organization',
+                  iconSize: 17,
+                  onTap: () => _editOrganization(context),
                 ),
-              ),
-              HoverIconActionButton(
-                icon: AppIcons.edit,
-                tooltip: 'Edit organization',
-                iconSize: 18,
-                onTap: () => _editOrganization(context),
-              ),
-              HoverIconActionButton(
-                icon: AppIcons.remove,
-                tooltip: 'Delete organization',
-                destructive: true,
-                iconSize: 18,
-                onTap: () => _deleteOrganization(context),
-              ),
-            ],
-          ),
-          if (isCollege) ...<Widget>[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFE8ECF8)),
-            const SizedBox(height: 8),
-            _CollegeAdminSection(
-              admin: admin,
-              onAssign: () => _assignCollegeAdmin(context),
-              onEdit: admin == null ? null : () => _editCollegeAdmin(context, admin),
-              onRemove: admin == null ? null : () => _removeCollegeAdmin(context, admin),
+                HoverIconActionButton(
+                  icon: AppIcons.delete,
+                  tooltip: 'Delete organization',
+                  destructive: true,
+                  iconSize: 17,
+                  onTap: () => _deleteOrganization(context),
+                ),
+              ],
             ),
-          ],
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFE8ECF8)),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final rows = _metadataRows(context);
-              final columnCount = constraints.maxWidth >= 900
-                  ? 3
-                  : constraints.maxWidth >= 560
-                      ? 2
-                      : 1;
-              if (columnCount == 1) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: rows,
-                );
-              }
-              final itemWidth = (constraints.maxWidth - (columnCount - 1) * 20) / columnCount;
-              return Wrap(
-                spacing: 20,
-                runSpacing: 4,
-                children: rows
-                    .map(
-                      (Widget row) => SizedBox(
-                        width: itemWidth,
-                        child: row,
-                      ),
-                    )
-                    .toList(growable: false),
-              );
-            },
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (isCollege) ...<Widget>[
+                  _CollegeAdminRow(
+                    admin: admin,
+                    onAdd: () => _assignCollegeAdmin(context),
+                    onEdit: admin == null ? null : () => _editCollegeAdmin(context, admin),
+                    onRemove: admin == null ? null : () => _removeCollegeAdmin(context, admin),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final rows = _metadataRows(context);
+                    final columnCount = constraints.maxWidth >= 900
+                        ? 3
+                        : constraints.maxWidth >= 560
+                            ? 2
+                            : 1;
+                    if (columnCount == 1) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: rows,
+                      );
+                    }
+                    final itemWidth = (constraints.maxWidth - (columnCount - 1) * 20) / columnCount;
+                    return Wrap(
+                      spacing: 20,
+                      runSpacing: 4,
+                      children: rows
+                          .map(
+                            (Widget row) => SizedBox(
+                              width: itemWidth,
+                              child: row,
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -255,138 +249,89 @@ class OrganizationManagementCard extends StatelessWidget {
   }
 }
 
-class _CollegeAdminSection extends StatelessWidget {
-  const _CollegeAdminSection({
+class _CollegeAdminRow extends StatelessWidget {
+  const _CollegeAdminRow({
     required this.admin,
-    required this.onAssign,
+    required this.onAdd,
     this.onEdit,
     this.onRemove,
   });
 
   final UserModel? admin;
-  final VoidCallback onAssign;
+  final VoidCallback onAdd;
   final VoidCallback? onEdit;
   final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final UserModel? assigned = admin;
+    final String name = assigned == null ? '' : userDisplayName(assigned);
+    final String userId = assigned?.userId.trim() ?? '';
+    final bool hasAdmin = assigned != null && name.isNotEmpty && name != '-';
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         const Text(
-          'College Admin',
+          'College admin',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF64748B),
+            color: Color(0xFF334155),
+            height: 1.2,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: admin != null
-              ? _AssignedAdminRow(
-                  admin: admin!,
-                  onEdit: onEdit,
-                  onRemove: onRemove,
-                )
-              : _AssignAdminPrompt(onAssign: onAssign),
-        ),
-      ],
-    );
-  }
-}
-
-class _AssignedAdminRow extends StatelessWidget {
-  const _AssignedAdminRow({
-    required this.admin,
-    this.onEdit,
-    this.onRemove,
-  });
-
-  final UserModel admin;
-  final VoidCallback? onEdit;
-  final VoidCallback? onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = userDisplayName(admin);
-    final userId = admin.userId.trim();
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        UserWorkspaceAvatar(
-          user: admin,
-          radius: 12,
-          ringPadding: 2,
-          onTap: userId.isNotEmpty ? () => WorkspaceNavigator.openUser(context, userId) : () {},
-          enabled: userId.isNotEmpty,
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0F172A),
-            ),
+        if (hasAdmin) ...<Widget>[
+          UserWorkspaceAvatar(
+            user: assigned,
+            radius: 12,
+            ringPadding: 2,
+            onTap: userId.isEmpty ? () {} : () => WorkspaceNavigator.openUser(context, userId),
+            enabled: userId.isNotEmpty,
           ),
-        ),
-        if (onEdit != null) ...<Widget>[
-          HoverIconActionButton(
-            icon: AppIcons.edit,
-            tooltip: 'Edit college admin',
-            onTap: onEdit!,
-          ),
-          const SizedBox(width: 4),
-        ],
-        if (onRemove != null)
           const SizedBox(width: 8),
-        if (onRemove != null)
-          HoverIconActionButton(
-            icon: AppIcons.remove,
-            tooltip: 'Remove college admin',
-            destructive: true,
-            onTap: onRemove!,
-          ),
-      ],
-    );
-  }
-}
-
-class _AssignAdminPrompt extends StatelessWidget {
-  const _AssignAdminPrompt({required this.onAssign});
-
-  final VoidCallback onAssign;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(
-          child: Text(
-            'No college admin assigned',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF94A3B8),
+          Flexible(
+            fit: FlexFit.loose,
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                height: 1.25,
+              ),
             ),
           ),
-        ),
-        FilledButton.icon(
-          onPressed: onAssign,
-          icon: const Icon(AppIcons.add, size: 15),
-          label: const Text('Assign'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 32),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            backgroundColor: const Color(0xFF6A38FF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          const SizedBox(width: 2),
+          if (onEdit != null)
+            HoverIconActionButton(
+              icon: AppIcons.edit,
+              tooltip: 'Edit college admin',
+              onTap: onEdit!,
+            ),
+          if (onRemove != null)
+            HoverIconActionButton(
+              icon: AppIcons.delete,
+              tooltip: 'Remove college admin',
+              destructive: true,
+              onTap: onRemove!,
+            ),
+        ] else
+          FilledButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(AppIcons.add, size: 15),
+            label: const Text('Add'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: const Color(0xFF6A38FF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
-        ),
       ],
     );
   }

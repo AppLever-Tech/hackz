@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
 
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/ui/common/count_pill.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
@@ -386,6 +387,8 @@ class _DepartmentOverviewTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int teamMemberCount = (dept['teamMemberCount'] as int?) ?? 0;
+    final int judgeCount = (dept['judgeCount'] as int?) ?? 0;
+    final int coordinatorCount = (dept['coordinatorCount'] as int?) ?? 0;
     final String admin = ((dept['departmentAdmin'] as String?) ?? '-').trim();
     final bool hasAdmin = admin.isNotEmpty && admin != '-';
     final String name = (dept['name'] as String?) ?? '-';
@@ -403,12 +406,16 @@ class _DepartmentOverviewTile extends StatelessWidget {
               admin: admin,
               hasAdmin: hasAdmin,
               teamMemberCount: teamMemberCount,
+              judgeCount: judgeCount,
+              coordinatorCount: coordinatorCount,
             )
           : _buildDesktopLayout(
               name: name,
               admin: admin,
               hasAdmin: hasAdmin,
               teamMemberCount: teamMemberCount,
+              judgeCount: judgeCount,
+              coordinatorCount: coordinatorCount,
             ),
     );
   }
@@ -418,6 +425,8 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String admin,
     required bool hasAdmin,
     required int teamMemberCount,
+    required int judgeCount,
+    required int coordinatorCount,
   }) {
     return Row(
       children: <Widget>[
@@ -453,11 +462,9 @@ class _DepartmentOverviewTile extends StatelessWidget {
                     label: admin,
                     tooltip: 'Department admin',
                   ),
-                _DepartmentMetricPill(
-                  icon: AppIcons.teamMember,
-                  label: '$teamMemberCount',
-                  tooltip: 'Team Members',
-                ),
+                CountPill.teamMembers(teamMemberCount),
+                CountPill.judges(judgeCount),
+                CountPill.coordinators(coordinatorCount),
               ],
             ),
           ),
@@ -471,6 +478,8 @@ class _DepartmentOverviewTile extends StatelessWidget {
     required String admin,
     required bool hasAdmin,
     required int teamMemberCount,
+    required int judgeCount,
+    required int coordinatorCount,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -494,30 +503,20 @@ class _DepartmentOverviewTile extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             if (hasAdmin)
-              Expanded(
-                child: _DepartmentMetricPill(
-                  icon: AppIcons.adminProfile,
-                  label: admin,
-                  tooltip: 'Department admin',
-                  shrinkLabel: true,
-                ),
+              _DepartmentMetricPill(
+                icon: AppIcons.adminProfile,
+                label: admin,
+                tooltip: 'Department admin',
               ),
-            if (hasAdmin) const SizedBox(width: 8),
-            if (!hasAdmin) const Spacer(),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                _DepartmentMetricCount(
-                  icon: AppIcons.teamMember,
-                  count: teamMemberCount,
-                  tooltip: 'Team Members',
-                ),
-              ],
-            ),
+            CountPill.teamMembers(teamMemberCount),
+            CountPill.judges(judgeCount),
+            CountPill.coordinators(coordinatorCount),
           ],
         ),
       ],
@@ -545,66 +544,19 @@ class _DepartmentIconBadge extends StatelessWidget {
   }
 }
 
-class _DepartmentMetricCount extends StatelessWidget {
-  const _DepartmentMetricCount({
-    required this.icon,
-    required this.count,
-    required this.tooltip,
-  });
-
-  final IconData icon;
-  final int count;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 16, color: const Color(0xFF57629A)),
-          const SizedBox(width: 5),
-          Text(
-            '$count',
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF334155),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _DepartmentMetricPill extends StatelessWidget {
   const _DepartmentMetricPill({
     required this.icon,
     required this.label,
     required this.tooltip,
-    this.shrinkLabel = false,
   });
 
   final IconData icon;
   final String label;
   final String tooltip;
-  final bool shrinkLabel;
 
   @override
   Widget build(BuildContext context) {
-    final Widget labelWidget = Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF334155),
-      ),
-    );
-
     return Tooltip(
       message: tooltip,
       child: Container(
@@ -615,17 +567,23 @@ class _DepartmentMetricPill extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
-          mainAxisSize: shrinkLabel ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(icon, size: 15, color: const Color(0xFF57629A)),
             const SizedBox(width: 5),
-            if (shrinkLabel)
-              Expanded(child: labelWidget)
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 150),
-                child: labelWidget,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF334155),
+                ),
               ),
+            ),
           ],
         ),
       ),

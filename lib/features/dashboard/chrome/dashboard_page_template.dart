@@ -13,6 +13,7 @@ import '../sysadmin/services/sysadmin_dashboard_service.dart';
 import '../../../core/responsive/responsive_dashboard_layout.dart';
 import '../../../features/auth/screens/landing_screen.dart';
 import '../../../features/docs/data/docs_registry.dart';
+import '../../../core/ui/common/page_header_context_pill.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
@@ -96,12 +97,14 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               if (index != _selectedPrimaryMenuIndex) {
                 WorkspaceController.instance.close();
                 _chromeController.clearOverlay();
+                _chromeController.setHeaderContextPills(const <PageHeaderContextItem>[]);
               }
               setState(() => _selectedPrimaryMenuIndex = index);
             },
             header: DashboardPageHeader(
               title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
+              contextPills: _chromeController.headerContextPills,
               user: widget.user,
               onLogout: () => _logout(context),
               onUserTap: () => WorkspaceNavigator.openUser(context, widget.user.userId),

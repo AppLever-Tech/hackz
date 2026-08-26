@@ -13,6 +13,7 @@ import '../../../features/org_settings/constants/org_setting_keys.dart';
 import '../../../features/org_settings/services/org_settings_service.dart';
 import '../../../features/user/models/enums/user_role.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
+import '../../../core/ui/common/page_header_context_pill.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
 /// Not `const`: [Border.all] is not a const factory in this SDK when used inside [BoxDecoration].
@@ -187,6 +188,7 @@ class DashboardPageHeader extends StatelessWidget {
     required this.onLogout,
     this.titleIcon,
     this.leading,
+    this.contextPills = const <PageHeaderContextItem>[],
     this.onRefresh,
     this.onUserTap,
     this.helpPageId,
@@ -195,6 +197,7 @@ class DashboardPageHeader extends StatelessWidget {
   final String title;
   final IconData? titleIcon;
   final Widget? leading;
+  final List<PageHeaderContextItem> contextPills;
   final UserModel user;
   final VoidCallback? onRefresh;
   final VoidCallback onLogout;
@@ -204,38 +207,56 @@ class DashboardPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double titleSize = ResponsiveHelper.titleFontSize(context);
+    final double titleIconSize = titleSize >= 24 ? 24 : 20;
+    final double contextIndent = titleIcon == null ? 0 : titleIconSize + 8;
+    final bool hasContextPills = contextPills.any(
+      (PageHeaderContextItem item) => item.label.trim().isNotEmpty,
+    );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (leading != null) ...<Widget>[
-          leading!,
-          const SizedBox(width: 2),
-        ],
-        if (titleIcon != null) ...<Widget>[
-          Icon(
-            titleIcon,
-            size: titleSize >= 24 ? 24 : 20,
-            color: const Color(0xFF334155),
-          ),
-          const SizedBox(width: 8),
-        ],
-        Expanded(
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            if (leading != null) ...<Widget>[
+              leading!,
+              const SizedBox(width: 2),
+            ],
+            if (titleIcon != null) ...<Widget>[
+              Icon(
+                titleIcon,
+                size: titleIconSize,
+                color: const Color(0xFF334155),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _DashboardHeaderActions(
+              user: user,
+              onLogout: onLogout,
+              onRefresh: onRefresh,
+              onUserTap: onUserTap,
+              helpPageId: helpPageId,
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _DashboardHeaderActions(
-          user: user,
-          onLogout: onLogout,
-          onRefresh: onRefresh,
-          onUserTap: onUserTap,
-          helpPageId: helpPageId,
-        ),
+        if (hasContextPills) ...<Widget>[
+          const SizedBox(height: 6),
+          Padding(
+            padding: EdgeInsets.only(left: contextIndent),
+            child: PageHeaderContextPills(items: contextPills),
+          ),
+        ],
       ],
     );
   }
@@ -371,6 +392,12 @@ abstract final class DashboardCardTitleStyle {
 
   /// Gap between title and a right-aligned [TimeFrameFilter] in [DashboardCardHeaderRow].
   static const double headerTrailingGap = 12;
+
+  /// Tinted title strip so the header reads apart from the card body.
+  /// Apply via [DashboardCardTitleBand]; reuse on other titled cards later.
+  static const Color bandFill = Color(0xFFF1F5FB);
+  static const Color bandDivider = Color(0xFFE4EAF4);
+  static const EdgeInsets bandPadding = EdgeInsets.fromLTRB(12, 10, 8, 10);
 }
 
 /// Icon + title row for dashboard cards.
@@ -399,6 +426,49 @@ class DashboardCardTitle extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Full-width title strip with a slightly different fill from the card body.
+class DashboardCardTitleBand extends StatelessWidget {
+  const DashboardCardTitleBand({
+    super.key,
+    required this.title,
+    this.leading,
+    this.trailing,
+  });
+
+  final String title;
+  final Widget? leading;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: DashboardCardTitleStyle.bandPadding,
+      decoration: const BoxDecoration(
+        color: DashboardCardTitleStyle.bandFill,
+        border: Border(bottom: BorderSide(color: DashboardCardTitleStyle.bandDivider)),
+      ),
+      child: Row(
+        children: <Widget>[
+          if (leading != null) ...<Widget>[
+            leading!,
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DashboardCardTitleStyle.textStyle,
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
     );
   }
 }

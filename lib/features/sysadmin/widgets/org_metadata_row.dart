@@ -58,8 +58,8 @@ class OrgMetadataRow extends StatelessWidget {
                             maxLines: maxValueLines,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
                               color: isEmpty ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
                               height: 1.25,
                             ),

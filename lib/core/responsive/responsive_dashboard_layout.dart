@@ -232,7 +232,7 @@ class _MobileMenuHeaderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         IconButton(
           onPressed: onOpenMenu,

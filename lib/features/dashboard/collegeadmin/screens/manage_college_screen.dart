@@ -8,8 +8,12 @@ import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
+import '../../../../core/ui/common/count_pill.dart';
+import '../../../../core/ui/common/page_header_context_pill.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
+import '../../chrome/dashboard_chrome_controller.dart';
+import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/buttons/mobile_create_fab.dart';
@@ -31,6 +35,7 @@ class ManageCollegeScreen extends StatefulWidget {
 
 class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   String _orgName = '';
+  DashboardChromeController? _chrome;
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -49,15 +54,30 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     _loadOrganization();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _chrome ??= DashboardChromeScope.maybeOf(context);
+    _syncHeaderContext();
+  }
+
+  void _syncHeaderContext() {
+    _chrome?.setHeaderContextPills(<PageHeaderContextItem>[
+      PageHeaderContextItem.organization(_orgName),
+    ]);
+  }
+
   Future<void> _loadOrganization() async {
     try {
       final OrganizationModel? org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
       final String name = (org?.name ?? '').trim();
       if (!mounted) return;
       setState(() => _orgName = name.isEmpty ? widget.user.orgId : name);
+      _syncHeaderContext();
     } catch (_) {
       if (!mounted) return;
       setState(() => _orgName = widget.user.orgId);
+      _syncHeaderContext();
     }
   }
 
@@ -396,7 +416,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
           'Departments ($deptCount)',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         );
-        final Widget orgName = _OrganizationNameRow(name: _orgName);
         final Widget addDepartmentButton = FilledButton.icon(
           onPressed: _showAddDepartmentDialog,
           icon: const Icon(AppIcons.add),
@@ -437,7 +456,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 14,
                       mainAxisSpacing: 14,
-                      mainAxisExtent: 148,
+                      mainAxisExtent: 156,
                     ),
                     itemBuilder: (BuildContext context, int index) {
                       final dept = departments[index];
@@ -469,8 +488,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                   addDepartmentButton,
                 ],
               ),
-            const SizedBox(height: 8),
-            orgName,
             const SizedBox(height: 12),
             departmentList,
           ],
@@ -493,36 +510,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
 
         return SingleChildScrollView(child: body);
       },
-    );
-  }
-}
-
-class _OrganizationNameRow extends StatelessWidget {
-  const _OrganizationNameRow({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final String label = name.trim().isEmpty ? '—' : name.trim();
-    return Row(
-      children: <Widget>[
-        const Icon(AppIcons.organizations, size: 16, color: Color(0xFF64748B)),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-              height: 1.2,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -552,6 +539,8 @@ class _DepartmentCard extends StatelessWidget {
     final UserModel? adminUser = department['adminUser'] as UserModel?;
     final String departmentId = ((department['id'] as String?) ?? '').trim();
     final int teamMemberCount = (department['teamMemberCount'] as int?) ?? 0;
+    final int judgeCount = (department['judgeCount'] as int?) ?? 0;
+    final int coordinatorCount = (department['coordinatorCount'] as int?) ?? 0;
     final bool hasAdmin = adminUserId.isNotEmpty && admin.isNotEmpty && admin != '-';
     final UserModel adminIdentity = adminUser ??
         UserModel(
@@ -570,72 +559,75 @@ class _DepartmentCard extends StatelessWidget {
         );
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       decoration: kDashboardCardDecoration,
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F0FF),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE8ECF8)),
-                ),
-                child: const Icon(AppIcons.departments, size: 17, color: Color(0xFF6A38FF)),
+          DashboardCardTitleBand(
+            title: name,
+            leading: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F0FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE8ECF8)),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, height: 1.15),
-                ),
-              ),
-              if (departmentId.isNotEmpty)
-                HoverIconActionButton(
-                  icon: AppIcons.delete,
-                  tooltip: 'Delete department',
-                  destructive: true,
-                  iconSize: 17,
-                  onTap: onDelete,
-                ),
-            ],
+              child: const Icon(AppIcons.departments, size: 17, color: Color(0xFF6A38FF)),
+            ),
+            trailing: departmentId.isEmpty
+                ? null
+                : HoverIconActionButton(
+                    icon: AppIcons.delete,
+                    tooltip: 'Delete department',
+                    destructive: true,
+                    iconSize: 17,
+                    onTap: onDelete,
+                  ),
           ),
-          const SizedBox(height: 6),
-          if (hasAdmin)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                UserWorkspaceAvatar(
-                  user: adminIdentity,
-                  radius: 12,
-                  ringPadding: 2,
-                  onTap: () => WorkspaceNavigator.openUser(context, adminUserId),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: <Widget>[
-                      Text(
-                        admin,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
-                          height: 1.25,
+                Row(
+                  children: <Widget>[
+                    const Text(
+                      'Department admin',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (hasAdmin) ...<Widget>[
+                      UserWorkspaceAvatar(
+                        user: adminIdentity,
+                        radius: 12,
+                        ringPadding: 2,
+                        onTap: () => WorkspaceNavigator.openUser(context, adminUserId),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          admin,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                            height: 1.25,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 2),
                       HoverIconActionButton(
                         icon: AppIcons.edit,
                         tooltip: 'Edit department admin',
@@ -647,104 +639,37 @@ class _DepartmentCard extends StatelessWidget {
                         destructive: true,
                         onTap: () => onRemoveAdmin(adminUserId, admin),
                       ),
-                    ],
-                  ),
+                    ] else
+                      FilledButton.icon(
+                        onPressed: onAddAdmin,
+                        icon: const Icon(AppIcons.add, size: 15),
+                        label: const Text('Add'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: const Color(0xFF6A38FF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    CountPill.teamMembers(teamMemberCount),
+                    CountPill.judges(judgeCount),
+                    CountPill.coordinators(coordinatorCount),
+                  ],
                 ),
               ],
-            )
-          else
-            FilledButton.icon(
-              onPressed: onAddAdmin,
-              icon: const Icon(AppIcons.add, size: 15),
-              label: const Text('Add Department admin'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                backgroundColor: const Color(0xFF6A38FF),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
             ),
-          const SizedBox(height: 6),
-          _DepartmentCountsChip(
-            teamMemberCount: teamMemberCount,
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Single-line chip: faculty and student counts with icon, label, and bold count.
-class _DepartmentCountsChip extends StatelessWidget {
-  const _DepartmentCountsChip({
-    required this.teamMemberCount,
-  });
-
-  final int teamMemberCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          _DepartmentCountSegment(
-            icon: AppIcons.teamMember,
-            label: 'Team Members',
-            count: teamMemberCount,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DepartmentCountSegment extends StatelessWidget {
-  const _DepartmentCountSegment({
-    required this.icon,
-    required this.label,
-    required this.count,
-  });
-
-  final IconData icon;
-  final String label;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Icon(icon, size: 14, color: const Color(0xFF57629A)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF64748B),
-            height: 1,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$count',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-            height: 1,
-          ),
-        ),
-      ],
     );
   }
 }

@@ -13,7 +13,10 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_controller.dart';
+import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
+import '../../../core/ui/common/page_header_context_pill.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
@@ -53,6 +56,8 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   List<UserModel> _allUsers = <UserModel>[];
   String _inviteCode = '';
   String _orgName = '';
+  bool _hasLoaded = false;
+  DashboardChromeController? _chrome;
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -74,9 +79,35 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _chrome ??= DashboardChromeScope.maybeOf(context);
+    _syncHeaderContext();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String get _departmentLabel {
+    final String department = widget.user.department.trim().isEmpty
+        ? DepartmentModel.resolveCode(widget.user.departmentCode)
+        : widget.user.department.trim();
+    return department.isEmpty ? '—' : department;
+  }
+
+  String get _organizationLabel {
+    final String org = _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim();
+    return org.isEmpty ? '—' : org;
+  }
+
+  void _syncHeaderContext() {
+    _chrome?.setHeaderContextPills(<PageHeaderContextItem>[
+      PageHeaderContextItem.department(_departmentLabel),
+      PageHeaderContextItem.organization(_organizationLabel),
+    ]);
   }
 
   Future<void> _loadAll() async {
@@ -108,9 +139,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         _allUsers = users;
         _inviteCode = codeSnap.docs.isEmpty ? '' : ((codeSnap.docs.first.data()['code'] as String?) ?? '').trim();
         _orgName = orgName;
+        _hasLoaded = true;
       });
+      _syncHeaderContext();
     } catch (_) {
-      // Keep prior list on load failure.
+      if (!mounted) return;
+      setState(() => _hasLoaded = true);
     }
   }
 
@@ -795,7 +829,19 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         ? MobileCreateFabStyles.listBottomPadding
         : 12;
 
-    if (users.isEmpty) {
+    if (!_hasLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final List<UserModel> pending = _section(users, status: UserStatus.pendingApproval);
+    final List<UserModel> teamMembers = _section(users, role: UserRole.teamMember.code);
+    final List<UserModel> coordinators = _section(users, role: 'COO');
+    final List<UserModel> rejected = _section(users, status: UserStatus.rejected);
+    final bool showEmpty = _filter == UsersFilter.all
+        ? pending.isEmpty && teamMembers.isEmpty && coordinators.isEmpty && rejected.isEmpty
+        : users.isEmpty;
+
+    if (showEmpty) {
       return EmptySearchState.users(
         onClearSearch: () {
           if (_searchController.text.trim().isEmpty && _filter == UsersFilter.all) return;
@@ -813,11 +859,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
         children: users.map(_userRow).toList(growable: false),
       );
     }
-
-    final pending = _section(users, status: UserStatus.pendingApproval);
-    final teamMembers = _section(users, role: UserRole.teamMember.code);
-    final coordinators = _section(users, role: 'COO');
-    final rejected = _section(users, status: UserStatus.rejected);
 
     return ListView(
       padding: EdgeInsets.only(bottom: bottomPadding),
@@ -841,48 +882,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
     );
   }
 
-  Widget _buildContextSubtitle() {
-    final String department = widget.user.department.trim().isEmpty
-        ? DepartmentModel.resolveCode(widget.user.departmentCode)
-        : widget.user.department.trim();
-    final String org = _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim();
-    return Row(
-      children: <Widget>[
-        const Icon(AppIcons.departments, size: 16, color: Color(0xFF64748B)),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            department.isEmpty ? '—' : department,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-              height: 1.2,
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-        const Icon(AppIcons.organizations, size: 16, color: Color(0xFF64748B)),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            org,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF334155),
-              height: 1.2,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildHeader(BuildContext context, {required double gap}) {
     final Widget metrics = _buildUserMetrics(context);
     final Widget accessCodeBar = DepartmentAccessCodeBar(
@@ -897,8 +896,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _buildContextSubtitle(),
-        SizedBox(height: gap),
         metrics,
         SizedBox(height: gap),
         _buildToolbar(context),
