@@ -15,7 +15,6 @@ import '../widgets/user_distribution_widget.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
-import '../../../../features/evaluations/screens/evaluation_results_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/evaluations/screens/department_evaluation_extensions_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
@@ -80,42 +79,36 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 5) {
-          return EvaluationResultsScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 6) {
           return IdeathonsListScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 7) {
+        if (selectedMenuIndex == 6) {
           return DepartmentEvaluationExtensionsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 8) {
+        if (selectedMenuIndex == 7) {
           return JudgesPanelScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 9) {
+        if (selectedMenuIndex == 8) {
           return PaymentsScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 10) {
+        if (selectedMenuIndex == 9) {
           return RequestsWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 11) {
+        if (selectedMenuIndex == 10) {
           return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
