@@ -50,6 +50,18 @@ class IdeathonJudgeAssignmentMetrics {
   final int totalAssignments;
 }
 
+class IdeathonJudgeWorkload {
+  const IdeathonJudgeWorkload({
+    required this.judgeId,
+    required this.displayName,
+    required this.ideaCount,
+  });
+
+  final String judgeId;
+  final String displayName;
+  final int ideaCount;
+}
+
 class IdeathonJudgeAssignmentViewModel {
   const IdeathonJudgeAssignmentViewModel({
     required this.ideathon,
@@ -58,6 +70,8 @@ class IdeathonJudgeAssignmentViewModel {
     required this.evaluators,
     required this.judgeById,
     required this.metrics,
+    required this.workloads,
+    this.evaluationLocked = false,
   });
 
   final IdeathonModel ideathon;
@@ -66,6 +80,8 @@ class IdeathonJudgeAssignmentViewModel {
   final List<UserModel> evaluators;
   final Map<String, UserModel> judgeById;
   final IdeathonJudgeAssignmentMetrics metrics;
+  final List<IdeathonJudgeWorkload> workloads;
+  final bool evaluationLocked;
 }
 
 /// Loads and mutates Ideathon-scoped judge assignments (no evaluation scoring).
@@ -144,6 +160,33 @@ abstract final class IdeathonJudgeAssignmentService {
         a.snapshot.ideaTitle.compareTo(b.snapshot.ideaTitle));
 
     final int assignedIdeas = rows.where((IdeathonJudgeAssignmentRow r) => r.isAssigned).length;
+    final Map<String, int> ideasByJudge = <String, int>{};
+    for (final IdeathonJudgeAssignmentRow row in rows) {
+      for (final String judgeId in row.assignedJudgeIds.toSet()) {
+        ideasByJudge[judgeId] = (ideasByJudge[judgeId] ?? 0) + 1;
+      }
+    }
+    final List<IdeathonJudgeWorkload> workloads = <IdeathonJudgeWorkload>[];
+    final Set<String> rosterAndAssigned = <String>{...ideathon.judgeIds, ...ideasByJudge.keys};
+    for (final String judgeId in rosterAndAssigned) {
+      final String id = judgeId.trim();
+      if (id.isEmpty) continue;
+      workloads.add(
+        IdeathonJudgeWorkload(
+          judgeId: id,
+          displayName: judgeDisplayName(judgeById, id),
+          ideaCount: ideasByJudge[id] ?? 0,
+        ),
+      );
+    }
+    workloads.sort((IdeathonJudgeWorkload a, IdeathonJudgeWorkload b) {
+      final int byCount = b.ideaCount.compareTo(a.ideaCount);
+      if (byCount != 0) return byCount;
+      return a.displayName.compareTo(b.displayName);
+    });
+
+    final bool evaluationLocked = await IdeathonService.hasEvaluationStarted(ideathon.ideathonId);
+
     return IdeathonJudgeAssignmentViewModel(
       ideathon: ideathon,
       template: template,
@@ -158,6 +201,8 @@ abstract final class IdeathonJudgeAssignmentService {
             .where((EvaluationAssignmentModel a) => snapshotById.containsKey(a.ideaId.trim()))
             .length,
       ),
+      workloads: workloads,
+      evaluationLocked: evaluationLocked,
     );
   }
 
@@ -169,6 +214,9 @@ abstract final class IdeathonJudgeAssignmentService {
   }) async {
     if (!canManageAssignments(actor)) {
       throw StateError('Only Department Admin can assign Ideathon judges.');
+    }
+    if (await IdeathonService.hasEvaluationStarted(ideathonId)) {
+      throw StateError('Judge assignments are locked because evaluation has started.');
     }
     final IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
     if (ideathon == null) throw StateError('Ideathon not found.');
@@ -229,6 +277,9 @@ abstract final class IdeathonJudgeAssignmentService {
   }) async {
     if (!canManageAssignments(actor)) {
       throw StateError('Only Department Admin can reassign Ideathon judges.');
+    }
+    if (await IdeathonService.hasEvaluationStarted(ideathonId)) {
+      throw StateError('Judge assignments are locked because evaluation has started.');
     }
     await EvaluationAssignmentService.removeIdeathonAssignment(
       assignmentId: assignmentId,

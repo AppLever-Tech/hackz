@@ -86,6 +86,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         ideathonId: row.ideathonId,
         forcedTemplateId: row.evaluationTemplateId,
         ideathonName: row.ideathonName,
+        ideathonSchedule: row.ideathonSchedule,
       ),
     );
     if (ok == true && mounted) await _reload();
@@ -104,6 +105,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           children: <Widget>[
             PendingEvaluationList(
               rows: vm.pending,
+              groupByEvent: !vm.isIdeathonScoped,
               onEvaluate: _openEvaluate,
               onViewDetails: (JudgeEvaluationPendingRow row) =>
                   WorkspaceNavigator.openIdea(context, row.idea.ideaId),
@@ -112,6 +114,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
             ),
             EvaluatedIdeaList(
               rows: vm.evaluated,
+              groupByEvent: !vm.isIdeathonScoped,
               onViewEvaluation: _openViewEvaluation,
               onViewDetails: (JudgeEvaluationEvaluatedRow row) =>
                   WorkspaceNavigator.openIdea(context, row.idea.ideaId),
@@ -156,9 +159,24 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               ),
             ],
           ),
+          if (vm.ideathonSchedule.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: 4),
+            Row(
+              children: <Widget>[
+                const Icon(AppIcons.event, size: 14, color: Color(0xFF64748B)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    vm.ideathonSchedule.trim(),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           const Text(
-            'Only ideas assigned to you for this Ideathon are listed. The event evaluation template is fixed.',
+            'Only ideas explicitly assigned to you for this Ideathon are listed. Scoring uses this event’s evaluation template.',
             style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
           ),
           if (templateId.isNotEmpty) ...<Widget>[

@@ -4,7 +4,6 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
-import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/services/role_visibility_helpers.dart';
@@ -158,54 +157,171 @@ abstract final class IdeathonService {
     );
     await batch.commit();
 
-    await _assignJudges(
-      orgId: orgId,
-      actorUserId: actor.userId,
-      ideathonId: ideathon.ideathonId,
-      ideas: snapshots.map((IdeathonIdeaSnapshot s) => eligibleById[s.ideaId]!.idea).toList(),
-      judgeIds: ideathon.judgeIds,
-    );
-
     return ideathon.ideathonId;
   }
 
-  static Future<void> _assignJudges({
-    required String orgId,
-    required String actorUserId,
-    required String ideathonId,
-    required List<IdeaModel> ideas,
-    required List<String> judgeIds,
-  }) async {
-    if (ideas.isEmpty || judgeIds.isEmpty) return;
+  /// True when at least one judge score exists for this Ideathon.
+  static Future<bool> hasEvaluationStarted(String ideathonId) async {
+    return (await firstEvaluationAt(ideathonId)) != null;
+  }
 
-    final List<UserModel> judges = <UserModel>[];
-    for (final String judgeId in judgeIds) {
-      final DocumentSnapshot<Map<String, dynamic>> doc =
-          await _db.collection(FirestoreUtils.hkzUsers).doc(judgeId).get();
-      if (!doc.exists || doc.data() == null) continue;
-      judges.add(UserModel.fromMap(doc.data()!).copyWith(userId: doc.id));
+  static Future<DateTime?> firstEvaluationAt(String ideathonId) async {
+    final String id = ideathonId.trim();
+    if (id.isEmpty) return null;
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestoreUtils.hkzScores)
+        .where('ideathonId', isEqualTo: id)
+        .get();
+    DateTime? first;
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final DateTime at = (doc.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.fromMillisecondsSinceEpoch(0);
+      if (first == null || at.isBefore(first)) first = at;
     }
-    if (judges.isEmpty) return;
+    return first;
+  }
 
-    final Map<String, TeamModel> teamsById = <String, TeamModel>{};
-    for (final IdeaModel idea in ideas) {
-      final String teamId = idea.teamId.trim();
-      if (teamId.isEmpty || teamsById.containsKey(teamId)) continue;
-      final DocumentSnapshot<Map<String, dynamic>> teamDoc =
-          await _db.collection(FirestoreUtils.hkzTeams).doc(teamId).get();
-      if (teamDoc.exists && teamDoc.data() != null) {
-        teamsById[teamId] = TeamModel.fromMap(teamDoc.id, teamDoc.data()!);
+  static Future<void> updateIdeathon({
+    required UserModel actor,
+    required String ideathonId,
+    required CreateIdeathonInput input,
+  }) async {
+    if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
+      throw StateError('Only department admins can edit Ideathons.');
+    }
+    final String id = ideathonId.trim();
+    if (id.isEmpty) throw StateError('Ideathon is required.');
+    if (await hasEvaluationStarted(id)) {
+      throw StateError(
+        'Event configuration is locked because evaluation has started. Submitted scores cannot be changed.',
+      );
+    }
+
+    final IdeathonModel? existing = await fetchById(id);
+    if (existing == null) throw StateError('Ideathon not found.');
+    if (existing.orgId.trim() != actor.orgId.trim()) {
+      throw StateError('You can only edit Ideathons in your organization.');
+    }
+
+    if (input.name.trim().isEmpty) throw StateError('Event name is required.');
+    if (!input.endDateTime.isAfter(input.startDateTime)) {
+      throw StateError('End date/time must be after start date/time.');
+    }
+    if (input.ideaIds.isEmpty) throw StateError('Select at least one paid idea.');
+    if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
+
+    await IdeathonSettingsService.ensureLoaded(orgId: existing.orgId);
+    final int minimumIdeas = IdeathonSettingsService.minimumIdeasForIdeathon(existing.orgId);
+    if (input.ideaIds.length < minimumIdeas) {
+      throw StateError(
+        '${input.ideaIds.length} of $minimumIdeas minimum paid ideas selected.',
+      );
+    }
+
+    final String templateId = input.evaluationTemplateId.trim().isNotEmpty
+        ? input.evaluationTemplateId.trim()
+        : IdeathonSettingsService.ideathonEvaluationTemplateId(existing.orgId);
+    final resolved = EvaluationTemplatesService.resolveTemplate(templateId);
+    if (resolved.templateId.trim().isEmpty) {
+      throw StateError('Select an evaluation template.');
+    }
+
+    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
+      orgId: existing.orgId,
+      ideathonType: input.ideathonType,
+    );
+    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
+      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
+    };
+    final Map<String, IdeathonIdeaSnapshot> previousById = <String, IdeathonIdeaSnapshot>{
+      for (final IdeathonIdeaSnapshot s in existing.ideas)
+        if (s.ideaId.trim().isNotEmpty) s.ideaId.trim(): s,
+    };
+
+    final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
+    for (final String rawId in input.ideaIds) {
+      final String ideaId = rawId.trim();
+      final IdeathonEligibleIdea? row = eligibleById[ideaId];
+      final IdeathonIdeaSnapshot? previous = previousById[ideaId];
+      if (row != null) {
+        final IdeaModel idea = row.idea;
+        snapshots.add(
+          IdeathonIdeaSnapshot(
+            ideaId: idea.ideaId,
+            ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
+            problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
+            teamName: row.teamName.isEmpty ? '—' : row.teamName,
+            addedAt: previous?.addedAt ?? DateTime.now(),
+          ),
+        );
+      } else if (previous != null) {
+        snapshots.add(previous);
+      } else {
+        throw StateError(
+          'Only paid ideas from teams eligible for this Ideathon type can be added.',
+        );
       }
     }
 
-    await EvaluationAssignmentService.assignIdeasToJudgesForIdeathon(
-      orgId: orgId,
-      actorUserId: actorUserId,
-      ideathonId: ideathonId,
-      ideas: ideas,
-      judges: judges,
-      teamsById: teamsById,
+    final Set<String> nextIdeaIds = snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId.trim()).toSet();
+    final Set<String> prevIdeaIds = previousById.keys.toSet();
+    final Set<String> addedIdeas = nextIdeaIds.difference(prevIdeaIds);
+    final Set<String> removedIdeas = prevIdeaIds.difference(nextIdeaIds);
+
+    final List<String> nextJudges =
+        input.judgeIds.map((String j) => j.trim()).where((String j) => j.isNotEmpty).toList();
+    final Set<String> removedJudges = existing.judgeIds
+        .map((String j) => j.trim())
+        .where((String j) => j.isNotEmpty)
+        .toSet()
+        .difference(nextJudges.toSet());
+
+    final DateTime now = DateTime.now();
+    final IdeathonModel updated = IdeathonModel(
+      ideathonId: existing.ideathonId,
+      orgId: existing.orgId,
+      ideathonType: input.ideathonType,
+      name: input.name.trim(),
+      description: input.description.trim(),
+      departmentId: existing.departmentId,
+      startDateTime: input.startDateTime,
+      endDateTime: input.endDateTime,
+      status: existing.status,
+      judgeIds: nextJudges,
+      coordinatorIds:
+          input.coordinatorIds.map((String c) => c.trim()).where((String c) => c.isNotEmpty).toList(),
+      ideas: snapshots,
+      evaluationTemplateId: resolved.templateId,
+      problemId: input.problemId.trim(),
+      createdBy: existing.createdBy,
+      createdAt: existing.createdAt,
+      updatedAt: now,
     );
+
+    final WriteBatch batch = _db.batch();
+    batch.set(_db.collection(FirestoreUtils.hkzIdeathons).doc(id), updated.toMap());
+    if (addedIdeas.isNotEmpty) {
+      await IdeathonParticipationService.createForIdeathon(
+        orgId: existing.orgId,
+        ideathonId: id,
+        ideaIds: addedIdeas.toList(growable: false),
+        batch: batch,
+      );
+    }
+    await batch.commit();
+
+    if (removedIdeas.isNotEmpty) {
+      await IdeathonParticipationService.deleteForIdeathonIdeas(ideathonId: id, ideaIds: removedIdeas);
+      await EvaluationAssignmentService.removeIdeathonAssignmentsMatching(
+        ideathonId: id,
+        ideaIds: removedIdeas,
+      );
+    }
+    if (removedJudges.isNotEmpty) {
+      await EvaluationAssignmentService.removeIdeathonAssignmentsMatching(
+        ideathonId: id,
+        judgeIds: removedJudges,
+      );
+    }
   }
 
   static Future<IdeathonModel?> fetchById(String ideathonId) async {

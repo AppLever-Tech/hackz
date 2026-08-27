@@ -7,6 +7,7 @@ import '../models/score_model.dart';
 import 'evaluation_aggregation_sync_service.dart';
 import '../../ideathons/models/ideathon_model.dart';
 import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
+import '../../ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -315,6 +316,9 @@ abstract final class JudgeEvaluationService {
           ? ideathon!.name.trim()
           : (aIdeathonId.isEmpty ? '' : aIdeathonId);
       final String templateId = ideathon?.evaluationTemplateId.trim() ?? '';
+      final String schedule = ideathon == null
+          ? ''
+          : IdeathonStatusHelpers.scheduleLabel(ideathon.startDateTime, ideathon.endDateTime);
 
       final ScoreModel? score = scoreFor(ideaId, aIdeathonId);
       if (score != null) {
@@ -332,6 +336,7 @@ abstract final class JudgeEvaluationService {
             evaluationTemplateId: score.templateId.trim().isNotEmpty
                 ? score.templateId
                 : templateId,
+            ideathonSchedule: schedule,
           ),
         );
         final String excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback);
@@ -351,6 +356,7 @@ abstract final class JudgeEvaluationService {
               hasStructuredCriteria: hasStructured,
               ideathonId: aIdeathonId,
               ideathonName: ideathonName,
+              ideathonSchedule: schedule,
             ),
           );
         }
@@ -366,6 +372,7 @@ abstract final class JudgeEvaluationService {
             ideathonId: aIdeathonId,
             ideathonName: ideathonName,
             evaluationTemplateId: templateId,
+            ideathonSchedule: schedule,
           ),
         );
       }
@@ -385,10 +392,14 @@ abstract final class JudgeEvaluationService {
 
     String? contextName;
     String? contextTemplateId;
+    String contextSchedule = '';
     if (eventId.isNotEmpty) {
       final IdeathonModel? focused = ideathonsById[eventId];
       contextName = focused?.name;
       contextTemplateId = focused?.evaluationTemplateId;
+      if (focused != null) {
+        contextSchedule = IdeathonStatusHelpers.scheduleLabel(focused.startDateTime, focused.endDateTime);
+      }
     }
 
     final vm = JudgeEvaluationWorkspaceVm(
@@ -402,6 +413,7 @@ abstract final class JudgeEvaluationService {
       ideathonId: eventId,
       ideathonName: contextName ?? '',
       evaluationTemplateId: contextTemplateId ?? '',
+      ideathonSchedule: contextSchedule,
     );
     _cache[key] = _CacheEntry(at: now, vm: vm);
     return vm;
@@ -417,6 +429,7 @@ abstract final class JudgeEvaluationService {
     String ideathonId = '',
     String ideathonName = '',
     String evaluationTemplateId = '',
+    String ideathonSchedule = '',
   }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -443,6 +456,7 @@ abstract final class JudgeEvaluationService {
       ideathonId: ideathonId,
       ideathonName: ideathonName,
       evaluationTemplateId: evaluationTemplateId,
+      ideathonSchedule: ideathonSchedule,
     );
   }
 
@@ -456,6 +470,7 @@ abstract final class JudgeEvaluationService {
     String ideathonId = '',
     String ideathonName = '',
     String evaluationTemplateId = '',
+    String ideathonSchedule = '',
   }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -477,6 +492,7 @@ abstract final class JudgeEvaluationService {
       ideathonId: ideathonId,
       ideathonName: ideathonName,
       evaluationTemplateId: evaluationTemplateId,
+      ideathonSchedule: ideathonSchedule,
     );
   }
 
@@ -519,6 +535,7 @@ class JudgeEvaluationWorkspaceVm {
     this.ideathonId = '',
     this.ideathonName = '',
     this.evaluationTemplateId = '',
+    this.ideathonSchedule = '',
   });
 
   const JudgeEvaluationWorkspaceVm.empty()
@@ -531,7 +548,8 @@ class JudgeEvaluationWorkspaceVm {
         completionPercent = 0,
         ideathonId = '',
         ideathonName = '',
-        evaluationTemplateId = '';
+        evaluationTemplateId = '',
+        ideathonSchedule = '';
 
   final List<JudgeEvaluationPendingRow> pending;
   final List<JudgeEvaluationEvaluatedRow> evaluated;
@@ -543,6 +561,7 @@ class JudgeEvaluationWorkspaceVm {
   final String ideathonId;
   final String ideathonName;
   final String evaluationTemplateId;
+  final String ideathonSchedule;
 
   bool get isIdeathonScoped => ideathonId.trim().isNotEmpty;
 }
@@ -563,6 +582,7 @@ class JudgeEvaluationPendingRow {
     this.ideathonId = '',
     this.ideathonName = '',
     this.evaluationTemplateId = '',
+    this.ideathonSchedule = '',
   });
 
   final IdeaModel idea;
@@ -579,6 +599,7 @@ class JudgeEvaluationPendingRow {
   final String ideathonId;
   final String ideathonName;
   final String evaluationTemplateId;
+  final String ideathonSchedule;
 
   String get ideaId => idea.ideaId;
 
@@ -605,6 +626,7 @@ class JudgeEvaluationEvaluatedRow {
     this.ideathonId = '',
     this.ideathonName = '',
     this.evaluationTemplateId = '',
+    this.ideathonSchedule = '',
   });
 
   final IdeaModel idea;
@@ -620,6 +642,7 @@ class JudgeEvaluationEvaluatedRow {
   final String ideathonId;
   final String ideathonName;
   final String evaluationTemplateId;
+  final String ideathonSchedule;
 
   String get ideaId => idea.ideaId;
 
@@ -636,6 +659,7 @@ class JudgeEvaluationFeedbackRow {
     required this.hasStructuredCriteria,
     this.ideathonId = '',
     this.ideathonName = '',
+    this.ideathonSchedule = '',
   });
 
   final String ideaId;
@@ -646,5 +670,6 @@ class JudgeEvaluationFeedbackRow {
   final bool hasStructuredCriteria;
   final String ideathonId;
   final String ideathonName;
+  final String ideathonSchedule;
 }
 

@@ -139,6 +139,7 @@ class EvaluationAssignmentService {
     if (eventId.isEmpty || org.isEmpty) {
       throw StateError('Ideathon and organization are required.');
     }
+    await _assertIdeathonAssignmentsUnlocked(eventId);
     final List<IdeaModel> ideaList = ideas.toList(growable: false);
     final List<UserModel> judgeList = judges.toList(growable: false);
     if (ideaList.isEmpty || judgeList.isEmpty) return;
@@ -201,6 +202,7 @@ class EvaluationAssignmentService {
     final String id = assignmentId.trim();
     final String eventId = ideathonId.trim();
     if (id.isEmpty || eventId.isEmpty) return;
+    await _assertIdeathonAssignmentsUnlocked(eventId);
     final DocumentSnapshot<Map<String, dynamic>> doc =
         await _db.collection(FirestoreUtils.hkzEvaluationAssignments).doc(id).get();
     if (!doc.exists || doc.data() == null) {
@@ -349,6 +351,52 @@ class EvaluationAssignmentService {
       },
     );
     return null;
+  }
+
+  /// Soft-removes active Ideathon assignments for the given ideas and/or judges.
+  static Future<void> removeIdeathonAssignmentsMatching({
+    required String ideathonId,
+    Iterable<String>? ideaIds,
+    Iterable<String>? judgeIds,
+  }) async {
+    final String eventId = ideathonId.trim();
+    if (eventId.isEmpty) return;
+    final Set<String>? ideas = ideaIds == null
+        ? null
+        : ideaIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toSet();
+    final Set<String>? judges = judgeIds == null
+        ? null
+        : judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toSet();
+    if ((ideas != null && ideas.isEmpty) || (judges != null && judges.isEmpty)) return;
+
+    final List<EvaluationAssignmentModel> assignments = await listByIdeathon(ideathonId: eventId);
+    final WriteBatch batch = _db.batch();
+    var wrote = false;
+    final DateTime now = DateTime.now();
+    for (final EvaluationAssignmentModel assignment in assignments) {
+      if (ideas != null && !ideas.contains(assignment.ideaId.trim())) continue;
+      if (judges != null && !judges.contains(assignment.judgeId.trim())) continue;
+      batch.update(
+        _db.collection(FirestoreUtils.hkzEvaluationAssignments).doc(assignment.assignmentId),
+        <String, dynamic>{
+          'status': EvaluationAssignmentStatus.removed.value,
+          'updatedAt': Timestamp.fromDate(now),
+        },
+      );
+      wrote = true;
+    }
+    if (wrote) await batch.commit();
+  }
+
+  static Future<void> _assertIdeathonAssignmentsUnlocked(String ideathonId) async {
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestoreUtils.hkzScores)
+        .where('ideathonId', isEqualTo: ideathonId.trim())
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      throw StateError('Judge assignments are locked because evaluation has started.');
+    }
   }
 
   static Future<void> _ensureGroup({

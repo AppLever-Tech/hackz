@@ -20,6 +20,7 @@ import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
+import '../models/ideathon_model.dart';
 import '../models/ideathon_type.dart';
 import '../services/ideathon_service.dart';
 import '../services/ideathon_settings_service.dart';
@@ -28,12 +29,18 @@ import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_idea_select_row.dart';
 import '../widgets/ideathon_type_selector.dart';
 
-/// Ideathon creation form (paid submitted ideas only).
+/// Ideathon create / edit form (paid submitted ideas only).
 class CreateIdeathonWorkspace extends StatefulWidget {
-  const CreateIdeathonWorkspace({super.key, required this.user, required this.onCreated});
+  const CreateIdeathonWorkspace({
+    super.key,
+    required this.user,
+    required this.onCreated,
+    this.initialEvent,
+  });
 
   final UserModel user;
   final ValueChanged<String> onCreated;
+  final IdeathonModel? initialEvent;
 
   @override
   State<CreateIdeathonWorkspace> createState() => _CreateIdeathonWorkspaceState();
@@ -49,6 +56,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool _loading = true;
   bool _saving = false;
+  bool _evaluationLocked = false;
   IdeathonType _ideathonType = IdeathonType.internal;
   List<IdeathonEligibleIdea> _catalog = <IdeathonEligibleIdea>[];
   List<UserModel> _evaluators = <UserModel>[];
@@ -62,6 +70,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   final Set<String> _selectedCoordinatorIds = <String>{};
 
   int _minimumIdeas = IdeathonSettingsService.defaultMinimumIdeasForIdeathon;
+
+  bool get _isEdit => widget.initialEvent != null;
 
   /// Collapsible sections (details/schedule stay always open).
   final Map<String, bool> _sectionExpanded = <String, bool>{
@@ -103,6 +113,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
     final String defaultTemplateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
     final int minimum = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
+    final IdeathonModel? event = widget.initialEvent;
+    final bool locked =
+        event != null && await IdeathonService.hasEvaluationStarted(event.ideathonId);
 
     if (!mounted) return;
     setState(() {
@@ -114,6 +127,29 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           ? defaultTemplateId
           : (templates.isNotEmpty ? templates.first.templateId : null);
       _minimumIdeas = minimum;
+      _evaluationLocked = locked;
+      if (event != null) {
+        _ideathonType = event.ideathonType;
+        _nameController.text = event.name;
+        _descriptionController.text = event.description;
+        _startDateTime = event.startDateTime;
+        _endDateTime = event.endDateTime;
+        _selectedIdeaIds
+          ..clear()
+          ..addAll(event.ideas.map((s) => s.ideaId.trim()).where((String id) => id.isNotEmpty));
+        _selectedJudgeIds
+          ..clear()
+          ..addAll(event.judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty));
+        _selectedCoordinatorIds
+          ..clear()
+          ..addAll(event.coordinatorIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty));
+        final String eventTemplate = event.evaluationTemplateId.trim();
+        if (eventTemplate.isNotEmpty) _selectedTemplateId = eventTemplate;
+        _optionalProblemId = event.problemId.trim().isEmpty ? null : event.problemId.trim();
+        _sectionExpanded['ideas'] = true;
+        _sectionExpanded['evaluation'] = true;
+        _sectionExpanded['people'] = true;
+      }
       _loading = false;
     });
   }
@@ -228,6 +264,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   bool get _minimumMet => _selectedIdeaIds.length >= _minimumIdeas;
 
   bool get _canSubmit =>
+      !_evaluationLocked &&
       _nameController.text.trim().isNotEmpty &&
       _scheduleValid &&
       _minimumMet &&
@@ -240,7 +277,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final DateTime? date = await showDatePicker(
       context: context,
       initialDate: current,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      firstDate: widget.initialEvent == null
+          ? DateTime.now().subtract(const Duration(days: 1))
+          : DateTime(current.year - 2),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
     );
     if (date == null || !mounted) return;
@@ -268,37 +307,51 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       FeedbackService.showError(
         context,
         title: 'Not allowed',
-        message: 'Only department admins can create Ideathons.',
+        message: _isEdit ? 'Only department admins can edit Ideathons.' : 'Only department admins can create Ideathons.',
       );
       return;
     }
     setState(() => _saving = true);
     try {
-      final String id = await IdeathonService.createIdeathon(
-        actor: widget.user,
-        input: CreateIdeathonInput(
-          name: _nameController.text,
-          description: _descriptionController.text,
-          startDateTime: _startDateTime,
-          endDateTime: _endDateTime,
-          ideaIds: _selectedIdeaIds.toList(),
-          judgeIds: _selectedJudgeIds.toList(),
-          coordinatorIds: _selectedCoordinatorIds.toList(),
-          evaluationTemplateId: _selectedTemplateId ?? '',
-          problemId: _optionalProblemId ?? '',
-          ideathonType: _ideathonType,
-        ),
+      final CreateIdeathonInput input = CreateIdeathonInput(
+        name: _nameController.text,
+        description: _descriptionController.text,
+        startDateTime: _startDateTime,
+        endDateTime: _endDateTime,
+        ideaIds: _selectedIdeaIds.toList(),
+        judgeIds: _selectedJudgeIds.toList(),
+        coordinatorIds: _selectedCoordinatorIds.toList(),
+        evaluationTemplateId: _selectedTemplateId ?? '',
+        problemId: _optionalProblemId ?? '',
+        ideathonType: _ideathonType,
       );
+      final String id;
+      if (_isEdit) {
+        id = widget.initialEvent!.ideathonId;
+        await IdeathonService.updateIdeathon(
+          actor: widget.user,
+          ideathonId: id,
+          input: input,
+        );
+      } else {
+        id = await IdeathonService.createIdeathon(actor: widget.user, input: input);
+      }
       if (!mounted) return;
       widget.onCreated(id);
       FeedbackService.showSuccess(
         context,
-        title: 'Ideathon created',
-        message: 'Event created with ${_selectedIdeaIds.length} paid ideas.',
+        title: _isEdit ? 'Ideathon updated' : 'Ideathon created',
+        message: _isEdit
+            ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
+            : 'Event created with ${_selectedIdeaIds.length} paid ideas. Assign judges to ideas next — assignment is not automatic.',
       );
     } catch (e) {
       if (!mounted) return;
-      FeedbackService.showError(context, title: 'Unable to create ideathon', message: '$e');
+      FeedbackService.showError(
+        context,
+        title: _isEdit ? 'Unable to update ideathon' : 'Unable to create ideathon',
+        message: '$e',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -377,8 +430,36 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        if (_evaluationLocked)
+          Padding(
+            padding: EdgeInsets.fromLTRB(pad.left, 8, pad.right, 0),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFCD34D)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Event configuration is locked because evaluation has started. Submitted scores, results, and winners cannot be changed here.',
+                      style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Expanded(
-          child: ListView(
+          child: AbsorbPointer(
+            absorbing: _evaluationLocked,
+            child: ListView(
             padding: pad,
             children: <Widget>[
               if (mobile) ...<Widget>[
@@ -408,7 +489,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                   children: <Widget>[
                     const Text(
                       'Only submitted ideas with coordinator-confirmed Team Leader payment appear here. '
-                      'Select at least the org minimum of paid ideas to create the Ideathon.',
+                      'Select at least the org minimum of paid ideas. Judges are assigned to these ideas later on Judge Assignments — not automatically.',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -522,6 +603,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
               ),
               const SizedBox(height: 80),
             ],
+          ),
           ),
         ),
         _buildFooter(context),
@@ -907,23 +989,33 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       emptyMessage: 'No coordinators available.',
     );
 
-    if (sideBySide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Expanded(child: judges),
-          const SizedBox(width: 12),
-          Expanded(child: coordinators),
-        ],
-      );
-    }
+    final Widget body = sideBySide
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: judges),
+              const SizedBox(width: 12),
+              Expanded(child: coordinators),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              judges,
+              const SizedBox(height: 14),
+              coordinators,
+            ],
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        judges,
-        const SizedBox(height: 14),
-        coordinators,
+        const Text(
+          'Event roster only. Assign judges to specific ideas from the Judge Assignments tab after the event is saved. Assignment is not automatic.',
+          style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 10),
+        body,
       ],
     );
   }
@@ -991,8 +1083,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               )
-            : const Icon(AppIcons.add, size: 18),
-        label: const Text('Create Ideathon'),
+            : Icon(_isEdit ? AppIcons.edit : AppIcons.add, size: 18),
+        label: Text(_isEdit ? 'Save changes' : 'Create Ideathon'),
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 44),
           backgroundColor: const Color(0xFF6A38FF),

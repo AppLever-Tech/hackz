@@ -9,24 +9,37 @@ class EventDetailsShell extends StatelessWidget {
     super.key,
     required this.headerPills,
     required this.modules,
+    this.headerActions,
   });
 
   final List<Widget> headerPills;
   final List<EventDetailsModule> modules;
+  final Widget? headerActions;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (headerPills.isNotEmpty)
+        if (headerPills.isNotEmpty || headerActions != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: headerPills,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: headerPills,
+                  ),
+                ),
+                if (headerActions != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  headerActions!,
+                ],
+              ],
             ),
           ),
         Expanded(

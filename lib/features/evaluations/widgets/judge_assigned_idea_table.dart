@@ -112,10 +112,12 @@ class JudgeAssignedIdeaTable extends StatelessWidget {
     super.key,
     required this.entries,
     this.emptyMessage = 'No assigned ideas found.',
+    this.shrinkWrap = false,
   });
 
   final List<JudgeAssignedIdeaTableEntry> entries;
   final String emptyMessage;
+  final bool shrinkWrap;
 
   static const Color _headerBg = Color(0xFFF1F4FB);
   static const Color _border = Color(0xFFE3E8F4);
@@ -150,11 +152,14 @@ class JudgeAssignedIdeaTable extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
+            mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               _buildHeader(stacked: stacked),
-              Expanded(
-                child: ListView.separated(
+              if (shrinkWrap)
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
                   itemCount: entries.length,
                   separatorBuilder: (_, __) =>
@@ -167,8 +172,24 @@ class JudgeAssignedIdeaTable extends StatelessWidget {
                       child: stacked ? _StackedRow(entry: entry) : _WideRow(entry: entry),
                     );
                   },
+                )
+              else
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: entries.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, thickness: 1, color: _border),
+                    itemBuilder: (BuildContext context, int index) {
+                      final JudgeAssignedIdeaTableEntry entry = entries[index];
+                      final Color rowBg = index.isEven ? Colors.white : _altRowBg;
+                      return ColoredBox(
+                        color: rowBg,
+                        child: stacked ? _StackedRow(entry: entry) : _WideRow(entry: entry),
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         );

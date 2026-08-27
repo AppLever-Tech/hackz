@@ -37,4 +37,32 @@ abstract final class IdeathonStatusHelpers {
       IdeathonStatus.archived => AppIcons.workflowArchived,
     };
   }
+
+  /// Compact event schedule for banners and grouping headers.
+  static String scheduleLabel(DateTime start, DateTime end) {
+    final DateTime localStart = start.toLocal();
+    final DateTime localEnd = end.toLocal();
+    final bool sameDay = localStart.year == localEnd.year &&
+        localStart.month == localEnd.month &&
+        localStart.day == localEnd.day;
+    final String datePart = sameDay
+        ? _shortDate(localStart)
+        : '${_shortDate(localStart)} – ${_shortDate(localEnd)}';
+    return '$datePart · ${_shortTime(localStart)} – ${_shortTime(localEnd)}';
+  }
+
+  static String _shortDate(DateTime d) {
+    const List<String> months = <String>[
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  static String _shortTime(DateTime d) {
+    final int hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final String minute = d.minute.toString().padLeft(2, '0');
+    final String suffix = d.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $suffix';
+  }
 }

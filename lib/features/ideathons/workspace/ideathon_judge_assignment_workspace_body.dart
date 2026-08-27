@@ -56,7 +56,10 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
     if (oldWidget.vm != widget.vm) _vm = widget.vm;
   }
 
-  bool get _canManage => IdeathonJudgeAssignmentService.canManageAssignments(widget.actor);
+  bool get _canManage =>
+      IdeathonJudgeAssignmentService.canManageAssignments(widget.actor) && !_vm.evaluationLocked;
+
+  bool get _isAdmin => IdeathonJudgeAssignmentService.canManageAssignments(widget.actor);
 
   Future<void> _reload() async {
     final IdeathonJudgeAssignmentViewModel next =
@@ -88,6 +91,14 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
   }
 
   Future<void> _openAssignSheet(IdeathonJudgeAssignmentRow row) async {
+    if (_vm.evaluationLocked) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Assignments locked',
+        message: 'Judge assignments cannot be changed after evaluation has started.',
+      );
+      return;
+    }
     if (!_canManage) {
       FeedbackService.showError(
         context,
@@ -194,6 +205,65 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
           ],
         ),
         const SizedBox(height: 14),
+        if (_vm.evaluationLocked) ...<Widget>[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFCD34D)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Judge assignments are locked because evaluation has started. Submitted scores are not changed from this view.',
+                    style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_vm.workloads.isNotEmpty) ...<Widget>[
+          const Text(
+            'Judge workload',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _vm.workloads
+                .map(
+                  (IdeathonJudgeWorkload w) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: w.ideaCount == 0 ? const Color(0xFFFFF7ED) : const Color(0xFFF5F3FF),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: w.ideaCount == 0 ? const Color(0xFFFED7AA) : const Color(0xFFDDD6FE),
+                      ),
+                    ),
+                    child: Text(
+                      '${w.displayName} · ${w.ideaCount} idea${w.ideaCount == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: w.ideaCount == 0 ? const Color(0xFFC2410C) : const Color(0xFF5B21B6),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+          const SizedBox(height: 12),
+        ],
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
@@ -236,10 +306,16 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
               ),
               const SizedBox(height: 8),
               const Text(
-                'Assign judges only to ideas registered for this Ideathon. The evaluation template is fixed for the event.',
+                'Explicitly assign judges to paid ideas registered for this Ideathon. Judges are not assigned automatically. The evaluation template is fixed for the event.',
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
               ),
-              if (!_canManage) ...<Widget>[
+              if (_vm.evaluationLocked) ...<Widget>[
+                const SizedBox(height: 8),
+                const Text(
+                  'View only — assignments locked after evaluation started.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
+                ),
+              ] else if (!_isAdmin) ...<Widget>[
                 const SizedBox(height: 8),
                 const Text(
                   'View only — Department Admin can assign or reassign judges.',

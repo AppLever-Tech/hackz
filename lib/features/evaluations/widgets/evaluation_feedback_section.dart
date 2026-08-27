@@ -57,6 +57,15 @@ class EvaluationFeedbackSection extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(formatDateTime(r.evaluatedAt), style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+              if (r.ideathonName.trim().isNotEmpty) ...<Widget>[
+                const SizedBox(height: 4),
+                Text(
+                  r.ideathonSchedule.trim().isEmpty
+                      ? r.ideathonName.trim()
+                      : '${r.ideathonName.trim()} · ${r.ideathonSchedule.trim()}',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6A38FF)),
+                ),
+              ],
               const SizedBox(height: 8),
               Text(r.remarksExcerpt, style: const TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF334155))),
               if (r.hasStructuredCriteria) ...<Widget>[

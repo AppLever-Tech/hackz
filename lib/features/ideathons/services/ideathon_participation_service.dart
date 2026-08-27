@@ -106,6 +106,23 @@ abstract final class IdeathonParticipationService {
         .toList(growable: false);
   }
 
+  static Future<void> deleteForIdeathonIdeas({
+    required String ideathonId,
+    required Iterable<String> ideaIds,
+  }) async {
+    final Set<String> remove = ideaIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toSet();
+    if (remove.isEmpty) return;
+    final List<IdeathonParticipation> existing = await listByIdeathon(ideathonId);
+    final WriteBatch batch = _db.batch();
+    var wrote = false;
+    for (final IdeathonParticipation participation in existing) {
+      if (!remove.contains(participation.ideaId.trim())) continue;
+      batch.delete(_col.doc(participation.participationId));
+      wrote = true;
+    }
+    if (wrote) await batch.commit();
+  }
+
   /// Mirrors idea payment status onto membership rows (optional sync).
   static Future<void> syncPaymentStatus({
     required String participationId,

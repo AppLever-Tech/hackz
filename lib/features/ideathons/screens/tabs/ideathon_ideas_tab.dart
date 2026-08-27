@@ -32,7 +32,7 @@ class IdeathonIdeasTab extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            'Ideas that were paid and confirmed when this Ideathon was created. '
+            'Paid ideas registered for this Ideathon. Add or remove them from Edit before evaluation starts. '
             'Open Idea, Problem, or Team in the right-side workspace.',
             style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
           ),

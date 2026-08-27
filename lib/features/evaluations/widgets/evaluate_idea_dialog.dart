@@ -44,6 +44,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
     this.ideathonId = '',
     this.forcedTemplateId = '',
     this.ideathonName = '',
+    this.ideathonSchedule = '',
   });
 
   final UserModel judge;
@@ -60,6 +61,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
   final String forcedTemplateId;
 
   final String ideathonName;
+  final String ideathonSchedule;
 
   static Future<bool?> showForIdeaListItem(
     BuildContext context, {
@@ -318,12 +320,20 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         if (widget.ideathonName.trim().isNotEmpty) ...<Widget>[
           const SizedBox(height: 4),
           Text(
-            'Ideathon: ${widget.ideathonName.trim()}',
+            widget.ideathonName.trim(),
             style: theme.textTheme.bodySmall?.copyWith(
               color: const Color(0xFF6A38FF),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
+          if (widget.ideathonSchedule.trim().isNotEmpty)
+            Text(
+              widget.ideathonSchedule.trim(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: const Color(0xFF64748B),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
         ],
         const SizedBox(height: 4),
         Text(

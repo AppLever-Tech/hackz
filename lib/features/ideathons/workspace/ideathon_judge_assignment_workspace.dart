@@ -14,7 +14,7 @@ abstract final class IdeathonJudgeAssignmentWorkspace {
     late IdeathonJudgeAssignmentViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonJudgeAssignment:$ideathonId',
-      title: 'Ideathon Judge Assignment',
+      title: 'Manage Judge Assignments',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
       prepare: () async {

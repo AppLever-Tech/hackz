@@ -111,7 +111,7 @@ class IdeathonWorkspaceBody extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: ProblemWorkflowActionPill(
-                  label: 'Open Judge Assignment',
+                  label: 'Manage Judge Assignments',
                   icon: AppIcons.judges,
                   semantic: ProblemWorkflowPillSemantic.filledBrand,
                   onTap: onOpenJudgeAssignment,

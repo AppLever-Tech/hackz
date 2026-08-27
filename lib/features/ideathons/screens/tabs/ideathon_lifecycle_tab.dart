@@ -12,27 +12,59 @@ class IdeathonLifecycleTab extends StatelessWidget {
 
   final IdeathonDetailsViewModel vm;
 
+  static const String _stageCreated = 'created';
+  static const String _stageAssignment = 'assignment';
+  static const String _stagePrep = 'preparation';
+  static const String _stageStarted = 'started';
+  static const String _stageEvaluation = 'evaluation';
+  static const String _stageResults = 'results';
+  static const String _stageWinners = 'winners';
+
   @override
   Widget build(BuildContext context) {
     final event = vm.ideathon;
-    final List<EventLifecycleStage> stages = IdeathonStatus.lifecycleOrder
-        .map(
-          (IdeathonStatus status) => EventLifecycleStage(
-            id: status.value,
-            label: IdeathonStatusHelpers.label(status),
-            icon: IdeathonStatusHelpers.icon(status),
-            color: IdeathonStatusHelpers.color(status),
-          ),
-        )
-        .toList(growable: false);
+    final bool evaluationStarted = vm.workspace.evaluationStarted;
+    final bool hasAssignments = vm.workspace.assignmentCount > 0;
+    final bool eventStarted = DateTime.now().isAfter(event.startDateTime);
+    final bool completed = event.status == IdeathonStatus.completed || event.status == IdeathonStatus.archived;
+
+    final List<EventLifecycleStage> stages = <EventLifecycleStage>[
+      EventLifecycleStage(id: _stageCreated, label: 'Created', icon: AppIcons.ideathons, color: const Color(0xFF4F46E5)),
+      EventLifecycleStage(id: _stageAssignment, label: 'Judge Assignment', icon: AppIcons.judges, color: const Color(0xFF7C3AED)),
+      EventLifecycleStage(id: _stagePrep, label: 'Preparation', icon: AppIcons.checklist, color: const Color(0xFF0284C7)),
+      EventLifecycleStage(id: _stageStarted, label: 'Event Started', icon: AppIcons.event, color: const Color(0xFF0EA5E9)),
+      EventLifecycleStage(id: _stageEvaluation, label: 'Evaluation', icon: AppIcons.scoring, color: const Color(0xFFEA580C)),
+      EventLifecycleStage(id: _stageResults, label: 'Results', icon: AppIcons.results, color: const Color(0xFF059669)),
+      EventLifecycleStage(id: _stageWinners, label: 'Winners', icon: AppIcons.leaderboard, color: const Color(0xFFB45309)),
+    ];
+
+    String currentId = _stageCreated;
+    if (completed) {
+      currentId = _stageWinners;
+    } else if (evaluationStarted) {
+      currentId = vm.workspace.evaluationProgressPct >= 1 ? _stageResults : _stageEvaluation;
+    } else if (eventStarted) {
+      currentId = _stageStarted;
+    } else if (hasAssignments) {
+      currentId = _stagePrep;
+    }
 
     final List<EventLifecycleMoment> moments = <EventLifecycleMoment>[
       EventLifecycleMoment(
         title: 'Ideathon created',
-        subtitle: 'Event record saved',
+        subtitle: 'Event record saved. Judge assignment is the next operational step and is not automatic.',
         at: event.createdAt,
         icon: AppIcons.ideathons,
         color: const Color(0xFF4F46E5),
+      ),
+      EventLifecycleMoment(
+        title: hasAssignments ? 'Judge assignment started' : 'Judge assignment pending',
+        subtitle: hasAssignments
+            ? '${vm.workspace.assignmentCount} explicit idea → judge assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}'
+            : 'Optional at first — assign paid ideas to judges from Judge Assignments',
+        at: vm.workspace.firstAssignedAt,
+        icon: AppIcons.judges,
+        color: const Color(0xFF7C3AED),
       ),
       EventLifecycleMoment(
         title: 'Scheduled window',
@@ -42,8 +74,17 @@ class IdeathonLifecycleTab extends StatelessWidget {
         color: const Color(0xFF0284C7),
       ),
       EventLifecycleMoment(
+        title: evaluationStarted ? 'Evaluation began' : 'Evaluation not started',
+        subtitle: evaluationStarted
+            ? 'Judge assignments and integrity-sensitive configuration are locked'
+            : 'Locking uses the first submitted evaluation, not the scheduled date alone',
+        at: vm.workspace.evaluationStartedAt,
+        icon: AppIcons.scoring,
+        color: const Color(0xFFEA580C),
+      ),
+      EventLifecycleMoment(
         title: IdeathonStatusHelpers.label(event.status),
-        subtitle: 'Current lifecycle state',
+        subtitle: 'Current stored lifecycle status',
         at: event.updatedAt,
         icon: IdeathonStatusHelpers.icon(event.status),
         color: IdeathonStatusHelpers.color(event.status),
@@ -56,7 +97,7 @@ class IdeathonLifecycleTab extends StatelessWidget {
 
     return EventLifecycleSection(
       stages: stages,
-      currentId: event.status.value,
+      currentId: currentId,
       moments: moments,
       title: 'Ideathon lifecycle',
     );
