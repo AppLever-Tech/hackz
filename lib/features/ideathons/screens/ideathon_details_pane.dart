@@ -15,6 +15,7 @@ import 'package:hackz/features/events/widgets/event_meta_chip.dart';
 import 'package:hackz/features/ideathons/screens/create_ideathon_workspace.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_ideas_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_judge_assignments_tab.dart';
+import 'package:hackz/features/ideathons/screens/tabs/ideathon_leaderboard_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_lifecycle_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_overview_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_payments_tab.dart';
@@ -287,6 +288,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                       id: 'results',
                       label: 'Evaluation Results',
                       child: IdeathonResultsTab(event: event, actor: widget.actor),
+                    ),
+                    EventDetailsModule(
+                      id: 'leaderboard',
+                      label: 'Leaderboard',
+                      child: IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
                     ),
                     EventDetailsModule(
                       id: 'payments',

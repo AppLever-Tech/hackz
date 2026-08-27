@@ -13,7 +13,6 @@ import '../widgets/department_trend_chart.dart';
 import '../widgets/recent_department_activity_card.dart';
 import '../widgets/user_distribution_widget.dart';
 import '../../chrome/dashboard_page_template.dart';
-import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/evaluations/screens/department_evaluation_extensions_screen.dart';
@@ -104,12 +103,6 @@ class DeptAdminDashboard extends StatelessWidget {
         }
         if (selectedMenuIndex == 9) {
           return RequestsWorkspaceScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 10) {
-          return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );

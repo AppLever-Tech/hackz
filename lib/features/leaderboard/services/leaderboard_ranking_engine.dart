@@ -76,11 +76,3 @@ class LeaderboardRankingEngine {
         sub * weights.submissionCompletenessShare;
   }
 }
-
-enum TrendDirection { up, down, stable }
-
-TrendDirection trendFromDelta(double delta, {double epsilon = 0.08}) {
-  if (delta > epsilon) return TrendDirection.up;
-  if (delta < -epsilon) return TrendDirection.down;
-  return TrendDirection.stable;
-}

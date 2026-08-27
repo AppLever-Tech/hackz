@@ -19,7 +19,7 @@ class AchievementBadgeWidget extends StatelessWidget {
         gradient: LinearGradient(colors: badge.gradient),
         borderRadius: BorderRadius.circular(999),
         boxShadow: <BoxShadow>[
-          BoxShadow(color: badge.gradient.last.withOpacity(0.35), blurRadius: 8, offset: const Offset(0, 3)),
+          BoxShadow(color: badge.gradient.last.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3)),
         ],
       ),
       child: Row(

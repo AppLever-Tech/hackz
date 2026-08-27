@@ -11,7 +11,6 @@ import '../../../../utils/firestore_utils.dart';
 import '../../../../features/idea/services/idea_role_config.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
 import '../../chrome/dashboard_page_template.dart';
-import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
@@ -99,12 +98,6 @@ class CollegeAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 5) {
-          return LeaderboardShowcaseScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 6) {
           return OrgSettingsDashboard(
             key: ValueKey<int>(refreshToken),
             user: user,

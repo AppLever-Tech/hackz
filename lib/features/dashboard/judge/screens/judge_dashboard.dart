@@ -10,7 +10,6 @@ import '../../../../utils/common_helpers.dart';
 import '../../../../features/evaluations/services/judge_dashboard_service.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../chrome/dashboard_page_template.dart';
-import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
 import '../../../../core/ui/common/dashboard_trend_chart_layout.dart';
@@ -32,12 +31,6 @@ class JudgeDashboard extends StatelessWidget {
       bodyBuilder: (_, int refreshToken, int selectedMenuIndex) {
         if (selectedMenuIndex == 1) {
           return JudgeEvaluationWorkspaceScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 2) {
-          return LeaderboardShowcaseScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );

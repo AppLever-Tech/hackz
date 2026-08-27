@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
 
-import '../services/leaderboard_showcase_service.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../events/models/event_leaderboard_entry.dart';
 import 'achievement_badge_widget.dart';
 import 'podium_widget.dart';
-import 'trend_indicator_widget.dart';
 
 class LeaderboardHeroSection extends StatelessWidget {
   const LeaderboardHeroSection({
     super.key,
-    required this.hero,
+    required this.spotlight,
     required this.podium,
+    this.onOpenIdea,
+    this.onOpenTeam,
   });
 
-  final LeaderboardHeroVm hero;
-  final List<TeamShowcaseRow> podium;
+  final EventLeaderboardEntry spotlight;
+  final List<EventLeaderboardEntry> podium;
+  final ValueChanged<EventLeaderboardEntry>? onOpenIdea;
+  final ValueChanged<EventLeaderboardEntry>? onOpenTeam;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         gradient: const LinearGradient(
@@ -38,8 +43,8 @@ class LeaderboardHeroSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: const <Widget>[
+          const Row(
+            children: <Widget>[
               Icon(Icons.auto_graph_rounded, color: Color(0xFFE9D5FF)),
               SizedBox(width: 8),
               Text(
@@ -54,35 +59,30 @@ class LeaderboardHeroSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            hero.spotlightTitle,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              height: 1.15,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              Icon(Icons.groups_rounded, size: 18, color: Colors.white.withOpacity(0.85)),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  hero.subtitle,
-                  style: TextStyle(color: Colors.white.withOpacity(0.88), fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              ContextPill(
+                label: spotlight.displayIdeaTitle,
+                semantic: ContextPillSemantic.idea,
+                onTap: () => onOpenIdea?.call(spotlight),
+                enabled: onOpenIdea != null,
+                compact: true,
+                fitContent: true,
+              ),
+              ContextPill(
+                label: spotlight.displayTeamName,
+                semantic: ContextPillSemantic.team,
+                onTap: () => onOpenTeam?.call(spotlight),
+                enabled: onOpenTeam != null && spotlight.teamId.trim().isNotEmpty,
+                compact: true,
+                fitContent: true,
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            hero.departmentLabel,
-            style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 12),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -91,7 +91,7 @@ class LeaderboardHeroSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: Colors.white24),
                 ),
@@ -99,12 +99,12 @@ class LeaderboardHeroSection extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     const Text(
-                      'Innovation Score',
+                      'Score',
                       style: TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      hero.innovationScore.toStringAsFixed(1),
+                      spotlight.overallScoreLabel,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
@@ -114,8 +114,14 @@ class LeaderboardHeroSection extends StatelessWidget {
                   ],
                 ),
               ),
-              TrendIndicatorWidget(direction: hero.trend),
-              AchievementBadgeWidget(badgeId: hero.achievementId),
+              AchievementBadgeWidget(
+                badgeId: switch (spotlight.rank) {
+                  1 => 'gold',
+                  2 => 'silver',
+                  3 => 'bronze',
+                  _ => 'contender',
+                },
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
@@ -123,14 +129,18 @@ class LeaderboardHeroSection extends StatelessWidget {
                   border: Border.all(color: Colors.white24),
                 ),
                 child: Text(
-                  'Rank #${hero.rank}',
+                  'Rank #${spotlight.rank}',
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          PodiumWidget(rows: podium.take(3).toList(growable: false)),
+          const SizedBox(height: 20),
+          PodiumWidget(
+            rows: podium.take(3).toList(growable: false),
+            onOpenIdea: onOpenIdea,
+            onOpenTeam: onOpenTeam,
+          ),
         ],
       ),
     );

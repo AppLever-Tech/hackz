@@ -15,7 +15,6 @@ import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../../core/responsive/responsive_metric_grid.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../chrome/dashboard_page_template.dart';
-import '../../../../features/leaderboard/screens/leaderboard_showcase_screen.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/team/screens/teams_screen.dart';
@@ -58,7 +57,6 @@ class _TeamMemberDashboardState extends State<TeamMemberDashboard> {
         const DashboardMenuItem(label: 'Ideas', icon: AppIcons.ideas),
       const DashboardMenuItem(label: 'Problems', icon: AppIcons.problems),
       if (isTeamLeader) const DashboardMenuItem(label: 'Payments', icon: AppIcons.payments),
-      const DashboardMenuItem(label: 'Leaderboard', icon: AppIcons.leaderboard),
     ];
   }
 
@@ -94,11 +92,6 @@ class _TeamMemberDashboardState extends State<TeamMemberDashboard> {
           key: ValueKey<int>(refreshToken),
           user: user,
           ledTeamsOnly: true,
-        );
-      case 'Leaderboard':
-        return LeaderboardShowcaseScreen(
-          key: ValueKey<int>(refreshToken),
-          user: user,
         );
       default:
         return _TeamMemberDashboardHome(
