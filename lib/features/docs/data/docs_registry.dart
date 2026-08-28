@@ -368,7 +368,7 @@ abstract final class DocsRegistry {
       'hackathon' || 'hackathon workspace' => 'hackathon',
       'org settings' || 'organization settings' => 'org-settings',
       'domains' || 'domain management' => 'domain-management',
-      'manage college' || 'manage department' || 'user management' || 'organizations' =>
+      'manage college' || 'manage department' || 'user management' || 'organizations' || 'people & teams' =>
         'user-management',
       'payments' || 'payment verification' => 'payment-verification',
       'roles' || 'roles & responsibilities' => 'roles-responsibilities',

@@ -16,7 +16,6 @@ import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import '../../../../features/evaluations/screens/judges_panel.dart';
 import '../../../../features/domain/domain.dart';
 import '../../../../features/user/screens/manage_users_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -82,12 +81,6 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 6) {
-          return JudgesPanelScreen(
-            key: ValueKey<int>(refreshToken),
-            user: user,
-          );
-        }
-        if (selectedMenuIndex == 7) {
           return RequestsWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

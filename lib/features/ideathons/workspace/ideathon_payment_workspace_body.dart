@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/responsive_alert_dialog.dart';
-import '../../../core/responsive/responsive_dialog.dart';
-import '../../../core/ui/feedback/feedback.dart';
-import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../events/models/event_kind.dart';
 import '../../events/models/event_payment_entry.dart';
 import '../../events/widgets/event_payments_section.dart';
@@ -30,7 +26,6 @@ class IdeathonPaymentWorkspaceBody extends StatefulWidget {
 
 class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceBody> {
   late IdeathonPaymentWorkspaceViewModel _vm;
-  bool _busy = false;
 
   @override
   void initState() {
@@ -68,125 +63,13 @@ class _IdeathonPaymentWorkspaceBodyState extends State<IdeathonPaymentWorkspaceB
         exceptions: _vm.metrics.paymentException,
       );
 
-  IdeathonPaymentRow? _rowFor(EventPaymentEntry entry) {
-    for (final IdeathonPaymentRow row in _vm.rows) {
-      if (row.ideaId == entry.entryId) return row;
-    }
-    return null;
-  }
-
-  Future<void> _reload() async {
-    final IdeathonPaymentWorkspaceViewModel next =
-        await IdeathonPaymentService.load(_vm.ideathon.ideathonId);
-    if (!mounted) return;
-    setState(() => _vm = next);
-  }
-
-  Future<void> _confirm(EventPaymentEntry entry) async {
-    final UserModel? actor = widget.actor;
-    final IdeathonPaymentRow? row = _rowFor(entry);
-    if (actor == null || row == null) {
-      FeedbackService.showError(context, title: 'Unable to confirm', message: 'Coordinator session required.');
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      await IdeathonPaymentService.verifyRow(row: row, coordinator: actor);
-      await _reload();
-      if (!mounted) return;
-      FeedbackService.showSuccess(
-        context,
-        title: 'Payment confirmed',
-        message: 'This idea is eligible for the event.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      FeedbackService.showError(context, title: 'Confirm failed', message: '$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _markException(EventPaymentEntry entry) async {
-    final UserModel? actor = widget.actor;
-    final IdeathonPaymentRow? row = _rowFor(entry);
-    if (actor == null || row == null) {
-      FeedbackService.showError(context, title: 'Unable to reject', message: 'Coordinator session required.');
-      return;
-    }
-    final TextEditingController remarks = TextEditingController(text: row.payment?.remarks ?? '');
-    final String? confirmed = await showDialog<String>(
-      context: context,
-      builder: (BuildContext ctx) {
-        return ResponsiveAlertDialog(
-          title: const Text('Payment exception'),
-          widthPreset: DialogWidthPreset.compact,
-          content: TextField(
-            controller: remarks,
-            maxLines: 3,
-            style: HackzInputDecoration.compactFieldTextStyle,
-            decoration: HackzInputDecoration.decorate(
-              hintText: 'Remarks',
-              compact: true,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, remarks.text.trim()),
-              child: const Text('Mark exception'),
-            ),
-          ],
-        );
-      },
-    );
-    remarks.dispose();
-    if (confirmed == null || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      await IdeathonPaymentService.rejectRow(
-        row: row,
-        coordinator: actor,
-        remarks: confirmed.isEmpty ? null : confirmed,
-      );
-      await _reload();
-      if (!mounted) return;
-      FeedbackService.showSuccess(
-        context,
-        title: 'Payment exception recorded',
-        message: 'Participation remains payment pending.',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      FeedbackService.showError(context, title: 'Reject failed', message: '$e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        EventPaymentsSection(
-          kind: EventKind.ideathon,
-          entries: _entries,
-          metrics: _metrics,
-          canManage: widget.actor != null,
-          busy: _busy,
-          embedded: widget.embedded,
-          onConfirm: _confirm,
-          onMarkException: _markException,
-        ),
-        if (_busy)
-          const Positioned.fill(
-            child: ColoredBox(
-              color: Color(0x66FFFFFF),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-      ],
+    return EventPaymentsSection(
+      kind: EventKind.ideathon,
+      entries: _entries,
+      metrics: _metrics,
+      embedded: widget.embedded,
     );
   }
 }

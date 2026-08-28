@@ -36,6 +36,7 @@ import '../models/enums/user_status.dart';
 import '../models/user_model.dart';
 import '../services/user_role_labels.dart';
 import 'create_user_dialog.dart';
+import '../../evaluations/screens/judges_panel.dart';
 import '../../team/models/team_model.dart';
 import '../../team/screens/team_creation_workspace.dart';
 import '../../team/services/team_service.dart';
@@ -90,7 +91,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     super.initState();
     _filter = widget.initialUsersFilter;
     _orgName = widget.user.orgId;
-    _sectionController = TabController(length: 2, vsync: this);
+    _sectionController = TabController(length: 3, vsync: this);
     _sectionController.addListener(() {
       if (!_sectionController.indexIsChanging) setState(() {});
     });
@@ -134,6 +135,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   bool get _isTeamsSection => _sectionController.index == 1;
+  bool get _isJudgesSection => _sectionController.index == 2;
+
+  int get _judgeCount =>
+      _allUsers.where((UserModel u) => u.role == UserRole.judge.code).length;
 
   List<TeamModel> get _departmentTeams => _teamsData?.teams ?? const <TeamModel>[];
 
@@ -975,10 +980,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           child: RichTabBar(
             controller: _sectionController,
             tabs: <RichTabItem>[
-              RichTabItem('Users', count: _allUsers.length),
+              RichTabItem('Users', count: _allUsers.where((UserModel u) => u.role != UserRole.judge.code).length),
               RichTabItem('Teams', count: _departmentTeams.length),
+              RichTabItem('Judges', count: _judgeCount),
             ],
-            useSwitcherOnMobile: false,
+            useSwitcherOnMobile: true,
           ),
         ),
         const SizedBox(width: 8),
@@ -1272,10 +1278,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           duration: const Duration(milliseconds: 220),
         ),
         SizedBox(height: gap),
-        if (_isTeamsSection) _buildTeamMetrics(context) else _buildUserMetrics(context),
-        SizedBox(height: gap),
-        if (_isTeamsSection) _buildTeamsToolbar(context) else _buildToolbar(context),
-        const SizedBox(height: 10),
+        if (!_isJudgesSection) ...<Widget>[
+          if (_isTeamsSection) _buildTeamMetrics(context) else _buildUserMetrics(context),
+          SizedBox(height: gap),
+          if (_isTeamsSection) _buildTeamsToolbar(context) else _buildToolbar(context),
+          const SizedBox(height: 10),
+        ],
       ],
     );
   }
@@ -1285,7 +1293,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     final bool mobile = ResponsiveHelper.isMobile(context);
     final double gap = ResponsiveHelper.dashboardSectionGap(context);
     final Widget header = _buildHeader(context, gap: gap);
-    final Widget body = _isTeamsSection ? _buildTeamsList() : _buildUserList(_filteredUsers());
+    final Widget body = _isJudgesSection
+        ? JudgesPanelScreen(user: widget.user)
+        : _isTeamsSection
+            ? _buildTeamsList()
+            : _buildUserList(_filteredUsers());
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
@@ -1311,10 +1323,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
                   Expanded(child: body),
                 ],
               ),
-              MobileCreateFab(
-                onPressed: _isTeamsSection ? _openCreateTeam : _openCreateUser,
-                tooltip: _isTeamsSection ? 'Create Team' : 'Create User',
-              ),
+              if (!_isJudgesSection)
+                MobileCreateFab(
+                  onPressed: _isTeamsSection ? _openCreateTeam : _openCreateUser,
+                  tooltip: _isTeamsSection ? 'Create Team' : 'Create User',
+                ),
             ],
           );
         }
