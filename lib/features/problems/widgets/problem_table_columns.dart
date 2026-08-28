@@ -29,7 +29,7 @@ class ProblemTableActions {
     required this.onOpenProblem,
     required this.onOpenDetails,
     required this.onSubmitIdea,
-    required this.onAssignJudge,
+    this.onAssignJudge,
     required this.onEditProblem,
     required this.onDeleteProblem,
     this.domainLabelById = const <String, String>{},
@@ -46,7 +46,7 @@ class ProblemTableActions {
   final void Function(ProblemModel problem) onOpenProblem;
   final void Function(ProblemModel problem) onOpenDetails;
   final void Function(ProblemModel problem) onSubmitIdea;
-  final void Function(ProblemModel problem) onAssignJudge;
+  final void Function(ProblemModel problem)? onAssignJudge;
   final void Function(ProblemModel problem) onEditProblem;
   final void Function(ProblemModel problem) onDeleteProblem;
   final Map<String, String> domainLabelById;
@@ -96,7 +96,7 @@ class _ProblemActionFlags {
       submitEnabled: submitEnabled,
       isClosed: showSubmit && !submitEnabled,
       canManageStatus: actions.config.canToggleActive,
-      canAssignJudge: actions.config.canAssignJudge,
+      canAssignJudge: actions.config.canAssignJudge && actions.onAssignJudge != null,
       canEdit: actions.canEditFor(problem),
       canDelete: actions.canDeleteFor(problem),
       canActivate: actions.config.canToggleActive &&
@@ -564,7 +564,7 @@ void _handleProblemMenuAction({
     case 'edit':
       actions.onEditProblem(problem);
     case 'assign_judge':
-      actions.onAssignJudge(problem);
+      actions.onAssignJudge?.call(problem);
     case 'delete':
       actions.onDeleteProblem(problem);
   }
@@ -590,7 +590,7 @@ List<Widget> _buildProblemMobileIconActions({
       MobileRowCardIconAction(
         tooltip: 'Assign Judge',
         icon: AppIcons.judges,
-        onTap: () => actions.onAssignJudge(problem),
+        onTap: () => actions.onAssignJudge?.call(problem),
       ),
     );
   }

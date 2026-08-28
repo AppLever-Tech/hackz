@@ -18,7 +18,6 @@ import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
-import '../../evaluations/workspace/evaluation_assignment_details_pane.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
@@ -262,16 +261,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       onOpenAttachments: (IdeaListItem item) => _openAttachments(context, item),
       onEvaluate: (IdeaListItem item) => _openEvaluateDialog(item),
       onUploadPayment: (IdeaListItem item) => _openUploadPayment(item),
-      onAssignJudge: widget.config.canAssignJudge ? _openAssignJudge : null,
-    );
-  }
-
-  void _openAssignJudge(IdeaListItem item) {
-    showEvaluationAssignmentPane(
-      context,
-      user: widget.currentUser,
-      ideaId: item.idea.ideaId,
-      backTooltip: 'Back to Ideas',
     );
   }
 

@@ -39,7 +39,6 @@ import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
-import '../../../evaluations/workspace/evaluation_assignment_details_pane.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
@@ -412,15 +411,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       gate: gate,
     );
     if (created == true && mounted) _loadProblems();
-  }
-
-  void _openAssignJudge(ProblemModel problem) {
-    showEvaluationAssignmentPane(
-      context,
-      user: widget.currentUser,
-      problemId: problem.problemId,
-      backTooltip: 'Back to Problems',
-    );
   }
 
   void _openDetails(ProblemModel problem) {
@@ -955,7 +945,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           WorkspaceNavigator.openProblem(context, problem.problemId),
       onOpenDetails: _openDetails,
       onSubmitIdea: _openSubmitIdea,
-      onAssignJudge: _openAssignJudge,
       onEditProblem: _openEditProblem,
       onDeleteProblem: _deleteProblem,
       domainLabelById: domainLabelById,

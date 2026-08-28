@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../workspace/evaluation_assignment_details_pane.dart';
 import '../../imports/imports.dart';
 import '../../user/constants/csv_import_role_constants.dart';
 import '../../organization/models/department_model.dart';
@@ -146,14 +145,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
     }
   }
 
-  void _openAssignmentWorkspace() {
-    showEvaluationAssignmentPane(
-      context,
-      user: widget.user,
-      backTooltip: 'Back to Judges Panel',
-    );
-  }
-
   Widget _metaDot() {
     return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 6),
@@ -260,13 +251,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
             style: MobileToolbarButtonStyles.outlined(compact: false),
           )
         : null;
-    final Widget assignmentsButton = OutlinedButton.icon(
-      onPressed: _openAssignmentWorkspace,
-      icon: const Icon(AppIcons.scoring, size: 16),
-      label: Text(mobile ? 'Assignments' : 'Evaluation Assignments'),
-      style: MobileToolbarButtonStyles.outlined(compact: mobile),
-    );
-
     if (mobile) {
       return const SizedBox.shrink();
     }
@@ -277,7 +261,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
       children: <Widget>[
         addButton,
         if (importButton != null) importButton,
-        assignmentsButton,
       ],
     );
   }
@@ -308,12 +291,6 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         );
 
         if (mobile) {
-          const double fabGap = 12;
-          final double stackedFabBottom =
-              MobileCreateFabStyles.screenMargin.bottom + MobileCreateFabStyles.size + fabGap;
-          final double listBottomPadding =
-              MobileCreateFabStyles.listBottomPadding + MobileCreateFabStyles.size + fabGap;
-
           return Stack(
             children: <Widget>[
               Column(
@@ -325,21 +302,12 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                     child: data.judges.isEmpty
                         ? const Center(child: Text('No judges assigned for this department.'))
                         : ListView.builder(
-                            padding: EdgeInsets.only(bottom: listBottomPadding),
+                            padding: EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
                             itemCount: data.judges.length,
                             itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
                           ),
                   ),
                 ],
-              ),
-              MobileCreateFab(
-                onPressed: _openAssignmentWorkspace,
-                icon: AppIcons.scoring,
-                tooltip: 'Evaluation Assignments',
-                margin: EdgeInsets.only(
-                  right: MobileCreateFabStyles.screenMargin.right,
-                  bottom: stackedFabBottom,
-                ),
               ),
               MobileCreateFab(
                 onPressed: _addJudge,

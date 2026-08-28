@@ -60,7 +60,7 @@ class IdeaRoleConfig {
           canEvaluate: false,
           canViewStatus: true,
           canUploadPayment: false,
-          canAssignJudge: true,
+          canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
