@@ -12,6 +12,7 @@ import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../../ideathons/services/ideathon_service.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
 import '../../leaderboard/services/leaderboard_ranking_engine.dart';
 import '../../../core/theme/status_styles.dart';
@@ -164,8 +165,8 @@ abstract final class EvaluationWorkspaceLoader {
     final String judgeName = judge == null
         ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
         : userDisplayName(judge);
-    final EvaluationTemplate template = EvaluationTemplatesService.resolveTemplate(
-      score.templateId,
+    final EvaluationTemplate template = await _resolveScoreTemplate(
+      score,
       departmentCode: departmentCode,
     );
     final _ParsedScore parsed = _parseScore(score, judgeName, template);
@@ -216,8 +217,7 @@ abstract final class EvaluationWorkspaceLoader {
         ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
         : userDisplayName(judge);
 
-    final EvaluationTemplate template =
-        EvaluationTemplatesService.resolveTemplate(score.templateId);
+    final EvaluationTemplate template = await _resolveScoreTemplate(score);
     final _ParsedScore parsed = _parseScore(score, judgeName, template);
     final _IdeaContext ctx = await _loadIdeaContext(idea);
     final PaymentModel? payment = await _loadPayment(db, ideaId);
@@ -303,8 +303,7 @@ abstract final class EvaluationWorkspaceLoader {
       final String judgeName = judge == null
           ? (score.judgeId.trim().isEmpty ? 'Judge' : score.judgeId.trim())
           : userDisplayName(judge);
-      final EvaluationTemplate scoreTemplate =
-          EvaluationTemplatesService.resolveTemplate(score.templateId);
+      final EvaluationTemplate scoreTemplate = await _resolveScoreTemplate(score);
       usedTemplateIds.add(scoreTemplate.templateId);
       final _ParsedScore parsed = _parseScore(score, judgeName, scoreTemplate);
       judges.add(parsed.entry);
@@ -354,8 +353,7 @@ abstract final class EvaluationWorkspaceLoader {
 
     // Use the first judge's template's scale (they should all be on the same
     // org scale today); "Mixed" name when judges used different templates.
-    final EvaluationTemplate dominant =
-        EvaluationTemplatesService.resolveTemplate(scores.first.templateId);
+    final EvaluationTemplate dominant = await _resolveScoreTemplate(scores.first);
     final String templateName = usedTemplateIds.length > 1 ? 'Mixed templates' : dominant.templateName;
 
     return EvaluationWorkspaceViewModel(
@@ -417,6 +415,29 @@ abstract final class EvaluationWorkspaceLoader {
       return PaymentModel.fromMap(primary.id, primary.data()!);
     }
     return null;
+  }
+
+  static Future<EvaluationTemplate> _resolveScoreTemplate(
+    ScoreModel score, {
+    String? departmentCode,
+  }) async {
+    final String eventId = score.ideathonId.trim();
+    if (eventId.isNotEmpty) {
+      final event = await IdeathonService.fetchById(eventId);
+      if (event != null) {
+        return EvaluationTemplatesService.resolveForEvent(
+          templateId: event.evaluationTemplateId.trim().isNotEmpty
+              ? event.evaluationTemplateId
+              : score.templateId,
+          departmentCode: event.departmentId,
+          eventCriteria: event.evaluationCriteria,
+        );
+      }
+    }
+    return EvaluationTemplatesService.resolveTemplate(
+      score.templateId,
+      departmentCode: departmentCode ?? score.departmentCode,
+    );
   }
 
   static _ParsedScore _parseScore(

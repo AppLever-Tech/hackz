@@ -106,6 +106,20 @@ abstract final class EvaluationTemplatesService {
     return defaultTemplate;
   }
 
+  /// Event rubric: saved event criteria when present, otherwise org template
+  /// plus existing department extensions.
+  static EvaluationTemplate resolveForEvent({
+    required String templateId,
+    String departmentCode = '',
+    List<EvaluationCriterion> eventCriteria = const <EvaluationCriterion>[],
+  }) {
+    if (eventCriteria.isNotEmpty) {
+      final EvaluationTemplate base = findTemplate(templateId) ?? defaultTemplate;
+      return base.copyWith(criteria: eventCriteria);
+    }
+    return resolveTemplate(templateId, departmentCode: departmentCode);
+  }
+
   /// Persists a full replacement of the templates list.
   ///
   /// The caller is responsible for invariants: exactly one `isDefault: true`,

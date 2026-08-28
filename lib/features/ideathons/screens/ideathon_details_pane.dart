@@ -23,6 +23,7 @@ import 'package:hackz/features/ideathons/screens/tabs/ideathon_results_tab.dart'
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_winners_tab.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_payment_service.dart';
+import 'package:hackz/features/ideathons/services/ideathon_service.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
 import 'package:hackz/features/ideathons/models/ideathon_status.dart';
@@ -159,10 +160,19 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
           ),
         ];
       case 'template':
+        final bool templateLocked = IdeathonService.isEvaluationTemplateLocked(
+          event,
+          evaluationStarted: vm.workspace.evaluationStarted,
+        );
         return <Widget>[
           status,
           if (templateName.isNotEmpty)
             EventMetaChip(icon: AppIcons.scoring, label: templateName, color: const Color(0xFF4F46E5)),
+          EventMetaChip(
+            icon: templateLocked ? AppIcons.lock : AppIcons.edit,
+            label: templateLocked ? 'Template locked' : 'Template editable',
+            color: templateLocked ? const Color(0xFFB45309) : const Color(0xFF047857),
+          ),
         ];
       case 'results':
         return <Widget>[
@@ -389,8 +399,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                           label: 'Evaluation Template',
                           icon: AppIcons.scoring,
                           child: IdeathonEvaluationTemplateTab(
-                            templateId: event.evaluationTemplateId,
-                            departmentCode: event.departmentId,
+                            vm: vm,
+                            actor: widget.actor,
+                            onSaved: _reload,
                           ),
                         ),
                         EventDetailsModule(

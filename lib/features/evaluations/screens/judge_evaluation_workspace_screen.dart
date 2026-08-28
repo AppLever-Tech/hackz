@@ -8,7 +8,10 @@ import '../../../core/ui/common/rich_tabs.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/workspace/workspace_navigator.dart';
+import '../../ideathons/services/ideathon_service.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/user_model.dart';
+import '../models/evaluation_template.dart';
 import '../services/evaluation_templates_service.dart';
 import '../services/judge_evaluation_service.dart';
 import '../widgets/evaluate_idea_dialog.dart';
@@ -73,6 +76,22 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   Future<void> _openEvaluate(JudgeEvaluationPendingRow row) async {
+    EvaluationTemplate? overrideTemplate;
+    final String eventId = row.ideathonId.trim();
+    if (eventId.isNotEmpty) {
+      await OrgSettingsService.instance.ensureLoaded(orgId: widget.user.orgId);
+      final event = await IdeathonService.fetchById(eventId);
+      if (event != null) {
+        overrideTemplate = EvaluationTemplatesService.resolveForEvent(
+          templateId: event.evaluationTemplateId.isNotEmpty
+              ? event.evaluationTemplateId
+              : row.evaluationTemplateId,
+          departmentCode: event.departmentId,
+          eventCriteria: event.evaluationCriteria,
+        );
+      }
+    }
+    if (!mounted) return;
     final ok = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -85,6 +104,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         latestJudgeScore: null,
         ideathonId: row.ideathonId,
         forcedTemplateId: row.evaluationTemplateId,
+        overrideTemplate: overrideTemplate,
         ideathonName: row.ideathonName,
         ideathonSchedule: row.ideathonSchedule,
       ),

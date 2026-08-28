@@ -43,6 +43,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
     this.readOnly = false,
     this.ideathonId = '',
     this.forcedTemplateId = '',
+    this.overrideTemplate,
     this.ideathonName = '',
     this.ideathonSchedule = '',
   });
@@ -59,6 +60,9 @@ class EvaluateIdeaDialog extends StatefulWidget {
 
   /// Ideathon evaluation template — judges cannot pick a different template.
   final String forcedTemplateId;
+
+  /// Event-customized rubric. When set, scoring uses this instead of org/department merge.
+  final EvaluationTemplate? overrideTemplate;
 
   final String ideathonName;
   final String ideathonSchedule;
@@ -120,6 +124,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   }
 
   EvaluationTemplate _resolveTemplateForExistingScore() {
+    if (widget.overrideTemplate != null) return widget.overrideTemplate!;
     final String forced = widget.forcedTemplateId.trim();
     final ScoreModel? existing = widget.latestJudgeScore;
     final String problemDept = widget.idea.problemDepartmentCode.trim().toUpperCase();

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../evaluations/models/evaluation_criterion.dart';
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
 import 'ideathon_type.dart';
@@ -23,6 +24,7 @@ class IdeathonModel {
     required this.updatedAt,
     this.problemId = '',
     this.ideathonType = IdeathonType.internal,
+    this.evaluationCriteria = const <EvaluationCriterion>[],
   });
 
   final String ideathonId;
@@ -38,6 +40,9 @@ class IdeathonModel {
   final List<String> coordinatorIds;
   final List<IdeathonIdeaSnapshot> ideas;
   final String evaluationTemplateId;
+
+  /// Event-scoped rubric. Empty until Department Admin customizes the template.
+  final List<EvaluationCriterion> evaluationCriteria;
   /// Optional filter/context only — Ideathon is not required to bind to one Problem.
   final String problemId;
   final String createdBy;
@@ -64,6 +69,9 @@ class IdeathonModel {
       'coordinatorIds': coordinatorIds,
       'ideas': ideas.map((IdeathonIdeaSnapshot i) => i.toMap()).toList(growable: false),
       'evaluationTemplateId': evaluationTemplateId,
+      if (evaluationCriteria.isNotEmpty)
+        'evaluationCriteria':
+            evaluationCriteria.map((EvaluationCriterion c) => c.toMap()).toList(growable: false),
       if (problemId.trim().isNotEmpty) 'problemId': problemId.trim(),
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -78,6 +86,15 @@ class IdeathonModel {
       for (final dynamic item in rawIdeas) {
         if (item is Map) {
           ideaSnapshots.add(IdeathonIdeaSnapshot.fromMap(Map<String, dynamic>.from(item)));
+        }
+      }
+    }
+    final List<EvaluationCriterion> criteria = <EvaluationCriterion>[];
+    final dynamic rawCriteria = map['evaluationCriteria'];
+    if (rawCriteria is List) {
+      for (final dynamic item in rawCriteria) {
+        if (item is Map) {
+          criteria.add(EvaluationCriterion.fromMap(Map<String, dynamic>.from(item)));
         }
       }
     }
@@ -99,6 +116,7 @@ class IdeathonModel {
       coordinatorIds: _readStringList(map['coordinatorIds']),
       ideas: ideaSnapshots,
       evaluationTemplateId: (map['evaluationTemplateId'] as String? ?? '').trim(),
+      evaluationCriteria: criteria,
       problemId: (map['problemId'] as String? ?? '').trim(),
       createdBy: (map['createdBy'] as String? ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

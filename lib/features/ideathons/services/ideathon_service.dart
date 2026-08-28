@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../../evaluations/models/evaluation_criterion.dart';
+import '../../evaluations/services/evaluation_template_helpers.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
 import '../../user/models/user_model.dart';
@@ -141,6 +143,7 @@ abstract final class IdeathonService {
           input.coordinatorIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
       ideas: snapshots,
       evaluationTemplateId: resolved.templateId,
+      evaluationCriteria: const <EvaluationCriterion>[],
       problemId: input.problemId.trim(),
       createdBy: actor.userId,
       createdAt: now,
@@ -291,6 +294,7 @@ abstract final class IdeathonService {
           input.coordinatorIds.map((String c) => c.trim()).where((String c) => c.isNotEmpty).toList(),
       ideas: snapshots,
       evaluationTemplateId: resolved.templateId,
+      evaluationCriteria: existing.evaluationCriteria,
       problemId: input.problemId.trim(),
       createdBy: existing.createdBy,
       createdAt: existing.createdAt,
@@ -322,6 +326,63 @@ abstract final class IdeathonService {
         judgeIds: removedJudges,
       );
     }
+  }
+
+  /// Locked once the event start time has passed, or as soon as any score exists.
+  static bool isEvaluationTemplateLocked(
+    IdeathonModel event, {
+    bool evaluationStarted = false,
+  }) {
+    if (evaluationStarted) return true;
+    return !DateTime.now().isBefore(event.startDateTime);
+  }
+
+  static String evaluationTemplateLockMessage(
+    IdeathonModel event, {
+    bool evaluationStarted = false,
+  }) {
+    if (evaluationStarted) {
+      return 'Evaluation has started. The template can no longer be changed.';
+    }
+    if (!DateTime.now().isBefore(event.startDateTime)) {
+      return 'The event has started. The evaluation template is locked.';
+    }
+    return '';
+  }
+
+  /// Persists the event-scoped rubric. Does not mutate the org template.
+  static Future<void> updateEvaluationCriteria({
+    required UserModel actor,
+    required String ideathonId,
+    required List<EvaluationCriterion> criteria,
+  }) async {
+    if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
+      throw StateError('Only department admins can update the evaluation template.');
+    }
+    final String id = ideathonId.trim();
+    if (id.isEmpty) throw StateError('Event is required.');
+
+    final IdeathonModel? existing = await fetchById(id);
+    if (existing == null) throw StateError('Event not found.');
+    if (existing.orgId.trim() != actor.orgId.trim()) {
+      throw StateError('You can only edit events in your organization.');
+    }
+
+    final bool evalStarted = await hasEvaluationStarted(id);
+    if (isEvaluationTemplateLocked(existing, evaluationStarted: evalStarted)) {
+      throw StateError(
+        evaluationTemplateLockMessage(existing, evaluationStarted: evalStarted),
+      );
+    }
+
+    final String? weightErr = EvaluationTemplateHelpers.validateWeights(criteria);
+    if (weightErr != null) throw StateError(weightErr);
+
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(id).update(<String, dynamic>{
+      'evaluationCriteria':
+          criteria.map((EvaluationCriterion c) => c.toMap()).toList(growable: false),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
   }
 
   static Future<IdeathonModel?> fetchById(String ideathonId) async {
