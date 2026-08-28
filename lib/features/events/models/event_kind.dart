@@ -19,7 +19,7 @@ enum EventKind {
 
   String get entriesLabel => switch (this) {
         EventKind.ideathon => 'Ideas',
-        EventKind.hackathon => 'Entries',
+        EventKind.hackathon => 'Prototypes',
       };
 
   String get helpPageId => switch (this) {

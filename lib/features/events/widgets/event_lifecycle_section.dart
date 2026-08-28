@@ -16,6 +16,7 @@ class EventLifecycleSection extends StatelessWidget {
     required this.currentId,
     required this.moments,
     this.title = 'Event lifecycle',
+    this.embedded = false,
   });
 
   final List<EventLifecycleStage> stages;
@@ -23,10 +24,13 @@ class EventLifecycleSection extends StatelessWidget {
   final List<EventLifecycleMoment> moments;
   final String title;
 
+  /// When true, omit the outer [ListView] so the section can sit inside another scroller.
+  final bool embedded;
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+    final Widget body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Container(
           width: double.infinity,
@@ -56,6 +60,11 @@ class EventLifecycleSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (embedded) return body;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      children: <Widget>[body],
     );
   }
 }

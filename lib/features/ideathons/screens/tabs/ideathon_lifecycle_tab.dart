@@ -8,9 +8,10 @@ import 'package:hackz/features/ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/utils/common_helpers.dart';
 
 class IdeathonLifecycleTab extends StatelessWidget {
-  const IdeathonLifecycleTab({super.key, required this.vm});
+  const IdeathonLifecycleTab({super.key, required this.vm, this.embedded = false});
 
   final IdeathonDetailsViewModel vm;
+  final bool embedded;
 
   static const String _stageCreated = 'created';
   static const String _stageAssignment = 'assignment';
@@ -99,7 +100,7 @@ class IdeathonLifecycleTab extends StatelessWidget {
       stages: stages,
       currentId: currentId,
       moments: moments,
-      title: 'Ideathon lifecycle',
+      embedded: embedded,
     );
   }
 }
