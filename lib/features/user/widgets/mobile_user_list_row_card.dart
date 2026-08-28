@@ -61,7 +61,7 @@ class MobileUserListRowCard extends StatelessWidget {
         ),
         MobileRowCardIconAction(
           tooltip: 'Delete',
-          icon: AppIcons.remove,
+          icon: AppIcons.delete,
           onTap: onDelete,
           foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
         ),

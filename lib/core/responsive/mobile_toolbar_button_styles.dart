@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_icons.dart';
+
 /// Shared list-toolbar filled/outlined styles (Manage Department, Problems, Ideas, …).
 abstract final class MobileToolbarButtonStyles {
   MobileToolbarButtonStyles._();
+
+  static const double toolbarIconSize = 16;
 
   static const double compactHeight = 36;
   static const double standardHeight = 44;
@@ -35,6 +39,34 @@ abstract final class MobileToolbarButtonStyles {
       height: height,
       margin: const EdgeInsets.symmetric(horizontal: 8),
       color: separatorColor,
+    );
+  }
+
+  /// Compact filled toolbar action (Create User, Add Judge, Create Team, …).
+  static Widget filledIcon({
+    required VoidCallback onPressed,
+    required String label,
+    IconData icon = AppIcons.add,
+  }) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: toolbarIconSize),
+      label: Text(label),
+      style: filled(compact: true),
+    );
+  }
+
+  /// Compact outlined toolbar action (Import Users, Show Filters, …).
+  static Widget outlinedIcon({
+    required VoidCallback onPressed,
+    required String label,
+    IconData icon = AppIcons.attachments,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: toolbarIconSize),
+      label: Text(label),
+      style: outlined(compact: true),
     );
   }
 }

@@ -669,12 +669,10 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   Widget _editIconButton(UserModel u) {
-    return IconButton(
+    return ListRowIconButton(
       tooltip: 'Edit user',
+      icon: AppIcons.edit,
       onPressed: () => _openEditUser(u),
-      icon: const Icon(AppIcons.edit, size: 20),
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
     );
   }
 
@@ -746,12 +744,11 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       children: <Widget>[
         if (_canAssignLeader(u)) _assignLeaderIconButton(u),
         _editIconButton(u),
-        IconButton(
+        ListRowIconButton(
           tooltip: 'Delete user',
+          icon: AppIcons.delete,
           onPressed: () => _deleteUser(u),
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          color: Colors.redAccent,
         ),
       ],
     );
@@ -842,7 +839,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       ),
       MobileRowCardIconAction(
         tooltip: 'Delete user',
-        icon: AppIcons.remove,
+        icon: AppIcons.delete,
         onTap: () => _deleteUser(u),
         foregroundColor: MobileRowCardIconActionMetrics.dangerForegroundColor,
       ),
@@ -1021,19 +1018,15 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         if (!mobile) ...<Widget>[
-          FilledButton.icon(
+          MobileToolbarButtonStyles.filledIcon(
             onPressed: _openCreateUser,
-            icon: const Icon(AppIcons.add, size: 16),
-            label: const Text('Create User'),
-            style: MobileToolbarButtonStyles.filled(compact: true),
+            label: 'Create User',
           ),
           const SizedBox(width: 8),
           if (canImport) ...<Widget>[
-            OutlinedButton.icon(
+            MobileToolbarButtonStyles.outlinedIcon(
               onPressed: _openImportUsers,
-              icon: const Icon(AppIcons.attachments, size: 16),
-              label: const Text('Import Users'),
-              style: MobileToolbarButtonStyles.outlined(compact: true),
+              label: 'Import Users',
             ),
             const SizedBox(width: 8),
           ],
@@ -1134,19 +1127,15 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         if (!mobile) ...<Widget>[
-          FilledButton.icon(
+          MobileToolbarButtonStyles.filledIcon(
             onPressed: _openCreateTeam,
-            icon: const Icon(AppIcons.add, size: 16),
-            label: const Text('Create Team'),
-            style: MobileToolbarButtonStyles.filled(compact: true),
+            label: 'Create Team',
           ),
           const SizedBox(width: 8),
           if (canImport) ...<Widget>[
-            OutlinedButton.icon(
+            MobileToolbarButtonStyles.outlinedIcon(
               onPressed: _openImportTeam,
-              icon: const Icon(AppIcons.attachments, size: 16),
-              label: const Text('Import Team'),
-              style: MobileToolbarButtonStyles.outlined(compact: true),
+              label: 'Import Team',
             ),
             const SizedBox(width: 8),
           ],

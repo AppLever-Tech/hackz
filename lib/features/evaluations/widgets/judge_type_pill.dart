@@ -18,7 +18,7 @@ class JudgeTypePill extends StatelessWidget {
     final JudgeType? type = judgeType;
     if (type == null) return const SizedBox.shrink();
 
-    final Color color = _colorFor(type);
+    final Color color = colorFor(type);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10, vertical: compact ? 3 : 5),
       decoration: BoxDecoration(
@@ -29,7 +29,7 @@ class JudgeTypePill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(_iconFor(type), size: compact ? 11 : 13, color: color),
+          Icon(iconFor(type), size: compact ? 11 : 13, color: color),
           const SizedBox(width: 4),
           Text(
             type.label,
@@ -44,7 +44,7 @@ class JudgeTypePill extends StatelessWidget {
     );
   }
 
-  static Color _colorFor(JudgeType type) {
+  static Color colorFor(JudgeType type) {
     return switch (type) {
       JudgeType.internal => const Color(0xFF4338CA),
       JudgeType.external => const Color(0xFF0891B2),
@@ -53,7 +53,7 @@ class JudgeTypePill extends StatelessWidget {
     };
   }
 
-  static IconData _iconFor(JudgeType type) {
+  static IconData iconFor(JudgeType type) {
     return switch (type) {
       JudgeType.internal => Icons.corporate_fare_outlined,
       JudgeType.external => Icons.public_outlined,

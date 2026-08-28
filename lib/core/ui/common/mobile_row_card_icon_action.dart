@@ -53,6 +53,35 @@ class MobileRowCardIconAction extends StatelessWidget {
   }
 }
 
+/// Compact [IconButton] for desktop list rows (users, judges, …).
+class ListRowIconButton extends StatelessWidget {
+  const ListRowIconButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.color,
+    this.iconSize = 20,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color? color;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: iconSize, color: color),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
+}
+
 /// Inserts [MobileRowCardIconActionMetrics.gap] between icon action widgets.
 List<Widget> spacedMobileRowCardIconActions(
   List<Widget> actions, {

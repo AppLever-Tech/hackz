@@ -23,6 +23,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
     this.iconOnlyFilterOnMobile = false,
     this.searchDecoration,
     this.searchTextStyle,
+    this.afterFilter = const <Widget>[],
   });
 
   final TextEditingController searchController;
@@ -39,6 +40,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
   final bool iconOnlyFilterOnMobile;
   final InputDecoration? searchDecoration;
   final TextStyle? searchTextStyle;
+  final List<Widget> afterFilter;
 
   @override
   Widget build(BuildContext context) {
@@ -52,11 +54,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
                 onPressed: onToggleFilters!,
                 tooltip: filterLabel ?? (filtersExpanded ? 'Hide filters' : 'Filters'),
               )
-            : OutlinedButton.icon(
-                onPressed: onToggleFilters,
-                icon: const Icon(Icons.tune, size: 16),
-                label: Text(filterLabel ?? (filtersExpanded ? 'Hide Filters' : 'Filters')),
-                style: MobileToolbarButtonStyles.outlined(compact: true),
+            : MobileToolbarButtonStyles.outlinedIcon(
+                onPressed: onToggleFilters!,
+                icon: Icons.tune,
+                label: filterLabel ?? (filtersExpanded ? 'Hide Filters' : 'Filters'),
               )
         : null;
 
@@ -84,6 +85,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
           ),
     );
 
+    final List<Widget> afterFilterRow = afterFilter
+        .map((Widget w) => Padding(padding: const EdgeInsets.only(left: 8), child: w))
+        .toList(growable: false);
+
     if (mobile && useIconOnlyFilter) {
       final Widget searchRow = Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -95,7 +100,9 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
         ],
       );
 
-      if (mobileAboveSearchRow == null && mobileBelowSearchRow == null) return searchRow;
+      if (mobileAboveSearchRow == null && mobileBelowSearchRow == null && afterFilter.isEmpty) {
+        return searchRow;
+      }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -108,6 +115,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
           if (mobileBelowSearchRow != null) ...<Widget>[
             const SizedBox(height: 8),
             mobileBelowSearchRow!,
+          ],
+          if (afterFilter.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: afterFilter),
           ],
         ],
       );
@@ -130,6 +141,10 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
             const SizedBox(height: 8),
             filterButton,
           ],
+          if (afterFilter.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, runSpacing: 8, children: afterFilter),
+          ],
         ],
       );
     }
@@ -151,6 +166,7 @@ class ResponsiveSearchFilterBar extends StatelessWidget {
           const SizedBox(width: 8),
           filterButton,
         ],
+        ...afterFilterRow,
       ],
     );
   }

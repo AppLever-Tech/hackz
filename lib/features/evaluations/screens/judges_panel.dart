@@ -9,11 +9,18 @@ import '../../organization/models/organization_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/inputs/filter_pill.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../user/models/enums/judge_type.dart';
 import '../../user/widgets/mobile_user_list_row_card.dart';
+import '../../../features/dashboard/chrome/empty_search_state.dart';
 import '../../../features/dashboard/deptadmin/services/department_dashboard_service.dart';
 import '../../../utils/firestore_utils.dart';
+import '../widgets/judge_type_pill.dart';
 import '../widgets/judges_panel_metrics_row.dart';
 import '../../../core/workspace/user_list_identity_lead.dart';
 import '../../user/screens/create_user_dialog.dart';
@@ -36,6 +43,9 @@ class _JudgesPanelData {
 
 class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   late Future<_JudgesPanelData> _future;
+  final TextEditingController _searchController = TextEditingController();
+  bool _showFilters = false;
+  JudgeType? _typeFilter;
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -50,7 +60,14 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() {}));
     _future = _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _refresh() {
@@ -174,8 +191,10 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         _inlineMeta(email),
         _metaDot(),
         _inlineMeta(phone),
-        _metaDot(),
-        _inlineMeta('Judge'),
+        if (_judgeTypeOf(judge) != null) ...<Widget>[
+          _metaDot(),
+          JudgeTypePill(judgeType: _judgeTypeOf(judge), compact: true),
+        ],
       ],
     );
 
@@ -214,54 +233,96 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         children: <Widget>[
           Expanded(child: _judgeDetailsLine(judge)),
           const SizedBox(width: 4),
-          IconButton(
+          ListRowIconButton(
             tooltip: 'Edit',
+            icon: AppIcons.edit,
             onPressed: () => _editJudge(judge),
-            icon: const Icon(AppIcons.edit, size: 20),
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
           ),
-          IconButton(
-            tooltip: 'Remove',
+          ListRowIconButton(
+            tooltip: 'Delete',
+            icon: AppIcons.delete,
             onPressed: () => _removeJudge(judge),
-            icon: const Icon(AppIcons.remove, color: Colors.redAccent),
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            color: Colors.redAccent,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    final bool showImport = ImportPlatformSupport.isSupported(context);
+  JudgeType? _judgeTypeOf(UserModel judge) => judge.profile?.judgeProfile?.judgeType;
 
-    final Widget addButton = FilledButton.icon(
-      onPressed: _addJudge,
-      icon: const Icon(AppIcons.add, size: 16),
-      label: Text(mobile ? 'Add' : 'Add Judge'),
-      style: MobileToolbarButtonStyles.filled(compact: mobile),
+  int _countByType(List<UserModel> judges, JudgeType type) {
+    return judges.where((UserModel judge) => _judgeTypeOf(judge) == type).length;
+  }
+
+  List<UserModel> _visibleJudges(List<UserModel> judges) {
+    final String query = _searchController.text.trim().toLowerCase();
+    return judges.where((UserModel judge) {
+      final JudgeType? type = _judgeTypeOf(judge);
+      if (_typeFilter != null && type != _typeFilter) return false;
+      if (query.isEmpty) return true;
+      return judge.displayName.toLowerCase().contains(query) ||
+          judge.email.toLowerCase().contains(query) ||
+          judge.phone.toLowerCase().contains(query) ||
+          (type?.label.toLowerCase().contains(query) ?? false);
+    }).toList(growable: false);
+  }
+
+  void _clearSearchAndFilters() {
+    setState(() {
+      _searchController.clear();
+      _typeFilter = null;
+    });
+  }
+
+  Widget _typeFilterPill({
+    required JudgeType type,
+    required int count,
+  }) {
+    return FilterPill(
+      selected: _typeFilter == type,
+      icon: JudgeTypePill.iconFor(type),
+      label: type.label,
+      count: count,
+      foregroundColor: JudgeTypePill.colorFor(type),
+      onTap: () => setState(() {
+        _typeFilter = _typeFilter == type ? null : type;
+      }),
     );
-    final Widget? importButton = showImport
-        ? OutlinedButton.icon(
-            onPressed: _importJudges,
-            icon: const Icon(AppIcons.attachments, size: 16),
-            label: const Text('Import Users'),
-            style: MobileToolbarButtonStyles.outlined(compact: false),
-          )
-        : null;
-    if (mobile) {
-      return const SizedBox.shrink();
-    }
+  }
 
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        addButton,
-        if (importButton != null) importButton,
+  Widget _buildToolbar(BuildContext context, List<UserModel> judges) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final bool showImport = !mobile && ImportPlatformSupport.isSupported(context);
+
+    return ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search judges',
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      filterLabel: _showFilters ? 'Hide Filters' : 'Show Filters',
+      searchTextStyle: HackzInputDecoration.fieldTextStyle,
+      searchDecoration: HackzInputDecoration.decorate(
+        hintText: 'Search judges',
+        prefixIcon: const Icon(AppIcons.search, size: 18),
+        contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      ),
+      leading: <Widget>[
+        if (!mobile) MobileToolbarButtonStyles.filledIcon(
+          onPressed: _addJudge,
+          label: 'Add Judge',
+        ),
+        if (showImport) MobileToolbarButtonStyles.outlinedIcon(
+          onPressed: _importJudges,
+          label: 'Import Users',
+        ),
       ],
+      afterFilter: _showFilters
+          ? <Widget>[
+              _typeFilterPill(type: JudgeType.internal, count: _countByType(judges, JudgeType.internal)),
+              _typeFilterPill(type: JudgeType.external, count: _countByType(judges, JudgeType.external)),
+            ]
+          : const <Widget>[],
     );
   }
 
@@ -283,12 +344,31 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
         }
 
         final bool mobile = ResponsiveHelper.isMobile(context);
+        final List<UserModel> visible = _visibleJudges(data.judges);
+        final bool hasActiveQuery = _searchController.text.trim().isNotEmpty || _typeFilter != null;
         final Widget metrics = JudgesPanelMetricsRow(
           judgeCount: data.judges.length,
           metrics: data.metrics,
           spacing: mobile ? 8 : 10,
           runSpacing: mobile ? 8 : 10,
         );
+        final Widget toolbar = _buildToolbar(context, data.judges);
+        final Widget list = visible.isEmpty
+            ? (data.judges.isEmpty
+                ? const Center(child: Text('No judges assigned for this department.'))
+                : EmptySearchState.judges(
+                    onClearSearch: () {
+                      if (!hasActiveQuery) return;
+                      _clearSearchAndFilters();
+                    },
+                  ))
+            : ListView.builder(
+                padding: EdgeInsets.only(
+                  bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 12,
+                ),
+                itemCount: visible.length,
+                itemBuilder: (BuildContext context, int index) => _judgeRow(visible[index]),
+              );
 
         if (mobile) {
           return Stack(
@@ -298,15 +378,9 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
                 children: <Widget>[
                   metrics,
                   const SizedBox(height: 8),
-                  Expanded(
-                    child: data.judges.isEmpty
-                        ? const Center(child: Text('No judges assigned for this department.'))
-                        : ListView.builder(
-                            padding: EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
-                            itemCount: data.judges.length,
-                            itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
-                          ),
-                  ),
+                  toolbar,
+                  const SizedBox(height: 10),
+                  Expanded(child: list),
                 ],
               ),
               MobileCreateFab(
@@ -322,17 +396,9 @@ class _JudgesPanelScreenState extends State<JudgesPanelScreen> {
           children: <Widget>[
             metrics,
             SizedBox(height: gap),
-            _buildToolbar(context),
+            toolbar,
             const SizedBox(height: 10),
-            Expanded(
-              child: data.judges.isEmpty
-                  ? const Center(child: Text('No judges assigned for this department.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      itemCount: data.judges.length,
-                      itemBuilder: (BuildContext context, int index) => _judgeRow(data.judges[index]),
-                    ),
-            ),
+            Expanded(child: list),
           ],
         );
       },

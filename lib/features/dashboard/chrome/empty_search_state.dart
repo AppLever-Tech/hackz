@@ -47,6 +47,15 @@ class EmptySearchState extends StatelessWidget {
     );
   }
 
+  factory EmptySearchState.judges({Key? key, required VoidCallback onClearSearch}) {
+    return EmptySearchState(
+      key: key,
+      title: 'No judges found',
+      icon: AppIcons.judges,
+      onClearSearch: onClearSearch,
+    );
+  }
+
   factory EmptySearchState.teams({
     Key? key,
     required VoidCallback onClearSearch,
