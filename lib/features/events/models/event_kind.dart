@@ -22,6 +22,12 @@ enum EventKind {
         EventKind.hackathon => 'Prototypes',
       };
 
+  /// Singular payable item for event payment copy (Idea vs Prototype).
+  String get payableItemLabel => switch (this) {
+        EventKind.ideathon => 'Idea',
+        EventKind.hackathon => 'Prototype',
+      };
+
   String get helpPageId => switch (this) {
         EventKind.ideathon => 'ideathon',
         EventKind.hackathon => 'hackathon',

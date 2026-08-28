@@ -466,7 +466,7 @@ class _PaymentContextPills extends StatelessWidget {
           children: <Widget>[
             EventMetaChip(
               icon: AppIcons.payments,
-              label: '${metrics.paymentCompleted} verified',
+              label: '${metrics.paymentCompleted} confirmed',
               color: const Color(0xFF059669),
             ),
             EventMetaChip(

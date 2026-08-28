@@ -14,7 +14,7 @@ abstract final class IdeathonPaymentWorkspace {
     late IdeathonPaymentWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonPayments:$ideathonId',
-      title: 'Ideathon Payments',
+      title: 'Payments',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
       prepare: () async {
