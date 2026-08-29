@@ -7,11 +7,9 @@ import '../services/idea_query_service.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
-import '../../../core/ui/common/mobile_row_card_icon_action.dart';
 import '../../../core/ui/common/mobile_row_card_pill.dart';
 import '../../../core/ui/data_view/data_table_column.dart';
 import '../../problems/widgets/problem_context_pill.dart';
-import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'idea_event_pills.dart';
 
 const double _kLeadingColumnGap = 12;
@@ -98,25 +96,15 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Events',
-        flex: 3,
+        flex: 4,
         minWidth: 160,
-        gapAfter: _kLeadingColumnGap,
+        align: Alignment.centerLeft,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: IdeaEventPills(
             events: item.events,
             onOpenEvent: (event) => actions.onOpenEvent(item, event.eventId),
           ),
-        ),
-      ),
-      DataTableColumn<IdeaListItem>(
-        label: 'Actions',
-        flex: 2,
-        minWidth: 96,
-        align: Alignment.centerLeft,
-        cell: (BuildContext context, IdeaListItem item) => _IdeaRowActionsCell(
-          item: item,
-          actions: actions,
         ),
       ),
     ];
@@ -196,29 +184,6 @@ class _ProblemIdPill extends StatelessWidget {
   }
 }
 
-class _IdeaRowActionsCell extends StatelessWidget {
-  const _IdeaRowActionsCell({
-    required this.item,
-    required this.actions,
-  });
-
-  final IdeaListItem item;
-  final IdeaTableActions actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ProblemWorkflowActionPill(
-        label: 'View',
-        icon: AppIcons.preview,
-        semantic: ProblemWorkflowPillSemantic.primary,
-        onTap: () => actions.onOpenIdea(item),
-      ),
-    );
-  }
-}
-
 /// Compact card for mobile ideas list.
 class IdeaListRowCard extends StatelessWidget {
   const IdeaListRowCard({
@@ -269,11 +234,6 @@ class IdeaListRowCard extends StatelessWidget {
                     style: MobileRowCardStyles.title,
                   ),
                 ),
-              ),
-              MobileRowCardIconAction(
-                tooltip: 'View',
-                icon: AppIcons.preview,
-                onTap: () => actions.onOpenIdea(item),
               ),
             ],
           ),

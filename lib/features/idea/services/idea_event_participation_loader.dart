@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../ideathons/models/ideathon_model.dart';
+import '../../ideathons/models/ideathon_status.dart';
+import '../../ideathons/models/ideathon_type.dart';
 import '../../ideathons/services/ideathon_participation_service.dart';
 import '../models/idea_event_participation_summary.dart';
 
@@ -38,7 +40,7 @@ abstract final class IdeaEventParticipationLoader {
     if (relevant.isEmpty) return <String, List<IdeaEventParticipationSummary>>{};
 
     final Set<String> eventIds = relevant.map((p) => p.ideathonId.trim()).where((id) => id.isNotEmpty).toSet();
-    final Map<String, String> names = await _eventNames(orgId: org, eventIds: eventIds);
+    final Map<String, IdeathonModel> events = await _eventsById(orgId: org, eventIds: eventIds);
     final Map<String, _EventScore> scores = includeScores
         ? await _eventScores(orgId: org, ideaIds: ids, eventIds: eventIds)
         : const <String, _EventScore>{};
@@ -48,14 +50,19 @@ abstract final class IdeaEventParticipationLoader {
       final String ideaId = participation.ideaId.trim();
       final String eventId = participation.ideathonId.trim();
       if (ideaId.isEmpty || eventId.isEmpty) continue;
+      final IdeathonModel? event = events[eventId];
       final _EventScore? score = scores['$ideaId|$eventId'];
       out.putIfAbsent(ideaId, () => <IdeaEventParticipationSummary>[]).add(
         IdeaEventParticipationSummary(
           eventId: eventId,
-          eventName: names[eventId]?.trim().isNotEmpty == true ? names[eventId]!.trim() : eventId,
+          eventName: event?.name.trim().isNotEmpty == true ? event!.name.trim() : eventId,
           paymentStatus: participation.paymentStatus,
           evaluated: score != null,
           eventScore: score?.average,
+          eventType: event?.ideathonType ?? IdeathonType.internal,
+          eventStatus: event?.status ?? IdeathonStatus.draft,
+          startDateTime: event?.startDateTime,
+          endDateTime: event?.endDateTime,
         ),
       );
     }
@@ -65,21 +72,21 @@ abstract final class IdeaEventParticipationLoader {
     return out;
   }
 
-  static Future<Map<String, String>> _eventNames({
+  static Future<Map<String, IdeathonModel>> _eventsById({
     required String orgId,
     required Set<String> eventIds,
   }) async {
-    if (eventIds.isEmpty) return const <String, String>{};
+    if (eventIds.isEmpty) return const <String, IdeathonModel>{};
     final QuerySnapshot<Map<String, dynamic>> snap =
         await _db.collection(FirestoreUtils.hkzIdeathons).where('orgId', isEqualTo: orgId).get();
-    final Map<String, String> names = <String, String>{};
+    final Map<String, IdeathonModel> events = <String, IdeathonModel>{};
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       final IdeathonModel event = IdeathonModel.fromMap(doc.id, doc.data());
       final String id = event.ideathonId.trim().isEmpty ? doc.id.trim() : event.ideathonId.trim();
       if (!eventIds.contains(id)) continue;
-      names[id] = event.name.trim();
+      events[id] = event;
     }
-    return names;
+    return events;
   }
 
   static Future<Map<String, _EventScore>> _eventScores({

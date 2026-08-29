@@ -172,14 +172,18 @@ class HackzPopupMenuItemTile extends StatelessWidget {
           ),
           const SizedBox(width: 9),
           Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: danger && enabled ? color : const Color(0xFF334155),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+            child: Tooltip(
+              message: label,
+              waitDuration: const Duration(milliseconds: 400),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: danger && enabled ? color : const Color(0xFF334155),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),

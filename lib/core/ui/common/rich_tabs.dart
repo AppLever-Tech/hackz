@@ -5,13 +5,16 @@ import '../../widgets/workspace_section_switcher.dart';
 
 /// Label for a [RichTabBar] / [RichTabs] segment.
 class RichTabItem {
-  const RichTabItem(this.label, {this.count, this.prominentCount = false});
+  const RichTabItem(this.label, {this.count, this.prominentCount = false, this.icon});
 
   final String label;
   final int? count;
 
   /// Larger, bolder count text (e.g. coordinator payment verification tabs).
   final bool prominentCount;
+
+  /// Optional leading icon rendered beside the tab label.
+  final IconData? icon;
 }
 
 /// Pill-style tab bar (scoring workspace). Requires an external [TabController].
@@ -61,6 +64,7 @@ class RichTabBar extends StatelessWidget {
           builder: (BuildContext context, Widget? child) {
             return WorkspaceSectionSwitcher(
               titles: tabs.map(_tabTitle).toList(growable: false),
+              icons: tabs.map((RichTabItem tab) => tab.icon).toList(growable: false),
               selectedIndex: controller.index,
               onChanged: controller.animateTo,
             );
@@ -108,50 +112,34 @@ class RichTabBar extends StatelessWidget {
   }
 
   Widget _buildTab(RichTabItem item, {required bool scrollable}) {
-    if (item.count == null) {
-      return Tab(
-        child: Text(
-          item.label,
-          maxLines: 1,
-          overflow: scrollable ? TextOverflow.visible : TextOverflow.ellipsis,
-        ),
-      );
-    }
-
-    final TextStyle countStyle = TextStyle(
-      fontSize: item.prominentCount ? 14 : 11,
-      fontWeight: item.prominentCount ? FontWeight.w900 : FontWeight.w700,
-      color: item.prominentCount ? const Color(0xFF334155) : const Color(0xFF94A3B8),
+    final TextStyle? countStyle = item.count == null
+        ? null
+        : TextStyle(
+            fontSize: item.prominentCount ? 14 : 11,
+            fontWeight: item.prominentCount ? FontWeight.w900 : FontWeight.w700,
+            color: item.prominentCount ? const Color(0xFF334155) : const Color(0xFF94A3B8),
+          );
+    final Widget label = Text(
+      item.label,
+      maxLines: 1,
+      overflow: scrollable ? TextOverflow.visible : TextOverflow.ellipsis,
+      textAlign: scrollable ? TextAlign.start : TextAlign.center,
     );
-
-    if (scrollable) {
-      return Tab(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(item.label),
-            const SizedBox(width: 4),
-            Text('(${item.count})', style: countStyle),
-          ],
-        ),
-      );
-    }
 
     return Tab(
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: scrollable ? MainAxisAlignment.start : MainAxisAlignment.center,
+        mainAxisSize: scrollable ? MainAxisSize.min : MainAxisSize.max,
         children: <Widget>[
-          Flexible(
-            child: Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text('(${item.count})', style: countStyle),
+          if (item.icon != null) ...<Widget>[
+            Icon(item.icon, size: 16),
+            const SizedBox(width: 6),
+          ],
+          if (scrollable) label else Flexible(child: label),
+          if (countStyle != null) ...<Widget>[
+            const SizedBox(width: 4),
+            Text('(${item.count})', style: countStyle),
+          ],
         ],
       ),
     );
@@ -172,6 +160,7 @@ class RichTabs extends StatefulWidget {
     this.bodyHeight = 400,
     this.padding,
     this.switcherMaxWidth,
+    this.useSwitcherOnMobile = true,
   }) : assert(tabs.length > 0),
        assert(children.length == tabs.length);
 
@@ -184,6 +173,9 @@ class RichTabs extends StatefulWidget {
 
   /// Forwarded to [RichTabBar.switcherMaxWidth].
   final double? switcherMaxWidth;
+
+  /// Forwarded to [RichTabBar.useSwitcherOnMobile].
+  final bool useSwitcherOnMobile;
 
   /// When null, uses [RichTabs.resolvePadding] (full width on mobile).
   final EdgeInsetsGeometry? padding;
@@ -246,6 +238,7 @@ class _RichTabsState extends State<RichTabs> with SingleTickerProviderStateMixin
             tabs: widget.tabs,
             isScrollable: widget.isScrollable,
             switcherMaxWidth: widget.switcherMaxWidth,
+            useSwitcherOnMobile: widget.useSwitcherOnMobile,
           ),
           SizedBox(height: widget.spacingAfterBar),
           if (widget.fitBodyHeight)

@@ -14,6 +14,7 @@ import '../widgets/idea_table_columns.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -326,10 +327,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     required Map<String, String> availableProblems,
     required List<String> availableDepartments,
   }) {
-    final bool compact = MobileFilterPaneStyles.useCompact(context);
+    const bool compact = true;
     final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
     final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
     final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
+    const String allProblemsValue = '';
 
     return MobileFilterPaneStyles.panelShell(
       compact: compact,
@@ -341,103 +343,87 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
-            Row(
-              children: <Widget>[
-                Icon(Icons.filter_alt_outlined, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
-                const SizedBox(width: 6),
-                Text('Status', style: sectionLabel),
-              ],
-            ),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: IdeaStatus.values
-                  .map(
-                    (status) => MobileFilterPaneStyles.filterChip(
-                      compact: compact,
-                      avatar: Icon(_statusIcon(status), size: compact ? 14 : 16),
-                      label: _statusLabel(status),
-                      selected: _statusFilters.contains(status),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _statusFilters.add(status);
-                          } else {
-                            _statusFilters.remove(status);
-                          }
-                        });
-                      },
-                    ),
-                  )
-                  .toList(growable: false),
+            _filterLabelValuesRow(
+              icon: Icons.filter_alt_outlined,
+              label: 'Status',
+              labelStyle: sectionLabel,
+              child: Wrap(
+                spacing: chipGap,
+                runSpacing: chipGap,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: IdeaStatus.values
+                    .map(
+                      (status) => MobileFilterPaneStyles.filterChip(
+                        compact: compact,
+                        avatar: Icon(_statusIcon(status), size: 14),
+                        label: _statusLabel(status),
+                        selected: _statusFilters.contains(status),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _statusFilters.add(status);
+                            } else {
+                              _statusFilters.remove(status);
+                            }
+                          });
+                        },
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
             ),
             SizedBox(height: sectionGap),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.problem)) ...<Widget>[
-            Row(
-              children: <Widget>[
-                Icon(AppIcons.problems, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
-                const SizedBox(width: 6),
-                Text('Problem', style: sectionLabel),
-              ],
-            ),
-            SizedBox(height: chipGap),
-            DropdownButtonFormField<String>(
-              value: _problemFilters.length == 1 ? _problemFilters.first : null,
-              isExpanded: true,
-              isDense: compact,
-              items: availableProblems.entries
-                  .map((e) => DropdownMenuItem<String>(value: e.key, child: Text(e.value)))
-                  .toList(growable: false),
-              onChanged: (value) => setState(() {
-                _problemFilters = value == null ? <String>{} : <String>{value};
-              }),
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: compact ? 8 : 12,
-                ),
-                prefixIcon: const Icon(AppIcons.problems),
-                border: const OutlineInputBorder(),
-                hintText: 'Select problem',
+            _filterLabelValuesRow(
+              icon: AppIcons.problems,
+              label: 'Problem',
+              labelStyle: sectionLabel,
+              child: HackzSelectField<String>(
+                value: _problemFilters.length == 1 ? _problemFilters.first : allProblemsValue,
+                compact: true,
+                hint: 'All problems',
+                options: <String>[allProblemsValue, ...availableProblems.keys],
+                labelBuilder: (String id) =>
+                    id.isEmpty ? 'All problems' : (availableProblems[id] ?? id),
+                iconBuilder: (_) => AppIcons.problems,
+                onChanged: (String value) => setState(() {
+                  _problemFilters = value.isEmpty ? <String>{} : <String>{value};
+                }),
               ),
             ),
             SizedBox(height: sectionGap),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
               widget.config.ideaDepartmentScope == IdeaDepartmentScope.none) ...<Widget>[
-            Row(
-              children: <Widget>[
-                Icon(AppIcons.departments, size: compact ? 16 : 18, color: const Color(0xFF64748B)),
-                const SizedBox(width: 6),
-                Text('Department', style: sectionLabel),
-              ],
-            ),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: availableDepartments
-                  .map(
-                    (d) => MobileFilterPaneStyles.filterChip(
-                      compact: compact,
-                      avatar: Icon(AppIcons.departments, size: compact ? 14 : 16),
-                      label: d,
-                      selected: _departmentFilters.contains(d),
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _departmentFilters.add(d);
-                          } else {
-                            _departmentFilters.remove(d);
-                          }
-                        });
-                      },
-                    ),
-                  )
-                  .toList(growable: false),
+            _filterLabelValuesRow(
+              icon: AppIcons.departments,
+              label: 'Department',
+              labelStyle: sectionLabel,
+              child: Wrap(
+                spacing: chipGap,
+                runSpacing: chipGap,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: availableDepartments
+                    .map(
+                      (d) => MobileFilterPaneStyles.filterChip(
+                        compact: compact,
+                        avatar: const Icon(AppIcons.departments, size: 14),
+                        label: d,
+                        selected: _departmentFilters.contains(d),
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _departmentFilters.add(d);
+                            } else {
+                              _departmentFilters.remove(d);
+                            }
+                          });
+                        },
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
             ),
             SizedBox(height: sectionGap),
           ],
@@ -448,6 +434,24 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  static Widget _filterLabelValuesRow({
+    required IconData icon,
+    required String label,
+    required TextStyle labelStyle,
+    required Widget child,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Icon(icon, size: 16, color: const Color(0xFF64748B)),
+        const SizedBox(width: 6),
+        Text(label, style: labelStyle),
+        const SizedBox(width: 10),
+        Expanded(child: child),
+      ],
     );
   }
 

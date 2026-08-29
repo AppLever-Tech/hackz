@@ -12,9 +12,11 @@ class WorkspaceSectionSwitcher extends StatelessWidget {
     required this.titles,
     required this.selectedIndex,
     required this.onChanged,
+    this.icons,
   }) : assert(titles.length > 0);
 
   final List<String> titles;
+  final List<IconData?>? icons;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
 
@@ -66,7 +68,7 @@ class WorkspaceSectionSwitcher extends StatelessWidget {
                     height: 38,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     child: HackzPopupMenuItemTile(
-                      icon: Icons.view_agenda_outlined,
+                      icon: _iconAt(index) ?? Icons.view_agenda_outlined,
                       label: titles[index],
                       selected: index == safeIndex,
                     ),
@@ -90,6 +92,10 @@ class WorkspaceSectionSwitcher extends StatelessWidget {
                   ),
                   child: Row(
                     children: <Widget>[
+                      if (_iconAt(safeIndex) != null) ...<Widget>[
+                        Icon(_iconAt(safeIndex), size: 18, color: _labelColor),
+                        const SizedBox(width: 8),
+                      ],
                       Expanded(
                         child: Text(
                           currentTitle,
@@ -113,5 +119,11 @@ class WorkspaceSectionSwitcher extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData? _iconAt(int index) {
+    final List<IconData?>? icons = this.icons;
+    if (icons == null || index < 0 || index >= icons.length) return null;
+    return icons[index];
   }
 }

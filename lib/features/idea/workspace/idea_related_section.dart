@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/common/context_pill_theme.dart';
-import 'package:hackz/core/workspace/entity_reference_tile.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/idea_event_participation_summary.dart';
+import '../widgets/idea_event_pills.dart';
 import 'idea_workspace.dart';
 import 'idea_workspace_loader.dart';
 
@@ -17,9 +17,15 @@ class IdeaRelatedSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          'Event participation',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+        const Row(
+          children: <Widget>[
+            Icon(AppIcons.ideathons, size: 16, color: Color(0xFF64748B)),
+            SizedBox(width: 6),
+            Text(
+              'Event participation',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         if (events.isEmpty)
@@ -29,16 +35,9 @@ class IdeaRelatedSection extends StatelessWidget {
           )
         else
           ...events.map(
-            (IdeaEventParticipationSummary event) => EntityReferenceTile(
-              category: 'Event',
-              headline: event.eventName,
-              detail: [
-                event.paymentLabel,
-                event.evaluationLabel,
-                if (event.scoreLabel != null) event.scoreLabel!,
-              ].join(' · '),
-              semantic: ContextPillSemantic.event,
-              onOpenWorkspace: () => IdeaWorkspace.openEvent(context, event.eventId),
+            (IdeaEventParticipationSummary event) => IdeaEventParticipationRow(
+              event: event,
+              onOpenEvent: () => IdeaWorkspace.openEvent(context, event.eventId),
             ),
           ),
       ],

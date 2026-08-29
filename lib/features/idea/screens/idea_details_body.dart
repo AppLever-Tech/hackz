@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
@@ -33,38 +34,43 @@ class IdeaDetailsBody extends StatelessWidget {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              MobileRowCardPill.status(status: idea.status),
-              if (teamId.isNotEmpty)
-                ContextPill(
-                  label: teamLabel,
-                  semantic: ContextPillSemantic.team,
-                  onTap: () => WorkspaceNavigator.openTeam(context, teamId),
-                  compact: true,
-                  fitContent: true,
-                )
-              else
-                EntityCardPills.meta(teamLabel),
-              if (problemId.isNotEmpty)
-                ProblemContextPill.fromIdentifiers(
-                  problemNumber: idea.problemNumber,
-                  problemId: problemId,
-                  onTap: () => IdeaWorkspace.openProblemFromIdea(context, vm.ideaVm),
-                  compact: true,
-                  fitContent: true,
-                ),
-            ],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                MobileRowCardPill.status(status: idea.status),
+                const SizedBox(width: 8),
+                if (teamId.isNotEmpty)
+                  ContextPill(
+                    label: teamLabel,
+                    semantic: ContextPillSemantic.team,
+                    icon: AppIcons.teams,
+                    onTap: () => WorkspaceNavigator.openTeam(context, teamId),
+                    compact: true,
+                    fitContent: true,
+                  )
+                else
+                  EntityCardPills.meta(teamLabel, icon: AppIcons.teams),
+                if (problemId.isNotEmpty) ...<Widget>[
+                  const SizedBox(width: 8),
+                  ProblemContextPill.fromIdentifiers(
+                    problemNumber: idea.problemNumber,
+                    problemId: problemId,
+                    onTap: () => IdeaWorkspace.openProblemFromIdea(context, vm.ideaVm),
+                    compact: true,
+                    fitContent: true,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         Expanded(
           child: RichTabs(
+            useSwitcherOnMobile: false,
             tabs: const <RichTabItem>[
-              RichTabItem('Idea Details'),
-              RichTabItem('Idea Lifecycle'),
+              RichTabItem('Idea Details', icon: AppIcons.ideas),
+              RichTabItem('Idea Lifecycle', icon: AppIcons.insights),
             ],
             children: <Widget>[
               IdeaDetailsTab(vm: vm.ideaVm),

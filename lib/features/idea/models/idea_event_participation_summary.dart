@@ -1,3 +1,5 @@
+import '../../ideathons/models/ideathon_status.dart';
+import '../../ideathons/models/ideathon_type.dart';
 import '../../payment/models/payment_model.dart';
 
 /// Compact view of one idea's membership in a specific event.
@@ -8,6 +10,10 @@ class IdeaEventParticipationSummary {
     required this.paymentStatus,
     this.evaluated = false,
     this.eventScore,
+    this.eventType = IdeathonType.internal,
+    this.eventStatus = IdeathonStatus.draft,
+    this.startDateTime,
+    this.endDateTime,
   });
 
   final String eventId;
@@ -15,6 +21,10 @@ class IdeaEventParticipationSummary {
   final PaymentRecordStatus paymentStatus;
   final bool evaluated;
   final double? eventScore;
+  final IdeathonType eventType;
+  final IdeathonStatus eventStatus;
+  final DateTime? startDateTime;
+  final DateTime? endDateTime;
 
   String get paymentLabel => switch (paymentStatus) {
         PaymentRecordStatus.verified => 'Paid',

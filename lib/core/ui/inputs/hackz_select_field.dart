@@ -13,6 +13,7 @@ class HackzSelectField<T> extends StatelessWidget {
     required this.onChanged,
     this.hint = 'Select',
     this.enabled = true,
+    this.compact = false,
     this.iconBuilder,
     this.prefixIcon,
     this.errorText,
@@ -25,6 +26,7 @@ class HackzSelectField<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
   final String hint;
   final bool enabled;
+  final bool compact;
   final IconData Function(T option)? iconBuilder;
   final IconData? prefixIcon;
   final String? errorText;
@@ -47,13 +49,16 @@ class HackzSelectField<T> extends StatelessWidget {
 
         return PopupMenuButton<T>(
           enabled: enabled,
+          tooltip: displayText,
           color: HackzPopupMenuStyle.panelColor,
           elevation: 14,
           shadowColor: HackzPopupMenuStyle.panelShadowColor,
           surfaceTintColor: Colors.transparent,
           position: PopupMenuPosition.under,
           offset: HackzPopupMenuStyle.defaultOffset,
-          constraints: BoxConstraints(minWidth: panelWidth),
+          constraints: compact
+              ? BoxConstraints(minWidth: panelWidth, maxWidth: panelWidth)
+              : BoxConstraints(minWidth: panelWidth),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(HackzPopupMenuStyle.panelRadius),
             side: const BorderSide(color: HackzPopupMenuStyle.panelBorderColor),
@@ -65,7 +70,7 @@ class HackzSelectField<T> extends StatelessWidget {
                 .map(
                   (T option) => PopupMenuItem<T>(
                     value: option,
-                    height: 38,
+                    height: compact ? 36 : 38,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     child: HackzPopupMenuItemTile(
                       icon: iconBuilder?.call(option) ?? Icons.label_outline_rounded,
@@ -78,22 +83,25 @@ class HackzSelectField<T> extends StatelessWidget {
           },
           child: InputDecorator(
             decoration: HackzInputDecoration.decorate(
+              compact: compact,
               errorText: hasError ? errorText : null,
               prefixIcon: prefixIcon == null
                   ? null
                   : Icon(
                       prefixIcon,
-                      size: 20,
+                      size: compact ? 18 : 20,
                       color: hasError
                           ? HackzInputDecoration.errorColor.withValues(alpha: 0.75)
                           : HackzInputDecoration.iconColor,
                     ),
               suffixIcon: Icon(
                 enabled ? Icons.expand_more_rounded : Icons.lock_outline_rounded,
-                size: 22,
+                size: compact ? 20 : 22,
                 color: enabled ? HackzInputDecoration.iconColor : HackzInputDecoration.hintColor,
               ),
-              contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPaddingOverride: compact
+                  ? HackzInputDecoration.compactContentPadding
+                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
             child: Align(
               alignment: Alignment.centerLeft,
@@ -102,7 +110,7 @@ class HackzSelectField<T> extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: compact ? 13 : 14,
                   fontWeight: value == null ? FontWeight.w500 : FontWeight.w600,
                   color: textColor,
                 ),
