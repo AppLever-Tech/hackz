@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../utils/common_helpers.dart';
-import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
@@ -110,46 +110,24 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
   }
 
   Widget _buildFiltersPanel() {
-    const bool compact = true;
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: compact,
-      decoration: kDashboardCardDecoration.copyWith(
-        color: MobileFilterPaneStyles.panelColor,
-        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          MobileFilterPaneStyles.labelValuesRow(
-            icon: Icons.filter_alt_outlined,
-            label: 'Status',
-            compact: compact,
-            child: Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: IdeathonStatus.values
-                  .map(
-                    (IdeathonStatus status) => MobileFilterPaneStyles.filterChip(
-                      compact: compact,
-                      avatar: Icon(IdeathonStatusHelpers.icon(status), size: 14),
-                      label: IdeathonStatusHelpers.label(status),
-                      selected: _statusFilters.contains(status),
-                      onSelected: (_) => _toggleStatusFilter(status),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-          ),
-          SizedBox(height: MobileFilterPaneStyles.sectionGap(compact: compact)),
-          MobileFilterPaneStyles.footer(
-            compact: compact,
-            onClearAll: _clearAllFilters,
-          ),
-        ],
-      ),
+    return HackzFilterPane(
+      onClearAll: _clearAllFilters,
+      sections: <Widget>[
+        HackzFilterSection.chips(
+          icon: AppIcons.filter,
+          label: 'Status',
+          chips: IdeathonStatus.values
+              .map(
+                (IdeathonStatus status) => HackzFilterChips.toggle(
+                  icon: IdeathonStatusHelpers.icon(status),
+                  label: IdeathonStatusHelpers.label(status),
+                  selected: _statusFilters.contains(status),
+                  onSelected: (_) => _toggleStatusFilter(status),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ],
     );
   }
 

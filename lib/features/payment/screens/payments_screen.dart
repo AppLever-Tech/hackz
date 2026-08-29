@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/core/ui/feedback/feedback.dart';
-import 'package:hackz/core/ui/inputs/filter_pill.dart';
-import 'package:hackz/core/responsive/mobile_filter_pane_styles.dart';
 import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/core/ui/data_view/data_table_view.dart';
+import 'package:hackz/core/ui/filters/hackz_filter_pane.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
@@ -213,172 +212,90 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   }
 
   Widget _buildFiltersPanel(BuildContext context, DepartmentPaymentsWorkspace workspace) {
-    final bool compact = MobileFilterPaneStyles.useCompact(context);
-    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
-    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: compact,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          ResponsiveFilterChipRow(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: <Widget>[
-              _statusFilterPill(
-                compact: compact,
-                selected: _statusFilter == null,
-                icon: AppIcons.payments,
-                label: 'All status',
-                count: workspace.contributions.length,
-                onTap: () => setState(() => _statusFilter = null),
-              ),
-              _statusFilterPill(
-                compact: compact,
-                selected: _statusFilter == PaymentRecordStatus.pending,
-                icon: AppIcons.workflowPendingReview,
-                label: 'Pending',
-                count: workspace.summary.pendingCount,
-                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
-              ),
-              _statusFilterPill(
-                compact: compact,
-                selected: _statusFilter == PaymentRecordStatus.verified,
-                icon: AppIcons.workflowApproved,
-                label: 'Verified',
-                count: workspace.summary.verifiedCount,
-                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
-              ),
-              _statusFilterPill(
-                compact: compact,
-                selected: _statusFilter == PaymentRecordStatus.rejected,
-                icon: AppIcons.workflowRejected,
-                label: 'Rejected',
-                count: workspace.summary.rejectedCount,
-                onTap: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
-              ),
-            ],
-          ),
-          SizedBox(height: sectionGap),
-          Text('Payment date', style: sectionLabel),
-          SizedBox(height: chipGap),
-          Wrap(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: DepartmentPaymentDateFilter.values
-                .map(
-                  (f) => MobileFilterPaneStyles.filterChip(
-                    compact: compact,
-                    label: f.label,
-                    selected: _dateFilter == f,
-                    onSelected: (_) => setState(() => _dateFilter = f),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-          SizedBox(height: sectionGap),
-          Text('Verification', style: sectionLabel),
-          SizedBox(height: chipGap),
-          Wrap(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: DepartmentPaymentVerificationFilter.values
-                .map(
-                  (f) => MobileFilterPaneStyles.filterChip(
-                    compact: compact,
-                    label: f.label,
-                    selected: _verificationFilter == f,
-                    onSelected: (_) => setState(() => _verificationFilter = f),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-          SizedBox(height: sectionGap),
-          MobileFilterPaneStyles.footer(
-            compact: compact,
-            onClearAll: _clearAllFilters,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusFilterPill({
-    required bool compact,
-    required bool selected,
-    required IconData icon,
-    required String label,
-    required int count,
-    required VoidCallback onTap,
-  }) {
-    if (!compact) {
-      return FilterPill(
-        selected: selected,
-        icon: icon,
-        label: label,
-        count: count,
-        onTap: onTap,
-      );
-    }
-
-    final Color fg = selected ? const Color(0xFF2E43C6) : const Color(0xFF475569);
-    final Color bg = selected ? const Color(0xFFE8ECFF) : const Color(0xFFF1F5F9);
-    final Color border = selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0);
-    final String text = count == 0 ? label : '$label ($count)';
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: border, width: selected ? 1.4 : 1),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 14, color: fg),
-              const SizedBox(width: 4),
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  color: fg,
-                ),
-              ),
-            ],
-          ),
+    return HackzFilterPane(
+      onClearAll: _clearAllFilters,
+      sections: <Widget>[
+        HackzFilterSection.chips(
+          icon: AppIcons.payments,
+          label: 'Status',
+          chips: <Widget>[
+            HackzFilterChips.choice(
+              icon: AppIcons.payments,
+              label: _countLabel('All status', workspace.contributions.length),
+              selected: _statusFilter == null,
+              onSelected: () => setState(() => _statusFilter = null),
+            ),
+            HackzFilterChips.choice(
+              icon: AppIcons.workflowPendingReview,
+              label: _countLabel('Pending', workspace.summary.pendingCount),
+              selected: _statusFilter == PaymentRecordStatus.pending,
+              onSelected: () => setState(() => _statusFilter = PaymentRecordStatus.pending),
+            ),
+            HackzFilterChips.choice(
+              icon: AppIcons.workflowApproved,
+              label: _countLabel('Verified', workspace.summary.verifiedCount),
+              selected: _statusFilter == PaymentRecordStatus.verified,
+              onSelected: () => setState(() => _statusFilter = PaymentRecordStatus.verified),
+            ),
+            HackzFilterChips.choice(
+              icon: AppIcons.workflowRejected,
+              label: _countLabel('Rejected', workspace.summary.rejectedCount),
+              selected: _statusFilter == PaymentRecordStatus.rejected,
+              onSelected: () => setState(() => _statusFilter = PaymentRecordStatus.rejected),
+            ),
+          ],
         ),
-      ),
+        HackzFilterSection.chips(
+          icon: AppIcons.event,
+          label: 'Payment date',
+          chips: DepartmentPaymentDateFilter.values
+              .map(
+                (DepartmentPaymentDateFilter f) => HackzFilterChips.choice(
+                  label: f.label,
+                  selected: _dateFilter == f,
+                  onSelected: () => setState(() => _dateFilter = f),
+                ),
+              )
+              .toList(growable: false),
+        ),
+        HackzFilterSection.chips(
+          icon: AppIcons.verification,
+          label: 'Verification',
+          chips: DepartmentPaymentVerificationFilter.values
+              .map(
+                (DepartmentPaymentVerificationFilter f) => HackzFilterChips.choice(
+                  label: f.label,
+                  selected: _verificationFilter == f,
+                  onSelected: () => setState(() => _verificationFilter = f),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ],
     );
   }
+
+  String _countLabel(String label, int count) => count == 0 ? label : '$label ($count)';
 
   Widget _buildActiveFiltersRow(DepartmentPaymentsWorkspace workspace) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
+    return HackzActiveFiltersRow(
+      chips: <Widget>[
         if (_statusFilter != null)
-          InputChip(
-            avatar: Icon(PaymentFinanceHelpers.statusIcon(_statusFilter!), size: 16),
-            label: Text(PaymentFinanceHelpers.statusLabel(_statusFilter!)),
+          HackzFilterChips.applied(
+            icon: PaymentFinanceHelpers.statusIcon(_statusFilter!),
+            label: PaymentFinanceHelpers.statusLabel(_statusFilter!),
             onDeleted: () => setState(() => _statusFilter = null),
           ),
         if (_dateFilter != DepartmentPaymentDateFilter.all)
-          InputChip(
-            label: Text(_dateFilter.label),
+          HackzFilterChips.applied(
+            icon: AppIcons.event,
+            label: _dateFilter.label,
             onDeleted: () => setState(() => _dateFilter = DepartmentPaymentDateFilter.all),
           ),
         if (_verificationFilter != DepartmentPaymentVerificationFilter.all)
-          InputChip(
-            label: Text(_verificationFilter.label),
+          HackzFilterChips.applied(
+            icon: AppIcons.verification,
+            label: _verificationFilter.label,
             onDeleted: () => setState(() => _verificationFilter = DepartmentPaymentVerificationFilter.all),
           ),
       ],

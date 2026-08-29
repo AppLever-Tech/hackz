@@ -78,6 +78,7 @@ class AppIcons {
   static const IconData helpSupport = Icons.support_agent_rounded;
   static const IconData info = Icons.info_outline_rounded;
   static const IconData domains = Icons.hub_outlined;
+  static const IconData tags = Icons.label_outline_rounded;
   static const IconData docs = Icons.menu_book_outlined;
   static const IconData spreadsheet = Icons.table_chart_outlined;
   static const IconData link = Icons.link_rounded;

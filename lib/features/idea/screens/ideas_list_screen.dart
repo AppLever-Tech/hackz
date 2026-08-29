@@ -11,13 +11,12 @@ import '../services/idea_query_service.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
-import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
-import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
@@ -327,124 +326,86 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     required Map<String, String> availableProblems,
     required List<String> availableDepartments,
   }) {
-    const bool compact = true;
-    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
     const String allProblemsValue = '';
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: compact,
-      decoration: kDashboardCardDecoration.copyWith(
-        color: MobileFilterPaneStyles.panelColor,
-        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
-            MobileFilterPaneStyles.labelValuesRow(
-              icon: Icons.filter_alt_outlined,
-              label: 'Status',
-              compact: compact,
-              child: Wrap(
-                spacing: chipGap,
-                runSpacing: chipGap,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: IdeaStatus.values
-                    .map(
-                      (status) => MobileFilterPaneStyles.filterChip(
-                        compact: compact,
-                        avatar: Icon(_statusIcon(status), size: 14),
-                        label: _statusLabel(status),
-                        selected: _statusFilters.contains(status),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _statusFilters.add(status);
-                            } else {
-                              _statusFilters.remove(status);
-                            }
-                          });
-                        },
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (widget.config.enabledFilters.contains(IdeaFilterType.problem)) ...<Widget>[
-            MobileFilterPaneStyles.labelValuesRow(
-              icon: AppIcons.problems,
-              label: 'Problem',
-              compact: compact,
-              child: HackzSelectField<String>(
-                value: _problemFilters.length == 1 ? _problemFilters.first : allProblemsValue,
-                compact: true,
-                hint: 'All problems',
-                options: <String>[allProblemsValue, ...availableProblems.keys],
-                labelBuilder: (String id) =>
-                    id.isEmpty ? 'All problems' : (availableProblems[id] ?? id),
-                iconBuilder: (_) => AppIcons.problems,
-                onChanged: (String value) => setState(() {
-                  _problemFilters = value.isEmpty ? <String>{} : <String>{value};
-                }),
-              ),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
-              widget.config.ideaDepartmentScope == IdeaDepartmentScope.none) ...<Widget>[
-            MobileFilterPaneStyles.labelValuesRow(
-              icon: AppIcons.departments,
-              label: 'Department',
-              compact: compact,
-              child: Wrap(
-                spacing: chipGap,
-                runSpacing: chipGap,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: availableDepartments
-                    .map(
-                      (d) => MobileFilterPaneStyles.filterChip(
-                        compact: compact,
-                        avatar: const Icon(AppIcons.departments, size: 14),
-                        label: d,
-                        selected: _departmentFilters.contains(d),
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _departmentFilters.add(d);
-                            } else {
-                              _departmentFilters.remove(d);
-                            }
-                          });
-                        },
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          MobileFilterPaneStyles.footer(
-            compact: compact,
-            onClearAll: _clearAllFilters,
-            onApply: _loadIdeas,
+    return HackzFilterPane(
+      onClearAll: _clearAllFilters,
+      onApply: _loadIdeas,
+      sections: <Widget>[
+        if (widget.config.enabledFilters.contains(IdeaFilterType.status))
+          HackzFilterSection.chips(
+            icon: AppIcons.filter,
+            label: 'Status',
+            chips: IdeaStatus.values
+                .map(
+                  (status) => HackzFilterChips.toggle(
+                    icon: _statusIcon(status),
+                    label: _statusLabel(status),
+                    selected: _statusFilters.contains(status),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _statusFilters.add(status);
+                        } else {
+                          _statusFilters.remove(status);
+                        }
+                      });
+                    },
+                  ),
+                )
+                .toList(growable: false),
           ),
-        ],
-      ),
+        if (widget.config.enabledFilters.contains(IdeaFilterType.problem))
+          HackzFilterSection(
+            icon: AppIcons.problems,
+            label: 'Problem',
+            child: HackzSelectField<String>(
+              value: _problemFilters.length == 1 ? _problemFilters.first : allProblemsValue,
+              compact: true,
+              hint: 'All problems',
+              options: <String>[allProblemsValue, ...availableProblems.keys],
+              labelBuilder: (String id) =>
+                  id.isEmpty ? 'All problems' : (availableProblems[id] ?? id),
+              iconBuilder: (_) => AppIcons.problems,
+              onChanged: (String value) => setState(() {
+                _problemFilters = value.isEmpty ? <String>{} : <String>{value};
+              }),
+            ),
+          ),
+        if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
+            widget.config.ideaDepartmentScope == IdeaDepartmentScope.none)
+          HackzFilterSection.chips(
+            icon: AppIcons.departments,
+            label: 'Department',
+            chips: availableDepartments
+                .map(
+                  (d) => HackzFilterChips.toggle(
+                    icon: AppIcons.departments,
+                    label: d,
+                    selected: _departmentFilters.contains(d),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _departmentFilters.add(d);
+                        } else {
+                          _departmentFilters.remove(d);
+                        }
+                      });
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+      ],
     );
   }
 
   Widget _buildActiveFiltersRow(Map<String, String> problems) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
+    return HackzActiveFiltersRow(
+      chips: <Widget>[
         ..._statusFilters.map(
-          (status) => InputChip(
-            avatar: Icon(_statusIcon(status), size: 16),
-            label: Text(_statusLabel(status)),
+          (status) => HackzFilterChips.applied(
+            icon: _statusIcon(status),
+            label: _statusLabel(status),
             onDeleted: () {
               setState(() => _statusFilters.remove(status));
               _loadIdeas();
@@ -452,9 +413,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ),
         ),
         ..._problemFilters.map(
-          (problemId) => InputChip(
-            avatar: const Icon(AppIcons.problems, size: 16),
-            label: Text(problems[problemId] ?? problemId),
+          (problemId) => HackzFilterChips.applied(
+            icon: AppIcons.problems,
+            label: problems[problemId] ?? problemId,
             onDeleted: () {
               setState(() => _problemFilters.remove(problemId));
               _loadIdeas();
@@ -462,8 +423,9 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ),
         ),
         ..._departmentFilters.map(
-          (dep) => InputChip(
-            label: Text(dep),
+          (dep) => HackzFilterChips.applied(
+            icon: AppIcons.departments,
+            label: dep,
             onDeleted: () {
               setState(() => _departmentFilters.remove(dep));
               _loadIdeas();

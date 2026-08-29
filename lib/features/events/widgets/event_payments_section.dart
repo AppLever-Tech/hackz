@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/ui/inputs/filter_pill.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../payment/models/payment_model.dart';
 import '../../payment/services/department_payments_service.dart';
@@ -147,40 +147,38 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
           firstChild: const SizedBox.shrink(),
           secondChild: Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                FilterPill(
-                  selected: _filter == EventPaymentFilter.all,
+            child: HackzFilterPane(
+              onClearAll: () => setState(() => _filter = EventPaymentFilter.all),
+              sections: <Widget>[
+                HackzFilterSection.chips(
                   icon: AppIcons.payments,
-                  label: 'All',
-                  count: metrics.total,
-                  onTap: () => setState(() => _filter = EventPaymentFilter.all),
-                ),
-                FilterPill(
-                  selected: _filter == EventPaymentFilter.confirmed,
-                  icon: AppIcons.workflowApproved,
-                  label: 'Confirmed',
-                  count: metrics.confirmed,
-                  foregroundColor: const Color(0xFF047857),
-                  onTap: () => setState(() => _filter = EventPaymentFilter.confirmed),
-                ),
-                FilterPill(
-                  selected: _filter == EventPaymentFilter.pending,
-                  icon: AppIcons.clock,
-                  label: 'Pending',
-                  count: metrics.pending,
-                  foregroundColor: const Color(0xFFEA580C),
-                  onTap: () => setState(() => _filter = EventPaymentFilter.pending),
-                ),
-                FilterPill(
-                  selected: _filter == EventPaymentFilter.exception,
-                  icon: AppIcons.error,
-                  label: 'Exception',
-                  count: metrics.exceptions,
-                  foregroundColor: const Color(0xFFB91C1C),
-                  onTap: () => setState(() => _filter = EventPaymentFilter.exception),
+                  label: 'Status',
+                  chips: <Widget>[
+                    HackzFilterChips.choice(
+                      icon: AppIcons.payments,
+                      label: _countLabel('All', metrics.total),
+                      selected: _filter == EventPaymentFilter.all,
+                      onSelected: () => setState(() => _filter = EventPaymentFilter.all),
+                    ),
+                    HackzFilterChips.choice(
+                      icon: AppIcons.workflowApproved,
+                      label: _countLabel('Confirmed', metrics.confirmed),
+                      selected: _filter == EventPaymentFilter.confirmed,
+                      onSelected: () => setState(() => _filter = EventPaymentFilter.confirmed),
+                    ),
+                    HackzFilterChips.choice(
+                      icon: AppIcons.clock,
+                      label: _countLabel('Pending', metrics.pending),
+                      selected: _filter == EventPaymentFilter.pending,
+                      onSelected: () => setState(() => _filter = EventPaymentFilter.pending),
+                    ),
+                    HackzFilterChips.choice(
+                      icon: AppIcons.error,
+                      label: _countLabel('Exception', metrics.exceptions),
+                      selected: _filter == EventPaymentFilter.exception,
+                      onSelected: () => setState(() => _filter = EventPaymentFilter.exception),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -218,4 +216,6 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
       ),
     );
   }
+
+  String _countLabel(String label, int count) => count == 0 ? label : '$label ($count)';
 }

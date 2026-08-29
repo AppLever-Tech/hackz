@@ -693,7 +693,6 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: ProblemFiltersPanel(
-            compact: compact,
             enabledFilters: widget.config.enabledFilters,
             allDepartments: allDepartments,
             allDomains: allDomains,

@@ -21,6 +21,13 @@ abstract final class MobileFilterPaneStyles {
   static const double standardChipFontSize = 14;
   static const double compactFooterButtonHeight = 34;
   static const double standardFooterButtonHeight = 40;
+  static const double compactLabelColumnWidth = 118;
+  static const double standardLabelColumnWidth = 132;
+  static const double chipAvatarSize = 14;
+  static const Color paneBorderColor = Color(0xFFD9E2F5);
+  static const List<BoxShadow> paneShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x1A273B6A), blurRadius: 14, offset: Offset(0, 6)),
+  ];
 
   static bool useCompact(BuildContext context, {bool? compact}) {
     if (compact != null) return compact;
@@ -65,12 +72,35 @@ abstract final class MobileFilterPaneStyles {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Icon(icon, size: 16, color: iconColor),
-        const SizedBox(width: 6),
-        Text(label, style: sectionLabel(compact: compact)),
+        SizedBox(
+          width: compact ? compactLabelColumnWidth : standardLabelColumnWidth,
+          child: Row(
+            children: <Widget>[
+              Icon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: sectionLabel(compact: compact),
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(width: 10),
         Expanded(child: child),
       ],
+    );
+  }
+
+  static BoxDecoration paneDecoration({required bool compact}) {
+    return BoxDecoration(
+      color: panelColor,
+      borderRadius: panelBorderRadius(compact: compact),
+      border: Border.all(color: paneBorderColor, width: 1.2),
+      boxShadow: paneShadow,
     );
   }
 
@@ -82,11 +112,7 @@ abstract final class MobileFilterPaneStyles {
     return Container(
       width: double.infinity,
       padding: panelPadding(compact: compact),
-      decoration: decoration ??
-          BoxDecoration(
-            color: panelColor,
-            borderRadius: panelBorderRadius(compact: compact),
-          ),
+      decoration: decoration ?? paneDecoration(compact: compact),
       child: child,
     );
   }

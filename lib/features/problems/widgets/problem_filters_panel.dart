@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../imports/models/import_created_source.dart';
-import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_status.dart';
 import '../services/problem_status_helpers.dart';
@@ -30,7 +30,6 @@ class ProblemFiltersPanel extends StatelessWidget {
     required this.onAttachmentsChange,
     required this.onClearAll,
     required this.onApply,
-    this.compact = false,
   });
 
   final Set<ProblemFilterType> enabledFilters;
@@ -52,172 +51,124 @@ class ProblemFiltersPanel extends StatelessWidget {
   final void Function(bool? next) onAttachmentsChange;
   final VoidCallback onClearAll;
   final VoidCallback onApply;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final bool useCompact = MobileFilterPaneStyles.useCompact(context, compact: compact);
-    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: useCompact);
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: useCompact);
-    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: useCompact);
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: useCompact,
-      decoration: kDashboardCardDecoration.copyWith(
-        color: MobileFilterPaneStyles.panelColor,
-        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: useCompact),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (enabledFilters.contains(ProblemFilterType.department)) ...<Widget>[
-            Text('Department', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: allDepartments
-                  .map(
-                    (d) => MobileFilterPaneStyles.filterChip(
-                      compact: useCompact,
-                      label: d,
-                      selected: departmentFilters.contains(d),
-                      onSelected: (selected) => onDepartmentToggle(d, selected),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (enabledFilters.contains(ProblemFilterType.domain) && allDomains.isNotEmpty) ...<Widget>[
-            Text('Domain', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: allDomains.entries
-                  .map(
-                    (MapEntry<String, String> e) => MobileFilterPaneStyles.filterChip(
-                      compact: useCompact,
-                      label: e.value,
-                      selected: domainFilters.contains(e.key),
-                      onSelected: (selected) => onDomainToggle(e.key, selected),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (enabledFilters.contains(ProblemFilterType.status)) ...<Widget>[
-            Text('Status', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: <Widget>[
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'All',
-                  selected: statusFilter == null,
-                  onSelected: () => onStatusChange(null),
-                ),
-                for (final ProblemStatus status in ProblemStatus.lifecycleOrder)
-                  MobileFilterPaneStyles.choiceChip(
-                    compact: useCompact,
-                    label: ProblemStatusHelpers.label(status),
-                    selected: statusFilter == status,
-                    onSelected: () => onStatusChange(statusFilter == status ? null : status),
+    return HackzFilterPane(
+      onClearAll: onClearAll,
+      onApply: onApply,
+      sections: <Widget>[
+        if (enabledFilters.contains(ProblemFilterType.department))
+          HackzFilterSection.chips(
+            icon: AppIcons.departments,
+            label: 'Department',
+            chips: allDepartments
+                .map(
+                  (String d) => HackzFilterChips.toggle(
+                    icon: AppIcons.departments,
+                    label: d,
+                    selected: departmentFilters.contains(d),
+                    onSelected: (bool selected) => onDepartmentToggle(d, selected),
                   ),
-              ],
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (enabledFilters.contains(ProblemFilterType.source)) ...<Widget>[
-            Text('Source', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: <Widget>[
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'All',
-                  selected: sourceFilter == null,
-                  onSelected: () => onSourceChange(null),
-                ),
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'Manual',
-                  selected: sourceFilter == ImportCreatedSource.manual,
-                  onSelected: () => onSourceChange(
-                    sourceFilter == ImportCreatedSource.manual ? null : ImportCreatedSource.manual,
-                  ),
-                ),
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'Imported',
-                  selected: sourceFilter == ImportCreatedSource.csvImport,
-                  onSelected: () => onSourceChange(
-                    sourceFilter == ImportCreatedSource.csvImport ? null : ImportCreatedSource.csvImport,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (enabledFilters.contains(ProblemFilterType.tags)) ...<Widget>[
-            Text('Tags', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: allTags
-                  .map(
-                    (tag) => MobileFilterPaneStyles.filterChip(
-                      compact: useCompact,
-                      label: tag,
-                      selected: tagFilters.contains(tag),
-                      onSelected: (selected) => onTagToggle(tag, selected),
-                    ),
-                  )
-                  .toList(growable: false),
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          if (enabledFilters.contains(ProblemFilterType.attachments)) ...<Widget>[
-            Text('Attachments', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: <Widget>[
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'With Attachments',
-                  selected: hasAttachments == true,
-                  onSelected: () => onAttachmentsChange(
-                    hasAttachments == true ? null : true,
-                  ),
-                ),
-                MobileFilterPaneStyles.choiceChip(
-                  compact: useCompact,
-                  label: 'Without Attachments',
-                  selected: hasAttachments == false,
-                  onSelected: () => onAttachmentsChange(
-                    hasAttachments == false ? null : false,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: sectionGap),
-          ],
-          MobileFilterPaneStyles.footer(
-            compact: useCompact,
-            onClearAll: onClearAll,
-            onApply: onApply,
+                )
+                .toList(growable: false),
           ),
-        ],
-      ),
+        if (enabledFilters.contains(ProblemFilterType.domain) && allDomains.isNotEmpty)
+          HackzFilterSection.chips(
+            icon: AppIcons.domains,
+            label: 'Domain',
+            chips: allDomains.entries
+                .map(
+                  (MapEntry<String, String> e) => HackzFilterChips.toggle(
+                    icon: AppIcons.domains,
+                    label: e.value,
+                    selected: domainFilters.contains(e.key),
+                    onSelected: (bool selected) => onDomainToggle(e.key, selected),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        if (enabledFilters.contains(ProblemFilterType.status))
+          HackzFilterSection.chips(
+            icon: AppIcons.filter,
+            label: 'Status',
+            chips: <Widget>[
+              HackzFilterChips.choice(
+                label: 'All',
+                selected: statusFilter == null,
+                onSelected: () => onStatusChange(null),
+              ),
+              for (final ProblemStatus status in ProblemStatus.lifecycleOrder)
+                HackzFilterChips.choice(
+                  icon: ProblemStatusHelpers.icon(status),
+                  label: ProblemStatusHelpers.label(status),
+                  selected: statusFilter == status,
+                  onSelected: () => onStatusChange(statusFilter == status ? null : status),
+                ),
+            ],
+          ),
+        if (enabledFilters.contains(ProblemFilterType.source))
+          HackzFilterSection.chips(
+            icon: AppIcons.submissions,
+            label: 'Source',
+            chips: <Widget>[
+              HackzFilterChips.choice(
+                label: 'All',
+                selected: sourceFilter == null,
+                onSelected: () => onSourceChange(null),
+              ),
+              HackzFilterChips.choice(
+                icon: ProblemStatusHelpers.sourceIcon(ImportCreatedSource.manual.value),
+                label: 'Manual',
+                selected: sourceFilter == ImportCreatedSource.manual,
+                onSelected: () => onSourceChange(
+                  sourceFilter == ImportCreatedSource.manual ? null : ImportCreatedSource.manual,
+                ),
+              ),
+              HackzFilterChips.choice(
+                icon: ProblemStatusHelpers.sourceIcon(ImportCreatedSource.csvImport.value),
+                label: 'Imported',
+                selected: sourceFilter == ImportCreatedSource.csvImport,
+                onSelected: () => onSourceChange(
+                  sourceFilter == ImportCreatedSource.csvImport ? null : ImportCreatedSource.csvImport,
+                ),
+              ),
+            ],
+          ),
+        if (enabledFilters.contains(ProblemFilterType.tags))
+          HackzFilterSection.chips(
+            icon: AppIcons.tags,
+            label: 'Tags',
+            chips: allTags
+                .map(
+                  (String tag) => HackzFilterChips.toggle(
+                    icon: AppIcons.tags,
+                    label: tag,
+                    selected: tagFilters.contains(tag),
+                    onSelected: (bool selected) => onTagToggle(tag, selected),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        if (enabledFilters.contains(ProblemFilterType.attachments))
+          HackzFilterSection.chips(
+            icon: AppIcons.attachments,
+            label: 'Attachments',
+            chips: <Widget>[
+              HackzFilterChips.choice(
+                icon: AppIcons.attachments,
+                label: 'With Attachments',
+                selected: hasAttachments == true,
+                onSelected: () => onAttachmentsChange(hasAttachments == true ? null : true),
+              ),
+              HackzFilterChips.choice(
+                label: 'Without Attachments',
+                selected: hasAttachments == false,
+                onSelected: () => onAttachmentsChange(hasAttachments == false ? null : false),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -266,43 +217,45 @@ class ProblemActiveFiltersRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
+    return HackzActiveFiltersRow(
+      chips: <Widget>[
         ...departmentFilters.map(
-          (d) => InputChip(
-            label: Text(d),
+          (String d) => HackzFilterChips.applied(
+            icon: AppIcons.departments,
+            label: d,
             onDeleted: () => onRemoveDepartment(d),
           ),
         ),
         ...domainFilters.map(
-          (id) => InputChip(
-            label: Text(domainLabels[id] ?? id),
+          (String id) => HackzFilterChips.applied(
+            icon: AppIcons.domains,
+            label: domainLabels[id] ?? id,
             onDeleted: () => onRemoveDomain(id),
           ),
         ),
         ...tagFilters.map(
-          (t) => InputChip(
-            label: Text(t),
+          (String t) => HackzFilterChips.applied(
+            icon: AppIcons.tags,
+            label: t,
             onDeleted: () => onRemoveTag(t),
           ),
         ),
         if (statusFilter != null)
-          InputChip(
-            label: Text(ProblemStatusHelpers.label(statusFilter!)),
+          HackzFilterChips.applied(
+            icon: ProblemStatusHelpers.icon(statusFilter!),
+            label: ProblemStatusHelpers.label(statusFilter!),
             onDeleted: onClearStatus,
           ),
         if (sourceFilter != null)
-          InputChip(
-            label: Text(ProblemStatusHelpers.sourceLabel(sourceFilter!.value)),
+          HackzFilterChips.applied(
+            icon: ProblemStatusHelpers.sourceIcon(sourceFilter!.value),
+            label: ProblemStatusHelpers.sourceLabel(sourceFilter!.value),
             onDeleted: onClearSource,
           ),
         if (hasAttachments != null)
-          InputChip(
-            label: Text(
-              hasAttachments == true ? 'With Attachments' : 'Without Attachments',
-            ),
+          HackzFilterChips.applied(
+            icon: AppIcons.attachments,
+            label: hasAttachments == true ? 'With Attachments' : 'Without Attachments',
             onDeleted: onClearAttachments,
           ),
       ],

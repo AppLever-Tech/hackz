@@ -7,7 +7,7 @@ import '../../idea/models/enums/idea_status.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../workspace/evaluation_details_workspace.dart';
 import '../../user/models/user_model.dart';
-import '../../../core/responsive/mobile_filter_pane_styles.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -406,118 +406,88 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required List<String> departments,
     required bool ideathonScoped,
   }) {
-    final bool compact = MobileFilterPaneStyles.useCompact(context);
-    final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
-    final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
-    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
-
-    return MobileFilterPaneStyles.panelShell(
-      compact: compact,
-      decoration: kDashboardCardDecoration.copyWith(
-        color: MobileFilterPaneStyles.panelColor,
-        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (!ideathonScoped) ...<Widget>[
-            Text('Status', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: <Widget>[
-                for (final IdeaStatus status in IdeaStatus.lifecycleOrder)
-                  MobileFilterPaneStyles.filterChip(
-                    compact: compact,
-                    label: IdeaStatusHelpers.label(status),
-                    selected: _statusFilters.contains(status),
+    return HackzFilterPane(
+      onClearAll: _clearFilters,
+      onApply: _load,
+      sections: <Widget>[
+        if (!ideathonScoped)
+          HackzFilterSection.chips(
+            icon: AppIcons.filter,
+            label: 'Status',
+            chips: <Widget>[
+              for (final IdeaStatus status in IdeaStatus.lifecycleOrder)
+                HackzFilterChips.toggle(
+                  icon: IdeaStatusHelpers.icon(status),
+                  label: IdeaStatusHelpers.label(status),
+                  selected: _statusFilters.contains(status),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        _statusFilters.add(status);
+                      } else {
+                        _statusFilters.remove(status);
+                      }
+                    });
+                  },
+                ),
+            ],
+          ),
+        if (departments.isNotEmpty)
+          HackzFilterSection.chips(
+            icon: AppIcons.departments,
+            label: 'Department',
+            chips: departments
+                .map(
+                  (String dep) => HackzFilterChips.toggle(
+                    icon: AppIcons.departments,
+                    label: dep,
+                    selected: _departmentFilters.contains(dep),
                     onSelected: (bool value) {
                       setState(() {
                         if (value) {
-                          _statusFilters.add(status);
+                          _departmentFilters.add(dep);
                         } else {
-                          _statusFilters.remove(status);
+                          _departmentFilters.remove(dep);
                         }
                       });
                     },
                   ),
-              ],
-            ),
-          ],
-          if (departments.isNotEmpty) ...<Widget>[
-            if (!ideathonScoped) SizedBox(height: sectionGap),
-            Text('Department', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: departments
-                  .map(
-                    (String dep) => MobileFilterPaneStyles.filterChip(
-                      compact: compact,
-                      label: dep,
-                      selected: _departmentFilters.contains(dep),
-                      onSelected: (bool value) {
-                        setState(() {
-                          if (value) {
-                            _departmentFilters.add(dep);
-                          } else {
-                            _departmentFilters.remove(dep);
-                          }
-                        });
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-          if (categories.isNotEmpty) ...<Widget>[
-            SizedBox(height: sectionGap),
-            Text('Category', style: sectionLabel),
-            SizedBox(height: chipGap),
-            Wrap(
-              spacing: chipGap,
-              runSpacing: chipGap,
-              children: categories
-                  .map(
-                    (String cat) => MobileFilterPaneStyles.filterChip(
-                      compact: compact,
-                      label: cat,
-                      selected: _categoryFilters.contains(cat),
-                      onSelected: (bool value) {
-                        setState(() {
-                          if (value) {
-                            _categoryFilters.add(cat);
-                          } else {
-                            _categoryFilters.remove(cat);
-                          }
-                        });
-                      },
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-          SizedBox(height: sectionGap),
-          MobileFilterPaneStyles.footer(
-            compact: compact,
-            onClearAll: _clearFilters,
-            onApply: _load,
+                )
+                .toList(growable: false),
           ),
-        ],
-      ),
+        if (categories.isNotEmpty)
+          HackzFilterSection.chips(
+            icon: AppIcons.orgType,
+            label: 'Category',
+            chips: categories
+                .map(
+                  (String cat) => HackzFilterChips.toggle(
+                    label: cat,
+                    selected: _categoryFilters.contains(cat),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          _categoryFilters.add(cat);
+                        } else {
+                          _categoryFilters.remove(cat);
+                        }
+                      });
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+      ],
     );
   }
 
   Widget _buildActiveFilters() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
+    return HackzActiveFiltersRow(
+      chips: <Widget>[
         ..._statusFilters.map(
-          (IdeaStatus status) => InputChip(
-            label: Text(IdeaStatusHelpers.label(status)),
+          (IdeaStatus status) => HackzFilterChips.applied(
+            icon: IdeaStatusHelpers.icon(status),
+            label: IdeaStatusHelpers.label(status),
             onDeleted: () {
               setState(() => _statusFilters.remove(status));
               _load();
@@ -525,8 +495,9 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           ),
         ),
         ..._departmentFilters.map(
-          (String dep) => InputChip(
-            label: Text(dep),
+          (String dep) => HackzFilterChips.applied(
+            icon: AppIcons.departments,
+            label: dep,
             onDeleted: () {
               setState(() => _departmentFilters.remove(dep));
               _load();
@@ -534,8 +505,9 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           ),
         ),
         ..._categoryFilters.map(
-          (String cat) => InputChip(
-            label: Text(cat),
+          (String cat) => HackzFilterChips.applied(
+            icon: AppIcons.orgType,
+            label: cat,
             onDeleted: () {
               setState(() => _categoryFilters.remove(cat));
               _load();
