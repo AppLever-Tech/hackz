@@ -7,6 +7,7 @@ import 'package:hackz/core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
 import 'package:hackz/core/ui/data_view/data_table_view.dart';
 import 'package:hackz/core/ui/filters/hackz_filter_pane.dart';
+import 'package:hackz/features/dashboard/chrome/empty_search_state.dart';
 
 import '../models/payment_model.dart';
 import '../services/department_payments_service.dart';
@@ -326,8 +327,11 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     required PaymentTableActions actions,
   }) {
     if (items.isEmpty) {
-      return const Center(
-        child: Text('No payment contributions match your filters.', style: TextStyle(color: Color(0xFF64748B))),
+      return EmptySearchState.payments(
+        onClearSearch: () {
+          _searchController.clear();
+          _clearAllFilters();
+        },
       );
     }
 
