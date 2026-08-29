@@ -78,6 +78,15 @@ abstract final class AppSemanticColors {
     glow: Color(0x33F59E0B),
   );
 
+  static const ContextPillPalette contextEvent = ContextPillPalette(
+    border: Color(0xFFA5F3FC),
+    borderHover: Color(0xFF22D3EE),
+    surface: Color(0xFFECFEFF),
+    surfaceHover: Color(0xFFCFFAFE),
+    text: Color(0xFF0E7490),
+    glow: Color(0x3306B6D4),
+  );
+
   // —— Semantic states ——
   static const Color successSurface = Color(0xFFECFDF5);
   static const Color successBorder = Color(0xFFBBF7D0);

@@ -10,7 +10,6 @@ enum IdeaSortType {
   newest,
   oldest,
   status,
-  score,
 }
 
 class IdeaListConfig {

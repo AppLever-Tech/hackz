@@ -15,6 +15,7 @@ enum ContextPillSemantic {
   evaluation,
   evaluationTemplate,
   judge,
+  event,
 }
 
 /// Resolved metrics and colors for [ContextPill].
@@ -29,6 +30,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.evaluation => AppSemanticColors.contextEvaluation,
       ContextPillSemantic.evaluationTemplate => AppSemanticColors.contextEvaluation,
       ContextPillSemantic.judge => AppSemanticColors.contextUser,
+      ContextPillSemantic.event => AppSemanticColors.contextEvent,
       ContextPillSemantic.generic => AppSemanticColors.contextGeneric,
     };
   }
@@ -43,6 +45,7 @@ abstract final class ContextPillTheme {
       'payment' => ContextPillSemantic.payment,
       'evaluation' => ContextPillSemantic.evaluation,
       'evaluation template' || 'template' => ContextPillSemantic.evaluationTemplate,
+      'event' || 'ideathon' || 'hackathon' => ContextPillSemantic.event,
       _ => ContextPillSemantic.generic,
     };
   }
@@ -57,6 +60,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.payment => AppIcons.payments,
       ContextPillSemantic.evaluation => AppIcons.scoring,
       ContextPillSemantic.evaluationTemplate => AppIcons.scoring,
+      ContextPillSemantic.event => AppIcons.ideathons,
       ContextPillSemantic.generic => AppIcons.timelineWorkspace,
     };
   }
@@ -82,6 +86,7 @@ abstract final class ContextPillTheme {
       ContextPillSemantic.evaluation => 'Open evaluation in workspace',
       ContextPillSemantic.evaluationTemplate => 'Open evaluation template in workspace',
       ContextPillSemantic.judge => 'Open judge in workspace',
+      ContextPillSemantic.event => 'Open event in workspace',
       ContextPillSemantic.generic => 'Open in workspace',
     };
   }

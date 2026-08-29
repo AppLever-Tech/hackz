@@ -29,7 +29,6 @@ class IdeaRoleConfig {
             IdeaSortType.newest,
             IdeaSortType.oldest,
             IdeaSortType.status,
-            IdeaSortType.score,
           },
         );
       case UserRole.collegeAdmin:
@@ -115,7 +114,6 @@ class IdeaRoleConfig {
             IdeaSortType.newest,
             IdeaSortType.oldest,
             IdeaSortType.status,
-            IdeaSortType.score,
           },
         );
       case UserRole.coordinator:

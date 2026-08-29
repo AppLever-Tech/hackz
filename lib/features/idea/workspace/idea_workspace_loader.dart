@@ -5,15 +5,15 @@ import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../team/models/enums/team_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import '../models/idea_event_participation_summary.dart';
 import '../../organization/models/organization_model.dart';
-import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/models/problem_status.dart';
-import '../../evaluations/models/score_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../services/idea_event_participation_loader.dart';
 
 class IdeaWorkspaceViewModel {
   const IdeaWorkspaceViewModel({
@@ -24,14 +24,11 @@ class IdeaWorkspaceViewModel {
     required this.problemTitle,
     required this.teamName,
     required this.submittedByName,
-    required this.payment,
-    required this.scores,
-    required this.averageScore,
-    required this.reviewerCount,
-    required this.evaluationProgressLabel,
-    required this.paymentStatusLabel,
+    required this.submittedBy,
+    required this.teamLeader,
+    required this.teamMembers,
+    required this.eventParticipations,
     required this.attachments,
-    required this.judgeNamesById,
   });
 
   final IdeaModel idea;
@@ -41,14 +38,11 @@ class IdeaWorkspaceViewModel {
   final String problemTitle;
   final String teamName;
   final String submittedByName;
-  final PaymentModel? payment;
-  final List<ScoreModel> scores;
-  final double? averageScore;
-  final int reviewerCount;
-  final String evaluationProgressLabel;
-  final String paymentStatusLabel;
+  final UserModel? submittedBy;
+  final UserModel? teamLeader;
+  final List<UserModel> teamMembers;
+  final List<IdeaEventParticipationSummary> eventParticipations;
   final List<AttachmentModel> attachments;
-  final Map<String, String> judgeNamesById;
 }
 
 abstract final class IdeaWorkspaceLoader {
@@ -78,17 +72,6 @@ abstract final class IdeaWorkspaceLoader {
           ? Future<ProblemModel?>.value(null)
           : FirestoreUtils.fetchProblemById(idea.problemId.trim()),
       orgId.isEmpty ? Future<OrganizationModel?>.value(null) : FirestoreUtils.fetchOrganization(orgId),
-      _loadPayment(db, id),
-      orgId.isEmpty
-          ? Future<QuerySnapshot<Map<String, dynamic>>>.value(
-              await db.collection(FirestoreUtils.hkzScores).limit(0).get(),
-            )
-          : db
-              .collection(FirestoreUtils.hkzScores)
-              .where('orgId', isEqualTo: orgId)
-              .where('ideaId', isEqualTo: id)
-              .limit(50)
-              .get(),
       orgId.isEmpty
           ? Future<QuerySnapshot<Map<String, dynamic>>>.value(
               await db.collection(FirestoreUtils.hkzAttachments).limit(0).get(),
@@ -100,15 +83,15 @@ abstract final class IdeaWorkspaceLoader {
               .limit(300)
               .get(),
       FirestoreUtils.fetchUser(idea.createdBy.trim()),
+      IdeaEventParticipationLoader.loadForIdea(ideaId: id, orgId: orgId),
     ]);
 
     final DocumentSnapshot<Map<String, dynamic>>? teamDoc = results[0] as DocumentSnapshot<Map<String, dynamic>>?;
     final ProblemModel? fetchedProblem = results[1] as ProblemModel?;
     final OrganizationModel? org = results[2] as OrganizationModel?;
-    final PaymentModel? payment = results[3] as PaymentModel?;
-    final QuerySnapshot<Map<String, dynamic>> scoresSnap = results[4] as QuerySnapshot<Map<String, dynamic>>;
-    final QuerySnapshot<Map<String, dynamic>> attachmentSnap = results[5] as QuerySnapshot<Map<String, dynamic>>;
-    final UserModel? submittedBy = results[6] as UserModel?;
+    final QuerySnapshot<Map<String, dynamic>> attachmentSnap = results[3] as QuerySnapshot<Map<String, dynamic>>;
+    final UserModel? submittedBy = results[4] as UserModel?;
+    final List<IdeaEventParticipationSummary> events = results[5] as List<IdeaEventParticipationSummary>;
 
     final TeamModel team = teamDoc != null && teamDoc.exists && teamDoc.data() != null
         ? TeamModel.fromMap(teamDoc.id, teamDoc.data()!)
@@ -140,39 +123,23 @@ abstract final class IdeaWorkspaceLoader {
           createdAt: idea.createdAt,
         );
 
-    final List<ScoreModel> scores = scoresSnap.docs
-        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => ScoreModel.fromMap(d.id, d.data()))
-        .toList(growable: false)
-      ..sort((ScoreModel a, ScoreModel b) => b.createdAt.compareTo(a.createdAt));
-
-    final Set<String> judgeIds = scores.map((ScoreModel s) => s.judgeId.trim()).where((e) => e.isNotEmpty).toSet();
-    final Map<String, String> judgeNamesById = <String, String>{};
-    await Future.wait<void>(
-      judgeIds.map((String judgeId) async {
-        final UserModel? judge = await FirestoreUtils.fetchUser(judgeId);
-        if (judge != null) {
-          judgeNamesById[judgeId] = userDisplayName(judge);
-        }
-      }),
-    );
-
-    final String? paymentId = payment?.paymentId.trim();
     final List<AttachmentModel> attachments = attachmentSnap.docs
         .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => AttachmentModel.fromMap(d.id, d.data()))
-        .where(
-          (AttachmentModel a) =>
-              (a.entityType == AttachmentEntityType.idea && a.entityId == id) ||
-              (paymentId != null &&
-                  paymentId.isNotEmpty &&
-                  a.entityType == AttachmentEntityType.payment &&
-                  a.entityId == paymentId),
-        )
+        .where((AttachmentModel a) => a.entityType == AttachmentEntityType.idea && a.entityId == id)
         .toList(growable: false)
       ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
 
-    final double? averageScore = scores.isEmpty
-        ? null
-        : scores.map((ScoreModel e) => e.score).reduce((double a, double b) => a + b) / scores.length;
+    final Set<String> memberIds = <String>{
+      ...team.studentIds.map((String id) => id.trim()),
+      team.teamLeaderId.trim(),
+    }.where((String id) => id.isNotEmpty).toSet();
+    final Map<String, UserModel> membersById = <String, UserModel>{};
+    await Future.wait<void>(
+      memberIds.map((String memberId) async {
+        final UserModel? user = await FirestoreUtils.fetchUser(memberId);
+        if (user != null) membersById[memberId] = user;
+      }),
+    );
 
     final String orgName = (org?.name.trim() ?? '').isEmpty ? (orgId.isEmpty ? '—' : orgId) : org!.name.trim();
     final String teamName = team.teamName.trim().isEmpty
@@ -185,6 +152,12 @@ abstract final class IdeaWorkspaceLoader {
         ? (idea.createdBy.trim().isEmpty ? '—' : idea.createdBy.trim())
         : userDisplayName(submittedBy);
 
+    final List<UserModel> teamMembers = memberIds
+        .map((String memberId) => membersById[memberId])
+        .whereType<UserModel>()
+        .toList(growable: false);
+    final UserModel? teamLeader = membersById[team.teamLeaderId.trim()];
+
     return IdeaWorkspaceViewModel(
       idea: idea,
       problem: problem,
@@ -193,51 +166,12 @@ abstract final class IdeaWorkspaceLoader {
       problemTitle: problemTitle,
       teamName: teamName,
       submittedByName: submittedByName,
-      payment: payment,
-      scores: scores,
-      averageScore: averageScore,
-      reviewerCount: judgeIds.length,
-      evaluationProgressLabel: _evaluationProgress(idea, scores.length),
-      paymentStatusLabel: _paymentStatusLabel(payment?.status),
+      submittedBy: submittedBy,
+      teamLeader: teamLeader,
+      teamMembers: teamMembers,
+      eventParticipations: events,
       attachments: attachments,
-      judgeNamesById: judgeNamesById,
     );
-  }
-
-  static Future<PaymentModel?> _loadPayment(FirebaseFirestore db, String ideaId) async {
-    final DocumentSnapshot<Map<String, dynamic>> primary =
-        await db.collection(FirestoreUtils.hkzPayments).doc(ideaId).get();
-    if (primary.exists && primary.data() != null) {
-      return PaymentModel.fromMap(primary.id, primary.data()!);
-    }
-    final QuerySnapshot<Map<String, dynamic>> legacy = await db
-        .collection(FirestoreUtils.hkzPayments)
-        .where('ideaId', isEqualTo: ideaId)
-        .limit(1)
-        .get();
-    if (legacy.docs.isEmpty) return null;
-    final QueryDocumentSnapshot<Map<String, dynamic>> doc = legacy.docs.first;
-    return PaymentModel.fromMap(doc.id, doc.data());
-  }
-
-  static String _evaluationProgress(IdeaModel idea, int scoreCount) {
-    if (scoreCount > 0) {
-      return '$scoreCount review${scoreCount == 1 ? '' : 's'} recorded';
-    }
-    if (idea.hasEvaluationAggregate) return 'Evaluated';
-    return switch (idea.status) {
-      IdeaStatus.submitted => 'Submitted',
-      IdeaStatus.draft => 'Not yet submitted',
-    };
-  }
-
-  static String _paymentStatusLabel(PaymentRecordStatus? status) {
-    if (status == null) return 'Not uploaded';
-    return switch (status) {
-      PaymentRecordStatus.pending => 'Pending verification',
-      PaymentRecordStatus.verified => 'Verified',
-      PaymentRecordStatus.rejected => 'Rejected',
-    };
   }
 }
 

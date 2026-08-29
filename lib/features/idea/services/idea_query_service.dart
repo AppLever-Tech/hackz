@@ -1,18 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../user/models/enums/user_role.dart';
+import '../models/idea_event_participation_summary.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
-import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../evaluations/models/score_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../team/models/team_model.dart';
-import '../../team/services/team_service.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_visibility_helpers.dart';
+import 'idea_event_participation_loader.dart';
 
 class IdeaQueryParams {
   const IdeaQueryParams({
@@ -41,23 +39,18 @@ class IdeaDepartmentMetrics {
   const IdeaDepartmentMetrics({
     required this.total,
     required this.submitted,
-    required this.evaluated,
     required this.pendingSubmission,
-    this.averageScore,
   });
 
   static const IdeaDepartmentMetrics empty = IdeaDepartmentMetrics(
     total: 0,
     submitted: 0,
-    evaluated: 0,
     pendingSubmission: 0,
   );
 
   final int total;
   final int submitted;
-  final int evaluated;
   final int pendingSubmission;
-  final double? averageScore;
 }
 
 class IdeaListQueryResult {
@@ -74,24 +67,14 @@ class IdeaListItem {
   const IdeaListItem({
     required this.idea,
     required this.teamName,
-    required this.canUploadPayment,
-    required this.attachmentCount,
-    this.firstAttachmentId,
+    required this.events,
     this.team,
-    this.payment,
-    this.score,
-    this.judgeName,
   });
 
   final IdeaModel idea;
   final String teamName;
   final TeamModel? team;
-  final PaymentModel? payment;
-  final ScoreModel? score;
-  final String? judgeName;
-  final bool canUploadPayment;
-  final int attachmentCount;
-  final String? firstAttachmentId;
+  final List<IdeaEventParticipationSummary> events;
 }
 
 class IdeaQueryService {
@@ -126,22 +109,9 @@ class IdeaQueryService {
       orgId: params.config.orgId,
       teamIds: ideas.map((e) => e.teamId),
     );
-    final paymentByIdeaId = await _fetchPaymentByIdea(
+    final eventsByIdea = await IdeaEventParticipationLoader.loadByOrg(
       orgId: params.config.orgId,
-      ideaIds: ideas.map((e) => e.ideaId),
-    );
-    final scoreByIdeaId = await _fetchLatestScoreByIdea(
-      orgId: params.config.orgId,
-      ideaIds: deptScoped.map((e) => e.ideaId),
-    );
-    final attachmentMetaByIdea = await _fetchAttachmentMetaByIdea(
-      orgId: params.config.orgId,
-      ideas: ideas,
-      paymentByIdeaId: paymentByIdeaId,
-    );
-    final usersById = await _fetchUsersById(
-      orgId: params.config.orgId,
-      userIds: scoreByIdeaId.values.map((score) => score.judgeId),
+      ideaIds: ideas.map((IdeaModel e) => e.ideaId).toSet(),
     );
     final viewer = params.viewer;
     var items = ideas
@@ -149,31 +119,18 @@ class IdeaQueryService {
           (idea) {
             final team = teamsById[idea.teamId];
             final teamName = team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : idea.teamId;
-            final payment = paymentByIdeaId[idea.ideaId];
-            final canPay = _viewerCanUploadPayment(
-              viewer: viewer,
-              idea: idea,
-              team: team,
-              payment: payment,
-            );
-            final _AttachmentListMeta attach = attachmentMetaByIdea[idea.ideaId] ?? const _AttachmentListMeta();
             return IdeaListItem(
               idea: idea,
               teamName: teamName,
               team: team,
-              payment: payment,
-              score: scoreByIdeaId[idea.ideaId],
-              judgeName: _displayName(usersById[scoreByIdeaId[idea.ideaId]?.judgeId ?? '']),
-              canUploadPayment: canPay,
-              attachmentCount: attach.count,
-              firstAttachmentId: attach.firstId,
+              events: eventsByIdea[idea.ideaId] ?? const <IdeaEventParticipationSummary>[],
             );
           },
         )
         .toList(growable: false);
     items = _applyViewerScope(items, viewer);
     items = _applySort(items, params.sortType);
-    final IdeaDepartmentMetrics metrics = _computeMetrics(deptScoped, scoreByIdeaId);
+    final IdeaDepartmentMetrics metrics = _computeMetrics(deptScoped);
     return IdeaListQueryResult(items: items, metrics: metrics);
   }
 
@@ -193,65 +150,15 @@ class IdeaQueryService {
         .toList(growable: false);
   }
 
-  static IdeaDepartmentMetrics _computeMetrics(
-    List<IdeaModel> ideas,
-    Map<String, ScoreModel> scoreByIdeaId,
-  ) {
+  static IdeaDepartmentMetrics _computeMetrics(List<IdeaModel> ideas) {
     if (ideas.isEmpty) return IdeaDepartmentMetrics.empty;
     final int submitted = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
-    final int evaluated = ideas
-        .where((IdeaModel i) => i.hasEvaluationAggregate || scoreByIdeaId.containsKey(i.ideaId))
-        .length;
     final int pending = ideas.where((IdeaModel i) => i.status == IdeaStatus.draft).length;
-    final Iterable<double> scores = scoreByIdeaId.values.map((ScoreModel s) => s.score);
-    final double? avg = scores.isEmpty ? null : scores.reduce((double a, double b) => a + b) / scores.length;
     return IdeaDepartmentMetrics(
       total: ideas.length,
       submitted: submitted,
-      evaluated: evaluated,
       pendingSubmission: pending,
-      averageScore: avg,
     );
-  }
-
-  static Future<Map<String, _AttachmentListMeta>> _fetchAttachmentMetaByIdea({
-    required String orgId,
-    required List<IdeaModel> ideas,
-    required Map<String, PaymentModel> paymentByIdeaId,
-  }) async {
-    final Set<String> ideaIds = ideas.map((IdeaModel e) => e.ideaId).toSet();
-    if (ideaIds.isEmpty || orgId.trim().isEmpty) return <String, _AttachmentListMeta>{};
-
-    final QuerySnapshot<Map<String, dynamic>> snap = await _db
-        .collection(FirestoreUtils.hkzAttachments)
-        .where('orgId', isEqualTo: orgId)
-        .where('isActive', isEqualTo: true)
-        .get();
-
-    final Map<String, List<AttachmentModel>> byIdea = <String, List<AttachmentModel>>{};
-    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
-      final AttachmentModel a = AttachmentModel.fromMap(doc.id, doc.data());
-      if (a.entityType == AttachmentEntityType.idea && ideaIds.contains(a.entityId)) {
-        byIdea.putIfAbsent(a.entityId, () => <AttachmentModel>[]).add(a);
-        continue;
-      }
-      if (a.entityType == AttachmentEntityType.payment) {
-        for (final IdeaModel idea in ideas) {
-          final PaymentModel? p = paymentByIdeaId[idea.ideaId];
-          if (p != null && p.paymentId == a.entityId) {
-            byIdea.putIfAbsent(idea.ideaId, () => <AttachmentModel>[]).add(a);
-          }
-        }
-      }
-    }
-
-    final Map<String, _AttachmentListMeta> out = <String, _AttachmentListMeta>{};
-    for (final MapEntry<String, List<AttachmentModel>> e in byIdea.entries) {
-      final List<AttachmentModel> sorted = List<AttachmentModel>.from(e.value)
-        ..sort((AttachmentModel a, AttachmentModel b) => b.createdAt.compareTo(a.createdAt));
-      out[e.key] = _AttachmentListMeta(count: sorted.length, firstId: sorted.first.attachmentId);
-    }
-    return out;
   }
 
   static List<IdeaModel> _applyIdeaFilters(List<IdeaModel> ideas, IdeaQueryParams params) {
@@ -298,25 +205,6 @@ class IdeaQueryService {
     }).toList(growable: false);
   }
 
-  static Future<Map<String, ScoreModel>> _fetchLatestScoreByIdea({
-    required String orgId,
-    required Iterable<String> ideaIds,
-  }) async {
-    final idSet = ideaIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
-    if (idSet.isEmpty) return <String, ScoreModel>{};
-    final scoreSnap = await _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: orgId).get();
-    final mapped = <String, ScoreModel>{};
-    for (final doc in scoreSnap.docs) {
-      final score = ScoreModel.fromMap(doc.id, doc.data());
-      if (!idSet.contains(score.ideaId)) continue;
-      final existing = mapped[score.ideaId];
-      if (existing == null || score.createdAt.isAfter(existing.createdAt)) {
-        mapped[score.ideaId] = score;
-      }
-    }
-    return mapped;
-  }
-
   static Future<Map<String, TeamModel>> _fetchTeamsById({
     required String orgId,
     required Iterable<String> teamIds,
@@ -334,63 +222,6 @@ class IdeaQueryService {
       mapped[id] = TeamModel.fromMap(doc.id, data);
     }
     return mapped;
-  }
-
-  static Future<Map<String, UserModel>> _fetchUsersById({
-    required String orgId,
-    required Iterable<String> userIds,
-  }) async {
-    final idSet = userIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
-    if (idSet.isEmpty) return <String, UserModel>{};
-    final snap = await _db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: orgId).get();
-    final mapped = <String, UserModel>{};
-    for (final doc in snap.docs) {
-      final user = UserModel.fromMap(doc.data());
-      final normalizedUser = user.userId.trim().isNotEmpty ? user : user.copyWith(userId: doc.id);
-      final userId = normalizedUser.userId.trim();
-      if (idSet.contains(userId)) {
-        mapped[userId] = normalizedUser;
-      }
-      if (doc.id.trim().isNotEmpty && idSet.contains(doc.id.trim())) {
-        mapped[doc.id.trim()] = normalizedUser;
-      }
-    }
-    return mapped;
-  }
-
-  static Future<Map<String, PaymentModel>> _fetchPaymentByIdea({
-    required String orgId,
-    required Iterable<String> ideaIds,
-  }) async {
-    final idSet = ideaIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
-    if (idSet.isEmpty) return <String, PaymentModel>{};
-    final snap = await _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: orgId).get();
-    final mapped = <String, PaymentModel>{};
-    for (final doc in snap.docs) {
-      final p = PaymentModel.fromMap(doc.id, doc.data());
-      if (!idSet.contains(p.ideaId)) continue;
-      mapped[p.ideaId] = p;
-    }
-    return mapped;
-  }
-
-  static bool _viewerCanUploadPayment({
-    required UserModel? viewer,
-    required IdeaModel idea,
-    required TeamModel? team,
-    required PaymentModel? payment,
-  }) {
-    if (viewer == null) return false;
-    if (idea.status != IdeaStatus.draft && idea.status != IdeaStatus.submitted) return false;
-    if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
-    if (team == null) return false;
-    return TeamService.isActingTeamLeader(viewer, team);
-  }
-
-  static String? _displayName(UserModel? user) {
-    if (user == null) return null;
-    final name = '${user.firstName} ${user.lastName}'.trim();
-    return name.isEmpty ? user.userId : name;
   }
 
   static List<IdeaListItem> _applyViewerScope(List<IdeaListItem> items, UserModel? viewer) {
@@ -420,16 +251,7 @@ class IdeaQueryService {
         sorted.sort((a, b) => a.idea.createdAt.compareTo(b.idea.createdAt));
       case IdeaSortType.status:
         sorted.sort((a, b) => a.idea.status.value.compareTo(b.idea.status.value));
-      case IdeaSortType.score:
-        sorted.sort((a, b) => (b.score?.score ?? -1).compareTo(a.score?.score ?? -1));
     }
     return sorted;
   }
-}
-
-class _AttachmentListMeta {
-  const _AttachmentListMeta({this.count = 0, this.firstId});
-
-  final int count;
-  final String? firstId;
 }

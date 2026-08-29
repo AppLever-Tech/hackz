@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/idea_lifecycle_stage.dart';
 import '../models/enums/idea_status.dart';
-import '../services/idea_status_helpers.dart';
 
-/// Horizontal lifecycle path highlighting the current [IdeaStatus].
+/// Horizontal lifecycle path for idea-only stages.
 class IdeaLifecycleStrip extends StatelessWidget {
   const IdeaLifecycleStrip({
     super.key,
@@ -14,7 +14,8 @@ class IdeaLifecycleStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int currentIndex = IdeaStatusHelpers.lifecycleIndex(currentStatus);
+    final IdeaLifecycleStage current = IdeaLifecycleStage.currentFor(currentStatus);
+    final int currentIndex = IdeaLifecycleStage.displayOrder.indexOf(current);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,13 +30,13 @@ class IdeaLifecycleStrip extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
-            for (int i = 0; i < IdeaStatus.lifecycleOrder.length; i++) ...<Widget>[
+            for (int i = 0; i < IdeaLifecycleStage.displayOrder.length; i++) ...<Widget>[
               _LifecycleStepChip(
-                status: IdeaStatus.lifecycleOrder[i],
+                stage: IdeaLifecycleStage.displayOrder[i],
                 highlighted: i == currentIndex,
                 completed: currentIndex >= 0 && i < currentIndex,
               ),
-              if (i < IdeaStatus.lifecycleOrder.length - 1)
+              if (i < IdeaLifecycleStage.displayOrder.length - 1)
                 Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
@@ -53,20 +54,20 @@ class IdeaLifecycleStrip extends StatelessWidget {
 
 class _LifecycleStepChip extends StatelessWidget {
   const _LifecycleStepChip({
-    required this.status,
+    required this.stage,
     required this.highlighted,
     required this.completed,
   });
 
-  final IdeaStatus status;
+  final IdeaLifecycleStage stage;
   final bool highlighted;
   final bool completed;
 
   @override
   Widget build(BuildContext context) {
-    final Color color = IdeaStatusHelpers.color(status);
+    final Color color = stage.color;
     final Color bg = highlighted
-        ? IdeaStatusHelpers.background(status)
+        ? stage.background
         : completed
             ? color.withValues(alpha: 0.08)
             : const Color(0xFFF8FAFC);
@@ -93,13 +94,13 @@ class _LifecycleStepChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
-            completed && !highlighted ? Icons.check_rounded : IdeaStatusHelpers.icon(status),
+            completed && !highlighted ? Icons.check_rounded : stage.icon,
             size: 14,
             color: text,
           ),
           const SizedBox(width: 5),
           Text(
-            IdeaStatusHelpers.label(status),
+            stage.label,
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: text),
           ),
         ],

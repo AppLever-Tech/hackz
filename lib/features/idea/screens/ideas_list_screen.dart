@@ -11,8 +11,6 @@ import '../services/idea_query_service.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
-import 'package:hackz/features/payment/widgets/payment_dialog.dart';
-import '../../evaluations/widgets/evaluate_idea_dialog.dart';
 import '../../../core/responsive/mobile_filter_pane_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
@@ -49,7 +47,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Set<String> _problemFilters = <String>{};
   Set<String> _departmentFilters = <String>{};
   IdeaSortType _sort = IdeaSortType.newest;
-  bool _scoreSortDescending = true;
 
   @override
   void initState() {
@@ -87,27 +84,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         ),
       );
     });
-  }
-
-  Future<void> _openEvaluateDialog(IdeaListItem item) async {
-    final updated = await EvaluateIdeaDialog.showForIdeaListItem(
-      context,
-      judge: widget.currentUser,
-      item: item,
-    );
-    if (updated == true && mounted) _loadIdeas();
-  }
-
-  Future<void> _openUploadPayment(IdeaListItem item) async {
-    final team = item.team;
-    if (team == null) return;
-    final ok = await showPaymentDialog(
-      context: context,
-      currentUser: widget.currentUser,
-      idea: item.idea,
-      team: team,
-    );
-    if (ok == true && mounted) _loadIdeas();
   }
 
   void _clearAllFilters() {
@@ -155,7 +131,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ..sort();
 
         final IdeaTableActions tableActions = _ideaTableActions();
-        final List<IdeaListItem> displayItems = _displayItems(ideas);
+        final List<IdeaListItem> displayItems = ideas;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -237,7 +213,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     showIdeaDetailsPane(context, ideaId: item.idea.ideaId);
   }
 
-  /// Row action callbacks wired into table cells (workspace + dialogs).
   IdeaTableActions _ideaTableActions() {
     return IdeaTableActions(
       onOpenIdea: _openIdeaDetails,
@@ -251,16 +226,11 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         if (problemId.isEmpty) return;
         WorkspaceNavigator.openProblem(context, problemId);
       },
-      onOpenPayment: (IdeaListItem item) {
-        final payment = item.payment;
-        if (payment == null) return;
-        WorkspaceNavigator.openPayment(context, payment.paymentId);
+      onOpenEvent: (IdeaListItem item, String eventId) {
+        final String id = eventId.trim();
+        if (id.isEmpty) return;
+        WorkspaceNavigator.openIdeathon(context, id, actor: widget.currentUser);
       },
-      onOpenEvaluation: (IdeaListItem item) =>
-          WorkspaceNavigator.openEvaluation(context, item.idea.ideaId),
-      onOpenAttachments: (IdeaListItem item) => _openAttachments(context, item),
-      onEvaluate: (IdeaListItem item) => _openEvaluateDialog(item),
-      onUploadPayment: (IdeaListItem item) => _openUploadPayment(item),
     );
   }
 
@@ -272,51 +242,17 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         return 'newest';
       case IdeaSortType.status:
         return null;
-      case IdeaSortType.score:
-        return 'score';
     }
-  }
-
-  List<IdeaListItem> _displayItems(List<IdeaListItem> items) {
-    if (_sort != IdeaSortType.score) return items;
-    final List<IdeaListItem> sorted = List<IdeaListItem>.from(items);
-    sorted.sort((IdeaListItem a, IdeaListItem b) {
-      final int cmp = (a.score?.score ?? -1).compareTo(b.score?.score ?? -1);
-      return _scoreSortDescending ? -cmp : cmp;
-    });
-    return sorted;
   }
 
   void _onTableSort(String sortKey) {
-    switch (sortKey) {
-      case 'newest':
-        final IdeaSortType next =
-            _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
-        if (!widget.config.enabledSorts.contains(next)) return;
-        if (next == _sort) return;
-        setState(() => _sort = next);
-        _loadIdeas();
-      case 'score':
-        if (!widget.config.enabledSorts.contains(IdeaSortType.score)) return;
-        if (_sort == IdeaSortType.score) {
-          setState(() => _scoreSortDescending = !_scoreSortDescending);
-        } else {
-          setState(() {
-            _sort = IdeaSortType.score;
-            _scoreSortDescending = true;
-          });
-          _loadIdeas();
-        }
-    }
-  }
-
-  void _openAttachments(BuildContext context, IdeaListItem item) {
-    final String? id = item.firstAttachmentId?.trim();
-    if (item.attachmentCount == 1 && id != null && id.isNotEmpty) {
-      WorkspaceNavigator.openAttachment(context, id);
-      return;
-    }
-    WorkspaceNavigator.openIdea(context, item.idea.ideaId);
+    if (sortKey != 'newest') return;
+    final IdeaSortType next =
+        _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
+    if (!widget.config.enabledSorts.contains(next)) return;
+    if (next == _sort) return;
+    setState(() => _sort = next);
+    _loadIdeas();
   }
 
   Widget _buildListHeader({

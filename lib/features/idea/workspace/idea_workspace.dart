@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
-import '../../evaluations/workspace/evaluation_workspace.dart';
-import 'package:hackz/features/payment/workspace/payment_workspace.dart';
+import '../../dashboard/chrome/dashboard_session_scope.dart';
+import '../../ideathons/workspace/ideathon_workspace.dart';
 import '../../problems/workspace/problem_workspace.dart';
 import '../../team/workspace/team_workspace.dart';
+import '../../user/models/user_model.dart';
 import 'idea_workspace_body.dart';
 import 'idea_workspace_loader.dart';
 
@@ -57,14 +58,10 @@ abstract final class IdeaWorkspace {
     TeamWorkspace.push(context, id);
   }
 
-  static void openPaymentFromIdea(BuildContext context, IdeaWorkspaceViewModel vm) {
-    final String paymentId = vm.payment?.paymentId.trim() ?? '';
-    if (paymentId.isEmpty) return;
-    PaymentWorkspace.push(context, paymentId);
-  }
-
-  static void openEvaluationFromIdea(BuildContext context, IdeaWorkspaceViewModel vm) {
-    if (vm.scores.isEmpty) return;
-    EvaluationWorkspace.push(context, vm.idea.ideaId);
+  static void openEvent(BuildContext context, String eventId) {
+    final String id = eventId.trim();
+    if (id.isEmpty) return;
+    final UserModel? actor = DashboardSessionScope.maybeOf(context)?.user;
+    IdeathonWorkspace.push(context, id, actor: actor);
   }
 }

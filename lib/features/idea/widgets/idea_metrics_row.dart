@@ -21,7 +21,7 @@ class IdeaMetricsRow extends StatelessWidget {
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(metrics.total, 'Ideas'),
         MetricKpiSegment.count(metrics.submitted, 'Submitted'),
-        MetricKpiSegment.count(metrics.evaluated, 'Scored'),
+        MetricKpiSegment.count(metrics.pendingSubmission, 'Draft'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
@@ -30,7 +30,7 @@ class IdeaMetricsRow extends StatelessWidget {
           value: '${metrics.total}',
           color: const Color(0xFF4A67FF),
           icon: AppIcons.ideas,
-          subtitle: metrics.pendingSubmission > 0 ? '${metrics.pendingSubmission} pending' : null,
+          subtitle: metrics.pendingSubmission > 0 ? '${metrics.pendingSubmission} draft' : null,
         ),
         DashboardMetricChipData.single(
           label: 'Submitted',
@@ -39,10 +39,10 @@ class IdeaMetricsRow extends StatelessWidget {
           icon: AppIcons.submissions,
         ),
         DashboardMetricChipData.single(
-          label: 'Scored',
-          value: '${metrics.evaluated}',
-          color: const Color(0xFFEA580C),
-          icon: AppIcons.scoring,
+          label: 'Draft',
+          value: '${metrics.pendingSubmission}',
+          color: const Color(0xFF64748B),
+          icon: AppIcons.statusDraft,
         ),
       ];
 

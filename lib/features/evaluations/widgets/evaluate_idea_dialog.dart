@@ -81,7 +81,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
         idea: item.idea,
         team: item.team,
         problem: null,
-        latestJudgeScore: item.score,
+        latestJudgeScore: null,
       ),
     );
   }

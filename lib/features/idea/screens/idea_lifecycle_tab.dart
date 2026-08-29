@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_icons.dart';
-import '../../../core/theme/status_styles.dart';
-import 'package:hackz/features/payment/models/payment_model.dart';
-import '../../evaluations/models/score_model.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/ui/common/lifecycle_timeline.dart';
+import '../models/enums/idea_status.dart';
+import '../models/idea_lifecycle_stage.dart';
 import '../widgets/idea_lifecycle_strip.dart';
 import '../workspace/idea_workspace_loader.dart';
 
@@ -34,7 +32,7 @@ class IdeaLifecycleTab extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: kDashboardCardDecoration,
           child: LifecycleTimeline(
-            title: 'Innovation lifecycle',
+            title: 'Idea lifecycle',
             subtitle: '${events.length} event${events.length == 1 ? '' : 's'} tracked',
             events: events,
           ),
@@ -47,43 +45,31 @@ class IdeaLifecycleTab extends StatelessWidget {
     final idea = vm.idea;
     final List<LifecycleTimelineEvent> events = <LifecycleTimelineEvent>[
       LifecycleTimelineEvent(
-        title: 'Innovation created',
-        subtitle: idea.ideaTitle.trim().isEmpty ? 'Draft recorded' : idea.ideaTitle.trim(),
+        title: IdeaLifecycleStage.created.label,
+        subtitle: idea.ideaTitle.trim().isEmpty ? 'Idea recorded' : idea.ideaTitle.trim(),
         when: idea.createdAt,
-        icon: AppIcons.ideas,
-        color: const Color(0xFF6A38FF),
-      ),
-      LifecycleTimelineEvent(
-        title: ideaWorkspaceStatusLabel(idea.status),
-        subtitle: StatusStyles.labelForIdeaStatus(idea.status),
-        when: idea.createdAt,
-        icon: StatusStyles.iconForIdeaStatus(idea.status),
-        color: StatusStyles.colorForIdeaStatus(idea.status),
+        icon: IdeaLifecycleStage.created.icon,
+        color: IdeaLifecycleStage.created.color,
       ),
     ];
 
-    if (vm.scores.isNotEmpty) {
-      final ScoreModel latest = vm.scores.first;
+    if (idea.status == IdeaStatus.submitted) {
       events.add(
         LifecycleTimelineEvent(
-          title: 'Evaluated',
-          subtitle: 'Score ${latest.score.toStringAsFixed(1)} · ${vm.reviewerCount} reviewer${vm.reviewerCount == 1 ? '' : 's'}',
-          when: latest.createdAt,
-          icon: AppIcons.statusEvaluated,
-          color: const Color(0xFF0EA5E9),
+          title: IdeaLifecycleStage.submitted.label,
+          subtitle: 'Idea locked for editing',
+          when: idea.createdAt,
+          icon: IdeaLifecycleStage.submitted.icon,
+          color: IdeaLifecycleStage.submitted.color,
         ),
       );
-    }
-
-    final PaymentModel? payment = vm.payment;
-    if (payment != null) {
       events.add(
         LifecycleTimelineEvent(
-          title: 'Payment ${vm.paymentStatusLabel.toLowerCase()}',
-          subtitle: payment.paymentId.trim().isEmpty ? 'Contribution record' : 'Payment ${payment.paymentId.trim()}',
-          when: payment.createdAt,
-          icon: AppIcons.payments,
-          color: const Color(0xFF059669),
+          title: IdeaLifecycleStage.active.label,
+          subtitle: 'Idea is active',
+          when: idea.createdAt,
+          icon: IdeaLifecycleStage.active.icon,
+          color: IdeaLifecycleStage.active.color,
         ),
       );
     }

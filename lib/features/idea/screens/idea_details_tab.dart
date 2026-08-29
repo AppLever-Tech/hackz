@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../user/models/user_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../workspace/idea_workspace_loader.dart';
-import '../widgets/idea_evaluation_results_section.dart';
 import '../widgets/innovation_assets_section.dart';
-import 'package:hackz/core/workspace/workspace_attachments_panel.dart';
+import '../widgets/idea_event_pills.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import '../workspace/idea_workspace.dart';
 
 /// Idea Details tab for [IdeaDetailsPane].
 class IdeaDetailsTab extends StatelessWidget {
@@ -29,13 +30,16 @@ class IdeaDetailsTab extends StatelessWidget {
 
     final bool isMobile = ResponsiveHelper.isMobile(context);
     final double labelWidth = isMobile ? 92 : 112;
+    final List<UserModel> members = vm.teamMembers
+        .where((UserModel m) => m.userId.trim() != vm.team.teamLeaderId.trim())
+        .toList(growable: false);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
       children: <Widget>[
         _card(
           context: context,
-          title: 'Innovation',
+          title: 'Idea',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -59,28 +63,39 @@ class IdeaDetailsTab extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 10),
+              _labeledContextPillRow(
+                context: context,
+                labelWidth: labelWidth,
+                label: 'Submitted by',
+                pillLabel: vm.submittedByName,
+                semantic: ContextPillSemantic.user,
+                onTap: () {
+                  final String userId = (vm.submittedBy?.userId ?? idea.createdBy).trim();
+                  if (userId.isEmpty) return;
+                  WorkspaceNavigator.openUser(context, userId);
+                },
+                enabled: (vm.submittedBy?.userId ?? idea.createdBy).trim().isNotEmpty,
+              ),
+              _metaRow(
+                context,
+                labelWidth: labelWidth,
+                label: 'Created',
+                value: formatDateTime(idea.createdAt),
+                isLast: true,
+              ),
+              const SizedBox(height: 10),
+              InnovationAssetsSection(
+                idea: idea,
+                attachments: vm.attachments,
+              ),
             ],
           ),
         ),
         const SizedBox(height: 8),
         _card(
           context: context,
-          title: 'Evaluation Results',
-          child: IdeaEvaluationResultsSection(idea: idea),
-        ),
-        const SizedBox(height: 8),
-        _card(
-          context: context,
-          title: 'Innovation Assets',
-          child: InnovationAssetsSection(
-            idea: idea,
-            attachments: vm.attachments,
-          ),
-        ),
-        const SizedBox(height: 8),
-        _card(
-          context: context,
-          title: 'Team Information',
+          title: 'Team',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
@@ -95,6 +110,54 @@ class IdeaDetailsTab extends StatelessWidget {
                 )
               else
                 _metaRow(context, labelWidth: labelWidth, label: 'Team', value: vm.teamName),
+              if (vm.teamLeader != null)
+                _labeledContextPillRow(
+                  context: context,
+                  labelWidth: labelWidth,
+                  label: 'Team Leader',
+                  pillLabel: userDisplayName(vm.teamLeader!),
+                  semantic: ContextPillSemantic.user,
+                  onTap: () => WorkspaceNavigator.openUser(context, vm.teamLeader!.userId),
+                )
+              else
+                _metaRow(context, labelWidth: labelWidth, label: 'Team Leader', value: '—'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(
+                      width: labelWidth,
+                      child: const Text(
+                        'Members',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                    Expanded(
+                      child: members.isEmpty
+                          ? const Text(
+                              '—',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                            )
+                          : Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: members
+                                  .map(
+                                    (UserModel member) => ContextPill(
+                                      label: userDisplayName(member),
+                                      semantic: ContextPillSemantic.user,
+                                      onTap: () => WorkspaceNavigator.openUser(context, member.userId),
+                                      compact: true,
+                                      fitContent: true,
+                                    ),
+                                  )
+                                  .toList(growable: false),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
               _metaRow(
                 context,
                 labelWidth: labelWidth,
@@ -108,63 +171,24 @@ class IdeaDetailsTab extends StatelessWidget {
         const SizedBox(height: 8),
         _card(
           context: context,
-          title: 'Submission Metadata',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _metaRow(context, labelWidth: labelWidth, label: 'Submitted by', value: vm.submittedByName),
-              _metaRow(
-                context,
-                labelWidth: labelWidth,
-                label: 'Submitted on',
-                value: formatDateTime(idea.createdAt),
-              ),
-              _metaRow(
-                context,
-                labelWidth: labelWidth,
-                label: 'Status',
-                value: ideaWorkspaceStatusLabel(idea.status),
-              ),
-              _labeledContextPillRow(
-                context: context,
-                labelWidth: labelWidth,
-                label: 'Evaluation',
-                pillLabel: vm.evaluationProgressLabel,
-                semantic: ContextPillSemantic.evaluation,
-                onTap: () => WorkspaceNavigator.openEvaluation(context, idea.ideaId),
-              ),
-              if (vm.payment != null)
-                _labeledContextPillRow(
-                  context: context,
-                  labelWidth: labelWidth,
-                  label: 'Payment',
-                  pillLabel: vm.paymentStatusLabel,
-                  semantic: ContextPillSemantic.payment,
-                  onTap: () => WorkspaceNavigator.openPayment(context, vm.payment!.paymentId),
-                  isLast: true,
+          title: 'Event Participation',
+          child: vm.eventParticipations.isEmpty
+              ? const Text(
+                  'This idea has not participated in an event yet.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B), height: 1.4),
                 )
-              else
-                _metaRow(
-                  context,
-                  labelWidth: labelWidth,
-                  label: 'Payment',
-                  value: vm.paymentStatusLabel,
-                  isLast: true,
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: vm.eventParticipations
+                      .map(
+                        (event) => IdeaEventParticipationRow(
+                          event: event,
+                          onOpenEvent: () => IdeaWorkspace.openEvent(context, event.eventId),
+                        ),
+                      )
+                      .toList(growable: false),
                 ),
-            ],
-          ),
         ),
-        if (vm.attachments.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 8),
-          _card(
-            context: context,
-            title: 'All Attachments',
-            child: WorkspaceAttachmentsPanel(
-              attachments: vm.attachments,
-              emptyMessage: 'No attachments.',
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -212,13 +236,15 @@ class IdeaDetailsTab extends StatelessWidget {
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
-          ContextPill(
-            label: pillLabel,
-            semantic: semantic,
-            onTap: onTap,
-            enabled: enabled,
-            compact: true,
-            fitContent: true,
+          Flexible(
+            child: ContextPill(
+              label: pillLabel,
+              semantic: semantic,
+              onTap: onTap,
+              enabled: enabled,
+              compact: true,
+              fitContent: true,
+            ),
           ),
         ],
       ),
