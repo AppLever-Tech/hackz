@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/utils/common_helpers.dart';
@@ -10,6 +11,7 @@ import 'package:hackz/core/ui/data_view/data_table_column.dart';
 
 import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
+import '../services/payment_proof_launcher.dart';
 import 'payment_status_pill.dart';
 
 /// Shared amount typography for payment list table and mobile cards.
@@ -32,6 +34,74 @@ class PaymentTableActions {
 }
 
 abstract final class PaymentTableColumns {
+  static Widget _pillCell(Widget child) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: UnconstrainedBox(
+        alignment: Alignment.centerLeft,
+        constrainedAxis: Axis.vertical,
+        child: child,
+      ),
+    );
+  }
+
+  static Widget _ideaPill(BuildContext context, DepartmentPaymentContribution item) {
+    final String ideaId = item.payment.ideaId.trim();
+    if (ideaId.isEmpty) {
+      return EntityCardPills.meta(item.ideaTitle, icon: AppIcons.ideas);
+    }
+    return EntityCardPills.workspace(
+      item.ideaTitle,
+      ContextPillSemantic.idea,
+      () => WorkspaceNavigator.openIdea(context, ideaId),
+      icon: AppIcons.ideas,
+    );
+  }
+
+  static Widget _teamPill(BuildContext context, DepartmentPaymentContribution item) {
+    final String teamId = item.payment.teamId.trim();
+    if (teamId.isEmpty) {
+      return EntityCardPills.meta(item.teamName, icon: AppIcons.teams);
+    }
+    return EntityCardPills.workspace(
+      item.teamName,
+      ContextPillSemantic.team,
+      () => WorkspaceNavigator.openTeam(context, teamId),
+      icon: AppIcons.teams,
+    );
+  }
+
+  static Widget _statusWithProof(BuildContext context, DepartmentPaymentContribution item) {
+    final String paymentId = item.payment.paymentId.trim();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ContextPill(
+          label: PaymentFinanceHelpers.statusLabel(item.payment.status),
+          semantic: ContextPillSemantic.payment,
+          onTap: () {
+            if (paymentId.isEmpty) return;
+            WorkspaceNavigator.openPayment(context, paymentId);
+          },
+          enabled: paymentId.isNotEmpty,
+          compact: true,
+          fitContent: true,
+          expandWidth: false,
+          allowHoverScale: false,
+        ),
+        if (item.hasProof)
+          IconButton(
+            tooltip: 'Payment screenshot',
+            onPressed: () => PaymentProofLauncher.open(context, item.payment),
+            icon: const Icon(AppIcons.attachments, size: 16, color: Color(0xFF475569)),
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+      ],
+    );
+  }
+
   static List<DataTableColumn<DepartmentPaymentContribution>> build({
     required PaymentTableActions actions,
   }) {
@@ -40,41 +110,15 @@ abstract final class PaymentTableColumns {
         label: 'Idea',
         flex: 4,
         minWidth: 200,
-        cell: (BuildContext context, DepartmentPaymentContribution item) {
-          final String ideaId = item.payment.ideaId.trim();
-          final Widget pill = ideaId.isEmpty
-              ? EntityCardPills.meta(item.ideaTitle, icon: AppIcons.ideas)
-              : EntityCardPills.workspace(
-                  item.ideaTitle,
-                  ContextPillSemantic.idea,
-                  () => WorkspaceNavigator.openIdea(context, ideaId),
-                  icon: AppIcons.ideas,
-                );
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: pill,
-          );
-        },
+        cell: (BuildContext context, DepartmentPaymentContribution item) =>
+            _pillCell(_ideaPill(context, item)),
       ),
       DataTableColumn<DepartmentPaymentContribution>(
         label: 'Team',
         flex: 3,
         minWidth: 140,
-        cell: (BuildContext context, DepartmentPaymentContribution item) {
-          final String teamId = item.payment.teamId.trim();
-          final Widget pill = teamId.isEmpty
-              ? EntityCardPills.meta(item.teamName, icon: AppIcons.teams)
-              : EntityCardPills.workspace(
-                  item.teamName,
-                  ContextPillSemantic.team,
-                  () => WorkspaceNavigator.openTeam(context, teamId),
-                  icon: AppIcons.teams,
-                );
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: pill,
-          );
-        },
+        cell: (BuildContext context, DepartmentPaymentContribution item) =>
+            _pillCell(_teamPill(context, item)),
       ),
       DataTableColumn<DepartmentPaymentContribution>(
         label: 'Payment date',
@@ -89,11 +133,8 @@ abstract final class PaymentTableColumns {
         label: 'Status',
         flex: 2,
         minWidth: 120,
-        cell: (BuildContext context, DepartmentPaymentContribution item) => PaymentStatusPill(
-          status: item.payment.status,
-          compact: true,
-          showAttentionDot: item.needsAttention,
-        ),
+        cell: (BuildContext context, DepartmentPaymentContribution item) =>
+            _pillCell(_statusWithProof(context, item)),
       ),
       DataTableColumn<DepartmentPaymentContribution>(
         label: 'Amount',
