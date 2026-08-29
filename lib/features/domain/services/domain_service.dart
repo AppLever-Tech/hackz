@@ -85,7 +85,6 @@ abstract final class DomainService {
     required String code,
     required String name,
     String description = '',
-    String icon = '',
     bool isActive = true,
   }) async {
     final String normalizedCode = code.trim().toUpperCase();
@@ -111,7 +110,6 @@ abstract final class DomainService {
       code: normalizedCode,
       name: normalizedName,
       description: description.trim(),
-      icon: icon.trim(),
       isActive: isActive,
       orgId: orgId.trim(),
     );

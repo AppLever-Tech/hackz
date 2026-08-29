@@ -140,16 +140,26 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     required UserRole role,
     required String selectedMenuTitle,
   }) {
-    if (role != UserRole.departmentAdmin) return null;
     if (selectedMenuTitle != 'Problem Statements') return null;
-    return DomainsHeaderAction(
-      onPressed: () => showDeptDomainManagementDialog(
-        context: context,
-        orgId: widget.user.orgId,
-        departmentCode: widget.user.departmentCode,
-        departmentName: widget.user.department,
-      ),
-    );
+    if (role == UserRole.departmentAdmin) {
+      return DomainsHeaderAction(
+        onPressed: () => showDeptDomainManagementDialog(
+          context: context,
+          orgId: widget.user.orgId,
+          departmentCode: widget.user.departmentCode,
+          departmentName: widget.user.department,
+        ),
+      );
+    }
+    if (role == UserRole.collegeAdmin) {
+      return DomainsHeaderAction(
+        onPressed: () => showCollegeDomainManagementDialog(
+          context: context,
+          orgId: widget.user.orgId,
+        ),
+      );
+    }
+    return null;
   }
 }
 
@@ -178,7 +188,6 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Manage College', icon: AppIcons.organizations),
-            DashboardMenuItem(label: 'Domains', icon: AppIcons.domains),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Org Settings', icon: AppIcons.orgSettings),

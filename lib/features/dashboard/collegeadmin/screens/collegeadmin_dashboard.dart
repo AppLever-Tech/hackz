@@ -19,7 +19,6 @@ import '../../../../core/responsive/adaptive_dashboard_panel.dart';
 import '../../../../core/responsive/responsive_columns.dart';
 import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../../core/responsive/responsive_metric_grid.dart';
-import '../../../../features/domain/domain.dart';
 import 'manage_college_screen.dart';
 
 class CollegeAdminDashboard extends StatelessWidget {
@@ -78,26 +77,20 @@ class CollegeAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return DomainManagementScreen(
-            key: ValueKey<int>(refreshToken),
-            orgId: user.orgId,
-          );
-        }
-        if (selectedMenuIndex == 3) {
           return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.collegeAdmin, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 3) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.collegeAdmin, user),
           );
         }
-        if (selectedMenuIndex == 5) {
+        if (selectedMenuIndex == 4) {
           return OrgSettingsDashboard(
             key: ValueKey<int>(refreshToken),
             user: user,

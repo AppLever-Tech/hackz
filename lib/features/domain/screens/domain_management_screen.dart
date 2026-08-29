@@ -301,9 +301,9 @@ class _DomainListTile extends StatelessWidget {
             color: const Color(0xFF6A38FF).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            domain.icon.trim().isEmpty ? AppIcons.problems : Icons.category_rounded,
-            color: const Color(0xFF6A38FF),
+          child: const Icon(
+            AppIcons.domains,
+            color: Color(0xFF6A38FF),
             size: 20,
           ),
         ),
@@ -406,7 +406,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
   late final TextEditingController _code;
   late final TextEditingController _name;
   late final TextEditingController _description;
-  late final TextEditingController _icon;
   late String _departmentId;
   late bool _isActive;
   bool _saving = false;
@@ -421,7 +420,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
     _code = TextEditingController(text: initial?.code ?? '');
     _name = TextEditingController(text: initial?.name ?? '');
     _description = TextEditingController(text: initial?.description ?? '');
-    _icon = TextEditingController(text: initial?.icon ?? '');
     _departmentId = (widget.lockedDepartmentId ?? initial?.departmentId ?? '').trim();
     if (_departmentId.isEmpty && widget.departments.isNotEmpty) {
       _departmentId = widget.departments.first['id'] ?? '';
@@ -434,7 +432,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
     _code.dispose();
     _name.dispose();
     _description.dispose();
-    _icon.dispose();
     super.dispose();
   }
 
@@ -458,7 +455,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
           code: code,
           name: name,
           description: _description.text,
-          icon: _icon.text,
           isActive: _isActive,
         );
         await DomainService.update(updated);
@@ -471,7 +467,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
           code: code,
           name: name,
           description: _description.text,
-          icon: _icon.text,
           isActive: _isActive,
         );
         if (!mounted) return;
@@ -542,12 +537,6 @@ class _DomainEditorFormState extends State<_DomainEditorForm> {
           enabled: !_saving,
           maxLines: 3,
           decoration: const InputDecoration(labelText: 'Description', alignLabelWithHint: true),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: _icon,
-          enabled: !_saving,
-          decoration: const InputDecoration(labelText: 'Icon (optional)', hintText: 'e.g. cloud'),
         ),
         const SizedBox(height: 8),
         SwitchListTile.adaptive(

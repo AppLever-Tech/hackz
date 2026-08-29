@@ -6,7 +6,6 @@ class DomainModel {
     required this.code,
     required this.name,
     this.description = '',
-    this.icon = '',
     this.isActive = true,
     this.orgId = '',
   });
@@ -17,7 +16,6 @@ class DomainModel {
   final String code;
   final String name;
   final String description;
-  final String icon;
   final bool isActive;
   /// Org scope (stored for queries; set on create).
   final String orgId;
@@ -29,7 +27,6 @@ class DomainModel {
       'code': code.trim().toUpperCase(),
       'name': name.trim(),
       'description': description.trim(),
-      'icon': icon.trim(),
       'isActive': isActive,
       'orgId': orgId.trim(),
     };
@@ -43,7 +40,6 @@ class DomainModel {
       code: str('code').toUpperCase(),
       name: str('name'),
       description: str('description'),
-      icon: str('icon'),
       isActive: map['isActive'] as bool? ?? true,
       orgId: str('orgId'),
     );
@@ -52,7 +48,6 @@ class DomainModel {
   DomainModel copyWith({
     String? name,
     String? description,
-    String? icon,
     bool? isActive,
     String? code,
   }) {
@@ -62,7 +57,6 @@ class DomainModel {
       code: code ?? this.code,
       name: name ?? this.name,
       description: description ?? this.description,
-      icon: icon ?? this.icon,
       isActive: isActive ?? this.isActive,
       orgId: orgId,
     );
