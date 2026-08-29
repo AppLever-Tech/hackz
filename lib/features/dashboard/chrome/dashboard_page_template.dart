@@ -13,6 +13,7 @@ import '../sysadmin/services/sysadmin_dashboard_service.dart';
 import '../../../core/responsive/responsive_dashboard_layout.dart';
 import '../../../features/auth/screens/landing_screen.dart';
 import '../../../features/docs/data/docs_registry.dart';
+import '../../../features/domain/domain.dart';
 import '../../../core/ui/common/page_header_context_pill.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
@@ -111,6 +112,11 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               helpPageId: isDashboardTab
                   ? null
                   : DocsRegistry.helpPageForContext(selectedMenuTitle),
+              titleActions: _titleActionsFor(
+                context,
+                role: role,
+                selectedMenuTitle: selectedMenuTitle,
+              ),
               onRefresh: () {
                 _chromeController.clearOverlay();
                 setState(() => _refreshToken++);
@@ -125,6 +131,23 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget? _titleActionsFor(
+    BuildContext context, {
+    required UserRole role,
+    required String selectedMenuTitle,
+  }) {
+    if (role != UserRole.departmentAdmin) return null;
+    if (selectedMenuTitle != 'Problem Statements') return null;
+    return DomainsHeaderAction(
+      onPressed: () => showDeptDomainManagementDialog(
+        context: context,
+        orgId: widget.user.orgId,
+        departmentCode: widget.user.departmentCode,
+        departmentName: widget.user.department,
       ),
     );
   }
@@ -167,7 +190,6 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'People & Teams', icon: AppIcons.users),
-            DashboardMenuItem(label: 'Domains', icon: AppIcons.domains),
             DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Ideathons', icon: AppIcons.ideathons),

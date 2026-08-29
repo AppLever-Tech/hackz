@@ -59,91 +59,83 @@ class _EventsCountMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String label = '${events.length} Events';
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double available = constraints.maxWidth;
-        final double panelWidth = available.isFinite && available > 0
-            ? available.clamp(220.0, 420.0)
-            : 280.0;
-        final palette = ContextPillTheme.paletteFor(ContextPillSemantic.event);
+    final palette = ContextPillTheme.paletteFor(ContextPillSemantic.event);
 
-        return PopupMenuButton<String>(
-          tooltip: events.map((IdeaEventParticipationSummary e) => e.eventName).join(', '),
-          color: HackzPopupMenuStyle.panelColor,
-          elevation: 14,
-          shadowColor: HackzPopupMenuStyle.panelShadowColor,
-          surfaceTintColor: Colors.transparent,
-          position: PopupMenuPosition.under,
-          offset: HackzPopupMenuStyle.defaultOffset,
-          constraints: BoxConstraints(minWidth: panelWidth, maxWidth: 420),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(HackzPopupMenuStyle.panelRadius),
-            side: const BorderSide(color: HackzPopupMenuStyle.panelBorderColor),
-          ),
-          padding: EdgeInsets.zero,
-          onSelected: (String eventId) {
-            for (final IdeaEventParticipationSummary event in events) {
-              if (event.eventId == eventId) {
-                onOpenEvent(event);
-                return;
-              }
-            }
-          },
-          itemBuilder: (BuildContext context) {
-            return events
-                .map(
-                  (IdeaEventParticipationSummary event) => PopupMenuItem<String>(
-                    value: event.eventId,
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    child: HackzPopupMenuItemTile(
-                      icon: AppIcons.ideathons,
-                      label: event.eventName,
-                    ),
-                  ),
-                )
-                .toList(growable: false);
-          },
-          child: SizedBox(
-            height: ContextPillMetrics.workspaceHeight,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: palette.border),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      AppIcons.ideathons,
-                      size: ContextPillMetrics.mobileCardPillIconSize,
-                      color: palette.text,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: palette.text,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      Icons.expand_more_rounded,
-                      size: 14,
-                      color: palette.text,
-                    ),
-                  ],
+    return PopupMenuButton<String>(
+      tooltip: events.map((IdeaEventParticipationSummary e) => e.eventName).join(', '),
+      color: HackzPopupMenuStyle.panelColor,
+      elevation: 14,
+      shadowColor: HackzPopupMenuStyle.panelShadowColor,
+      surfaceTintColor: Colors.transparent,
+      position: PopupMenuPosition.under,
+      offset: HackzPopupMenuStyle.defaultOffset,
+      constraints: const BoxConstraints(minWidth: 240, maxWidth: 360),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HackzPopupMenuStyle.panelRadius),
+        side: const BorderSide(color: HackzPopupMenuStyle.panelBorderColor),
+      ),
+      padding: EdgeInsets.zero,
+      onSelected: (String eventId) {
+        for (final IdeaEventParticipationSummary event in events) {
+          if (event.eventId == eventId) {
+            onOpenEvent(event);
+            return;
+          }
+        }
+      },
+      itemBuilder: (BuildContext context) {
+        return events
+            .map(
+              (IdeaEventParticipationSummary event) => PopupMenuItem<String>(
+                value: event.eventId,
+                height: 38,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                child: HackzPopupMenuItemTile(
+                  icon: AppIcons.ideathons,
+                  label: event.eventName,
                 ),
               ),
+            )
+            .toList(growable: false);
+      },
+      child: SizedBox(
+        height: ContextPillMetrics.workspaceHeight,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  AppIcons.ideathons,
+                  size: ContextPillMetrics.mobileCardPillIconSize,
+                  color: palette.text,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: palette.text,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 14,
+                  color: palette.text,
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -16,7 +16,6 @@ import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
-import '../../../../features/domain/domain.dart';
 import '../../../../features/user/screens/manage_users_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
@@ -53,34 +52,26 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 2) {
-          return DeptDomainManagementHost(
-            key: ValueKey<int>(refreshToken),
-            orgId: user.orgId,
-            departmentCode: user.departmentCode,
-            departmentName: user.department,
-          );
-        }
-        if (selectedMenuIndex == 3) {
           return ProblemStatementsTableScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: ProblemRoleConfig.configFor(UserRole.departmentAdmin, user),
           );
         }
-        if (selectedMenuIndex == 4) {
+        if (selectedMenuIndex == 3) {
           return IdeasListScreen(
             key: ValueKey<int>(refreshToken),
             currentUser: user,
             config: IdeaRoleConfig.configFor(UserRole.departmentAdmin, user),
           );
         }
-        if (selectedMenuIndex == 5) {
+        if (selectedMenuIndex == 4) {
           return IdeathonsListScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );
         }
-        if (selectedMenuIndex == 6) {
+        if (selectedMenuIndex == 5) {
           return RequestsWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

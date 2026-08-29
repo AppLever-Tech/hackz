@@ -12,11 +12,13 @@ class DeptDomainManagementHost extends StatefulWidget {
     required this.orgId,
     required this.departmentCode,
     required this.departmentName,
+    this.compact = false,
   });
 
   final String orgId;
   final String departmentCode;
   final String departmentName;
+  final bool compact;
 
   @override
   State<DeptDomainManagementHost> createState() => _DeptDomainManagementHostState();
@@ -40,13 +42,14 @@ class _DeptDomainManagementHostState extends State<DeptDomainManagementHost> {
       future: _departmentIdFuture,
       builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return _statusPane(const CircularProgressIndicator());
         }
         final String? departmentId = snapshot.data;
         if (departmentId == null || departmentId.isEmpty) {
-          return const Center(
-            child: Text(
+          return _statusPane(
+            const Text(
               'Your department record was not found. Ask the college admin to create it first.',
+              textAlign: TextAlign.center,
             ),
           );
         }
@@ -57,9 +60,16 @@ class _DeptDomainManagementHostState extends State<DeptDomainManagementHost> {
           lockedDepartmentName: widget.departmentName.trim().isEmpty
               ? widget.departmentCode
               : widget.departmentName,
+          compact: widget.compact,
         );
       },
     );
+  }
+
+  Widget _statusPane(Widget child) {
+    final Widget centered = Center(child: child);
+    if (!widget.compact) return centered;
+    return SizedBox(height: 240, width: double.infinity, child: centered);
   }
 }
 

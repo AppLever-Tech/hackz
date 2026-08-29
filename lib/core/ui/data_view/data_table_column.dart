@@ -11,6 +11,7 @@ class DataTableColumn<T> {
     required this.cell,
     this.flex = 1,
     this.minWidth,
+    this.fixedWidth,
     this.align = Alignment.centerLeft,
     this.sortKey,
     this.gapAfter,
@@ -25,12 +26,16 @@ class DataTableColumn<T> {
   final Widget Function(BuildContext context, T row) cell;
 
   /// Column flex weight when the table fits in the viewport. Ignored when the
-  /// scaffold falls back to fixed widths (horizontal scroll).
+  /// scaffold falls back to fixed widths (horizontal scroll), and ignored when
+  /// [fixedWidth] is set.
   final int flex;
 
   /// Minimum width hint. When the sum of all min-widths exceeds the viewport,
   /// the table renders horizontally scrollable with fixed widths.
   final double? minWidth;
+
+  /// When set, this column never flexes — it always occupies exactly this width.
+  final double? fixedWidth;
 
   /// Alignment for both the header label and the rendered cell.
   final Alignment align;

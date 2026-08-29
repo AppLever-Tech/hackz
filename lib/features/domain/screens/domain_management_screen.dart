@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
@@ -18,6 +20,7 @@ class DomainManagementScreen extends StatefulWidget {
     this.lockedDepartmentId,
     this.lockedDepartmentCode,
     this.lockedDepartmentName,
+    this.compact = false,
   });
 
   final String orgId;
@@ -25,6 +28,8 @@ class DomainManagementScreen extends StatefulWidget {
   final String? lockedDepartmentId;
   final String? lockedDepartmentCode;
   final String? lockedDepartmentName;
+  /// Compact chrome for dialog/workspace embedding (no page-sized title).
+  final bool compact;
 
   @override
   State<DomainManagementScreen> createState() => _DomainManagementScreenState();
@@ -116,21 +121,76 @@ class _DomainManagementScreenState extends State<DomainManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool compact = widget.compact;
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final Widget list = FutureBuilder<List<DomainModel>>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<List<DomainModel>> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Unable to load domains: ${snapshot.error}'));
+        }
+        final List<DomainModel> domains = snapshot.data ?? const <DomainModel>[];
+        if (domains.isEmpty) {
+          return const Center(
+            child: Text('No domains yet. Add a domain to classify problem statements.'),
+          );
+        }
+        return ListView.separated(
+          itemCount: domains.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (BuildContext context, int index) {
+            return _DomainListTile(
+              domain: domains[index],
+              departmentLabel: _deptLabel(domains[index].departmentId),
+              compactRow: mobile,
+              onEdit: () => _openEditor(initial: domains[index]),
+              onToggleActive: () => _toggleActive(domains[index]),
+            );
+          },
+        );
+      },
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
       children: <Widget>[
         ResponsiveWrapToolbar(
           alignment: WrapAlignment.spaceBetween,
           children: <Widget>[
-            const Text(
-              'Domains',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (compact) ...<Widget>[
+                  const Icon(AppIcons.domains, size: 18, color: Color(0xFF334155)),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  'Domains',
+                  style: TextStyle(
+                    fontSize: compact ? 16 : 20,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+              ],
             ),
-            FilledButton.icon(
-              onPressed: _loadingDeps ? null : () => _openEditor(),
-              icon: const Icon(AppIcons.add),
-              label: const Text('Add Domain'),
-            ),
+            compact && mobile
+                ? IconButton(
+                    tooltip: 'Add Domain',
+                    onPressed: _loadingDeps ? null : () => _openEditor(),
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(AppIcons.add),
+                  )
+                : FilledButton.icon(
+                    onPressed: _loadingDeps ? null : () => _openEditor(),
+                    style: MobileToolbarButtonStyles.filled(compact: compact || mobile),
+                    icon: const Icon(AppIcons.add, size: MobileToolbarButtonStyles.toolbarIconSize),
+                    label: const Text('Add Domain'),
+                  ),
           ],
         ),
         if (!_isDeptScoped) ...<Widget>[
@@ -139,6 +199,7 @@ class _DomainManagementScreenState extends State<DomainManagementScreen> {
             value: _filterDepartmentId,
             hint: 'All departments',
             prefixIcon: AppIcons.departments,
+            compact: compact,
             options: <String>[
               '',
               ..._departments.map((Map<String, String> d) => d['id']!),
@@ -155,105 +216,148 @@ class _DomainManagementScreenState extends State<DomainManagementScreen> {
           ),
         ],
         const SizedBox(height: 12),
-        Expanded(
-          child: FutureBuilder<List<DomainModel>>(
-            future: _future,
-            builder: (BuildContext context, AsyncSnapshot<List<DomainModel>> snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Unable to load domains: ${snapshot.error}'));
-              }
-              final List<DomainModel> domains = snapshot.data ?? const <DomainModel>[];
-              if (domains.isEmpty) {
-                return const Center(
-                  child: Text('No domains yet. Add a domain to classify problem statements.'),
-                );
-              }
-              return ListView.separated(
-                itemCount: domains.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (BuildContext context, int index) {
-                  final DomainModel domain = domains[index];
-                  return Container(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-                    decoration: kDashboardCardDecoration,
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6A38FF).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            domain.icon.trim().isEmpty ? AppIcons.problems : Icons.category_rounded,
-                            color: const Color(0xFF6A38FF),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                domain.name,
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${domain.code} · ${_deptLabel(domain.departmentId)}'
-                                '${domain.description.trim().isEmpty ? '' : ' · ${domain.description.trim()}'}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: domain.isActive
-                                ? const Color(0xFF059669).withValues(alpha: 0.12)
-                                : const Color(0xFF94A3B8).withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            domain.isActive ? 'Active' : 'Inactive',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: domain.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Edit',
-                          onPressed: () => _openEditor(initial: domain),
-                          icon: const Icon(AppIcons.edit, size: 18),
-                        ),
-                        IconButton(
-                          tooltip: domain.isActive ? 'Deactivate' : 'Activate',
-                          onPressed: () => _toggleActive(domain),
-                          icon: Icon(
-                            domain.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_outlined,
-                            color: domain.isActive ? const Color(0xFF6A38FF) : const Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
+        if (compact)
+          SizedBox(height: _compactListHeight(context), child: list)
+        else
+          Expanded(child: list),
+      ],
+    );
+  }
+
+  static double _compactListHeight(BuildContext context) {
+    final double screenHeight = MediaQuery.sizeOf(context).height;
+    if (ResponsiveHelper.isMobile(context)) {
+      return (screenHeight * 0.68).clamp(240.0, screenHeight);
+    }
+    return (screenHeight * 0.58).clamp(280.0, 520.0);
+  }
+}
+
+class _DomainListTile extends StatelessWidget {
+  const _DomainListTile({
+    required this.domain,
+    required this.departmentLabel,
+    required this.compactRow,
+    required this.onEdit,
+    required this.onToggleActive,
+  });
+
+  final DomainModel domain;
+  final String departmentLabel;
+  final bool compactRow;
+  final VoidCallback onEdit;
+  final VoidCallback onToggleActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget status = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: domain.isActive
+            ? const Color(0xFF059669).withValues(alpha: 0.12)
+            : const Color(0xFF94A3B8).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        domain.isActive ? 'Active' : 'Inactive',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: domain.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
+        ),
+      ),
+    );
+    final Widget actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        IconButton(
+          tooltip: 'Edit',
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.all(6),
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: onEdit,
+          icon: const Icon(AppIcons.edit, size: 18),
+        ),
+        IconButton(
+          tooltip: domain.isActive ? 'Deactivate' : 'Activate',
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.all(6),
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: onToggleActive,
+          icon: Icon(
+            domain.isActive ? Icons.toggle_on_rounded : Icons.toggle_off_outlined,
+            color: domain.isActive ? const Color(0xFF6A38FF) : const Color(0xFF94A3B8),
           ),
         ),
       ],
+    );
+    final Widget identity = Row(
+      children: <Widget>[
+        Container(
+          width: compactRow ? 36 : 40,
+          height: compactRow ? 36 : 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFF6A38FF).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            domain.icon.trim().isEmpty ? AppIcons.problems : Icons.category_rounded,
+            color: const Color(0xFF6A38FF),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                domain.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${domain.code} · $departmentLabel'
+                '${domain.description.trim().isEmpty ? '' : ' · ${domain.description.trim()}'}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(14, 12, compactRow ? 10 : 8, 12),
+      decoration: kDashboardCardDecoration,
+      child: compactRow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                identity,
+                const SizedBox(height: 8),
+                Row(
+                  children: <Widget>[
+                    status,
+                    const Spacer(),
+                    actions,
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: <Widget>[
+                Expanded(child: identity),
+                const SizedBox(width: 8),
+                status,
+                actions,
+              ],
+            ),
     );
   }
 }

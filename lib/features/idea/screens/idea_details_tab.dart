@@ -6,6 +6,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../core/ui/common/form_value_row.dart';
 import '../../../core/ui/common/page_header_context_pill.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/workspace/workspace_navigator.dart';
@@ -32,6 +33,7 @@ class IdeaDetailsTab extends StatelessWidget {
     final String departmentName = DepartmentModel.byCode(idea.teamDepartmentCode)?.name ??
         (idea.teamDepartmentCode.trim().isEmpty ? '' : idea.teamDepartmentCode.trim());
     final bool isMobile = ResponsiveHelper.isMobile(context);
+    const double fieldLabelWidth = 102;
     final List<UserModel> members = vm.teamMembers
         .where((UserModel m) => m.userId.trim() != vm.team.teamLeaderId.trim())
         .toList(growable: false);
@@ -68,11 +70,25 @@ class IdeaDetailsTab extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 10),
-          _submittedByRow(context),
+          FormValueRow(
+            labelWidth: fieldLabelWidth,
+            label: 'Submitted by',
+            labelAlignment: Alignment.centerLeft,
+            child: _submittedByValue(context),
+          ),
           const SizedBox(height: 6),
-          Text(
-            'Created ${formatDateTime(idea.createdAt)}',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          FormValueRow(
+            labelWidth: fieldLabelWidth,
+            label: 'Created',
+            labelAlignment: Alignment.centerLeft,
+            child: Text(
+              formatDateTime(idea.createdAt),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           InnovationAssetsSection(
@@ -165,15 +181,20 @@ class IdeaDetailsTab extends StatelessWidget {
           const SizedBox(height: 8),
           teamCard,
         ] else
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(child: ideaCard),
-                const SizedBox(width: 8),
-                Expanded(child: teamCard),
-              ],
-            ),
+          Table(
+            defaultVerticalAlignment: TableCellVerticalAlignment.fill,
+            columnWidths: const <int, TableColumnWidth>{
+              0: FlexColumnWidth(1),
+              1: FlexColumnWidth(1),
+            },
+            children: <TableRow>[
+              TableRow(
+                children: <Widget>[
+                  Padding(padding: const EdgeInsets.only(right: 4), child: ideaCard),
+                  Padding(padding: const EdgeInsets.only(left: 4), child: teamCard),
+                ],
+              ),
+            ],
           ),
         const SizedBox(height: 8),
         eventsCard,
@@ -186,19 +207,41 @@ class IdeaDetailsTab extends StatelessWidget {
     return vm.organizationName.trim();
   }
 
-  Widget _submittedByRow(BuildContext context) {
+  Widget _submittedByValue(BuildContext context) {
     final UserModel? submittedBy = vm.submittedBy;
-    final String userId = (submittedBy?.userId ?? vm.idea.createdBy).trim();
-    if (submittedBy != null) {
-      return _TeamMemberRow(
-        user: submittedBy,
-        organizationName: '',
-        leadingLabel: 'Submitted by',
+    final String fallbackName = vm.submittedByName.trim().isNotEmpty
+        ? vm.submittedByName.trim()
+        : (vm.idea.createdBy.trim().isEmpty ? '—' : vm.idea.createdBy.trim());
+    if (submittedBy == null) {
+      return Text(
+        fallbackName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
       );
     }
-    return Text(
-      'Submitted by ${vm.submittedByName.trim().isEmpty ? (userId.isEmpty ? '—' : userId) : vm.submittedByName}',
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+    final String name = submittedBy.displayName.trim().isEmpty ? submittedBy.userId : submittedBy.displayName.trim();
+    final bool canOpen = submittedBy.userId.trim().isNotEmpty;
+    return Row(
+      children: <Widget>[
+        UserWorkspaceAvatar(
+          user: submittedBy,
+          radius: 13,
+          ringPadding: 2,
+          allowHoverScale: false,
+          enabled: canOpen,
+          onTap: canOpen ? () => WorkspaceNavigator.openUser(context, submittedBy.userId) : () {},
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -211,10 +254,13 @@ class IdeaDetailsTab extends StatelessWidget {
     final bool isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       width: double.infinity,
+      alignment: Alignment.topLeft,
+      clipBehavior: Clip.none,
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 12, vertical: isMobile ? 8 : 10),
       decoration: kDashboardCardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
             children: <Widget>[
@@ -236,13 +282,11 @@ class _TeamMemberRow extends StatelessWidget {
     required this.user,
     required this.organizationName,
     this.isLeader = false,
-    this.leadingLabel,
   });
 
   final UserModel user;
   final String organizationName;
   final bool isLeader;
-  final String? leadingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -268,15 +312,6 @@ class _TeamMemberRow extends StatelessWidget {
                 child: Text.rich(
                   TextSpan(
                     children: <InlineSpan>[
-                      if ((leadingLabel ?? '').isNotEmpty)
-                        TextSpan(
-                          text: '${leadingLabel!} ',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
                       TextSpan(
                         text: name,
                         style: const TextStyle(

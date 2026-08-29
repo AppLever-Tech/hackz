@@ -192,6 +192,7 @@ class DashboardPageHeader extends StatelessWidget {
     this.onRefresh,
     this.onUserTap,
     this.helpPageId,
+    this.titleActions,
   });
 
   final String title;
@@ -203,6 +204,9 @@ class DashboardPageHeader extends StatelessWidget {
   final VoidCallback onLogout;
   final VoidCallback? onUserTap;
   final String? helpPageId;
+
+  /// Compact actions on the title row, rendered immediately before Help.
+  final Widget? titleActions;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +251,7 @@ class DashboardPageHeader extends StatelessWidget {
               onRefresh: onRefresh,
               onUserTap: onUserTap,
               helpPageId: helpPageId,
+              titleActions: titleActions,
             ),
           ],
         ),
@@ -269,6 +274,7 @@ class _DashboardHeaderActions extends StatelessWidget {
     this.onRefresh,
     this.onUserTap,
     this.helpPageId,
+    this.titleActions,
   });
 
   final UserModel user;
@@ -276,6 +282,7 @@ class _DashboardHeaderActions extends StatelessWidget {
   final VoidCallback? onRefresh;
   final VoidCallback? onUserTap;
   final String? helpPageId;
+  final Widget? titleActions;
 
   @override
   Widget build(BuildContext context) {
@@ -287,6 +294,7 @@ class _DashboardHeaderActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        if (titleActions != null) titleActions!,
         if (helpPageId != null)
           HelpActionButton(
             pageId: helpPageId,

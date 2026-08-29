@@ -40,7 +40,7 @@ abstract final class IdeaTableColumns {
       DataTableColumn<IdeaListItem>(
         label: 'Idea',
         flex: 5,
-        minWidth: 220,
+        minWidth: 240,
         gapAfter: _kLeadingColumnGap,
         sortKey: enabledSorts.contains(IdeaSortType.newest) ? 'newest' : null,
         cell: (BuildContext context, IdeaListItem item) => _IdeaTitleCell(
@@ -50,7 +50,7 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Team',
-        flex: 3,
+        flex: 2,
         minWidth: 140,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) {
@@ -73,8 +73,8 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Problem',
-        flex: 2,
-        minWidth: 136,
+        fixedWidth: 112,
+        minWidth: 112,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -86,8 +86,8 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Idea Status',
-        flex: 2,
-        minWidth: 110,
+        fixedWidth: 124,
+        minWidth: 124,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -96,9 +96,9 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Events',
-        flex: 4,
-        minWidth: 160,
-        align: Alignment.centerLeft,
+        fixedWidth: 148,
+        minWidth: 148,
+        align: Alignment.center,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: IdeaEventPills(

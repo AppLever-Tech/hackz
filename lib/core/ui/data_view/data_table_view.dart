@@ -45,7 +45,7 @@ class DataTableView<T> extends StatelessWidget {
   double _rowContentWidth() {
     var width = 0.0;
     for (final DataTableColumn<T> column in columns) {
-      width += column.minWidth ?? fixedWidthFallback;
+      width += column.fixedWidth ?? column.minWidth ?? fixedWidthFallback;
       width += _gapAfter(column);
     }
     return width;
@@ -246,6 +246,9 @@ class DataTableView<T> extends StatelessWidget {
       ),
     );
 
+    if (column.fixedWidth != null) {
+      return SizedBox(width: column.fixedWidth, child: bounded);
+    }
     if (fixedWidths) {
       return SizedBox(
         width: column.minWidth ?? fixedWidthFallback,
