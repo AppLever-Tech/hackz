@@ -9,7 +9,7 @@ class EmptySearchState extends StatelessWidget {
     super.key,
     required this.title,
     required this.icon,
-    required this.onClearSearch,
+    this.onClearSearch,
     this.message = 'Try adjusting your search or check back later.',
     this.clearLabel = 'Clear search',
   });
@@ -18,7 +18,7 @@ class EmptySearchState extends StatelessWidget {
   final IconData icon;
   final String message;
   final String clearLabel;
-  final VoidCallback onClearSearch;
+  final VoidCallback? onClearSearch;
 
   factory EmptySearchState.problems({Key? key, required VoidCallback onClearSearch}) {
     return EmptySearchState(
@@ -52,6 +52,23 @@ class EmptySearchState extends StatelessWidget {
       key: key,
       title: 'No judges found',
       icon: AppIcons.judges,
+      onClearSearch: onClearSearch,
+    );
+  }
+
+  factory EmptySearchState.payments({
+    Key? key,
+    String title = 'No payments found',
+    String message = 'Try adjusting your search or check back later.',
+    String clearLabel = 'Clear search',
+    VoidCallback? onClearSearch,
+  }) {
+    return EmptySearchState(
+      key: key,
+      title: title,
+      icon: AppIcons.payments,
+      message: message,
+      clearLabel: clearLabel,
       onClearSearch: onClearSearch,
     );
   }
@@ -96,8 +113,10 @@ class EmptySearchState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
             ),
-            const SizedBox(height: 14),
-            TextButton(onPressed: onClearSearch, child: Text(clearLabel)),
+            if (onClearSearch != null) ...<Widget>[
+              const SizedBox(height: 14),
+              TextButton(onPressed: onClearSearch, child: Text(clearLabel)),
+            ],
           ],
         ),
       ),

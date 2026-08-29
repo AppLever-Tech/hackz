@@ -6,6 +6,7 @@ import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/data_view/data_table_column.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../utils/common_helpers.dart';
+import '../../ideathons/widgets/ideathon_list_cell.dart';
 import '../../ideathons/widgets/ideathon_type_pill.dart';
 import '../services/coordinator_team_registration_service.dart';
 
@@ -39,6 +40,7 @@ abstract final class TeamRegistrationTableColumns {
         label: 'Type',
         flex: 2,
         minWidth: 100,
+        align: Alignment.center,
         cell: (BuildContext context, CoordinatorTeamRegistrationRow row) =>
             IdeathonTypePill(type: row.originType),
       ),
@@ -47,29 +49,26 @@ abstract final class TeamRegistrationTableColumns {
         flex: 3,
         minWidth: 160,
         cell: (BuildContext context, CoordinatorTeamRegistrationRow row) {
-          final String name = row.ideathonName.trim();
-          if (name.isEmpty) return const SizedBox.shrink();
-          final String eventId = row.ideathonId.trim();
-          final Widget pill = eventId.isEmpty
-              ? EntityCardPills.meta(name, icon: AppIcons.ideathons)
-              : EntityCardPills.workspace(
-                  name,
-                  ContextPillSemantic.generic,
-                  () => WorkspaceNavigator.openIdeathon(context, eventId),
-                  icon: AppIcons.ideathons,
-                );
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: pill,
+            child: IdeathonListCell(
+              events: row.ideathons,
+              onOpen: (IdeathonListEntry event) {
+                if (event.id.trim().isEmpty) return;
+                WorkspaceNavigator.openIdeathon(context, event.id);
+              },
+            ),
           );
         },
       ),
       DataTableColumn<CoordinatorTeamRegistrationRow>(
         label: 'Date imported',
         flex: 2,
-        minWidth: 128,
-        cell: (BuildContext context, CoordinatorTeamRegistrationRow row) =>
-            EntityCardPills.plainValue(formatDayMonthYear(row.importedAt)),
+        minWidth: 148,
+        cell: (BuildContext context, CoordinatorTeamRegistrationRow row) => Text(
+          formatDateTime(row.importedAt),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+        ),
       ),
     ];
   }

@@ -7,6 +7,7 @@ import '../../ideathons/models/ideathon_type.dart';
 import '../../ideathons/services/ideathon_participation_service.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../ideathons/services/ideathon_team_eligibility.dart';
+import '../../ideathons/widgets/ideathon_list_cell.dart';
 import '../../user/models/user_model.dart';
 import '../models/team_model.dart';
 import 'team_service.dart';
@@ -17,15 +18,13 @@ class CoordinatorTeamRegistrationRow {
   const CoordinatorTeamRegistrationRow({
     required this.team,
     required this.origin,
-    required this.ideathonName,
-    required this.ideathonId,
+    required this.ideathons,
     required this.importedAt,
   });
 
   final TeamModel team;
   final IdeathonTeamOrigin origin;
-  final String ideathonName;
-  final String ideathonId;
+  final List<IdeathonListEntry> ideathons;
   final DateTime importedAt;
 
   bool get isInternal => origin == IdeathonTeamOrigin.host;
@@ -107,16 +106,18 @@ abstract final class CoordinatorTeamRegistrationService {
       final List<String> eventIds =
           (ideathonIdsByTeam[team.teamId.trim()] ?? const <String>{}).toList(growable: false)
             ..sort();
-      final List<String> names = eventIds
-          .map((String id) => (ideathonNames[id] ?? '').trim())
-          .where((String name) => name.isNotEmpty)
-          .toSet()
+      final List<IdeathonListEntry> ideathons = eventIds
+          .map(
+            (String id) => IdeathonListEntry(
+              id: id,
+              name: (ideathonNames[id] ?? id).trim(),
+            ),
+          )
           .toList(growable: false);
       return CoordinatorTeamRegistrationRow(
         team: team,
         origin: origin,
-        ideathonName: names.join(' · '),
-        ideathonId: eventIds.length == 1 ? eventIds.first : '',
+        ideathons: ideathons,
         importedAt: team.createdAt,
       );
     }).toList(growable: false);

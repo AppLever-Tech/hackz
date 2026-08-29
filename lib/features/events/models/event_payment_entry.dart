@@ -13,6 +13,7 @@ class EventPaymentEntry {
     this.payment,
     this.canConfirm = false,
     this.canMarkException = false,
+    this.proofCount = 0,
   });
 
   final String entryId;
@@ -25,6 +26,13 @@ class EventPaymentEntry {
   final PaymentRecordStatus status;
   final bool canConfirm;
   final bool canMarkException;
+  /// Active attachment count for this payment (screenshot / proof files).
+  final int proofCount;
+
+  bool get hasProof {
+    if (proofCount > 0) return true;
+    return (payment?.paymentProofUrl.trim().isNotEmpty ?? false);
+  }
 
   String? get paymentId {
     final String id = (payment?.paymentId ?? '').trim();

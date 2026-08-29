@@ -3,21 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/ui/common/context_pill.dart';
-import '../../../core/ui/common/context_pill_theme.dart';
-import '../../../core/ui/common/entity_card_pills.dart';
-import '../../../core/ui/data_view/data_table_column.dart';
-import '../../../core/ui/data_view/data_table_view.dart';
 import '../../../core/ui/inputs/filter_pill.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
-import '../../../core/workspace/workspace_navigator.dart';
-import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../utils/common_helpers.dart';
 import '../../payment/models/payment_model.dart';
 import '../../payment/services/department_payments_service.dart';
-import '../../payment/services/payment_finance_helpers.dart';
+import '../../payment/widgets/payment_entries_view.dart';
 import '../../payment/widgets/payment_metrics_row.dart';
-import '../../payment/widgets/payment_table_columns.dart';
 import '../models/event_kind.dart';
 import '../models/event_payment_entry.dart';
 
@@ -112,43 +103,6 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
     );
   }
 
-  String _statusLabel(PaymentRecordStatus status) {
-    return switch (status) {
-      PaymentRecordStatus.verified => 'Confirmed',
-      PaymentRecordStatus.pending => 'Pending',
-      PaymentRecordStatus.rejected => 'Exception',
-    };
-  }
-
-  String _amountLabel(EventPaymentEntry row) {
-    if (row.payment == null) return '—';
-    return PaymentFinanceHelpers.formatCurrency(row.payment!.amount);
-  }
-
-  String _dateLabel(EventPaymentEntry row) {
-    final DateTime? at = row.payment?.createdAt;
-    if (at == null) return '—';
-    return formatDateTime(at);
-  }
-
-  void _openEntry(BuildContext context, EventPaymentEntry row) {
-    WorkspaceNavigator.openIdea(context, row.entryId);
-  }
-
-  void _openTeam(BuildContext context, EventPaymentEntry row) {
-    if (row.teamId.trim().isEmpty) return;
-    WorkspaceNavigator.openTeam(context, row.teamId);
-  }
-
-  void _openPayment(BuildContext context, EventPaymentEntry row) {
-    final String? id = row.paymentId;
-    if (id == null) {
-      _openEntry(context, row);
-      return;
-    }
-    WorkspaceNavigator.openPayment(context, id);
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool mobile = ResponsiveHelper.isMobile(context);
@@ -158,6 +112,7 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
         : EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 28);
     final EventPaymentMetrics metrics = widget.metrics;
     final String ideasLabel = widget.kind.entriesLabel.toLowerCase();
+    final bool hasActiveFilters = _filter != EventPaymentFilter.all || _searchController.text.trim().isNotEmpty;
 
     final Widget toolbar = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -237,196 +192,30 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
       ],
     );
 
-    final Widget body = rows.isEmpty
-        ? Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: kDashboardCardDecoration,
-            child: Text(
-              widget.entries.isEmpty
-                  ? 'No ${widget.kind.payableItemLabel.toLowerCase()} payments for this event yet.'
-                  : 'No payments match your filters.',
-              style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          )
-        : (widget.embedded && !mobile)
-            ? _table(context, rows)
-            : _cards(context, rows, scrollable: widget.embedded);
-
-    if (widget.embedded) {
-      return Padding(
-        padding: pad,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            toolbar,
-            Expanded(child: body),
-          ],
-        ),
-      );
-    }
-
-    return ListView(
+    return Padding(
       padding: pad,
-      children: <Widget>[
-        toolbar,
-        body,
-      ],
-    );
-  }
-
-  Widget _table(BuildContext context, List<EventPaymentEntry> rows) {
-    return DataTableView<EventPaymentEntry>(
-      items: rows,
-      rowMinHeight: 56,
-      columns: <DataTableColumn<EventPaymentEntry>>[
-        DataTableColumn<EventPaymentEntry>(
-          label: widget.kind.payableItemLabel,
-          flex: 4,
-          minWidth: 180,
-          gapAfter: 12,
-          cell: (BuildContext context, EventPaymentEntry row) => _pillCell(_ideaPill(context, row)),
-        ),
-        DataTableColumn<EventPaymentEntry>(
-          label: 'Team',
-          flex: 3,
-          minWidth: 140,
-          gapAfter: 12,
-          cell: (BuildContext context, EventPaymentEntry row) => _pillCell(_teamPill(context, row)),
-        ),
-        DataTableColumn<EventPaymentEntry>(
-          label: 'Payment Date',
-          flex: 2,
-          minWidth: 148,
-          gapAfter: 12,
-          cell: (_, EventPaymentEntry row) => Text(
-            _dateLabel(row),
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-          ),
-        ),
-        DataTableColumn<EventPaymentEntry>(
-          label: 'Status',
-          flex: 2,
-          minWidth: 130,
-          gapAfter: 12,
-          cell: (BuildContext context, EventPaymentEntry row) => _pillCell(_statusPill(context, row)),
-        ),
-        DataTableColumn<EventPaymentEntry>(
-          label: 'Amount',
-          flex: 2,
-          minWidth: 100,
-          align: Alignment.centerRight,
-          cell: (_, EventPaymentEntry row) => Align(
-            alignment: Alignment.centerRight,
-            child: Text(_amountLabel(row), style: PaymentListStyles.amount),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _cards(BuildContext context, List<EventPaymentEntry> rows, {required bool scrollable}) {
-    Widget card(EventPaymentEntry row) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        decoration: kDashboardCardDecoration,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: _ideaPill(context, row)),
-                const SizedBox(width: 8),
-                Text(_amountLabel(row), style: PaymentListStyles.amount),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _teamPill(context, row),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    _dateLabel(row),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-                  ),
-                ),
-                _statusPill(context, row),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (!scrollable) {
-      return Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          for (int i = 0; i < rows.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(height: 10),
-            card(rows[i]),
-          ],
+          toolbar,
+          Expanded(
+            child: PaymentEntriesView(
+              entries: rows,
+              ideaColumnLabel: widget.kind.payableItemLabel,
+              emptyTitle: 'No payments found',
+              emptyMessage: widget.entries.isEmpty
+                  ? 'No ${widget.kind.payableItemLabel.toLowerCase()} payments for this event yet.'
+                  : 'Try adjusting your search or filters.',
+              onClearFilters: hasActiveFilters
+                  ? () => setState(() {
+                        _filter = EventPaymentFilter.all;
+                        _searchController.clear();
+                      })
+                  : null,
+            ),
+          ),
         ],
-      );
-    }
-
-    return ListView.separated(
-      itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (BuildContext context, int i) => card(rows[i]),
-    );
-  }
-
-  Widget _pillCell(Widget child) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: UnconstrainedBox(
-        alignment: Alignment.centerLeft,
-        constrainedAxis: Axis.vertical,
-        child: child,
       ),
-    );
-  }
-
-  Widget _ideaPill(BuildContext context, EventPaymentEntry row) {
-    final String label = row.entryTitle.trim().isEmpty ? row.entryId : row.entryTitle;
-    if (row.entryId.trim().isEmpty) {
-      return EntityCardPills.meta(label, icon: AppIcons.ideas);
-    }
-    return EntityCardPills.workspace(
-      label,
-      ContextPillSemantic.idea,
-      () => _openEntry(context, row),
-      icon: AppIcons.ideas,
-    );
-  }
-
-  Widget _teamPill(BuildContext context, EventPaymentEntry row) {
-    final String label = row.teamName.trim().isEmpty ? '—' : row.teamName;
-    if (row.teamId.trim().isEmpty) {
-      return EntityCardPills.meta(label, icon: AppIcons.teams);
-    }
-    return EntityCardPills.workspace(
-      label,
-      ContextPillSemantic.team,
-      () => _openTeam(context, row),
-      icon: AppIcons.teams,
-    );
-  }
-
-  Widget _statusPill(BuildContext context, EventPaymentEntry row) {
-    return ContextPill(
-      label: _statusLabel(row.status),
-      semantic: ContextPillSemantic.payment,
-      onTap: () => _openPayment(context, row),
-      enabled: row.paymentId != null,
-      compact: true,
-      fitContent: true,
-      expandWidth: false,
-      allowHoverScale: false,
     );
   }
 }

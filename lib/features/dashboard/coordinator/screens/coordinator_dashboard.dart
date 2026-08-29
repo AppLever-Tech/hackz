@@ -8,7 +8,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../core/ui/feedback/feedback.dart';
-import 'package:hackz/features/attachment/services/attachment_service.dart';
+import 'package:hackz/features/payment/services/payment_proof_launcher.dart';
 import '../services/coordinator_dashboard_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../core/ui/common/dashboard_card/dashboard_card_layout.dart';
@@ -16,7 +16,6 @@ import '../widgets/coordinator_activity_feed.dart';
 import '../widgets/payment_queue_card.dart';
 import '../widgets/submission_workflow_funnel.dart';
 import '../widgets/verification_trend_chart.dart';
-import 'coordinator_payment_card.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
@@ -28,6 +27,8 @@ import '../../../../core/responsive/responsive_columns.dart';
 import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../../core/responsive/responsive_metric_grid.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/features/events/models/event_payment_entry.dart';
+import 'package:hackz/features/payment/widgets/payment_entries_view.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -92,24 +93,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
   }
 
   Future<void> _openPaymentProof(PaymentModel payment) async {
-    final attachments = await AttachmentService.fetchActiveAttachments(
-      entityType: AttachmentEntityType.payment,
-      entityId: payment.paymentId,
-    );
-    if (!mounted) return;
-    if (attachments.length == 1) {
-      WorkspaceNavigator.openAttachment(context, attachments.first.attachmentId);
-      return;
-    }
-    if (attachments.isNotEmpty || payment.paymentProofUrl.trim().isNotEmpty) {
-      WorkspaceNavigator.openPayment(context, payment.paymentId);
-      return;
-    }
-    FeedbackService.showInfo(
-      context,
-      title: 'Payment proof',
-      message: 'No payment proof uploaded yet.',
-    );
+    await PaymentProofLauncher.open(context, payment);
   }
 
   Future<void> _verify(PaymentModel payment) async {
@@ -380,77 +364,26 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
     return all.where((p) => p.departmentCode.trim().toUpperCase() == dep).toList(growable: false);
   }
 
-  Future<void> _openPaymentAttachments(PaymentModel payment) async {
-    final attachments = await AttachmentService.fetchActiveAttachments(
-      entityType: AttachmentEntityType.payment,
-      entityId: payment.paymentId,
-    );
-    if (!mounted) return;
-    if (attachments.length == 1) {
-      WorkspaceNavigator.openAttachment(context, attachments.first.attachmentId);
-      return;
-    }
-    if (attachments.isNotEmpty || payment.paymentProofUrl.trim().isNotEmpty) {
-      WorkspaceNavigator.openPayment(context, payment.paymentId);
-      return;
-    }
-    FeedbackService.showInfo(
-      context,
-      title: 'Payment proof',
-      message: 'No payment proof uploaded yet.',
-    );
-  }
-
-  bool _hasPaymentProof(PaymentModel payment, _CoordinatorPaymentsData data) {
-    if (payment.paymentProofUrl.trim().isNotEmpty) return true;
-    return (data.attachmentCountByPaymentId[payment.paymentId] ?? 0) > 0;
-  }
-
-  int _paymentAttachmentCount(PaymentModel payment, _CoordinatorPaymentsData data) {
+  int _paymentProofCount(PaymentModel payment, _CoordinatorPaymentsData data) {
     final int count = data.attachmentCountByPaymentId[payment.paymentId] ?? 0;
     if (count > 0) return count;
     return payment.paymentProofUrl.trim().isNotEmpty ? 1 : 0;
   }
 
-  Future<void> _approve(PaymentModel p) async {
-    await FirestoreUtils.verifyIdeaPayment(
-      paymentId: p.paymentId,
-      coordinatorId: widget.user.userId,
-    );
-    CoordinatorDashboardService.clearCache();
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _reject(PaymentModel p) async {
-    final remarks = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final c = TextEditingController();
-        return ResponsiveAlertDialog(
-          title: const Text('Reject payment'),
-          widthPreset: DialogWidthPreset.compact,
-          content: TextField(
-            controller: c,
-            decoration: const InputDecoration(
-              labelText: 'Remarks (optional)',
-              border: OutlineInputBorder(),
-            ),
+  List<EventPaymentEntry> _entries(List<PaymentModel> items, _CoordinatorPaymentsData data) {
+    return items
+        .map(
+          (PaymentModel p) => EventPaymentEntry(
+            entryId: p.ideaId,
+            entryTitle: data.ideaTitleById[p.ideaId] ?? p.problemNumber,
+            teamId: p.teamId,
+            teamName: data.teamNameById[p.teamId] ?? p.teamId,
+            status: p.status,
+            payment: p,
+            proofCount: _paymentProofCount(p, data),
           ),
-          actions: <Widget>[
-            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.of(ctx).pop(c.text.trim()), child: const Text('Reject')),
-          ],
-        );
-      },
-    );
-    if (remarks == null) return;
-    await FirestoreUtils.rejectIdeaPayment(
-      paymentId: p.paymentId,
-      coordinatorId: widget.user.userId,
-      remarks: remarks.isEmpty ? null : remarks,
-    );
-    CoordinatorDashboardService.clearCache();
-    if (mounted) setState(() {});
+        )
+        .toList(growable: false);
   }
 
   @override
@@ -480,48 +413,41 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
         return RichTabs(
           spacingAfterBar: 10,
           tabs: <RichTabItem>[
-            RichTabItem('Pending', count: pending.isEmpty ? null : pending.length, prominentCount: true),
-            RichTabItem('Verified', count: verified.isEmpty ? null : verified.length, prominentCount: true),
-            RichTabItem('Rejected', count: rejected.isEmpty ? null : rejected.length, prominentCount: true),
+            RichTabItem(
+              'Pending',
+              icon: AppIcons.clock,
+              count: pending.isEmpty ? null : pending.length,
+              prominentCount: true,
+            ),
+            RichTabItem(
+              'Verified',
+              icon: AppIcons.workflowApproved,
+              count: verified.isEmpty ? null : verified.length,
+              prominentCount: true,
+            ),
+            RichTabItem(
+              'Rejected',
+              icon: AppIcons.workflowRejected,
+              count: rejected.isEmpty ? null : rejected.length,
+              prominentCount: true,
+            ),
           ],
           children: <Widget>[
-            _buildList(pending, data),
-            _buildList(verified, data),
-            _buildList(rejected, data),
+            _buildList(pending, data, emptyTitle: 'No pending payments'),
+            _buildList(verified, data, emptyTitle: 'No verified payments'),
+            _buildList(rejected, data, emptyTitle: 'No rejected payments'),
           ],
         );
       },
     );
   }
 
-  Widget _buildList(List<PaymentModel> items, _CoordinatorPaymentsData data) {
-    if (items.isEmpty) return const Center(child: Text('No items.'));
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final p = items[index];
-        final teamName = data.teamNameById[p.teamId] ?? p.teamId;
-        final String ideaName = data.ideaTitleById[p.ideaId] ?? p.problemNumber;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: CoordinatorPaymentCard(
-            payment: p,
-            teamName: teamName,
-            ideaName: ideaName,
-            onOpenTeam: p.teamId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openTeam(context, p.teamId),
-            onOpenIdea: p.ideaId.trim().isEmpty
-                ? null
-                : () => WorkspaceNavigator.openIdea(context, p.ideaId),
-            onOpenPayment: () => WorkspaceNavigator.openPayment(context, p.paymentId),
-            onOpenAttachments: _hasPaymentProof(p, data) ? () => _openPaymentAttachments(p) : null,
-            attachmentCount: _paymentAttachmentCount(p, data),
-            onApprove: () => _approve(p),
-            onReject: () => _reject(p),
-          ),
-        );
-      },
+  Widget _buildList(List<PaymentModel> items, _CoordinatorPaymentsData data, {required String emptyTitle}) {
+    return PaymentEntriesView(
+      entries: _entries(items, data),
+      ideaColumnLabel: 'Idea',
+      emptyTitle: emptyTitle,
+      emptyMessage: 'Payments in this status will appear here.',
     );
   }
 }
