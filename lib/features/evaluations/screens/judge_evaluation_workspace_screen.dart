@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/ui/common/context_pill_theme.dart';
-import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/common/rich_tabs.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
@@ -20,9 +18,9 @@ import '../widgets/evaluation_summary_strip.dart';
 import '../widgets/evaluated_idea_list.dart';
 import '../widgets/pending_evaluation_list.dart';
 
-/// Judge evaluation workspace (Scoring tab / Ideathon Evaluation entry).
+/// Judge evaluation workspace (Scoring tab / event-scoped evaluation entry).
 ///
-/// Optional [ideathonId] scopes the same UX to one Ideathon event — no second screen.
+/// Optional [ideathonId] scopes the same UX to one event — no second screen.
 class JudgeEvaluationWorkspaceScreen extends StatefulWidget {
   const JudgeEvaluationWorkspaceScreen({
     super.key,
@@ -100,6 +98,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         judge: widget.user,
         idea: row.idea,
         team: null,
+        teamLabel: row.teamName,
         problem: null,
         latestJudgeScore: null,
         ideathonId: row.ideathonId,
@@ -113,7 +112,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
   }
 
   void _openViewEvaluation(JudgeEvaluationEvaluatedRow row) {
-    WorkspaceNavigator.openEvaluation(context, row.latestScore.scoreId);
+    WorkspaceNavigator.openEvaluation(
+      context,
+      row.idea.ideaId,
+      ideathonId: row.ideathonId,
+    );
   }
 
   Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
@@ -125,91 +128,43 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           children: <Widget>[
             PendingEvaluationList(
               rows: vm.pending,
-              groupByEvent: !vm.isIdeathonScoped,
+              pendingCountByEvent: vm.pendingCountByEvent,
+              evaluatedCountByEvent: vm.evaluatedCountByEvent,
               onEvaluate: _openEvaluate,
               onViewDetails: (JudgeEvaluationPendingRow row) =>
                   WorkspaceNavigator.openIdea(context, row.idea.ideaId),
               onOpenProblem: (JudgeEvaluationPendingRow row) =>
                   WorkspaceNavigator.openProblem(context, row.idea.problemId),
+              onOpenTeam: (JudgeEvaluationPendingRow row) =>
+                  WorkspaceNavigator.openTeam(context, row.idea.teamId),
             ),
             EvaluatedIdeaList(
               rows: vm.evaluated,
-              groupByEvent: !vm.isIdeathonScoped,
+              pendingCountByEvent: vm.pendingCountByEvent,
+              evaluatedCountByEvent: vm.evaluatedCountByEvent,
               onViewEvaluation: _openViewEvaluation,
               onViewDetails: (JudgeEvaluationEvaluatedRow row) =>
                   WorkspaceNavigator.openIdea(context, row.idea.ideaId),
               onOpenProblem: (JudgeEvaluationEvaluatedRow row) =>
                   WorkspaceNavigator.openProblem(context, row.idea.problemId),
+              onOpenTeam: (JudgeEvaluationEvaluatedRow row) =>
+                  WorkspaceNavigator.openTeam(context, row.idea.teamId),
             ),
-            EvaluationFeedbackSection(rows: vm.feedback),
+            EvaluationFeedbackSection(
+              rows: vm.feedback,
+              pendingCountByEvent: vm.pendingCountByEvent,
+              evaluatedCountByEvent: vm.evaluatedCountByEvent,
+              onViewEvaluation: (JudgeEvaluationFeedbackRow row) {
+                WorkspaceNavigator.openEvaluation(
+                  context,
+                  row.ideaId,
+                  ideathonId: row.ideathonId,
+                );
+              },
+            ),
           ],
         );
       },
-    );
-  }
-
-  Widget _ideathonBanner(JudgeEvaluationWorkspaceVm vm) {
-    final String name = (widget.ideathonName.trim().isNotEmpty
-            ? widget.ideathonName
-            : vm.ideathonName)
-        .trim();
-    final String templateId = vm.evaluationTemplateId.trim();
-    if (name.isEmpty && !vm.isIdeathonScoped) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(horizontal: ResponsiveHelper.isMobile(context) ? 12 : 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFC4B5FD)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(AppIcons.ideathons, size: 18, color: Color(0xFF6A38FF)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  name.isEmpty ? 'Ideathon evaluation' : name,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                ),
-              ),
-            ],
-          ),
-          if (vm.ideathonSchedule.trim().isNotEmpty) ...<Widget>[
-            const SizedBox(height: 4),
-            Row(
-              children: <Widget>[
-                const Icon(AppIcons.event, size: 14, color: Color(0xFF64748B)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    vm.ideathonSchedule.trim(),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 6),
-          const Text(
-            'Only ideas explicitly assigned to you for this Ideathon are listed. Scoring uses this event’s evaluation template.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
-          ),
-          if (templateId.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            EntityCardPills.workspace(
-              EvaluationTemplatesService.resolveTemplate(templateId).templateName,
-              ContextPillSemantic.evaluationTemplate,
-              () => WorkspaceNavigator.openEvaluationTemplate(context, templateId),
-              icon: AppIcons.scoring,
-            ),
-          ],
-        ],
-      ),
     );
   }
 
@@ -231,10 +186,6 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            if (vm.isIdeathonScoped || widget.ideathonId.trim().isNotEmpty) ...<Widget>[
-              _ideathonBanner(vm),
-              SizedBox(height: sectionGap),
-            ],
             EvaluationSummaryStrip(
               pendingCount: vm.pendingCount,
               evaluatedCount: vm.evaluatedCount,
@@ -247,9 +198,9 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               child: RichTabBar(
                 controller: _tabs,
                 tabs: const <RichTabItem>[
-                  RichTabItem('Pending review'),
-                  RichTabItem('Evaluated'),
-                  RichTabItem('Feedback'),
+                  RichTabItem('Pending', icon: AppIcons.clock),
+                  RichTabItem('Evaluated', icon: AppIcons.scoring),
+                  RichTabItem('Feedback', icon: AppIcons.feedback),
                 ],
               ),
             ),

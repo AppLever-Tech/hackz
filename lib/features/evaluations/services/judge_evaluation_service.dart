@@ -6,6 +6,7 @@ import '../models/evaluation_template.dart';
 import '../models/score_model.dart';
 import 'evaluation_aggregation_sync_service.dart';
 import '../../ideathons/models/ideathon_model.dart';
+import '../../ideathons/models/ideathon_status.dart';
 import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
 import '../../ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
@@ -309,9 +310,10 @@ abstract final class JudgeEvaluationService {
       final IdeaModel? idea = ideasById[ideaId];
       if (idea == null) continue;
       final String aIdeathonId = assignment.ideathonId.trim();
+      if (aIdeathonId.isEmpty) continue;
       if (eventId.isNotEmpty && aIdeathonId != eventId) continue;
 
-      final IdeathonModel? ideathon = aIdeathonId.isEmpty ? null : ideathonsById[aIdeathonId];
+      final IdeathonModel? ideathon = ideathonsById[aIdeathonId];
       final String ideathonName = ideathon?.name.trim().isNotEmpty == true
           ? ideathon!.name.trim()
           : (aIdeathonId.isEmpty ? '' : aIdeathonId);
@@ -337,29 +339,38 @@ abstract final class JudgeEvaluationService {
                 ? score.templateId
                 : templateId,
             ideathonSchedule: schedule,
+            eventStatus: ideathon?.status,
+            eventStartAt: ideathon?.startDateTime,
           ),
         );
         final String excerpt = JudgeEvaluationFeedbackCodec.displayRemarks(score.feedback);
         final bool hasStructured = score.hasStructuredCriteria ||
             JudgeEvaluationFeedbackCodec.tryDecode(score.feedback) != null;
-        final bool hasContent = excerpt.isNotEmpty || hasStructured;
-        if (hasContent) {
-          feedbackRows.add(
-            JudgeEvaluationFeedbackRow(
-              ideaId: score.ideaId,
-              ideaTitle: _ideaTitle(idea),
-              evaluatedAt: score.createdAt,
-              overallScore: score.score,
-              remarksExcerpt: excerpt.isEmpty
-                  ? (hasStructured ? 'Criteria scores recorded' : '—')
-                  : (excerpt.length > 160 ? '${excerpt.substring(0, 157)}…' : excerpt),
-              hasStructuredCriteria: hasStructured,
-              ideathonId: aIdeathonId,
-              ideathonName: ideathonName,
-              ideathonSchedule: schedule,
-            ),
-          );
-        }
+        feedbackRows.add(
+          JudgeEvaluationFeedbackRow(
+            ideaId: score.ideaId,
+            ideaTitle: _ideaTitle(idea),
+            evaluatedAt: score.createdAt,
+            overallScore: score.score,
+            remarksExcerpt: excerpt.isEmpty
+                ? (hasStructured ? 'Criteria scores recorded' : '—')
+                : (excerpt.length > 160 ? '${excerpt.substring(0, 157)}…' : excerpt),
+            hasStructuredCriteria: hasStructured,
+            ideathonId: aIdeathonId,
+            ideathonName: ideathonName,
+            ideathonSchedule: schedule,
+            eventStatus: ideathon?.status,
+            problemTitle: (problemsById[idea.problemId]?.title ?? idea.problemTitle).trim().isEmpty
+                ? idea.problemId
+                : (problemsById[idea.problemId]?.title ?? idea.problemTitle).trim(),
+            teamName: (teamsById[idea.teamId]?.teamName ?? '').trim().isEmpty
+                ? idea.teamId
+                : teamsById[idea.teamId]!.teamName.trim(),
+            problemId: idea.problemId,
+            teamId: idea.teamId,
+            scoreId: score.scoreId,
+          ),
+        );
       } else if (judgeMayEvaluate(idea)) {
         pendingRows.add(
           _buildPendingRow(
@@ -373,6 +384,8 @@ abstract final class JudgeEvaluationService {
             ideathonName: ideathonName,
             evaluationTemplateId: templateId,
             ideathonSchedule: schedule,
+            eventStatus: ideathon?.status,
+            eventStartAt: ideathon?.startDateTime,
           ),
         );
       }
@@ -389,6 +402,17 @@ abstract final class JudgeEvaluationService {
     final avgScore = scopedScores.isEmpty
         ? null
         : scopedScores.map((e) => e.score).reduce((a, b) => a + b) / scopedScores.length;
+
+    final Map<String, int> pendingCountByEvent = <String, int>{};
+    for (final JudgeEvaluationPendingRow row in pendingRows) {
+      final String id = row.ideathonId.trim();
+      pendingCountByEvent[id] = (pendingCountByEvent[id] ?? 0) + 1;
+    }
+    final Map<String, int> evaluatedCountByEvent = <String, int>{};
+    for (final JudgeEvaluationEvaluatedRow row in evaluatedRows) {
+      final String id = row.ideathonId.trim();
+      evaluatedCountByEvent[id] = (evaluatedCountByEvent[id] ?? 0) + 1;
+    }
 
     String? contextName;
     String? contextTemplateId;
@@ -414,6 +438,8 @@ abstract final class JudgeEvaluationService {
       ideathonName: contextName ?? '',
       evaluationTemplateId: contextTemplateId ?? '',
       ideathonSchedule: contextSchedule,
+      pendingCountByEvent: pendingCountByEvent,
+      evaluatedCountByEvent: evaluatedCountByEvent,
     );
     _cache[key] = _CacheEntry(at: now, vm: vm);
     return vm;
@@ -430,6 +456,8 @@ abstract final class JudgeEvaluationService {
     String ideathonName = '',
     String evaluationTemplateId = '',
     String ideathonSchedule = '',
+    IdeathonStatus? eventStatus,
+    DateTime? eventStartAt,
   }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -457,6 +485,8 @@ abstract final class JudgeEvaluationService {
       ideathonName: ideathonName,
       evaluationTemplateId: evaluationTemplateId,
       ideathonSchedule: ideathonSchedule,
+      eventStatus: eventStatus,
+      eventStartAt: eventStartAt,
     );
   }
 
@@ -471,6 +501,8 @@ abstract final class JudgeEvaluationService {
     String ideathonName = '',
     String evaluationTemplateId = '',
     String ideathonSchedule = '',
+    IdeathonStatus? eventStatus,
+    DateTime? eventStartAt,
   }) {
     final team = teamsById[idea.teamId];
     final problem = problemsById[idea.problemId];
@@ -493,6 +525,8 @@ abstract final class JudgeEvaluationService {
       ideathonName: ideathonName,
       evaluationTemplateId: evaluationTemplateId,
       ideathonSchedule: ideathonSchedule,
+      eventStatus: eventStatus,
+      eventStartAt: eventStartAt,
     );
   }
 
@@ -536,6 +570,8 @@ class JudgeEvaluationWorkspaceVm {
     this.ideathonName = '',
     this.evaluationTemplateId = '',
     this.ideathonSchedule = '',
+    this.pendingCountByEvent = const <String, int>{},
+    this.evaluatedCountByEvent = const <String, int>{},
   });
 
   const JudgeEvaluationWorkspaceVm.empty()
@@ -549,7 +585,9 @@ class JudgeEvaluationWorkspaceVm {
         ideathonId = '',
         ideathonName = '',
         evaluationTemplateId = '',
-        ideathonSchedule = '';
+        ideathonSchedule = '',
+        pendingCountByEvent = const <String, int>{},
+        evaluatedCountByEvent = const <String, int>{};
 
   final List<JudgeEvaluationPendingRow> pending;
   final List<JudgeEvaluationEvaluatedRow> evaluated;
@@ -562,6 +600,8 @@ class JudgeEvaluationWorkspaceVm {
   final String ideathonName;
   final String evaluationTemplateId;
   final String ideathonSchedule;
+  final Map<String, int> pendingCountByEvent;
+  final Map<String, int> evaluatedCountByEvent;
 
   bool get isIdeathonScoped => ideathonId.trim().isNotEmpty;
 }
@@ -583,6 +623,8 @@ class JudgeEvaluationPendingRow {
     this.ideathonName = '',
     this.evaluationTemplateId = '',
     this.ideathonSchedule = '',
+    this.eventStatus,
+    this.eventStartAt,
   });
 
   final IdeaModel idea;
@@ -600,6 +642,12 @@ class JudgeEvaluationPendingRow {
   final String ideathonName;
   final String evaluationTemplateId;
   final String ideathonSchedule;
+  final IdeathonStatus? eventStatus;
+  final DateTime? eventStartAt;
+
+  String get eventId => ideathonId;
+  String get eventName => ideathonName;
+  String get eventSchedule => ideathonSchedule;
 
   String get ideaId => idea.ideaId;
 
@@ -627,6 +675,8 @@ class JudgeEvaluationEvaluatedRow {
     this.ideathonName = '',
     this.evaluationTemplateId = '',
     this.ideathonSchedule = '',
+    this.eventStatus,
+    this.eventStartAt,
   });
 
   final IdeaModel idea;
@@ -643,6 +693,12 @@ class JudgeEvaluationEvaluatedRow {
   final String ideathonName;
   final String evaluationTemplateId;
   final String ideathonSchedule;
+  final IdeathonStatus? eventStatus;
+  final DateTime? eventStartAt;
+
+  String get eventId => ideathonId;
+  String get eventName => ideathonName;
+  String get eventSchedule => ideathonSchedule;
 
   String get ideaId => idea.ideaId;
 
@@ -660,6 +716,12 @@ class JudgeEvaluationFeedbackRow {
     this.ideathonId = '',
     this.ideathonName = '',
     this.ideathonSchedule = '',
+    this.eventStatus,
+    this.problemTitle = '',
+    this.teamName = '',
+    this.problemId = '',
+    this.teamId = '',
+    this.scoreId = '',
   });
 
   final String ideaId;
@@ -671,5 +733,15 @@ class JudgeEvaluationFeedbackRow {
   final String ideathonId;
   final String ideathonName;
   final String ideathonSchedule;
+  final IdeathonStatus? eventStatus;
+  final String problemTitle;
+  final String teamName;
+  final String problemId;
+  final String teamId;
+  final String scoreId;
+
+  String get eventId => ideathonId;
+  String get eventName => ideathonName;
+  String get eventSchedule => ideathonSchedule;
 }
 

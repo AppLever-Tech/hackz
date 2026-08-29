@@ -21,9 +21,11 @@ import '../../idea/services/idea_query_service.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
 import '../services/judge_evaluation_service.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/form_value_row.dart';
 import '../../../core/responsive/responsive_dialog_actions.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import '../../events/widgets/event_meta_chip.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).
@@ -38,6 +40,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
     required this.judge,
     required this.idea,
     this.team,
+    this.teamLabel = '',
     this.problem,
     this.latestJudgeScore,
     this.readOnly = false,
@@ -51,14 +54,18 @@ class EvaluateIdeaDialog extends StatefulWidget {
   final UserModel judge;
   final IdeaModel idea;
   final TeamModel? team;
+
+  /// Display name when [team] is not loaded (event-scoped scoring queue).
+  final String teamLabel;
+
   final ProblemModel? problem;
   final ScoreModel? latestJudgeScore;
   final bool readOnly;
 
-  /// When set, evaluation is Ideathon-scoped (score stamped with this id).
+  /// When set, evaluation is event-scoped (score stamped with this id).
   final String ideathonId;
 
-  /// Ideathon evaluation template — judges cannot pick a different template.
+  /// Event evaluation template — judges cannot pick a different template.
   final String forcedTemplateId;
 
   /// Event-customized rubric. When set, scoring uses this instead of org/department merge.
@@ -307,55 +314,123 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
     return '${pct.toStringAsFixed(1)}%';
   }
 
+  String _ideaTitle() {
+    final String title = widget.idea.ideaTitle.trim();
+    if (title.isNotEmpty) return title;
+    if (widget.idea.problemNumber.trim().isNotEmpty) return widget.idea.problemNumber.trim();
+    return 'Untitled idea';
+  }
+
+  String _teamDisplayName() {
+    final String fromTeam = (widget.team?.teamName ?? '').trim();
+    if (fromTeam.isNotEmpty) return fromTeam;
+    final String labeled = widget.teamLabel.trim();
+    if (labeled.isNotEmpty) return labeled;
+    final String teamId = widget.idea.teamId.trim();
+    return teamId.isEmpty ? 'Team' : teamId;
+  }
+
   Widget _buildHeader(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final teamName = (widget.team?.teamName ?? '').trim().isNotEmpty
-        ? widget.team!.teamName.trim()
-        : widget.idea.teamId;
-    final problemLine = (_problem?.title ?? widget.idea.problemTitle).trim();
+    final String eventName = widget.ideathonName.trim();
+    final String schedule = widget.ideathonSchedule.trim();
+    final String teamName = _teamDisplayName();
+    final String teamId = (widget.team?.teamId ?? widget.idea.teamId).trim();
+    final String problemLabel = (_problem?.title ?? widget.idea.problemTitle).trim();
+    final String problemId = widget.idea.problemId.trim();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          widget.idea.ideaTitle.trim().isNotEmpty
-              ? widget.idea.ideaTitle.trim()
-              : widget.idea.problemNumber,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        if (widget.ideathonName.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: 4),
-          Text(
-            widget.ideathonName.trim(),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF6A38FF),
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (widget.ideathonSchedule.trim().isNotEmpty)
-            Text(
-              widget.ideathonSchedule.trim(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
+        if (eventName.isNotEmpty) ...<Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(AppIcons.event, size: 18, color: Color(0xFF6A38FF)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  eventName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                    height: 1.2,
+                  ),
+                ),
               ),
-            ),
+              if (schedule.isNotEmpty) ...<Widget>[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: EventMetaChip(
+                    icon: AppIcons.event,
+                    label: schedule,
+                    color: const Color(0xFF0369A1),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
         ],
-        const SizedBox(height: 4),
-        Text(
-          problemLine.isEmpty ? 'Problem' : problemLine,
-          style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B), fontWeight: FontWeight.w600),
+        _contextRow(
+          label: 'Idea',
+          icon: AppIcons.ideas,
+          pill: EntityCardPills.workspace(
+            _ideaTitle(),
+            ContextPillSemantic.idea,
+            () => WorkspaceNavigator.openIdea(context, widget.idea.ideaId),
+            icon: AppIcons.ideas,
+          ),
         ),
-        Row(
-          children: <Widget>[
-            const Icon(AppIcons.teams, size: 14, color: Color(0xFF94A3B8)),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(teamName, style: theme.textTheme.bodySmall?.copyWith(color: const Color(0xFF64748B))),
-            ),
-          ],
+        _contextRow(
+          label: 'Problem',
+          icon: AppIcons.problems,
+          pill: problemId.isEmpty
+              ? EntityCardPills.meta(problemLabel.isEmpty ? 'Problem' : problemLabel, icon: AppIcons.problems)
+              : EntityCardPills.workspace(
+                  problemLabel.isEmpty ? 'Problem' : problemLabel,
+                  ContextPillSemantic.problem,
+                  () => WorkspaceNavigator.openProblem(context, problemId),
+                  icon: AppIcons.problems,
+                ),
         ),
-        if (_loadingProblem) const LinearProgressIndicator(minHeight: 2),
+        _contextRow(
+          label: 'Team',
+          icon: AppIcons.teams,
+          isLast: true,
+          pill: teamId.isEmpty
+              ? EntityCardPills.meta(teamName, icon: AppIcons.teams)
+              : EntityCardPills.workspace(
+                  teamName,
+                  ContextPillSemantic.team,
+                  () => WorkspaceNavigator.openTeam(context, teamId),
+                  icon: AppIcons.teams,
+                ),
+        ),
+        if (_loadingProblem) ...<Widget>[
+          const SizedBox(height: 8),
+          const LinearProgressIndicator(minHeight: 2),
+        ],
       ],
+    );
+  }
+
+  Widget _contextRow({
+    required String label,
+    required IconData icon,
+    required Widget pill,
+    bool isLast = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+      child: FormValueRow(
+        labelWidth: 72,
+        label: label,
+        labelIcon: icon,
+        labelAlignment: Alignment.centerLeft,
+        child: Align(alignment: Alignment.centerLeft, child: pill),
+      ),
     );
   }
 

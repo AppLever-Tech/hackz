@@ -12,6 +12,7 @@ import '../../team/models/team_model.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
 import '../models/evaluation_details_view_model.dart';
+import '../models/score_model.dart';
 import 'evaluation_aggregation_service.dart';
 import 'evaluation_templates_service.dart';
 
@@ -36,6 +37,19 @@ abstract final class EvaluationDetailsLoader {
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
         await db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
     if (!ideaDoc.exists || ideaDoc.data() == null) {
+      final DocumentSnapshot<Map<String, dynamic>> scoreDoc =
+          await db.collection(FirestoreUtils.hkzScores).doc(id).get();
+      if (scoreDoc.exists && scoreDoc.data() != null) {
+        final ScoreModel score = ScoreModel.fromMap(scoreDoc.id, scoreDoc.data()!);
+        final String resolvedIdeaId = score.ideaId.trim();
+        if (resolvedIdeaId.isEmpty || resolvedIdeaId == id) {
+          throw StateError('Idea not found');
+        }
+        return load(
+          ideaId: resolvedIdeaId,
+          ideathonId: eventId.isNotEmpty ? eventId : score.ideathonId,
+        );
+      }
       throw StateError('Idea not found');
     }
 
