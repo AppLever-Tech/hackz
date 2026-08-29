@@ -369,6 +369,9 @@ abstract final class JudgeEvaluationService {
             problemId: idea.problemId,
             teamId: idea.teamId,
             scoreId: score.scoreId,
+            idea: idea,
+            latestScore: score,
+            evaluationTemplateId: score.templateId.trim().isNotEmpty ? score.templateId : templateId,
           ),
         );
       } else if (judgeMayEvaluate(idea)) {
@@ -722,6 +725,9 @@ class JudgeEvaluationFeedbackRow {
     this.problemId = '',
     this.teamId = '',
     this.scoreId = '',
+    required this.idea,
+    required this.latestScore,
+    this.evaluationTemplateId = '',
   });
 
   final String ideaId;
@@ -739,6 +745,9 @@ class JudgeEvaluationFeedbackRow {
   final String problemId;
   final String teamId;
   final String scoreId;
+  final IdeaModel idea;
+  final ScoreModel latestScore;
+  final String evaluationTemplateId;
 
   String get eventId => ideathonId;
   String get eventName => ideathonName;

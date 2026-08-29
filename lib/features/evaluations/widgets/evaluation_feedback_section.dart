@@ -241,25 +241,13 @@ class _ViewAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool canOpen = row.scoreId.trim().isNotEmpty;
+    final bool canOpen = onViewEvaluation != null && row.scoreId.trim().isNotEmpty;
     return ProblemWorkflowActionPill(
       label: 'View Evaluation',
       contentIcon: AppIcons.scoring,
       semantic: ProblemWorkflowPillSemantic.filledBrand,
       enabled: canOpen,
-      onTap: !canOpen
-          ? null
-          : () {
-              if (onViewEvaluation != null) {
-                onViewEvaluation!(row);
-                return;
-              }
-              WorkspaceNavigator.openEvaluation(
-                context,
-                row.ideaId,
-                ideathonId: row.ideathonId,
-              );
-            },
+      onTap: canOpen ? () => onViewEvaluation!(row) : null,
     );
   }
 }

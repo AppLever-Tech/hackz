@@ -9,11 +9,13 @@ class EventMetaChip extends StatelessWidget {
     required this.label,
     this.icon = AppIcons.info,
     this.color = const Color(0xFF475569),
+    this.fontWeight = FontWeight.w700,
   });
 
   final String label;
   final IconData icon;
   final Color color;
+  final FontWeight fontWeight;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,7 @@ class EventMetaChip extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+                style: TextStyle(fontSize: 11, fontWeight: fontWeight, color: color),
               ),
             ),
           ],

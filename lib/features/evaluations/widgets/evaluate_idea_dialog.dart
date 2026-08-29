@@ -352,20 +352,25 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF0F172A),
                     height: 1.2,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ),
               if (schedule.isNotEmpty) ...<Widget>[
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Flexible(
-                  child: EventMetaChip(
-                    icon: AppIcons.event,
-                    label: schedule,
-                    color: const Color(0xFF0369A1),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: EventMetaChip(
+                      icon: AppIcons.event,
+                      label: schedule,
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],

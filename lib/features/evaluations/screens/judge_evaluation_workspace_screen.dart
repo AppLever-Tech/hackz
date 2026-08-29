@@ -9,7 +9,9 @@ import '../../../core/workspace/workspace_navigator.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/user_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
 import '../models/evaluation_template.dart';
+import '../models/score_model.dart';
 import '../services/evaluation_templates_service.dart';
 import '../services/judge_evaluation_service.dart';
 import '../widgets/evaluate_idea_dialog.dart';
@@ -73,9 +75,55 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     await _future;
   }
 
-  Future<void> _openEvaluate(JudgeEvaluationPendingRow row) async {
+  Future<void> _openEvaluate(JudgeEvaluationPendingRow row) {
+    return _openEvaluationDialog(
+      idea: row.idea,
+      teamName: row.teamName,
+      ideathonId: row.ideathonId,
+      evaluationTemplateId: row.evaluationTemplateId,
+      ideathonName: row.ideathonName,
+      ideathonSchedule: row.ideathonSchedule,
+    );
+  }
+
+  Future<void> _openViewEvaluation(JudgeEvaluationEvaluatedRow row) {
+    return _openEvaluationDialog(
+      idea: row.idea,
+      teamName: row.teamName,
+      ideathonId: row.ideathonId,
+      evaluationTemplateId: row.evaluationTemplateId,
+      ideathonName: row.ideathonName,
+      ideathonSchedule: row.ideathonSchedule,
+      latestScore: row.latestScore,
+      readOnly: true,
+    );
+  }
+
+  Future<void> _openViewFeedback(JudgeEvaluationFeedbackRow row) {
+    return _openEvaluationDialog(
+      idea: row.idea,
+      teamName: row.teamName,
+      ideathonId: row.ideathonId,
+      evaluationTemplateId: row.evaluationTemplateId,
+      ideathonName: row.ideathonName,
+      ideathonSchedule: row.ideathonSchedule,
+      latestScore: row.latestScore,
+      readOnly: true,
+    );
+  }
+
+  Future<void> _openEvaluationDialog({
+    required IdeaModel idea,
+    required String teamName,
+    required String ideathonId,
+    required String evaluationTemplateId,
+    required String ideathonName,
+    required String ideathonSchedule,
+    ScoreModel? latestScore,
+    bool readOnly = false,
+  }) async {
     EvaluationTemplate? overrideTemplate;
-    final String eventId = row.ideathonId.trim();
+    final String eventId = ideathonId.trim();
     if (eventId.isNotEmpty) {
       await OrgSettingsService.instance.ensureLoaded(orgId: widget.user.orgId);
       final event = await IdeathonService.fetchById(eventId);
@@ -83,40 +131,33 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         overrideTemplate = EvaluationTemplatesService.resolveForEvent(
           templateId: event.evaluationTemplateId.isNotEmpty
               ? event.evaluationTemplateId
-              : row.evaluationTemplateId,
+              : evaluationTemplateId,
           departmentCode: event.departmentId,
           eventCriteria: event.evaluationCriteria,
         );
       }
     }
     if (!mounted) return;
-    final ok = await showAppDialog<bool>(
+    final bool? ok = await showAppDialog<bool>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: readOnly,
       width: DialogWidthPreset.wide,
       child: EvaluateIdeaDialog(
         judge: widget.user,
-        idea: row.idea,
+        idea: idea,
         team: null,
-        teamLabel: row.teamName,
+        teamLabel: teamName,
         problem: null,
-        latestJudgeScore: null,
-        ideathonId: row.ideathonId,
-        forcedTemplateId: row.evaluationTemplateId,
+        latestJudgeScore: latestScore,
+        readOnly: readOnly,
+        ideathonId: ideathonId,
+        forcedTemplateId: evaluationTemplateId,
         overrideTemplate: overrideTemplate,
-        ideathonName: row.ideathonName,
-        ideathonSchedule: row.ideathonSchedule,
+        ideathonName: ideathonName,
+        ideathonSchedule: ideathonSchedule,
       ),
     );
     if (ok == true && mounted) await _reload();
-  }
-
-  void _openViewEvaluation(JudgeEvaluationEvaluatedRow row) {
-    WorkspaceNavigator.openEvaluation(
-      context,
-      row.idea.ideaId,
-      ideathonId: row.ideathonId,
-    );
   }
 
   Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
@@ -154,13 +195,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               rows: vm.feedback,
               pendingCountByEvent: vm.pendingCountByEvent,
               evaluatedCountByEvent: vm.evaluatedCountByEvent,
-              onViewEvaluation: (JudgeEvaluationFeedbackRow row) {
-                WorkspaceNavigator.openEvaluation(
-                  context,
-                  row.ideaId,
-                  ideathonId: row.ideathonId,
-                );
-              },
+              onViewEvaluation: _openViewFeedback,
             ),
           ],
         );
