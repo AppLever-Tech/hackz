@@ -977,9 +977,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           child: RichTabBar(
             controller: _sectionController,
             tabs: <RichTabItem>[
-              RichTabItem('Users', count: _allUsers.where((UserModel u) => u.role != UserRole.judge.code).length),
-              RichTabItem('Teams', count: _departmentTeams.length),
-              RichTabItem('Judges', count: _judgeCount),
+              RichTabItem('Users', icon: AppIcons.users, count: _allUsers.where((UserModel u) => u.role != UserRole.judge.code).length),
+              RichTabItem('Teams', icon: AppIcons.teams, count: _departmentTeams.length),
+              RichTabItem('Judges', icon: AppIcons.judges, count: _judgeCount),
             ],
             useSwitcherOnMobile: true,
           ),

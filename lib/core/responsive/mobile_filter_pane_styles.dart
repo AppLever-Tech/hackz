@@ -54,6 +54,26 @@ abstract final class MobileFilterPaneStyles {
     return TextStyle(fontSize: compact ? compactChipFontSize : standardChipFontSize);
   }
 
+  /// Compact “Status  [chips…]” row used by list filter panes.
+  static Widget labelValuesRow({
+    required IconData icon,
+    required String label,
+    required bool compact,
+    required Widget child,
+    Color iconColor = const Color(0xFF64748B),
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 6),
+        Text(label, style: sectionLabel(compact: compact)),
+        const SizedBox(width: 10),
+        Expanded(child: child),
+      ],
+    );
+  }
+
   static Widget panelShell({
     required bool compact,
     required Widget child,

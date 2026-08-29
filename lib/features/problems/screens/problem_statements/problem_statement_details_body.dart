@@ -69,9 +69,13 @@ class ProblemStatementDetailsBody extends StatelessWidget {
         Expanded(
           child: RichTabs(
               tabs: <RichTabItem>[
-                const RichTabItem('Problem Details'),
-                RichTabItem('Submitted Ideas', count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length),
-                const RichTabItem('Problem Lifecycle'),
+                const RichTabItem('Problem Details', icon: AppIcons.problems),
+                RichTabItem(
+                  'Submitted Ideas',
+                  icon: AppIcons.ideas,
+                  count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length,
+                ),
+                const RichTabItem('Problem Lifecycle', icon: AppIcons.timelineWorkspace),
               ],
               children: <Widget>[
                 ProblemDetailsTab(vm: vm),

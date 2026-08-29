@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../user/models/user_model.dart';
-import '../../organization/models/department_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill.dart';
@@ -30,8 +29,6 @@ class IdeaDetailsTab extends StatelessWidget {
     final String description = idea.description.trim();
     final String teamId = vm.team.teamId.trim().isNotEmpty ? vm.team.teamId.trim() : idea.teamId.trim();
     final String teamLabel = vm.teamName.trim().isEmpty ? teamId : vm.teamName.trim();
-    final String departmentName = DepartmentModel.byCode(idea.teamDepartmentCode)?.name ??
-        (idea.teamDepartmentCode.trim().isEmpty ? '' : idea.teamDepartmentCode.trim());
     final bool isMobile = ResponsiveHelper.isMobile(context);
     const double fieldLabelWidth = 102;
     final List<UserModel> members = vm.teamMembers
@@ -104,49 +101,56 @@ class IdeaDetailsTab extends StatelessWidget {
       icon: AppIcons.teams,
       title: 'Team',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
+          FormValueRow(
+            labelWidth: fieldLabelWidth,
+            label: 'Team',
+            labelAlignment: Alignment.centerLeft,
             child: teamId.isNotEmpty
-                ? ContextPill(
-                    label: teamLabel.isEmpty ? 'Team' : teamLabel,
-                    semantic: ContextPillSemantic.team,
-                    icon: AppIcons.teams,
-                    onTap: () => WorkspaceNavigator.openTeam(context, teamId),
-                    compact: true,
-                    fitContent: true,
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: ContextPill(
+                      label: teamLabel.isEmpty ? 'Team' : teamLabel,
+                      semantic: ContextPillSemantic.team,
+                      icon: AppIcons.teams,
+                      onTap: () => WorkspaceNavigator.openTeam(context, teamId),
+                      compact: true,
+                      fitContent: true,
+                    ),
                   )
                 : Text(
                     teamLabel.isEmpty ? '—' : teamLabel,
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
                   ),
           ),
-          const SizedBox(height: 10),
-          if (roster.isEmpty)
-            const Text(
-              'No team members listed.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
-            )
-          else
-            ...roster.asMap().entries.expand((MapEntry<int, UserModel> entry) {
-              final bool isLeader = vm.teamLeader != null && entry.value.userId == vm.teamLeader!.userId;
-              return <Widget>[
-                if (entry.key > 0) const SizedBox(height: 8),
-                _TeamMemberRow(
-                  user: entry.value,
-                  organizationName: _orgNameFor(entry.value),
-                  isLeader: isLeader,
-                ),
-              ];
-            }),
-          if (departmentName.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PageHeaderContextPill.fromItem(PageHeaderContextItem.department(departmentName)),
-            ),
-          ],
+          const SizedBox(height: 8),
+          FormValueRow(
+            labelWidth: fieldLabelWidth,
+            label: 'Members',
+            labelAlignment: Alignment.centerLeft,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            labelTopInset: 7,
+            child: roster.isEmpty
+                ? const Text(
+                    'No team members listed.',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (int i = 0; i < roster.length; i++) ...<Widget>[
+                        if (i > 0) const SizedBox(height: 8),
+                        _TeamMemberRow(
+                          user: roster[i],
+                          organizationName: _orgNameFor(roster[i]),
+                          isLeader: vm.teamLeader != null && roster[i].userId == vm.teamLeader!.userId,
+                          stackOrganization: isMobile,
+                        ),
+                      ],
+                    ],
+                  ),
+          ),
         ],
       ),
     );
@@ -175,26 +179,22 @@ class IdeaDetailsTab extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+      clipBehavior: Clip.none,
       children: <Widget>[
         if (isMobile) ...<Widget>[
           ideaCard,
           const SizedBox(height: 8),
           teamCard,
         ] else
-          Table(
-            defaultVerticalAlignment: TableCellVerticalAlignment.fill,
-            columnWidths: const <int, TableColumnWidth>{
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(1),
-            },
-            children: <TableRow>[
-              TableRow(
-                children: <Widget>[
-                  Padding(padding: const EdgeInsets.only(right: 4), child: ideaCard),
-                  Padding(padding: const EdgeInsets.only(left: 4), child: teamCard),
-                ],
-              ),
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(child: ideaCard),
+                const SizedBox(width: 8),
+                Expanded(child: teamCard),
+              ],
+            ),
           ),
         const SizedBox(height: 8),
         eventsCard,
@@ -254,13 +254,16 @@ class IdeaDetailsTab extends StatelessWidget {
     final bool isMobile = ResponsiveHelper.isMobile(context);
     return Container(
       width: double.infinity,
-      alignment: Alignment.topLeft,
       clipBehavior: Clip.none,
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 12, vertical: isMobile ? 8 : 10),
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 10 : 12,
+        isMobile ? 8 : 10,
+        isMobile ? 10 : 12,
+        isMobile ? 12 : 16,
+      ),
       decoration: kDashboardCardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Row(
             children: <Widget>[
@@ -282,72 +285,99 @@ class _TeamMemberRow extends StatelessWidget {
     required this.user,
     required this.organizationName,
     this.isLeader = false,
+    this.stackOrganization = false,
   });
 
   final UserModel user;
   final String organizationName;
   final bool isLeader;
+  final bool stackOrganization;
 
   @override
   Widget build(BuildContext context) {
     final String name = user.displayName.trim().isEmpty ? user.userId : user.displayName.trim();
     final bool canOpen = user.userId.trim().isNotEmpty;
     final String org = organizationName.trim();
-
-    return Row(
-      children: <Widget>[
-        UserWorkspaceAvatar(
-          user: user,
-          radius: 13,
-          ringPadding: 2,
-          allowHoverScale: false,
-          enabled: canOpen,
-          onTap: canOpen ? () => WorkspaceNavigator.openUser(context, user.userId) : () {},
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Row(
-            children: <Widget>[
-              Flexible(
-                child: Text.rich(
-                  TextSpan(
-                    children: <InlineSpan>[
-                      TextSpan(
-                        text: name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      if (isLeader)
-                        const TextSpan(
-                          text: '  · Leader',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (org.isNotEmpty) ...<Widget>[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: PageHeaderContextPill.fromItem(PageHeaderContextItem.organization(org)),
-                  ),
-                ),
-              ],
-            ],
+    final Widget nameText = Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(
+            text: name,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
           ),
-        ),
-      ],
+          if (isLeader)
+            const TextSpan(
+              text: '  · Leader',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
+        ],
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+    final Widget? college = org.isEmpty
+        ? null
+        : PageHeaderContextPill.fromItem(PageHeaderContextItem.organization(org));
+
+    Widget identity({required bool expandName}) {
+      return Row(
+        children: <Widget>[
+          UserWorkspaceAvatar(
+            user: user,
+            radius: 13,
+            ringPadding: 2,
+            allowHoverScale: false,
+            enabled: canOpen,
+            onTap: canOpen ? () => WorkspaceNavigator.openUser(context, user.userId) : () {},
+          ),
+          const SizedBox(width: 8),
+          if (expandName) Expanded(child: nameText) else nameText,
+        ],
+      );
+    }
+
+    if (college == null) return identity(expandName: true);
+
+    if (stackOrganization) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          identity(expandName: true),
+          const SizedBox(height: 4),
+          college,
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool stack = !constraints.hasBoundedWidth || constraints.maxWidth < 280;
+        if (stack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              identity(expandName: true),
+              const SizedBox(height: 4),
+              college,
+            ],
+          );
+        }
+        return Row(
+          children: <Widget>[
+            Expanded(child: identity(expandName: true)),
+            const SizedBox(width: 8),
+            college,
+          ],
+        );
+      },
     );
   }
 }

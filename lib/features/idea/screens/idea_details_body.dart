@@ -70,7 +70,7 @@ class IdeaDetailsBody extends StatelessWidget {
             useSwitcherOnMobile: false,
             tabs: const <RichTabItem>[
               RichTabItem('Idea Details', icon: AppIcons.ideas),
-              RichTabItem('Idea Lifecycle', icon: AppIcons.insights),
+              RichTabItem('Idea Lifecycle', icon: AppIcons.timelineWorkspace),
             ],
             children: <Widget>[
               IdeaDetailsTab(vm: vm.ideaVm),

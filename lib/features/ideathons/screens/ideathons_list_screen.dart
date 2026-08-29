@@ -6,8 +6,8 @@ import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../core/ui/common/mobile_compact_pill.dart';
 import '../widgets/ideathon_metrics_row.dart';
 import '../../user/models/user_model.dart';
 import '../../user/models/enums/user_role.dart';
@@ -83,79 +83,65 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     });
   }
 
-  InputDecoration _searchDecoration(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    return InputDecoration(
-      hintText: 'Search ideathon events',
-      prefixIcon: const Icon(AppIcons.search),
-      isDense: true,
-      filled: true,
-      fillColor: const Color(0xFFFCFDFF),
-      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
-      ),
-    );
-  }
-
   bool get _canCreate =>
       RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.user.role));
 
-  Widget _buildCreateButton({required bool mobile}) {
-    return FilledButton.icon(
-      onPressed: () => setState(() => _showCreate = true),
-      icon: const Icon(AppIcons.add, size: 16),
-      label: Text(mobile ? 'Create' : 'Create'),
-      style: MobileToolbarButtonStyles.filled(compact: mobile),
-    );
-  }
-
-  Widget _buildStatusFilterChip(IdeathonStatus status, {required bool compact}) {
-    final bool selected = _statusFilters.contains(status);
-    final String label = IdeathonStatusHelpers.label(status);
-    final IconData icon = IdeathonStatusHelpers.icon(status);
-
-    if (!compact) {
-      return FilterChip(
-        avatar: Icon(icon, size: 16),
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => _toggleStatusFilter(status),
-      );
+  IdeathonModel? _inProgressEvent(List<IdeathonListRow> rows) {
+    final List<IdeathonModel> inProgress = rows
+        .map((IdeathonListRow row) => row.ideathon)
+        .where((IdeathonModel event) => event.status == IdeathonStatus.inProgress)
+        .toList(growable: false);
+    if (inProgress.isEmpty) return null;
+    final DateTime now = DateTime.now();
+    for (final IdeathonModel event in inProgress) {
+      final DateTime start = event.startDateTime.toLocal();
+      final DateTime end = event.endDateTime.toLocal();
+      if (!now.isBefore(start) && !now.isAfter(end)) return event;
     }
+    return inProgress.first;
+  }
 
-    return MobileCompactPill(
-      label: label,
-      icon: icon,
-      selected: selected,
-      onTap: () => _toggleStatusFilter(status),
+  InputDecoration _searchDecoration() {
+    return HackzInputDecoration.decorate(
+      hintText: 'Search ideathon events',
+      prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
+      compact: true,
     );
   }
 
-  Widget _buildFiltersPanel(BuildContext context) {
-    final bool compact = MobileFilterPaneStyles.useCompact(context);
+  Widget _buildFiltersPanel() {
+    const bool compact = true;
     final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
 
     return MobileFilterPaneStyles.panelShell(
       compact: compact,
+      decoration: kDashboardCardDecoration.copyWith(
+        color: MobileFilterPaneStyles.panelColor,
+        borderRadius: MobileFilterPaneStyles.panelBorderRadius(compact: compact),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ResponsiveFilterChipRow(
-            spacing: chipGap,
-            runSpacing: chipGap,
-            children: IdeathonStatus.values
-                .map((IdeathonStatus status) => _buildStatusFilterChip(status, compact: compact))
-                .toList(growable: false),
+          MobileFilterPaneStyles.labelValuesRow(
+            icon: Icons.filter_alt_outlined,
+            label: 'Status',
+            compact: compact,
+            child: Wrap(
+              spacing: chipGap,
+              runSpacing: chipGap,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: IdeathonStatus.values
+                  .map(
+                    (IdeathonStatus status) => MobileFilterPaneStyles.filterChip(
+                      compact: compact,
+                      avatar: Icon(IdeathonStatusHelpers.icon(status), size: 14),
+                      label: IdeathonStatusHelpers.label(status),
+                      selected: _statusFilters.contains(status),
+                      onSelected: (_) => _toggleStatusFilter(status),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
           ),
           SizedBox(height: MobileFilterPaneStyles.sectionGap(compact: compact)),
           MobileFilterPaneStyles.footer(
@@ -167,10 +153,10 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     );
   }
 
-  Widget _buildToolbar(
-    BuildContext context, {
+  Widget _buildListHeader({
+    required BuildContext context,
     required List<IdeathonListRow> rows,
-    required IdeathonModel? latest,
+    required IdeathonModel? inProgress,
   }) {
     final bool mobile = ResponsiveHelper.isMobile(context);
     final Widget metrics = IdeathonMetricsRow(
@@ -178,78 +164,54 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
       spacing: mobile ? 8 : 10,
       runSpacing: mobile ? 8 : 10,
     );
-
-    if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          metrics,
-          const SizedBox(height: 8),
-          ResponsiveSearchFilterBar(
-            searchController: _searchController,
-            searchHint: 'Search ideathon events',
-            searchDecoration: _searchDecoration(context),
-            filtersExpanded: _showFilters,
-            onToggleFilters: () => setState(() => _showFilters = !_showFilters),
-            iconOnlyFilterOnMobile: true,
-          ),
-          const SizedBox(height: 6),
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: _buildFiltersPanel(context),
-            crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 220),
-          ),
-          if (latest != null) ...<Widget>[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _LatestEventPill(
-                name: latest.name,
-                dateLabel: formatDateTime(latest.startDateTime.toLocal()),
-                onTap: () => _openIdeathon(latest.ideathonId),
+    final Widget searchBar = ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search ideathon events',
+      searchDecoration: _searchDecoration(),
+      searchTextStyle: HackzInputDecoration.compactFieldTextStyle,
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      iconOnlyFilterOnMobile: true,
+    );
+    final Widget toolbar = !mobile && _canCreate
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              MobileToolbarButtonStyles.filledIcon(
+                onPressed: () => setState(() => _showCreate = true),
+                label: 'Create Ideathon',
               ),
-            ),
-          ],
-          const SizedBox(height: 6),
-        ],
-      );
-    }
+              const SizedBox(width: 8),
+              Expanded(child: searchBar),
+            ],
+          )
+        : searchBar;
+    final Widget filters = AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: _buildFiltersPanel(),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                decoration: _searchDecoration(context),
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () => setState(() => _showFilters = !_showFilters),
-              icon: const Icon(AppIcons.filter, size: 16),
-              label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-              style: MobileToolbarButtonStyles.outlined(compact: true),
-            ),
-            if (_canCreate) ...<Widget>[
-              const SizedBox(width: 8),
-              _buildCreateButton(mobile: false),
-            ],
-          ],
-        ),
-        if (_showFilters) ...<Widget>[
+        metrics,
+        if (inProgress != null) ...<Widget>[
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: IdeathonStatus.values
-                .map((IdeathonStatus status) => _buildStatusFilterChip(status, compact: false))
-                .toList(growable: false),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _InProgressEventPill(
+              name: inProgress.name,
+              onTap: () => _openIdeathon(inProgress.ideathonId),
+            ),
           ),
         ],
+        SizedBox(height: mobile ? 8 : 12),
+        toolbar,
+        SizedBox(height: mobile ? 6 : 12),
+        filters,
+        SizedBox(height: mobile ? 6 : 12),
       ],
     );
   }
@@ -261,7 +223,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               children: <Widget>[
                 IconButton(onPressed: () => setState(() => _showCreate = false), icon: const Icon(AppIcons.back)),
@@ -288,68 +250,60 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<List<IdeathonListRow>> snapshot) {
         final List<IdeathonListRow> rows = snapshot.data ?? const <IdeathonListRow>[];
-        final IdeathonModel? latest = rows.isEmpty ? null : rows.first.ideathon;
+        final IdeathonModel? inProgress = _inProgressEvent(rows);
 
         return Stack(
           children: <Widget>[
-            Padding(
-              padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  if (!mobile) ...<Widget>[
-                    _buildTopPills(rows: rows, latest: latest),
-                    const SizedBox(height: 12),
-                  ],
-                  _buildToolbar(context, rows: rows, latest: latest),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
-                        ? const Center(child: CircularProgressIndicator())
-                        : rows.isEmpty
-                            ? const Center(child: Text('No ideathon events yet.'))
-                            : ListView.separated(
-                                padding: EdgeInsets.only(
-                                  bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 0,
-                                ),
-                                itemCount: rows.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                itemBuilder: (BuildContext context, int index) {
-                                  final row = rows[index].ideathon;
-                                  return InkWell(
-                                    onTap: () => _openIdeathon(row.ideathonId),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(14),
-                                      decoration: kDashboardCardDecoration,
-                                      child: Row(
-                                        children: <Widget>[
-                                          const Icon(AppIcons.ideathons, color: Color(0xFF6A38FF)),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                                                Text(
-                                                  '${row.ideaCount} ideas · ${formatDateTime(row.startDateTime.toLocal())}',
-                                                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          IdeathonTypePill(type: row.ideathonType),
-                                          const SizedBox(width: 6),
-                                          IdeathonStatusPill(status: row.status),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _buildListHeader(context: context, rows: rows, inProgress: inProgress),
+                Expanded(
+                  child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
+                      ? const Center(child: CircularProgressIndicator())
+                      : rows.isEmpty
+                          ? const Center(child: Text('No ideathon events yet.'))
+                          : ListView.separated(
+                              padding: EdgeInsets.only(
+                                bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 0,
                               ),
-                  ),
-                ],
-              ),
+                              itemCount: rows.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (BuildContext context, int index) {
+                                final row = rows[index].ideathon;
+                                return InkWell(
+                                  onTap: () => _openIdeathon(row.ideathonId),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: kDashboardCardDecoration,
+                                    child: Row(
+                                      children: <Widget>[
+                                        const Icon(AppIcons.ideathons, color: Color(0xFF6A38FF)),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: <Widget>[
+                                              Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                              Text(
+                                                '${row.ideaCount} ideas · ${formatDateTime(row.startDateTime.toLocal())}',
+                                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IdeathonTypePill(type: row.ideathonType),
+                                        const SizedBox(width: 6),
+                                        IdeathonStatusPill(status: row.status),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+              ],
             ),
             if (mobile && _canCreate)
               MobileCreateFab(
@@ -361,41 +315,20 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
       },
     );
   }
-
-  Widget _buildTopPills({required List<IdeathonListRow> rows, required IdeathonModel? latest}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        IdeathonMetricsRow(rows: rows),
-        if (latest != null) ...<Widget>[
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _LatestEventPill(
-              name: latest.name,
-              dateLabel: formatDateTime(latest.startDateTime.toLocal()),
-              onTap: () => _openIdeathon(latest.ideathonId),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
 }
 
-class _LatestEventPill extends StatelessWidget {
-  const _LatestEventPill({
+class _InProgressEventPill extends StatelessWidget {
+  const _InProgressEventPill({
     required this.name,
-    required this.dateLabel,
     required this.onTap,
   });
 
   final String name;
-  final String dateLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final Color accent = IdeathonStatusHelpers.color(IdeathonStatus.inProgress);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -403,25 +336,28 @@ class _LatestEventPill extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 420),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFF),
+          color: IdeathonStatusHelpers.background(IdeathonStatus.inProgress),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
+          border: Border.all(color: accent.withValues(alpha: 0.28)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(AppIcons.clock, size: 14, color: Color(0xFF64748B)),
+            Icon(IdeathonStatusHelpers.icon(IdeathonStatus.inProgress), size: 14, color: accent),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                name.trim().isEmpty ? 'Latest event' : name.trim(),
+                name.trim().isEmpty ? 'In progress' : name.trim(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
               ),
             ),
             const SizedBox(width: 8),
-            Text(dateLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+            Text(
+              'Today',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: accent),
+            ),
           ],
         ),
       ),

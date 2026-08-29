@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
-import '../../../features/dashboard/deptadmin/widgets/department_metric_card.dart';
 import '../models/ideathon_status.dart';
 import '../services/ideathon_query_service.dart';
+import '../services/ideathon_status_helpers.dart';
 
 /// Reusable metric row for ideathon list screens.
 class IdeathonMetricsRow extends StatelessWidget {
@@ -25,19 +25,37 @@ class IdeathonMetricsRow extends StatelessWidget {
 
   List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
         MetricKpiSegment.count(rows.length, 'Events'),
-        MetricKpiSegment.count(_countFor(IdeathonStatus.inProgress), 'In Progress'),
         MetricKpiSegment.count(_countFor(IdeathonStatus.scheduled), 'Scheduled'),
+        MetricKpiSegment.count(_countFor(IdeathonStatus.inProgress), 'In Progress'),
         MetricKpiSegment.count(_countFor(IdeathonStatus.completed), 'Completed'),
       ];
 
   List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
-        DepartmentMetricCard(
-          value: '${rows.length}',
+        DashboardMetricChipData.single(
           label: 'Total Events',
+          value: '${rows.length}',
+          color: const Color(0xFF4A67FF),
           icon: AppIcons.ideathons,
-          iconBgColor: const Color(0xFFF2EDFF),
           tooltip: 'Ideathon events in this department.',
-        ).toChipData(),
+        ),
+        DashboardMetricChipData.single(
+          label: 'Scheduled',
+          value: '${_countFor(IdeathonStatus.scheduled)}',
+          color: IdeathonStatusHelpers.color(IdeathonStatus.scheduled),
+          icon: IdeathonStatusHelpers.icon(IdeathonStatus.scheduled),
+        ),
+        DashboardMetricChipData.single(
+          label: 'In Progress',
+          value: '${_countFor(IdeathonStatus.inProgress)}',
+          color: IdeathonStatusHelpers.color(IdeathonStatus.inProgress),
+          icon: IdeathonStatusHelpers.icon(IdeathonStatus.inProgress),
+        ),
+        DashboardMetricChipData.single(
+          label: 'Completed',
+          value: '${_countFor(IdeathonStatus.completed)}',
+          color: IdeathonStatusHelpers.color(IdeathonStatus.completed),
+          icon: IdeathonStatusHelpers.icon(IdeathonStatus.completed),
+        ),
       ];
 
   @override

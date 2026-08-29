@@ -330,7 +330,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     const bool compact = true;
     final double sectionGap = MobileFilterPaneStyles.sectionGap(compact: compact);
     final double chipGap = MobileFilterPaneStyles.chipGap(compact: compact);
-    final TextStyle sectionLabel = MobileFilterPaneStyles.sectionLabel(compact: compact);
     const String allProblemsValue = '';
 
     return MobileFilterPaneStyles.panelShell(
@@ -343,10 +342,10 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (widget.config.enabledFilters.contains(IdeaFilterType.status)) ...<Widget>[
-            _filterLabelValuesRow(
+            MobileFilterPaneStyles.labelValuesRow(
               icon: Icons.filter_alt_outlined,
               label: 'Status',
-              labelStyle: sectionLabel,
+              compact: compact,
               child: Wrap(
                 spacing: chipGap,
                 runSpacing: chipGap,
@@ -375,10 +374,10 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
             SizedBox(height: sectionGap),
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.problem)) ...<Widget>[
-            _filterLabelValuesRow(
+            MobileFilterPaneStyles.labelValuesRow(
               icon: AppIcons.problems,
               label: 'Problem',
-              labelStyle: sectionLabel,
+              compact: compact,
               child: HackzSelectField<String>(
                 value: _problemFilters.length == 1 ? _problemFilters.first : allProblemsValue,
                 compact: true,
@@ -396,10 +395,10 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ],
           if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
               widget.config.ideaDepartmentScope == IdeaDepartmentScope.none) ...<Widget>[
-            _filterLabelValuesRow(
+            MobileFilterPaneStyles.labelValuesRow(
               icon: AppIcons.departments,
               label: 'Department',
-              labelStyle: sectionLabel,
+              compact: compact,
               child: Wrap(
                 spacing: chipGap,
                 runSpacing: chipGap,
@@ -434,24 +433,6 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  static Widget _filterLabelValuesRow({
-    required IconData icon,
-    required String label,
-    required TextStyle labelStyle,
-    required Widget child,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        Icon(icon, size: 16, color: const Color(0xFF64748B)),
-        const SizedBox(width: 6),
-        Text(label, style: labelStyle),
-        const SizedBox(width: 10),
-        Expanded(child: child),
-      ],
     );
   }
 

@@ -73,8 +73,8 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Problem',
-        fixedWidth: 112,
-        minWidth: 112,
+        fixedWidth: 224,
+        minWidth: 224,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

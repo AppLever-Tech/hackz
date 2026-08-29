@@ -103,11 +103,10 @@ class _LeafChip extends StatelessWidget {
     return _NavChipSurface(
       selected: selected,
       onTap: onTap,
-      child: Text(
-        _labelWithCount(module.label, module.count),
-        maxLines: 1,
-        textAlign: TextAlign.center,
-        style: _navLabelStyle(selected),
+      child: _navChipLabel(
+        icon: module.icon,
+        label: _labelWithCount(module.label, module.count),
+        selected: selected,
       ),
     );
   }
@@ -160,24 +159,15 @@ class _GroupChip extends StatelessWidget {
       },
       child: _NavChipSurface(
         selected: selected,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Flexible(
-              child: Text(
-                group.label,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: _navLabelStyle(selected),
-              ),
-            ),
-            const SizedBox(width: 2),
-            Icon(
-              Icons.expand_more_rounded,
-              size: 16,
-              color: selected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-            ),
-          ],
+        child: _navChipLabel(
+          icon: group.icon,
+          label: group.label,
+          selected: selected,
+          trailing: Icon(
+            Icons.expand_more_rounded,
+            size: 16,
+            color: selected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+          ),
         ),
       ),
     );
@@ -285,17 +275,22 @@ class _MobileSelector extends StatelessWidget {
           ),
           child: Row(
             children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 2,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
+              if (current?.icon != null) ...<Widget>[
+                Icon(current!.icon, size: 18, color: const Color(0xFF0F172A)),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
                   ),
+                ),
+              ),
               const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
             ],
           ),
@@ -372,4 +367,35 @@ TextStyle _navLabelStyle(bool selected) {
 String _labelWithCount(String label, int? count) {
   if (count == null) return label;
   return '$label ($count)';
+}
+
+Widget _navChipLabel({
+  required IconData? icon,
+  required String label,
+  required bool selected,
+  Widget? trailing,
+}) {
+  final Color color = selected ? const Color(0xFF0F172A) : const Color(0xFF64748B);
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: <Widget>[
+      if (icon != null) ...<Widget>[
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+      ],
+      Flexible(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: _navLabelStyle(selected),
+        ),
+      ),
+      if (trailing != null) ...<Widget>[
+        const SizedBox(width: 2),
+        trailing,
+      ],
+    ],
+  );
 }
