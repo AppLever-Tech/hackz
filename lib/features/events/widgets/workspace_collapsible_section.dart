@@ -11,6 +11,7 @@ class WorkspaceCollapsibleSection extends StatefulWidget {
     this.icon,
     this.count,
     this.initiallyExpanded = false,
+    this.collapsible = true,
   });
 
   final String title;
@@ -18,6 +19,7 @@ class WorkspaceCollapsibleSection extends StatefulWidget {
   final IconData? icon;
   final int? count;
   final bool initiallyExpanded;
+  final bool collapsible;
 
   static const TextStyle countStyle = TextStyle(
     fontSize: 16,
@@ -45,9 +47,9 @@ class _WorkspaceCollapsibleSectionState extends State<WorkspaceCollapsibleSectio
       titleSuffix: widget.count == null
           ? null
           : Text('${widget.count}', style: WorkspaceCollapsibleSection.countStyle),
-      collapsible: true,
-      expanded: _expanded,
-      onToggle: _toggle,
+      collapsible: widget.collapsible,
+      expanded: widget.collapsible ? _expanded : true,
+      onToggle: widget.collapsible ? _toggle : null,
       child: widget.child,
     );
   }

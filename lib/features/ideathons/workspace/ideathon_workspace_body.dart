@@ -14,8 +14,7 @@ import '../../events/widgets/workspace_collapsible_section.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
-import '../widgets/ideathon_status_pill.dart';
-import '../widgets/ideathon_type_pill.dart';
+import '../widgets/ideathon_event_workspace_header.dart';
 import 'ideathon_workspace_loader.dart';
 
 class IdeathonWorkspaceBody extends StatelessWidget {
@@ -125,9 +124,6 @@ class IdeathonWorkspaceBody extends StatelessWidget {
   }
 
   Widget _eventOverview(BuildContext context, IdeathonModel event) {
-    final String desc = event.description.trim();
-    final String dept = vm.departmentName.trim().isEmpty ? '—' : vm.departmentName.trim();
-    final String org = vm.organisationName.trim().isEmpty ? '—' : vm.organisationName.trim();
     final String templateLabel = vm.evaluationTemplateName.trim().isEmpty
         ? (event.evaluationTemplateId.trim().isEmpty ? '—' : event.evaluationTemplateId.trim())
         : vm.evaluationTemplateName.trim();
@@ -136,51 +132,11 @@ class IdeathonWorkspaceBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          event.name.trim().isEmpty ? 'Event' : event.name.trim(),
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0F172A),
-            height: 1.15,
-          ),
-        ),
-        if (desc.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            desc,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              height: 1.4,
-              color: Color(0xFF475569),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: <Widget>[
-            IdeathonTypePill(type: event.ideathonType, compact: true),
-            IdeathonStatusPill(status: event.status, compact: true),
-          ],
+        ideathonEventWorkspaceHeader(
+          event: event,
+          organisationName: vm.organisationName,
         ),
         const SizedBox(height: 10),
-        EventLabeledField(
-          label: 'Starts',
-          value: formatDateTime(event.startDateTime.toLocal()),
-          labelWidth: _labelWidth,
-        ),
-        EventLabeledField(
-          label: 'Ends',
-          value: formatDateTime(event.endDateTime.toLocal()),
-          labelWidth: _labelWidth,
-        ),
-        EventLabeledField(label: 'Department', value: dept, labelWidth: _labelWidth),
-        EventLabeledField(label: 'Organisation', value: org, labelWidth: _labelWidth),
         EventLabeledField(
           label: 'Template',
           isLast: true,

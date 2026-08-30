@@ -22,6 +22,11 @@ enum EventKind {
         EventKind.hackathon => 'Prototypes',
       };
 
+  IconData get entriesIcon => switch (this) {
+        EventKind.ideathon => AppIcons.ideas,
+        EventKind.hackathon => AppIcons.submissions,
+      };
+
   /// Singular payable item for event payment copy (Idea vs Prototype).
   String get payableItemLabel => switch (this) {
         EventKind.ideathon => 'Idea',

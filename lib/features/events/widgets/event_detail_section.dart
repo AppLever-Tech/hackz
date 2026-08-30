@@ -42,25 +42,30 @@ class EventDetailSection extends StatelessWidget {
           Icon(icon, size: 16, color: titleColor),
           const SizedBox(width: 6),
         ],
-        Flexible(
-          child: Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: titleFontSize,
-              fontWeight: titleFontWeight,
-              color: titleColor,
-            ),
+        Expanded(
+          child: Row(
+            children: <Widget>[
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: titleFontSize,
+                    fontWeight: titleFontWeight,
+                    color: titleColor,
+                  ),
+                ),
+              ),
+              if (titleSuffix != null) ...<Widget>[
+                const SizedBox(width: 8),
+                titleSuffix!,
+              ],
+            ],
           ),
         ),
-        if (titleSuffix != null) ...<Widget>[
-          const SizedBox(width: 8),
-          titleSuffix!,
-        ],
-        const Spacer(),
         if (collapsible) ...<Widget>[
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
           Icon(
             expanded ? AppIcons.expandLess : AppIcons.expandMore,
             size: 18,
@@ -86,7 +91,7 @@ class EventDetailSection extends StatelessWidget {
               ? InkWell(
                   onTap: onToggle,
                   borderRadius: BorderRadius.circular(8),
-                  child: header,
+                  child: SizedBox(width: double.infinity, child: header),
                 )
               : header,
           if (showBody) ...<Widget>[

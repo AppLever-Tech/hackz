@@ -15,6 +15,7 @@ class EventLabeledField extends StatelessWidget {
     this.labelWidth,
     this.icon,
     this.valueStyle,
+    this.valueTextAlign = TextAlign.start,
   });
 
   final String label;
@@ -25,6 +26,7 @@ class EventLabeledField extends StatelessWidget {
   final double? labelWidth;
   final IconData? icon;
   final TextStyle? valueStyle;
+  final TextAlign valueTextAlign;
 
   @override
   Widget build(BuildContext context) {
@@ -56,10 +58,18 @@ class EventLabeledField extends StatelessWidget {
                     constraints: const BoxConstraints(minHeight: 34),
                     child: Align(alignment: Alignment.centerLeft, child: trailing),
                   )
-                : Text(
-                    (value ?? '').trim().isEmpty ? '—' : value!.trim(),
-                    style: valueStyle ??
-                        const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                : Align(
+                    alignment: switch (valueTextAlign) {
+                      TextAlign.end || TextAlign.right => Alignment.centerRight,
+                      TextAlign.center => Alignment.center,
+                      _ => Alignment.centerLeft,
+                    },
+                    child: Text(
+                      (value ?? '').trim().isEmpty ? '—' : value!.trim(),
+                      textAlign: valueTextAlign,
+                      style: valueStyle ??
+                          const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    ),
                   ),
           ),
         ],
