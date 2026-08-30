@@ -26,6 +26,10 @@ abstract final class RoleVisibilityHelpers {
   /// Only department admins create Ideathons. Coordinators cannot.
   static bool canCreateIdeathon(UserRole role) => role == UserRole.departmentAdmin;
 
+  /// Coordinators verify payments; department admins can do the same from Event Payments.
+  static bool canManageEventPayments(UserRole role) =>
+      role == UserRole.coordinator || role == UserRole.departmentAdmin;
+
   static IdeaDepartmentScope ideaDepartmentScopeFor(UserRole role) {
     switch (role) {
       case UserRole.coordinator:

@@ -22,7 +22,8 @@ import 'package:hackz/features/ideathons/screens/tabs/ideathon_reports_tab.dart'
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_results_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_winners_tab.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
-import 'package:hackz/features/ideathons/services/ideathon_payment_service.dart';
+import 'package:hackz/features/events/models/event_payment_entry.dart';
+import 'package:hackz/features/events/services/event_payments_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
@@ -72,20 +73,26 @@ class IdeathonDetailsPane extends StatefulWidget {
 
 class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   late Future<IdeathonDetailsViewModel> _future;
-  late Future<IdeathonPaymentWorkspaceViewModel> _paymentsFuture;
+  late Future<EventPaymentsViewModel> _paymentsFuture;
   bool _editing = false;
 
   @override
   void initState() {
     super.initState();
     _future = IdeathonDetailsLoader.load(widget.ideathonId);
-    _paymentsFuture = IdeathonPaymentService.load(widget.ideathonId);
+    _paymentsFuture = EventPaymentsService.load(
+      kind: EventKind.ideathon,
+      eventId: widget.ideathonId,
+    );
   }
 
   void _reload() {
     setState(() {
       _future = IdeathonDetailsLoader.load(widget.ideathonId);
-      _paymentsFuture = IdeathonPaymentService.load(widget.ideathonId);
+      _paymentsFuture = EventPaymentsService.load(
+        kind: EventKind.ideathon,
+        eventId: widget.ideathonId,
+      );
     });
   }
 
@@ -451,14 +458,14 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
 class _PaymentContextPills extends StatelessWidget {
   const _PaymentContextPills({required this.loadFuture});
 
-  final Future<IdeathonPaymentWorkspaceViewModel> loadFuture;
+  final Future<EventPaymentsViewModel> loadFuture;
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<IdeathonPaymentWorkspaceViewModel>(
+    return FutureBuilder<EventPaymentsViewModel>(
       future: loadFuture,
-      builder: (BuildContext context, AsyncSnapshot<IdeathonPaymentWorkspaceViewModel> snapshot) {
-        final IdeathonPaymentMetrics? metrics = snapshot.data?.metrics;
+      builder: (BuildContext context, AsyncSnapshot<EventPaymentsViewModel> snapshot) {
+        final EventPaymentMetrics? metrics = snapshot.data?.metrics;
         if (metrics == null) return const SizedBox.shrink();
         return Wrap(
           spacing: 8,
@@ -466,18 +473,18 @@ class _PaymentContextPills extends StatelessWidget {
           children: <Widget>[
             EventMetaChip(
               icon: AppIcons.payments,
-              label: '${metrics.paymentCompleted} confirmed',
+              label: '${metrics.confirmed} confirmed',
               color: const Color(0xFF059669),
             ),
             EventMetaChip(
               icon: AppIcons.clock,
-              label: '${metrics.paymentPending} pending',
+              label: '${metrics.pending} pending',
               color: const Color(0xFFEA580C),
             ),
-            if (metrics.paymentException > 0)
+            if (metrics.exceptions > 0)
               EventMetaChip(
                 icon: AppIcons.error,
-                label: '${metrics.paymentException} exception${metrics.paymentException == 1 ? '' : 's'}',
+                label: '${metrics.exceptions} exception${metrics.exceptions == 1 ? '' : 's'}',
                 color: const Color(0xFFB91C1C),
               ),
           ],

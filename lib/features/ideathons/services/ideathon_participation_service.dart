@@ -14,9 +14,11 @@ abstract final class IdeathonParticipationService {
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzIdeathonParticipations);
 
-  /// Adds paid ideas as Ideathon members. [IdeaStatus] is untouched.
+  /// Adds ideas as Ideathon members. [IdeaStatus] is untouched.
   ///
-  /// Callers must only pass ideas whose idea-level payment is already verified.
+  /// Callers must only pass ideas whose idea-level payment is already verified
+  /// (eligibility). This event's payment status starts pending until an
+  /// event-scoped payment record exists for this [ideathonId].
   static Future<List<IdeathonParticipation>> createForIdeathon({
     required String orgId,
     required String ideathonId,
@@ -42,7 +44,7 @@ abstract final class IdeathonParticipationService {
         ideathonId: eventId,
         ideaId: ideaId,
         orgId: org,
-        paymentStatus: PaymentRecordStatus.verified,
+        paymentStatus: PaymentRecordStatus.pending,
         participationStatus: IdeathonParticipationStatus.active,
         createdAt: now,
         updatedAt: now,

@@ -1042,7 +1042,7 @@ class FirestoreUtils {
 
     final String participationId = ((data['participationId'] as String?) ?? '').trim();
     final String ideathonId = ((data['ideathonId'] as String?) ?? '').trim();
-    final bool isIdeathonPayment = participationId.isNotEmpty || ideathonId.isNotEmpty;
+    final bool isEventPayment = participationId.isNotEmpty || ideathonId.isNotEmpty;
 
     final statusUpdate = <String, dynamic>{
       'status': PaymentRecordStatus.verified.value,
@@ -1051,8 +1051,9 @@ class FirestoreUtils {
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
     };
 
-    if (isIdeathonPayment) {
-      // Keep ideathon participation payments on their own doc id.
+    if (isEventPayment) {
+      // Event-scoped payments keep their own document id so the same idea
+      // can have independent payments across events.
       statusUpdate['paymentId'] = legRef.id;
       await legRef.update(statusUpdate);
     } else {

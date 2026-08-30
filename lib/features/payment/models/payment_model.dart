@@ -62,11 +62,22 @@ class PaymentModel {
   final String remarks;
   final DateTime createdAt;
   final String? transactionId;
-  /// When set, payment is for Ideathon participation (not idea submission).
+  /// When set, payment is for event participation (not idea submission).
   final String participationId;
+  /// Event id for this payment (Ideathon today; Hackathon later). Firestore field remains `ideathonId`.
   final String ideathonId;
 
-  bool get isIdeathonParticipationPayment => participationId.trim().isNotEmpty;
+  /// Event this payment is scoped to. Empty for idea-submission (department) payments.
+  String get eventId => ideathonId.trim();
+
+  bool get isEventScoped => eventId.isNotEmpty || participationId.trim().isNotEmpty;
+
+  bool belongsToEvent(String eventId) {
+    final String id = eventId.trim();
+    return id.isNotEmpty && this.eventId == id;
+  }
+
+  bool get isIdeathonParticipationPayment => isEventScoped;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{

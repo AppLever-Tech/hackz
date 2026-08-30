@@ -21,7 +21,6 @@ class IdeathonWorkspaceBody extends StatelessWidget {
     required this.vm,
     this.onRefresh,
     this.actor,
-    this.onOpenPayments,
     this.onOpenJudgeAssignment,
     this.onOpenEvaluation,
     this.onOpenResults,
@@ -30,7 +29,6 @@ class IdeathonWorkspaceBody extends StatelessWidget {
   final IdeathonWorkspaceViewModel vm;
   final VoidCallback? onRefresh;
   final UserModel? actor;
-  final VoidCallback? onOpenPayments;
   final VoidCallback? onOpenJudgeAssignment;
   final VoidCallback? onOpenEvaluation;
   final VoidCallback? onOpenResults;
@@ -159,29 +157,6 @@ class IdeathonWorkspaceBody extends StatelessWidget {
                   icon: AppIcons.results,
                   semantic: ProblemWorkflowPillSemantic.filledBrand,
                   onTap: onOpenResults,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _sectionCard(
-          title: 'Payments',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Text(
-                'Review idea payment status for ideas in this Ideathon. Payments are completed and verified before ideas can be added at create time.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-              ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ProblemWorkflowActionPill(
-                  label: 'Open Ideathon Payments',
-                  icon: AppIcons.payments,
-                  semantic: ProblemWorkflowPillSemantic.filledBrand,
-                  onTap: onOpenPayments,
                 ),
               ),
             ],

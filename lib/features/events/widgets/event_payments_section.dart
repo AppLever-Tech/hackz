@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/responsive_alert_dialog.dart';
 import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/filters/hackz_filter_pane.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../payment/models/payment_model.dart';
@@ -14,20 +16,26 @@ import '../models/event_payment_entry.dart';
 
 enum EventPaymentFilter { all, confirmed, pending, exception }
 
-/// Event-generic Payments workspace (Ideathon today; Hackathon later).
+/// Event-scoped operational payments (Ideathon today; Hackathon later).
 class EventPaymentsSection extends StatefulWidget {
   const EventPaymentsSection({
     super.key,
     required this.kind,
+    required this.eventId,
     required this.entries,
     required this.metrics,
     this.embedded = false,
+    this.onConfirm,
+    this.onMarkException,
   });
 
   final EventKind kind;
+  final String eventId;
   final List<EventPaymentEntry> entries;
   final EventPaymentMetrics metrics;
   final bool embedded;
+  final Future<void> Function(EventPaymentEntry entry)? onConfirm;
+  final Future<void> Function(EventPaymentEntry entry, String? remarks)? onMarkException;
 
   @override
   State<EventPaymentsSection> createState() => _EventPaymentsSectionState();
@@ -37,6 +45,7 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
   EventPaymentFilter _filter = EventPaymentFilter.all;
   bool _showFilters = false;
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _busyIds = <String>{};
 
   @override
   void initState() {
@@ -191,6 +200,7 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
     );
 
     return Padding(
+      key: ValueKey<String>('event-payments:${widget.eventId}'),
       padding: pad,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -210,6 +220,9 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
                         _searchController.clear();
                       })
                   : null,
+              onConfirm: widget.onConfirm == null ? null : _confirm,
+              onMarkException: widget.onMarkException == null ? null : _markException,
+              busyEntryIds: _busyIds,
             ),
           ),
         ],
@@ -218,4 +231,58 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
   }
 
   String _countLabel(String label, int count) => count == 0 ? label : '$label ($count)';
+
+  String _rowKey(EventPaymentEntry row) => PaymentEntriesView.rowKey(row);
+
+  Future<void> _confirm(EventPaymentEntry row) async {
+    final Future<void> Function(EventPaymentEntry entry)? onConfirm = widget.onConfirm;
+    if (onConfirm == null) return;
+    final String key = _rowKey(row);
+    if (key.isEmpty || _busyIds.contains(key)) return;
+    setState(() => _busyIds.add(key));
+    try {
+      await onConfirm(row);
+    } finally {
+      if (mounted) setState(() => _busyIds.remove(key));
+    }
+  }
+
+  Future<void> _markException(EventPaymentEntry row) async {
+    final Future<void> Function(EventPaymentEntry entry, String? remarks)? onMarkException =
+        widget.onMarkException;
+    if (onMarkException == null) return;
+    final String? remarks = await showDialog<String>(
+      context: context,
+      builder: (BuildContext ctx) {
+        final TextEditingController controller = TextEditingController();
+        return ResponsiveAlertDialog(
+          title: const Text('Mark payment exception'),
+          widthPreset: DialogWidthPreset.compact,
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Remarks (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('Mark exception'),
+            ),
+          ],
+        );
+      },
+    );
+    if (remarks == null || !mounted) return;
+    final String key = _rowKey(row);
+    if (key.isEmpty || _busyIds.contains(key)) return;
+    setState(() => _busyIds.add(key));
+    try {
+      await onMarkException(row, remarks.isEmpty ? null : remarks);
+    } finally {
+      if (mounted) setState(() => _busyIds.remove(key));
+    }
+  }
 }

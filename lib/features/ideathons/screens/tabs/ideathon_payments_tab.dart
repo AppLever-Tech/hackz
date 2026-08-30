@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/feedback/feedback.dart';
 import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
-import 'package:hackz/features/ideathons/services/ideathon_payment_service.dart';
-import 'package:hackz/features/ideathons/workspace/ideathon_payment_workspace_body.dart';
+import 'package:hackz/features/events/models/event_kind.dart';
+import 'package:hackz/features/events/models/event_payment_entry.dart';
+import 'package:hackz/features/events/services/event_payments_service.dart';
+import 'package:hackz/features/events/widgets/event_payments_section.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 
 class IdeathonPaymentsTab extends StatefulWidget {
@@ -16,19 +19,19 @@ class IdeathonPaymentsTab extends StatefulWidget {
   final UserModel? actor;
 
   /// When set (e.g. details pane prefetch), reuse the in-flight load.
-  final Future<IdeathonPaymentWorkspaceViewModel>? loadFuture;
+  final Future<EventPaymentsViewModel>? loadFuture;
 
   @override
   State<IdeathonPaymentsTab> createState() => _IdeathonPaymentsTabState();
 }
 
 class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
-  late Future<IdeathonPaymentWorkspaceViewModel> _future;
+  late Future<EventPaymentsViewModel> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = widget.loadFuture ?? IdeathonPaymentService.load(widget.ideathonId);
+    _future = widget.loadFuture ?? _load();
   }
 
   @override
@@ -36,14 +39,81 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
     super.didUpdateWidget(oldWidget);
     if (widget.loadFuture != null && widget.loadFuture != oldWidget.loadFuture) {
       setState(() => _future = widget.loadFuture!);
+    } else if (widget.ideathonId != oldWidget.ideathonId) {
+      setState(() => _future = _load());
     }
+  }
+
+  Future<EventPaymentsViewModel> _load() {
+    return EventPaymentsService.load(
+      kind: EventKind.ideathon,
+      eventId: widget.ideathonId,
+    );
+  }
+
+  void _reload() {
+    setState(() => _future = _load());
+  }
+
+  Future<void> _confirm(EventPaymentEntry entry) async {
+    try {
+      await EventPaymentsService.confirm(
+        kind: EventKind.ideathon,
+        eventId: widget.ideathonId,
+        entry: entry,
+        actor: widget.actor!,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await FeedbackService.showError(
+        context,
+        title: 'Could not confirm payment',
+        message: '$e',
+      );
+      return;
+    }
+    if (!mounted) return;
+    FeedbackService.showSuccess(
+      context,
+      title: 'Payment confirmed',
+      message: 'Event payment confirmed.',
+    );
+    _reload();
+  }
+
+  Future<void> _markException(EventPaymentEntry entry, String? remarks) async {
+    try {
+      await EventPaymentsService.markException(
+        kind: EventKind.ideathon,
+        eventId: widget.ideathonId,
+        entry: entry,
+        actor: widget.actor!,
+        remarks: remarks,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await FeedbackService.showError(
+        context,
+        title: 'Could not mark exception',
+        message: '$e',
+      );
+      return;
+    }
+    if (!mounted) return;
+    FeedbackService.showInfo(
+      context,
+      title: 'Payment exception',
+      message: 'Event payment marked as exception.',
+    );
+    _reload();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<IdeathonPaymentWorkspaceViewModel>(
+    final bool canManage = EventPaymentsService.actorCanManage(widget.actor);
+    return FutureBuilder<EventPaymentsViewModel>(
       future: _future,
-      builder: (BuildContext context, AsyncSnapshot<IdeathonPaymentWorkspaceViewModel> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<EventPaymentsViewModel> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: HkzProgressIndicator(size: 32));
         }
@@ -56,10 +126,15 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
             ),
           );
         }
-        return IdeathonPaymentWorkspaceBody(
-          vm: snapshot.data!,
-          actor: widget.actor,
+        final EventPaymentsViewModel vm = snapshot.data!;
+        return EventPaymentsSection(
+          kind: EventKind.ideathon,
+          eventId: widget.ideathonId,
+          entries: vm.entries,
+          metrics: vm.metrics,
           embedded: true,
+          onConfirm: canManage ? _confirm : null,
+          onMarkException: canManage ? _markException : null,
         );
       },
     );

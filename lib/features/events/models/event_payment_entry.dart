@@ -1,4 +1,5 @@
 import '../../payment/models/payment_model.dart';
+import 'event_kind.dart';
 
 /// Event-generic payment row (Ideathon idea payment; Hackathon prototype later).
 class EventPaymentEntry {
@@ -48,8 +49,41 @@ class EventPaymentMetrics {
     required this.exceptions,
   });
 
+  const EventPaymentMetrics.empty()
+      : total = 0,
+        confirmed = 0,
+        pending = 0,
+        exceptions = 0;
+
   final int total;
   final int confirmed;
   final int pending;
   final int exceptions;
+}
+
+/// Event-scoped operational payments for one event (Ideathon or Hackathon).
+class EventPaymentsViewModel {
+  const EventPaymentsViewModel({
+    required this.eventId,
+    required this.kind,
+    required this.entries,
+    required this.metrics,
+  });
+
+  factory EventPaymentsViewModel.empty({
+    required String eventId,
+    required EventKind kind,
+  }) {
+    return EventPaymentsViewModel(
+      eventId: eventId.trim(),
+      kind: kind,
+      entries: const <EventPaymentEntry>[],
+      metrics: const EventPaymentMetrics.empty(),
+    );
+  }
+
+  final String eventId;
+  final EventKind kind;
+  final List<EventPaymentEntry> entries;
+  final EventPaymentMetrics metrics;
 }

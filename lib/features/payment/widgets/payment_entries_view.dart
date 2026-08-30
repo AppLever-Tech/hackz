@@ -13,12 +13,13 @@ import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
 import '../../../utils/common_helpers.dart';
 import '../../events/models/event_payment_entry.dart';
+import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../models/payment_model.dart';
 import '../services/payment_finance_helpers.dart';
 import '../services/payment_proof_launcher.dart';
 import 'payment_table_columns.dart';
 
-/// Shared payment list used by Ideathon Payments and Coordinator verification.
+/// Shared payment list used by Event Payments and Coordinator verification.
 class PaymentEntriesView extends StatelessWidget {
   const PaymentEntriesView({
     super.key,
@@ -27,6 +28,9 @@ class PaymentEntriesView extends StatelessWidget {
     this.emptyTitle = 'No payments found',
     this.emptyMessage = 'Try adjusting your search or check back later.',
     this.onClearFilters,
+    this.onConfirm,
+    this.onMarkException,
+    this.busyEntryIds = const <String>{},
   });
 
   final List<EventPaymentEntry> entries;
@@ -34,6 +38,9 @@ class PaymentEntriesView extends StatelessWidget {
   final String emptyTitle;
   final String emptyMessage;
   final VoidCallback? onClearFilters;
+  final Future<void> Function(EventPaymentEntry row)? onConfirm;
+  final Future<void> Function(EventPaymentEntry row)? onMarkException;
+  final Set<String> busyEntryIds;
 
   static String statusLabel(PaymentRecordStatus status) {
     return switch (status) {
@@ -140,6 +147,46 @@ class PaymentEntriesView extends StatelessWidget {
     );
   }
 
+  static String rowKey(EventPaymentEntry row) => (row.paymentId ?? row.entryId).trim();
+
+  bool _isBusy(EventPaymentEntry row) {
+    final String key = rowKey(row);
+    return key.isNotEmpty && busyEntryIds.contains(key);
+  }
+
+  Widget? _actions(EventPaymentEntry row) {
+    if (onConfirm == null && onMarkException == null) return null;
+    final bool busy = _isBusy(row);
+    final bool confirm = row.canConfirm && onConfirm != null && !busy;
+    final bool exception = row.canMarkException && onMarkException != null && !busy;
+    if (!confirm && !exception && !busy) return null;
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: <Widget>[
+        if (busy)
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        if (confirm)
+          ProblemWorkflowActionPill(
+            label: 'Confirm',
+            icon: AppIcons.workflowApproved,
+            semantic: ProblemWorkflowPillSemantic.filledBrand,
+            onTap: () => onConfirm!(row),
+          ),
+        if (exception)
+          ProblemWorkflowActionPill(
+            label: 'Exception',
+            semantic: ProblemWorkflowPillSemantic.closed,
+            onTap: () => onMarkException!(row),
+          ),
+      ],
+    );
+  }
+
   static Widget pillCell(Widget child) {
     return Align(
       alignment: Alignment.centerLeft,
@@ -151,7 +198,10 @@ class PaymentEntriesView extends StatelessWidget {
     );
   }
 
-  static List<DataTableColumn<EventPaymentEntry>> columns({required String ideaColumnLabel}) {
+  static List<DataTableColumn<EventPaymentEntry>> columns({
+    required String ideaColumnLabel,
+    Widget? Function(EventPaymentEntry row)? actionsBuilder,
+  }) {
     return <DataTableColumn<EventPaymentEntry>>[
       DataTableColumn<EventPaymentEntry>(
         label: ideaColumnLabel,
@@ -194,6 +244,16 @@ class PaymentEntriesView extends StatelessWidget {
           child: Text(amountLabel(row), style: PaymentListStyles.amount),
         ),
       ),
+      if (actionsBuilder != null)
+        DataTableColumn<EventPaymentEntry>(
+          label: 'Actions',
+          flex: 2,
+          minWidth: 140,
+          cell: (_, EventPaymentEntry row) => Align(
+            alignment: Alignment.centerRight,
+            child: actionsBuilder(row) ?? const SizedBox.shrink(),
+          ),
+        ),
     ];
   }
 
@@ -215,7 +275,10 @@ class PaymentEntriesView extends StatelessWidget {
         return DataTableView<EventPaymentEntry>(
           items: entries,
           rowMinHeight: 56,
-          columns: columns(ideaColumnLabel: ideaColumnLabel),
+          columns: columns(
+            ideaColumnLabel: ideaColumnLabel,
+            actionsBuilder: (onConfirm == null && onMarkException == null) ? null : _actions,
+          ),
         );
       },
     );
@@ -256,6 +319,10 @@ class PaymentEntriesView extends StatelessWidget {
                   statusWithProof(context, row),
                 ],
               ),
+              if (_actions(row) != null) ...<Widget>[
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: _actions(row)),
+              ],
             ],
           ),
         );

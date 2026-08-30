@@ -25,7 +25,7 @@ class IdeathonParticipation {
   final String ideaId;
   final String orgId;
 
-  /// Snapshot of the idea payment status at (or after) membership create.
+  /// Snapshot of this event's payment status (not idea-submission payment).
   final PaymentRecordStatus paymentStatus;
 
   /// Membership status for this Ideathon only.
@@ -74,7 +74,7 @@ class IdeathonParticipation {
       ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
       ideaId: ((map['ideaId'] as String?) ?? '').trim(),
       orgId: ((map['orgId'] as String?) ?? '').trim(),
-      paymentStatus: PaymentRecordStatus.fromRaw((map['paymentStatus'] as String?) ?? 'verified'),
+      paymentStatus: PaymentRecordStatus.fromRaw((map['paymentStatus'] as String?) ?? 'pending'),
       participationStatus:
           IdeathonParticipationStatus.fromRaw((map['participationStatus'] as String?) ?? 'active'),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
