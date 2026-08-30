@@ -11,6 +11,7 @@ class EventDetailSection extends StatelessWidget {
     required this.child,
     this.icon,
     this.trailing,
+    this.titleSuffix,
     this.titleFontSize = 12,
     this.titleFontWeight = FontWeight.w800,
     this.titleColor = const Color(0xFF334155),
@@ -23,6 +24,8 @@ class EventDetailSection extends StatelessWidget {
   final Widget child;
   final IconData? icon;
   final Widget? trailing;
+  /// Rendered immediately after the title (e.g. a count).
+  final Widget? titleSuffix;
   final double titleFontSize;
   final FontWeight titleFontWeight;
   final Color titleColor;
@@ -39,7 +42,7 @@ class EventDetailSection extends StatelessWidget {
           Icon(icon, size: 16, color: titleColor),
           const SizedBox(width: 6),
         ],
-        Expanded(
+        Flexible(
           child: Text(
             title,
             maxLines: 2,
@@ -51,6 +54,11 @@ class EventDetailSection extends StatelessWidget {
             ),
           ),
         ),
+        if (titleSuffix != null) ...<Widget>[
+          const SizedBox(width: 8),
+          titleSuffix!,
+        ],
+        const Spacer(),
         if (collapsible) ...<Widget>[
           const SizedBox(width: 4),
           Icon(
