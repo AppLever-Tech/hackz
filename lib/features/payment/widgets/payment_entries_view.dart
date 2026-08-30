@@ -31,6 +31,7 @@ class PaymentEntriesView extends StatelessWidget {
     this.onConfirm,
     this.onMarkException,
     this.busyEntryIds = const <String>{},
+    this.compactIdeaPaymentRows = false,
   });
 
   final List<EventPaymentEntry> entries;
@@ -42,6 +43,9 @@ class PaymentEntriesView extends StatelessWidget {
   final Future<void> Function(EventPaymentEntry row)? onMarkException;
   final Set<String> busyEntryIds;
 
+  /// Workspace list: compact idea pill on the left, payment pill on the right.
+  final bool compactIdeaPaymentRows;
+
   static String statusLabel(PaymentRecordStatus status) {
     return switch (status) {
       PaymentRecordStatus.verified => 'Confirmed',
@@ -50,8 +54,10 @@ class PaymentEntriesView extends StatelessWidget {
     };
   }
 
-  static String amountLabel(EventPaymentEntry row) {
-    if (row.payment == null) return '—';
+  static String amountLabel(EventPaymentEntry row, {bool zeroWhenMissing = false}) {
+    if (row.payment == null) {
+      return zeroWhenMissing ? PaymentFinanceHelpers.formatCurrency(0) : '—';
+    }
     return PaymentFinanceHelpers.formatCurrency(row.payment!.amount);
   }
 
@@ -86,7 +92,7 @@ class PaymentEntriesView extends StatelessWidget {
     await PaymentProofLauncher.open(context, payment);
   }
 
-  static Widget ideaPill(BuildContext context, EventPaymentEntry row) {
+  static Widget ideaPill(BuildContext context, EventPaymentEntry row, {double? minWidth}) {
     final String label = row.entryTitle.trim().isEmpty ? row.entryId : row.entryTitle;
     if (row.entryId.trim().isEmpty) {
       return EntityCardPills.meta(label, icon: AppIcons.ideas);
@@ -96,6 +102,7 @@ class PaymentEntriesView extends StatelessWidget {
       ContextPillSemantic.idea,
       () => openIdea(context, row),
       icon: AppIcons.ideas,
+      minWidth: minWidth,
     );
   }
 
@@ -267,6 +274,17 @@ class PaymentEntriesView extends StatelessWidget {
       );
     }
 
+    if (compactIdeaPaymentRows) {
+      return Column(
+        children: <Widget>[
+          for (int i = 0; i < entries.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(height: 8),
+            _ideaPaymentRow(context, entries[i]),
+          ],
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool compact = ResponsiveHelper.isMobile(context) ||
@@ -281,6 +299,26 @@ class PaymentEntriesView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _ideaPaymentRow(BuildContext context, EventPaymentEntry row) {
+    return Row(
+      children: <Widget>[
+        Flexible(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ideaPill(context, row, minWidth: 80),
+          ),
+        ),
+        const SizedBox(width: 8),
+        statusPill(context, row),
+        const SizedBox(width: 8),
+        Text(
+          amountLabel(row, zeroWhenMissing: true),
+          style: PaymentListStyles.amount,
+        ),
+      ],
     );
   }
 

@@ -9,8 +9,8 @@ import '../../../core/workspace/workspace_theme.dart';
 import '../../../utils/common_helpers.dart';
 import '../../evaluations/workspace/evaluation_template_workspace.dart';
 import '../../events/models/event_winner_entry.dart';
-import '../../events/widgets/event_detail_section.dart';
 import '../../events/widgets/event_labeled_field.dart';
+import '../../events/widgets/workspace_collapsible_section.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
@@ -18,7 +18,7 @@ import '../widgets/ideathon_status_pill.dart';
 import '../widgets/ideathon_type_pill.dart';
 import 'ideathon_workspace_loader.dart';
 
-class IdeathonWorkspaceBody extends StatefulWidget {
+class IdeathonWorkspaceBody extends StatelessWidget {
   const IdeathonWorkspaceBody({
     super.key,
     required this.vm,
@@ -32,30 +32,9 @@ class IdeathonWorkspaceBody extends StatefulWidget {
   final VoidCallback? onOpenResults;
   final VoidCallback? onOpenPayments;
 
-  @override
-  State<IdeathonWorkspaceBody> createState() => _IdeathonWorkspaceBodyState();
-}
-
-enum _IdeathonBox { people, ideas, payments, assignment, results, winners }
-
-class _IdeathonWorkspaceBodyState extends State<IdeathonWorkspaceBody> {
   static const double _labelWidth = 78;
   static const Color _winnerAccent = Color(0xFFC9A227);
   static const Color _runnerAccent = Color(0xFF8B9BB4);
-
-  final Set<_IdeathonBox> _expanded = <_IdeathonBox>{};
-
-  IdeathonWorkspaceViewModel get vm => widget.vm;
-
-  void _toggle(_IdeathonBox id) {
-    setState(() {
-      if (_expanded.contains(id)) {
-        _expanded.remove(id);
-      } else {
-        _expanded.add(id);
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,63 +46,57 @@ class _IdeathonWorkspaceBodyState extends State<IdeathonWorkspaceBody> {
       children: <Widget>[
         _eventOverview(context, event),
         const SizedBox(height: 14),
-        _box(
-          id: _IdeathonBox.people,
+        WorkspaceCollapsibleSection(
           title: 'Judges and coordinators',
           icon: AppIcons.users,
           count: peopleCount,
           child: _people(context),
         ),
         const SizedBox(height: 10),
-        _box(
-          id: _IdeathonBox.ideas,
+        WorkspaceCollapsibleSection(
           title: 'Ideas',
           icon: AppIcons.ideas,
           count: event.ideas.length,
           child: _ideas(context, event.ideas),
         ),
         const SizedBox(height: 10),
-        _box(
-          id: _IdeathonBox.payments,
+        WorkspaceCollapsibleSection(
           title: 'Event Payment',
           icon: AppIcons.payments,
           child: EntityCardPills.workspace(
             'Event Payments',
             ContextPillSemantic.payment,
-            widget.onOpenPayments ?? () {},
-            enabled: widget.onOpenPayments != null,
+            onOpenPayments ?? () {},
+            enabled: onOpenPayments != null,
             icon: AppIcons.payments,
           ),
         ),
         const SizedBox(height: 10),
-        _box(
-          id: _IdeathonBox.assignment,
+        WorkspaceCollapsibleSection(
           title: 'Judge assignment',
           icon: AppIcons.judges,
           child: EntityCardPills.workspace(
             'Judge assignment',
             ContextPillSemantic.judge,
-            widget.onOpenJudgeAssignment ?? () {},
-            enabled: widget.onOpenJudgeAssignment != null,
+            onOpenJudgeAssignment ?? () {},
+            enabled: onOpenJudgeAssignment != null,
             icon: AppIcons.judges,
           ),
         ),
         const SizedBox(height: 10),
-        _box(
-          id: _IdeathonBox.results,
+        WorkspaceCollapsibleSection(
           title: 'Evaluation Results',
           icon: AppIcons.results,
           child: EntityCardPills.workspace(
             'Ideathon evaluation results',
             ContextPillSemantic.evaluation,
-            widget.onOpenResults ?? () {},
-            enabled: widget.onOpenResults != null,
+            onOpenResults ?? () {},
+            enabled: onOpenResults != null,
             icon: AppIcons.results,
           ),
         ),
         const SizedBox(height: 10),
-        _box(
-          id: _IdeathonBox.winners,
+        WorkspaceCollapsibleSection(
           title: 'Results',
           icon: AppIcons.leaderboard,
           child: Column(
@@ -408,34 +381,6 @@ class _IdeathonWorkspaceBodyState extends State<IdeathonWorkspaceBody> {
             ],
           ),
       ],
-    );
-  }
-
-  Widget _box({
-    required _IdeathonBox id,
-    required String title,
-    required IconData icon,
-    required Widget child,
-    int? count,
-  }) {
-    return EventDetailSection(
-      title: title,
-      icon: icon,
-      trailing: count == null
-          ? null
-          : Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                height: 1,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-      collapsible: true,
-      expanded: _expanded.contains(id),
-      onToggle: () => _toggle(id),
-      child: child,
     );
   }
 }

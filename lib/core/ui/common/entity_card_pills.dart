@@ -16,6 +16,7 @@ abstract final class EntityCardPills {
     IconData? icon,
     bool enabled = true,
     double? maxWidth,
+    double? minWidth,
   }) {
     final Widget pill = ContextPill(
       label: label,
@@ -28,6 +29,7 @@ abstract final class EntityCardPills {
       fitContent: !fullWidth,
       expandWidth: fullWidth,
       maxWidth: maxWidth,
+      minWidth: minWidth,
     );
 
     if (fullWidth) {

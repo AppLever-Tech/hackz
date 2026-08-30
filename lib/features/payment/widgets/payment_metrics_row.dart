@@ -8,6 +8,15 @@ import '../services/department_payments_service.dart';
 import '../services/payment_finance_helpers.dart';
 import 'payment_summary_card.dart';
 
+/// Labels for payment metric cards and matching workspace form fields.
+abstract final class PaymentMetricLabels {
+  static const String collection = 'Total department collection';
+  static const String verified = 'Verified payments';
+  static const String pending = 'Pending verifications';
+  static const String eventPending = 'Pending payments';
+  static const String rejected = 'Rejected payments';
+}
+
 /// Reusable metric row for department payments screens.
 class PaymentMetricsRow extends StatelessWidget {
   const PaymentMetricsRow({
@@ -15,10 +24,10 @@ class PaymentMetricsRow extends StatelessWidget {
     required this.summary,
     this.spacing = 10,
     this.runSpacing = 10,
-    this.collectionLabel = 'Total department collection',
-    this.verifiedLabel = 'Verified payments',
-    this.pendingLabel = 'Pending verifications',
-    this.rejectedLabel = 'Rejected payments',
+    this.collectionLabel = PaymentMetricLabels.collection,
+    this.verifiedLabel = PaymentMetricLabels.verified,
+    this.pendingLabel = PaymentMetricLabels.pending,
+    this.rejectedLabel = PaymentMetricLabels.rejected,
     this.collectionSubtitle,
     this.verifiedSubtitle,
     this.pendingSubtitle,

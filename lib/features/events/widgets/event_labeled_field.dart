@@ -13,6 +13,8 @@ class EventLabeledField extends StatelessWidget {
     this.trailing,
     this.isLast = false,
     this.labelWidth,
+    this.icon,
+    this.valueStyle,
   });
 
   final String label;
@@ -21,6 +23,8 @@ class EventLabeledField extends StatelessWidget {
   final bool isLast;
   /// When set, used instead of the default 96 / 124 label column.
   final double? labelWidth;
+  final IconData? icon;
+  final TextStyle? valueStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +35,18 @@ class EventLabeledField extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
+          if (icon != null) ...<Widget>[
+            SizedBox(
+              width: 22,
+              child: Icon(icon, size: 16, color: const Color(0xFF64748B)),
+            ),
+          ],
           SizedBox(
             width: labelWidth,
             child: Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
           ),
@@ -46,7 +58,8 @@ class EventLabeledField extends StatelessWidget {
                   )
                 : Text(
                     (value ?? '').trim().isEmpty ? '—' : value!.trim(),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    style: valueStyle ??
+                        const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
                   ),
           ),
         ],

@@ -86,4 +86,30 @@ class EventPaymentsViewModel {
   final EventKind kind;
   final List<EventPaymentEntry> entries;
   final EventPaymentMetrics metrics;
+
+  /// Currency totals used by Event Payments metric cards and the workspace form fields.
+  static ({double collection, double confirmed, double pending, double rejected}) amountsOf(
+    List<EventPaymentEntry> entries,
+  ) {
+    double collection = 0;
+    double confirmed = 0;
+    double pending = 0;
+    double rejected = 0;
+    for (final EventPaymentEntry row in entries) {
+      final double amount = row.payment?.amount ?? 0;
+      collection += amount;
+      switch (row.status) {
+        case PaymentRecordStatus.verified:
+          confirmed += amount;
+        case PaymentRecordStatus.pending:
+          pending += amount;
+        case PaymentRecordStatus.rejected:
+          rejected += amount;
+      }
+    }
+    return (collection: collection, confirmed: confirmed, pending: pending, rejected: rejected);
+  }
+
+  ({double collection, double confirmed, double pending, double rejected}) get amounts =>
+      amountsOf(entries);
 }

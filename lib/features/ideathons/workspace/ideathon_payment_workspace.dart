@@ -3,27 +3,24 @@ import 'package:flutter/material.dart';
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
 import '../../user/models/user_model.dart';
-import '../screens/tabs/ideathon_payments_tab.dart';
-import '../services/ideathon_service.dart';
+import 'ideathon_payment_workspace_body.dart';
+import 'ideathon_payment_workspace_loader.dart';
 
-/// Stacks Event Payments (Event Details Payments tab) in the right-side workspace.
+/// Event Payments in the right-side workspace (Ideathon today; Hackathon later).
 abstract final class IdeathonPaymentWorkspace {
   IdeathonPaymentWorkspace._();
 
-  static WorkspaceRoute _route(String ideathonId, {UserModel? actor}) {
+  static WorkspaceRoute _route(String ideathonId) {
+    late IdeathonPaymentWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonPayments:$ideathonId',
       title: 'Event Payments',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
       prepare: () async {
-        final ideathon = await IdeathonService.fetchById(ideathonId);
-        if (ideathon == null) throw StateError('Ideathon not found.');
+        vm = await IdeathonPaymentWorkspaceLoader.load(ideathonId);
       },
-      builder: (BuildContext context) => IdeathonPaymentsTab(
-        ideathonId: ideathonId,
-        actor: actor,
-      ),
+      builder: (BuildContext context) => IdeathonPaymentWorkspaceBody(vm: vm),
     );
   }
 
@@ -37,7 +34,7 @@ abstract final class IdeathonPaymentWorkspace {
     final String routeId = 'ideathonPayments:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.open(context, _route(id, actor: actor));
+    HkzWorkspace.open(context, _route(id));
   }
 
   static void push(
@@ -50,6 +47,6 @@ abstract final class IdeathonPaymentWorkspace {
     final String routeId = 'ideathonPayments:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.push(context, _route(id, actor: actor));
+    HkzWorkspace.push(context, _route(id));
   }
 }

@@ -85,30 +85,15 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
   }
 
   DepartmentPaymentsSummary get _summary {
-    double total = 0;
-    double confirmed = 0;
-    double pending = 0;
-    double rejected = 0;
-    for (final EventPaymentEntry row in widget.entries) {
-      final double amount = row.payment?.amount ?? 0;
-      total += amount;
-      switch (row.status) {
-        case PaymentRecordStatus.verified:
-          confirmed += amount;
-        case PaymentRecordStatus.pending:
-          pending += amount;
-        case PaymentRecordStatus.rejected:
-          rejected += amount;
-      }
-    }
+    final amounts = EventPaymentsViewModel.amountsOf(widget.entries);
     return DepartmentPaymentsSummary(
-      totalCollection: total,
+      totalCollection: amounts.collection,
       verifiedCount: widget.metrics.confirmed,
-      verifiedAmount: confirmed,
+      verifiedAmount: amounts.confirmed,
       pendingCount: widget.metrics.pending,
-      pendingAmount: pending,
+      pendingAmount: amounts.pending,
       rejectedCount: widget.metrics.exceptions,
-      rejectedAmount: rejected,
+      rejectedAmount: amounts.rejected,
     );
   }
 
@@ -130,7 +115,7 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
           summary: _summary,
           spacing: mobile ? 8 : 10,
           runSpacing: mobile ? 8 : 10,
-          pendingLabel: 'Pending payments',
+          pendingLabel: PaymentMetricLabels.eventPending,
           collectionSubtitle: '${metrics.total} $ideasLabel',
           verifiedSubtitle: '${metrics.confirmed} confirmed',
           pendingSubtitle: '${metrics.pending} pending',
