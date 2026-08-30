@@ -257,18 +257,14 @@ class DashboardMetricChipGrid extends StatelessWidget {
 
   int _columnCount(BuildContext context, double maxWidth, double gap) {
     if (chips.isEmpty) return 1;
-    if (compact && maxDesktopColumns != null && !ResponsiveHelper.isMobile(context)) {
-      final int desired = chips.length < maxDesktopColumns! ? chips.length : maxDesktopColumns!;
-      const double minChipWidth = 118;
-      final int fit = ((maxWidth + gap) / (minChipWidth + gap)).floor().clamp(1, desired);
-      if (ResponsiveHelper.isDesktopOrWider(context)) return desired;
-      return fit;
-    }
-    if (ResponsiveHelper.isDesktopOrWider(context)) {
-      final int max = maxDesktopColumns ?? 4;
-      return chips.length < max ? chips.length : max;
-    }
-    return chips.length < 2 ? chips.length : 2;
+    const double minChipWidth = 118;
+    final int desktopMax = maxDesktopColumns ?? 4;
+    final int desired = ResponsiveHelper.isDesktopOrWider(context)
+        ? (chips.length < desktopMax ? chips.length : desktopMax)
+        : (chips.length < 2 ? chips.length : 2);
+    if (!maxWidth.isFinite || maxWidth <= 0) return desired;
+    final int fit = ((maxWidth + gap) / (minChipWidth + gap)).floor().clamp(1, chips.length);
+    return fit < desired ? fit : desired;
   }
 
   @override

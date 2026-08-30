@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
@@ -206,12 +207,17 @@ class PaymentEntriesView extends StatelessWidget {
       );
     }
 
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    if (mobile) return _cards(context);
-    return DataTableView<EventPaymentEntry>(
-      items: entries,
-      rowMinHeight: 56,
-      columns: columns(ideaColumnLabel: ideaColumnLabel),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compact = ResponsiveHelper.isMobile(context) ||
+            WorkspaceTheme.isCompactWidth(constraints.maxWidth);
+        if (compact) return _cards(context);
+        return DataTableView<EventPaymentEntry>(
+          items: entries,
+          rowMinHeight: 56,
+          columns: columns(ideaColumnLabel: ideaColumnLabel),
+        );
+      },
     );
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
@@ -9,6 +8,7 @@ import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
 import '../../../core/workspace/workspace_navigator.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_conflict.dart';
@@ -167,14 +167,13 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
 
   @override
   Widget build(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
     final ideathon = _vm.ideathon;
     final metrics = _vm.metrics;
     final String templateName =
         _vm.template.templateName.trim().isEmpty ? _vm.template.templateId : _vm.template.templateName.trim();
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 24),
+      padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
         ResponsiveMetricGrid(
           chips: <DashboardMetricChipData>[

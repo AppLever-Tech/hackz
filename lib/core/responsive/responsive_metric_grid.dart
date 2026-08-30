@@ -136,14 +136,20 @@ class ResponsiveListMetrics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (ResponsiveHelper.isMobile(context)) {
-      return ResponsiveMetricKpiStrip(segments: stripSegments);
-    }
-
-    return ResponsiveMetricGrid(
-      chips: chips,
-      spacing: spacing,
-      runSpacing: runSpacing,
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compact = ResponsiveHelper.isMobile(context) ||
+            (constraints.maxWidth.isFinite &&
+                constraints.maxWidth < ResponsiveBreakpoints.compactPane);
+        if (compact) {
+          return ResponsiveMetricKpiStrip(segments: stripSegments);
+        }
+        return ResponsiveMetricGrid(
+          chips: chips,
+          spacing: spacing,
+          runSpacing: runSpacing,
+        );
+      },
     );
   }
 }

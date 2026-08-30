@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_attachments_panel.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import 'problem_metadata_section.dart';
 import 'problem_related_section.dart';
 import 'problem_summary_section.dart';
@@ -15,7 +16,7 @@ class ProblemWorkspaceBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = this.vm;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
+      padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
         ProblemSummarySection(vm: vm, workspaceSectionsOnly: true),
         const SizedBox(height: 14),

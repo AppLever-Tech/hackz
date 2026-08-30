@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import 'evaluation_feedback_section.dart';
 import 'evaluation_judge_section.dart';
 import 'evaluation_scores_section.dart';
@@ -14,15 +14,8 @@ class EvaluationWorkspaceBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final EdgeInsets pad = EdgeInsets.fromLTRB(
-      ResponsiveHelper.isMobile(context) ? 14 : 16,
-      12,
-      ResponsiveHelper.isMobile(context) ? 14 : 16,
-      28,
-    );
-
     return ListView(
-      padding: pad,
+      padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
         EvaluationSummarySection(vm: vm),
         const SizedBox(height: 14),

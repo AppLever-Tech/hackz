@@ -8,6 +8,9 @@ abstract final class ResponsiveBreakpoints {
 
   /// Viewport width at or above [wide] is [ScreenSize.wide]; between [tablet] and [wide] is desktop.
   static const double wide = 1200;
+
+  /// Parent width below this uses stacked/card layouts (right-side workspace panel).
+  static const double compactPane = 560;
 }
 
 /// Canonical screen bucket for adaptive layouts.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../responsive/responsive_helper.dart';
 import '../theme/auth_theme.dart';
 
 /// Visual tokens for contextual workspace panels.
@@ -62,4 +63,15 @@ abstract final class WorkspaceTheme {
     color: muted,
     height: 1.25,
   );
+
+  /// Width at which workspace bodies switch from tables to compact cards.
+  static const double compactBodyMaxWidth = ResponsiveBreakpoints.compactPane;
+
+  static bool isCompactWidth(double maxWidth) =>
+      maxWidth.isFinite && maxWidth < compactBodyMaxWidth;
+
+  static EdgeInsets bodyPadding(BuildContext context) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+    return EdgeInsets.fromLTRB(compact ? 14 : 16, 12, compact ? 14 : 16, 28);
+  }
 }

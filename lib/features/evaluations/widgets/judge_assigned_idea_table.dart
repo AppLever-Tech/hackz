@@ -4,6 +4,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -128,60 +129,66 @@ class JudgeAssignedIdeaTable extends StatelessWidget {
       );
     }
 
-    if (ResponsiveHelper.isMobile(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          for (int i = 0; i < entries.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(height: 8),
-            _IdeaCard(entry: entries[i]),
-          ],
-        ],
-      );
-    }
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compact = ResponsiveHelper.isMobile(context) ||
+            WorkspaceTheme.isCompactWidth(constraints.maxWidth);
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              for (int i = 0; i < entries.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(height: 8),
+                _IdeaCard(entry: entries[i]),
+              ],
+            ],
+          );
+        }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const _TableHeader(),
-          if (shrinkWrap)
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemCount: entries.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: _border),
-              itemBuilder: (BuildContext context, int index) {
-                return ColoredBox(
-                  color: index.isEven ? Colors.white : _altRowBg,
-                  child: _WideRow(entry: entries[index]),
-                );
-              },
-            )
-          else
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: entries.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: _border),
-                itemBuilder: (BuildContext context, int index) {
-                  return ColoredBox(
-                    color: index.isEven ? Colors.white : _altRowBg,
-                    child: _WideRow(entry: entries[index]),
-                  );
-                },
-              ),
-            ),
-        ],
-      ),
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const _TableHeader(),
+              if (shrinkWrap)
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: _border),
+                  itemBuilder: (BuildContext context, int index) {
+                    return ColoredBox(
+                      color: index.isEven ? Colors.white : _altRowBg,
+                      child: _WideRow(entry: entries[index]),
+                    );
+                  },
+                )
+              else
+                Expanded(
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: entries.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: _border),
+                    itemBuilder: (BuildContext context, int index) {
+                      return ColoredBox(
+                        color: index.isEven ? Colors.white : _altRowBg,
+                        child: _WideRow(entry: entries[index]),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

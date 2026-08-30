@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../evaluations/screens/judge_evaluation_workspace_screen.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
@@ -39,10 +40,13 @@ abstract final class IdeathonEvaluationWorkspace {
             ),
           );
         }
-        return JudgeEvaluationWorkspaceScreen(
-          user: actor,
-          ideathonId: ideathonId,
-          ideathonName: name,
+        return Padding(
+          padding: WorkspaceTheme.bodyPadding(context),
+          child: JudgeEvaluationWorkspaceScreen(
+            user: actor,
+            ideathonId: ideathonId,
+            ideathonName: name,
+          ),
         );
       },
     );

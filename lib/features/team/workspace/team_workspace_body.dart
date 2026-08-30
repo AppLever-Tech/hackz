@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../requests/widgets/team_change_history_timeline.dart';
-import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import 'team_activity_section.dart';
 import 'team_ideas_section.dart';
 import 'team_members_section.dart';
@@ -16,15 +16,8 @@ class TeamWorkspaceBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = this.vm;
-    final EdgeInsets pad = EdgeInsets.fromLTRB(
-      ResponsiveHelper.isMobile(context) ? 14 : 16,
-      12,
-      ResponsiveHelper.isMobile(context) ? 14 : 16,
-      28,
-    );
-
     return ListView(
-      padding: pad,
+      padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
         TeamSummarySection(vm: vm),
         const SizedBox(height: 14),

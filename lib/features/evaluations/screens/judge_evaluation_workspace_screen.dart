@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../core/ui/common/rich_tabs.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
@@ -215,33 +216,38 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
           return Center(child: Text('Unable to load workspace: ${snapshot.error}'));
         }
         final vm = snapshot.data!;
-        final bool compact = ResponsiveHelper.isMobile(context);
-        final double sectionGap = compact ? 8 : 12;
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool compact = ResponsiveHelper.isMobile(context) ||
+                WorkspaceTheme.isCompactWidth(constraints.maxWidth);
+            final double sectionGap = compact ? 8 : 12;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            EvaluationSummaryStrip(
-              pendingCount: vm.pendingCount,
-              evaluatedCount: vm.evaluatedCount,
-              averageScore: vm.averageScore,
-              completionPercent: vm.completionPercent,
-            ),
-            SizedBox(height: sectionGap),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: RichTabBar.horizontalInset(context)),
-              child: RichTabBar(
-                controller: _tabs,
-                tabs: const <RichTabItem>[
-                  RichTabItem('Pending', icon: AppIcons.clock),
-                  RichTabItem('Evaluated', icon: AppIcons.scoring),
-                  RichTabItem('Feedback', icon: AppIcons.feedback),
-                ],
-              ),
-            ),
-            SizedBox(height: sectionGap),
-            Expanded(child: _buildTabLists(vm)),
-          ],
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                EvaluationSummaryStrip(
+                  pendingCount: vm.pendingCount,
+                  evaluatedCount: vm.evaluatedCount,
+                  averageScore: vm.averageScore,
+                  completionPercent: vm.completionPercent,
+                ),
+                SizedBox(height: sectionGap),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: RichTabBar.horizontalInset(context)),
+                  child: RichTabBar(
+                    controller: _tabs,
+                    tabs: const <RichTabItem>[
+                      RichTabItem('Pending', icon: AppIcons.clock),
+                      RichTabItem('Evaluated', icon: AppIcons.scoring),
+                      RichTabItem('Feedback', icon: AppIcons.feedback),
+                    ],
+                  ),
+                ),
+                SizedBox(height: sectionGap),
+                Expanded(child: _buildTabLists(vm)),
+              ],
+            );
+          },
         );
       },
     );

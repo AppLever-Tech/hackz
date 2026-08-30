@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../core/responsive/responsive_helper.dart';
 import '../../../features/dashboard/chrome/dashboard_chrome_controller.dart';
 import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -14,8 +13,9 @@ import '../widgets/evaluation_judge_breakdown_panel.dart';
 import '../widgets/evaluation_overview_card.dart';
 import '../widgets/evaluation_score_distribution.dart';
 import '../widgets/evaluation_summary_cards.dart';
-import 'package:hackz/core/workspace/workspace_controller.dart';
-import 'package:hackz/core/workspace/workspace_navigator.dart';
+import '../../../core/workspace/workspace_controller.dart';
+import '../../../core/workspace/workspace_navigator.dart';
+import '../../../core/workspace/workspace_theme.dart';
 
 /// Opens evaluation-centric details in the dashboard overlay (not Idea Details).
 void showEvaluationDetailsPane(
@@ -160,14 +160,8 @@ class EvaluationDetailsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
     final bool workspace = layout == EvaluationDetailsLayout.workspace;
-    final EdgeInsets pad = EdgeInsets.fromLTRB(
-      mobile ? 12 : 16,
-      4,
-      mobile ? 12 : 16,
-      24,
-    );
+    final EdgeInsets pad = WorkspaceTheme.bodyPadding(context);
 
     final Widget overviewDistributionRow = ResponsivePair(
       spacing: 12,
@@ -183,11 +177,13 @@ class EvaluationDetailsBody extends StatelessWidget {
     return ListView(
       padding: pad,
       children: <Widget>[
-        if (!workspace) EvaluationSummaryCards(
-          idea: vm.idea,
-          aggregateOverride: vm.aggregateOverride,
-        ),
-        const SizedBox(height: 14),
+        if (!workspace) ...<Widget>[
+          EvaluationSummaryCards(
+            idea: vm.idea,
+            aggregateOverride: vm.aggregateOverride,
+          ),
+          const SizedBox(height: 14),
+        ],
         overviewDistributionRow,
         const SizedBox(height: 14),
         EvaluationJudgeBreakdownPanel(

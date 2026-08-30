@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
-import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
@@ -37,11 +37,9 @@ class IdeathonWorkspaceBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
     final ideathon = vm.ideathon;
-
     return ListView(
-      padding: EdgeInsets.fromLTRB(mobile ? 12 : 16, 8, mobile ? 12 : 16, 24),
+      padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
         ResponsiveMetricGrid(
           chips: <DashboardMetricChipData>[

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../auth/widgets/signup/account_workspace_visuals.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../services/user_role_labels.dart';
@@ -22,50 +23,54 @@ class UserWorkspaceIdentityHeader extends StatelessWidget {
   static const double _mobileStackGap = 16;
   static const double _nameToChipsGap = 10;
 
-  static double _avatarRadius(BuildContext context) {
-    final double target = ResponsiveHelper.isMobile(context)
+  static double _avatarRadiusForWidth(double maxWidth, {required bool compact}) {
+    final double target = compact
         ? _mobileAvatarRadius
-        : ResponsiveHelper.isTablet(context)
+        : maxWidth < 720
             ? _tabletAvatarRadius
             : _desktopAvatarRadius;
-    final double horizontalPad = ResponsiveHelper.isMobile(context) ? 14 : 16;
-    final double maxRadius = (MediaQuery.sizeOf(context).width - horizontalPad * 2 - 12) / 2;
-    return target.clamp(52, maxRadius);
+    final double maxRadius = ((maxWidth.isFinite ? maxWidth : 420) - 12) / 2;
+    return target.clamp(52, maxRadius.clamp(52, _desktopAvatarRadius));
   }
 
   static double _avatarCornerRadius(double radius) => (radius * 0.22).clamp(18, 24);
 
   @override
   Widget build(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    final String name = userDisplayName(user);
-    final double radius = _avatarRadius(context);
-    final Widget avatar = UserAvatar(
-      user: user,
-      radius: radius,
-      borderRadius: BorderRadius.circular(_avatarCornerRadius(radius)),
-      framed: true,
-    );
-    final Widget info = _identityInfo(context, name, mobile);
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool compact = ResponsiveHelper.isMobile(context) ||
+            WorkspaceTheme.isCompactWidth(constraints.maxWidth);
+        final String name = userDisplayName(user);
+        final double radius = _avatarRadiusForWidth(constraints.maxWidth, compact: compact);
+        final Widget avatar = UserAvatar(
+          user: user,
+          radius: radius,
+          borderRadius: BorderRadius.circular(_avatarCornerRadius(radius)),
+          framed: true,
+        );
+        final Widget info = _identityInfo(context, name, compact);
 
-    if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          avatar,
-          const SizedBox(height: _mobileStackGap),
-          info,
-        ],
-      );
-    }
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              avatar,
+              const SizedBox(height: _mobileStackGap),
+              info,
+            ],
+          );
+        }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        avatar,
-        const SizedBox(width: _desktopAvatarGap),
-        Expanded(child: info),
-      ],
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            avatar,
+            const SizedBox(width: _desktopAvatarGap),
+            Expanded(child: info),
+          ],
+        );
+      },
     );
   }
 

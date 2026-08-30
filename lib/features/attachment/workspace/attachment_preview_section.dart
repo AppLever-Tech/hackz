@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/features/attachment/utils/attachment_preview_utils.dart';
 import 'package:hackz/core/responsive/responsive_helper.dart';
+import 'package:hackz/core/workspace/workspace_theme.dart';
 import 'attachment_preview_pane.dart';
 import 'attachment_workspace_loader.dart';
 
@@ -13,49 +14,62 @@ class AttachmentPreviewSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double height = ResponsiveHelper.isMobile(context) ? 280 : 360;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double height = ResponsiveHelper.isMobile(context) ||
+                WorkspaceTheme.isCompactWidth(constraints.maxWidth)
+            ? 280
+            : 360;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(
-              AttachmentPreviewUtils.typeIcon(vm.attachment.attachmentType),
-              size: 18,
-              color: const Color(0xFF4A67FF),
+            Row(
+              children: <Widget>[
+                Icon(
+                  AttachmentPreviewUtils.typeIcon(vm.attachment.attachmentType),
+                  size: 18,
+                  color: const Color(0xFF4A67FF),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    vm.attachment.fileName.trim().isEmpty
+                        ? 'Attachment'
+                        : vm.attachment.fileName.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                vm.attachment.fileName.trim().isEmpty ? 'Attachment' : vm.attachment.fileName.trim(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            const SizedBox(height: 10),
+            Container(
+              height: height,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(color: Color(0x0A000000), blurRadius: 18, offset: Offset(0, 8)),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: AttachmentPreviewPane(
+                  attachment: vm.attachment,
+                  resolvedUrl: vm.resolvedUrl,
+                ),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: height,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(color: Color(0x0A000000), blurRadius: 18, offset: Offset(0, 8)),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            child: AttachmentPreviewPane(
-              attachment: vm.attachment,
-              resolvedUrl: vm.resolvedUrl,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

@@ -206,7 +206,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           _templateId = data.evaluationTemplateId.trim();
         }
 
-        final bool mobile = ResponsiveHelper.isMobile(context);
+        final bool compact = widget.embedded || ResponsiveHelper.isMobile(context);
         final bool ideathonScoped = data?.isIdeathonScoped ?? _isIdeathonScoped;
 
         final Widget content = rows.isEmpty
@@ -217,7 +217,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                 },
                 ideathonScoped: ideathonScoped,
               )
-            : mobile
+            : compact
                 ? ListView.separated(
                     padding: const EdgeInsets.only(bottom: 12),
                     itemCount: rows.length,
@@ -255,7 +255,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   header,
-                  SizedBox(height: mobile ? 560 : 420, child: content),
+                  SizedBox(height: compact ? 560 : 420, child: content),
                 ],
               );
             }
@@ -280,7 +280,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
     required List<String> departments,
     required bool ideathonScoped,
   }) {
-    final bool compact = ResponsiveHelper.isMobile(context);
+    final bool compact = widget.embedded || ResponsiveHelper.isMobile(context);
     final Widget? contextBanner =
         ideathonScoped && !widget.embedded ? _buildIdeathonBanner(compact: compact) : null;
     final Widget metricsRow = EvaluationResultsMetricsRow(

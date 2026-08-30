@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../evaluations/screens/evaluation_results_screen.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_service.dart';
@@ -25,10 +26,14 @@ abstract final class IdeathonResultsWorkspace {
         name = ideathon.name;
       },
       builder: (BuildContext context) {
-        return EvaluationResultsScreen(
-          user: actor,
-          ideathonId: ideathonId,
-          ideathonName: name,
+        return Padding(
+          padding: WorkspaceTheme.bodyPadding(context),
+          child: EvaluationResultsScreen(
+            user: actor,
+            ideathonId: ideathonId,
+            ideathonName: name,
+            embedded: true,
+          ),
         );
       },
     );

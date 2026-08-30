@@ -5,6 +5,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/workspace/workspace_navigator.dart';
+import '../../../core/workspace/workspace_theme.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../services/judge_evaluation_service.dart';
@@ -39,18 +40,24 @@ class EvaluationFeedbackSection extends StatelessWidget {
         message: 'Remarks from your event evaluations will appear here.',
       ),
       sectionChild: (List<JudgeEvaluationFeedbackRow> group) {
-        if (ResponsiveHelper.isMobile(context)) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (int i = 0; i < group.length; i++) ...<Widget>[
-                if (i > 0) const SizedBox(height: 8),
-                _FeedbackCard(row: group[i], onViewEvaluation: onViewEvaluation),
-              ],
-            ],
-          );
-        }
-        return _FeedbackTable(rows: group, onViewEvaluation: onViewEvaluation);
+        return LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool compact = ResponsiveHelper.isMobile(context) ||
+                WorkspaceTheme.isCompactWidth(constraints.maxWidth);
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (int i = 0; i < group.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(height: 8),
+                    _FeedbackCard(row: group[i], onViewEvaluation: onViewEvaluation),
+                  ],
+                ],
+              );
+            }
+            return _FeedbackTable(rows: group, onViewEvaluation: onViewEvaluation);
+          },
+        );
       },
     );
   }
