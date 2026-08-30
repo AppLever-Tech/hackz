@@ -14,16 +14,20 @@ abstract final class EntityCardPills {
     VoidCallback onTap, {
     bool fullWidth = false,
     IconData? icon,
+    bool enabled = true,
+    double? maxWidth,
   }) {
     final Widget pill = ContextPill(
       label: label,
       semantic: semantic,
       icon: icon ?? ContextPillTheme.iconFor(semantic),
       onTap: onTap,
+      enabled: enabled,
       compact: true,
       height: ContextPillMetrics.workspaceHeight,
       fitContent: !fullWidth,
       expandWidth: fullWidth,
+      maxWidth: maxWidth,
     );
 
     if (fullWidth) {

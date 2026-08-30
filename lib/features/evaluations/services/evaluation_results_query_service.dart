@@ -18,7 +18,7 @@ import 'evaluation_settings_service.dart';
 /// Filters for the Evaluation Results workspace.
 class EvaluationResultsQueryParams {
   const EvaluationResultsQueryParams({
-    required this.viewer,
+    this.viewer,
     this.search = '',
     this.departmentFilters = const <String>{},
     this.problemFilters = const <String>{},
@@ -28,7 +28,8 @@ class EvaluationResultsQueryParams {
     this.ideathonId = '',
   });
 
-  final UserModel viewer;
+  /// Required for department pipeline results. Unused for Ideathon-scoped fetch.
+  final UserModel? viewer;
   final String search;
   final Set<String> departmentFilters;
   final Set<String> problemFilters;
@@ -96,7 +97,17 @@ abstract final class EvaluationResultsQueryService {
   static Future<EvaluationResultsQueryResult> _fetchPipelineResults(
     EvaluationResultsQueryParams params,
   ) async {
-    final String orgId = params.viewer.orgId.trim();
+    final UserModel? viewer = params.viewer;
+    if (viewer == null) {
+      return const EvaluationResultsQueryResult(
+        rows: <EvaluationResultsRow>[],
+        metrics: EvaluationResultsMetrics.empty,
+        problemsById: <String, String>{},
+        categories: <String>[],
+        departments: <String>[],
+      );
+    }
+    final String orgId = viewer.orgId.trim();
     if (orgId.isEmpty) {
       return const EvaluationResultsQueryResult(
         rows: <EvaluationResultsRow>[],
@@ -113,7 +124,7 @@ abstract final class EvaluationResultsQueryService {
     await EvaluationSettingsService.ensureLoaded(orgId: orgId);
     await EvaluationAggregationSyncService.reconcileOrg(orgId: orgId);
 
-    final String deptCode = DepartmentModel.resolveCode(params.viewer.departmentCode);
+    final String deptCode = DepartmentModel.resolveCode(viewer.departmentCode);
 
     final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: orgId).limit(params.limit).get(),

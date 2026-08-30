@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
 import '../../user/models/user_model.dart';
-import 'ideathon_evaluation_workspace.dart';
 import 'ideathon_judge_assignment_workspace.dart';
+import 'ideathon_payment_workspace.dart';
 import 'ideathon_results_workspace.dart';
 import 'ideathon_workspace_body.dart';
 import 'ideathon_workspace_loader.dart';
@@ -24,19 +24,11 @@ abstract final class IdeathonWorkspace {
       },
       builder: (BuildContext context) => IdeathonWorkspaceBody(
         vm: vm,
-        actor: actor,
         onOpenJudgeAssignment: () => IdeathonJudgeAssignmentWorkspace.push(
           context,
           ideathonId,
           actor: actor,
         ),
-        onOpenEvaluation: actor == null
-            ? null
-            : () => IdeathonEvaluationWorkspace.push(
-                  context,
-                  ideathonId,
-                  actor: actor,
-                ),
         onOpenResults: actor == null
             ? null
             : () => IdeathonResultsWorkspace.push(
@@ -44,6 +36,11 @@ abstract final class IdeathonWorkspace {
                   ideathonId,
                   actor: actor,
                 ),
+        onOpenPayments: () => IdeathonPaymentWorkspace.push(
+          context,
+          ideathonId,
+          actor: actor,
+        ),
       ),
     );
   }

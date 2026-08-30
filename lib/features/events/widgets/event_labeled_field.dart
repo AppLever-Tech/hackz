@@ -12,16 +12,20 @@ class EventLabeledField extends StatelessWidget {
     this.value,
     this.trailing,
     this.isLast = false,
+    this.labelWidth,
   });
 
   final String label;
   final String? value;
   final Widget? trailing;
   final bool isLast;
+  /// When set, used instead of the default 96 / 124 label column.
+  final double? labelWidth;
 
   @override
   Widget build(BuildContext context) {
-    final double labelWidth = ResponsiveHelper.isMobile(context) ? 96 : 124;
+    final double labelWidth =
+        this.labelWidth ?? (ResponsiveHelper.isMobile(context) ? 96 : 124);
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 2 : 8),
       child: Row(
@@ -60,6 +64,7 @@ class EventLabeledPill extends StatelessWidget {
     required this.onTap,
     this.enabled = true,
     this.isLast = false,
+    this.labelWidth,
   });
 
   final String label;
@@ -68,12 +73,14 @@ class EventLabeledPill extends StatelessWidget {
   final VoidCallback onTap;
   final bool enabled;
   final bool isLast;
+  final double? labelWidth;
 
   @override
   Widget build(BuildContext context) {
     return EventLabeledField(
       label: label,
       isLast: isLast,
+      labelWidth: labelWidth,
       trailing: ContextPill(
         label: pillLabel,
         semantic: semantic,

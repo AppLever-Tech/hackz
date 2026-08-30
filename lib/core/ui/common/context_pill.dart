@@ -54,24 +54,6 @@ class ContextPill extends StatelessWidget {
   bool _fitContent(ContextPillSemantic semantic, bool? fitContent) =>
       fitContent ?? ContextPillTheme.defaultsToFitContent(semantic);
 
-  double? _resolvedMaxWidth({
-    required bool expandWidth,
-    required bool fitContent,
-    required bool effectiveCompact,
-    required ContextPillSemantic semantic,
-    required double? maxWidth,
-  }) {
-    if (maxWidth != null) return maxWidth;
-    if (expandWidth) return null;
-    if (fitContent) {
-      return ContextPillTheme.defaultFitMaxWidth(
-        compact: effectiveCompact,
-        semantic: semantic,
-      );
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -96,16 +78,24 @@ class ContextPill extends StatelessWidget {
           semantic: semantic,
         );
     final double iconGap = ContextPillMetrics.resolvedIconGap(compact: effectiveCompact);
-    final double? themeMaxWidth = _resolvedMaxWidth(
-      expandWidth: expandWidth,
-      fitContent: fitContent,
-      effectiveCompact: effectiveCompact,
-      semantic: semantic,
-      maxWidth: maxWidth,
+    final EdgeInsets pillPadding = ContextPillMetrics.resolvedPadding(
+      context,
+      compact: effectiveCompact,
     );
-    double? layoutMaxWidth = expandWidth
-        ? (maxWidth ?? (boundedWidth ? constraints.maxWidth : null))
-        : (themeMaxWidth ?? (boundedWidth && !fitContent ? constraints.maxWidth : null));
+    double? layoutMaxWidth;
+    if (expandWidth) {
+      layoutMaxWidth = maxWidth ?? (boundedWidth ? constraints.maxWidth : null);
+    } else if (maxWidth != null) {
+      layoutMaxWidth = maxWidth;
+    } else if (boundedWidth) {
+      // Use the parent width so labels ellipsize only after filling available space.
+      layoutMaxWidth = constraints.maxWidth;
+    } else if (fitContent) {
+      layoutMaxWidth = ContextPillTheme.defaultFitMaxWidth(
+        compact: effectiveCompact,
+        semantic: semantic,
+      );
+    }
     if (layoutMaxWidth != null && boundedWidth && layoutMaxWidth > constraints.maxWidth) {
       layoutMaxWidth = constraints.maxWidth;
     }
@@ -139,18 +129,23 @@ class ContextPill extends StatelessWidget {
       style: labelStyle,
     );
 
-    final bool constrainLabel = expandWidth || layoutMaxWidth != null;
+    final double innerBudget = layoutMaxWidth == null
+        ? double.infinity
+        : (layoutMaxWidth - pillPadding.horizontal).clamp(0.0, double.infinity);
+    final double textBudget = (innerBudget - resolvedIconSize - iconGap).clamp(0.0, double.infinity);
 
-    Widget labelRow = Row(
-      mainAxisSize: MainAxisSize.min,
+    final Widget labelRow = Row(
+      mainAxisSize: expandWidth ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Icon(resolvedIcon, size: resolvedIconSize, color: iconColor),
         SizedBox(width: iconGap),
-        if (constrainLabel)
-          Flexible(
-            fit: expandWidth ? FlexFit.tight : FlexFit.loose,
+        if (expandWidth)
+          Expanded(child: labelText)
+        else if (layoutMaxWidth != null)
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: textBudget),
             child: labelText,
           )
         else
@@ -158,32 +153,9 @@ class ContextPill extends StatelessWidget {
       ],
     );
 
-    if (layoutMaxWidth != null && !expandWidth) {
-      labelRow = ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: layoutMaxWidth),
-        child: labelRow,
-      );
-    }
-
-    final double pillMaxWidth;
-    if (expandWidth) {
-      pillMaxWidth = layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity);
-    } else if (fitContent) {
-      // Shrink-wrap to label; only cap by parent when width is bounded (e.g. table cells).
-      pillMaxWidth = boundedWidth ? constraints.maxWidth : double.infinity;
-    } else {
-      pillMaxWidth = layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity);
-    }
-
-    final Widget content = expandWidth
-        ? Align(
-            alignment: Alignment.centerLeft,
-            child: labelRow,
-          )
-        : Align(
-            alignment: Alignment.centerLeft,
-            child: labelRow,
-          );
+    final double pillMaxWidth = expandWidth
+        ? (layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity))
+        : (boundedWidth ? constraints.maxWidth : (layoutMaxWidth ?? double.infinity));
 
     return ContextLaunchSurface(
       semantic: semantic,
@@ -193,7 +165,7 @@ class ContextPill extends StatelessWidget {
       semanticsLabel: '$display. $tooltipMessage',
       borderRadius: radius,
       allowHoverScale: resolvedAllowHoverScale,
-      padding: ContextPillMetrics.resolvedPadding(context, compact: effectiveCompact),
+      padding: pillPadding,
       constraints: BoxConstraints(
         minHeight: resolvedHeight,
         maxHeight: wrapLabel ? double.infinity : resolvedHeight,
@@ -205,7 +177,9 @@ class ContextPill extends StatelessWidget {
           : SizedBox(
               height: resolvedHeight,
               width: expandWidth ? double.infinity : null,
-              child: content,
+              child: expandWidth
+                  ? Align(alignment: Alignment.centerLeft, child: labelRow)
+                  : labelRow,
             ),
     );
   }

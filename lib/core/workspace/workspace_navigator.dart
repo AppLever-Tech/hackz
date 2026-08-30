@@ -7,6 +7,7 @@ import '../../features/evaluations/workspace/evaluation_template_workspace.dart'
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
+import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_results_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_workspace.dart';
 import 'package:hackz/features/payment/workspace/payment_workspace.dart';
@@ -100,6 +101,15 @@ class WorkspaceNavigator extends StatelessWidget {
     UserModel? actor,
   }) {
     IdeathonJudgeAssignmentWorkspace.open(context, ideathonId, actor: actor);
+  }
+
+  /// Opens Ideathon Event Payments using the existing Event Payments UX for [ideathonId].
+  static void openIdeathonPayments(
+    BuildContext context,
+    String ideathonId, {
+    UserModel? actor,
+  }) {
+    IdeathonPaymentWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens the Ideathon overview workspace for [ideathonId].

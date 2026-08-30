@@ -1,11 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hackz/features/evaluations/services/evaluation_templates_service.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/ideathons/models/ideathon_idea_snapshot.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
 import 'package:hackz/features/organization/models/department_model.dart';
-import 'package:hackz/features/org_settings/services/org_settings_service.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/utils/firestore_utils.dart';
 
@@ -60,21 +58,15 @@ abstract final class IdeathonDetailsLoader {
   static Future<IdeathonDetailsViewModel> load(String ideathonId) async {
     final IdeathonWorkspaceViewModel workspace = await IdeathonWorkspaceLoader.load(ideathonId);
     final IdeathonModel event = workspace.ideathon;
-
-    await OrgSettingsService.instance.ensureLoaded(orgId: event.orgId);
-
-    final org = event.orgId.trim().isEmpty ? null : await FirestoreUtils.fetchOrganization(event.orgId);
     final DepartmentModel? department = DepartmentModel.byCode(event.departmentId);
-    final String templateName =
-        EvaluationTemplatesService.findTemplate(event.evaluationTemplateId)?.templateName.trim() ?? '';
 
     return IdeathonDetailsViewModel(
       workspace: workspace,
-      organisationName: (org?.name ?? '').trim(),
+      organisationName: workspace.organisationName,
       departmentLabel: department == null
           ? event.departmentId.trim()
           : '${department.code} · ${department.name}',
-      evaluationTemplateName: templateName,
+      evaluationTemplateName: workspace.evaluationTemplateName,
       ideas: await _loadIdeas(event.ideas),
     );
   }
