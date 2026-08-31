@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/ui/common/card_overflow_menu.dart';
+import 'package:hackz/core/ui/feedback/feedback.dart';
 import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
@@ -9,6 +10,7 @@ import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/features/dashboard/chrome/dashboard_session_scope.dart';
 import 'package:hackz/features/events/models/event_details_module.dart';
 import 'package:hackz/features/events/models/event_kind.dart';
+import 'package:hackz/features/events/models/event_lifecycle.dart';
 import 'package:hackz/features/events/screens/event_details_shell.dart';
 import 'package:hackz/features/events/widgets/event_meta_chip.dart';
 import 'package:hackz/features/ideathons/screens/create_ideathon_workspace.dart';
@@ -27,7 +29,6 @@ import 'package:hackz/features/events/services/event_payments_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
-import 'package:hackz/features/ideathons/models/ideathon_status.dart';
 import 'package:hackz/features/user/models/enums/user_role.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/features/user/services/role_visibility_helpers.dart';
@@ -75,6 +76,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   late Future<IdeathonDetailsViewModel> _future;
   late Future<EventPaymentsViewModel> _paymentsFuture;
   bool _editing = false;
+  String _moduleId = 'overview';
 
   @override
   void initState() {
@@ -99,29 +101,134 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   bool get _canEdit => RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.actor.role));
 
   EventDetailsCommand _commandFor(IdeathonDetailsViewModel vm) {
-    final bool completed =
-        vm.ideathon.status == IdeathonStatus.completed || vm.ideathon.status == IdeathonStatus.archived;
-    final bool afterEvaluation = completed || vm.workspace.evaluationProgressPct >= 1;
-    final bool duringEvaluation = vm.workspace.evaluationStarted && !afterEvaluation;
-    if (afterEvaluation) {
-      return const EventDetailsCommand(
-        label: 'View Results',
-        icon: AppIcons.results,
-        destinationId: 'results',
-      );
-    }
-    if (duringEvaluation) {
-      return const EventDetailsCommand(
-        label: 'Evaluation in Progress',
-        icon: AppIcons.scoring,
-        enabled: false,
-      );
-    }
-    return const EventDetailsCommand(
-      label: 'Manage Assignments',
-      icon: AppIcons.judges,
-      destinationId: 'assignments',
+    final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
+    final EventPrimaryActionKind kind = EventLifecycle.primaryAction(
+      progress,
+      canManageOutcome: _canEdit,
     );
+    switch (kind) {
+      case EventPrimaryActionKind.completeEvent:
+        return EventDetailsCommand(
+          label: 'Complete Event',
+          icon: AppIcons.workflowApproved,
+          onPressed: () => _completeEvent(vm),
+        );
+      case EventPrimaryActionKind.selectWinners:
+        return const EventDetailsCommand(
+          label: 'Select Winners',
+          icon: AppIcons.star,
+          destinationId: 'winners',
+        );
+      case EventPrimaryActionKind.reviewResults:
+        return EventDetailsCommand(
+          label: 'Review Results',
+          icon: AppIcons.results,
+          destinationId: 'results',
+          onPressed: _canEdit ? () => _reviewResults(vm) : null,
+        );
+      case EventPrimaryActionKind.viewResults:
+        return const EventDetailsCommand(
+          label: 'View Results',
+          icon: AppIcons.results,
+          destinationId: 'results',
+        );
+      case EventPrimaryActionKind.viewWinners:
+        return const EventDetailsCommand(
+          label: 'View Winners',
+          icon: AppIcons.star,
+          destinationId: 'winners',
+        );
+      case EventPrimaryActionKind.evaluationInProgress:
+        return const EventDetailsCommand(
+          label: 'Evaluation in Progress',
+          icon: AppIcons.scoring,
+          enabled: false,
+        );
+      case EventPrimaryActionKind.manageAssignments:
+        return const EventDetailsCommand(
+          label: 'Manage Assignments',
+          icon: AppIcons.judges,
+          destinationId: 'assignments',
+        );
+    }
+  }
+
+  Future<void> _reviewResults(IdeathonDetailsViewModel vm) async {
+    try {
+      await IdeathonService.markResultsReviewed(
+        actor: widget.actor,
+        ideathonId: vm.ideathon.ideathonId,
+      );
+      if (!mounted) return;
+      setState(() => _moduleId = 'results');
+      _reload();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Unable to review results', message: '$e');
+    }
+  }
+
+  Future<void> _completeEvent(IdeathonDetailsViewModel vm) async {
+    final int pending = vm.workspace.pendingEvaluationCount;
+    final String pendingLine = pending > 0
+        ? '$pending evaluation${pending == 1 ? '' : 's'} are still pending. '
+        : '';
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Complete event?',
+      message:
+          '${pendingLine}Completing locks evaluation configuration, judge assignments, the template, scores, results, and winner selection. Reports and results stay available.',
+      confirmLabel: 'Complete Event',
+      dangerConfirm: pending > 0,
+    );
+    if (!ok) return;
+    try {
+      await IdeathonService.completeEvent(
+        actor: widget.actor,
+        ideathonId: vm.ideathon.ideathonId,
+      );
+      if (!mounted) return;
+      FeedbackService.showSuccess(
+        context,
+        title: 'Event completed',
+        message: 'This Ideathon is read-only. Results and reports remain available.',
+      );
+      _reload();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Unable to complete event', message: '$e');
+    }
+  }
+
+  List<Widget> _statusPills(IdeathonDetailsViewModel vm) {
+    final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
+    return <Widget>[
+      IdeathonStatusPill(status: vm.ideathon.status, compact: false),
+      if (progress.pendingEvaluationCount > 0 && !progress.completed)
+        EventMetaChip(
+          icon: AppIcons.clock,
+          label: '${progress.pendingEvaluationCount} pending',
+          color: const Color(0xFFEA580C),
+        )
+      else if (progress.resultsReady && !progress.completed)
+        const EventMetaChip(
+          icon: AppIcons.results,
+          label: 'Results ready',
+          color: Color(0xFF059669),
+        ),
+      if (progress.winnersSelected && !progress.completed)
+        const EventMetaChip(
+          icon: AppIcons.star,
+          label: 'Winners selected',
+          color: Color(0xFFB45309),
+        ),
+      if (progress.completed)
+        const EventMetaChip(
+          icon: AppIcons.lock,
+          label: 'Read-only',
+          color: Color(0xFF047857),
+        ),
+    ];
   }
 
   List<Widget> _contextPills(IdeathonDetailsViewModel vm, String selectedId) {
@@ -136,34 +243,40 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final String org = vm.organisationName.trim().isEmpty ? event.orgId : vm.organisationName.trim();
     final String templateName =
         vm.evaluationTemplateName.trim().isEmpty ? event.evaluationTemplateId.trim() : vm.evaluationTemplateName.trim();
-    final IdeathonStatusPill status = IdeathonStatusPill(status: event.status, compact: false);
     final EventMetaChip ideasChip = EventMetaChip(
       icon: AppIcons.ideas,
       label: '${vm.ideas.length} ${vm.ideas.length == 1 ? 'idea' : 'ideas'}',
       color: const Color(0xFF4F46E5),
     );
+    final List<Widget> statusPills = _statusPills(vm);
 
     switch (selectedId) {
       case 'ideas':
-        return <Widget>[status, ideasChip, IdeathonTypePill(type: event.ideathonType, compact: false)];
+        return <Widget>[...statusPills, ideasChip, IdeathonTypePill(type: event.ideathonType, compact: false)];
       case 'payments':
         return <Widget>[
-          status,
+          ...statusPills,
           ideasChip,
           _PaymentContextPills(loadFuture: _paymentsFuture),
         ];
       case 'assignments':
         return <Widget>[
-          status,
+          ...statusPills,
           EventMetaChip(
             icon: AppIcons.judges,
             label: '${vm.workspace.assignmentCount} assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}',
             color: const Color(0xFF7C3AED),
           ),
           EventMetaChip(
-            icon: vm.workspace.evaluationStarted ? AppIcons.lock : AppIcons.judges,
-            label: vm.workspace.evaluationStarted ? 'Assignments locked' : 'Assignments open',
-            color: vm.workspace.evaluationStarted ? const Color(0xFFB45309) : const Color(0xFF059669),
+            icon: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+                ? AppIcons.lock
+                : AppIcons.judges,
+            label: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+                ? 'Assignments locked'
+                : 'Assignments open',
+            color: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+                ? const Color(0xFFB45309)
+                : const Color(0xFF059669),
           ),
         ];
       case 'template':
@@ -172,7 +285,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
           evaluationStarted: vm.workspace.evaluationStarted,
         );
         return <Widget>[
-          status,
+          ...statusPills,
           if (templateName.isNotEmpty)
             EventMetaChip(icon: AppIcons.scoring, label: templateName, color: const Color(0xFF4F46E5)),
           EventMetaChip(
@@ -183,7 +296,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         ];
       case 'results':
         return <Widget>[
-          status,
+          ...statusPills,
           EventMetaChip(
             icon: AppIcons.results,
             label: vm.workspace.evaluationProgressLabel,
@@ -194,7 +307,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       case 'leaderboard':
       case 'reports':
         return <Widget>[
-          status,
+          ...statusPills,
           ideasChip,
           EventMetaChip(
             icon: AppIcons.results,
@@ -204,7 +317,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         ];
       default:
         return <Widget>[
-          status,
+          ...statusPills,
           EventMetaChip(icon: AppIcons.event, label: dateLabel, color: const Color(0xFF0369A1)),
           EventMetaChip(icon: AppIcons.clock, label: timeLabel, color: const Color(0xFF0369A1)),
           IdeathonTypePill(type: event.ideathonType, compact: false),
@@ -282,9 +395,10 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
 
           final IdeathonDetailsViewModel vm = snapshot.data!;
           final event = vm.ideathon;
-          final bool evaluationLocked = vm.workspace.evaluationStarted;
+          final bool eventCompleted = IdeathonService.isEventCompleted(event);
+          final bool evaluationLocked = vm.workspace.evaluationStarted || eventCompleted;
 
-          if (_editing && _canEdit) {
+          if (_editing && _canEdit && !eventCompleted) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -324,9 +438,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               const SizedBox(height: 8),
               Expanded(
                 child: EventDetailsShell(
+                  initialId: _moduleId,
+                  onSelected: (String id) => _moduleId = id,
                   command: _commandFor(vm),
                   contextPillsFor: (String id) => _contextPills(vm, id),
-                  headerActions: _canEdit
+                  headerActions: _canEdit && !eventCompleted
                       ? CardOverflowMenuButton(
                           tooltip: 'Event actions',
                           onSelected: (String value) {
@@ -428,7 +544,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                           id: 'winners',
                           label: 'Winners',
                           icon: AppIcons.star,
-                          child: IdeathonWinnersTab(vm: vm, actor: widget.actor),
+                          child: IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
                         ),
                         EventDetailsModule(
                           id: 'leaderboard',

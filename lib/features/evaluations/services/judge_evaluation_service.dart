@@ -8,6 +8,7 @@ import 'evaluation_aggregation_sync_service.dart';
 import '../../ideathons/models/ideathon_model.dart';
 import '../../ideathons/models/ideathon_status.dart';
 import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
+import '../../ideathons/services/ideathon_service.dart';
 import '../../ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../user/models/enums/user_role.dart';
@@ -59,6 +60,12 @@ abstract final class JudgeEvaluationService {
       throw StateError('Idea is pending payment verification.');
     }
     final String trimmedIdeathonId = ideathonId.trim();
+    if (trimmedIdeathonId.isNotEmpty) {
+      final IdeathonModel? event = await IdeathonService.fetchById(trimmedIdeathonId);
+      if (event != null && IdeathonService.isEventCompleted(event)) {
+        throw StateError('This event is completed. Evaluations are locked.');
+      }
+    }
     final List<EvaluationAssignmentModel> assignments =
         await EvaluationAssignmentService.listAssignmentsForJudge(
       orgId: judge.orgId,

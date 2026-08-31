@@ -43,12 +43,14 @@ class EventDetailsCommand {
     required this.label,
     required this.icon,
     this.destinationId,
+    this.onPressed,
     this.enabled = true,
   });
 
   final String label;
   final IconData icon;
   final String? destinationId;
+  final VoidCallback? onPressed;
   final bool enabled;
 }
 

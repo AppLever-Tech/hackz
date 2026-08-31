@@ -4,11 +4,11 @@ import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../models/ideathon_model.dart';
+import 'ideathon_service.dart';
 
 /// Syncs Ideathon-scoped evaluation completion.
 ///
-/// Does **not** mutate IdeaStatus. Does not auto-select prototypes/winners
-/// during evaluation (reserved for later Ideathon results phases).
+/// Does **not** mutate IdeaStatus. Does not auto-select winners or complete the event.
 abstract final class IdeathonEvaluationSyncService {
   IdeathonEvaluationSyncService._();
 
@@ -51,7 +51,8 @@ abstract final class IdeathonEvaluationSyncService {
   static Future<void> syncIdeathonCompletion(String ideathonId) async {
     final IdeathonModel? ideathon = await _fetchIdeathon(ideathonId);
     if (ideathon == null) return;
-    // Phase 3: derive completion from participation / event lifecycle.
+    await IdeathonService.markInProgressIfNeeded(ideathonId);
+    // Completion is Department Admin-owned. Schedule and 100% scores do not auto-complete.
   }
 
   static Future<Map<String, List<String>>> _assignedIdeathonJudges({

@@ -15,6 +15,7 @@ class EventDetailsShell extends StatefulWidget {
     this.command,
     this.headerActions,
     this.initialId,
+    this.onSelected,
   });
 
   final List<EventDetailsNavGroup> navigation;
@@ -22,6 +23,7 @@ class EventDetailsShell extends StatefulWidget {
   final EventDetailsCommand? command;
   final Widget? headerActions;
   final String? initialId;
+  final ValueChanged<String>? onSelected;
 
   @override
   State<EventDetailsShell> createState() => _EventDetailsShellState();
@@ -41,6 +43,13 @@ class _EventDetailsShellState extends State<EventDetailsShell> {
     super.didUpdateWidget(oldWidget);
     if (widget.navigation.leafById(_selectedId) == null) {
       _selectedId = _resolveInitial(widget.initialId);
+    } else {
+      final String next = (widget.initialId ?? '').trim();
+      if (next.isNotEmpty &&
+          next != (oldWidget.initialId ?? '').trim() &&
+          widget.navigation.leafById(next) != null) {
+        _selectedId = next;
+      }
     }
   }
 
@@ -54,6 +63,13 @@ class _EventDetailsShellState extends State<EventDetailsShell> {
   void _select(String id) {
     if (id == _selectedId || widget.navigation.leafById(id) == null) return;
     setState(() => _selectedId = id);
+    widget.onSelected?.call(id);
+  }
+
+  void _runCommand(EventDetailsCommand command) {
+    command.onPressed?.call();
+    final String dest = (command.destinationId ?? '').trim();
+    if (dest.isNotEmpty) _select(dest);
   }
 
   @override
@@ -70,9 +86,10 @@ class _EventDetailsShellState extends State<EventDetailsShell> {
     final Widget? commandButton = command == null
         ? null
         : FilledButton.icon(
-            onPressed: !command.enabled || (command.destinationId ?? '').isEmpty
+            onPressed: !command.enabled ||
+                    (command.onPressed == null && (command.destinationId ?? '').isEmpty)
                 ? null
-                : () => _select(command.destinationId!),
+                : () => _runCommand(command),
             icon: Icon(command.icon, size: 16),
             label: Text(command.label),
             style: MobileToolbarButtonStyles.filled(compact: true),

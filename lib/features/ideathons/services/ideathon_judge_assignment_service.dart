@@ -185,7 +185,8 @@ abstract final class IdeathonJudgeAssignmentService {
       return a.displayName.compareTo(b.displayName);
     });
 
-    final bool evaluationLocked = await IdeathonService.hasEvaluationStarted(ideathon.ideathonId);
+    final bool evaluationLocked = IdeathonService.isEventCompleted(ideathon) ||
+        await IdeathonService.hasEvaluationStarted(ideathon.ideathonId);
 
     return IdeathonJudgeAssignmentViewModel(
       ideathon: ideathon,
@@ -220,6 +221,9 @@ abstract final class IdeathonJudgeAssignmentService {
     }
     final IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
     if (ideathon == null) throw StateError('Ideathon not found.');
+    if (IdeathonService.isEventCompleted(ideathon)) {
+      throw StateError('This event is completed. Judge assignments are locked.');
+    }
 
     final String targetIdeaId = ideaId.trim();
     final bool onEvent = ideathon.ideas.any(
@@ -280,6 +284,10 @@ abstract final class IdeathonJudgeAssignmentService {
     }
     if (await IdeathonService.hasEvaluationStarted(ideathonId)) {
       throw StateError('Judge assignments are locked because evaluation has started.');
+    }
+    final IdeathonModel? event = await IdeathonService.fetchById(ideathonId);
+    if (event != null && IdeathonService.isEventCompleted(event)) {
+      throw StateError('This event is completed. Judge assignments are locked.');
     }
     await EvaluationAssignmentService.removeIdeathonAssignment(
       assignmentId: assignmentId,

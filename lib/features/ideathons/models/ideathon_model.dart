@@ -25,6 +25,9 @@ class IdeathonModel {
     this.problemId = '',
     this.ideathonType = IdeathonType.internal,
     this.evaluationCriteria = const <EvaluationCriterion>[],
+    this.winnerIdeaId = '',
+    this.runnerUpIdeaId = '',
+    this.resultsReviewedAt,
   });
 
   final String ideathonId;
@@ -48,6 +51,13 @@ class IdeathonModel {
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// Department Admin selected winner (not rank-1 from the leaderboard).
+  final String winnerIdeaId;
+  /// Department Admin selected runner-up.
+  final String runnerUpIdeaId;
+  /// Set when Department Admin reviews results (unlocks Select Winners).
+  final DateTime? resultsReviewedAt;
 
   int get ideaCount => ideas.length;
   int get judgeCount => judgeIds.length;
@@ -73,6 +83,9 @@ class IdeathonModel {
         'evaluationCriteria':
             evaluationCriteria.map((EvaluationCriterion c) => c.toMap()).toList(growable: false),
       if (problemId.trim().isNotEmpty) 'problemId': problemId.trim(),
+      if (winnerIdeaId.trim().isNotEmpty) 'winnerIdeaId': winnerIdeaId.trim(),
+      if (runnerUpIdeaId.trim().isNotEmpty) 'runnerUpIdeaId': runnerUpIdeaId.trim(),
+      if (resultsReviewedAt != null) 'resultsReviewedAt': Timestamp.fromDate(resultsReviewedAt!),
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
@@ -118,6 +131,9 @@ class IdeathonModel {
       evaluationTemplateId: (map['evaluationTemplateId'] as String? ?? '').trim(),
       evaluationCriteria: criteria,
       problemId: (map['problemId'] as String? ?? '').trim(),
+      winnerIdeaId: (map['winnerIdeaId'] as String? ?? '').trim(),
+      runnerUpIdeaId: (map['runnerUpIdeaId'] as String? ?? '').trim(),
+      resultsReviewedAt: (map['resultsReviewedAt'] as Timestamp?)?.toDate(),
       createdBy: (map['createdBy'] as String? ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

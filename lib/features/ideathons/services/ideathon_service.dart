@@ -193,16 +193,19 @@ abstract final class IdeathonService {
     }
     final String id = ideathonId.trim();
     if (id.isEmpty) throw StateError('Ideathon is required.');
-    if (await hasEvaluationStarted(id)) {
-      throw StateError(
-        'Event configuration is locked because evaluation has started. Submitted scores cannot be changed.',
-      );
-    }
 
     final IdeathonModel? existing = await fetchById(id);
     if (existing == null) throw StateError('Ideathon not found.');
     if (existing.orgId.trim() != actor.orgId.trim()) {
       throw StateError('You can only edit Ideathons in your organization.');
+    }
+    if (isEventCompleted(existing)) {
+      throw StateError('This event is completed and can no longer be edited.');
+    }
+    if (await hasEvaluationStarted(id)) {
+      throw StateError(
+        'Event configuration is locked because evaluation has started. Submitted scores cannot be changed.',
+      );
     }
 
     if (input.name.trim().isEmpty) throw StateError('Event name is required.');
@@ -296,6 +299,9 @@ abstract final class IdeathonService {
       evaluationTemplateId: resolved.templateId,
       evaluationCriteria: existing.evaluationCriteria,
       problemId: input.problemId.trim(),
+      winnerIdeaId: existing.winnerIdeaId,
+      runnerUpIdeaId: existing.runnerUpIdeaId,
+      resultsReviewedAt: existing.resultsReviewedAt,
       createdBy: existing.createdBy,
       createdAt: existing.createdAt,
       updatedAt: now,
@@ -328,11 +334,12 @@ abstract final class IdeathonService {
     }
   }
 
-  /// Locked once the event start time has passed, or as soon as any score exists.
+  /// Locked once the event start time has passed, a score exists, or the event is completed.
   static bool isEvaluationTemplateLocked(
     IdeathonModel event, {
     bool evaluationStarted = false,
   }) {
+    if (isEventCompleted(event)) return true;
     if (evaluationStarted) return true;
     return !DateTime.now().isBefore(event.startDateTime);
   }
@@ -341,6 +348,9 @@ abstract final class IdeathonService {
     IdeathonModel event, {
     bool evaluationStarted = false,
   }) {
+    if (isEventCompleted(event)) {
+      return 'This event is completed. The evaluation template is locked.';
+    }
     if (evaluationStarted) {
       return 'Evaluation has started. The template can no longer be changed.';
     }
@@ -348,6 +358,99 @@ abstract final class IdeathonService {
       return 'The event has started. The evaluation template is locked.';
     }
     return '';
+  }
+
+  static bool isEventCompleted(IdeathonModel event) =>
+      event.status == IdeathonStatus.completed || event.status == IdeathonStatus.archived;
+
+  static bool canManageEventOutcome(UserModel actor) =>
+      RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role));
+
+  static void _assertCanManageOutcome(UserModel actor, IdeathonModel event) {
+    if (!canManageEventOutcome(actor)) {
+      throw StateError('Only department admins can complete this event or select winners.');
+    }
+    if (event.orgId.trim() != actor.orgId.trim()) {
+      throw StateError('You can only manage events in your organization.');
+    }
+  }
+
+  static Future<IdeathonModel> _requireEvent(String ideathonId) async {
+    final IdeathonModel? event = await fetchById(ideathonId);
+    if (event == null) throw StateError('Event not found.');
+    return event;
+  }
+
+  static Future<void> markResultsReviewed({
+    required UserModel actor,
+    required String ideathonId,
+  }) async {
+    final IdeathonModel event = await _requireEvent(ideathonId);
+    _assertCanManageOutcome(actor, event);
+    if (isEventCompleted(event)) return;
+    if (event.resultsReviewedAt != null) return;
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
+      'resultsReviewedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> selectWinners({
+    required UserModel actor,
+    required String ideathonId,
+    required String winnerIdeaId,
+    String runnerUpIdeaId = '',
+  }) async {
+    final IdeathonModel event = await _requireEvent(ideathonId);
+    _assertCanManageOutcome(actor, event);
+    if (isEventCompleted(event)) {
+      throw StateError('This event is completed. Winner selection is locked.');
+    }
+    final String winner = winnerIdeaId.trim();
+    final String runner = runnerUpIdeaId.trim();
+    if (winner.isEmpty) throw StateError('Select a winner.');
+    final Set<String> ideaIds = event.ideas
+        .map((IdeathonIdeaSnapshot s) => s.ideaId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
+    if (!ideaIds.contains(winner)) {
+      throw StateError('Winner must be an idea registered on this event.');
+    }
+    if (runner.isNotEmpty && !ideaIds.contains(runner)) {
+      throw StateError('Runner-up must be an idea registered on this event.');
+    }
+    if (runner.isNotEmpty && runner == winner) {
+      throw StateError('Winner and runner-up must be different ideas.');
+    }
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
+      'winnerIdeaId': winner,
+      'runnerUpIdeaId': runner,
+      if (event.resultsReviewedAt == null) 'resultsReviewedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> completeEvent({
+    required UserModel actor,
+    required String ideathonId,
+  }) async {
+    final IdeathonModel event = await _requireEvent(ideathonId);
+    _assertCanManageOutcome(actor, event);
+    if (isEventCompleted(event)) return;
+    if (event.winnerIdeaId.trim().isEmpty) {
+      throw StateError('Select winners before completing the event.');
+    }
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
+      'status': IdeathonStatus.completed.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> markInProgressIfNeeded(String ideathonId) async {
+    final IdeathonModel? event = await fetchById(ideathonId);
+    if (event == null) return;
+    if (event.status != IdeathonStatus.scheduled) return;
+    await updateStatus(event.ideathonId, IdeathonStatus.inProgress);
   }
 
   /// Persists the event-scoped rubric. Does not mutate the org template.
@@ -369,6 +472,9 @@ abstract final class IdeathonService {
     }
 
     final bool evalStarted = await hasEvaluationStarted(id);
+    if (isEventCompleted(existing)) {
+      throw StateError('This event is completed. The evaluation template is locked.');
+    }
     if (isEvaluationTemplateLocked(existing, evaluationStarted: evalStarted)) {
       throw StateError(
         evaluationTemplateLockMessage(existing, evaluationStarted: evalStarted),

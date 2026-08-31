@@ -13,8 +13,9 @@ class EventWinnersSection extends StatelessWidget {
     required this.entries,
     required this.onOpenIdea,
     required this.onOpenTeam,
-    this.emptyMessage = 'Winners appear after evaluation results are available.',
+    this.emptyMessage = 'Official winners appear after Department Admin selects them.',
     this.onOpenProblem,
+    this.shrinkWrap = false,
   });
 
   final List<EventWinnerEntry> entries;
@@ -22,6 +23,7 @@ class EventWinnersSection extends StatelessWidget {
   final ValueChanged<EventWinnerEntry> onOpenTeam;
   final ValueChanged<EventWinnerEntry>? onOpenProblem;
   final String emptyMessage;
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +51,8 @@ class EventWinnersSection extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: <Widget>[
         ResponsivePair(
           spacing: 12,

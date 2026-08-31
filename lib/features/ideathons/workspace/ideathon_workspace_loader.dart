@@ -7,12 +7,15 @@ import '../../evaluations/assignments/services/evaluation_assignment_service.dar
 import '../../evaluations/models/score_model.dart';
 import '../../evaluations/services/evaluation_results_query_service.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
+import '../../events/models/event_lifecycle.dart';
 import '../../events/models/event_winner_entry.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/organization_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/user_model.dart';
+import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
+import '../models/ideathon_status.dart';
 import '../services/ideathon_service.dart';
 
 class IdeathonWorkspaceViewModel {
@@ -23,6 +26,7 @@ class IdeathonWorkspaceViewModel {
     required this.evaluationProgressLabel,
     required this.evaluationProgressPct,
     this.assignmentCount = 0,
+    this.completedEvaluationCount = 0,
     this.evaluationStartedAt,
     this.firstAssignedAt,
     this.organisationName = '',
@@ -38,6 +42,7 @@ class IdeathonWorkspaceViewModel {
   final String evaluationProgressLabel;
   final double evaluationProgressPct;
   final int assignmentCount;
+  final int completedEvaluationCount;
   final DateTime? evaluationStartedAt;
   final DateTime? firstAssignedAt;
   final String organisationName;
@@ -47,6 +52,26 @@ class IdeathonWorkspaceViewModel {
   final EventWinnerEntry? runnerUp;
 
   bool get evaluationStarted => evaluationStartedAt != null;
+
+  int get pendingEvaluationCount {
+    final int pending = assignmentCount - completedEvaluationCount;
+    return pending < 0 ? 0 : pending;
+  }
+
+  bool get resultsReady => assignmentCount > 0 && completedEvaluationCount >= assignmentCount;
+
+  EventLifecycleProgress get lifecycleProgress => EventLifecycleProgress(
+        hasAssignments: assignmentCount > 0,
+        startDateTime: ideathon.startDateTime,
+        endDateTime: ideathon.endDateTime,
+        evaluationStarted: evaluationStarted,
+        completedEvaluationCount: completedEvaluationCount,
+        totalEvaluationCount: assignmentCount,
+        resultsReviewed: ideathon.resultsReviewedAt != null,
+        winnersSelected: ideathon.winnerIdeaId.trim().isNotEmpty,
+        completed: ideathon.status == IdeathonStatus.completed ||
+            ideathon.status == IdeathonStatus.archived,
+      );
 }
 
 abstract final class IdeathonWorkspaceLoader {
@@ -116,23 +141,25 @@ abstract final class IdeathonWorkspaceLoader {
     };
     EventWinnerEntry? winner;
     EventWinnerEntry? runnerUp;
-    for (final row in results.rows) {
-      if (row.rank != 1 && row.rank != 2) continue;
-      if (!row.evaluationComplete) continue;
-      final String score = row.aggregate.averageScore == null
-          ? '—'
-          : row.aggregate.averageScore!.toStringAsFixed(2);
-      final EventWinnerEntry entry = EventWinnerEntry(
-        rank: row.rank,
-        placeLabel: row.rank == 1 ? 'Winner' : 'Runner-up',
-        ideaId: row.idea.ideaId,
-        ideaTitle: row.idea.ideaTitle.trim().isEmpty ? row.idea.ideaId : row.idea.ideaTitle.trim(),
-        teamId: row.idea.teamId,
-        teamName: (teamByIdea[row.idea.ideaId] ?? '').trim(),
-        scoreLabel: score,
+    final String selectedWinner = ideathon.winnerIdeaId.trim();
+    final String selectedRunner = ideathon.runnerUpIdeaId.trim();
+    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty) {
+      winner = _winnerEntry(
+        ideaId: selectedWinner,
+        rank: 1,
+        placeLabel: 'Winner',
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
       );
-      if (row.rank == 1) winner = entry;
-      if (row.rank == 2) runnerUp = entry;
+      runnerUp = _winnerEntry(
+        ideaId: selectedRunner,
+        rank: 2,
+        placeLabel: 'Runner-up',
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
+      );
     }
 
     return IdeathonWorkspaceViewModel(
@@ -142,6 +169,7 @@ abstract final class IdeathonWorkspaceLoader {
       evaluationProgressLabel: label,
       evaluationProgressPct: pct,
       assignmentCount: assignments.length,
+      completedEvaluationCount: completed,
       evaluationStartedAt: evaluationStartedAt,
       firstAssignedAt: firstAssignedAt,
       organisationName: (org?.name ?? '').trim(),
@@ -149,6 +177,52 @@ abstract final class IdeathonWorkspaceLoader {
       evaluationTemplateName: templateName,
       winner: winner,
       runnerUp: runnerUp,
+    );
+  }
+
+  static EventWinnerEntry? _winnerEntry({
+    required String ideaId,
+    required int rank,
+    required String placeLabel,
+    required EvaluationResultsQueryResult results,
+    required List<IdeathonIdeaSnapshot> snapshots,
+    required Map<String, String> teamByIdea,
+  }) {
+    final String id = ideaId.trim();
+    if (id.isEmpty) return null;
+    for (final row in results.rows) {
+      if (row.idea.ideaId.trim() != id) continue;
+      final String score = row.aggregate.averageScore == null
+          ? '—'
+          : row.aggregate.averageScore!.toStringAsFixed(2);
+      return EventWinnerEntry(
+        rank: rank,
+        placeLabel: placeLabel,
+        ideaId: id,
+        ideaTitle: row.idea.ideaTitle.trim().isEmpty ? id : row.idea.ideaTitle.trim(),
+        teamId: row.idea.teamId,
+        teamName: (teamByIdea[id] ?? '').trim(),
+        scoreLabel: score,
+        problemId: row.idea.problemId,
+        problemTitle: row.problemTitle,
+      );
+    }
+    String title = id;
+    String teamName = (teamByIdea[id] ?? '').trim();
+    for (final snapshot in snapshots) {
+      if (snapshot.ideaId.trim() != id) continue;
+      title = snapshot.ideaTitle.trim().isEmpty ? id : snapshot.ideaTitle.trim();
+      if (teamName.isEmpty) teamName = snapshot.teamName.trim();
+      break;
+    }
+    return EventWinnerEntry(
+      rank: rank,
+      placeLabel: placeLabel,
+      ideaId: id,
+      ideaTitle: title,
+      teamId: '',
+      teamName: teamName,
+      scoreLabel: '—',
     );
   }
 
