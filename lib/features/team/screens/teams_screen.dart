@@ -96,7 +96,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
       context: context,
       width: DialogWidthPreset.standard,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: _TeamIdeasPreview(insight: insight),
+      child: _TeamIdeasPreview(insight: insight, user: widget.user),
     );
   }
 
@@ -429,9 +429,10 @@ class _EmptyTeamsState extends StatelessWidget {
 }
 
 class _TeamIdeasPreview extends StatelessWidget {
-  const _TeamIdeasPreview({required this.insight});
+  const _TeamIdeasPreview({required this.insight, required this.user});
 
   final TeamWorkspaceInsight insight;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +478,7 @@ class _TeamIdeasPreview extends StatelessWidget {
                     icon: AppIcons.ideas,
                     onTap: () {
                       Navigator.of(context).pop();
-                      WorkspaceNavigator.openIdea(context, ideaId, actor: widget.user);
+                      WorkspaceNavigator.openIdea(context, ideaId, actor: user);
                     },
                     compact: true,
                     expandWidth: true,

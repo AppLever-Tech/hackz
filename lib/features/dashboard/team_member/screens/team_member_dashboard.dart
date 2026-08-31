@@ -311,7 +311,7 @@ class _TeamMemberDashboardHomeState extends State<_TeamMemberDashboardHome> {
       pair: ResponsivePair(
         spacing: ResponsiveHelper.dashboardSectionGap(context),
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        first: _TeamMemberMyIdeasCard(vm: vm),
+        first: _TeamMemberMyIdeasCard(vm: vm, user: widget.user),
         second: _buildRecentActivity(vm),
       ),
     );
@@ -418,9 +418,10 @@ class _TeamMemberDashboardHomeState extends State<_TeamMemberDashboardHome> {
 }
 
 class _TeamMemberMyIdeasCard extends StatelessWidget {
-  const _TeamMemberMyIdeasCard({required this.vm});
+  const _TeamMemberMyIdeasCard({required this.vm, required this.user});
 
   final TeamMemberDashboardVm vm;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -452,7 +453,7 @@ class _TeamMemberMyIdeasCard extends StatelessWidget {
               ? ContextPill(
                   label: title,
                   semantic: ContextPillSemantic.idea,
-                  onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId, actor: widget.user),
+                  onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId, actor: user),
                   compact: true,
                 )
               : Text(

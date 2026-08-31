@@ -140,6 +140,7 @@ class _DeptAdminOverviewState extends State<_DeptAdminOverview> {
         }
         return _DepartmentAnalyticsView(
           analytics: analytics,
+          user: widget.user,
           trendTimeframe: _trendTimeframe,
           activityTimeframe: _activityTimeframe,
           onTrendChanged: (DepartmentAnalyticsTimeframe timeframe) {
@@ -157,6 +158,7 @@ class _DeptAdminOverviewState extends State<_DeptAdminOverview> {
 class _DepartmentAnalyticsView extends StatelessWidget {
   const _DepartmentAnalyticsView({
     required this.analytics,
+    required this.user,
     required this.trendTimeframe,
     required this.activityTimeframe,
     required this.onTrendChanged,
@@ -164,6 +166,7 @@ class _DepartmentAnalyticsView extends StatelessWidget {
   });
 
   final DepartmentDashboardAnalytics analytics;
+  final UserModel user;
   final DepartmentAnalyticsTimeframe trendTimeframe;
   final DepartmentAnalyticsTimeframe activityTimeframe;
   final ValueChanged<DepartmentAnalyticsTimeframe> onTrendChanged;
@@ -224,11 +227,11 @@ class _DepartmentAnalyticsView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               first: AdaptiveDashboardPanel(
                 desktopHeight: DashboardLayoutTokens.pairRowList,
-                child: _DepartmentProblemsCard(problems: analytics.departmentProblems),
+                child: _DepartmentProblemsCard(problems: analytics.departmentProblems, user: user),
               ),
               second: AdaptiveDashboardPanel(
                 desktopHeight: DashboardLayoutTokens.pairRowList,
-                child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas),
+                child: _DepartmentIdeasCard(ideas: analytics.departmentIdeas, user: user),
               ),
             ),
           ),
@@ -287,9 +290,10 @@ class _DepartmentAnalyticsView extends StatelessWidget {
 }
 
 class _DepartmentProblemsCard extends StatelessWidget {
-  const _DepartmentProblemsCard({required this.problems});
+  const _DepartmentProblemsCard({required this.problems, required this.user});
 
   final List<DepartmentProblemPreview> problems;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -323,7 +327,7 @@ class _DepartmentProblemsCard extends StatelessWidget {
               ? ContextPill(
                   label: problem.title,
                   semantic: ContextPillSemantic.problem,
-                  onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId, actor: widget.user),
+                  onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId, actor: user),
                   compact: true,
                   expandWidth: true,
                 )
@@ -351,9 +355,10 @@ class _DepartmentProblemsCard extends StatelessWidget {
 }
 
 class _DepartmentIdeasCard extends StatelessWidget {
-  const _DepartmentIdeasCard({required this.ideas});
+  const _DepartmentIdeasCard({required this.ideas, required this.user});
 
   final List<DepartmentIdeaPreview> ideas;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -385,7 +390,7 @@ class _DepartmentIdeasCard extends StatelessWidget {
                 ? ContextPill(
                     label: idea.title,
                     semantic: ContextPillSemantic.idea,
-                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId, actor: widget.user),
+                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId, actor: user),
                     compact: true,
                     expandWidth: true,
                   )
