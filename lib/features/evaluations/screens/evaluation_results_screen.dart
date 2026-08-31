@@ -164,6 +164,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
             context,
             row.idea.ideaId,
             ideathonId: _eventId,
+            actor: widget.user,
           );
           return;
         }
@@ -384,7 +385,11 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
                 if (_templateId.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: () => WorkspaceNavigator.openEvaluationTemplate(context, _templateId),
+                    onTap: () => WorkspaceNavigator.openEvaluationTemplate(
+                      context,
+                      _templateId,
+                      actor: widget.user,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                     child: const Text(
                       'View evaluation template',

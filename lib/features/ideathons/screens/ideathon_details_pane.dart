@@ -229,7 +229,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             titleIcon: AppIcons.ideathons,
             user: session.user,
             onLogout: session.onLogout,
-            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             onRefresh: _reload,
             helpPageId: EventKind.ideathon.helpPageId,
             leading: IconButton(

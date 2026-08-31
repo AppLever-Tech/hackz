@@ -108,7 +108,11 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               contextPills: _chromeController.headerContextPills,
               user: widget.user,
               onLogout: () => _logout(context),
-              onUserTap: () => WorkspaceNavigator.openUser(context, widget.user.userId),
+              onUserTap: () => WorkspaceNavigator.openUser(
+                context,
+                widget.user.userId,
+                actor: widget.user,
+              ),
               helpPageId: isDashboardTab
                   ? null
                   : DocsRegistry.helpPageForContext(selectedMenuTitle),

@@ -477,7 +477,7 @@ class _TeamIdeasPreview extends StatelessWidget {
                     icon: AppIcons.ideas,
                     onTap: () {
                       Navigator.of(context).pop();
-                      WorkspaceNavigator.openIdea(context, ideaId);
+                      WorkspaceNavigator.openIdea(context, ideaId, actor: widget.user);
                     },
                     compact: true,
                     expandWidth: true,

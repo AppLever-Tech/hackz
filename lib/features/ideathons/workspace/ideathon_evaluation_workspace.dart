@@ -14,20 +14,22 @@ import '../services/ideathon_service.dart';
 abstract final class IdeathonEvaluationWorkspace {
   IdeathonEvaluationWorkspace._();
 
-  static WorkspaceRoute _route(String ideathonId, {required UserModel actor}) {
+  static WorkspaceRoute _route(String ideathonId, {UserModel? actor}) {
     String name = '';
     return WorkspaceRoute(
       id: 'ideathonEvaluation:$ideathonId',
       title: 'Ideathon Evaluation',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
+      actor: actor,
       prepare: () async {
         final ideathon = await IdeathonService.fetchById(ideathonId);
         if (ideathon == null) throw StateError('Ideathon not found.');
         name = ideathon.name;
       },
       builder: (BuildContext context) {
-        if (UserRole.fromCode(actor.role) != UserRole.judge) {
+        final UserModel? viewer = HkzWorkspace.controllerOf(context).actor;
+        if (viewer == null || UserRole.fromCode(viewer.role) != UserRole.judge) {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
@@ -43,7 +45,7 @@ abstract final class IdeathonEvaluationWorkspace {
         return Padding(
           padding: WorkspaceTheme.bodyPadding(context),
           child: JudgeEvaluationWorkspaceScreen(
-            user: actor,
+            user: viewer,
             ideathonId: ideathonId,
             ideathonName: name,
           ),
@@ -55,7 +57,7 @@ abstract final class IdeathonEvaluationWorkspace {
   static void open(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     final String id = ideathonId.trim();
     if (id.isEmpty) return;
@@ -68,7 +70,7 @@ abstract final class IdeathonEvaluationWorkspace {
   static void push(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     final String id = ideathonId.trim();
     if (id.isEmpty) return;

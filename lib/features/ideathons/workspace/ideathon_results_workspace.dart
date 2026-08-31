@@ -11,13 +11,14 @@ import 'ideathon_results_workspace_loader.dart';
 abstract final class IdeathonResultsWorkspace {
   IdeathonResultsWorkspace._();
 
-  static WorkspaceRoute _route(String ideathonId) {
+  static WorkspaceRoute _route(String ideathonId, {UserModel? actor}) {
     late IdeathonResultsWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonResults:$ideathonId',
       title: 'Evaluation Results',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: EventKind.ideathon.helpPageId,
+      actor: actor,
       prepare: () async {
         vm = await IdeathonResultsWorkspaceLoader.load(ideathonId);
       },
@@ -35,7 +36,7 @@ abstract final class IdeathonResultsWorkspace {
     final String routeId = 'ideathonResults:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.open(context, _route(id));
+    HkzWorkspace.open(context, _route(id, actor: actor));
   }
 
   static void push(
@@ -48,6 +49,6 @@ abstract final class IdeathonResultsWorkspace {
     final String routeId = 'ideathonResults:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.push(context, _route(id));
+    HkzWorkspace.push(context, _route(id, actor: actor));
   }
 }

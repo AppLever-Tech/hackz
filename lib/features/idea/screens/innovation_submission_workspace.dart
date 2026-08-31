@@ -388,7 +388,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         EntityCardPills.workspace(
           title,
           ContextPillSemantic.problem,
-          () => WorkspaceNavigator.openProblem(context, p.problemId),
+          () => WorkspaceNavigator.openProblem(context, p.problemId, actor: widget.currentUser),
           fullWidth: true,
         ),
         const SizedBox(height: 6),
@@ -428,7 +428,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           _recentTeamId = team.teamId;
         });
       },
-      onOpenTeamWorkspace: (TeamModel team) => WorkspaceNavigator.openTeam(context, team.teamId),
+      onOpenTeamWorkspace: (TeamModel team) => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
     );
   }
 

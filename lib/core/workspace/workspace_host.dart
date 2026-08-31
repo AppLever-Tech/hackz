@@ -5,6 +5,8 @@ import 'workspace_container.dart';
 import 'workspace_controller.dart';
 import 'workspace_route.dart';
 import 'workspace_theme.dart';
+import '../../features/dashboard/chrome/dashboard_session_scope.dart';
+import '../../features/user/models/user_model.dart';
 
 /// Provides [WorkspaceController] to descendants and renders the active workspace layer.
 class WorkspaceScope extends InheritedWidget {
@@ -272,16 +274,25 @@ abstract final class HkzWorkspace {
 
   static WorkspaceController get global => WorkspaceController.instance;
 
+  /// Stamped viewer on the current workspace. Session only when no actor is set.
+  static UserModel? actorOf(BuildContext context) {
+    return WorkspaceScope.maybeOf(context)?.actor ??
+        DashboardSessionScope.maybeOf(context)?.user;
+  }
+
+  static UserModel? _sessionUser(BuildContext context) =>
+      DashboardSessionScope.maybeOf(context)?.user;
+
   static void open(BuildContext context, WorkspaceRoute route) {
-    WorkspaceScope.of(context).open(route);
+    WorkspaceScope.of(context).open(route, sessionUser: _sessionUser(context));
   }
 
   static void push(BuildContext context, WorkspaceRoute route) {
-    WorkspaceScope.of(context).push(route);
+    WorkspaceScope.of(context).push(route, sessionUser: _sessionUser(context));
   }
 
   static void replace(BuildContext context, WorkspaceRoute route) {
-    WorkspaceScope.of(context).replace(route);
+    WorkspaceScope.of(context).replace(route, sessionUser: _sessionUser(context));
   }
 
   static void pop(BuildContext context) {

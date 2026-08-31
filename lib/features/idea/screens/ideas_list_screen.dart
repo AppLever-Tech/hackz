@@ -219,12 +219,12 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       onOpenTeam: (IdeaListItem item) {
         final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
         if (teamId.isEmpty) return;
-        WorkspaceNavigator.openTeam(context, teamId);
+        WorkspaceNavigator.openTeam(context, teamId, actor: widget.currentUser);
       },
       onOpenProblem: (IdeaListItem item) {
         final String problemId = item.idea.problemId.trim();
         if (problemId.isEmpty) return;
-        WorkspaceNavigator.openProblem(context, problemId);
+        WorkspaceNavigator.openProblem(context, problemId, actor: widget.currentUser);
       },
       onOpenEvent: (IdeaListItem item, String eventId) {
         final String id = eventId.trim();

@@ -194,7 +194,7 @@ class _CoordinatorSummaryViewState extends State<_CoordinatorSummaryView> {
                       onVerify: _verify,
                       onReject: _reject,
                       onOpenProof: _openPaymentProof,
-                      onOpenIdea: (payment) => WorkspaceNavigator.openIdea(context, payment.ideaId),
+                      onOpenIdea: (payment) => WorkspaceNavigator.openIdea(context, payment.ideaId, actor: widget.user),
                     ),
                   ),
                   second: SectionContainer(

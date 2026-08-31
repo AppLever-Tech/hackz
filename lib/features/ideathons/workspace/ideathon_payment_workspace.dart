@@ -10,13 +10,14 @@ import 'ideathon_payment_workspace_loader.dart';
 abstract final class IdeathonPaymentWorkspace {
   IdeathonPaymentWorkspace._();
 
-  static WorkspaceRoute _route(String ideathonId) {
+  static WorkspaceRoute _route(String ideathonId, {UserModel? actor}) {
     late IdeathonPaymentWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonPayments:$ideathonId',
       title: 'Event Payments',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
+      actor: actor,
       prepare: () async {
         vm = await IdeathonPaymentWorkspaceLoader.load(ideathonId);
       },
@@ -34,7 +35,7 @@ abstract final class IdeathonPaymentWorkspace {
     final String routeId = 'ideathonPayments:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.open(context, _route(id));
+    HkzWorkspace.open(context, _route(id, actor: actor));
   }
 
   static void push(
@@ -47,6 +48,6 @@ abstract final class IdeathonPaymentWorkspace {
     final String routeId = 'ideathonPayments:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.push(context, _route(id));
+    HkzWorkspace.push(context, _route(id, actor: actor));
   }
 }

@@ -74,7 +74,7 @@ class _IdeaDetailsPaneState extends State<IdeaDetailsPane> {
             titleIcon: AppIcons.ideas,
             user: session.user,
             onLogout: session.onLogout,
-            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             onRefresh: _reload,
             helpPageId: 'idea-lifecycle',
             leading: IconButton(

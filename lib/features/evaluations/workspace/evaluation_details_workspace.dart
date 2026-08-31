@@ -14,8 +14,10 @@ import '../widgets/evaluation_overview_card.dart';
 import '../widgets/evaluation_score_distribution.dart';
 import '../widgets/evaluation_summary_cards.dart';
 import '../../../core/workspace/workspace_controller.dart';
+import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../core/workspace/workspace_theme.dart';
+import '../../user/models/user_model.dart';
 import '../../ideathons/widgets/ideathon_event_workspace_header.dart';
 import 'judge_score_workspace.dart';
 
@@ -90,7 +92,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
             titleIcon: AppIcons.results,
             user: session.user,
             onLogout: session.onLogout,
-            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             onRefresh: _load,
             helpPageId: 'evaluation-lifecycle',
             leading: IconButton(
@@ -130,7 +132,7 @@ class _EvaluationDetailsPaneState extends State<EvaluationDetailsPane> {
               header,
               const SizedBox(height: 8),
               Expanded(
-                child: EvaluationDetailsBody(vm: vm),
+                child: EvaluationDetailsBody(vm: vm, actor: session.user),
               ),
             ],
           );
@@ -155,10 +157,12 @@ class EvaluationDetailsBody extends StatelessWidget {
     super.key,
     required this.vm,
     this.layout = EvaluationDetailsLayout.pane,
+    this.actor,
   });
 
   final EvaluationDetailsViewModel vm;
   final EvaluationDetailsLayout layout;
+  final UserModel? actor;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +213,7 @@ class EvaluationDetailsBody extends StatelessWidget {
               ideathonId: vm.ideathonId,
               departmentCode: vm.idea.problemDepartmentCode,
               judge: detail.judgeUser,
+              actor: actor ?? HkzWorkspace.controllerOf(context).actor,
             );
           },
         ),

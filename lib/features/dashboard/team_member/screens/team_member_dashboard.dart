@@ -289,7 +289,7 @@ class _TeamMemberDashboardHomeState extends State<_TeamMemberDashboardHome> {
         UserWorkspaceAvatar(
           user: widget.user,
           radius: 12,
-          onTap: userId.isEmpty ? () {} : () => WorkspaceNavigator.openUser(context, userId),
+          onTap: userId.isEmpty ? () {} : () => WorkspaceNavigator.openUser(context, userId, actor: widget.user),
           enabled: userId.isNotEmpty,
         ),
         const SizedBox(width: 8),
@@ -452,7 +452,7 @@ class _TeamMemberMyIdeasCard extends StatelessWidget {
               ? ContextPill(
                   label: title,
                   semantic: ContextPillSemantic.idea,
-                  onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId),
+                  onTap: () => WorkspaceNavigator.openIdea(context, item.idea.ideaId, actor: widget.user),
                   compact: true,
                 )
               : Text(

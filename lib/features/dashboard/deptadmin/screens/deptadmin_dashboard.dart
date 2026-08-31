@@ -323,7 +323,7 @@ class _DepartmentProblemsCard extends StatelessWidget {
               ? ContextPill(
                   label: problem.title,
                   semantic: ContextPillSemantic.problem,
-                  onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId),
+                  onTap: () => WorkspaceNavigator.openProblem(context, problem.problemId, actor: widget.user),
                   compact: true,
                   expandWidth: true,
                 )
@@ -385,7 +385,7 @@ class _DepartmentIdeasCard extends StatelessWidget {
                 ? ContextPill(
                     label: idea.title,
                     semantic: ContextPillSemantic.idea,
-                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId),
+                    onTap: () => WorkspaceNavigator.openIdea(context, idea.ideaId, actor: widget.user),
                     compact: true,
                     expandWidth: true,
                   )

@@ -18,12 +18,13 @@ abstract final class IdeathonJudgeAssignmentWorkspace {
       title: 'Judge Assignment',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: EventKind.ideathon.helpPageId,
+      actor: actor,
       prepare: () async {
         vm = await IdeathonJudgeAssignmentWorkspaceLoader.load(ideathonId);
       },
       builder: (BuildContext context) => IdeathonJudgeAssignmentWorkspaceBody(
         vm: vm,
-        actor: actor,
+        actor: HkzWorkspace.controllerOf(context).actor,
       ),
     );
   }

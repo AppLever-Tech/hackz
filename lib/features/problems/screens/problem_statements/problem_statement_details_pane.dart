@@ -71,7 +71,7 @@ class _ProblemStatementDetailsPaneState extends State<ProblemStatementDetailsPan
             titleIcon: AppIcons.problems,
             user: session.user,
             onLogout: session.onLogout,
-            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             onRefresh: _reload,
             helpPageId: 'problem-lifecycle',
             leading: _backLeading(),

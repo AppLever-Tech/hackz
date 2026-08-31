@@ -941,7 +941,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       canEditFor: _canEditProblem,
       canDeleteFor: _canDeleteProblem,
       onOpenProblem: (ProblemModel problem) =>
-          WorkspaceNavigator.openProblem(context, problem.problemId),
+          WorkspaceNavigator.openProblem(context, problem.problemId, actor: widget.currentUser),
       onOpenDetails: _openDetails,
       onSubmitIdea: _openSubmitIdea,
       onEditProblem: _openEditProblem,

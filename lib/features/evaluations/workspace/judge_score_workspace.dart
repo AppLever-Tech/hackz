@@ -17,6 +17,7 @@ abstract final class JudgeScoreWorkspace {
     required String ideathonId,
     required String departmentCode,
     UserModel? judge,
+    UserModel? actor,
   }) {
     late JudgeScoreWorkspaceViewModel vm;
     return WorkspaceRoute(
@@ -24,6 +25,7 @@ abstract final class JudgeScoreWorkspace {
       title: 'Judge Evaluation',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'evaluation-lifecycle',
+      actor: actor,
       prepare: () async {
         vm = await JudgeScoreWorkspaceLoader.load(
           scoreId: scoreId,
@@ -48,6 +50,7 @@ abstract final class JudgeScoreWorkspace {
     required String ideathonId,
     required String departmentCode,
     UserModel? judge,
+    UserModel? actor,
   }) {
     final String id = scoreId.trim();
     if (id.isEmpty) return;
@@ -64,6 +67,7 @@ abstract final class JudgeScoreWorkspace {
         ideathonId: ideathonId,
         departmentCode: departmentCode,
         judge: judge,
+        actor: actor,
       ),
     );
   }

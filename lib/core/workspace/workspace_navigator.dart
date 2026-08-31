@@ -5,7 +5,6 @@ import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
-import '../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../features/ideathons/workspace/ideathon_evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
@@ -30,29 +29,30 @@ class WorkspaceNavigator extends StatelessWidget {
 
   final WorkspaceController controller;
 
-  /// Opens the read-only user workspace for [userId] (replaces the current workspace stack).
-  static void openUser(BuildContext context, String userId) {
-    UserWorkspace.open(context, userId);
+  /// Opens the read-only user workspace for [userId] (the profile being viewed).
+  /// [actor] is who is looking.
+  static void openUser(BuildContext context, String userId, {UserModel? actor}) {
+    UserWorkspace.open(context, userId, actor: actor);
   }
 
   /// Opens the read-only problem workspace for [problemId].
-  static void openProblem(BuildContext context, String problemId) {
-    ProblemWorkspace.open(context, problemId);
+  static void openProblem(BuildContext context, String problemId, {UserModel? actor}) {
+    ProblemWorkspace.open(context, problemId, actor: actor);
   }
 
   /// Opens the read-only team workspace for [teamId] (replaces the current workspace stack).
-  static void openTeam(BuildContext context, String teamId) {
-    TeamWorkspace.open(context, teamId);
+  static void openTeam(BuildContext context, String teamId, {UserModel? actor}) {
+    TeamWorkspace.open(context, teamId, actor: actor);
   }
 
   /// Opens the read-only idea workspace for [ideaId] (replaces the current workspace stack).
-  static void openIdea(BuildContext context, String ideaId) {
-    IdeaWorkspace.open(context, ideaId);
+  static void openIdea(BuildContext context, String ideaId, {UserModel? actor}) {
+    IdeaWorkspace.open(context, ideaId, actor: actor);
   }
 
   /// Opens the read-only payment workspace for [paymentId].
-  static void openPayment(BuildContext context, String paymentId) {
-    PaymentWorkspace.open(context, paymentId);
+  static void openPayment(BuildContext context, String paymentId, {UserModel? actor}) {
+    PaymentWorkspace.open(context, paymentId, actor: actor);
   }
 
   /// Opens the read-only evaluation workspace for [evaluationId] (score id or idea id).
@@ -60,8 +60,9 @@ class WorkspaceNavigator extends StatelessWidget {
     BuildContext context,
     String evaluationId, {
     String ideathonId = '',
+    UserModel? actor,
   }) {
-    EvaluationWorkspace.open(context, evaluationId, ideathonId: ideathonId);
+    EvaluationWorkspace.open(context, evaluationId, ideathonId: ideathonId, actor: actor);
   }
 
   /// Opens the read-only evaluation template workspace for [templateId].
@@ -69,11 +70,13 @@ class WorkspaceNavigator extends StatelessWidget {
     BuildContext context,
     String templateId, {
     String? departmentCode,
+    UserModel? actor,
   }) {
     EvaluationTemplateWorkspace.open(
       context,
       templateId,
       departmentCode: departmentCode,
+      actor: actor,
     );
   }
 
@@ -90,7 +93,7 @@ class WorkspaceNavigator extends StatelessWidget {
   static void openIdeathonEvaluation(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     IdeathonEvaluationWorkspace.open(context, ideathonId, actor: actor);
   }
@@ -119,16 +122,12 @@ class WorkspaceNavigator extends StatelessWidget {
     String ideathonId, {
     UserModel? actor,
   }) {
-    IdeathonWorkspace.open(
-      context,
-      ideathonId,
-      actor: actor ?? DashboardSessionScope.maybeOf(context)?.user,
-    );
+    IdeathonWorkspace.open(context, ideathonId, actor: actor);
   }
 
   /// Opens the read-only attachment workspace for [attachmentId].
-  static void openAttachment(BuildContext context, String attachmentId) {
-    AttachmentWorkspace.push(context, attachmentId);
+  static void openAttachment(BuildContext context, String attachmentId, {UserModel? actor}) {
+    AttachmentWorkspace.push(context, attachmentId, actor: actor);
   }
 
   @override

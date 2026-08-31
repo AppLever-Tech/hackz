@@ -174,11 +174,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               evaluatedCountByEvent: vm.evaluatedCountByEvent,
               onEvaluate: _openEvaluate,
               onViewDetails: (JudgeEvaluationPendingRow row) =>
-                  WorkspaceNavigator.openIdea(context, row.idea.ideaId),
+                  WorkspaceNavigator.openIdea(context, row.idea.ideaId, actor: widget.user),
               onOpenProblem: (JudgeEvaluationPendingRow row) =>
-                  WorkspaceNavigator.openProblem(context, row.idea.problemId),
+                  WorkspaceNavigator.openProblem(context, row.idea.problemId, actor: widget.user),
               onOpenTeam: (JudgeEvaluationPendingRow row) =>
-                  WorkspaceNavigator.openTeam(context, row.idea.teamId),
+                  WorkspaceNavigator.openTeam(context, row.idea.teamId, actor: widget.user),
             ),
             EvaluatedIdeaList(
               rows: vm.evaluated,
@@ -186,11 +186,11 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
               evaluatedCountByEvent: vm.evaluatedCountByEvent,
               onViewEvaluation: _openViewEvaluation,
               onViewDetails: (JudgeEvaluationEvaluatedRow row) =>
-                  WorkspaceNavigator.openIdea(context, row.idea.ideaId),
+                  WorkspaceNavigator.openIdea(context, row.idea.ideaId, actor: widget.user),
               onOpenProblem: (JudgeEvaluationEvaluatedRow row) =>
-                  WorkspaceNavigator.openProblem(context, row.idea.problemId),
+                  WorkspaceNavigator.openProblem(context, row.idea.problemId, actor: widget.user),
               onOpenTeam: (JudgeEvaluationEvaluatedRow row) =>
-                  WorkspaceNavigator.openTeam(context, row.idea.teamId),
+                  WorkspaceNavigator.openTeam(context, row.idea.teamId, actor: widget.user),
             ),
             EvaluationFeedbackSection(
               rows: vm.feedback,

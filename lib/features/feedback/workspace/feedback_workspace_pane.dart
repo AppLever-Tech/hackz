@@ -103,7 +103,7 @@ class _FeedbackWorkspacePaneState extends State<FeedbackWorkspacePane> {
             titleIcon: AppIcons.feedback,
             user: session.user,
             onLogout: session.onLogout,
-            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId),
+            onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             leading: IconButton(
               onPressed: widget.onBack,
               icon: const Icon(Icons.arrow_back_rounded),

@@ -225,7 +225,11 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
                   label: leaderName.isEmpty ? 'Team Leader' : leaderName,
                   semantic: ContextPillSemantic.user,
                   icon: AppIcons.teamMember,
-                  onTap: () => WorkspaceNavigator.openUser(context, widget.currentUser.userId),
+                  onTap: () => WorkspaceNavigator.openUser(
+                    context,
+                    widget.currentUser.userId,
+                    actor: widget.currentUser,
+                  ),
                   compact: true,
                 ),
               ),

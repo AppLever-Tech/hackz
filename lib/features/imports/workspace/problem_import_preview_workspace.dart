@@ -3,27 +3,29 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/workspace/workspace_controller.dart';
 import '../../../core/workspace/workspace_route.dart';
+import '../../problems/screens/authoring/problem_authoring_section.dart';
+import '../../user/models/user_model.dart';
 import '../constants/import_constants.dart';
 import '../models/import_review_row.dart';
 import '../services/import_description_presenter.dart';
-import '../../problems/screens/authoring/problem_authoring_section.dart';
 
 /// Read-only Problem Preview for a normalized import row (no Firestore).
 abstract final class ProblemImportPreviewWorkspace {
-  static WorkspaceRoute _route(ImportReviewRow row) {
+  static WorkspaceRoute _route(ImportReviewRow row, {UserModel? actor}) {
     final String title = row.valueFor(ImportConstants.titleColumnKey);
     return WorkspaceRoute(
       id: 'problem-import-preview:${row.rowNumber}',
       title: 'Problem Preview',
       subtitle: title.isEmpty ? 'Row ${row.rowNumber}' : title,
       helpPageId: 'csv-import',
+      actor: actor,
       builder: (BuildContext context) => ProblemImportPreviewBody(row: row),
     );
   }
 
   /// Opens on [controller] so the preview stays inside the import dialog host.
-  static void open(WorkspaceController controller, ImportReviewRow row) {
-    final WorkspaceRoute route = _route(row);
+  static void open(WorkspaceController controller, ImportReviewRow row, {UserModel? actor}) {
+    final WorkspaceRoute route = _route(row, actor: actor);
     if (controller.current?.id == route.id) return;
     controller.open(route);
   }

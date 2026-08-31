@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../features/user/models/user_model.dart';
+
 /// One workspace destination on the internal navigation stack.
 class WorkspaceRoute {
   /// Shown under the header title while [prepare] runs (cleared when load finishes).
@@ -12,6 +14,7 @@ class WorkspaceRoute {
     this.subtitle,
     this.prepare,
     this.helpPageId,
+    this.actor,
   });
 
   /// Stable key for transitions and stack identity (e.g. `idea:abc123`).
@@ -27,4 +30,27 @@ class WorkspaceRoute {
 
   /// Optional async prep (fetch entity) before [builder] is shown.
   final Future<void> Function()? prepare;
+
+  /// Who opened this workspace. Distinct from a viewed profile [id] such as `user:…`.
+  final UserModel? actor;
+
+  WorkspaceRoute copyWith({
+    String? id,
+    String? title,
+    String? subtitle,
+    String? helpPageId,
+    WidgetBuilder? builder,
+    Future<void> Function()? prepare,
+    UserModel? actor,
+  }) {
+    return WorkspaceRoute(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      subtitle: subtitle ?? this.subtitle,
+      helpPageId: helpPageId ?? this.helpPageId,
+      builder: builder ?? this.builder,
+      prepare: prepare ?? this.prepare,
+      actor: actor ?? this.actor,
+    );
+  }
 }
