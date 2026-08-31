@@ -198,39 +198,40 @@ class IdeathonWorkspaceBody extends StatelessWidget {
         if (users.isEmpty)
           Text(emptyLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)))
         else
-          Column(
+          Wrap(
+            spacing: 10,
+            runSpacing: 6,
             children: users.map((UserModel user) {
               final String id = user.userId.trim();
               final bool canOpen = id.isNotEmpty;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: <Widget>[
-                    UserWorkspaceAvatar(
-                      user: user,
-                      radius: 13,
-                      ringPadding: 2,
-                      semantic: semantic,
-                      allowHoverScale: false,
-                      enabled: canOpen,
-                      onTap: canOpen ? () => WorkspaceNavigator.openUser(context, id) : () {},
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        userDisplayName(user),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                          height: 1.2,
-                        ),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  UserWorkspaceAvatar(
+                    user: user,
+                    radius: 13,
+                    ringPadding: 2,
+                    semantic: semantic,
+                    allowHoverScale: false,
+                    enabled: canOpen,
+                    onTap: canOpen ? () => WorkspaceNavigator.openUser(context, id) : () {},
+                  ),
+                  const SizedBox(width: 6),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
+                    child: Text(
+                      userDisplayName(user),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               );
             }).toList(growable: false),
           ),

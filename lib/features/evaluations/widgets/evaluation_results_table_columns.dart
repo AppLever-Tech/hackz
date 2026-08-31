@@ -135,11 +135,13 @@ class EvaluationResultsRowCard extends StatelessWidget {
     required this.row,
     required this.actions,
     this.ideathonScoped = false,
+    this.showProblemTitle = true,
   });
 
   final EvaluationResultsRow row;
   final EvaluationResultsTableActions actions;
   final bool ideathonScoped;
+  final bool showProblemTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -194,13 +196,15 @@ class EvaluationResultsRowCard extends StatelessWidget {
                         style: MobileRowCardStyles.title,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      row.problemTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.3),
-                    ),
+                    if (showProblemTitle) ...<Widget>[
+                      const SizedBox(height: 4),
+                      Text(
+                        row.problemTitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF64748B), height: 1.3),
+                      ),
+                    ],
                   ],
                 ),
               ),

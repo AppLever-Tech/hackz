@@ -5,6 +5,7 @@ import 'package:hackz/features/attachment/workspace/attachment_workspace.dart';
 import 'package:hackz/features/idea/workspace/idea_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_template_workspace.dart';
 import '../../features/evaluations/workspace/evaluation_workspace.dart';
+import '../../features/dashboard/chrome/dashboard_session_scope.dart';
 import '../../features/ideathons/workspace/ideathon_evaluation_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_judge_assignment_workspace.dart';
 import '../../features/ideathons/workspace/ideathon_payment_workspace.dart';
@@ -80,7 +81,7 @@ class WorkspaceNavigator extends StatelessWidget {
   static void openIdeathonResults(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     IdeathonResultsWorkspace.open(context, ideathonId, actor: actor);
   }
@@ -118,7 +119,11 @@ class WorkspaceNavigator extends StatelessWidget {
     String ideathonId, {
     UserModel? actor,
   }) {
-    IdeathonWorkspace.open(context, ideathonId, actor: actor);
+    IdeathonWorkspace.open(
+      context,
+      ideathonId,
+      actor: actor ?? DashboardSessionScope.maybeOf(context)?.user,
+    );
   }
 
   /// Opens the read-only attachment workspace for [attachmentId].

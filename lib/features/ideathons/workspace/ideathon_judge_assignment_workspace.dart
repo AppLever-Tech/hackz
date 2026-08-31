@@ -2,23 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
+import '../../events/models/event_kind.dart';
 import '../../user/models/user_model.dart';
-import '../services/ideathon_judge_assignment_service.dart';
 import 'ideathon_judge_assignment_workspace_body.dart';
+import 'ideathon_judge_assignment_workspace_loader.dart';
 
-/// Department Admin workspace for Ideathon-scoped judge assignment.
+/// Event-scoped judge assignment in the right-side workspace (Ideathon today; Hackathon later).
 abstract final class IdeathonJudgeAssignmentWorkspace {
   IdeathonJudgeAssignmentWorkspace._();
 
   static WorkspaceRoute _route(String ideathonId, {UserModel? actor}) {
-    late IdeathonJudgeAssignmentViewModel vm;
+    late IdeathonJudgeAssignmentWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonJudgeAssignment:$ideathonId',
-      title: 'Manage Judge Assignments',
+      title: 'Judge Assignment',
       subtitle: WorkspaceRoute.loadingSubtitle,
-      helpPageId: 'ideathon',
+      helpPageId: EventKind.ideathon.helpPageId,
       prepare: () async {
-        vm = await IdeathonJudgeAssignmentService.load(ideathonId);
+        vm = await IdeathonJudgeAssignmentWorkspaceLoader.load(ideathonId);
       },
       builder: (BuildContext context) => IdeathonJudgeAssignmentWorkspaceBody(
         vm: vm,

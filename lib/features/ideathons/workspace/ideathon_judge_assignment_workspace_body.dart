@@ -3,24 +3,20 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
-import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../core/ui/feedback/feedback.dart';
-import '../../../core/ui/inputs/hackz_input_decoration.dart';
-import '../../../core/responsive/responsive_metric_grid.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../core/workspace/workspace_theme.dart';
-import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../utils/common_helpers.dart';
-import '../../evaluations/assignments/models/evaluation_assignment_conflict.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
-import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
-import '../../evaluations/widgets/evaluator_assignment_row.dart';
+import '../../events/models/event_kind.dart';
+import '../../events/widgets/event_labeled_field.dart';
+import '../../events/widgets/workspace_collapsible_section.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_judge_assignment_service.dart';
-import '../widgets/ideathon_status_pill.dart';
-
-enum _AssignmentFilter { all, assigned, unassigned }
+import '../widgets/ideathon_assign_judges_sheet.dart';
+import '../widgets/ideathon_event_workspace_header.dart';
+import 'ideathon_judge_assignment_workspace_loader.dart';
 
 class IdeathonJudgeAssignmentWorkspaceBody extends StatefulWidget {
   const IdeathonJudgeAssignmentWorkspaceBody({
@@ -29,7 +25,7 @@ class IdeathonJudgeAssignmentWorkspaceBody extends StatefulWidget {
     this.actor,
   });
 
-  final IdeathonJudgeAssignmentViewModel vm;
+  final IdeathonJudgeAssignmentWorkspaceViewModel vm;
   final UserModel? actor;
 
   @override
@@ -39,10 +35,20 @@ class IdeathonJudgeAssignmentWorkspaceBody extends StatefulWidget {
 
 class _IdeathonJudgeAssignmentWorkspaceBodyState
     extends State<IdeathonJudgeAssignmentWorkspaceBody> {
-  late IdeathonJudgeAssignmentViewModel _vm;
+  late IdeathonJudgeAssignmentWorkspaceViewModel _vm;
   bool _busy = false;
-  String _search = '';
-  _AssignmentFilter _filter = _AssignmentFilter.all;
+
+  static const EventKind _kind = EventKind.ideathon;
+  static const double _metricLabelWidth = 140;
+  static const TextStyle _metricValueStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w900,
+    letterSpacing: -0.3,
+    height: 1.1,
+    color: Color(0xFF0F172A),
+  );
+
+  IdeathonJudgeAssignmentViewModel get _assignments => _vm.assignments;
 
   @override
   void initState() {
@@ -57,41 +63,18 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
   }
 
   bool get _canManage =>
-      IdeathonJudgeAssignmentService.canManageAssignments(widget.actor) && !_vm.evaluationLocked;
-
-  bool get _isAdmin => IdeathonJudgeAssignmentService.canManageAssignments(widget.actor);
+      IdeathonJudgeAssignmentService.canManageAssignments(widget.actor) &&
+      !_assignments.evaluationLocked;
 
   Future<void> _reload() async {
-    final IdeathonJudgeAssignmentViewModel next =
-        await IdeathonJudgeAssignmentService.load(_vm.ideathon.ideathonId);
+    final IdeathonJudgeAssignmentWorkspaceViewModel next =
+        await IdeathonJudgeAssignmentWorkspaceLoader.load(_assignments.ideathon.ideathonId);
     if (!mounted) return;
     setState(() => _vm = next);
   }
 
-  List<IdeathonJudgeAssignmentRow> get _filteredRows {
-    final String q = _search.trim().toLowerCase();
-    return _vm.rows.where((IdeathonJudgeAssignmentRow row) {
-      switch (_filter) {
-        case _AssignmentFilter.assigned:
-          if (!row.isAssigned) return false;
-        case _AssignmentFilter.unassigned:
-          if (row.isAssigned) return false;
-        case _AssignmentFilter.all:
-          break;
-      }
-      if (q.isEmpty) return true;
-      final String hay = <String>[
-        row.snapshot.ideaTitle,
-        row.snapshot.problemTitle,
-        row.snapshot.teamName,
-        row.idea.ideaTitle,
-      ].join(' ').toLowerCase();
-      return hay.contains(q);
-    }).toList(growable: false);
-  }
-
   Future<void> _openAssignSheet(IdeathonJudgeAssignmentRow row) async {
-    if (_vm.evaluationLocked) {
+    if (_assignments.evaluationLocked) {
       FeedbackService.showWarning(
         context,
         title: 'Assignments locked',
@@ -117,16 +100,16 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (BuildContext context) {
-        return _AssignJudgesSheet(
+        return IdeathonAssignJudgesSheet(
           row: row,
-          evaluators: _vm.evaluators,
+          evaluators: _assignments.evaluators,
           initiallySelected: selected,
           onSave: (Set<String> judgeIds) async {
             final Set<String> toAdd = judgeIds.difference(selected);
             if (toAdd.isEmpty) return;
             await IdeathonJudgeAssignmentService.assignJudgesToIdea(
               actor: widget.actor!,
-              ideathonId: _vm.ideathon.ideathonId,
+              ideathonId: _assignments.ideathon.ideathonId,
               ideaId: row.ideaId,
               judgeIds: toAdd,
             );
@@ -151,12 +134,16 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
     try {
       await IdeathonJudgeAssignmentService.removeAssignment(
         actor: widget.actor!,
-        ideathonId: _vm.ideathon.ideathonId,
+        ideathonId: _assignments.ideathon.ideathonId,
         assignmentId: assignment.assignmentId,
       );
       await _reload();
       if (!mounted) return;
-      FeedbackService.showSuccess(context, title: 'Judge removed', message: 'Assignment updated for this Ideathon.');
+      FeedbackService.showSuccess(
+        context,
+        title: 'Judge removed',
+        message: 'Assignment updated for this Ideathon.',
+      );
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to remove', message: '$e');
@@ -167,245 +154,162 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
 
   @override
   Widget build(BuildContext context) {
-    final ideathon = _vm.ideathon;
-    final metrics = _vm.metrics;
-    final String templateName =
-        _vm.template.templateName.trim().isEmpty ? _vm.template.templateId : _vm.template.templateName.trim();
+    final IdeathonJudgeAssignmentMetrics metrics = _assignments.metrics;
+    final String entries = _kind.entriesLabel.toLowerCase();
 
     return ListView(
       padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
-        ResponsiveMetricGrid(
-          chips: <DashboardMetricChipData>[
-            DashboardMetricChipData.single(
-              label: 'Registered Ideas',
-              value: '${metrics.totalIdeas}',
-              color: const Color(0xFF4A67FF),
-              icon: AppIcons.ideas,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Assigned',
-              value: '${metrics.assignedIdeas}',
-              color: const Color(0xFF059669),
-              icon: AppIcons.workflowApproved,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Unassigned',
-              value: '${metrics.unassignedIdeas}',
-              color: const Color(0xFFEA580C),
-              icon: AppIcons.info,
-            ),
-            DashboardMetricChipData.single(
-              label: 'Assignments',
-              value: '${metrics.totalAssignments}',
-              color: const Color(0xFF7C3AED),
-              icon: AppIcons.judges,
-            ),
-          ],
+        ideathonEventWorkspaceHeader(
+          event: _assignments.ideathon,
+          organisationName: _vm.organisationName,
         ),
         const SizedBox(height: 14),
-        if (_vm.evaluationLocked) ...<Widget>[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFCD34D)),
-            ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Judge assignments are locked because evaluation has started. Submitted scores are not changed from this view.',
-                    style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        if (_assignments.evaluationLocked) ...<Widget>[
+          _lockedBanner(),
           const SizedBox(height: 12),
         ],
-        if (_vm.workloads.isNotEmpty) ...<Widget>[
-          const Text(
-            'Judge workload',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _vm.workloads
-                .map(
-                  (IdeathonJudgeWorkload w) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: w.ideaCount == 0 ? const Color(0xFFFFF7ED) : const Color(0xFFF5F3FF),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: w.ideaCount == 0 ? const Color(0xFFFED7AA) : const Color(0xFFDDD6FE),
-                      ),
-                    ),
-                    child: Text(
-                      '${w.displayName} · ${w.ideaCount} idea${w.ideaCount == 1 ? '' : 's'}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: w.ideaCount == 0 ? const Color(0xFFC2410C) : const Color(0xFF5B21B6),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: kDashboardCardDecoration,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(ideathon.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 6),
-              IdeathonStatusPill(status: ideathon.status, compact: false),
-              const SizedBox(height: 10),
-              _detailRow('Starts', formatDateTime(ideathon.startDateTime.toLocal())),
-              _detailRow('Ends', formatDateTime(ideathon.endDateTime.toLocal())),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const SizedBox(
-                    width: 110,
-                    child: Text(
-                      'Evaluation Template',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-                    ),
-                  ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: EntityCardPills.workspace(
-                        templateName,
-                        ContextPillSemantic.evaluationTemplate,
-                        () => WorkspaceNavigator.openEvaluationTemplate(
-                          context,
-                          _vm.template.templateId,
+        if (_assignments.workloads.isNotEmpty) ...<Widget>[
+          WorkspaceCollapsibleSection(
+            title: 'Judge workload',
+            icon: AppIcons.judges,
+            collapsible: false,
+            initiallyExpanded: true,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _assignments.workloads
+                  .map(
+                    (IdeathonJudgeWorkload w) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: w.ideaCount == 0 ? const Color(0xFFFFF7ED) : const Color(0xFFF5F3FF),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: w.ideaCount == 0 ? const Color(0xFFFED7AA) : const Color(0xFFDDD6FE),
                         ),
-                        icon: AppIcons.scoring,
+                      ),
+                      child: Text(
+                        '${w.displayName} · ${w.ideaCount} ${w.ideaCount == 1 ? _kind.payableItemLabel.toLowerCase() : entries}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: w.ideaCount == 0 ? const Color(0xFFC2410C) : const Color(0xFF5B21B6),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        WorkspaceCollapsibleSection(
+          title: 'Assignments',
+          icon: AppIcons.judges,
+          collapsible: false,
+          initiallyExpanded: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _metric(
+                icon: _kind.entriesIcon,
+                label: 'Registered $entries',
+                value: '${metrics.totalIdeas}',
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Explicitly assign judges to paid ideas registered for this Ideathon. Judges are not assigned automatically. The evaluation template is fixed for the event.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+              _metric(
+                icon: AppIcons.workflowApproved,
+                label: 'Assigned',
+                value: '${metrics.assignedIdeas}',
               ),
-              if (_vm.evaluationLocked) ...<Widget>[
-                const SizedBox(height: 8),
-                const Text(
-                  'View only — assignments locked after evaluation started.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
-                ),
-              ] else if (!_isAdmin) ...<Widget>[
-                const SizedBox(height: 8),
-                const Text(
-                  'View only — Department Admin can assign or reassign judges.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
-                ),
-              ],
+              _metric(
+                icon: AppIcons.info,
+                label: 'Unassigned',
+                value: '${metrics.unassignedIdeas}',
+              ),
+              _metric(
+                icon: AppIcons.judges,
+                label: 'Assignments',
+                value: '${metrics.totalAssignments}',
+                isLast: true,
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        TextField(
-          onChanged: (String v) => setState(() => _search = v),
-          style: HackzInputDecoration.fieldTextStyle,
-          decoration: HackzInputDecoration.decorate(
-            hintText: 'Search ideas, teams, problems…',
-            prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
-          ),
-        ),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            _filterChip(label: 'All', selected: _filter == _AssignmentFilter.all, onTap: () => setState(() => _filter = _AssignmentFilter.all)),
-            _filterChip(
-              label: 'Assigned',
-              selected: _filter == _AssignmentFilter.assigned,
-              onTap: () => setState(() => _filter = _AssignmentFilter.assigned),
-            ),
-            _filterChip(
-              label: 'Unassigned',
-              selected: _filter == _AssignmentFilter.unassigned,
-              onTap: () => setState(() => _filter = _AssignmentFilter.unassigned),
-            ),
-          ],
+        if (_busy) const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: LinearProgressIndicator(minHeight: 2),
         ),
-        const SizedBox(height: 12),
-        if (_busy) const LinearProgressIndicator(minHeight: 2),
-        if (_filteredRows.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'No Ideathon ideas match your filters.',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          )
-        else
-          ..._filteredRows.map(
-            (IdeathonJudgeAssignmentRow row) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _IdeaAssignmentCard(
-                row: row,
-                judgeById: _vm.judgeById,
-                canManage: _canManage,
-                onAssign: () => _openAssignSheet(row),
-                onRemove: _remove,
-              ),
-            ),
-          ),
+        WorkspaceCollapsibleSection(
+          title: _kind.entriesLabel,
+          icon: _kind.entriesIcon,
+          count: _assignments.rows.length,
+          child: _assignments.rows.isEmpty
+              ? Text(
+                  'No $entries registered.',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                )
+              : Column(
+                  children: _assignments.rows
+                      .map(
+                        (IdeathonJudgeAssignmentRow row) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _IdeaAssignmentCard(
+                            row: row,
+                            judgeById: _assignments.judgeById,
+                            canManage: _canManage,
+                            onAssign: () => _openAssignSheet(row),
+                            onRemove: _remove,
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+        ),
       ],
     );
   }
 
-  Widget _filterChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      selectedColor: const Color(0xFFE0E7FF),
-      checkmarkColor: const Color(0xFF4338CA),
-      side: BorderSide(color: selected ? const Color(0xFF6366F1) : const Color(0xFFE2E8F0)),
+  Widget _lockedBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFCD34D)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Judge assignments are locked because evaluation has started. Submitted scores are not changed from this view.',
+              style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-        ],
-      ),
+  Widget _metric({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isLast = false,
+  }) {
+    return EventLabeledField(
+      icon: icon,
+      label: label,
+      value: value,
+      labelWidth: _metricLabelWidth,
+      valueStyle: _metricValueStyle,
+      valueTextAlign: TextAlign.end,
+      isLast: isLast,
     );
   }
 }
@@ -431,7 +335,7 @@ class _IdeaAssignmentCard extends StatelessWidget {
         row.snapshot.ideaTitle.trim().isEmpty ? row.ideaId : row.snapshot.ideaTitle.trim();
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
         color: const Color(0xFFFCFDFF),
         borderRadius: BorderRadius.circular(12),
@@ -457,7 +361,7 @@ class _IdeaAssignmentCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: row.isAssigned ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
                   borderRadius: BorderRadius.circular(8),
@@ -474,39 +378,74 @@ class _IdeaAssignmentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            '${row.snapshot.problemTitle} · ${row.snapshot.teamName}',
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 10),
           if (row.assignments.isEmpty)
             const Text(
-              'No judges assigned for this Ideathon idea.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              'No judges assigned.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
             )
           else
             Wrap(
-              spacing: 6,
+              spacing: 10,
               runSpacing: 6,
               children: row.assignments.map((EvaluationAssignmentModel a) {
+                final UserModel? user = judgeById[a.judgeId.trim()];
                 final String name =
                     IdeathonJudgeAssignmentService.judgeDisplayName(judgeById, a.judgeId);
-                return InputChip(
-                  label: Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                  avatar: Icon(AppIcons.judges, size: 14, color: Colors.grey.shade700),
-                  onDeleted: canManage ? () => onRemove(a) : null,
-                  deleteIconColor: const Color(0xFF64748B),
-                  backgroundColor: const Color(0xFFF8FAFC),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (user != null)
+                      UserWorkspaceAvatar(
+                        user: user,
+                        radius: 11,
+                        ringPadding: 1,
+                        semantic: ContextPillSemantic.judge,
+                        allowHoverScale: false,
+                        enabled: user.userId.trim().isNotEmpty,
+                        onTap: user.userId.trim().isEmpty
+                            ? () {}
+                            : () => WorkspaceNavigator.openUser(context, user.userId),
+                      )
+                    else
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: const Color(0xFFEEF2FF),
+                        child: Icon(AppIcons.judges, size: 13, color: Colors.grey.shade700),
+                      ),
+                    const SizedBox(width: 6),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 140),
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF0F172A),
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                    if (canManage)
+                      InkWell(
+                        onTap: () => onRemove(a),
+                        borderRadius: BorderRadius.circular(8),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(AppIcons.remove, size: 16, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                  ],
                 );
               }).toList(growable: false),
             ),
           if (canManage) ...<Widget>[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
               child: ProblemWorkflowActionPill(
-                label: row.isAssigned ? 'Assign more judges' : 'Assign judges',
+                label: row.isAssigned ? 'Assign more' : 'Assign judges',
                 icon: AppIcons.judges,
                 semantic: ProblemWorkflowPillSemantic.filledBrand,
                 onTap: onAssign,
@@ -514,165 +453,6 @@ class _IdeaAssignmentCard extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _AssignJudgesSheet extends StatefulWidget {
-  const _AssignJudgesSheet({
-    required this.row,
-    required this.evaluators,
-    required this.initiallySelected,
-    required this.onSave,
-  });
-
-  final IdeathonJudgeAssignmentRow row;
-  final List<UserModel> evaluators;
-  final Set<String> initiallySelected;
-  final Future<void> Function(Set<String> judgeIds) onSave;
-
-  @override
-  State<_AssignJudgesSheet> createState() => _AssignJudgesSheetState();
-}
-
-class _AssignJudgesSheetState extends State<_AssignJudgesSheet> {
-  late Set<String> _selected;
-  bool _saving = false;
-  String _search = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _selected = Set<String>.from(widget.initiallySelected);
-  }
-
-  List<UserModel> get _filtered {
-    final String q = _search.trim().toLowerCase();
-    return widget.evaluators.where((UserModel u) {
-      if (q.isEmpty) return true;
-      return u.displayName.toLowerCase().contains(q) || u.userId.toLowerCase().contains(q);
-    }).toList(growable: false);
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    try {
-      await widget.onSave(_selected);
-      if (!mounted) return;
-      Navigator.of(context).pop(true);
-    } catch (e) {
-      if (!mounted) return;
-      FeedbackService.showError(context, title: 'Unable to assign', message: '$e');
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double height = MediaQuery.sizeOf(context).height * 0.78;
-    return SafeArea(
-      child: SizedBox(
-        height: height,
-        child: Column(
-          children: <Widget>[
-            const SizedBox(height: 10),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFCBD5E1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-              child: Row(
-                children: <Widget>[
-                  const Expanded(
-                    child: Text(
-                      'Assign judges',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 4),
-                  FilledButton(
-                    onPressed: _saving || _selected.difference(widget.initiallySelected).isEmpty
-                        ? null
-                        : _save,
-                    child: _saving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Save'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Idea: ${widget.row.snapshot.ideaTitle}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-              child: TextField(
-                onChanged: (String v) => setState(() => _search = v),
-                style: HackzInputDecoration.fieldTextStyle,
-                decoration: HackzInputDecoration.decorate(
-                  hintText: 'Search judges…',
-                  prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                itemCount: _filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 6),
-                itemBuilder: (BuildContext context, int index) {
-                  final UserModel judge = _filtered[index];
-                  final EvaluationAssignmentConflict conflict =
-                      EvaluationAssignmentService.validateConflict(
-                    judge: judge,
-                    idea: widget.row.idea,
-                    team: widget.row.team,
-                  );
-                  final bool already = widget.initiallySelected.contains(judge.userId);
-                  final bool selected = _selected.contains(judge.userId);
-                  return EvaluatorAssignmentRow(
-                    evaluator: judge,
-                    selected: selected,
-                    workloadLabel: already ? 'Assigned' : '',
-                    conflictLabel: conflict.isConflict ? conflict.reasons.join(' · ') : null,
-                    enabled: !already && !conflict.isConflict,
-                    onToggle: () {
-                      if (already || conflict.isConflict) return;
-                      setState(() {
-                        if (selected) {
-                          _selected.remove(judge.userId);
-                        } else {
-                          _selected.add(judge.userId);
-                        }
-                      });
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

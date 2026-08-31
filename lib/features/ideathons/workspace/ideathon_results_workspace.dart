@@ -2,66 +2,52 @@ import 'package:flutter/material.dart';
 
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
-import '../../../core/workspace/workspace_theme.dart';
-import '../../evaluations/screens/evaluation_results_screen.dart';
+import '../../events/models/event_kind.dart';
 import '../../user/models/user_model.dart';
-import '../services/ideathon_service.dart';
+import 'ideathon_results_workspace_body.dart';
+import 'ideathon_results_workspace_loader.dart';
 
-/// Opens the **existing** Evaluation Results UX scoped to one Ideathon.
-///
-/// Does not create a second results screen — embeds [EvaluationResultsScreen].
+/// Event-scoped evaluation results in the right-side workspace (Ideathon today; Hackathon later).
 abstract final class IdeathonResultsWorkspace {
   IdeathonResultsWorkspace._();
 
-  static WorkspaceRoute _route(String ideathonId, {required UserModel actor}) {
-    String name = '';
+  static WorkspaceRoute _route(String ideathonId) {
+    late IdeathonResultsWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathonResults:$ideathonId',
-      title: 'Ideathon Evaluation Results',
+      title: 'Evaluation Results',
       subtitle: WorkspaceRoute.loadingSubtitle,
-      helpPageId: 'ideathon',
+      helpPageId: EventKind.ideathon.helpPageId,
       prepare: () async {
-        final ideathon = await IdeathonService.fetchById(ideathonId);
-        if (ideathon == null) throw StateError('Ideathon not found.');
-        name = ideathon.name;
+        vm = await IdeathonResultsWorkspaceLoader.load(ideathonId);
       },
-      builder: (BuildContext context) {
-        return Padding(
-          padding: WorkspaceTheme.bodyPadding(context),
-          child: EvaluationResultsScreen(
-            user: actor,
-            ideathonId: ideathonId,
-            ideathonName: name,
-            embedded: true,
-          ),
-        );
-      },
+      builder: (BuildContext context) => IdeathonResultsWorkspaceBody(vm: vm),
     );
   }
 
   static void open(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     final String id = ideathonId.trim();
     if (id.isEmpty) return;
     final String routeId = 'ideathonResults:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.open(context, _route(id, actor: actor));
+    HkzWorkspace.open(context, _route(id));
   }
 
   static void push(
     BuildContext context,
     String ideathonId, {
-    required UserModel actor,
+    UserModel? actor,
   }) {
     final String id = ideathonId.trim();
     if (id.isEmpty) return;
     final String routeId = 'ideathonResults:$id';
     final current = HkzWorkspace.controllerOf(context).current;
     if (current != null && current.id == routeId) return;
-    HkzWorkspace.push(context, _route(id, actor: actor));
+    HkzWorkspace.push(context, _route(id));
   }
 }

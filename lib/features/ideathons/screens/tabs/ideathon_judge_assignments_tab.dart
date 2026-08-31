@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/features/ideathons/services/ideathon_judge_assignment_service.dart';
-import 'package:hackz/features/ideathons/workspace/ideathon_judge_assignment_workspace_body.dart';
+import 'package:hackz/features/ideathons/widgets/ideathon_judge_assignments_panel.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 
 /// Ideathon Details tab: explicit Idea → Judge assignment (existing workspace UI).
@@ -64,7 +64,7 @@ class _IdeathonJudgeAssignmentsTabState extends State<IdeathonJudgeAssignmentsTa
             ),
           );
         }
-        return IdeathonJudgeAssignmentWorkspaceBody(
+        return IdeathonJudgeAssignmentsPanel(
           vm: snapshot.data!,
           actor: widget.actor,
         );
