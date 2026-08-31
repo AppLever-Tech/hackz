@@ -16,6 +16,8 @@ import '../widgets/evaluation_summary_cards.dart';
 import '../../../core/workspace/workspace_controller.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../core/workspace/workspace_theme.dart';
+import '../../ideathons/widgets/ideathon_event_workspace_header.dart';
+import 'judge_score_workspace.dart';
 
 /// Opens evaluation-centric details in the dashboard overlay (not Idea Details).
 void showEvaluationDetailsPane(
@@ -177,6 +179,13 @@ class EvaluationDetailsBody extends StatelessWidget {
     return ListView(
       padding: pad,
       children: <Widget>[
+        if (vm.event != null) ...<Widget>[
+          ideathonEventWorkspaceHeader(
+            event: vm.event!,
+            organisationName: vm.organisationName,
+          ),
+          const SizedBox(height: 14),
+        ],
         if (!workspace) ...<Widget>[
           EvaluationSummaryCards(
             idea: vm.idea,
@@ -190,6 +199,18 @@ class EvaluationDetailsBody extends StatelessWidget {
           judgeDetails: vm.judgeDetails,
           departmentCode: vm.idea.problemDepartmentCode,
           compactRows: workspace,
+          onScoreTap: (EvaluationJudgeDetail detail) {
+            JudgeScoreWorkspace.push(
+              context,
+              scoreId: detail.scoreId,
+              idea: vm.idea,
+              teamLabel: vm.teamName,
+              templateId: detail.templateId,
+              ideathonId: vm.ideathonId,
+              departmentCode: vm.idea.problemDepartmentCode,
+              judge: detail.judgeUser,
+            );
+          },
         ),
       ],
     );

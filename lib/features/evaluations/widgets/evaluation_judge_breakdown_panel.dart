@@ -12,11 +12,13 @@ class EvaluationJudgeBreakdownPanel extends StatelessWidget {
     required this.judgeDetails,
     required this.departmentCode,
     this.compactRows = false,
+    this.onScoreTap,
   });
 
   final List<EvaluationJudgeDetail> judgeDetails;
   final String departmentCode;
   final bool compactRows;
+  final void Function(EvaluationJudgeDetail detail)? onScoreTap;
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,7 @@ class EvaluationJudgeBreakdownPanel extends StatelessWidget {
                 detail: judgeDetails[i],
                 departmentCode: departmentCode,
                 compact: compactRows,
+                onScoreTap: onScoreTap == null ? null : () => onScoreTap!(judgeDetails[i]),
               ),
             ],
         ],

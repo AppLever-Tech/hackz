@@ -5,7 +5,10 @@ import '../../../utils/firestore_utils.dart';
 import '../workspace/evaluation_workspace_loader.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
+import '../../ideathons/models/ideathon_model.dart';
+import '../../ideathons/services/ideathon_service.dart';
 import '../../organization/models/department_model.dart';
+import '../../organization/models/organization_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../problems/models/problem_model.dart';
 import '../../team/models/team_model.dart';
@@ -84,11 +87,21 @@ abstract final class EvaluationDetailsLoader {
         ? Future<UserModel?>.value(null)
         : FirestoreUtils.fetchUser(idea.createdBy.trim());
 
+    final Future<IdeathonModel?> eventFuture = eventId.isEmpty
+        ? Future<IdeathonModel?>.value(null)
+        : IdeathonService.fetchById(eventId);
+
+    final Future<OrganizationModel?> orgFuture = orgId.isEmpty
+        ? Future<OrganizationModel?>.value(null)
+        : FirestoreUtils.fetchOrganization(orgId);
+
     final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
       scoresFuture,
       teamFuture,
       problemFuture,
       submitterFuture,
+      eventFuture,
+      orgFuture,
     ]);
 
     final QuerySnapshot<Map<String, dynamic>> scoresSnap =
@@ -97,6 +110,8 @@ abstract final class EvaluationDetailsLoader {
         parallel[1] as DocumentSnapshot<Map<String, dynamic>>?;
     final ProblemModel? problem = parallel[2] as ProblemModel?;
     final UserModel? submitter = parallel[3] as UserModel?;
+    final IdeathonModel? event = parallel[4] as IdeathonModel?;
+    final OrganizationModel? organisation = parallel[5] as OrganizationModel?;
 
     final TeamModel? team = teamDoc != null && teamDoc.exists && teamDoc.data() != null
         ? TeamModel.fromMap(teamDoc.id, teamDoc.data()!)
@@ -197,6 +212,8 @@ abstract final class EvaluationDetailsLoader {
       judgeDetails: judgeDetails,
       scoringScale: scoringScale,
       ideathonId: eventId,
+      event: event,
+      organisationName: (organisation?.name ?? '').trim(),
       aggregateOverride: scores.isEmpty
           ? null
           : IdeaEvaluationAggregate(

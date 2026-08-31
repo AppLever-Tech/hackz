@@ -49,6 +49,7 @@ class EvaluateIdeaDialog extends StatefulWidget {
     this.overrideTemplate,
     this.ideathonName = '',
     this.ideathonSchedule = '',
+    this.embedded = false,
   });
 
   final UserModel judge;
@@ -73,6 +74,9 @@ class EvaluateIdeaDialog extends StatefulWidget {
 
   final String ideathonName;
   final String ideathonSchedule;
+
+  /// When true, omit dialog title and action buttons (workspace body).
+  final bool embedded;
 
   static Future<bool?> showForIdeaListItem(
     BuildContext context, {
@@ -604,8 +608,10 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text('Evaluate submission', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 12),
+        if (!widget.embedded) ...<Widget>[
+          Text('Evaluate submission', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+        ],
         FutureBuilder<void>(
           future: _settingsFuture,
           builder: (BuildContext context, AsyncSnapshot<void> snap) {
@@ -625,23 +631,25 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
             return _buildBody(context, t);
           },
         ),
-        const SizedBox(height: 16),
-        ResponsiveDialogActions(
-          children: <Widget>[
-            if (widget.readOnly)
-              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
-            else ...<Widget>[
-              TextButton(
-                onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: (_saving || _template == null) ? null : _save,
-                child: Text(_saving ? 'Saving…' : 'Submit evaluation'),
-              ),
+        if (!widget.embedded) ...<Widget>[
+          const SizedBox(height: 16),
+          ResponsiveDialogActions(
+            children: <Widget>[
+              if (widget.readOnly)
+                TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
+              else ...<Widget>[
+                TextButton(
+                  onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: (_saving || _template == null) ? null : _save,
+                  child: Text(_saving ? 'Saving…' : 'Submit evaluation'),
+                ),
+              ],
             ],
-          ],
-        ),
+          ),
+        ],
       ],
     );
   }

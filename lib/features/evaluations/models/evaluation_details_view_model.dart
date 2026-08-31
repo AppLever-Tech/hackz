@@ -1,4 +1,5 @@
 import '../../idea/models/idea_model.dart';
+import '../../ideathons/models/ideathon_model.dart';
 import '../../user/models/enums/judge_type.dart';
 import '../../user/models/user_model.dart';
 import '../services/evaluation_aggregation_service.dart';
@@ -43,6 +44,8 @@ class EvaluationDetailsViewModel {
     required this.judgeDetails,
     required this.scoringScale,
     this.ideathonId = '',
+    this.event,
+    this.organisationName = '',
     this.aggregateOverride,
   });
 
@@ -61,6 +64,8 @@ class EvaluationDetailsViewModel {
   final List<EvaluationJudgeDetail> judgeDetails;
   final int scoringScale;
   final String ideathonId;
+  final IdeathonModel? event;
+  final String organisationName;
 
   /// When set (e.g. Ideathon-scoped details), prefer over Idea aggregate fields.
   final IdeaEvaluationAggregate? aggregateOverride;

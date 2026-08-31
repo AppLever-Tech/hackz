@@ -10,18 +10,20 @@ import 'evaluation_judge_detail_dialog.dart';
 import 'judge_type_pill.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
-/// Compact judge row — full criteria open in read-only dialog.
+/// Compact judge row — score opens Ideathon judge scoring; preview stays on pane.
 class EvaluationResultCard extends StatelessWidget {
   const EvaluationResultCard({
     super.key,
     required this.detail,
     required this.departmentCode,
     this.compact = false,
+    this.onScoreTap,
   });
 
   final EvaluationJudgeDetail detail;
   final String departmentCode;
   final bool compact;
+  final VoidCallback? onScoreTap;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +91,7 @@ class EvaluationResultCard extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        _scoreText(overall, scale),
+        _scoreControl(overall, scale),
       ],
     );
   }
@@ -137,7 +139,7 @@ class EvaluationResultCard extends StatelessWidget {
         ),
         _viewButton(context),
         const SizedBox(width: 4),
-        _scoreText(overall, scale),
+        _scoreControl(overall, scale),
       ],
     );
   }
@@ -170,7 +172,7 @@ class EvaluationResultCard extends StatelessWidget {
             ),
             _viewButton(context),
             const SizedBox(width: 4),
-            _scoreText(overall, scale),
+            _scoreControl(overall, scale),
           ],
         ),
         const SizedBox(height: 6),
@@ -245,10 +247,25 @@ class EvaluationResultCard extends StatelessWidget {
     );
   }
 
-  Widget _scoreText(double overall, int scale) {
-    return Text(
+  Widget _scoreControl(double overall, int scale) {
+    final Widget score = Text(
       '${overall.toStringAsFixed(1)}/$scale',
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF6A38FF)),
+    );
+    if (onScoreTap == null) return score;
+    return Tooltip(
+      message: 'View judge evaluation',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onScoreTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: score,
+          ),
+        ),
+      ),
     );
   }
 }
