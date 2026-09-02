@@ -390,14 +390,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         children: <Widget>[
           _buildHeader(context),
           const SizedBox(height: 10),
-          _buildHeaderTeam(context),
+          _buildHeaderContext(context),
           const SizedBox(height: 14),
-          _section(
-            title: 'Problem context',
-            compact: true,
-            child: _buildProblemHero(context),
-          ),
-          const SizedBox(height: 12),
           _section(
             child: _buildEventSelection(),
           ),
@@ -458,87 +452,73 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     );
   }
 
-  Widget _buildHeaderTeam(BuildContext context) {
+  Widget _buildHeaderContext(BuildContext context) {
+    final ProblemModel p = widget.problem;
+    final String problemTitle = p.title.trim().isEmpty ? 'Untitled Problem' : p.title.trim();
+    final Widget problemPill = EntityCardPills.workspace(
+      problemTitle,
+      ContextPillSemantic.problem,
+      () => WorkspaceNavigator.openProblem(context, p.problemId, actor: widget.currentUser),
+      fullWidth: true,
+      icon: AppIcons.problems,
+    );
+
+    final Widget teamSlot;
     if (_teams.isEmpty) {
-      return const Text(
+      teamSlot = const Text(
         'You can submit an innovation only as Team Leader of an active team.',
         style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
       );
-    }
-    final TeamModel? team = _selectedTeam;
-    final String name = (team?.teamName.trim().isNotEmpty == true) ? team!.teamName.trim() : 'Untitled team';
-    return Row(
-      children: <Widget>[
-        if (team != null)
-          Flexible(
-            child: EntityCardPills.workspace(
-              name,
-              ContextPillSemantic.team,
-              () => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
+    } else {
+      final TeamModel? team = _selectedTeam;
+      final String name = (team?.teamName.trim().isNotEmpty == true) ? team!.teamName.trim() : 'Untitled team';
+      teamSlot = Row(
+        children: <Widget>[
+          if (team != null)
+            Expanded(
+              child: EntityCardPills.workspace(
+                name,
+                ContextPillSemantic.team,
+                () => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
+                fullWidth: true,
+              ),
             ),
-          ),
-        if (_teams.length > 1) ...<Widget>[
-          const SizedBox(width: 4),
-          PopupMenuButton<TeamModel>(
-            enabled: !_busy,
-            tooltip: 'Switch team',
-            padding: EdgeInsets.zero,
-            onSelected: (TeamModel next) {
-              setState(() {
-                _selectedTeam = next;
-                _selectedEventId = null;
-              });
-              _loadEvents();
-            },
-            itemBuilder: (BuildContext context) {
-              return _teams
-                  .map(
-                    (TeamModel t) => PopupMenuItem<TeamModel>(
-                      value: t,
-                      child: Text(t.teamName.trim().isEmpty ? 'Untitled team' : t.teamName.trim()),
-                    ),
-                  )
-                  .toList(growable: false);
-            },
-            child: const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
-          ),
+          if (_teams.length > 1) ...<Widget>[
+            const SizedBox(width: 4),
+            PopupMenuButton<TeamModel>(
+              enabled: !_busy,
+              tooltip: 'Switch team',
+              padding: EdgeInsets.zero,
+              onSelected: (TeamModel next) {
+                setState(() {
+                  _selectedTeam = next;
+                  _selectedEventId = null;
+                });
+                _loadEvents();
+              },
+              itemBuilder: (BuildContext context) {
+                return _teams
+                    .map(
+                      (TeamModel t) => PopupMenuItem<TeamModel>(
+                        value: t,
+                        child: Text(t.teamName.trim().isEmpty ? 'Untitled team' : t.teamName.trim()),
+                      ),
+                    )
+                    .toList(growable: false);
+              },
+              child: const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
+            ),
+          ],
         ],
-      ],
-    );
-  }
+      );
+    }
 
-  Widget _buildProblemHero(BuildContext context) {
-    final ProblemModel p = widget.problem;
-    final String title = p.title.trim().isEmpty ? 'Untitled Problem' : p.title.trim();
-    final String code = p.problemNumber.trim().isEmpty ? '—' : p.problemNumber.trim();
-    final String department =
-        p.departmentDisplayName.trim().isEmpty ? '—' : p.departmentDisplayName.trim();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        EntityCardPills.workspace(
-          title,
-          ContextPillSemantic.problem,
-          () => WorkspaceNavigator.openProblem(context, p.problemId, actor: widget.currentUser),
-          fullWidth: true,
-        ),
-        const SizedBox(height: 6),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _spaced(<Widget>[
-              EntityCardPills.meta(code, icon: AppIcons.problems),
-              EntityCardPills.meta(department, icon: AppIcons.departments),
-              if (p.category.trim().isNotEmpty)
-                EntityCardPills.meta(p.category.trim(), icon: AppIcons.orgType),
-              if (p.theme.trim().isNotEmpty)
-                EntityCardPills.meta(p.theme.trim(), icon: AppIcons.insights),
-              ...p.tags.map((String t) => EntityCardPills.meta(t)),
-            ]),
-          ),
-        ),
+        Expanded(child: teamSlot),
+        const SizedBox(width: 8),
+        Expanded(child: problemPill),
       ],
     );
   }
@@ -592,19 +572,21 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   Widget _buildTitleField(BuildContext context) {
     return _inlineField(
       label: 'Title',
+      tight: true,
       child: TextField(
         controller: _titleController,
         enabled: !_busy,
         onChanged: (_) => setState(() {}),
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
           color: Color(0xFF0F172A),
-          height: 1.2,
+          height: 1.25,
         ),
         decoration: HackzInputDecoration.decorate(
-          compact: true,
           hintText: 'What is your innovation idea?',
+          dense: false,
+          contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
@@ -727,15 +709,19 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   Widget _inlineField({
     required String label,
     required Widget child,
+    bool tight = false,
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        SizedBox(
-          width: _labelWidth,
-          child: Text(label, style: HackzInputDecoration.labelStyle),
-        ),
-        const SizedBox(width: 10),
+        if (tight)
+          Text(label, style: HackzInputDecoration.labelStyle)
+        else
+          SizedBox(
+            width: _labelWidth,
+            child: Text(label, style: HackzInputDecoration.labelStyle),
+          ),
+        SizedBox(width: tight ? 6 : 10),
         Expanded(child: child),
       ],
     );
@@ -873,15 +859,5 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         ],
       ),
     );
-  }
-
-  List<Widget> _spaced(List<Widget> items) {
-    if (items.isEmpty) return items;
-    final List<Widget> out = <Widget>[items.first];
-    for (var i = 1; i < items.length; i++) {
-      out.add(const SizedBox(width: 6));
-      out.add(items[i]);
-    }
-    return out;
   }
 }

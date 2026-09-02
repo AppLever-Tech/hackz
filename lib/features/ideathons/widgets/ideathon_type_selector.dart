@@ -32,36 +32,35 @@ class IdeathonTypeSelector extends StatelessWidget {
                   '${IdeathonType.external.label}: ${IdeathonType.external.helpText}',
               child: const Icon(AppIcons.info, size: 16, color: Color(0xFF94A3B8)),
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<IdeathonType>(
-            showSelectedIcon: false,
-            segments: const <ButtonSegment<IdeathonType>>[
-              ButtonSegment<IdeathonType>(
-                value: IdeathonType.internal,
-                label: Text('Internal'),
-              ),
-              ButtonSegment<IdeathonType>(
-                value: IdeathonType.external,
-                label: Text('External'),
-              ),
-            ],
-            selected: <IdeathonType>{value},
-            onSelectionChanged: (Set<IdeathonType> next) {
-              if (next.isEmpty) return;
-              onChanged(next.first);
-            },
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SegmentedButton<IdeathonType>(
+                showSelectedIcon: false,
+                segments: const <ButtonSegment<IdeathonType>>[
+                  ButtonSegment<IdeathonType>(
+                    value: IdeathonType.internal,
+                    label: Text('Internal'),
+                  ),
+                  ButtonSegment<IdeathonType>(
+                    value: IdeathonType.external,
+                    label: Text('External'),
+                  ),
+                ],
+                selected: <IdeathonType>{value},
+                onSelectionChanged: (Set<IdeathonType> next) {
+                  if (next.isEmpty) return;
+                  onChanged(next.first);
+                },
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: WidgetStatePropertyAll(
+                    TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
         const SizedBox(height: 6),
         Text(

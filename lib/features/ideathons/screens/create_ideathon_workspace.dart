@@ -201,6 +201,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       _nameController.text.trim().isNotEmpty &&
       _scheduleValid &&
       _selectedJudgeIds.isNotEmpty &&
+      _selectedCoordinatorIds.isNotEmpty &&
       (_selectedTemplateId ?? '').trim().isNotEmpty &&
       !_saving;
 
@@ -307,14 +308,22 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           TextField(
             controller: _nameController,
             onChanged: (_) => setState(() {}),
-            style: HackzInputDecoration.fieldTextStyle,
-            decoration: HackzInputDecoration.decorate(labelText: 'Event name'),
+            style: HackzInputDecoration.fieldTextStyle.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+            decoration: HackzInputDecoration.decorate(
+              labelText: 'Event name',
+              dense: false,
+              contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _descriptionController,
-            minLines: 5,
-            maxLines: 8,
+            minLines: 3,
+            maxLines: 5,
             style: HackzInputDecoration.fieldTextStyle,
             decoration: HackzInputDecoration.decorate(labelText: 'Description (optional)'),
           ),
@@ -402,9 +411,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Expanded(flex: 3, child: detailsCard),
+                      Expanded(child: detailsCard),
                       const SizedBox(width: 14),
-                      Expanded(flex: 2, child: scheduleCard),
+                      Expanded(child: scheduleCard),
                     ],
                   ),
                 ),
@@ -557,51 +566,63 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Text(
-          'Choose the evaluation template used for this Ideathon.',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF64748B),
-            height: 1.4,
+        _templateInlineRow(
+          label: 'Choose',
+          child: HackzSelectField<String>(
+            value: _selectedTemplateId,
+            hint: 'Select evaluation template',
+            compact: true,
+            prefixIcon: AppIcons.scoring,
+            options: _templates.map((EvaluationTemplate t) => t.templateId).toList(growable: false),
+            labelBuilder: (String id) {
+              for (final EvaluationTemplate t in _templates) {
+                if (t.templateId == id) return t.templateName;
+              }
+              return id;
+            },
+            iconBuilder: (_) => AppIcons.scoring,
+            onChanged: (String id) => setState(() => _selectedTemplateId = id),
           ),
         ),
         const SizedBox(height: 10),
-        HackzSelectField<String>(
-          value: _selectedTemplateId,
-          hint: 'Select evaluation template',
-          prefixIcon: AppIcons.scoring,
-          options: _templates.map((EvaluationTemplate t) => t.templateId).toList(growable: false),
-          labelBuilder: (String id) {
-            for (final EvaluationTemplate t in _templates) {
-              if (t.templateId == id) return t.templateName;
-            }
-            return id;
-          },
-          iconBuilder: (_) => AppIcons.scoring,
-          onChanged: (String id) => setState(() => _selectedTemplateId = id),
+        _templateInlineRow(
+          label: 'Selected',
+          child: selected == null
+              ? const Text(
+                  'Not selected',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+                )
+              : Align(
+                  alignment: Alignment.centerLeft,
+                  child: EntityCardPills.workspace(
+                    selected.templateName,
+                    ContextPillSemantic.evaluationTemplate,
+                    () => WorkspaceNavigator.openEvaluationTemplate(context, selected.templateId),
+                    icon: AppIcons.scoring,
+                  ),
+                ),
         ),
-        if (selected != null) ...<Widget>[
-          const SizedBox(height: 10),
-          const Text(
-            'Selected',
-            style: TextStyle(
+      ],
+    );
+  }
+
+  Widget _templateInlineRow({required String label, required Widget child}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: Color(0xFF64748B),
             ),
           ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: EntityCardPills.workspace(
-              selected.templateName,
-              ContextPillSemantic.evaluationTemplate,
-              () => WorkspaceNavigator.openEvaluationTemplate(context, selected.templateId),
-              icon: AppIcons.scoring,
-            ),
-          ),
-        ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: child),
       ],
     );
   }
@@ -670,9 +691,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final bool expanded = !collapsible || (_sectionExpanded[sectionKey] ?? false);
     return Container(
       width: double.infinity,
+      alignment: fillRemaining ? Alignment.topLeft : null,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: kDashboardCardDecoration,
       child: Column(
+        mainAxisSize: fillRemaining ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           InkWell(
@@ -790,7 +813,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const Text(
-          'Event roster only. Assign judges to specific ideas from the Judge Assignments tab after the event is saved. Assignment is not automatic.',
+          'Select at least one judge and one coordinator. Assign judges to specific ideas from the Judge Assignments tab after the event is saved. Assignment is not automatic.',
           style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 10),

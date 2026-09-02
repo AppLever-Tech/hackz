@@ -66,6 +66,7 @@ abstract final class IdeathonService {
       throw StateError('End date/time must be after start date/time.');
     }
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
+    if (input.coordinatorIds.isEmpty) throw StateError('Assign at least one coordinator.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
 
@@ -156,6 +157,7 @@ abstract final class IdeathonService {
       throw StateError('End date/time must be after start date/time.');
     }
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
+    if (input.coordinatorIds.isEmpty) throw StateError('Assign at least one coordinator.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: existing.orgId);
 
