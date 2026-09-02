@@ -64,6 +64,25 @@ class IdeathonModel {
   int get coordinatorCount => coordinatorIds.length;
   bool get hasOptionalProblem => problemId.trim().isNotEmpty;
 
+  /// Team Leader submissions/payments close one day before the event start.
+  DateTime get submissionCutoff => startDateTime.subtract(const Duration(days: 1));
+
+  /// Scheduled/in-progress events that have not reached the submission cutoff.
+  bool get isAcceptingSubmissions {
+    if (status == IdeathonStatus.completed ||
+        status == IdeathonStatus.archived ||
+        status == IdeathonStatus.draft) {
+      return false;
+    }
+    return DateTime.now().isBefore(submissionCutoff);
+  }
+
+  /// Empty [problemId] means any problem; otherwise the idea must match.
+  bool acceptsProblem(String problemId) {
+    final String bound = this.problemId.trim();
+    return bound.isEmpty || bound == problemId.trim();
+  }
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'ideathonId': ideathonId,

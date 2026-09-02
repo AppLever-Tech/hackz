@@ -13,6 +13,7 @@ class IdeathonPaymentsTab extends StatefulWidget {
     required this.ideathonId,
     this.actor,
     this.loadFuture,
+    this.onChanged,
   });
 
   final String ideathonId;
@@ -20,6 +21,7 @@ class IdeathonPaymentsTab extends StatefulWidget {
 
   /// When set (e.g. details pane prefetch), reuse the in-flight load.
   final Future<EventPaymentsViewModel>? loadFuture;
+  final VoidCallback? onChanged;
 
   @override
   State<IdeathonPaymentsTab> createState() => _IdeathonPaymentsTabState();
@@ -79,6 +81,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
       message: 'Event payment confirmed.',
     );
     _reload();
+    widget.onChanged?.call();
   }
 
   Future<void> _markException(EventPaymentEntry entry, String? remarks) async {
@@ -106,6 +109,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
       message: 'Event payment marked as exception.',
     );
     _reload();
+    widget.onChanged?.call();
   }
 
   @override

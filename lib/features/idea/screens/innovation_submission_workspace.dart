@@ -5,6 +5,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../team/models/enums/team_status.dart';
 import '../../problems/models/problem_model.dart';
 import '../../problems/validators/problem_submission_validators.dart';
+import '../models/idea_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/responsive/responsive_helper.dart';
@@ -12,14 +13,19 @@ import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
+import '../../ideathons/models/ideathon_model.dart';
+import '../../ideathons/services/ideathon_service.dart';
+import '../../ideathons/widgets/ideathon_event_select_field.dart';
+import '../../payment/widgets/payment_dialog.dart';
 import '../../team/services/teams_workspace_service.dart';
 import '../../team/services/team_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
 import '../widgets/innovation_submission_team_selector.dart';
 import '../../../core/ui/loading/loading.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Problem-first innovation submission workspace (launch from Problem Card only).
 ///
@@ -76,6 +82,9 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   List<PlatformFile> _presentationFiles = <PlatformFile>[];
   bool _busy = false;
   bool _loadingTeams = true;
+  bool _loadingEvents = false;
+  List<IdeathonModel> _events = const <IdeathonModel>[];
+  String? _selectedEventId;
 
   @override
   void initState() {
@@ -110,8 +119,47 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           _selectedTeam = _teams.isEmpty ? null : _teams.first;
         }
       });
+      await _loadEvents();
     } finally {
       if (mounted) setState(() => _loadingTeams = false);
+    }
+  }
+
+  Future<void> _loadEvents() async {
+    final TeamModel? team = _selectedTeam;
+    if (team == null) {
+      if (mounted) {
+        setState(() {
+          _events = const <IdeathonModel>[];
+          _selectedEventId = null;
+          _loadingEvents = false;
+        });
+      }
+      return;
+    }
+    setState(() => _loadingEvents = true);
+    try {
+      final List<IdeathonModel> open = await IdeathonService.listOpenForTeam(
+        team: team,
+        problemId: widget.problem.problemId,
+      );
+      if (!mounted) return;
+      String? selected = _selectedEventId;
+      if (selected == null || !open.any((IdeathonModel e) => e.ideathonId == selected)) {
+        selected = open.length == 1 ? open.first.ideathonId : null;
+      }
+      setState(() {
+        _events = open;
+        _selectedEventId = selected;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _events = const <IdeathonModel>[];
+        _selectedEventId = null;
+      });
+    } finally {
+      if (mounted) setState(() => _loadingEvents = false);
     }
   }
 
@@ -122,12 +170,23 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     final bool gateOpen = g == null || g.canSubmit;
     return !_busy &&
         !_loadingTeams &&
+        !_loadingEvents &&
         _teams.isNotEmpty &&
         _selectedTeam != null &&
+        (_selectedEventId ?? '').trim().isNotEmpty &&
         title.isNotEmpty &&
         description.isNotEmpty &&
         widget.problem.isSubmissionOpen &&
         gateOpen;
+  }
+
+  IdeathonModel? get _selectedEvent {
+    final String id = (_selectedEventId ?? '').trim();
+    if (id.isEmpty) return null;
+    for (final IdeathonModel event in _events) {
+      if (event.ideathonId == id) return event;
+    }
+    return null;
   }
 
   Future<void> _submit() async {
@@ -157,11 +216,23 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       );
       return;
     }
+    final String eventId = (_selectedEventId ?? '').trim();
+    if (eventId.isEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Select an event',
+        message: 'Choose an eligible Ideathon before submitting.',
+      );
+      return;
+    }
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
     final int fileCount = _presentationFiles.length;
     setState(() => _busy = true);
     try {
+      await IdeathonService.assertAcceptingParticipation(eventId);
+      if (!mounted) return;
+      late final IdeaModel submitted;
       await HkzAsyncLoader.run<void>(
         context,
         title: 'Submitting Innovation',
@@ -175,7 +246,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
               message: 'Uploading $fileCount file${fileCount == 1 ? '' : 's'} securely...',
             );
           }
-          await TeamService.submitIdea(
+          submitted = await TeamService.submitIdea(
             actor: widget.currentUser,
             team: team,
             problem: widget.problem,
@@ -189,8 +260,23 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         },
       );
       if (!mounted) return;
+      await showPaymentDialog(
+        context: context,
+        currentUser: widget.currentUser,
+        idea: submitted,
+        team: team,
+        initialEventId: eventId,
+      );
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } on TeamRuleException catch (e) {
+      if (!mounted) return;
+      FeedbackService.showWarning(
+        context,
+        title: 'Cannot submit innovation',
+        message: e.message,
+      );
+    } on StateError catch (e) {
       if (!mounted) return;
       FeedbackService.showWarning(
         context,
@@ -318,6 +404,12 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           ),
           const SizedBox(height: 12),
           _section(
+            title: 'Event',
+            subtitle: 'Eligible Ideathons open for this team and problem',
+            child: _buildEventSelection(),
+          ),
+          const SizedBox(height: 12),
+          _section(
             title: 'Title',
             child: _buildTitleField(context),
           ),
@@ -426,9 +518,39 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         setState(() {
           _selectedTeam = team;
           _recentTeamId = team.teamId;
+          _selectedEventId = null;
         });
+        _loadEvents();
       },
       onOpenTeamWorkspace: (TeamModel team) => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
+    );
+  }
+
+  Widget _buildEventSelection() {
+    if (_selectedTeam == null) {
+      return const Text(
+        'Select a team to see eligible Ideathons.',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        IdeathonEventSelectField(
+          events: _events,
+          selectedEventId: _selectedEventId,
+          enabled: !_busy,
+          loading: _loadingEvents,
+          onChanged: (String id) => setState(() => _selectedEventId = id),
+        ),
+        if (!_loadingEvents && _events.isEmpty) ...<Widget>[
+          const SizedBox(height: 8),
+          const Text(
+            'No Ideathon is open for this team and problem. The submission cutoff may have passed.',
+            style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+          ),
+        ],
+      ],
     );
   }
 
@@ -625,6 +747,15 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               _footerMeta(Icons.groups_3_outlined, teamLabel),
+              if (_selectedEvent != null)
+                ContextPill(
+                  label: _selectedEvent!.name.trim().isEmpty ? _selectedEvent!.ideathonId : _selectedEvent!.name.trim(),
+                  semantic: ContextPillSemantic.event,
+                  onTap: () {},
+                  enabled: false,
+                  compact: true,
+                  fitContent: true,
+                ),
               if (attachCount > 0)
                 _footerMeta(AppIcons.attachments, '$attachCount presentation file${attachCount == 1 ? '' : 's'}'),
               _footerMeta(

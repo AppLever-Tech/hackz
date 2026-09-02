@@ -309,7 +309,7 @@ class TeamService {
     }
   }
 
-  static Future<void> submitIdea({
+  static Future<IdeaModel> submitIdea({
     required UserModel actor,
     required TeamModel team,
     required ProblemModel problem,
@@ -364,6 +364,7 @@ class TeamService {
       final urls = uploaded.map((e) => e.downloadUrl).toList(growable: false);
       await doc.update(<String, dynamic>{'files': urls});
     }
+    return idea;
   }
 
   static Future<bool> canSwitchMemberTeam({

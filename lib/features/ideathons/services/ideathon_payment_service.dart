@@ -65,10 +65,7 @@ abstract final class IdeathonPaymentService {
     required UserModel actor,
   }) async {
     final PaymentModel payment = _requireEventPayment(eventId: eventId, entry: entry);
-    await FirestoreUtils.verifyIdeaPayment(
-      paymentId: payment.paymentId,
-      coordinatorId: actor.userId,
-    );
+    await IdeathonService.confirmTeamLeaderPayment(payment: payment, coordinator: actor);
   }
 
   static Future<void> markException({
@@ -165,7 +162,7 @@ abstract final class IdeathonPaymentService {
       }
     }
 
-    final PaymentRecordStatus status = payment?.status ?? PaymentRecordStatus.pending;
+    final PaymentRecordStatus status = payment?.status ?? participation.paymentStatus;
     final bool pending = payment != null && status == PaymentRecordStatus.pending;
 
     return EventPaymentEntry(

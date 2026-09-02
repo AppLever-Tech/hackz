@@ -9,31 +9,42 @@ import 'package:hackz/features/idea/services/idea_status_helpers.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 
 class IdeathonIdeasTab extends StatelessWidget {
-  const IdeathonIdeasTab({super.key, required this.vm});
+  const IdeathonIdeasTab({super.key, required this.vm, this.onRefresh});
 
   final IdeathonDetailsViewModel vm;
+  final VoidCallback? onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    const Widget intro = Padding(
-      padding: EdgeInsets.fromLTRB(4, 4, 4, 10),
+    final Widget intro = Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(AppIcons.ideas, size: 16, color: Color(0xFF334155)),
-              SizedBox(width: 6),
-              Text(
-                'Paid & Confirmed Ideas',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              const Icon(AppIcons.ideas, size: 16, color: Color(0xFF334155)),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Confirmed / eligible submissions for this Ideathon',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                ),
               ),
+              if (onRefresh != null)
+                IconButton(
+                  tooltip: 'Refresh ideas',
+                  icon: const Icon(AppIcons.refresh, size: 18, color: Color(0xFF334155)),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: onRefresh,
+                ),
             ],
           ),
-          SizedBox(height: 4),
-          Text(
-            'Paid ideas registered for this Ideathon. Ideas appear after Team Leader submission and coordinator payment validation. '
-            'Open Idea, Problem, or Team in the right-side workspace.',
+          const SizedBox(height: 4),
+          const Text(
+            'Ideas appear here after Team Leaders submit and coordinators validate payment.',
             style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
           ),
         ],
@@ -41,11 +52,11 @@ class IdeathonIdeasTab extends StatelessWidget {
     );
 
     if (vm.ideas.isEmpty) {
-      return const Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           intro,
-          Expanded(
+          const Expanded(
             child: Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -55,13 +66,13 @@ class IdeathonIdeasTab extends StatelessWidget {
                     Icon(AppIcons.ideas, size: 28, color: Color(0xFF94A3B8)),
                     SizedBox(height: 10),
                     Text(
-                      'No ideas yet',
+                      'No confirmed ideas yet',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
                     ),
                     SizedBox(height: 6),
                     Text(
-                      'Ideas appear automatically after Team Leader submission and coordinator payment validation.',
+                      'Ideas will appear here automatically after Team Leaders submit their ideas and their payments are validated.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12.5, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                     ),

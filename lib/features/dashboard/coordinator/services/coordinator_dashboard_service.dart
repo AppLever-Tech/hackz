@@ -10,6 +10,7 @@ import '../../../../features/team/models/team_model.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/user/services/role_visibility_helpers.dart';
+import '../../../ideathons/services/ideathon_service.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -248,7 +249,7 @@ class CoordinatorDashboardService {
   }
 
   static Future<void> verifyPayment({required PaymentModel payment, required UserModel coordinator}) async {
-    await FirestoreUtils.verifyIdeaPayment(paymentId: payment.paymentId, coordinatorId: coordinator.userId);
+    await IdeathonService.confirmTeamLeaderPayment(payment: payment, coordinator: coordinator);
     clearCache();
   }
 

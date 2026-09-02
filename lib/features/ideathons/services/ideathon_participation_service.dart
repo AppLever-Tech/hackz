@@ -57,6 +57,66 @@ abstract final class IdeathonParticipationService {
     return created;
   }
 
+  /// Pending membership so Event Payments can show the canonical payment.
+  /// Does not add the idea to the event Ideas roster — that happens on confirm.
+  static Future<IdeathonParticipation> ensurePending({
+    required String orgId,
+    required String ideathonId,
+    required String ideaId,
+  }) async {
+    final String eventId = ideathonId.trim();
+    final String idea = ideaId.trim();
+    final String org = orgId.trim();
+    if (eventId.isEmpty || idea.isEmpty) {
+      throw StateError('Event and idea are required.');
+    }
+
+    final List<IdeathonParticipation> forIdea = await listByIdea(idea);
+    for (final IdeathonParticipation row in forIdea) {
+      if (row.ideathonId.trim() == eventId) continue;
+      if (row.paymentStatus == PaymentRecordStatus.verified) {
+        throw StateError('This idea is already confirmed for another event.');
+      }
+      await _col.doc(row.participationId).delete();
+    }
+
+    final IdeathonParticipation? existing = await fetchByIdeathonAndIdea(
+      ideathonId: eventId,
+      ideaId: idea,
+    );
+    if (existing != null) {
+      if (existing.paymentStatus == PaymentRecordStatus.verified) {
+        return existing;
+      }
+      if (existing.paymentStatus != PaymentRecordStatus.pending) {
+        await syncPaymentStatus(
+          participationId: existing.participationId,
+          paymentStatus: PaymentRecordStatus.pending,
+        );
+        return existing.copyWith(
+          paymentStatus: PaymentRecordStatus.pending,
+          updatedAt: DateTime.now(),
+        );
+      }
+      return existing;
+    }
+
+    final DateTime now = DateTime.now();
+    final DocumentReference<Map<String, dynamic>> ref = _col.doc();
+    final IdeathonParticipation participation = IdeathonParticipation(
+      participationId: ref.id,
+      ideathonId: eventId,
+      ideaId: idea,
+      orgId: org,
+      paymentStatus: PaymentRecordStatus.pending,
+      participationStatus: IdeathonParticipationStatus.active,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await ref.set(participation.toMap());
+    return participation;
+  }
+
   static Future<IdeathonParticipation?> fetchById(String participationId) async {
     final String id = participationId.trim();
     if (id.isEmpty) return null;

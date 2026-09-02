@@ -6,11 +6,15 @@ import '../../evaluations/models/evaluation_criterion.dart';
 import '../../evaluations/services/evaluation_template_helpers.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../idea/models/idea_model.dart';
+import '../../organization/models/department_model.dart';
+import '../../payment/models/payment_model.dart';
+import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
+import '../models/ideathon_participation.dart';
 import '../models/ideathon_status.dart';
 import '../models/ideathon_type.dart';
 import 'ideathon_participation_service.dart';
@@ -300,6 +304,158 @@ abstract final class IdeathonService {
 
   static bool isEventCompleted(IdeathonModel event) =>
       event.status == IdeathonStatus.completed || event.status == IdeathonStatus.archived;
+
+  static bool teamMayJoin(IdeathonModel event, TeamModel team) {
+    final IdeathonTeamOrigin origin = team.orgId.trim() == event.orgId.trim()
+        ? IdeathonTeamOrigin.host
+        : IdeathonTeamOrigin.otherOrganisation;
+    return IdeathonTeamEligibility.isOriginEligible(event.ideathonType, origin);
+  }
+
+  static Future<void> assertAcceptingParticipation(String eventId) async {
+    final IdeathonModel? event = await fetchById(eventId);
+    if (event == null) throw StateError('Event not found.');
+    if (isEventCompleted(event)) {
+      throw StateError('This event is completed. New ideas cannot join.');
+    }
+    if (!event.isAcceptingSubmissions) {
+      throw StateError('The submission cutoff has passed for this event.');
+    }
+    if (await hasEvaluationStarted(event.ideathonId)) {
+      throw StateError('Evaluation has started. New ideas cannot join this event.');
+    }
+  }
+
+  /// Ideathons this team may still submit/pay for (cutoff, type, problem, org).
+  static Future<List<IdeathonModel>> listOpenForTeam({
+    required TeamModel team,
+    String problemId = '',
+  }) async {
+    final String orgId = team.orgId.trim();
+    if (orgId.isEmpty) return const <IdeathonModel>[];
+    final CollectionReference<Map<String, dynamic>> col = _db.collection(FirestoreUtils.hkzIdeathons);
+    final List<QuerySnapshot<Map<String, dynamic>>> snaps = await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      col.where('orgId', isEqualTo: orgId).get(),
+      col.where('ideathonType', isEqualTo: IdeathonType.external.value).get(),
+    ]);
+    final Map<String, IdeathonModel> byId = <String, IdeathonModel>{};
+    for (final QuerySnapshot<Map<String, dynamic>> snap in snaps) {
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+        byId.putIfAbsent(doc.id, () => IdeathonModel.fromMap(doc.id, doc.data()));
+      }
+    }
+    final String teamDept = DepartmentModel.resolveCode(team.departmentCode);
+    final String problem = problemId.trim();
+    final List<IdeathonModel> open = <IdeathonModel>[];
+    for (final IdeathonModel event in byId.values) {
+      if (!event.isAcceptingSubmissions) continue;
+      if (!teamMayJoin(event, team)) continue;
+      if (problem.isNotEmpty && !event.acceptsProblem(problem)) continue;
+      final bool sameOrg = team.orgId.trim() == event.orgId.trim();
+      final String eventDept = event.departmentId.trim().toUpperCase();
+      if (sameOrg && eventDept.isNotEmpty && teamDept.isNotEmpty && eventDept != teamDept) continue;
+      open.add(event);
+    }
+    open.sort((IdeathonModel a, IdeathonModel b) => a.startDateTime.compareTo(b.startDateTime));
+    return open;
+  }
+
+  /// Persist the canonical idea payment as event-scoped and open Event Payments.
+  static Future<void> saveTeamLeaderEventPayment({
+    required PaymentModel payment,
+    required String eventId,
+  }) async {
+    final String id = eventId.trim();
+    if (id.isEmpty) throw StateError('Select an eligible Ideathon event.');
+    await assertAcceptingParticipation(id);
+    final IdeathonModel event = await _requireEvent(id);
+    final String ideaId = payment.ideaId.trim();
+    if (ideaId.isEmpty) throw StateError('ideaId is required for payment.');
+    if (!event.acceptsProblem(payment.problemId)) {
+      throw StateError('This idea is not eligible for the selected event.');
+    }
+    final IdeathonParticipation participation = await IdeathonParticipationService.ensurePending(
+      orgId: payment.orgId.trim().isNotEmpty ? payment.orgId.trim() : event.orgId.trim(),
+      ideathonId: id,
+      ideaId: ideaId,
+    );
+    await FirestoreUtils.saveIdeaPayment(
+      payment.copyWith(
+        ideathonId: id,
+        participationId: participation.participationId,
+      ),
+    );
+  }
+
+  /// After coordinator verification, add the canonical idea to the event roster.
+  static Future<void> registerConfirmedIdea({
+    required String eventId,
+    required IdeaModel idea,
+    String teamName = '',
+  }) async {
+    await assertAcceptingParticipation(eventId);
+    final IdeathonModel? event = await fetchById(eventId);
+    if (event == null) throw StateError('Event not found.');
+    final String ideaId = idea.ideaId.trim();
+    if (ideaId.isEmpty) return;
+    if (event.ideas.any((IdeathonIdeaSnapshot s) => s.ideaId.trim() == ideaId)) return;
+
+    final IdeathonIdeaSnapshot snapshot = IdeathonIdeaSnapshot(
+      ideaId: ideaId,
+      ideaTitle: idea.ideaTitle.trim().isEmpty ? ideaId : idea.ideaTitle.trim(),
+      problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
+      teamName: teamName.trim().isEmpty ? '—' : teamName.trim(),
+      addedAt: DateTime.now(),
+    );
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
+      'ideas': <Map<String, dynamic>>[
+        ...event.ideas.map((IdeathonIdeaSnapshot s) => s.toMap()),
+        snapshot.toMap(),
+      ],
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  static Future<void> confirmTeamLeaderPayment({
+    required PaymentModel payment,
+    required UserModel coordinator,
+  }) async {
+    final String eventId = payment.ideathonId.trim();
+    if (eventId.isNotEmpty) {
+      await assertAcceptingParticipation(eventId);
+    }
+    await FirestoreUtils.verifyIdeaPayment(
+      paymentId: payment.paymentId,
+      coordinatorId: coordinator.userId,
+    );
+    if (eventId.isEmpty) return;
+    final IdeaModel? idea = await _fetchIdea(payment.ideaId);
+    if (idea == null) return;
+    String teamName = '';
+    final String teamId = idea.teamId.trim().isNotEmpty ? idea.teamId.trim() : payment.teamId.trim();
+    if (teamId.isNotEmpty) {
+      teamName = await _fetchTeamName(teamId);
+    }
+    await registerConfirmedIdea(eventId: eventId, idea: idea, teamName: teamName);
+  }
+
+  static Future<IdeaModel?> _fetchIdea(String ideaId) async {
+    final String id = ideaId.trim();
+    if (id.isEmpty) return null;
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return IdeaModel.fromMap(doc.id, doc.data()!);
+  }
+
+  static Future<String> _fetchTeamName(String teamId) async {
+    final String id = teamId.trim();
+    if (id.isEmpty) return '';
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(FirestoreUtils.hkzTeams).doc(id).get();
+    if (!doc.exists || doc.data() == null) return '';
+    return ((doc.data()!['teamName'] as String?) ?? '').trim();
+  }
 
   static bool canManageEventOutcome(UserModel actor) =>
       RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role));
