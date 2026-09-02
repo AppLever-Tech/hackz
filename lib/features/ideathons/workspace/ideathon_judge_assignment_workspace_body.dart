@@ -92,40 +92,23 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
     }
 
     final Set<String> selected = row.assignedJudgeIds.toSet();
-    final bool? saved = await showModalBottomSheet<bool>(
+    final bool? saved = await showIdeathonAssignJudgesDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (BuildContext context) {
-        return IdeathonAssignJudgesSheet(
-          row: row,
-          evaluators: _assignments.evaluators,
-          initiallySelected: selected,
-          onSave: (Set<String> judgeIds) async {
-            final Set<String> toAdd = judgeIds.difference(selected);
-            if (toAdd.isEmpty) return;
-            await IdeathonJudgeAssignmentService.assignJudgesToIdea(
-              actor: widget.actor!,
-              ideathonId: _assignments.ideathon.ideathonId,
-              ideaId: row.ideaId,
-              judgeIds: toAdd,
-            );
-          },
+      row: row,
+      evaluators: _assignments.evaluators,
+      initiallySelected: selected,
+      onSave: (Set<String> judgeIds) async {
+        final Set<String> toAdd = judgeIds.difference(selected);
+        if (toAdd.isEmpty) return;
+        await IdeathonJudgeAssignmentService.assignJudgesToIdea(
+          actor: widget.actor!,
+          ideathonId: _assignments.ideathon.ideathonId,
+          ideaId: row.ideaId,
+          judgeIds: toAdd,
         );
       },
     );
-    if (saved == true && mounted) {
-      await _reload();
-      if (!mounted) return;
-      FeedbackService.showSuccess(
-        context,
-        title: 'Judges assigned',
-        message: 'Assignments saved for this Ideathon idea.',
-      );
-    }
+    if (saved == true && mounted) await _reload();
   }
 
   Future<void> _remove(EvaluationAssignmentModel assignment) async {
@@ -445,7 +428,7 @@ class _IdeaAssignmentCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: ProblemWorkflowActionPill(
-                label: row.isAssigned ? 'Assign more' : 'Assign judges',
+                label: 'Assign Judges',
                 icon: AppIcons.judges,
                 semantic: ProblemWorkflowPillSemantic.filledBrand,
                 onTap: onAssign,
