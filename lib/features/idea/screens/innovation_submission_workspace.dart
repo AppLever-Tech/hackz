@@ -14,6 +14,7 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
 import '../../ideathons/models/ideathon_model.dart';
+import '../../ideathons/services/ideathon_participation_service.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../ideathons/widgets/ideathon_event_select_field.dart';
 import '../../payment/widgets/payment_dialog.dart';
@@ -255,6 +256,11 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             gitRepositoryUrl: _gitRepositoryController.text,
             youtubeDemoUrl: _youtubeDemoController.text,
           );
+          await IdeathonParticipationService.ensurePending(
+            orgId: submitted.orgId,
+            ideathonId: eventId,
+            ideaId: submitted.ideaId,
+          );
           TeamsWorkspaceService.clearCache();
         },
       );
@@ -264,7 +270,6 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         currentUser: widget.currentUser,
         idea: submitted,
         team: team,
-        initialEventId: eventId,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -473,15 +478,13 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       final TeamModel? team = _selectedTeam;
       final String name = (team?.teamName.trim().isNotEmpty == true) ? team!.teamName.trim() : 'Untitled team';
       teamSlot = Row(
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (team != null)
-            Expanded(
-              child: EntityCardPills.workspace(
-                name,
-                ContextPillSemantic.team,
-                () => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
-                fullWidth: true,
-              ),
+            EntityCardPills.workspace(
+              name,
+              ContextPillSemantic.team,
+              () => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
             ),
           if (_teams.length > 1) ...<Widget>[
             const SizedBox(width: 4),
@@ -516,7 +519,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Expanded(child: teamSlot),
+        if (_teams.isEmpty) Flexible(child: teamSlot) else teamSlot,
         const SizedBox(width: 8),
         Expanded(child: problemPill),
       ],

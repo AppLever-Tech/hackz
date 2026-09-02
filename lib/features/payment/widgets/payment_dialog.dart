@@ -17,23 +17,21 @@ import 'package:hackz/features/attachment/services/attachment_service.dart';
 import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
+import 'package:hackz/features/ideathons/services/ideathon_participation_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
-import 'package:hackz/features/ideathons/widgets/ideathon_event_select_field.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/team/services/team_service.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/core/ui/loading/loading.dart';
-import 'package:hackz/utils/firestore_utils.dart';
 
 import '../models/payment_model.dart';
 
-/// Team Leader payment submission: amount, screenshot, and eligible event.
+/// Team Leader payment submission: amount and screenshot for the Idea's event.
 Future<bool?> showPaymentDialog({
   required BuildContext context,
   required UserModel currentUser,
   required IdeaModel idea,
   required TeamModel team,
-  String initialEventId = '',
 }) {
   return showAppDialog<bool>(
     context: context,
@@ -42,7 +40,6 @@ Future<bool?> showPaymentDialog({
       currentUser: currentUser,
       idea: idea,
       team: team,
-      initialEventId: initialEventId,
     ),
   );
 }
@@ -52,13 +49,11 @@ class _PaymentDialog extends StatefulWidget {
     required this.currentUser,
     required this.idea,
     required this.team,
-    this.initialEventId = '',
   });
 
   final UserModel currentUser;
   final IdeaModel idea;
   final TeamModel team;
-  final String initialEventId;
 
   @override
   State<_PaymentDialog> createState() => _PaymentDialogState();
@@ -69,10 +64,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   final TextEditingController _txnController = TextEditingController();
   PlatformFile? _picked;
   bool _busy = false;
-  bool _loadingEvents = true;
+  bool _loadingEvent = true;
   String? _errorMessage;
-  String? _selectedEventId;
-  List<IdeathonModel> _events = const <IdeathonModel>[];
+  IdeathonModel? _event;
 
   static const Duration _uploadTimeout = Duration(seconds: 120);
   static const Duration _firestoreTimeout = Duration(seconds: 45);
@@ -81,10 +75,13 @@ class _PaymentDialogState extends State<_PaymentDialog> {
     RegExp(r'^\d*\.?\d{0,2}'),
   );
 
+  static const String _missingEventMessage =
+      'This idea is not associated with an event. Submit the idea with an event selected.';
+
   @override
   void initState() {
     super.initState();
-    _loadEvents();
+    _loadIdeaEvent();
   }
 
   @override
@@ -94,34 +91,28 @@ class _PaymentDialogState extends State<_PaymentDialog> {
     super.dispose();
   }
 
-  Future<void> _loadEvents() async {
-    setState(() => _loadingEvents = true);
+  Future<void> _loadIdeaEvent() async {
+    setState(() => _loadingEvent = true);
     try {
-      final List<IdeathonModel> open = await IdeathonService.listOpenForTeam(
-        team: widget.team,
-        problemId: widget.idea.problemId,
-      );
-      final PaymentModel? existing = await FirestoreUtils.getPaymentByIdeaId(widget.idea.ideaId);
-      final String preferred = widget.initialEventId.trim().isNotEmpty
-          ? widget.initialEventId.trim()
-          : (existing?.ideathonId.trim() ?? '');
-      String? selected;
-      if (preferred.isNotEmpty && open.any((IdeathonModel e) => e.ideathonId.trim() == preferred)) {
-        selected = preferred;
-      } else if (open.length == 1) {
-        selected = open.first.ideathonId;
-      }
+      final membership = await IdeathonParticipationService.fetchForIdea(widget.idea.ideaId);
+      final String eventId = membership?.ideathonId.trim() ?? '';
+      final IdeathonModel? event =
+          eventId.isEmpty ? null : await IdeathonService.fetchById(eventId);
       if (!mounted) return;
       setState(() {
-        _events = open;
-        _selectedEventId = selected;
+        _event = event;
+        _errorMessage = event == null ? _missingEventMessage : null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.toString());
     } finally {
-      if (mounted) setState(() => _loadingEvents = false);
+      if (mounted) setState(() => _loadingEvent = false);
     }
+  }
+
+  String _eventName(IdeathonModel event) {
+    return event.name.trim().isEmpty ? event.ideathonId : event.name.trim();
   }
 
   String _formatSubmitError(Object e) {
@@ -136,9 +127,8 @@ class _PaymentDialogState extends State<_PaymentDialog> {
 
   Future<void> _submit() async {
     if (_busy) return;
-    final String eventId = (_selectedEventId ?? '').trim();
-    if (eventId.isEmpty) {
-      setState(() => _errorMessage = 'Select an eligible Ideathon event.');
+    if (_event == null) {
+      setState(() => _errorMessage = _missingEventMessage);
       return;
     }
     final double? amount = _parsePositiveAmount(_amountController.text);
@@ -202,11 +192,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
             remarks: '',
             createdAt: DateTime.now(),
             transactionId: _txnController.text.trim().isEmpty ? null : _txnController.text.trim(),
-            ideathonId: eventId,
           );
           await IdeathonService.saveTeamLeaderEventPayment(
             payment: payment,
-            eventId: eventId,
           ).timeout(_firestoreTimeout);
         },
       );
@@ -295,7 +283,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    'Select the Ideathon, then submit amount and proof.',
+                    'Submit amount and proof for this idea\'s event.',
                     style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
                   ),
                 ],
@@ -304,25 +292,44 @@ class _PaymentDialogState extends State<_PaymentDialog> {
           ],
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: <Widget>[
-              EntityCardPills.workspace(
+        Row(
+          children: <Widget>[
+            Flexible(
+              child: EntityCardPills.workspace(
                 ideaTitle,
                 ContextPillSemantic.idea,
                 () {},
                 enabled: false,
               ),
-              const SizedBox(width: 6),
-              EntityCardPills.workspace(
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: EntityCardPills.workspace(
                 teamName,
                 ContextPillSemantic.team,
                 () {},
                 enabled: false,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 6),
+            if (_loadingEvent)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (_event != null)
+              Expanded(
+                child: EntityCardPills.workspace(
+                  _eventName(_event!),
+                  ContextPillSemantic.event,
+                  () {},
+                  enabled: false,
+                  fullWidth: true,
+                  icon: AppIcons.ideathons,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 14),
         Container(
@@ -335,29 +342,6 @@ class _PaymentDialogState extends State<_PaymentDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              IdeathonEventSelectField(
-                events: _events,
-                selectedEventId: _selectedEventId,
-                enabled: !_busy,
-                loading: _loadingEvents,
-                inline: true,
-                labelWidth: _labelWidth,
-                onChanged: (String id) => setState(() {
-                  _selectedEventId = id;
-                  _errorMessage = null;
-                }),
-              ),
-              if (!_loadingEvents && _events.isEmpty) ...<Widget>[
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.only(left: _labelWidth + 10),
-                  child: Text(
-                    'No Ideathon is open for this team and problem. Submission cutoff may have passed.',
-                    style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
               _inlineField(
                 label: 'Amount',
                 required: true,
@@ -380,10 +364,11 @@ class _PaymentDialogState extends State<_PaymentDialog> {
                 child: TextField(
                   controller: _txnController,
                   enabled: !_busy,
-                  style: HackzInputDecoration.compactFieldTextStyle,
+                  style: HackzInputDecoration.fieldTextStyle,
                   decoration: HackzInputDecoration.decorate(
-                    compact: true,
                     hintText: 'Optional reference',
+                    dense: false,
+                    contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   ),
                 ),
               ),
@@ -417,7 +402,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: _busy || _loadingEvents || _events.isEmpty ? null : _submit,
+              onPressed: _busy || _loadingEvent || _event == null ? null : _submit,
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF6A38FF),
                 foregroundColor: Colors.white,

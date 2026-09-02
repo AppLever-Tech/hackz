@@ -297,29 +297,32 @@ abstract final class IdeathonService {
     return open;
   }
 
-  /// Persist the canonical idea payment as event-scoped and open Event Payments.
+  /// Persist the canonical idea payment scoped to the Idea's event.
   static Future<void> saveTeamLeaderEventPayment({
     required PaymentModel payment,
-    required String eventId,
   }) async {
-    final String id = eventId.trim();
-    if (id.isEmpty) throw StateError('Select an eligible Ideathon event.');
-    await assertAcceptingParticipation(id);
-    final IdeathonModel event = await _requireEvent(id);
     final String ideaId = payment.ideaId.trim();
     if (ideaId.isEmpty) throw StateError('ideaId is required for payment.');
-    if (!event.acceptsProblem(payment.problemId)) {
-      throw StateError('This idea is not eligible for the selected event.');
+    final IdeathonParticipation? membership =
+        await IdeathonParticipationService.fetchForIdea(ideaId);
+    final String eventId = membership?.ideathonId.trim() ?? '';
+    if (eventId.isEmpty) {
+      throw StateError(
+        'This idea is not associated with an event. Submit the idea with an event selected.',
+      );
     }
-    final IdeathonParticipation participation = await IdeathonParticipationService.ensurePending(
-      orgId: payment.orgId.trim().isNotEmpty ? payment.orgId.trim() : event.orgId.trim(),
-      ideathonId: id,
-      ideaId: ideaId,
-    );
+    if (payment.ideathonId.trim().isNotEmpty && payment.ideathonId.trim() != eventId) {
+      throw StateError('Payment must use the same event as the idea.');
+    }
+    await assertAcceptingParticipation(eventId);
+    final IdeathonModel event = await _requireEvent(eventId);
+    if (!event.acceptsProblem(payment.problemId)) {
+      throw StateError('This idea is not eligible for its event.');
+    }
     await FirestoreUtils.saveIdeaPayment(
       payment.copyWith(
-        ideathonId: id,
-        participationId: participation.participationId,
+        ideathonId: eventId,
+        participationId: membership!.participationId,
       ),
     );
   }

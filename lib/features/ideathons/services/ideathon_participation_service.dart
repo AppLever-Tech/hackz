@@ -125,6 +125,22 @@ abstract final class IdeathonParticipationService {
         .toList(growable: false);
   }
 
+  /// The Idea's event membership — source of truth for payment scoping.
+  static Future<IdeathonParticipation?> fetchForIdea(String ideaId) async {
+    final List<IdeathonParticipation> rows = await listByIdea(ideaId);
+    IdeathonParticipation? verified;
+    IdeathonParticipation? pending;
+    for (final IdeathonParticipation row in rows) {
+      if (row.ideathonId.trim().isEmpty) continue;
+      if (row.paymentStatus == PaymentRecordStatus.verified) {
+        verified = row;
+        break;
+      }
+      pending ??= row;
+    }
+    return verified ?? pending;
+  }
+
   /// Mirrors idea payment status onto membership rows (optional sync).
   static Future<void> syncPaymentStatus({
     required String participationId,
