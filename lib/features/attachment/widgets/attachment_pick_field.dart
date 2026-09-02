@@ -14,6 +14,7 @@ class AttachmentSingleImagePickField extends StatelessWidget {
     this.enabled = true,
     this.pickLabel = 'Upload screenshot',
     this.changeLabel = 'Change screenshot',
+    this.compact = false,
   });
 
   final PlatformFile? file;
@@ -21,6 +22,8 @@ class AttachmentSingleImagePickField extends StatelessWidget {
   final bool enabled;
   final String pickLabel;
   final String changeLabel;
+  /// Sizes the button to its label so it can sit on the same row as a field label.
+  final bool compact;
 
   Future<void> _pick() async {
     if (!enabled) return;
@@ -34,14 +37,24 @@ class AttachmentSingleImagePickField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget button = OutlinedButton.icon(
+      onPressed: enabled ? _pick : null,
+      icon: Icon(AppIcons.attachmentImage, size: compact ? 16 : 18),
+      label: Text(file == null ? pickLabel : changeLabel),
+      style: compact
+          ? OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            )
+          : null,
+    );
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: compact ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
       children: <Widget>[
-        OutlinedButton.icon(
-          onPressed: enabled ? _pick : null,
-          icon: const Icon(AppIcons.attachmentImage, size: 18),
-          label: Text(file == null ? pickLabel : changeLabel),
-        ),
+        if (compact) Align(alignment: Alignment.centerLeft, child: button) else button,
         if (file != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -50,7 +63,7 @@ class AttachmentSingleImagePickField extends StatelessWidget {
               children: <Widget>[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: _PickedImagePreview(file: file!),
+                  child: _PickedImagePreview(file: file!, compact: compact),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -67,22 +80,25 @@ class AttachmentSingleImagePickField extends StatelessWidget {
 }
 
 class _PickedImagePreview extends StatelessWidget {
-  const _PickedImagePreview({required this.file});
+  const _PickedImagePreview({required this.file, this.compact = false});
 
   final PlatformFile file;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final double height = compact ? 96 : 170;
     if (file.bytes != null && file.bytes!.isNotEmpty) {
       return Image.memory(
         Uint8List.fromList(file.bytes!),
-        height: 170,
-        width: double.infinity,
+        height: height,
+        width: compact ? 160 : double.infinity,
         fit: BoxFit.cover,
       );
     }
     return Container(
-      height: 170,
+      height: height,
+      width: compact ? 160 : double.infinity,
       color: const Color(0xFFF1F4FA),
       alignment: Alignment.center,
       child: const Icon(AppIcons.attachmentImage),

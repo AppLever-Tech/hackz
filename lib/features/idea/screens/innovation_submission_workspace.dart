@@ -23,7 +23,7 @@ import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
 import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
-import '../widgets/innovation_submission_team_selector.dart';
+import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/loading/loading.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 
@@ -78,7 +78,6 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
 
   List<TeamModel> _teams = <TeamModel>[];
   TeamModel? _selectedTeam;
-  String? _recentTeamId;
   List<PlatformFile> _presentationFiles = <PlatformFile>[];
   bool _busy = false;
   bool _loadingTeams = true;
@@ -390,6 +389,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _buildHeader(context),
+          const SizedBox(height: 10),
+          _buildHeaderTeam(context),
           const SizedBox(height: 14),
           _section(
             title: 'Problem context',
@@ -398,19 +399,10 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           ),
           const SizedBox(height: 12),
           _section(
-            title: 'Your team',
-            subtitle: 'Team Leader submits for their own team only',
-            child: _buildTeamSelection(context),
-          ),
-          const SizedBox(height: 12),
-          _section(
-            title: 'Event',
-            subtitle: 'Eligible Ideathons open for this team and problem',
             child: _buildEventSelection(),
           ),
           const SizedBox(height: 12),
           _section(
-            title: 'Title',
             child: _buildTitleField(context),
           ),
           const SizedBox(height: 12),
@@ -466,6 +458,55 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     );
   }
 
+  Widget _buildHeaderTeam(BuildContext context) {
+    if (_teams.isEmpty) {
+      return const Text(
+        'You can submit an innovation only as Team Leader of an active team.',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+      );
+    }
+    final TeamModel? team = _selectedTeam;
+    final String name = (team?.teamName.trim().isNotEmpty == true) ? team!.teamName.trim() : 'Untitled team';
+    return Row(
+      children: <Widget>[
+        if (team != null)
+          Flexible(
+            child: EntityCardPills.workspace(
+              name,
+              ContextPillSemantic.team,
+              () => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
+            ),
+          ),
+        if (_teams.length > 1) ...<Widget>[
+          const SizedBox(width: 4),
+          PopupMenuButton<TeamModel>(
+            enabled: !_busy,
+            tooltip: 'Switch team',
+            padding: EdgeInsets.zero,
+            onSelected: (TeamModel next) {
+              setState(() {
+                _selectedTeam = next;
+                _selectedEventId = null;
+              });
+              _loadEvents();
+            },
+            itemBuilder: (BuildContext context) {
+              return _teams
+                  .map(
+                    (TeamModel t) => PopupMenuItem<TeamModel>(
+                      value: t,
+                      child: Text(t.teamName.trim().isEmpty ? 'Untitled team' : t.teamName.trim()),
+                    ),
+                  )
+                  .toList(growable: false);
+            },
+            child: const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildProblemHero(BuildContext context) {
     final ProblemModel p = widget.problem;
     final String title = p.title.trim().isEmpty ? 'Untitled Problem' : p.title.trim();
@@ -502,85 +543,68 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     );
   }
 
-  Widget _buildTeamSelection(BuildContext context) {
-    if (_teams.isEmpty) {
-      return const Text(
-        'You can submit an innovation only as Team Leader of an active team.',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-      );
-    }
-    return InnovationSubmissionTeamSelector(
-      teams: _teams,
-      selectedTeam: _selectedTeam,
-      enabled: !_busy,
-      recentTeamId: _recentTeamId,
-      onTeamSelected: (TeamModel team) {
-        setState(() {
-          _selectedTeam = team;
-          _recentTeamId = team.teamId;
-          _selectedEventId = null;
-        });
-        _loadEvents();
-      },
-      onOpenTeamWorkspace: (TeamModel team) => WorkspaceNavigator.openTeam(context, team.teamId, actor: widget.currentUser),
-    );
-  }
-
   Widget _buildEventSelection() {
-    if (_selectedTeam == null) {
-      return const Text(
-        'Select a team to see eligible Ideathons.',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        IdeathonEventSelectField(
-          events: _events,
-          selectedEventId: _selectedEventId,
-          enabled: !_busy,
-          loading: _loadingEvents,
-          onChanged: (String id) => setState(() => _selectedEventId = id),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            HackzInputDecoration.fieldLabel('Event', required: true),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Eligible Ideathons open for this team and problem',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, height: 1.3, color: Color(0xFF64748B)),
+              ),
+            ),
+          ],
         ),
-        if (!_loadingEvents && _events.isEmpty) ...<Widget>[
-          const SizedBox(height: 8),
+        const SizedBox(height: 8),
+        if (_selectedTeam == null)
           const Text(
-            'No Ideathon is open for this team and problem. The submission cutoff may have passed.',
-            style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+            'A team is required to see eligible Ideathons.',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          )
+        else ...<Widget>[
+          IdeathonEventSelectField(
+            events: _events,
+            selectedEventId: _selectedEventId,
+            enabled: !_busy,
+            loading: _loadingEvents,
+            showLabel: false,
+            onChanged: (String id) => setState(() => _selectedEventId = id),
           ),
+          if (!_loadingEvents && _events.isEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            const Text(
+              'No Ideathon is open for this team and problem. The submission cutoff may have passed.',
+              style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+            ),
+          ],
         ],
       ],
     );
   }
 
   Widget _buildTitleField(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFCFDFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+    return _inlineField(
+      label: 'Title',
       child: TextField(
         controller: _titleController,
         enabled: !_busy,
         onChanged: (_) => setState(() {}),
         style: const TextStyle(
-          fontSize: 22,
+          fontSize: 16,
           fontWeight: FontWeight.w800,
           color: Color(0xFF0F172A),
           height: 1.2,
         ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          isDense: true,
+        decoration: HackzInputDecoration.decorate(
+          compact: true,
           hintText: 'What is your innovation idea?',
-          hintStyle: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF94A3B8),
-          ),
         ),
       ),
     );
@@ -652,67 +676,67 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _buildAssetUrlField(
-          controller: _gitRepositoryController,
-          hint: 'https://github.com/org/repo',
-          icon: Icons.code_rounded,
+        _inlineField(
           label: 'Git Repository URL',
+          child: TextField(
+            controller: _gitRepositoryController,
+            enabled: !_busy,
+            keyboardType: TextInputType.url,
+            style: HackzInputDecoration.compactFieldTextStyle,
+            decoration: HackzInputDecoration.decorate(
+              compact: true,
+              hintText: 'https://github.com/org/repo',
+              prefixIcon: const Icon(Icons.code_rounded, size: 18, color: HackzInputDecoration.iconColor),
+            ),
+          ),
         ),
         const SizedBox(height: 10),
-        _buildAssetUrlField(
-          controller: _youtubeDemoController,
-          hint: 'https://youtube.com/watch?v=...',
-          icon: Icons.play_circle_outline_rounded,
+        _inlineField(
           label: 'YouTube Demo URL',
+          child: TextField(
+            controller: _youtubeDemoController,
+            enabled: !_busy,
+            keyboardType: TextInputType.url,
+            style: HackzInputDecoration.compactFieldTextStyle,
+            decoration: HackzInputDecoration.decorate(
+              compact: true,
+              hintText: 'https://youtube.com/watch?v=...',
+              prefixIcon: const Icon(Icons.play_circle_outline_rounded, size: 18, color: HackzInputDecoration.iconColor),
+            ),
+          ),
         ),
         const SizedBox(height: 10),
-        EntityCardPills.workspace(
-          presentationLabel,
-          ContextPillSemantic.generic,
-          _openPresentationPanel,
-          icon: AppIcons.attachments,
+        _inlineField(
+          label: 'Attachments',
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: EntityCardPills.workspace(
+              presentationLabel,
+              ContextPillSemantic.generic,
+              _openPresentationPanel,
+              icon: AppIcons.attachments,
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildAssetUrlField({
-    required TextEditingController controller,
+  static const double _labelWidth = 140;
+
+  Widget _inlineField({
     required String label,
-    required String hint,
-    required IconData icon,
+    required Widget child,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+        SizedBox(
+          width: _labelWidth,
+          child: Text(label, style: HackzInputDecoration.labelStyle),
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          enabled: !_busy,
-          keyboardType: TextInputType.url,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFFFCFDFF),
-            isDense: true,
-            prefixIcon: Icon(icon, size: 18, color: const Color(0xFF64748B)),
-            hintText: hint,
-            hintStyle: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
-            ),
-          ),
-        ),
+        const SizedBox(width: 10),
+        Expanded(child: child),
       ],
     );
   }
@@ -821,8 +845,8 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
   }
 
   Widget _section({
-    required String title,
     required Widget child,
+    String? title,
     String? subtitle,
     bool compact = false,
   }) {
@@ -838,12 +862,13 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
+          if (title != null && title.trim().isNotEmpty)
+            Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155))),
           if (subtitle != null) ...<Widget>[
-            const SizedBox(height: 2),
+            if (title != null && title.trim().isNotEmpty) const SizedBox(height: 2),
             Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
           ],
-          SizedBox(height: compact ? 6 : 10),
+          if (title != null || subtitle != null) SizedBox(height: compact ? 6 : 10),
           child,
         ],
       ),

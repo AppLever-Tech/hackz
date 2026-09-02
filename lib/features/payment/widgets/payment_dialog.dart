@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
-import 'package:hackz/core/ui/common/context_pill.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/entity_card_pills.dart';
 import 'package:hackz/core/ui/dialog/app_dialog_template.dart';
 import 'package:hackz/core/ui/feedback/feedback.dart';
 import 'package:hackz/core/ui/inputs/hackz_input_decoration.dart';
@@ -75,6 +76,10 @@ class _PaymentDialogState extends State<_PaymentDialog> {
 
   static const Duration _uploadTimeout = Duration(seconds: 120);
   static const Duration _firestoreTimeout = Duration(seconds: 45);
+  static const double _labelWidth = 118;
+  static final FilteringTextInputFormatter _amountFormatter = FilteringTextInputFormatter.allow(
+    RegExp(r'^\d*\.?\d{0,2}'),
+  );
 
   @override
   void initState() {
@@ -136,9 +141,9 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       setState(() => _errorMessage = 'Select an eligible Ideathon event.');
       return;
     }
-    final amount = double.tryParse(_amountController.text.trim());
-    if (amount == null || amount <= 0) {
-      setState(() => _errorMessage = 'Enter a valid amount.');
+    final double? amount = _parsePositiveAmount(_amountController.text);
+    if (amount == null) {
+      setState(() => _errorMessage = 'Enter a valid amount greater than zero.');
       return;
     }
     if (_picked?.bytes == null || (_picked!.bytes?.isEmpty ?? true)) {
@@ -225,6 +230,36 @@ class _PaymentDialogState extends State<_PaymentDialog> {
     }
   }
 
+  double? _parsePositiveAmount(String raw) {
+    final String text = raw.trim().replaceAll(',', '');
+    if (text.isEmpty || text.startsWith('-') || text.startsWith('+')) return null;
+    final double? amount = double.tryParse(text);
+    if (amount == null || amount.isNaN || amount.isInfinite || amount <= 0) return null;
+    return amount;
+  }
+
+  Widget _inlineField({
+    required String label,
+    required Widget child,
+    bool required = false,
+    bool alignStart = false,
+  }) {
+    return Row(
+      crossAxisAlignment: alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: <Widget>[
+        SizedBox(
+          width: _labelWidth,
+          child: Padding(
+            padding: EdgeInsets.only(top: alignStart ? 8 : 0),
+            child: HackzInputDecoration.fieldLabel(label, required: required),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: child),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final String ideaTitle =
@@ -268,30 +303,28 @@ class _PaymentDialogState extends State<_PaymentDialog> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: <Widget>[
-            ContextPill(
-              label: ideaTitle,
-              semantic: ContextPillSemantic.idea,
-              onTap: () {},
-              enabled: false,
-              compact: true,
-              fitContent: true,
-            ),
-            ContextPill(
-              label: teamName,
-              semantic: ContextPillSemantic.team,
-              onTap: () {},
-              enabled: false,
-              compact: true,
-              fitContent: true,
-            ),
-          ],
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: <Widget>[
+              EntityCardPills.workspace(
+                ideaTitle,
+                ContextPillSemantic.idea,
+                () {},
+                enabled: false,
+              ),
+              const SizedBox(width: 6),
+              EntityCardPills.workspace(
+                teamName,
+                ContextPillSemantic.team,
+                () {},
+                enabled: false,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -307,6 +340,8 @@ class _PaymentDialogState extends State<_PaymentDialog> {
                 selectedEventId: _selectedEventId,
                 enabled: !_busy,
                 loading: _loadingEvents,
+                inline: true,
+                labelWidth: _labelWidth,
                 onChanged: (String id) => setState(() {
                   _selectedEventId = id;
                   _errorMessage = null;
@@ -314,43 +349,55 @@ class _PaymentDialogState extends State<_PaymentDialog> {
               ),
               if (!_loadingEvents && _events.isEmpty) ...<Widget>[
                 const SizedBox(height: 8),
-                const Text(
-                  'No Ideathon is open for this team and problem. Submission cutoff may have passed.',
-                  style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+                const Padding(
+                  padding: EdgeInsets.only(left: _labelWidth + 10),
+                  child: Text(
+                    'No Ideathon is open for this team and problem. Submission cutoff may have passed.',
+                    style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+                  ),
                 ),
               ],
-              const SizedBox(height: 14),
-              HackzInputDecoration.labeledField(
+              const SizedBox(height: 12),
+              _inlineField(
                 label: 'Amount',
                 required: true,
-                field: TextField(
+                child: TextField(
                   controller: _amountController,
                   enabled: !_busy,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: HackzInputDecoration.fieldTextStyle,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
+                  inputFormatters: <TextInputFormatter>[_amountFormatter],
+                  style: HackzInputDecoration.compactFieldTextStyle,
                   decoration: HackzInputDecoration.decorate(
+                    compact: true,
                     hintText: '0.00',
                     prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18, color: HackzInputDecoration.iconColor),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              HackzInputDecoration.labeledField(
+              _inlineField(
                 label: 'Transaction ID',
-                field: TextField(
+                child: TextField(
                   controller: _txnController,
                   enabled: !_busy,
-                  style: HackzInputDecoration.fieldTextStyle,
-                  decoration: HackzInputDecoration.decorate(hintText: 'Optional reference'),
+                  style: HackzInputDecoration.compactFieldTextStyle,
+                  decoration: HackzInputDecoration.decorate(
+                    compact: true,
+                    hintText: 'Optional reference',
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Payment screenshot', style: HackzInputDecoration.labelStyle),
-              const SizedBox(height: 6),
-              AttachmentSingleImagePickField(
-                file: _picked,
-                enabled: !_busy,
-                onChanged: (f) => setState(() => _picked = f),
+              _inlineField(
+                label: 'Screenshot',
+                required: true,
+                alignStart: true,
+                child: AttachmentSingleImagePickField(
+                  file: _picked,
+                  enabled: !_busy,
+                  compact: true,
+                  onChanged: (f) => setState(() => _picked = f),
+                ),
               ),
             ],
           ),
