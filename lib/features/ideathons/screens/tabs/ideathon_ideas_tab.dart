@@ -32,7 +32,7 @@ class IdeathonIdeasTab extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            'Paid ideas registered for this Ideathon. Add or remove them from Edit before evaluation starts. '
+            'Paid ideas registered for this Ideathon. Ideas appear after Team Leader submission and coordinator payment validation. '
             'Open Idea, Problem, or Team in the right-side workspace.',
             style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
           ),
@@ -48,11 +48,24 @@ class IdeathonIdeasTab extends StatelessWidget {
           Expanded(
             child: Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'No ideas are registered for this Ideathon.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                padding: EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(AppIcons.ideas, size: 28, color: Color(0xFF94A3B8)),
+                    SizedBox(height: 10),
+                    Text(
+                      'No ideas yet',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Ideas appear automatically after Team Leader submission and coordinator payment validation.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12.5, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                    ),
+                  ],
                 ),
               ),
             ),

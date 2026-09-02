@@ -76,16 +76,9 @@ abstract final class IdeathonService {
     if (!input.endDateTime.isAfter(input.startDateTime)) {
       throw StateError('End date/time must be after start date/time.');
     }
-    if (input.ideaIds.isEmpty) throw StateError('Select at least one paid idea.');
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
-    final int minimumIdeas = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
-    if (input.ideaIds.length < minimumIdeas) {
-      throw StateError(
-        '${input.ideaIds.length} of $minimumIdeas minimum paid ideas selected.',
-      );
-    }
 
     final String templateId = input.evaluationTemplateId.trim().isNotEmpty
         ? input.evaluationTemplateId.trim()
@@ -95,35 +88,11 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
+    final List<IdeathonIdeaSnapshot> snapshots = await _snapshotsForSelectedIdeas(
       orgId: orgId,
       ideathonType: input.ideathonType,
+      ideaIds: input.ideaIds,
     );
-    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
-      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
-    };
-
-    final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
-    for (final String rawId in input.ideaIds) {
-      final String ideaId = rawId.trim();
-      final IdeathonEligibleIdea? row = eligibleById[ideaId];
-      if (row == null) {
-        throw StateError(
-          'Only paid ideas from teams eligible for this Ideathon type can be added.',
-        );
-      }
-      final IdeaModel idea = row.idea;
-      final String teamName = row.teamName;
-      snapshots.add(
-        IdeathonIdeaSnapshot(
-          ideaId: idea.ideaId,
-          ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
-          problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
-          teamName: teamName.isEmpty ? '—' : teamName,
-          addedAt: DateTime.now(),
-        ),
-      );
-    }
 
     final DateTime now = DateTime.now();
     final DocumentReference<Map<String, dynamic>> ref =
@@ -152,12 +121,14 @@ abstract final class IdeathonService {
 
     final WriteBatch batch = _db.batch();
     batch.set(ref, ideathon.toMap());
-    await IdeathonParticipationService.createForIdeathon(
-      orgId: orgId,
-      ideathonId: ideathon.ideathonId,
-      ideaIds: snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId).toList(growable: false),
-      batch: batch,
-    );
+    if (snapshots.isNotEmpty) {
+      await IdeathonParticipationService.createForIdeathon(
+        orgId: orgId,
+        ideathonId: ideathon.ideathonId,
+        ideaIds: snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId).toList(growable: false),
+        batch: batch,
+      );
+    }
     await batch.commit();
 
     return ideathon.ideathonId;
@@ -212,16 +183,9 @@ abstract final class IdeathonService {
     if (!input.endDateTime.isAfter(input.startDateTime)) {
       throw StateError('End date/time must be after start date/time.');
     }
-    if (input.ideaIds.isEmpty) throw StateError('Select at least one paid idea.');
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: existing.orgId);
-    final int minimumIdeas = IdeathonSettingsService.minimumIdeasForIdeathon(existing.orgId);
-    if (input.ideaIds.length < minimumIdeas) {
-      throw StateError(
-        '${input.ideaIds.length} of $minimumIdeas minimum paid ideas selected.',
-      );
-    }
 
     final String templateId = input.evaluationTemplateId.trim().isNotEmpty
         ? input.evaluationTemplateId.trim()
@@ -231,42 +195,16 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
-      orgId: existing.orgId,
-      ideathonType: input.ideathonType,
-    );
-    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
-      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
-    };
     final Map<String, IdeathonIdeaSnapshot> previousById = <String, IdeathonIdeaSnapshot>{
       for (final IdeathonIdeaSnapshot s in existing.ideas)
         if (s.ideaId.trim().isNotEmpty) s.ideaId.trim(): s,
     };
-
-    final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
-    for (final String rawId in input.ideaIds) {
-      final String ideaId = rawId.trim();
-      final IdeathonEligibleIdea? row = eligibleById[ideaId];
-      final IdeathonIdeaSnapshot? previous = previousById[ideaId];
-      if (row != null) {
-        final IdeaModel idea = row.idea;
-        snapshots.add(
-          IdeathonIdeaSnapshot(
-            ideaId: idea.ideaId,
-            ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
-            problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
-            teamName: row.teamName.isEmpty ? '—' : row.teamName,
-            addedAt: previous?.addedAt ?? DateTime.now(),
-          ),
-        );
-      } else if (previous != null) {
-        snapshots.add(previous);
-      } else {
-        throw StateError(
-          'Only paid ideas from teams eligible for this Ideathon type can be added.',
-        );
-      }
-    }
+    final List<IdeathonIdeaSnapshot> snapshots = await _snapshotsForSelectedIdeas(
+      orgId: existing.orgId,
+      ideathonType: input.ideathonType,
+      ideaIds: input.ideaIds,
+      previousById: previousById,
+    );
 
     final Set<String> nextIdeaIds = snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId.trim()).toSet();
     final Set<String> prevIdeaIds = previousById.keys.toSet();
@@ -489,6 +427,51 @@ abstract final class IdeathonService {
           criteria.map((EvaluationCriterion c) => c.toMap()).toList(growable: false),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
+  }
+
+  /// Paid-idea snapshots for optionally selected ids. Empty [ideaIds] yields
+  /// an empty list — Ideathons may be created with zero ideas.
+  static Future<List<IdeathonIdeaSnapshot>> _snapshotsForSelectedIdeas({
+    required String orgId,
+    required IdeathonType ideathonType,
+    required List<String> ideaIds,
+    Map<String, IdeathonIdeaSnapshot> previousById = const <String, IdeathonIdeaSnapshot>{},
+  }) async {
+    final List<String> selected = ideaIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList();
+    if (selected.isEmpty) return const <IdeathonIdeaSnapshot>[];
+
+    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
+      orgId: orgId,
+      ideathonType: ideathonType,
+    );
+    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
+      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
+    };
+
+    final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
+    for (final String ideaId in selected) {
+      final IdeathonEligibleIdea? row = eligibleById[ideaId];
+      final IdeathonIdeaSnapshot? previous = previousById[ideaId];
+      if (row != null) {
+        final IdeaModel idea = row.idea;
+        snapshots.add(
+          IdeathonIdeaSnapshot(
+            ideaId: idea.ideaId,
+            ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
+            problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
+            teamName: row.teamName.isEmpty ? '—' : row.teamName,
+            addedAt: previous?.addedAt ?? DateTime.now(),
+          ),
+        );
+      } else if (previous != null) {
+        snapshots.add(previous);
+      } else {
+        throw StateError(
+          'Only paid ideas from teams eligible for this Ideathon type can be added.',
+        );
+      }
+    }
+    return snapshots;
   }
 
   static Future<IdeathonModel?> fetchById(String ideathonId) async {

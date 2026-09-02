@@ -29,7 +29,7 @@ import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_idea_select_row.dart';
 import '../widgets/ideathon_type_selector.dart';
 
-/// Ideathon create / edit form (paid submitted ideas only).
+/// Ideathon create / edit form. Paid ideas are optional at creation.
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({
     super.key,
@@ -68,8 +68,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   final Set<String> _selectedIdeaIds = <String>{};
   final Set<String> _selectedJudgeIds = <String>{};
   final Set<String> _selectedCoordinatorIds = <String>{};
-
-  int _minimumIdeas = IdeathonSettingsService.defaultMinimumIdeasForIdeathon;
 
   bool get _isEdit => widget.initialEvent != null;
 
@@ -112,7 +110,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
     final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
     final String defaultTemplateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
-    final int minimum = IdeathonSettingsService.minimumIdeasForIdeathon(orgId);
     final IdeathonModel? event = widget.initialEvent;
     final bool locked =
         event != null && await IdeathonService.hasEvaluationStarted(event.ideathonId);
@@ -126,7 +123,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       _selectedTemplateId = templates.any((EvaluationTemplate t) => t.templateId == defaultTemplateId)
           ? defaultTemplateId
           : (templates.isNotEmpty ? templates.first.templateId : null);
-      _minimumIdeas = minimum;
       _evaluationLocked = locked;
       if (event != null) {
         _ideathonType = event.ideathonType;
@@ -261,13 +257,10 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool get _scheduleValid => _endDateTime.isAfter(_startDateTime);
 
-  bool get _minimumMet => _selectedIdeaIds.length >= _minimumIdeas;
-
   bool get _canSubmit =>
       !_evaluationLocked &&
       _nameController.text.trim().isNotEmpty &&
       _scheduleValid &&
-      _minimumMet &&
       _selectedJudgeIds.isNotEmpty &&
       (_selectedTemplateId ?? '').trim().isNotEmpty &&
       !_saving;
@@ -343,7 +336,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         title: _isEdit ? 'Ideathon updated' : 'Ideathon created',
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
-            : 'Event created with ${_selectedIdeaIds.length} paid ideas. Assign judges to ideas next — assignment is not automatic.',
+            : _selectedIdeaIds.isEmpty
+                ? 'Event created with no ideas yet. Ideas appear after Team Leader submission and coordinator payment validation.'
+                : 'Event created with ${_selectedIdeaIds.length} paid ideas. Assign judges to ideas next — assignment is not automatic.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -488,8 +483,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     const Text(
-                      'Only submitted ideas with coordinator-confirmed Team Leader payment appear here. '
-                      'Select at least the org minimum of paid ideas. Judges are assigned to these ideas later on Judge Assignments — not automatically.',
+                      'Paid ideas are optional at creation. Leave this empty to start with zero ideas — they appear after Team Leader submission and coordinator payment validation. You can also select already-paid ideas here. Judges are assigned later on Judge Assignments, not automatically.',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -548,9 +542,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                     if (_filteredRows.isEmpty)
                       Text(
                         _ideathonType == IdeathonType.internal
-                            ? 'No paid host-organisation teams are eligible. Mixed and other-organisation teams appear only in an External Ideathon.'
-                            : 'No paid ideas available. The Team Leader must pay and a coordinator must verify payment before ideas appear here.',
-                        style: const TextStyle(color: Color(0xFF64748B)),
+                            ? 'No paid host-organisation ideas yet. You can still create the event; ideas appear after Team Leader submission and coordinator payment validation. Mixed and other-organisation teams appear only in an External Ideathon.'
+                            : 'No paid ideas yet. You can still create the event; ideas appear after Team Leader submission and coordinator payment validation.',
+                        style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
                       )
                     else
                       ..._filteredRows.map(
@@ -612,17 +606,10 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   }
 
   Widget _ideasSectionTrailing() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _statusChip(
-          ok: _selectedIdeaIds.isNotEmpty,
-          icon: AppIcons.ideas,
-          label: '${_selectedIdeaIds.length}',
-        ),
-        const SizedBox(width: 6),
-        _minimumFeedback(),
-      ],
+    return _statusChip(
+      ok: true,
+      icon: AppIcons.ideas,
+      label: '${_selectedIdeaIds.length}',
     );
   }
 
@@ -683,40 +670,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
             label,
             softWrap: true,
             style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: fg),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _minimumFeedback() {
-    final bool met = _minimumMet;
-    final String text = met
-        ? 'Minimum paid ideas met'
-        : '${_selectedIdeaIds.length} of $_minimumIdeas paid ideas required';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: met ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: met ? const Color(0xFFA7F3D0) : const Color(0xFFFED7AA)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            met ? AppIcons.workflowApproved : AppIcons.info,
-            size: 14,
-            color: met ? const Color(0xFF047857) : const Color(0xFFC2410C),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: met ? const Color(0xFF047857) : const Color(0xFF9A3412),
-            ),
           ),
         ],
       ),
@@ -834,11 +787,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       children: <Widget>[
         _summaryRow('Type', value: _ideathonType.label),
         _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
-        _summaryRow('Paid ideas selected', value: '${_selectedIdeaIds.length}'),
-        _summaryRow(
-          'Minimum paid ideas',
-          value: _minimumMet ? 'Met ($_minimumIdeas)' : '$_minimumIdeas required',
-        ),
+        _summaryRow('Paid ideas selected', value: _selectedIdeaIds.isEmpty ? 'None — added later' : '${_selectedIdeaIds.length}'),
         _summaryRow(
           'Evaluation template',
           child: template == null
