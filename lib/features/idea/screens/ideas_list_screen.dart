@@ -19,6 +19,7 @@ import '../widgets/idea_metrics_row.dart';
 import 'idea_details_pane.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
+import '../../payment/widgets/payment_dialog.dart';
 
 class IdeasListScreen extends StatefulWidget {
   const IdeasListScreen({
@@ -213,6 +214,18 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     showIdeaDetailsPane(context, ideaId: item.idea.ideaId);
   }
 
+  Future<void> _openUploadPayment(IdeaListItem item) async {
+    final team = item.team;
+    if (team == null) return;
+    final bool? ok = await showPaymentDialog(
+      context: context,
+      currentUser: widget.currentUser,
+      idea: item.idea,
+      team: team,
+    );
+    if (ok == true && mounted) _loadIdeas();
+  }
+
   IdeaTableActions _ideaTableActions() {
     return IdeaTableActions(
       onOpenIdea: _openIdeaDetails,
@@ -231,6 +244,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         if (id.isEmpty) return;
         WorkspaceNavigator.openIdeathon(context, id, actor: widget.currentUser);
       },
+      onUploadPayment: widget.config.canUploadPayment ? _openUploadPayment : null,
     );
   }
 

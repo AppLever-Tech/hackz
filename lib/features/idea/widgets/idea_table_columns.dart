@@ -10,6 +10,7 @@ import '../../../core/ui/common/entity_card_pills.dart';
 import '../../../core/ui/common/mobile_row_card_pill.dart';
 import '../../../core/ui/data_view/data_table_column.dart';
 import '../../problems/widgets/problem_context_pill.dart';
+import '../../problems/widgets/problem_workflow_action_pill.dart';
 import 'idea_event_pills.dart';
 
 const double _kLeadingColumnGap = 12;
@@ -21,12 +22,14 @@ class IdeaTableActions {
     required this.onOpenTeam,
     required this.onOpenProblem,
     required this.onOpenEvent,
+    this.onUploadPayment,
   });
 
   final void Function(IdeaListItem item) onOpenIdea;
   final void Function(IdeaListItem item) onOpenTeam;
   final void Function(IdeaListItem item) onOpenProblem;
   final void Function(IdeaListItem item, String eventId) onOpenEvent;
+  final void Function(IdeaListItem item)? onUploadPayment;
 }
 
 /// Per-feature column factory for the Ideas dashboard.
@@ -73,8 +76,8 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Problem',
-        fixedWidth: 224,
-        minWidth: 224,
+        fixedWidth: 148,
+        minWidth: 148,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -86,8 +89,8 @@ abstract final class IdeaTableColumns {
       ),
       DataTableColumn<IdeaListItem>(
         label: 'Idea Status',
-        fixedWidth: 124,
-        minWidth: 124,
+        fixedWidth: 96,
+        minWidth: 96,
         gapAfter: _kLeadingColumnGap,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -99,6 +102,7 @@ abstract final class IdeaTableColumns {
         fixedWidth: 148,
         minWidth: 148,
         align: Alignment.center,
+        gapAfter: config.canUploadPayment ? _kLeadingColumnGap : null,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: IdeaEventPills(
@@ -107,6 +111,21 @@ abstract final class IdeaTableColumns {
           ),
         ),
       ),
+      if (config.canUploadPayment)
+        DataTableColumn<IdeaListItem>(
+          label: 'Action',
+          fixedWidth: 148,
+          minWidth: 148,
+          align: Alignment.centerLeft,
+          cell: (BuildContext context, IdeaListItem item) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: _IdeaPaymentAction(
+              item: item,
+              config: config,
+              onUploadPayment: actions.onUploadPayment,
+            ),
+          ),
+        ),
     ];
   }
 }
@@ -180,6 +199,36 @@ class _ProblemIdPill extends StatelessWidget {
       enabled: problemId.isNotEmpty,
       allowHoverScale: false,
       padding: ProblemContextPill.tableCellPadding,
+    );
+  }
+}
+
+class _IdeaPaymentAction extends StatelessWidget {
+  const _IdeaPaymentAction({
+    required this.item,
+    required this.config,
+    required this.onUploadPayment,
+  });
+
+  final IdeaListItem item;
+  final IdeaListConfig config;
+  final void Function(IdeaListItem item)? onUploadPayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showPay =
+        config.canUploadPayment && item.canUploadPayment && item.team != null && onUploadPayment != null;
+    if (!showPay) {
+      return const Text(
+        '—',
+        style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+      );
+    }
+    return ProblemWorkflowActionPill(
+      label: 'Upload Payment',
+      icon: AppIcons.payments,
+      semantic: ProblemWorkflowPillSemantic.primary,
+      onTap: () => onUploadPayment!(item),
     );
   }
 }
@@ -270,6 +319,21 @@ class IdeaListRowCard extends StatelessWidget {
             IdeaEventPills(
               events: item.events,
               onOpenEvent: (event) => actions.onOpenEvent(item, event.eventId),
+            ),
+          ],
+          if (config.canUploadPayment &&
+              item.canUploadPayment &&
+              item.team != null &&
+              actions.onUploadPayment != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ProblemWorkflowActionPill(
+                label: 'Upload Payment',
+                icon: AppIcons.payments,
+                semantic: ProblemWorkflowPillSemantic.primary,
+                onTap: () => actions.onUploadPayment!(item),
+              ),
             ),
           ],
         ],

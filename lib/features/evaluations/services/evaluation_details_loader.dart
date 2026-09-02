@@ -19,7 +19,7 @@ import '../models/score_model.dart';
 import 'evaluation_aggregation_service.dart';
 import 'evaluation_templates_service.dart';
 
-/// Loads evaluation-centric context for [EvaluationDetailsWorkspace].
+/// Loads evaluation-centric context for Evaluation Details (pane + workspace).
 ///
 /// Avoids the heavy aggregate path in [EvaluationWorkspaceLoader] — criteria
 /// breakdown is fetched only when a judge preview is opened.

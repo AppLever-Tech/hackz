@@ -6,7 +6,9 @@ import '../models/idea_event_participation_summary.dart';
 import '../models/idea_list_config.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
+import '../../payment/models/payment_model.dart';
 import '../../team/models/team_model.dart';
+import '../../team/services/team_service.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_visibility_helpers.dart';
@@ -69,12 +71,16 @@ class IdeaListItem {
     required this.teamName,
     required this.events,
     this.team,
+    this.payment,
+    this.canUploadPayment = false,
   });
 
   final IdeaModel idea;
   final String teamName;
   final TeamModel? team;
   final List<IdeaEventParticipationSummary> events;
+  final PaymentModel? payment;
+  final bool canUploadPayment;
 }
 
 class IdeaQueryService {
@@ -113,17 +119,30 @@ class IdeaQueryService {
       orgId: params.config.orgId,
       ideaIds: ideas.map((IdeaModel e) => e.ideaId).toSet(),
     );
+    final Map<String, PaymentModel> paymentByIdeaId = params.config.canUploadPayment
+        ? await _fetchPaymentByIdea(
+            orgId: params.config.orgId,
+            ideaIds: ideas.map((IdeaModel e) => e.ideaId),
+          )
+        : const <String, PaymentModel>{};
     final viewer = params.viewer;
     var items = ideas
         .map(
           (idea) {
             final team = teamsById[idea.teamId];
             final teamName = team?.teamName.trim().isNotEmpty == true ? team!.teamName.trim() : idea.teamId;
+            final PaymentModel? payment = paymentByIdeaId[idea.ideaId];
             return IdeaListItem(
               idea: idea,
               teamName: teamName,
               team: team,
               events: eventsByIdea[idea.ideaId] ?? const <IdeaEventParticipationSummary>[],
+              payment: payment,
+              canUploadPayment: _viewerCanUploadPayment(
+                viewer: viewer,
+                team: team,
+                payment: payment,
+              ),
             );
           },
         )
@@ -203,6 +222,33 @@ class IdeaQueryService {
       final inDescription = idea.description.toLowerCase().contains(search);
       return inProblemNumber || inProblemTitle || inIdeaTitle || inDescription;
     }).toList(growable: false);
+  }
+
+  static Future<Map<String, PaymentModel>> _fetchPaymentByIdea({
+    required String orgId,
+    required Iterable<String> ideaIds,
+  }) async {
+    final Set<String> idSet = ideaIds.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    if (idSet.isEmpty) return const <String, PaymentModel>{};
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: orgId).get();
+    final Map<String, PaymentModel> mapped = <String, PaymentModel>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final PaymentModel payment = PaymentModel.fromMap(doc.id, doc.data());
+      if (!idSet.contains(payment.ideaId)) continue;
+      mapped[payment.ideaId] = payment;
+    }
+    return mapped;
+  }
+
+  static bool _viewerCanUploadPayment({
+    required UserModel? viewer,
+    required TeamModel? team,
+    required PaymentModel? payment,
+  }) {
+    if (viewer == null || team == null) return false;
+    if (payment != null && payment.status != PaymentRecordStatus.rejected) return false;
+    return TeamService.isActingTeamLeader(viewer, team);
   }
 
   static Future<Map<String, TeamModel>> _fetchTeamsById({

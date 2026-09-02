@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/evaluation_details_view_model.dart';
 import '../services/evaluation_details_loader.dart';
-import 'evaluation_details_workspace.dart';
+import 'evaluation_workspace_body.dart';
 import '../../../core/workspace/workspace_host.dart';
 import '../../../core/workspace/workspace_route.dart';
 import '../../user/models/user_model.dart';
@@ -21,7 +21,7 @@ abstract final class EvaluationWorkspace {
       prepare: () async {
         vm = await EvaluationDetailsLoader.load(ideaId: id, ideathonId: eventId);
       },
-      builder: (BuildContext context) => EvaluationDetailsBody(
+      builder: (BuildContext context) => EvaluationWorkspaceBody(
         vm: vm,
         layout: EvaluationDetailsLayout.workspace,
         actor: HkzWorkspace.controllerOf(context).actor,

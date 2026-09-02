@@ -16,7 +16,7 @@ abstract final class IdeathonWorkspace {
     late IdeathonWorkspaceViewModel vm;
     return WorkspaceRoute(
       id: 'ideathon:$ideathonId',
-      title: 'Ideathon',
+      title: 'Event',
       subtitle: WorkspaceRoute.loadingSubtitle,
       helpPageId: 'ideathon',
       actor: actor,
