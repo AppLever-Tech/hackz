@@ -15,7 +15,6 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/models/evaluation_template.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../evaluations/services/evaluator_catalog_service.dart';
-import '../../idea/models/idea_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
@@ -24,12 +23,10 @@ import '../models/ideathon_model.dart';
 import '../models/ideathon_type.dart';
 import '../services/ideathon_service.dart';
 import '../services/ideathon_settings_service.dart';
-import '../services/ideathon_team_eligibility.dart';
 import '../widgets/ideathon_assignee_select_row.dart';
-import '../widgets/ideathon_idea_select_row.dart';
 import '../widgets/ideathon_type_selector.dart';
 
-/// Ideathon create / edit form. Paid ideas are optional at creation.
+/// Ideathon create / edit form. Ideas join later via Team Leader submission.
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({
     super.key,
@@ -49,7 +46,6 @@ class CreateIdeathonWorkspace extends StatefulWidget {
 class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _ideaSearchController = TextEditingController();
 
   late DateTime _startDateTime;
   late DateTime _endDateTime;
@@ -58,14 +54,12 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   bool _saving = false;
   bool _evaluationLocked = false;
   IdeathonType _ideathonType = IdeathonType.internal;
-  List<IdeathonEligibleIdea> _catalog = <IdeathonEligibleIdea>[];
   List<UserModel> _evaluators = <UserModel>[];
   List<UserModel> _coordinators = <UserModel>[];
   List<EvaluationTemplate> _templates = <EvaluationTemplate>[];
   String? _selectedTemplateId;
   String? _optionalProblemId;
 
-  final Set<String> _selectedIdeaIds = <String>{};
   final Set<String> _selectedJudgeIds = <String>{};
   final Set<String> _selectedCoordinatorIds = <String>{};
 
@@ -73,7 +67,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   /// Collapsible sections (details/schedule stay always open).
   final Map<String, bool> _sectionExpanded = <String, bool>{
-    'ideas': false,
     'evaluation': false,
     'people': false,
     'summary': false,
@@ -85,7 +78,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final DateTime now = DateTime.now();
     _startDateTime = DateTime(now.year, now.month, now.day + 14, 9, 0);
     _endDateTime = DateTime(now.year, now.month, now.day + 14, 17, 0);
-    _ideaSearchController.addListener(() => setState(() {}));
     _load();
   }
 
@@ -93,7 +85,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _ideaSearchController.dispose();
     super.dispose();
   }
 
@@ -104,8 +95,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
 
-    final List<IdeathonEligibleIdea> catalog =
-        await IdeathonTeamEligibility.loadPaidIdeas(hostOrgId: orgId);
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
     final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
@@ -116,7 +105,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
     if (!mounted) return;
     setState(() {
-      _catalog = catalog;
       _evaluators = evaluators;
       _coordinators = coordinators;
       _templates = templates;
@@ -130,9 +118,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         _descriptionController.text = event.description;
         _startDateTime = event.startDateTime;
         _endDateTime = event.endDateTime;
-        _selectedIdeaIds
-          ..clear()
-          ..addAll(event.ideas.map((s) => s.ideaId.trim()).where((String id) => id.isNotEmpty));
         _selectedJudgeIds
           ..clear()
           ..addAll(event.judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty));
@@ -142,7 +127,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         final String eventTemplate = event.evaluationTemplateId.trim();
         if (eventTemplate.isNotEmpty) _selectedTemplateId = eventTemplate;
         _optionalProblemId = event.problemId.trim().isEmpty ? null : event.problemId.trim();
-        _sectionExpanded['ideas'] = true;
         _sectionExpanded['evaluation'] = true;
         _sectionExpanded['people'] = true;
       }
@@ -150,15 +134,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     });
   }
 
-  List<IdeathonEligibleIdea> get _eligibleRows =>
-      IdeathonTeamEligibility.filterForType(_catalog, _ideathonType);
-
   void _setIdeathonType(IdeathonType type) {
-    setState(() {
-      _ideathonType = type;
-      final Set<String> allowed = _eligibleRows.map((IdeathonEligibleIdea r) => r.idea.ideaId).toSet();
-      _selectedIdeaIds.removeWhere((String id) => !allowed.contains(id));
-    });
+    setState(() => _ideathonType = type);
   }
 
   Future<List<UserModel>> _loadCoordinators({required String orgId, required String dept}) async {
@@ -206,44 +183,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       UserRole.departmentAdmin => 1,
       _ => 3,
     };
-  }
-
-  List<({String id, String label})> get _problemOptions {
-    final Map<String, String> byId = <String, String>{};
-    for (final IdeathonEligibleIdea row in _eligibleRows) {
-      final IdeaModel idea = row.idea;
-      final String id = idea.problemId.trim();
-      if (id.isEmpty) continue;
-      final String title = idea.problemTitle.trim().isEmpty ? id : idea.problemTitle.trim();
-      byId.putIfAbsent(id, () => title);
-    }
-    final List<MapEntry<String, String>> entries = byId.entries.toList()
-      ..sort((MapEntry<String, String> a, MapEntry<String, String> b) => a.value.compareTo(b.value));
-    return entries
-        .map((MapEntry<String, String> e) => (id: e.key, label: e.value))
-        .toList(growable: false);
-  }
-
-  List<IdeathonEligibleIdea> get _filteredRows {
-    final String q = _ideaSearchController.text.trim().toLowerCase();
-    final String? problemId = _optionalProblemId;
-    return _eligibleRows.where((IdeathonEligibleIdea row) {
-      final IdeaModel idea = row.idea;
-      if (problemId != null && problemId.isNotEmpty && idea.problemId.trim() != problemId) {
-        return false;
-      }
-      if (q.isEmpty) return true;
-      final String hay = <String>[
-        idea.ideaTitle,
-        idea.description,
-        idea.problemTitle,
-        idea.problemDepartmentCode,
-        row.teamName,
-        row.organisationName,
-        row.origin.pillLabel,
-      ].join(' ').toLowerCase();
-      return hay.contains(q);
-    }).toList(growable: false);
   }
 
   EvaluationTemplate? get _selectedTemplate {
@@ -311,7 +250,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         description: _descriptionController.text,
         startDateTime: _startDateTime,
         endDateTime: _endDateTime,
-        ideaIds: _selectedIdeaIds.toList(),
         judgeIds: _selectedJudgeIds.toList(),
         coordinatorIds: _selectedCoordinatorIds.toList(),
         evaluationTemplateId: _selectedTemplateId ?? '',
@@ -336,9 +274,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         title: _isEdit ? 'Ideathon updated' : 'Ideathon created',
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
-            : _selectedIdeaIds.isEmpty
-                ? 'Event created with no ideas yet. Ideas appear after Team Leader submission and coordinator payment validation.'
-                : 'Event created with ${_selectedIdeaIds.length} paid ideas. Assign judges to ideas next — assignment is not automatic.',
+            : 'Event created with no ideas yet. Ideas appear after Team Leader submission and coordinator payment validation.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -474,103 +410,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 ),
               const SizedBox(height: 14),
               _sectionCard(
-                title: 'Paid & Confirmed Ideas',
-                icon: AppIcons.ideas,
-                sectionKey: 'ideas',
-                collapsible: true,
-                trailing: _ideasSectionTrailing(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    const Text(
-                      'Paid ideas are optional at creation. Leave this empty to start with zero ideas — they appear after Team Leader submission and coordinator payment validation. You can also select already-paid ideas here. Judges are assigned later on Judge Assignments, not automatically.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        if (_problemOptions.isNotEmpty) ...<Widget>[
-                          SizedBox(
-                            width: mobile ? 148 : 200,
-                            child: HackzSelectField<String>(
-                              value: _optionalProblemId ?? '',
-                              hint: 'All problems',
-                              prefixIcon: AppIcons.problems,
-                              minWidth: mobile ? 148 : 200,
-                              options: <String>['', ..._problemOptions.map((e) => e.id)],
-                              labelBuilder: (String id) {
-                                if (id.isEmpty) return 'All problems';
-                                for (final option in _problemOptions) {
-                                  if (option.id == id) return option.label;
-                                }
-                                return id;
-                              },
-                              iconBuilder: (_) => AppIcons.problems,
-                              onChanged: (String id) =>
-                                  setState(() => _optionalProblemId = id.isEmpty ? null : id),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                        Expanded(
-                          child: TextField(
-                            controller: _ideaSearchController,
-                            style: HackzInputDecoration.fieldTextStyle,
-                            decoration: HackzInputDecoration.decorate(
-                              hintText: 'Search ideas, teams, problems…',
-                              prefixIcon:
-                                  const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_problemOptions.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Problem filter is optional. An Ideathon can include ideas from multiple problems.',
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    if (_filteredRows.isEmpty)
-                      Text(
-                        _ideathonType == IdeathonType.internal
-                            ? 'No paid host-organisation ideas yet. You can still create the event; ideas appear after Team Leader submission and coordinator payment validation. Mixed and other-organisation teams appear only in an External Ideathon.'
-                            : 'No paid ideas yet. You can still create the event; ideas appear after Team Leader submission and coordinator payment validation.',
-                        style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
-                      )
-                    else
-                      ..._filteredRows.map(
-                        (IdeathonEligibleIdea row) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: IdeathonIdeaSelectRow(
-                            idea: row.idea,
-                            selected: _selectedIdeaIds.contains(row.idea.ideaId),
-                            teamName: row.teamName,
-                            organisationName: row.organisationName,
-                            origin: row.origin,
-                            onToggle: () => setState(() {
-                              if (_selectedIdeaIds.contains(row.idea.ideaId)) {
-                                _selectedIdeaIds.remove(row.idea.ideaId);
-                              } else {
-                                _selectedIdeaIds.add(row.idea.ideaId);
-                              }
-                            }),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              _sectionCard(
                 title: 'Evaluation Template',
                 icon: AppIcons.scoring,
                 sectionKey: 'evaluation',
@@ -602,14 +441,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         ),
         _buildFooter(context),
       ],
-    );
-  }
-
-  Widget _ideasSectionTrailing() {
-    return _statusChip(
-      ok: true,
-      icon: AppIcons.ideas,
-      label: '${_selectedIdeaIds.length}',
     );
   }
 
@@ -787,7 +618,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       children: <Widget>[
         _summaryRow('Type', value: _ideathonType.label),
         _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
-        _summaryRow('Paid ideas selected', value: _selectedIdeaIds.isEmpty ? 'None — added later' : '${_selectedIdeaIds.length}'),
         _summaryRow(
           'Evaluation template',
           child: template == null

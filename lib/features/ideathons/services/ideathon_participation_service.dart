@@ -14,49 +14,6 @@ abstract final class IdeathonParticipationService {
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzIdeathonParticipations);
 
-  /// Adds ideas as Ideathon members. [IdeaStatus] is untouched.
-  ///
-  /// Callers must only pass ideas whose idea-level payment is already verified
-  /// (eligibility). This event's payment status starts pending until an
-  /// event-scoped payment record exists for this [ideathonId].
-  static Future<List<IdeathonParticipation>> createForIdeathon({
-    required String orgId,
-    required String ideathonId,
-    required List<String> ideaIds,
-    WriteBatch? batch,
-  }) async {
-    final String org = orgId.trim();
-    final String eventId = ideathonId.trim();
-    if (org.isEmpty || eventId.isEmpty || ideaIds.isEmpty) {
-      return const <IdeathonParticipation>[];
-    }
-
-    final DateTime now = DateTime.now();
-    final WriteBatch writeBatch = batch ?? _db.batch();
-    final List<IdeathonParticipation> created = <IdeathonParticipation>[];
-
-    for (final String rawIdeaId in ideaIds) {
-      final String ideaId = rawIdeaId.trim();
-      if (ideaId.isEmpty) continue;
-      final DocumentReference<Map<String, dynamic>> ref = _col.doc();
-      final IdeathonParticipation participation = IdeathonParticipation(
-        participationId: ref.id,
-        ideathonId: eventId,
-        ideaId: ideaId,
-        orgId: org,
-        paymentStatus: PaymentRecordStatus.pending,
-        participationStatus: IdeathonParticipationStatus.active,
-        createdAt: now,
-        updatedAt: now,
-      );
-      writeBatch.set(ref, participation.toMap());
-      created.add(participation);
-    }
-
-    if (batch == null) await writeBatch.commit();
-    return created;
-  }
-
   /// Pending membership so Event Payments can show the canonical payment.
   /// Does not add the idea to the event Ideas roster — that happens on confirm.
   static Future<IdeathonParticipation> ensurePending({
@@ -166,23 +123,6 @@ abstract final class IdeathonParticipationService {
         .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
             IdeathonParticipation.fromMap(doc.id, doc.data()))
         .toList(growable: false);
-  }
-
-  static Future<void> deleteForIdeathonIdeas({
-    required String ideathonId,
-    required Iterable<String> ideaIds,
-  }) async {
-    final Set<String> remove = ideaIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toSet();
-    if (remove.isEmpty) return;
-    final List<IdeathonParticipation> existing = await listByIdeathon(ideathonId);
-    final WriteBatch batch = _db.batch();
-    var wrote = false;
-    for (final IdeathonParticipation participation in existing) {
-      if (!remove.contains(participation.ideaId.trim())) continue;
-      batch.delete(_col.doc(participation.participationId));
-      wrote = true;
-    }
-    if (wrote) await batch.commit();
   }
 
   /// Mirrors idea payment status onto membership rows (optional sync).

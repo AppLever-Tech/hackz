@@ -27,7 +27,6 @@ class CreateIdeathonInput {
     required this.description,
     required this.startDateTime,
     required this.endDateTime,
-    required this.ideaIds,
     required this.judgeIds,
     required this.coordinatorIds,
     required this.evaluationTemplateId,
@@ -39,7 +38,6 @@ class CreateIdeathonInput {
   final String description;
   final DateTime startDateTime;
   final DateTime endDateTime;
-  final List<String> ideaIds;
   final List<String> judgeIds;
   final List<String> coordinatorIds;
   final String evaluationTemplateId;
@@ -52,19 +50,6 @@ abstract final class IdeathonService {
   IdeathonService._();
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  /// Submitted ideas with a **verified** idea payment — eligible for Ideathon create.
-  ///
-  /// [ideathonType] filters teams: Internal = host-organisation only (no mixed
-  /// members); External = host, other-organisation, and mixed teams.
-  static Future<List<IdeathonEligibleIdea>> fetchEligibleIdeasForIdeathon({
-    required String orgId,
-    IdeathonType ideathonType = IdeathonType.internal,
-  }) async {
-    final List<IdeathonEligibleIdea> catalog =
-        await IdeathonTeamEligibility.loadPaidIdeas(hostOrgId: orgId);
-    return IdeathonTeamEligibility.filterForType(catalog, ideathonType);
-  }
 
   static Future<String> createIdeathon({
     required UserModel actor,
@@ -92,12 +77,6 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final List<IdeathonIdeaSnapshot> snapshots = await _snapshotsForSelectedIdeas(
-      orgId: orgId,
-      ideathonType: input.ideathonType,
-      ideaIds: input.ideaIds,
-    );
-
     final DateTime now = DateTime.now();
     final DocumentReference<Map<String, dynamic>> ref =
         _db.collection(FirestoreUtils.hkzIdeathons).doc();
@@ -114,7 +93,7 @@ abstract final class IdeathonService {
       judgeIds: input.judgeIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
       coordinatorIds:
           input.coordinatorIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList(),
-      ideas: snapshots,
+      ideas: const <IdeathonIdeaSnapshot>[],
       evaluationTemplateId: resolved.templateId,
       evaluationCriteria: const <EvaluationCriterion>[],
       problemId: input.problemId.trim(),
@@ -123,18 +102,7 @@ abstract final class IdeathonService {
       updatedAt: now,
     );
 
-    final WriteBatch batch = _db.batch();
-    batch.set(ref, ideathon.toMap());
-    if (snapshots.isNotEmpty) {
-      await IdeathonParticipationService.createForIdeathon(
-        orgId: orgId,
-        ideathonId: ideathon.ideathonId,
-        ideaIds: snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId).toList(growable: false),
-        batch: batch,
-      );
-    }
-    await batch.commit();
-
+    await ref.set(ideathon.toMap());
     return ideathon.ideathonId;
   }
 
@@ -199,22 +167,6 @@ abstract final class IdeathonService {
       throw StateError('Select an evaluation template.');
     }
 
-    final Map<String, IdeathonIdeaSnapshot> previousById = <String, IdeathonIdeaSnapshot>{
-      for (final IdeathonIdeaSnapshot s in existing.ideas)
-        if (s.ideaId.trim().isNotEmpty) s.ideaId.trim(): s,
-    };
-    final List<IdeathonIdeaSnapshot> snapshots = await _snapshotsForSelectedIdeas(
-      orgId: existing.orgId,
-      ideathonType: input.ideathonType,
-      ideaIds: input.ideaIds,
-      previousById: previousById,
-    );
-
-    final Set<String> nextIdeaIds = snapshots.map((IdeathonIdeaSnapshot s) => s.ideaId.trim()).toSet();
-    final Set<String> prevIdeaIds = previousById.keys.toSet();
-    final Set<String> addedIdeas = nextIdeaIds.difference(prevIdeaIds);
-    final Set<String> removedIdeas = prevIdeaIds.difference(nextIdeaIds);
-
     final List<String> nextJudges =
         input.judgeIds.map((String j) => j.trim()).where((String j) => j.isNotEmpty).toList();
     final Set<String> removedJudges = existing.judgeIds
@@ -237,7 +189,7 @@ abstract final class IdeathonService {
       judgeIds: nextJudges,
       coordinatorIds:
           input.coordinatorIds.map((String c) => c.trim()).where((String c) => c.isNotEmpty).toList(),
-      ideas: snapshots,
+      ideas: existing.ideas,
       evaluationTemplateId: resolved.templateId,
       evaluationCriteria: existing.evaluationCriteria,
       problemId: input.problemId.trim(),
@@ -249,25 +201,8 @@ abstract final class IdeathonService {
       updatedAt: now,
     );
 
-    final WriteBatch batch = _db.batch();
-    batch.set(_db.collection(FirestoreUtils.hkzIdeathons).doc(id), updated.toMap());
-    if (addedIdeas.isNotEmpty) {
-      await IdeathonParticipationService.createForIdeathon(
-        orgId: existing.orgId,
-        ideathonId: id,
-        ideaIds: addedIdeas.toList(growable: false),
-        batch: batch,
-      );
-    }
-    await batch.commit();
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(id).set(updated.toMap());
 
-    if (removedIdeas.isNotEmpty) {
-      await IdeathonParticipationService.deleteForIdeathonIdeas(ideathonId: id, ideaIds: removedIdeas);
-      await EvaluationAssignmentService.removeIdeathonAssignmentsMatching(
-        ideathonId: id,
-        ideaIds: removedIdeas,
-      );
-    }
     if (removedJudges.isNotEmpty) {
       await EvaluationAssignmentService.removeIdeathonAssignmentsMatching(
         ideathonId: id,
@@ -583,51 +518,6 @@ abstract final class IdeathonService {
           criteria.map((EvaluationCriterion c) => c.toMap()).toList(growable: false),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
-  }
-
-  /// Paid-idea snapshots for optionally selected ids. Empty [ideaIds] yields
-  /// an empty list — Ideathons may be created with zero ideas.
-  static Future<List<IdeathonIdeaSnapshot>> _snapshotsForSelectedIdeas({
-    required String orgId,
-    required IdeathonType ideathonType,
-    required List<String> ideaIds,
-    Map<String, IdeathonIdeaSnapshot> previousById = const <String, IdeathonIdeaSnapshot>{},
-  }) async {
-    final List<String> selected = ideaIds.map((String id) => id.trim()).where((String id) => id.isNotEmpty).toList();
-    if (selected.isEmpty) return const <IdeathonIdeaSnapshot>[];
-
-    final List<IdeathonEligibleIdea> eligible = await fetchEligibleIdeasForIdeathon(
-      orgId: orgId,
-      ideathonType: ideathonType,
-    );
-    final Map<String, IdeathonEligibleIdea> eligibleById = <String, IdeathonEligibleIdea>{
-      for (final IdeathonEligibleIdea row in eligible) row.idea.ideaId: row,
-    };
-
-    final List<IdeathonIdeaSnapshot> snapshots = <IdeathonIdeaSnapshot>[];
-    for (final String ideaId in selected) {
-      final IdeathonEligibleIdea? row = eligibleById[ideaId];
-      final IdeathonIdeaSnapshot? previous = previousById[ideaId];
-      if (row != null) {
-        final IdeaModel idea = row.idea;
-        snapshots.add(
-          IdeathonIdeaSnapshot(
-            ideaId: idea.ideaId,
-            ideaTitle: idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim(),
-            problemTitle: idea.problemTitle.trim().isEmpty ? '—' : idea.problemTitle.trim(),
-            teamName: row.teamName.isEmpty ? '—' : row.teamName,
-            addedAt: previous?.addedAt ?? DateTime.now(),
-          ),
-        );
-      } else if (previous != null) {
-        snapshots.add(previous);
-      } else {
-        throw StateError(
-          'Only paid ideas from teams eligible for this Ideathon type can be added.',
-        );
-      }
-    }
-    return snapshots;
   }
 
   static Future<IdeathonModel?> fetchById(String ideathonId) async {
