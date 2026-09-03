@@ -36,6 +36,7 @@ class ManageCollegeScreen extends StatefulWidget {
 class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   String _orgName = '';
   DashboardChromeController? _chrome;
+  late Future<List<Map<String, dynamic>>> _departmentsFuture;
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -51,7 +52,14 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   void initState() {
     super.initState();
     _orgName = widget.user.orgId;
+    _departmentsFuture = FirestoreUtils.getDepartmentsByCollege(widget.user.orgId);
     _loadOrganization();
+  }
+
+  void _reloadDepartments() {
+    setState(() {
+      _departmentsFuture = FirestoreUtils.getDepartmentsByCollege(widget.user.orgId);
+    });
   }
 
   @override
@@ -89,7 +97,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       department: ((dept['name'] as String?) ?? '').trim(),
       initialUser: adminUser,
     );
-    if (mounted && changed) setState(() {});
+    if (mounted && changed) _reloadDepartments();
   }
 
   Future<void> _openDepartmentAdminDialog(Map<String, dynamic> dept) async {
@@ -115,7 +123,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         });
       },
     );
-    if (mounted && changed) setState(() {});
+    if (mounted && changed) _reloadDepartments();
   }
 
   Future<void> _removeDepartmentAdmin(
@@ -139,7 +147,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       'department': '',
       'departmentCode': '',
     });
-    if (mounted) setState(() {});
+    if (mounted) _reloadDepartments();
   }
 
   Future<void> _deleteDepartment(Map<String, dynamic> dept) async {
@@ -191,7 +199,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       }
       await FirestoreUtils.deleteDepartment(departmentId: departmentId);
       if (!mounted) return;
-      setState(() {});
+      _reloadDepartments();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(
@@ -379,7 +387,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       customDepartmentController.dispose();
     });
-    if (mounted && shouldRefresh == true) setState(() {});
+    if (mounted && shouldRefresh == true) _reloadDepartments();
   }
 
   String _resolveDepartmentCode(String departmentName) {
@@ -400,7 +408,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: FirestoreUtils.getDepartmentsByCollege(widget.user.orgId),
+      future: _departmentsFuture,
       builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

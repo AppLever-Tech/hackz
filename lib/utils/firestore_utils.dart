@@ -382,94 +382,92 @@ class FirestoreUtils {
 
   static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(String orgId) async {
     final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
-    final departmentsSnapshot = await _db
-        .collection(hkzDepartments)
-        .where('orgId', isEqualTo: orgId)
-        .get();
+    final Query<Map<String, dynamic>> departmentsQuery =
+        _db.collection(hkzDepartments).where('orgId', isEqualTo: orgId);
+    QuerySnapshot<Map<String, dynamic>> departmentsSnapshot;
+    try {
+      departmentsSnapshot = await departmentsQuery.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      departmentsSnapshot = await departmentsQuery.get();
+    }
 
-    final Map<String, Map<String, dynamic>> map = <String, Map<String, dynamic>>{};
-    for (final dep in departmentsSnapshot.docs) {
-      final data = dep.data();
-      final name = (data['name'] as String?)?.trim() ?? '';
+    final Map<String, Map<String, dynamic>> byCode = <String, Map<String, dynamic>>{};
+    final Map<String, Map<String, dynamic>> byName = <String, Map<String, dynamic>>{};
+    final List<Map<String, dynamic>> rows = <Map<String, dynamic>>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> dep in departmentsSnapshot.docs) {
+      final Map<String, dynamic> data = dep.data();
+      final String name = (data['name'] as String?)?.trim() ?? '';
       if (name.isEmpty) continue;
-      final current = map.putIfAbsent(
-        name,
-        () => <String, dynamic>{
-          'id': dep.id,
-          'name': name,
-          'code': (data['code'] as String?)?.trim() ?? '',
-          'adminUserId': (data['adminUserId'] as String?)?.trim() ?? '',
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'facultyCount': 0,
-          'teamMemberCount': 0,
-          'judgeCount': 0,
-          'coordinatorCount': 0,
-        },
-      );
-      current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
-      current['adminUserId'] = (data['adminUserId'] as String?)?.trim() ?? current['adminUserId'];
+      final String code = (data['code'] as String?)?.trim().toUpperCase() ?? '';
+      final Map<String, dynamic> row = <String, dynamic>{
+        'id': dep.id,
+        'name': name,
+        'code': code,
+        'adminUserId': (data['adminUserId'] as String?)?.trim() ?? '',
+        'departmentAdmin': '-',
+        'totalUsers': 0,
+        'facultyCount': 0,
+        'teamMemberCount': 0,
+        'judgeCount': 0,
+        'coordinatorCount': 0,
+      };
+      rows.add(row);
+      if (code.isNotEmpty) byCode[code] = row;
+      byName[name.toLowerCase()] = row;
     }
 
     final Map<String, UserModel> usersById = <String, UserModel>{};
-    for (final u in usersSnapshot.docs) {
-      final data = u.data();
-      final department = (data['department'] as String?)?.trim() ?? '';
-      final departmentCode = ((data['departmentCode'] as String?) ?? '').trim().toUpperCase();
-      if (departmentCode.isEmpty) continue;
-      final role = (data['role'] as String?) ?? '';
-      final firstName = (data['firstName'] as String?)?.trim() ?? '';
-      final lastName = (data['lastName'] as String?)?.trim() ?? '';
-      final fullName = '$firstName $lastName'.trim();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> u in usersSnapshot.docs) {
+      final Map<String, dynamic> data = u.data();
+      final String department = (data['department'] as String?)?.trim() ?? '';
+      final String departmentCode = ((data['departmentCode'] as String?) ?? '').trim().toUpperCase();
+      final String role = (data['role'] as String?) ?? '';
+      final String firstName = (data['firstName'] as String?)?.trim() ?? '';
+      final String lastName = (data['lastName'] as String?)?.trim() ?? '';
+      final String fullName = '$firstName $lastName'.trim();
 
-      final departmentName = DepartmentModel.byCode(departmentCode)?.name ?? department;
-      final current = map.putIfAbsent(
-        departmentName,
-        () => <String, dynamic>{
-          'id': '',
-          'name': departmentName,
-          'code': departmentCode,
-          'adminUserId': '',
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'facultyCount': 0,
-          'teamMemberCount': 0,
-          'judgeCount': 0,
-          'coordinatorCount': 0,
-        },
-      );
-      current['totalUsers'] = (current['totalUsers'] as int) + 1;
-      if (role == 'DADM' && fullName.isNotEmpty) {
-        current['departmentAdmin'] = fullName;
+      Map<String, dynamic>? current;
+      if (departmentCode.isNotEmpty) current = byCode[departmentCode];
+      if (current == null) {
+        final String departmentName =
+            (DepartmentModel.byCode(departmentCode)?.name ?? department).trim();
+        if (departmentName.isNotEmpty) current = byName[departmentName.toLowerCase()];
       }
-      if (role == UserRole.teamMember.code) {
-        current['teamMemberCount'] = (current['teamMemberCount'] as int) + 1;
-      } else if (role == UserRole.judge.code) {
-        current['judgeCount'] = (current['judgeCount'] as int? ?? 0) + 1;
-      } else if (role == UserRole.coordinator.code) {
-        current['coordinatorCount'] = (current['coordinatorCount'] as int? ?? 0) + 1;
+      if (current != null) {
+        current['totalUsers'] = (current['totalUsers'] as int) + 1;
+        if (role == 'DADM' && fullName.isNotEmpty) {
+          current['departmentAdmin'] = fullName;
+        }
+        if (role == UserRole.teamMember.code) {
+          current['teamMemberCount'] = (current['teamMemberCount'] as int) + 1;
+        } else if (role == UserRole.judge.code) {
+          current['judgeCount'] = (current['judgeCount'] as int? ?? 0) + 1;
+        } else if (role == UserRole.coordinator.code) {
+          current['coordinatorCount'] = (current['coordinatorCount'] as int? ?? 0) + 1;
+        }
       }
 
-      final userModel = UserModel.fromMap(data);
+      final UserModel userModel = UserModel.fromMap(data);
       usersById[userModel.userId.isNotEmpty ? userModel.userId : u.id] = userModel.copyWith(
         userId: userModel.userId.isNotEmpty ? userModel.userId : u.id,
       );
     }
 
-    for (final entry in map.entries) {
-      final row = entry.value;
-      final adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
+    for (final Map<String, dynamic> row in rows) {
+      final String adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
       if (adminUserId.isEmpty) continue;
-      final admin = usersById[adminUserId];
+      final UserModel? admin = usersById[adminUserId];
       if (admin == null) continue;
-      final fullName = '${admin.firstName} ${admin.lastName}'.trim();
+      final String fullName = '${admin.firstName} ${admin.lastName}'.trim();
       row['departmentAdmin'] = fullName.isEmpty ? '-' : fullName;
       row['adminUser'] = admin;
     }
 
-    final result = map.values.toList(growable: false);
-    result.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-    return result;
+    rows.sort(
+      (Map<String, dynamic> a, Map<String, dynamic> b) =>
+          (a['name'] as String).compareTo(b['name'] as String),
+    );
+    return rows;
   }
 
   /// Idea totals keyed by department code — used by analytics charts, not manage-college.
