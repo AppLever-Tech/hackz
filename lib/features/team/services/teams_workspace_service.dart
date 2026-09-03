@@ -28,7 +28,14 @@ class TeamWorkspaceInsight {
   bool get hasIdeas => ideas.isNotEmpty;
   bool get hasPendingPayment => paymentStatuses.any((status) => status == PaymentRecordStatus.pending);
   bool get hasEvaluation => evaluationCount > 0 || ideas.any((idea) => idea.hasEvaluationAggregate);
-  bool get isLocked => team.status == TeamStatus.locked || hasIdeas;
+  bool get isLocked => team.status == TeamStatus.locked || submittedIdeas > 0;
+}
+
+class TeamSizeBounds {
+  const TeamSizeBounds({required this.min, required this.max});
+
+  final int min;
+  final int max;
 }
 
 class TeamsWorkspaceData {
@@ -55,7 +62,12 @@ class TeamsWorkspaceService {
 
   static const int maxTeamsPerLeader = 1;
   static const int minMembersPerTeam = 2;
-  static const int maxMembersPerTeam = 4;
+  static const int maxMembersPerTeam = 6;
+
+  static Future<TeamSizeBounds> loadSizeBounds(String orgId) async {
+    final ({int min, int max}) bounds = await TeamService.teamSizeBoundsForOrg(orgId);
+    return TeamSizeBounds(min: bounds.min, max: bounds.max);
+  }
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static final Map<String, TeamsWorkspaceData> _cache = <String, TeamsWorkspaceData>{};
   static final Map<String, DateTime> _cacheAt = <String, DateTime>{};

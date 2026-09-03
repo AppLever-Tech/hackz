@@ -66,6 +66,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   final Set<String> _selectedMemberIds = <String>{};
   String _teamLeaderId = '';
   bool _saving = false;
+  int _minMembers = TeamsWorkspaceService.minMembersPerTeam;
+  int _maxMembers = TeamsWorkspaceService.maxMembersPerTeam;
 
   bool get _isTeamMemberActor => UserRole.fromCode(widget.currentUser.role) == UserRole.teamMember;
 
@@ -80,6 +82,17 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     } else {
       _teamLeaderId = widget.initialTeam?.teamLeaderId.trim() ?? '';
     }
+    _loadSizeBounds();
+  }
+
+  Future<void> _loadSizeBounds() async {
+    final ({int min, int max}) bounds =
+        await TeamService.teamSizeBoundsForOrg(widget.currentUser.orgId);
+    if (!mounted) return;
+    setState(() {
+      _minMembers = bounds.min;
+      _maxMembers = bounds.max;
+    });
   }
 
   @override
@@ -110,8 +123,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
     if (_saving) return false;
     if (_nameController.text.trim().isEmpty) return false;
     final int count = _selectedMemberIds.length;
-    return count >= TeamsWorkspaceService.minMembersPerTeam &&
-        count <= TeamsWorkspaceService.maxMembersPerTeam &&
+    return count >= _minMembers &&
+        count <= _maxMembers &&
         _teamLeaderId.trim().isNotEmpty &&
         _selectedMemberIds.contains(_teamLeaderId.trim());
   }
@@ -239,14 +252,14 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
           _section(
             title: 'Team Members',
             subtitle:
-                'Select ${TeamsWorkspaceService.minMembersPerTeam}–${TeamsWorkspaceService.maxMembersPerTeam} team members for collaborative submission',
+                'Select $_minMembers–$_maxMembers team members for collaborative submission',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 TeamMemberSelector(
                   members: _eligibleTeamMembers,
                   selectedIds: _selectedMemberIds,
-                  maxSelection: TeamsWorkspaceService.maxMembersPerTeam,
+                  maxSelection: _maxMembers,
                   enabled: !_saving,
                   onChanged: (Set<String> next) => setState(() {
                     _selectedMemberIds
@@ -340,7 +353,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
-              _heroChip('${TeamsWorkspaceService.minMembersPerTeam}–${TeamsWorkspaceService.maxMembersPerTeam} team members'),
+              _heroChip('$_minMembers–$_maxMembers team members'),
               _heroChip('Team Leader'),
               _heroChip('Submission ready'),
             ],
@@ -430,8 +443,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
 
   Widget _buildRulesHint(BuildContext context) {
     final int count = _selectedMemberIds.length;
-    final bool belowMin = count < TeamsWorkspaceService.minMembersPerTeam;
-    final bool atMax = count >= TeamsWorkspaceService.maxMembersPerTeam;
+    final bool belowMin = count < _minMembers;
+    final bool atMax = count >= _maxMembers;
 
     return Row(
       children: <Widget>[
@@ -444,8 +457,8 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
         Expanded(
           child: Text(
             belowMin
-                ? 'Add at least ${TeamsWorkspaceService.minMembersPerTeam} team members to continue.'
-                : 'Minimum ${TeamsWorkspaceService.minMembersPerTeam} team members · maximum ${TeamsWorkspaceService.maxMembersPerTeam} team members.',
+                ? 'Add at least $_minMembers team members to continue.'
+                : 'Minimum $_minMembers team members · maximum $_maxMembers team members.',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -460,7 +473,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
   Widget _buildFooter(BuildContext context) {
     final int count = _selectedMemberIds.length;
     final int remaining =
-        (TeamsWorkspaceService.maxMembersPerTeam - count).clamp(0, TeamsWorkspaceService.maxMembersPerTeam).toInt();
+        (_maxMembers - count).clamp(0, _maxMembers).toInt();
     final bool ready = _canSave;
 
     return Container(
@@ -490,7 +503,7 @@ class _TeamCreationWorkspaceState extends State<TeamCreationWorkspace> {
               _footerMeta(AppIcons.teams, '$remaining slot${remaining == 1 ? '' : 's'} left'),
               _footerMeta(
                 ready ? AppIcons.workflowApproved : AppIcons.workflowPendingReview,
-                ready ? 'Ready to create' : 'Complete team details',
+                ready ? 'Ready to ${widget.isEdit ? 'save' : 'create'}' : 'Complete team details',
                 color: ready ? const Color(0xFF059669) : const Color(0xFF64748B),
               ),
             ],

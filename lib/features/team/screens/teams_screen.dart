@@ -158,7 +158,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     data: data,
                     membersById: membersById,
                     onEdit: (TeamModel team) {
-                      if (!TeamService.canManageTeam(widget.user, team)) return;
                       final TeamWorkspaceInsight insight = data.insightsByTeamId[team.teamId] ??
                           TeamWorkspaceInsight(
                             team: team,
@@ -166,6 +165,16 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             paymentStatuses: const <PaymentRecordStatus>[],
                             evaluationCount: 0,
                           );
+                      if (insight.isLocked) {
+                        FeedbackService.showWarning(
+                          context,
+                          title: 'Team locked',
+                          message:
+                              'Team membership cannot be changed after the first idea submission. Contact your Department Admin if help is needed.',
+                        );
+                        return;
+                      }
+                      if (!TeamService.canManageTeam(widget.user, team)) return;
                       _openTeamChangeWorkspace(team, insight);
                     },
                     onViewIdeas: _viewIdeas,
@@ -283,7 +292,7 @@ class _CreateTeamCta extends StatelessWidget {
                   children: <Widget>[
                     Text('Create an innovation team', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                     SizedBox(height: 3),
-                    Text('Build a compact 2-4 member team for idea submission.', style: TextStyle(color: Color(0xFF64748B))),
+                    Text('Build a collaborative innovation team for idea submission.', style: TextStyle(color: Color(0xFF64748B))),
                   ],
                 ),
               ),

@@ -30,6 +30,8 @@ class TeamWorkspaceCard extends StatelessWidget {
     required this.onDisable,
     this.compact = false,
     this.onOpen,
+    this.editActionLabel = 'Request Team Change',
+    this.canEdit = true,
   });
 
   final TeamModel team;
@@ -41,6 +43,8 @@ class TeamWorkspaceCard extends StatelessWidget {
   final VoidCallback onDisable;
   final bool compact;
   final VoidCallback? onOpen;
+  final String editActionLabel;
+  final bool canEdit;
 
   static const double _labelWidth = 52;
   static const double _labelGap = 4;
@@ -51,6 +55,7 @@ class TeamWorkspaceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<String> sortedMemberIds = sortUserIdsByDisplayName(team.studentIds, memberNamesById);
     final bool isInactive = team.status.name == 'inactive';
+    final bool editEnabled = canEdit && !isInactive && !insight.isLocked;
     final VoidCallback? openTeam = onOpen ??
         (team.teamId.trim().isEmpty ? null : () => WorkspaceNavigator.openTeam(context, team.teamId.trim()));
 
@@ -93,13 +98,20 @@ class TeamWorkspaceCard extends StatelessWidget {
                         label: 'Open team',
                         enabled: openTeam != null,
                       ),
+                      if (editActionLabel.trim().isNotEmpty)
+                        CardOverflowMenuAction(
+                          value: 'edit',
+                          icon: editActionLabel == 'Edit Team' ? AppIcons.edit : Icons.published_with_changes_rounded,
+                          label: editActionLabel,
+                          enabled: editEnabled,
+                        ),
                     ]
                   : <CardOverflowMenuAction>[
                       CardOverflowMenuAction(
                         value: 'edit',
-                        icon: Icons.published_with_changes_rounded,
-                        label: 'Request Team Change',
-                        enabled: !isInactive,
+                        icon: editActionLabel == 'Edit Team' ? AppIcons.edit : Icons.published_with_changes_rounded,
+                        label: editActionLabel,
+                        enabled: editEnabled,
                       ),
                       const CardOverflowMenuAction(
                         value: 'view',

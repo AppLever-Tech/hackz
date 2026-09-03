@@ -32,7 +32,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     key: OrgSettingKeys.maxStudentsPerTeam,
     displayName: 'Maximum team members per team',
     type: OrgSettingValueType.integer,
-    defaultValue: 5,
+    defaultValue: 6,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
     groupKey: 'formation',

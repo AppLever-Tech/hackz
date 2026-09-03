@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../org_settings/constants/org_setting_keys.dart';
+import '../../org_settings/services/org_settings_service.dart';
 import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_model.dart';
 import '../models/team_model.dart';
@@ -118,8 +120,11 @@ class TeamService {
         throw TeamRuleException('A team with this name already exists. Choose a different name.');
       }
     }
-    if (selectedMemberIds.length < 2 || selectedMemberIds.length > 4) {
-      throw TeamRuleException('Team size must be between 2 and 4 team members.');
+    final ({int min, int max}) bounds = await _teamSizeBounds(actor.orgId);
+    if (selectedMemberIds.length < bounds.min || selectedMemberIds.length > bounds.max) {
+      throw TeamRuleException(
+        'Team size must be between ${bounds.min} and ${bounds.max} team members.',
+      );
     }
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: selectedMemberIds);
 
@@ -139,7 +144,11 @@ class TeamService {
       }
     } else if (role == UserRole.departmentAdmin) {
       if (editingTeam != null) {
-        throw TeamRuleException('You can only manage teams you lead.');
+        final String dept = actor.departmentCode.trim().toUpperCase();
+        if (editingTeam.orgId.trim() != actor.orgId.trim() ||
+            editingTeam.departmentCode.trim().toUpperCase() != dept) {
+          throw TeamRuleException('You can only edit teams in your department.');
+        }
       }
     } else {
       throw TeamRuleException('Only a team leader can create or update a team.');
@@ -167,7 +176,7 @@ class TeamService {
       }
       final canEdit = await canEditTeam(editingTeam.teamId);
       if (!canEdit) {
-        throw TeamRuleException('Team can be edited only while idea status is pending submission.');
+        throw TeamRuleException('Team membership is locked after the first idea submission.');
       }
     }
   }
@@ -286,13 +295,39 @@ class TeamService {
   }
 
   static Future<bool> canEditTeam(String teamId) async {
-    final ideas = await _db.collection(FirestoreUtils.hkzIdeas).where('teamId', isEqualTo: teamId).get();
-    if (ideas.docs.isEmpty) return true;
-    for (final doc in ideas.docs) {
-      final status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
-      if (status != IdeaStatus.draft) return false;
+    return !(await hasSubmittedIdea(teamId));
+  }
+
+  static Future<bool> hasSubmittedIdea(String teamId) async {
+    final String id = teamId.trim();
+    if (id.isEmpty) return false;
+    final QuerySnapshot<Map<String, dynamic>> ideas =
+        await _db.collection(FirestoreUtils.hkzIdeas).where('teamId', isEqualTo: id).get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in ideas.docs) {
+      final IdeaStatus status = IdeaStatus.fromRaw((doc.data()['status'] as String?) ?? '');
+      if (status != IdeaStatus.draft) return true;
     }
-    return true;
+    return false;
+  }
+
+  static Future<void> assertTeamMembershipEditable(String teamId) async {
+    if (!await canEditTeam(teamId)) {
+      throw TeamRuleException('Team membership is locked after the first idea submission.');
+    }
+  }
+
+  static Future<({int min, int max})> teamSizeBoundsForOrg(String orgId) => _teamSizeBounds(orgId);
+
+  static Future<({int min, int max})> _teamSizeBounds(String orgId) async {
+    const int fallbackMin = 2;
+    const int fallbackMax = 6;
+    final String id = orgId.trim();
+    if (id.isEmpty) return (min: fallbackMin, max: fallbackMax);
+    await OrgSettingsService.instance.ensureLoaded(orgId: id);
+    final Map<String, dynamic> settings = OrgSettingsService.instance.valuesSnapshot;
+    final int min = (settings[OrgSettingKeys.minStudentsPerTeam] as num?)?.toInt() ?? fallbackMin;
+    final int max = (settings[OrgSettingKeys.maxStudentsPerTeam] as num?)?.toInt() ?? fallbackMax;
+    return (min: min, max: max);
   }
 
   static Future<void> validateIdeaCreation({

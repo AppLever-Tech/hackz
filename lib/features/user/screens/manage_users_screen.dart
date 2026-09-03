@@ -256,6 +256,44 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     }
   }
 
+  Future<void> _openEditTeam(TeamModel team) async {
+    final TeamWorkspaceInsight insight = _insightFor(team);
+    if (insight.isLocked) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Team locked',
+        message: 'Team membership cannot be changed after the first idea submission.',
+      );
+      return;
+    }
+    try {
+      final String deptCode = DepartmentModel.resolveCode(widget.user.departmentCode);
+      final List<UserModel> members = _teamsData?.teamMembers ??
+          await TeamService.getDepartmentTeamMembers(
+            orgId: widget.user.orgId,
+            departmentCode: deptCode,
+          );
+      if (!mounted) return;
+      final TeamFormDialogAction? result = await showTeamCreationWorkspace(
+        context: context,
+        currentUser: widget.user,
+        existingTeams: _departmentTeams,
+        departmentTeamMembers: members,
+        initialTeam: team,
+      );
+      if (result == TeamFormDialogAction.saved && mounted) {
+        await _loadAll();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Cannot edit team',
+        message: e.toString(),
+      );
+    }
+  }
+
   Future<void> _openImportTeam() async {
     final bool? imported = await showTeamRegistrationImportWorkflow(
       context: context,
@@ -1199,14 +1237,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     };
 
     Widget cardFor(TeamModel team) {
+      final TeamWorkspaceInsight insight = _insightFor(team);
       return TeamWorkspaceCard(
         team: team,
-        insight: _insightFor(team),
+        insight: insight,
         membersById: membersById,
         memberNamesById: data.memberNamesById,
         compact: true,
+        editActionLabel: 'Edit Team',
+        canEdit: !insight.isLocked,
         onOpen: () => WorkspaceNavigator.openTeam(context, team.teamId),
-        onEdit: () {},
+        onEdit: () => _openEditTeam(team),
         onViewIdeas: () {},
         onDisable: () {},
       );

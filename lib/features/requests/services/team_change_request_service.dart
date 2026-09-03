@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../team/models/team_model.dart';
+import '../../team/services/team_service.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../team/services/teams_workspace_service.dart';
@@ -92,14 +93,18 @@ class TeamChangeRequestService {
     required Set<String> currentMemberIds,
     required String reason,
     String teamLeaderId = '',
+    int? minMembers,
+    int? maxMembers,
   }) {
-    if (proposedMemberIds.length < minMembersPerTeam) {
+    final int min = minMembers ?? minMembersPerTeam;
+    final int max = maxMembers ?? maxMembersPerTeam;
+    if (proposedMemberIds.length < min) {
       throw WorkflowRequestException(
-          'Team must have at least $minMembersPerTeam team members.');
+          'Team must have at least $min team members.');
     }
-    if (proposedMemberIds.length > maxMembersPerTeam) {
+    if (proposedMemberIds.length > max) {
       throw WorkflowRequestException(
-          'Team can have at most $maxMembersPerTeam team members.');
+          'Team can have at most $max team members.');
     }
     if (proposedMemberIds.length == currentMemberIds.length &&
         proposedMemberIds.containsAll(currentMemberIds)) {
@@ -115,6 +120,11 @@ class TeamChangeRequestService {
   }
 
   static Future<WorkflowRequest> submit(WorkflowRequest request) async {
+    final TeamChangePayload? payload = TeamChangePayload.fromMap(request.payload);
+    final String teamId = payload?.teamId.trim() ?? '';
+    if (teamId.isNotEmpty) {
+      await TeamService.assertTeamMembershipEditable(teamId);
+    }
     final WorkflowRequest pending = request.status == WorkflowStatus.pendingApproval
         ? request
         : request.copyWith(status: WorkflowStatus.pendingApproval);
@@ -132,6 +142,10 @@ class TeamChangeRequestService {
   }) async {
     if (request.type != WorkflowRequestType.teamChange) {
       throw WorkflowRequestException('Unsupported request type for team change approval.');
+    }
+    final TeamChangePayload? lockPayload = TeamChangePayload.fromRequest(request);
+    if (lockPayload != null && lockPayload.teamId.trim().isNotEmpty) {
+      await TeamService.assertTeamMembershipEditable(lockPayload.teamId);
     }
     if (request.status.isTerminal) {
       throw WorkflowRequestException(

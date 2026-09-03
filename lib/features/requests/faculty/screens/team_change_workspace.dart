@@ -59,6 +59,9 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   late final Map<String, UserModel> _membersById;
   final TextEditingController _reasonController = TextEditingController();
   bool _submitting = false;
+  int _minMembers = TeamChangeRequestService.minMembersPerTeam;
+  int _maxMembers = TeamChangeRequestService.maxMembersPerTeam;
+  bool _membershipLocked = false;
 
   Future<WorkflowRequest?>? _existingPendingFuture;
 
@@ -74,6 +77,19 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
       if (mounted) setState(() {});
     });
     _existingPendingFuture = _loadExistingPending();
+    _loadWorkspaceRules();
+  }
+
+  Future<void> _loadWorkspaceRules() async {
+    final ({int min, int max}) bounds =
+        await TeamService.teamSizeBoundsForOrg(widget.faculty.orgId);
+    final bool locked = await TeamService.hasSubmittedIdea(widget.team.teamId);
+    if (!mounted) return;
+    setState(() {
+      _minMembers = bounds.min;
+      _maxMembers = bounds.max;
+      _membershipLocked = locked;
+    });
   }
 
   @override
@@ -130,11 +146,14 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
   /// when the request is ready to submit). Surfaced in the sticky footer so
   /// faculty always know what to fix.
   String? get _blockingReason {
-    if (_proposedIds.length < TeamChangeRequestService.minMembersPerTeam) {
-      return 'Add at least ${TeamChangeRequestService.minMembersPerTeam} team members.';
+    if (_membershipLocked) {
+      return 'Team membership is locked after the first idea submission.';
     }
-    if (_proposedIds.length > TeamChangeRequestService.maxMembersPerTeam) {
-      return 'Remove a team member — teams allow at most ${TeamChangeRequestService.maxMembersPerTeam}.';
+    if (_proposedIds.length < _minMembers) {
+      return 'Add at least $_minMembers team members.';
+    }
+    if (_proposedIds.length > _maxMembers) {
+      return 'Remove a team member — teams allow at most $_maxMembers.';
     }
     if (!_hasChanges) {
       return 'No member changes — add or remove at least one team member.';
@@ -162,11 +181,14 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     setState(() => _submitting = true);
     try {
       TeamService.assertCanManageTeam(widget.faculty, widget.team);
+      await TeamService.assertTeamMembershipEditable(widget.team.teamId);
       TeamChangeRequestService.validateProposed(
         proposedMemberIds: _proposedIds,
         currentMemberIds: _currentIds,
         reason: _reasonController.text,
         teamLeaderId: widget.team.teamLeaderId,
+        minMembers: _minMembers,
+        maxMembers: _maxMembers,
       );
       final WorkflowRequest request = TeamChangeRequestService.buildRequest(
         team: widget.team,
@@ -243,6 +265,10 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
                       WorkflowEvaluationWarning.teamEvaluated(),
                       const SizedBox(height: 12),
                     ],
+                    if (_membershipLocked) ...<Widget>[
+                      _buildMembershipLockedBanner(),
+                      const SizedBox(height: 12),
+                    ],
                     _buildExistingPendingBanner(),
                     _buildCurrentTeamSection(),
                     const SizedBox(height: 12),
@@ -268,6 +294,29 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
           onSubmit: _submit,
         ),
       ],
+    );
+  }
+
+  Widget _buildMembershipLockedBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F3FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE9D5FF)),
+      ),
+      child: const Row(
+        children: <Widget>[
+          Icon(AppIcons.verification, size: 18, color: Color(0xFF7C3AED)),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Team membership is locked after the first idea submission. Contact your Department Admin if changes are still required.',
+              style: TextStyle(fontSize: 11.5, color: Color(0xFF5B21B6), fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -343,15 +392,15 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
 
   Widget _buildProposedTeamSection() {
     final int count = _proposedIds.length;
-    final bool belowMin = count < TeamChangeRequestService.minMembersPerTeam;
-    final bool atMax = count >= TeamChangeRequestService.maxMembersPerTeam;
+    final bool belowMin = count < _minMembers;
+    final bool atMax = count >= _maxMembers;
     final int freeCount = _eligibleTeamMembers
         .where((UserModel s) => !_proposedIds.contains(s.userId))
         .length;
     return RequestWorkspaceSection(
       title: 'Proposed team',
       subtitle:
-          'Pick the team members who should be on this team. Range: ${TeamChangeRequestService.minMembersPerTeam}–${TeamChangeRequestService.maxMembersPerTeam}. '
+          'Pick the team members who should be on this team. Range: $_minMembers–$_maxMembers. '
           '$freeCount team member${freeCount == 1 ? '' : 's'} available to add.',
       leading: _sectionIcon(AppIcons.add, const Color(0xFF6A38FF)),
       trailing: Container(
@@ -368,7 +417,7 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
           ),
         ),
         child: Text(
-          '$count / ${TeamChangeRequestService.maxMembersPerTeam}',
+          '$count / $_maxMembers',
           style: TextStyle(
             fontSize: 10.5,
             fontWeight: FontWeight.w800,
@@ -384,8 +433,8 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
           TeamMemberSelector(
             members: _eligibleTeamMembers,
             selectedIds: _proposedIds,
-            maxSelection: TeamChangeRequestService.maxMembersPerTeam,
-            enabled: !_submitting,
+            maxSelection: _maxMembers,
+            enabled: !_submitting && !_membershipLocked,
             initiallyExpanded: true,
             onChanged: (Set<String> next) => setState(() {
               _proposedIds
@@ -410,17 +459,17 @@ class _TeamChangeWorkspaceState extends State<TeamChangeWorkspace> {
     final IconData icon;
     if (belowMin) {
       message =
-          'Add at least ${TeamChangeRequestService.minMembersPerTeam} team members. Available members from the department appear in the list above.';
+          'Add at least $_minMembers team members. Available members from the department appear in the list above.';
       tone = const Color(0xFFB45309);
       icon = AppIcons.workflowPendingReview;
     } else if (atMax) {
       message =
-          'Team is at the maximum of ${TeamChangeRequestService.maxMembersPerTeam} team members. Remove a member to add a different team member.';
+          'Team is at the maximum of $_maxMembers team members. Remove a member to add a different team member.';
       tone = const Color(0xFF047857);
       icon = AppIcons.workflowApproved;
     } else {
       message =
-          'Minimum ${TeamChangeRequestService.minMembersPerTeam} · Maximum ${TeamChangeRequestService.maxMembersPerTeam} team members. Only department team members not already on another team are shown.';
+          'Minimum $_minMembers · Maximum $_maxMembers team members. Only department team members not already on another team are shown.';
       tone = const Color(0xFF64748B);
       icon = AppIcons.statusActive;
     }
