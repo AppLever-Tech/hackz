@@ -16,6 +16,7 @@ import 'landing_screen.dart';
 import '../widgets/signup/account_status_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/last_organisation_code_store.dart';
 import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class AuthGate extends StatefulWidget {
@@ -27,12 +28,29 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   StreamSubscription<User?>? _authSub;
+  bool _sessionReady = false;
+  bool _listening = false;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_prepareSession());
+  }
+
+  Future<void> _prepareSession() async {
+    final String? lastCode = await LastOrganisationCodeStore.read();
+    if (lastCode != null && !HackzFirebase.isTenantBound) {
+      try {
+        await TenantFirebase.connect(lastCode);
+      } catch (_) {
+        // Last code is a convenience. Failed restore still shows landing.
+      }
+    }
+    if (!mounted) return;
     HackzFirebase.generation.addListener(_onFirebaseGeneration);
+    _listening = true;
     _listenAuth();
+    setState(() => _sessionReady = true);
   }
 
   void _onFirebaseGeneration() {
@@ -44,25 +62,28 @@ class _AuthGateState extends State<AuthGate> {
     _authSub = HackzFirebase.current.auth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
-        // Belt-and-suspenders with dashboard logout: always drop session cache
-        // whenever Firebase auth ends (any sign-out path).
         OrgSettingsService.instance.clearCache();
-        if (HackzFirebase.isTenantBound) {
-          unawaited(TenantFirebase.disconnect());
-        }
       }
     });
   }
 
   @override
   void dispose() {
-    HackzFirebase.generation.removeListener(_onFirebaseGeneration);
+    if (_listening) {
+      HackzFirebase.generation.removeListener(_onFirebaseGeneration);
+    }
     _authSub?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_sessionReady) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return ValueListenableBuilder<int>(
       valueListenable: HackzFirebase.generation,
       builder: (BuildContext context, int _, Widget? __) {
@@ -108,7 +129,7 @@ class _AuthGateState extends State<AuthGate> {
                           const SizedBox(height: 12),
                           FilledButton(
                             onPressed: () async {
-                              await HackzFirebase.current.auth.signOut();
+                              await TenantFirebase.releaseSession();
                             },
                             child: const Text('Go to Sign In'),
                           ),
@@ -128,7 +149,7 @@ class _AuthGateState extends State<AuthGate> {
                     user: appUser,
                     phase: appUser.status.toWorkspacePhase,
                     onSignOut: () async {
-                      await HackzFirebase.current.auth.signOut();
+                      await TenantFirebase.releaseSession();
                     },
                   );
                 }

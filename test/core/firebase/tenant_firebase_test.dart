@@ -44,6 +44,16 @@ void main() {
         ),
       ),
     );
+    await expectLater(
+      TenantResolver.resolveByOrganisationCode(''),
+      throwsA(
+        isA<TenantConnectionException>().having(
+          (TenantConnectionException e) => e.failure,
+          'failure',
+          TenantConnectionFailure.invalidCode,
+        ),
+      ),
+    );
   });
 
   test('named tenant apps are isolated from the Control Plane app', () {

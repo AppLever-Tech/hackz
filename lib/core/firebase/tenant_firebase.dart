@@ -100,6 +100,21 @@ abstract final class TenantFirebase {
     );
   }
 
+  /// Signs the current Auth user out and restores Control Plane binding.
+  ///
+  /// Use this when leaving a tenant session (logout / return to landing).
+  /// Do not call it between OTP and Sign Up — that flow stays on the tenant.
+  static Future<void> releaseSession() async {
+    try {
+      if (HackzFirebase.isBound) {
+        await HackzFirebase.current.auth.signOut();
+      }
+    } catch (_) {}
+    if (HackzFirebase.isTenantBound) {
+      await disconnect();
+    }
+  }
+
   /// Validates Auth, Firestore, and Storage on the tenant project without
   /// switching the active session (SysAdmin stays on the Control Plane).
   static Future<TenantWorkspaceProbe> probe(String organisationCode) async {

@@ -9,6 +9,8 @@ class PhoneNumberField extends StatelessWidget {
     this.decoration,
     this.onSubmitted,
     this.autofocus = false,
+    this.focusNode,
+    this.textInputAction = TextInputAction.done,
   });
 
   final TextEditingController controller;
@@ -16,6 +18,8 @@ class PhoneNumberField extends StatelessWidget {
   final InputDecoration? decoration;
   final ValueChanged<String>? onSubmitted;
   final bool autofocus;
+  final FocusNode? focusNode;
+  final TextInputAction textInputAction;
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +32,10 @@ class PhoneNumberField extends StatelessWidget {
 
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       autofocus: autofocus,
       keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.done,
+      textInputAction: textInputAction,
       style: textStyle,
       inputFormatters: <TextInputFormatter>[
         FilteringTextInputFormatter.digitsOnly,

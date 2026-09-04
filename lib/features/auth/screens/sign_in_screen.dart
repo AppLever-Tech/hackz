@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/loading/hkz_loading_overlay.dart';
 import '../widgets/auth_page_layout.dart';
 import '../../../core/ui/inputs/phone_number_field.dart';
+import '../../../core/theme/auth_theme.dart';
 import '../widgets/auth_feature_strip.dart';
+import '../widgets/organisation_code_field.dart';
 import '../services/auth_utils.dart';
 import '../../../utils/common_helpers.dart';
 import 'otp_screen.dart';
@@ -16,6 +19,10 @@ import '../../../utils/firestore_utils.dart';
 import 'auth_gate.dart';
 import 'landing_screen.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/last_organisation_code_store.dart';
+import 'package:hackz/core/firebase/organisation_code.dart';
+import 'package:hackz/core/firebase/tenant_connection_exception.dart';
+import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -26,28 +33,41 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _orgCodeController = TextEditingController();
+  final FocusNode _orgCodeFocus = FocusNode();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillLastOrganisationCode();
+  }
+
+  Future<void> _prefillLastOrganisationCode() async {
+    final String? lastCode = await LastOrganisationCodeStore.read();
+    if (!mounted || lastCode == null || _orgCodeController.text.trim().isNotEmpty) {
+      return;
+    }
+    _orgCodeController.text = lastCode;
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _orgCodeController.dispose();
+    _orgCodeFocus.dispose();
     super.dispose();
   }
 
-  Future<void> _sendOtpAndOpen(String phone) async {
-    await AuthUtils.sendOtp(
-      phone: phone,
-      onCodeSent: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => OtpScreen(
-              phone: phone,
-              navigateToAuthGateOnVerified: false,
-              onVerified: () => _handlePostOtpRouting(phone),
-            ),
-          ),
-        );
-      },
+  void _openOtp(String phone) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OtpScreen(
+          phone: phone,
+          navigateToAuthGateOnVerified: false,
+          onVerified: () => _handlePostOtpRouting(phone),
+        ),
+      ),
     );
   }
 
@@ -61,7 +81,7 @@ class _SignInScreenState extends State<SignInScreen> {
           user: user,
           phase: phase,
           onSignOut: () {
-            HackzFirebase.current.auth.signOut();
+            TenantFirebase.releaseSession();
             Navigator.of(routeContext).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LandingScreen()),
               (_) => false,
@@ -74,11 +94,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _handlePostOtpRouting(String phone) async {
     final normalizedPhone = normalizePhoneE164(phone);
+    // Profile lookup is on the resolved tenant Firestore only — never Control Plane.
     final user = await FirestoreUtils.fetchUserByPhone(normalizedPhone);
     if (!mounted) return;
 
     if (user == null) {
-      // Whitelisted SysAdmin may have no hkzUsers row yet; resolver creates it — do not sign out or send to signup.
       final whitelist = await AuthUtils.checkWhitelist(normalizedPhone);
       if (whitelist != null) {
         if (!mounted) return;
@@ -89,6 +109,7 @@ class _SignInScreenState extends State<SignInScreen> {
         return;
       }
 
+      // Keep the tenant bound so Sign Up OTPs against the same workspace.
       await HackzFirebase.current.auth.signOut();
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
@@ -114,7 +135,17 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  Future<void> _onSignIn() async {
+  Future<void> _onContinue() async {
+    final String? organisationCode = OrganisationCode.tryParse(_orgCodeController.text);
+    if (organisationCode == null) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid organisation code',
+        message: 'Enter a valid organisation code (HKZ-XXXXXX).',
+      );
+      return;
+    }
+
     if (!isValidPhoneInput(_phoneController.text)) {
       FeedbackService.showWarning(
         context,
@@ -124,11 +155,41 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
+    final String phone = normalizePhoneE164(_phoneController.text);
     setState(() => _isLoading = true);
+    bool connected = false;
     try {
-      final phone = normalizePhoneE164(_phoneController.text);
-      await _sendOtpAndOpen(phone);
+      HkzLoadingOverlay.show(
+        context,
+        title: 'Signing in',
+        message: 'Connecting to your organisation...',
+      );
+      await TenantFirebase.connect(organisationCode);
+      connected = true;
+      await LastOrganisationCodeStore.save(organisationCode);
+      HkzLoadingOverlay.hide();
+      await AuthUtils.sendOtp(phone: phone, onCodeSent: () {});
+      if (!mounted) return;
+      if (HackzFirebase.current.auth.currentUser != null) {
+        await _handlePostOtpRouting(phone);
+        return;
+      }
+      _openOtp(phone);
+    } on TenantConnectionException catch (e) {
+      HkzLoadingOverlay.hide();
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Unable to continue',
+        message: e.message,
+      );
     } catch (e) {
+      HkzLoadingOverlay.hide();
+      if (connected &&
+          HackzFirebase.isTenantBound &&
+          HackzFirebase.current.auth.currentUser == null) {
+        await TenantFirebase.disconnect();
+      }
       if (!mounted) return;
       FeedbackService.showError(
         context,
@@ -136,6 +197,7 @@ class _SignInScreenState extends State<SignInScreen> {
         message: '$e',
       );
     } finally {
+      HkzLoadingOverlay.hide();
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -145,36 +207,35 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthPageLayout(
-      title: 'Welcome Back!',
-      subtitle: 'Sign in to continue your journey\nwith HackZ',
+      title: 'Sign in',
+      subtitle: 'Enter your mobile number and organisation code',
       formContent: Column(
         children: <Widget>[
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFD6D9F0)),
+          PhoneNumberField(
+            controller: _phoneController,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _orgCodeFocus.requestFocus(),
+            decoration: AuthTheme.filledField(
+              prefixIcon: const Icon(Icons.phone_android_outlined),
             ),
-            child: PhoneNumberField(
-              controller: _phoneController,
-              autofocus: true,
-              onSubmitted: (_) => _onSignIn(),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.phone_android_outlined),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
+          ),
+          const SizedBox(height: 12),
+          OrganisationCodeField(
+            controller: _orgCodeController,
+            focusNode: _orgCodeFocus,
+            onSubmitted: (_) => _onContinue(),
           ),
           const SizedBox(height: 10),
           const Text(
-            "All users verify with OTP, then we'll route by account status",
+            'We’ll send a verification code to this number',
+            textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF595E80)),
           ),
         ],
       ),
-      nextLabel: 'Next',
-      onNext: _onSignIn,
+      nextLabel: 'Continue',
+      onNext: _onContinue,
       onCancel: () => Navigator.of(context).maybePop(),
       isLoading: _isLoading,
       extraContent: const AuthFeatureStrip(),

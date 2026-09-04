@@ -20,7 +20,7 @@ import 'dashboard_components.dart';
 import 'dashboard_session_scope.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
   const DashboardPageTemplate({
@@ -64,7 +64,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     TeamsWorkspaceService.clearCache();
     CoordinatorDashboardService.clearCache();
     JudgeEvaluationService.clearCache();
-    await HackzFirebase.current.auth.signOut();
+    await TenantFirebase.releaseSession();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LandingScreen()),

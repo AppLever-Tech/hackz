@@ -18,6 +18,8 @@ class AuthFeatureStrip extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AuthTheme.helperStyle.copyWith(fontSize: 11),
             ),
           ],

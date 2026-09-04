@@ -31,6 +31,16 @@ void main() {
       expect(OrganisationCode.tryParse(' HKZ-S7K4PM '), 'HKZ-S7K4PM');
     });
 
+    test('formatInput inserts the HKZ- prefix hyphen while typing', () {
+      expect(OrganisationCode.formatInput(' h '), 'H');
+      expect(OrganisationCode.formatInput('hk'), 'HK');
+      expect(OrganisationCode.formatInput('hkz'), 'HKZ');
+      expect(OrganisationCode.formatInput('hkzs'), 'HKZ-S');
+      expect(OrganisationCode.formatInput('hkz-s7k4pm'), 'HKZ-S7K4PM');
+      expect(OrganisationCode.formatInput('  hkz- s7k4pm  '), 'HKZ-S7K4PM');
+      expect(OrganisationCode.formatInput('hkz-s7k4pmmore'), 'HKZ-S7K4PM');
+    });
+
     test('accepts the canonical example HKZ-S7K4PM', () {
       expect(OrganisationCode.tryParse('hkz-s7k4pm'), 'HKZ-S7K4PM');
     });

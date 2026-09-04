@@ -17,7 +17,12 @@ import '../services/auth_utils.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../widgets/signup/account_status_workspace.dart';
+import '../widgets/organisation_code_field.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/last_organisation_code_store.dart';
+import 'package:hackz/core/firebase/organisation_code.dart';
+import 'package:hackz/core/firebase/tenant_connection_exception.dart';
+import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, this.phone = ''});
@@ -33,13 +38,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _orgCodeController = TextEditingController();
   late final List<TextEditingController> _accessCodeControllers;
   late final List<FocusNode> _accessCodeFocusNodes;
+  late final bool _showOrganisationCode;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+    _showOrganisationCode = !HackzFirebase.isTenantBound;
     _phoneController.text =
         widget.phone.replaceFirst('+91', '').replaceAll(RegExp(r'\D'), '');
     _accessCodeControllers = List<TextEditingController>.generate(
@@ -50,6 +58,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       6,
       (_) => FocusNode(),
     );
+    if (_showOrganisationCode) {
+      _prefillLastOrganisationCode();
+    }
+  }
+
+  Future<void> _prefillLastOrganisationCode() async {
+    final String? lastCode = await LastOrganisationCodeStore.read();
+    if (!mounted || lastCode == null || _orgCodeController.text.trim().isNotEmpty) {
+      return;
+    }
+    _orgCodeController.text = lastCode;
   }
 
   @override
@@ -58,6 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _orgCodeController.dispose();
     for (final c in _accessCodeControllers) {
       c.dispose();
     }
@@ -70,7 +90,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String get _accessCodeRaw => _accessCodeControllers.map((c) => c.text).join();
 
   Future<void> _cancelToLanding() async {
-    await HackzFirebase.current.auth.signOut();
+    await TenantFirebase.releaseSession();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LandingScreen()),
@@ -128,7 +148,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _lastNameController.text.trim().isEmpty ||
         !isValidEmailInput(_emailController.text) ||
         !isValidPhoneInput(_phoneController.text) ||
-        _accessCodeRaw.trim().isEmpty) {
+        _accessCodeRaw.trim().isEmpty ||
+        (_showOrganisationCode && OrganisationCode.tryParse(_orgCodeController.text) == null)) {
       FeedbackService.showWarning(
         context,
         title: 'Missing details',
@@ -137,19 +158,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    final rawCode = _accessCodeRaw.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(rawCode)) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid access code',
+        message: 'Access code must be a 6-digit code.',
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
-      final String phone = normalizePhoneE164(_phoneController.text);
-      final rawCode = _accessCodeRaw.trim();
-      if (!RegExp(r'^\d{6}$').hasMatch(rawCode)) {
-        if (!mounted) return;
-        FeedbackService.showWarning(
-          context,
-          title: 'Invalid access code',
-          message: 'Access code must be a 6-digit code.',
-        );
-        return;
+      if (_showOrganisationCode) {
+        final String organisationCode = OrganisationCode.tryParse(_orgCodeController.text)!;
+        await TenantFirebase.connect(organisationCode);
+        await LastOrganisationCodeStore.save(organisationCode);
       }
+
+      final String phone = normalizePhoneE164(_phoneController.text);
       await AuthUtils.sendOtp(
         phone: phone,
         onCodeSent: () {
@@ -197,7 +224,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         user: createdUser,
                         phase: AccountWorkspacePhase.pendingApproval,
                         onSignOut: () {
-                          HackzFirebase.current.auth.signOut();
+                          TenantFirebase.releaseSession();
                           Navigator.of(routeContext).pushAndRemoveUntil(
                             MaterialPageRoute(builder: (_) => const LandingScreen()),
                             (_) => false,
@@ -218,6 +245,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           );
         },
+      );
+    } on TenantConnectionException catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Unable to continue',
+        message: e.message,
       );
     } catch (e) {
       if (!mounted) return;
@@ -268,6 +302,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               prefixIcon: const Icon(Icons.phone_android_outlined),
             ),
           ),
+          if (_showOrganisationCode) ...<Widget>[
+            const SizedBox(height: 12),
+            OrganisationCodeField(controller: _orgCodeController),
+          ],
           const SizedBox(height: 12),
           const Row(
             children: <Widget>[

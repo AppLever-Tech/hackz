@@ -2,8 +2,9 @@ import 'dart:math';
 
 /// Human-facing Hackz organisation routing code: `HKZ-XXXXXX`.
 ///
-/// Generated automatically. Colleges never enter or choose this value.
-/// Stable once assigned. Case-insensitive; callers must [normalize] input.
+/// Generated automatically and stable once assigned. Login uses this code to
+/// resolve the tenant Firebase project. Case-insensitive; callers must
+/// [normalize] input.
 abstract final class OrganisationCode {
   OrganisationCode._();
 
@@ -18,6 +19,27 @@ abstract final class OrganisationCode {
   /// Trim, drop internal whitespace, and uppercase.
   static String normalize(String input) {
     return input.trim().toUpperCase().replaceAll(RegExp(r'\s+'), '');
+  }
+
+  /// Formats typed or pasted input toward `HKZ-XXXXXX` without requiring a valid code yet.
+  static String formatInput(String input) {
+    final String compact = normalize(input).replaceAll(RegExp(r'[^A-Z0-9-]'), '');
+    if (compact.isEmpty) return '';
+
+    final String letters = compact.replaceAll('-', '');
+    if (letters.startsWith('HKZ')) {
+      final String body = letters.length > 3 ? letters.substring(3) : '';
+      final String clipped =
+          body.length > bodyLength ? body.substring(0, bodyLength) : body;
+      if (clipped.isEmpty) return 'HKZ';
+      return '$prefix$clipped';
+    }
+    if ('HKZ'.startsWith(letters) && letters.length <= 3) {
+      return letters;
+    }
+    return compact.length > (prefix.length + bodyLength)
+        ? compact.substring(0, prefix.length + bodyLength)
+        : compact;
   }
 
   static bool isValid(String input) => _valid.hasMatch(normalize(input));
