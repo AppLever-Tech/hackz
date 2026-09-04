@@ -182,7 +182,7 @@ class _RoleMenuConfig {
         return const _RoleMenuConfig(
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
-            DashboardMenuItem(label: 'Organizations', icon: AppIcons.organizations),
+            DashboardMenuItem(label: 'Organisations', icon: AppIcons.organizations),
             DashboardMenuItem(label: 'App Metadata', icon: AppIcons.info),
           ],
           secondaryMenus: <DashboardMenuItem>[],

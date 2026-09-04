@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../core/theme/app_icons.dart';
-import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/enums/user_role.dart';
-import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/app_metadata/screens/app_metadata_management_screen.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
-import 'organization_dialog.dart';
-import '../../../../features/sysadmin/sysadmin.dart';
-import '../../../../utils/firestore_utils.dart';
+import '../../../../features/sysadmin/onboarding/screens/organisations_onboarding_console.dart';
 import '../services/sysadmin_dashboard_service.dart';
-import '../../../../core/ui/inputs/filter_pill.dart';
 import '../widgets/innovation_funnel_widget.dart';
 import '../widgets/organization_analytics_chart.dart';
 import '../widgets/participation_trend_chart.dart';
@@ -33,10 +27,6 @@ class SysAdminDashboard extends StatelessWidget {
 
   final UserModel user;
 
-  Future<List<OrganizationModel>> _loadOrganizations() {
-    return FirestoreUtils.getOrganizations();
-  }
-
   @override
   Widget build(BuildContext context) {
     if (UserRole.fromCode(user.role) != UserRole.sysAdmin) {
@@ -52,10 +42,7 @@ class SysAdminDashboard extends StatelessWidget {
           return AppMetadataManagementScreen(key: ValueKey<int>(refreshToken));
         }
         if (selectedMenuIndex == 1) {
-          return _OrganizationDetailsView(
-            refreshToken: refreshToken,
-            loadOrganizations: _loadOrganizations,
-          );
+          return OrganisationsOnboardingConsole(key: ValueKey<int>(refreshToken), refreshToken: refreshToken);
         }
         return _SysAdminOverview(refreshToken: refreshToken);
       },
@@ -229,182 +216,6 @@ class _SysAdminAnalyticsViewState extends State<_SysAdminAnalyticsView> {
         ],
       ),
     );
-  }
-}
-
-class _OrganizationDetailsView extends StatefulWidget {
-  const _OrganizationDetailsView({
-    required this.refreshToken,
-    required this.loadOrganizations,
-  });
-
-  final int refreshToken;
-  final Future<List<OrganizationModel>> Function() loadOrganizations;
-
-  @override
-  State<_OrganizationDetailsView> createState() => _OrganizationDetailsViewState();
-}
-
-class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
-  /// `null` = show all organizations (client-side filter on [_allOrgs]).
-  OrganizationType? _typeFilter;
-
-  List<OrganizationModel> _allOrgs = <OrganizationModel>[];
-  Map<String, OrgOperationalData> _operationalByOrgId = <String, OrgOperationalData>{};
-  Map<String, String> _organisationCodeByName = <String, String>{};
-  bool _loading = true;
-  String? _fetchError;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchOrganizations();
-  }
-
-  @override
-  void didUpdateWidget(covariant _OrganizationDetailsView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshToken != widget.refreshToken) {
-      _fetchOrganizations();
-    }
-  }
-
-  Future<void> _fetchOrganizations() async {
-    setState(() {
-      _loading = true;
-      _fetchError = null;
-    });
-    try {
-      final list = await widget.loadOrganizations();
-      final operationalFuture = OrgManagementService.loadOperationalData(list);
-      final tenantsFuture = TenantRegistry.list();
-      final operational = await operationalFuture;
-      final codes = TenantRegistry.uniqueCodesByOrganisationName(await tenantsFuture);
-      if (!mounted) return;
-      setState(() {
-        _allOrgs = list;
-        _operationalByOrgId = operational;
-        _organisationCodeByName = codes;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _fetchError = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  void _refreshList() {
-    _fetchOrganizations();
-  }
-
-  Map<OrganizationType, int> _countByType(List<OrganizationModel> orgs) {
-    final map = <OrganizationType, int>{
-      for (final OrganizationType t in OrganizationType.values) t: 0,
-    };
-    for (final OrganizationModel o in orgs) {
-      map[o.type] = (map[o.type] ?? 0) + 1;
-    }
-    return map;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_fetchError != null) {
-      return Text('Unable to load organizations: $_fetchError');
-    }
-
-    final organizations = _allOrgs;
-    final counts = _countByType(organizations);
-    final typesPresent =
-        OrganizationType.values.where((OrganizationType t) => (counts[t] ?? 0) > 0).toList(growable: false);
-
-    final filtered = _typeFilter == null
-        ? organizations
-        : organizations.where((OrganizationModel o) => o.type == _typeFilter).toList(growable: false);
-
-    return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: <Widget>[
-                          FilterPill(
-                            selected: _typeFilter == null,
-                            icon: AppIcons.organizations,
-                            label: 'All',
-                            count: organizations.length,
-                            onTap: () => setState(() => _typeFilter = null),
-                          ),
-                          if (typesPresent.isNotEmpty) ...<Widget>[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              child: SizedBox(
-                                height: 28,
-                                child: VerticalDivider(
-                                  width: 1,
-                                  thickness: 1,
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                            ),
-                            ...typesPresent.map(
-                              (OrganizationType t) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterPill(
-                                  selected: _typeFilter == t,
-                                  icon: AppIcons.forOrganizationType(t),
-                                  label: t.displayName,
-                                  count: counts[t] ?? 0,
-                                  onTap: () => setState(() => _typeFilter = t),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton(
-                    onPressed: () async {
-                      final created = await showOrganizationDialog(context: context);
-                      if (created && mounted) {
-                        _refreshList();
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF6A38FF),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Create Organization'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              OrganizationManagementGrid(
-                organizations: filtered,
-                operationalByOrgId: _operationalByOrgId,
-                organisationCodeByName: _organisationCodeByName,
-                onOrganizationChanged: _refreshList,
-              ),
-            ],
-          ),
-        );
   }
 }
 

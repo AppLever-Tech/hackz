@@ -493,4 +493,16 @@ class OrgSettingsService extends ChangeNotifier {
       }
     }
   }
+
+  static Future<bool> existsFor(String orgId) async {
+    final String trimmed = orgId.trim();
+    if (trimmed.isEmpty) return false;
+    final DocumentSnapshot<Map<String, dynamic>> snap = await HackzFirebase.current.firestore
+        .collection(FirestoreUtils.hkzOrganizations)
+        .doc(trimmed)
+        .collection(settingsSubcollection)
+        .doc(orgSettingsDocId)
+        .get();
+    return snap.exists;
+  }
 }

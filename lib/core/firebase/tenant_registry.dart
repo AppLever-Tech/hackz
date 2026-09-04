@@ -22,10 +22,124 @@ abstract final class TenantRegistry {
     return _db.collection(collectionName);
   }
 
-  /// Registers a tenant against an approved Firebase project.
-  ///
-  /// [firebaseProjectId] defaults to the Control Plane project. Arbitrary
-  /// project ids and Firebase options from callers are rejected.
+  /// Starts Control Plane onboarding without assigning an organisation code.
+  static Future<TenantRecord> beginSetup({
+    required String organisationName,
+    required String organisationId,
+  }) async {
+    final String name = organisationName.trim();
+    final String orgId = organisationId.trim();
+    if (name.isEmpty) {
+      throw ArgumentError.value(organisationName, 'organisationName', 'Organisation name is required.');
+    }
+    if (orgId.isEmpty) {
+      throw ArgumentError.value(organisationId, 'organisationId', 'Organisation id is required.');
+    }
+
+    final TenantRecord? existing = await fetchByOrganisationId(orgId);
+    if (existing != null) {
+      if (existing.organisationName != name) {
+        await _update(existing.tenantId, <String, dynamic>{'organisationName': name});
+        return existing.copyWith(organisationName: name);
+      }
+      return existing;
+    }
+
+    final String tenantId = _col.doc().id;
+    final TenantRecord record = TenantRecord(
+      tenantId: tenantId,
+      organisationCode: '',
+      organisationName: name,
+      firebaseProjectId: '',
+      status: TenantStatus.setup,
+      createdAt: DateTime.now().toUtc(),
+      organisationId: orgId,
+    );
+    await _col.doc(tenantId).set(record.toMap());
+    return record;
+  }
+
+  /// Binds an approved workspace. Rejects unknown project ids.
+  static Future<TenantRecord> connectApprovedWorkspace({
+    required String tenantId,
+    required String firebaseProjectId,
+  }) async {
+    final TenantRecord current = await _require(tenantId);
+    final String projectId = firebaseProjectId.trim();
+    if (!ApprovedTenantFirebase.isApproved(projectId)) {
+      throw StateError('That workspace is not approved for Hackz.');
+    }
+    final bool projectChanged = current.firebaseProjectId != projectId;
+    await _update(tenantId, <String, dynamic>{
+      'firebaseProjectId': projectId,
+      if (projectChanged) 'firebaseValidated': false,
+    });
+    return current.copyWith(
+      firebaseProjectId: projectId,
+      firebaseValidated: projectChanged ? false : current.firebaseValidated,
+    );
+  }
+
+  static Future<TenantRecord> markFirebaseValidated(String tenantId) {
+    return _patch(tenantId, <String, dynamic>{'firebaseValidated': true}, (TenantRecord r) {
+      return r.copyWith(firebaseValidated: true);
+    });
+  }
+
+  static Future<TenantRecord> markHackzSetupComplete(String tenantId) {
+    return _patch(tenantId, <String, dynamic>{'hackzSetupComplete': true}, (TenantRecord r) {
+      return r.copyWith(hackzSetupComplete: true);
+    });
+  }
+
+  static Future<TenantRecord> markInitialAdminConfigured(String tenantId) {
+    return _patch(tenantId, <String, dynamic>{'initialAdminConfigured': true}, (TenantRecord r) {
+      return r.copyWith(initialAdminConfigured: true);
+    });
+  }
+
+  /// Assigns a unique `HKZ-XXXXXX` code and marks the tenant active.
+  static Future<TenantRecord> activate(String tenantId) async {
+    final TenantRecord current = await _require(tenantId);
+    if (current.status == TenantStatus.active && OrganisationCode.isValid(current.organisationCode)) {
+      return current;
+    }
+    if (!ApprovedTenantFirebase.isApproved(current.firebaseProjectId)) {
+      throw StateError('Connect an approved workspace before activating.');
+    }
+    if (!current.firebaseValidated) {
+      throw StateError('Finish workspace checks before activating.');
+    }
+    if (!current.hackzSetupComplete) {
+      throw StateError('Finish Hackz setup before activating.');
+    }
+    if (!current.initialAdminConfigured) {
+      throw StateError('Configure the initial administrator before activating.');
+    }
+
+    Object? lastCollision;
+    for (int attempt = 0; attempt < _maxCodeAttempts; attempt++) {
+      final String code = OrganisationCode.generate();
+      final QuerySnapshot<Map<String, dynamic>> taken = await _col
+          .where('organisationCode', isEqualTo: code)
+          .limit(1)
+          .get();
+      if (taken.docs.isNotEmpty) {
+        lastCollision = code;
+        continue;
+      }
+      await _update(tenantId, <String, dynamic>{
+        'organisationCode': code,
+        'status': TenantStatus.active.wireValue,
+      });
+      return current.copyWith(organisationCode: code, status: TenantStatus.active);
+    }
+    throw StateError(
+      'Unable to allocate a unique organisation code.${lastCollision == null ? '' : ' Last collision: $lastCollision'}',
+    );
+  }
+
+  /// Registers an already-active tenant (legacy helper). Prefer [beginSetup] + [activate].
   static Future<TenantRecord> register({
     required String organisationName,
     String? firebaseProjectId,
@@ -44,6 +158,14 @@ abstract final class TenantRegistry {
     Object? lastCollision;
     for (int attempt = 0; attempt < _maxCodeAttempts; attempt++) {
       final String code = OrganisationCode.generate();
+      final QuerySnapshot<Map<String, dynamic>> taken = await _col
+          .where('organisationCode', isEqualTo: code)
+          .limit(1)
+          .get();
+      if (taken.docs.isNotEmpty) {
+        lastCollision = code;
+        continue;
+      }
       final String tenantId = _col.doc().id;
       final TenantRecord record = TenantRecord(
         tenantId: tenantId,
@@ -52,20 +174,12 @@ abstract final class TenantRegistry {
         firebaseProjectId: projectId,
         status: status,
         createdAt: DateTime.now().toUtc(),
+        firebaseValidated: status == TenantStatus.active,
+        hackzSetupComplete: status == TenantStatus.active,
+        initialAdminConfigured: status == TenantStatus.active,
       );
-      final DocumentReference<Map<String, dynamic>> ref = _col.doc(code);
-      try {
-        await _db.runTransaction((Transaction txn) async {
-          final DocumentSnapshot<Map<String, dynamic>> existing = await txn.get(ref);
-          if (existing.exists) {
-            throw const _OrganisationCodeTaken();
-          }
-          txn.set(ref, record.toMap());
-        });
-        return record;
-      } on _OrganisationCodeTaken {
-        lastCollision = code;
-      }
+      await _col.doc(tenantId).set(record.toMap());
+      return record;
     }
     throw StateError(
       'Unable to allocate a unique organisation code.${lastCollision == null ? '' : ' Last collision: $lastCollision'}',
@@ -73,10 +187,6 @@ abstract final class TenantRegistry {
   }
 
   /// Resolves [rawCode] to exactly one **active** tenant with an approved project.
-  ///
-  /// Returns `null` when the code is invalid, unknown, inactive, still in
-  /// setup, or pointed at an unapproved Firebase project. Throws if more than
-  /// one active tenant shares the code (data-integrity failure).
   static Future<TenantRecord?> resolveActive(String rawCode) async {
     final String? code = OrganisationCode.tryParse(rawCode);
     if (code == null) return null;
@@ -104,9 +214,41 @@ abstract final class TenantRegistry {
   static Future<TenantRecord?> fetchByOrganisationCode(String rawCode) async {
     final String? code = OrganisationCode.tryParse(rawCode);
     if (code == null) return null;
-    final DocumentSnapshot<Map<String, dynamic>> doc = await _col.doc(code).get();
+    final QuerySnapshot<Map<String, dynamic>> snap = await _col
+        .where('organisationCode', isEqualTo: code)
+        .limit(2)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      return TenantRecord.fromMap(snap.docs.first.data());
+    }
+    final DocumentSnapshot<Map<String, dynamic>> legacy = await _col.doc(code).get();
+    if (!legacy.exists || legacy.data() == null) return null;
+    return TenantRecord.fromMap(legacy.data()!);
+  }
+
+  static Future<TenantRecord?> fetchByTenantId(String tenantId) async {
+    final String id = tenantId.trim();
+    if (id.isEmpty) return null;
+    final DocumentReference<Map<String, dynamic>> ref = await _refForTenantId(id);
+    final DocumentSnapshot<Map<String, dynamic>> doc = await ref.get();
     if (!doc.exists || doc.data() == null) return null;
     return TenantRecord.fromMap(doc.data()!);
+  }
+
+  static Future<TenantRecord?> fetchByOrganisationId(String organisationId) async {
+    final String id = organisationId.trim();
+    if (id.isEmpty) return null;
+    final QuerySnapshot<Map<String, dynamic>> snap = await _col
+        .where('organisationId', isEqualTo: id)
+        .limit(2)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    final List<TenantRecord> open = snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => TenantRecord.fromMap(doc.data()))
+        .where((TenantRecord record) => record.status != TenantStatus.inactive)
+        .toList(growable: false);
+    if (open.isEmpty) return null;
+    return open.first;
   }
 
   static Future<List<TenantRecord>> list() async {
@@ -122,6 +264,7 @@ abstract final class TenantRegistry {
     final Map<String, String> codes = <String, String>{};
     for (final TenantRecord tenant in tenants) {
       if (tenant.status == TenantStatus.inactive) continue;
+      if (!OrganisationCode.isValid(tenant.organisationCode)) continue;
       final String name = tenant.organisationName;
       if (name.isEmpty) continue;
       counts[name] = (counts[name] ?? 0) + 1;
@@ -132,34 +275,80 @@ abstract final class TenantRegistry {
   }
 
   static Future<void> setStatus(String organisationCode, TenantStatus status) async {
-    final String? code = OrganisationCode.tryParse(organisationCode);
-    if (code == null) {
-      throw ArgumentError.value(organisationCode, 'organisationCode', 'Invalid organisation code.');
+    final TenantRecord? record = await fetchByOrganisationCode(organisationCode);
+    if (record == null) {
+      throw ArgumentError.value(organisationCode, 'organisationCode', 'Unknown organisation code.');
     }
-    await _col.doc(code).update(<String, dynamic>{'status': status.wireValue});
+    await _update(record.tenantId, <String, dynamic>{'status': status.wireValue});
+  }
+
+  static Future<void> setStatusForTenant(String tenantId, TenantStatus status) async {
+    await _update(tenantId, <String, dynamic>{'status': status.wireValue});
   }
 
   /// Keeps registry [organisationName] in sync when a SysAdmin renames an org.
-  /// No-op when the previous name is missing or not unique in the registry.
   static Future<void> syncOrganisationName({
     required String previousName,
     required String nextName,
+    String? organisationId,
   }) async {
-    final String previous = previousName.trim();
     final String next = nextName.trim();
-    if (previous.isEmpty || next.isEmpty || previous == next) return;
-    final TenantRecord? tenant = await _uniqueByOrganisationName(previous);
+    if (next.isEmpty) return;
+    TenantRecord? tenant;
+    final String orgId = (organisationId ?? '').trim();
+    if (orgId.isNotEmpty) {
+      tenant = await fetchByOrganisationId(orgId);
+    }
+    tenant ??= await _uniqueByOrganisationName(previousName);
     if (tenant == null) return;
-    await _col.doc(tenant.organisationCode).update(<String, dynamic>{
-      'organisationName': next,
-    });
+    if (tenant.organisationName == next) return;
+    await _update(tenant.tenantId, <String, dynamic>{'organisationName': next});
   }
 
-  /// Marks the unique matching tenant inactive after an organisation is deleted.
   static Future<void> inactivateByOrganisationName(String organisationName) async {
     final TenantRecord? tenant = await _uniqueByOrganisationName(organisationName);
     if (tenant == null) return;
-    await setStatus(tenant.organisationCode, TenantStatus.inactive);
+    await setStatusForTenant(tenant.tenantId, TenantStatus.inactive);
+  }
+
+  static Future<void> inactivateByOrganisationId(String organisationId) async {
+    final TenantRecord? tenant = await fetchByOrganisationId(organisationId);
+    if (tenant == null) {
+      return;
+    }
+    await setStatusForTenant(tenant.tenantId, TenantStatus.inactive);
+  }
+
+  static Future<TenantRecord> _patch(
+    String tenantId,
+    Map<String, dynamic> fields,
+    TenantRecord Function(TenantRecord current) apply,
+  ) async {
+    final TenantRecord current = await _require(tenantId);
+    await _update(tenantId, fields);
+    return apply(current);
+  }
+
+  static Future<TenantRecord> _require(String tenantId) async {
+    final TenantRecord? record = await fetchByTenantId(tenantId);
+    if (record == null) {
+      throw StateError('That organisation is no longer in the registry.');
+    }
+    return record;
+  }
+
+  static Future<void> _update(String tenantId, Map<String, dynamic> fields) async {
+    final DocumentReference<Map<String, dynamic>> ref = await _refForTenantId(tenantId);
+    await ref.update(fields);
+  }
+
+  static Future<DocumentReference<Map<String, dynamic>>> _refForTenantId(String tenantId) async {
+    final String id = tenantId.trim();
+    final DocumentSnapshot<Map<String, dynamic>> direct = await _col.doc(id).get();
+    if (direct.exists) return direct.reference;
+    final QuerySnapshot<Map<String, dynamic>> byField = await _col.where('tenantId', isEqualTo: id).limit(1).get();
+    if (byField.docs.isNotEmpty) return byField.docs.first.reference;
+    return _col.doc(id);
   }
 
   static Future<TenantRecord?> _uniqueByOrganisationName(String organisationName) async {
@@ -175,8 +364,4 @@ abstract final class TenantRegistry {
     if (matches.length != 1) return null;
     return matches.first;
   }
-}
-
-class _OrganisationCodeTaken implements Exception {
-  const _OrganisationCodeTaken();
 }

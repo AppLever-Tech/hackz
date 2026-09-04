@@ -96,6 +96,7 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
       await TenantRegistry.syncOrganisationName(
         previousName: widget.organization.name,
         nextName: nextName,
+        organisationId: widget.organization.id,
       );
       if (!mounted) return;
       FeedbackService.showSuccess(
@@ -124,6 +125,7 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     setState(() => _isDeleting = true);
     try {
       await FirestoreUtils.deleteOrganization(widget.organization.id);
+      await TenantRegistry.inactivateByOrganisationId(widget.organization.id);
       await TenantRegistry.inactivateByOrganisationName(widget.organization.name);
       if (!mounted) return;
       if (widget.embedded) {

@@ -28,13 +28,13 @@ void main() {
   test('uniqueCodesByOrganisationName keeps one non-inactive tenant per name', () {
     final Map<String, String> codes = TenantRegistry.uniqueCodesByOrganisationName(<TenantRecord>[
       tenant(name: 'Alpha', code: 'HKZ-S7K4PM'),
-      tenant(name: 'Beta', code: 'HKZ-AB3DEF', status: TenantStatus.setup),
+      tenant(name: 'Pending', code: '', status: TenantStatus.setup),
       tenant(name: 'Gone', code: 'HKZ-ZZZZZZ', status: TenantStatus.inactive),
       tenant(name: 'Dup', code: 'HKZ-AAA222'),
       tenant(name: 'Dup', code: 'HKZ-BBB333'),
     ]);
     expect(codes['Alpha'], 'HKZ-S7K4PM');
-    expect(codes['Beta'], 'HKZ-AB3DEF');
+    expect(codes.containsKey('Pending'), isFalse);
     expect(codes.containsKey('Gone'), isFalse);
     expect(codes.containsKey('Dup'), isFalse);
   });
