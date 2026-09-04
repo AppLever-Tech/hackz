@@ -38,6 +38,7 @@ import '../services/user_role_labels.dart';
 import 'create_user_dialog.dart';
 import '../../evaluations/screens/judges_panel.dart';
 import '../../team/models/team_model.dart';
+import '../../team/models/enums/team_status.dart';
 import '../../team/screens/team_creation_workspace.dart';
 import '../../team/services/team_service.dart';
 import '../../team/services/teams_workspace_service.dart';
@@ -140,6 +141,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   int get _judgeCount =>
       _allUsers.where((UserModel u) => u.role == UserRole.judge.code).length;
 
+  int get _usersTabCount =>
+      _allUsers.where((UserModel u) => UserRole.isDepartmentPeopleCode(u.role)).length;
+
   List<TeamModel> get _departmentTeams => _teamsData?.teams ?? const <TeamModel>[];
 
   Future<void> _loadAll() async {
@@ -163,6 +167,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       final users = query.docs
           .map((d) => UserModel.fromMap(d.data()))
           .map((u) => u.userId.isNotEmpty ? u : u.copyWith(userId: u.phone))
+          .where((UserModel u) => !u.hasRoleCode(UserRole.sysAdmin.code) && !UserRole.isSysAdminCode(u.role))
           .toList(growable: false);
       final codeSnap = await codeFuture;
       TeamsWorkspaceData? teamsData;
@@ -599,6 +604,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   List<UserModel> _filteredUsers() {
     final q = _searchController.text.trim().toLowerCase();
     return _allUsers.where((u) {
+      if (UserRole.isSysAdminCode(u.role) || u.hasRoleCode(UserRole.sysAdmin.code)) return false;
       final roleOk = switch (_filter) {
         UsersFilter.all => true,
         UsersFilter.teamMembers => u.role == UserRole.teamMember.code && u.status == UserStatus.active,
@@ -656,7 +662,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     final isRejected = u.status == UserStatus.rejected;
     final String email = u.email.trim().isEmpty ? '—' : u.email.trim();
     final String phone = u.phone.trim().isEmpty ? '—' : u.phone.trim();
-    final String typeLabel = isPending ? 'Pending approval' : _roleLabel(u.role);
     final rejectionReason = (u.rejectionReason ?? '').trim().isEmpty ? 'No reason recorded' : u.rejectionReason!.trim();
 
     final List<Widget> segments = <Widget>[
@@ -666,7 +671,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
       _metaDot(),
       _inlineMeta(phone),
       _metaDot(),
-      _inlineMeta(typeLabel),
+      _userRoleMeta(u, isPending: isPending),
       if (u.status != UserStatus.active && !isPending) ...<Widget>[
         _metaDot(),
         Container(
@@ -724,8 +729,41 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     );
   }
 
+  bool _isTeamLead(UserModel u) {
+    final String id = u.userId.trim();
+    if (id.isEmpty) return false;
+    return _departmentTeams.any(
+      (TeamModel t) => t.status != TeamStatus.inactive && t.isLedBy(id),
+    );
+  }
+
   bool _canAssignLeader(UserModel u) =>
-      u.status == UserStatus.active && UserRole.fromCode(u.role) == UserRole.teamMember;
+      u.status == UserStatus.active &&
+      UserRole.fromCode(u.role) == UserRole.teamMember &&
+      !_isTeamLead(u);
+
+  Widget _teamLeadPill() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text(
+        'Team Lead',
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5)),
+      ),
+    );
+  }
+
+  Widget _userRoleMeta(UserModel u, {required bool isPending}) {
+    if (isPending) return _inlineMeta('Pending approval');
+    if (UserRole.fromCode(u.role) == UserRole.teamMember) {
+      if (_isTeamLead(u)) return _teamLeadPill();
+      return _inlineMeta(_roleLabel(u.role));
+    }
+    return _inlineMeta(_roleLabel(u.role));
+  }
 
   Widget _userRowTrailing(UserModel u) {
     final isPending = u.status == UserStatus.pendingApproval;
@@ -799,6 +837,14 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         (u.rejectionReason ?? '').trim().isEmpty ? 'No reason recorded' : u.rejectionReason!.trim();
 
     final List<Widget> extras = <Widget>[];
+
+    if (UserRole.fromCode(u.role) == UserRole.teamMember && !isPending) {
+      extras.add(
+        _isTeamLead(u)
+            ? _teamLeadPill()
+            : Text(_roleLabel(u.role), style: MobileUserListRowStyles.meta),
+      );
+    }
 
     if (u.status != UserStatus.active && !isPending) {
       extras.add(
@@ -1015,7 +1061,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           child: RichTabBar(
             controller: _sectionController,
             tabs: <RichTabItem>[
-              RichTabItem('Users', icon: AppIcons.users, count: _allUsers.where((UserModel u) => u.role != UserRole.judge.code).length),
+              RichTabItem('Users', icon: AppIcons.users, count: _usersTabCount),
               RichTabItem('Teams', icon: AppIcons.teams, count: _departmentTeams.length),
               RichTabItem('Judges', icon: AppIcons.judges, count: _judgeCount),
             ],

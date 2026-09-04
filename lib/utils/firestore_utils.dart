@@ -57,6 +57,15 @@ class FirestoreUtils {
     return code == target;
   }
 
+  static bool _isSysAdminUser(Map<String, dynamic> data) {
+    if (UserRole.isSysAdminCode((data['role'] as String?) ?? '')) return true;
+    final Object? roles = data['roles'];
+    if (roles is! List) return false;
+    return roles.any(
+      (Object? role) => UserRole.isSysAdminCode(role?.toString()),
+    );
+  }
+
   static Future<UserModel?> fetchUser(String userId) async {
     final doc = await _db.collection(hkzUsers).doc(userId).get();
     if (!doc.exists || doc.data() == null) return null;
@@ -215,8 +224,12 @@ class FirestoreUtils {
 
     int activeCount = 0;
     int pendingCount = 0;
+    int totalCount = 0;
     for (final doc in docs) {
-      final status = UserStatus.fromRaw((doc.data()['status'] as String?) ?? '');
+      final Map<String, dynamic> data = doc.data();
+      if (user.role != UserRole.sysAdmin.code && _isSysAdminUser(data)) continue;
+      totalCount++;
+      final status = UserStatus.fromRaw((data['status'] as String?) ?? '');
       if (status == UserStatus.active) {
         activeCount++;
       } else if (status == UserStatus.pendingApproval) {
@@ -225,7 +238,7 @@ class FirestoreUtils {
     }
 
     return <String, int>{
-      'total': docs.length,
+      'total': totalCount,
       'active': activeCount,
       'pending': pendingCount,
     };
@@ -434,7 +447,9 @@ class FirestoreUtils {
         if (departmentName.isNotEmpty) current = byName[departmentName.toLowerCase()];
       }
       if (current != null) {
-        current['totalUsers'] = (current['totalUsers'] as int) + 1;
+        if (!_isSysAdminUser(data)) {
+          current['totalUsers'] = (current['totalUsers'] as int) + 1;
+        }
         if (role == 'DADM' && fullName.isNotEmpty) {
           current['departmentAdmin'] = fullName;
         }
@@ -491,11 +506,15 @@ class FirestoreUtils {
         .where('orgId', isEqualTo: orgId)
         .get();
 
-    final totalUsers = usersSnapshot.docs.length;
-    final activeUsers = usersSnapshot.docs
+    final List<QueryDocumentSnapshot<Map<String, dynamic>>> collegeUsers = usersSnapshot.docs
+        .where((QueryDocumentSnapshot<Map<String, dynamic>> doc) => !_isSysAdminUser(doc.data()))
+        .toList(growable: false);
+
+    final totalUsers = collegeUsers.length;
+    final activeUsers = collegeUsers
         .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.active)
         .length;
-    final pendingUsers = usersSnapshot.docs
+    final pendingUsers = collegeUsers
         .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.pendingApproval)
         .length;
 

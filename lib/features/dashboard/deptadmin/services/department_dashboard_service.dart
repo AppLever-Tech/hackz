@@ -199,7 +199,9 @@ class DepartmentDashboardService {
       _fetchOrgCollection(FirestoreUtils.hkzPayments, orgId),
     ]);
 
-    final users = results[0].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
+    final users = results[0]
+        .where((doc) => _matchesDept(doc.data(), dept) && !_isSysAdminUser(doc.data()))
+        .toList(growable: false);
     final teams = results[1].where((doc) => _matchesDept(doc.data(), dept)).toList(growable: false);
     final ideas = results[2].where((doc) => IdeaDepartmentHelpers.matchesTeamDept(doc.data(), dept)).toList(growable: false);
     final scopedIdeaIds = ideas.map((doc) => doc.id).toSet();
@@ -321,6 +323,13 @@ class DepartmentDashboardService {
     return code == departmentCode;
   }
 
+  static bool _isSysAdminUser(Map<String, dynamic> data) {
+    if (UserRole.isSysAdminCode((data['role'] as String?) ?? '')) return true;
+    final Object? roles = data['roles'];
+    if (roles is! List) return false;
+    return roles.any((Object? role) => UserRole.isSysAdminCode(role?.toString()));
+  }
+
   static List<DepartmentTrendPoint> _buildTrend(
     _FirestoreDocs users,
     _FirestoreDocs teams,
@@ -402,6 +411,7 @@ class DepartmentDashboardService {
       final data = doc.data();
       final status = UserStatus.fromRaw((data['status'] as String?) ?? '');
       if (status == UserStatus.pendingApproval) {
+        if (UserRole.isSysAdminCode((data['role'] as String?) ?? '')) continue;
         counts['Pending'] = counts['Pending']! + 1;
         continue;
       }
