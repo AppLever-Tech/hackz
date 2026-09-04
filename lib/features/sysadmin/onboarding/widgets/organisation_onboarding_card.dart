@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/firebase/tenant_connection_exception.dart';
+import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
@@ -26,6 +28,36 @@ class OrganisationOnboardingCard extends StatelessWidget {
 
   final OrganisationOnboardingItem item;
   final VoidCallback onChanged;
+
+  Future<void> _testConnection(BuildContext context) async {
+    final String code = item.organisationCode;
+    if (code.isEmpty) return;
+    try {
+      final TenantWorkspaceProbe probe = await TenantFirebase.probe(code);
+      if (!context.mounted) return;
+      if (probe.ok) {
+        await FeedbackService.showSuccess(
+          context,
+          title: 'Workspace ready',
+          message:
+              'Connected to ${probe.projectId}. Sign-in, data, and files resolved to this organisation.',
+        );
+        return;
+      }
+      await FeedbackService.showError(
+        context,
+        title: 'Workspace check failed',
+        message:
+            'Project ${probe.projectId}. Sign-in: ${probe.authOk ? 'ready' : 'failed'}. Data: ${probe.firestoreOk ? 'ready' : 'failed'}. Files: ${probe.storageOk ? 'ready' : 'failed'}.',
+      );
+    } on TenantConnectionException catch (e) {
+      if (!context.mounted) return;
+      await FeedbackService.showError(context, title: 'Unable to connect', message: e.message);
+    } catch (e) {
+      if (!context.mounted) return;
+      await FeedbackService.showError(context, title: 'Unable to connect', message: '$e');
+    }
+  }
 
   Future<void> _continue(BuildContext context) async {
     final bool changed = await showAddOrganisationWizard(context: context, item: item);
@@ -101,6 +133,13 @@ class OrganisationOnboardingCard extends StatelessWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
+                if (item.isComplete)
+                  HoverIconActionButton(
+                    icon: AppIcons.verification,
+                    tooltip: 'Test workspace',
+                    iconSize: 17,
+                    onTap: () => _testConnection(context),
+                  ),
                 if (!item.isComplete)
                   HoverIconActionButton(
                     icon: AppIcons.onboardingNext,

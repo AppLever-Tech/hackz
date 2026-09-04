@@ -9,11 +9,13 @@ class UserFormSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.subtitle,
+    this.trailing,
     this.compact = false,
   });
 
   final String title;
   final String? subtitle;
+  final Widget? trailing;
   final Widget child;
   final bool compact;
 
@@ -31,14 +33,27 @@ class UserFormSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                    ),
+                    if (subtitle != null) ...<Widget>[
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
-          if (subtitle != null) ...<Widget>[
-            const SizedBox(height: 2),
-            Text(subtitle!, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-          ],
           SizedBox(height: compact ? 6 : 8),
           child,
         ],

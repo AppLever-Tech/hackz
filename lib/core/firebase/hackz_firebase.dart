@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 import 'tenant_context.dart';
 
@@ -13,8 +14,8 @@ import 'tenant_context.dart';
 /// `FirebaseAuth.instance` / `FirebaseFirestore.instance` / `FirebaseStorage.instance`.
 ///
 /// [controlPlane] always talks to the Hackz Control Plane (bootstrap project)
-/// for tenant registry / routing. [current] is the active tenant app and may
-/// be re-bound later without changing feature services.
+/// for tenant registry / routing. [current] is the active tenant app after
+/// [bind] and may be re-bound without changing feature services.
 class HackzFirebase {
   HackzFirebase._(this.context, this.app);
 
@@ -24,11 +25,14 @@ class HackzFirebase {
   static HackzFirebase? _current;
   static HackzFirebase? _controlPlane;
 
+  /// Increments when [bind] or [bindControlPlane] changes the active app.
+  static final ValueNotifier<int> generation = ValueNotifier<int>(0);
+
   static HackzFirebase get current {
     final HackzFirebase? bound = _current;
     if (bound == null) {
       throw StateError(
-        'HackzFirebase is not bound. Call HackzFirebase.bind after Firebase initialization.',
+        'HackzFirebase is not bound. Call HackzFirebase.bind after tenant validation.',
       );
     }
     return bound;
@@ -47,6 +51,13 @@ class HackzFirebase {
 
   static bool get isBound => _current != null;
 
+  /// True when [current] is a resolved college tenant, not the Control Plane.
+  static bool get isTenantBound {
+    final HackzFirebase? bound = _current;
+    if (bound == null) return false;
+    return bound.context.organisationCode.isNotEmpty;
+  }
+
   FirebaseAuth get auth => FirebaseAuth.instanceFor(app: app);
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: app);
   FirebaseStorage get storage => FirebaseStorage.instanceFor(app: app);
@@ -54,14 +65,12 @@ class HackzFirebase {
   /// Binds the Control Plane to the bootstrap (Hackz) Firebase app.
   static void bindControlPlane(TenantContext context, {FirebaseApp? app}) {
     _controlPlane = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
+    generation.value++;
   }
 
   /// Binds the active tenant app. Does not replace [controlPlane].
-  ///
-  /// Later routing: `Firebase.initializeApp(name: context.firebaseAppName,
-  /// options: context.firebaseOptions)` then [bind] that named app.
   static void bind(TenantContext context, {FirebaseApp? app}) {
     _current = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
-    _controlPlane ??= _current;
+    generation.value++;
   }
 }

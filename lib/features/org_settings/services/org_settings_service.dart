@@ -466,10 +466,10 @@ class OrgSettingsService extends ChangeNotifier {
   ///
   /// Used by the org creation flow so new colleges land with sane defaults
   /// before any admin first opens the dashboard.
-  static Future<void> seedFor(String orgId) async {
+  static Future<void> seedFor(String orgId, {FirebaseFirestore? firestore}) async {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return;
-    final db = HackzFirebase.current.firestore;
+    final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
     final DocumentReference<Map<String, dynamic>> ref = db
         .collection(FirestoreUtils.hkzOrganizations)
         .doc(trimmed)
@@ -494,10 +494,11 @@ class OrgSettingsService extends ChangeNotifier {
     }
   }
 
-  static Future<bool> existsFor(String orgId) async {
+  static Future<bool> existsFor(String orgId, {FirebaseFirestore? firestore}) async {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return false;
-    final DocumentSnapshot<Map<String, dynamic>> snap = await HackzFirebase.current.firestore
+    final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
+    final DocumentSnapshot<Map<String, dynamic>> snap = await db
         .collection(FirestoreUtils.hkzOrganizations)
         .doc(trimmed)
         .collection(settingsSubcollection)

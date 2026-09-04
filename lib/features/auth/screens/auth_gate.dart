@@ -16,6 +16,7 @@ import 'landing_screen.dart';
 import '../widgets/signup/account_status_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -25,103 +26,122 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  late final StreamSubscription<User?> _authSub;
+  StreamSubscription<User?>? _authSub;
 
   @override
   void initState() {
     super.initState();
+    HackzFirebase.generation.addListener(_onFirebaseGeneration);
+    _listenAuth();
+  }
+
+  void _onFirebaseGeneration() {
+    _listenAuth();
+  }
+
+  void _listenAuth() {
+    _authSub?.cancel();
     _authSub = HackzFirebase.current.auth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
         // Belt-and-suspenders with dashboard logout: always drop session cache
         // whenever Firebase auth ends (any sign-out path).
         OrgSettingsService.instance.clearCache();
+        if (HackzFirebase.isTenantBound) {
+          unawaited(TenantFirebase.disconnect());
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    _authSub.cancel();
+    HackzFirebase.generation.removeListener(_onFirebaseGeneration);
+    _authSub?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: HackzFirebase.current.auth.authStateChanges(),
-      builder: (BuildContext context, AsyncSnapshot<User?> authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final firebaseUser = authSnapshot.data;
-        if (firebaseUser == null) {
-          return const LandingScreen();
-        }
-
-        return FutureBuilder<UserModel?>(
-          future: AuthStatusResolver.resolveSignedInUser(firebaseUser),
-          builder: (BuildContext context, AsyncSnapshot<UserModel?> userSnapshot) {
-            if (userSnapshot.connectionState == ConnectionState.waiting) {
+    return ValueListenableBuilder<int>(
+      valueListenable: HackzFirebase.generation,
+      builder: (BuildContext context, int _, Widget? __) {
+        return StreamBuilder<User?>(
+          stream: HackzFirebase.current.auth.authStateChanges(),
+          builder: (BuildContext context, AsyncSnapshot<User?> authSnapshot) {
+            if (authSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (userSnapshot.hasError) {
-              return Scaffold(
-                body: Center(
-                  child: Text('Failed to restore session: ${userSnapshot.error}'),
-                ),
-              );
+            final firebaseUser = authSnapshot.data;
+            if (firebaseUser == null) {
+              return const LandingScreen();
             }
 
-            final appUser = userSnapshot.data;
-            if (appUser == null) {
-              return Scaffold(
-                body: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      const Text('No profile found for signed-in user.'),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () async {
-                          await HackzFirebase.current.auth.signOut();
-                        },
-                        child: const Text('Go to Sign In'),
+            return FutureBuilder<UserModel?>(
+              future: AuthStatusResolver.resolveSignedInUser(firebaseUser),
+              builder: (BuildContext context, AsyncSnapshot<UserModel?> userSnapshot) {
+                if (userSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (userSnapshot.hasError) {
+                  return Scaffold(
+                    body: Center(
+                      child: Text('Failed to restore session: ${userSnapshot.error}'),
+                    ),
+                  );
+                }
+
+                final appUser = userSnapshot.data;
+                if (appUser == null) {
+                  return Scaffold(
+                    body: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Text('No profile found for signed-in user.'),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: () async {
+                              await HackzFirebase.current.auth.signOut();
+                            },
+                            child: const Text('Go to Sign In'),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }
+                    ),
+                  );
+                }
 
-            FirestoreUtils.syncAuthUserMirror(
-              firebaseAuthUid: firebaseUser.uid,
-              profile: appUser,
+                FirestoreUtils.syncAuthUserMirror(
+                  firebaseAuthUid: firebaseUser.uid,
+                  profile: appUser,
+                );
+
+                if (appUser.status != UserStatus.active) {
+                  return AccountStatusWorkspace(
+                    user: appUser,
+                    phase: appUser.status.toWorkspacePhase,
+                    onSignOut: () async {
+                      await HackzFirebase.current.auth.signOut();
+                    },
+                  );
+                }
+
+                // Returning SysAdmin sessions: seed App Metadata if Firestore was wiped
+                // or docs were never written (idempotent after success).
+                if (UserRole.fromCode(appUser.role) == UserRole.sysAdmin) {
+                  unawaited(AppMetadataService.ensureSeeded());
+                }
+
+                return RoleUtils.routeForRole(appUser);
+              },
             );
-
-            if (appUser.status != UserStatus.active) {
-              return AccountStatusWorkspace(
-                user: appUser,
-                phase: appUser.status.toWorkspacePhase,
-                onSignOut: () async {
-                  await HackzFirebase.current.auth.signOut();
-                },
-              );
-            }
-
-            // Returning SysAdmin sessions: seed App Metadata if Firestore was wiped
-            // or docs were never written (idempotent after success).
-            if (UserRole.fromCode(appUser.role) == UserRole.sysAdmin) {
-              unawaited(AppMetadataService.ensureSeeded());
-            }
-
-            return RoleUtils.routeForRole(appUser);
           },
         );
       },

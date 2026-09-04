@@ -1,8 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
 import '../../../../core/firebase/hackz_firebase.dart';
+import '../../../../core/firebase/tenant_connection_exception.dart';
+import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../utils/firestore_utils.dart';
 
 class TenantWorkspaceCheck {
@@ -19,36 +22,66 @@ class TenantWorkspaceCheck {
   final String detail;
 }
 
-/// Live checks against an approved workspace. Does not initialize a second Firebase app.
+typedef TenantWorkspaceCheckProgress = void Function(String message, double progress);
+
+/// Live checks against an approved workspace. Does not bind [HackzFirebase.current].
 abstract final class TenantWorkspaceValidator {
   TenantWorkspaceValidator._();
 
   static const Duration _timeout = Duration(seconds: 8);
 
-  static Future<List<TenantWorkspaceCheck>> validate(String firebaseProjectId) async {
+  static Future<List<TenantWorkspaceCheck>> validate(
+    String firebaseProjectId, {
+    TenantWorkspaceCheckProgress? onProgress,
+  }) async {
     final String projectId = firebaseProjectId.trim();
     if (!ApprovedTenantFirebase.isApproved(projectId)) {
-      return const <TenantWorkspaceCheck>[
-        TenantWorkspaceCheck(
-          id: 'connection',
-          label: 'Platform connection',
-          ok: false,
-          detail: 'Choose an approved Hackz workspace.',
-        ),
-        TenantWorkspaceCheck(id: 'auth', label: 'Sign-in ready', ok: false),
-        TenantWorkspaceCheck(id: 'data', label: 'Workspace data ready', ok: false),
-        TenantWorkspaceCheck(id: 'files', label: 'File storage ready', ok: false),
-        TenantWorkspaceCheck(id: 'access', label: 'Administrator access', ok: false),
-      ];
+      return _failed(
+        connectionDetail: 'Choose an approved Hackz workspace.',
+      );
     }
 
-    final List<TenantWorkspaceCheck> results = await Future.wait(<Future<TenantWorkspaceCheck>>[
-      _checkConnection(projectId),
-      _checkAuth(),
-      _checkData(),
-      _checkFiles(),
-      _checkAccess(),
-    ]);
+    onProgress?.call('Opening the workspace...', 0.1);
+    final FirebaseApp app;
+    try {
+      app = await TenantFirebase.openApprovedWorkspace(projectId);
+    } on TenantConnectionException catch (e) {
+      return _failed(connectionDetail: e.message);
+    } catch (_) {
+      return _failed(connectionDetail: 'Unable to reach the Hackz workspace.');
+    }
+
+    final List<({String message, Future<TenantWorkspaceCheck> Function() run})> steps =
+        <({String message, Future<TenantWorkspaceCheck> Function() run})>[
+      (
+        message: 'Checking platform connection...',
+        run: () => _checkConnection(projectId, app),
+      ),
+      (
+        message: 'Checking sign-in services...',
+        run: () => _checkAuth(app),
+      ),
+      (
+        message: 'Checking workspace data...',
+        run: () => _checkData(app),
+      ),
+      (
+        message: 'Checking file storage...',
+        run: () => _checkFiles(app),
+      ),
+      (
+        message: 'Checking administrator access...',
+        run: () => _checkAccess(),
+      ),
+    ];
+
+    final List<TenantWorkspaceCheck> results = <TenantWorkspaceCheck>[];
+    for (int i = 0; i < steps.length; i++) {
+      final double progress = (i + 1) / (steps.length + 1);
+      onProgress?.call(steps[i].message, progress);
+      results.add(await steps[i].run());
+    }
+    onProgress?.call('Finishing checks...', 1);
     return results;
   }
 
@@ -56,10 +89,24 @@ abstract final class TenantWorkspaceValidator {
     return checks.isNotEmpty && checks.every((TenantWorkspaceCheck check) => check.ok);
   }
 
-  static Future<TenantWorkspaceCheck> _checkConnection(String projectId) async {
+  static List<TenantWorkspaceCheck> _failed({required String connectionDetail}) {
+    return <TenantWorkspaceCheck>[
+      TenantWorkspaceCheck(
+        id: 'connection',
+        label: 'Platform connection',
+        ok: false,
+        detail: connectionDetail,
+      ),
+      const TenantWorkspaceCheck(id: 'auth', label: 'Sign-in ready', ok: false),
+      const TenantWorkspaceCheck(id: 'data', label: 'Workspace data ready', ok: false),
+      const TenantWorkspaceCheck(id: 'files', label: 'File storage ready', ok: false),
+      const TenantWorkspaceCheck(id: 'access', label: 'Administrator access', ok: false),
+    ];
+  }
+
+  static Future<TenantWorkspaceCheck> _checkConnection(String projectId, FirebaseApp app) async {
     try {
-      final String boundId = HackzFirebase.controlPlane.context.firebaseOptions.projectId;
-      if (boundId != projectId) {
+      if (app.options.projectId != projectId) {
         return const TenantWorkspaceCheck(
           id: 'connection',
           label: 'Platform connection',
@@ -73,8 +120,8 @@ abstract final class TenantWorkspaceValidator {
         ok: true,
         detail: 'Approved workspace is reachable.',
       );
-    } catch (e) {
-      return TenantWorkspaceCheck(
+    } catch (_) {
+      return const TenantWorkspaceCheck(
         id: 'connection',
         label: 'Platform connection',
         ok: false,
@@ -83,17 +130,16 @@ abstract final class TenantWorkspaceValidator {
     }
   }
 
-  static Future<TenantWorkspaceCheck> _checkAuth() async {
+  static Future<TenantWorkspaceCheck> _checkAuth(FirebaseApp app) async {
     try {
-      final FirebaseAuth auth = HackzFirebase.controlPlane.auth;
-      await auth.authStateChanges().first.timeout(_timeout);
+      await FirebaseAuth.instanceFor(app: app).authStateChanges().first.timeout(_timeout);
       return const TenantWorkspaceCheck(
         id: 'auth',
         label: 'Sign-in ready',
         ok: true,
         detail: 'Sign-in services are available.',
       );
-    } catch (e) {
+    } catch (_) {
       return const TenantWorkspaceCheck(
         id: 'auth',
         label: 'Sign-in ready',
@@ -103,9 +149,9 @@ abstract final class TenantWorkspaceValidator {
     }
   }
 
-  static Future<TenantWorkspaceCheck> _checkData() async {
+  static Future<TenantWorkspaceCheck> _checkData(FirebaseApp app) async {
     try {
-      await HackzFirebase.controlPlane.firestore
+      await FirebaseFirestore.instanceFor(app: app)
           .collection(FirestoreUtils.hkzOrganizations)
           .limit(1)
           .get()
@@ -116,7 +162,22 @@ abstract final class TenantWorkspaceValidator {
         ok: true,
         detail: 'Organisation data can be stored.',
       );
-    } catch (e) {
+    } on FirebaseException catch (e) {
+      if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+        return const TenantWorkspaceCheck(
+          id: 'data',
+          label: 'Workspace data ready',
+          ok: false,
+          detail: 'Unable to read organisation data.',
+        );
+      }
+      return const TenantWorkspaceCheck(
+        id: 'data',
+        label: 'Workspace data ready',
+        ok: true,
+        detail: 'Organisation data can be stored.',
+      );
+    } catch (_) {
       return const TenantWorkspaceCheck(
         id: 'data',
         label: 'Workspace data ready',
@@ -126,11 +187,10 @@ abstract final class TenantWorkspaceValidator {
     }
   }
 
-  static Future<TenantWorkspaceCheck> _checkFiles() async {
+  static Future<TenantWorkspaceCheck> _checkFiles(FirebaseApp app) async {
     try {
-      final FirebaseStorage storage = HackzFirebase.controlPlane.storage;
-      final String bucket = storage.app.options.storageBucket ?? '';
-      if (bucket.trim().isEmpty) {
+      final String bucket = (app.options.storageBucket ?? '').trim();
+      if (bucket.isEmpty) {
         return const TenantWorkspaceCheck(
           id: 'files',
           label: 'File storage ready',
@@ -138,16 +198,14 @@ abstract final class TenantWorkspaceValidator {
           detail: 'File storage is not configured.',
         );
       }
-      try {
-        await storage.ref().list(const ListOptions(maxResults: 1)).timeout(_timeout);
-      } on FirebaseException catch (e) {
-        const Set<String> reachable = <String>{
-          'object-not-found',
-          'unauthorized',
-          'permission-denied',
-          'unauthenticated',
-        };
-        if (!reachable.contains(e.code)) rethrow;
+      final bool reachable = await TenantFirebase.isStorageReachable(app);
+      if (!reachable) {
+        return const TenantWorkspaceCheck(
+          id: 'files',
+          label: 'File storage ready',
+          ok: false,
+          detail: 'File storage is not responding.',
+        );
       }
       return const TenantWorkspaceCheck(
         id: 'files',
@@ -155,7 +213,7 @@ abstract final class TenantWorkspaceValidator {
         ok: true,
         detail: 'Logos and documents can be stored.',
       );
-    } catch (e) {
+    } catch (_) {
       return const TenantWorkspaceCheck(
         id: 'files',
         label: 'File storage ready',
@@ -176,18 +234,14 @@ abstract final class TenantWorkspaceValidator {
           detail: 'Sign in as a Hackz administrator to continue.',
         );
       }
-      await HackzFirebase.controlPlane.firestore
-          .collection('hkzTenants')
-          .limit(1)
-          .get()
-          .timeout(_timeout);
+      await HackzFirebase.controlPlane.firestore.collection('hkzTenants').limit(1).get().timeout(_timeout);
       return const TenantWorkspaceCheck(
         id: 'access',
         label: 'Administrator access',
         ok: true,
         detail: 'You can register and activate organisations.',
       );
-    } catch (e) {
+    } catch (_) {
       return const TenantWorkspaceCheck(
         id: 'access',
         label: 'Administrator access',

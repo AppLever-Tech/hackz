@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'approved_tenant_firebase.dart';
 import 'hackz_firebase.dart';
 import 'tenant_context.dart';
 import 'tenant_resolver.dart';
@@ -19,6 +20,7 @@ class FirebaseBootstrap {
     final TenantContext controlPlane = TenantResolver.controlPlane(options);
     HackzFirebase.bindControlPlane(controlPlane);
     HackzFirebase.bind(controlPlane);
+    await ApprovedTenantFirebase.refresh();
   }
 
   static FirebaseOptions get _firebaseOptionsForCurrentPlatform {

@@ -10,6 +10,7 @@ import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
 import '../widgets/organisation_onboarding_card.dart';
 import 'add_organisation_wizard.dart';
+import 'register_workspace_dialog.dart';
 
 class OrganisationsOnboardingConsole extends StatefulWidget {
   const OrganisationsOnboardingConsole({super.key, required this.refreshToken});
@@ -61,6 +62,11 @@ class _OrganisationsOnboardingConsoleState extends State<OrganisationsOnboarding
         _loading = false;
       });
     }
+  }
+
+  Future<void> _registerWorkspace() async {
+    final bool saved = await showRegisterWorkspaceDialog(context: context);
+    if (saved && mounted) _reload();
   }
 
   Future<void> _add() async {
@@ -176,11 +182,33 @@ class _OrganisationsOnboardingConsoleState extends State<OrganisationsOnboarding
         ],
       ),
     );
-    if (mobile) return filters;
+    if (mobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          filters,
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _registerWorkspace,
+              icon: const Icon(AppIcons.verification, size: 16),
+              label: const Text('Register workspace'),
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       children: <Widget>[
         Expanded(child: filters),
         const SizedBox(width: 12),
+        OutlinedButton.icon(
+          onPressed: _registerWorkspace,
+          icon: const Icon(AppIcons.verification, size: 16),
+          label: const Text('Register workspace'),
+        ),
+        const SizedBox(width: 8),
         FilledButton.icon(
           onPressed: _add,
           icon: const Icon(AppIcons.add, size: 18),

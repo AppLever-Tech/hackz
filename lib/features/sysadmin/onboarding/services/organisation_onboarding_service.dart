@@ -1,7 +1,6 @@
 import '../../../../core/firebase/approved_tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
-import '../../../org_settings/services/org_settings_service.dart';
 import '../../../organization/models/organization_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../models/org_operational_data.dart';
@@ -35,10 +34,6 @@ abstract final class OrganisationOnboardingService {
       tenantByOrgId[orgId] = tenant;
     }
 
-    final List<bool> seededFlags = await Future.wait(
-      orgs.map((OrganizationModel org) => OrgSettingsService.existsFor(org.id)),
-    );
-
     final List<OrganisationOnboardingItem> items = <OrganisationOnboardingItem>[];
     for (int i = 0; i < orgs.length; i++) {
       final OrganizationModel org = orgs[i];
@@ -50,7 +45,6 @@ abstract final class OrganisationOnboardingService {
           organization: org,
           tenant: tenant,
           collegeAdmin: data.collegeAdmin,
-          settingsSeeded: seededFlags[i],
         ),
       );
     }
@@ -99,8 +93,11 @@ abstract final class OrganisationOnboardingService {
     );
   }
 
-  static Future<List<TenantWorkspaceCheck>> validateWorkspace(String firebaseProjectId) {
-    return TenantWorkspaceValidator.validate(firebaseProjectId);
+  static Future<List<TenantWorkspaceCheck>> validateWorkspace(
+    String firebaseProjectId, {
+    TenantWorkspaceCheckProgress? onProgress,
+  }) {
+    return TenantWorkspaceValidator.validate(firebaseProjectId, onProgress: onProgress);
   }
 
   static Future<TenantRecord> completeValidation({
@@ -111,18 +108,6 @@ abstract final class OrganisationOnboardingService {
       throw const OrganisationOnboardingException('Resolve the failed checks before continuing.');
     }
     return TenantRegistry.markFirebaseValidated(tenantId);
-  }
-
-  static Future<TenantRecord> initialiseHackz({
-    required String tenantId,
-    required String organisationId,
-  }) async {
-    await OrgSettingsService.seedFor(organisationId);
-    final bool seeded = await OrgSettingsService.existsFor(organisationId);
-    if (!seeded) {
-      throw const OrganisationOnboardingException('Unable to initialise Hackz settings for this organisation.');
-    }
-    return TenantRegistry.markHackzSetupComplete(tenantId);
   }
 
   static Future<TenantRecord> markAdministratorReady(String tenantId) {

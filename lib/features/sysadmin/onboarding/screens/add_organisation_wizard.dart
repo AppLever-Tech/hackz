@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
@@ -8,20 +9,24 @@ import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../../core/ui/inputs/hackz_select_field.dart';
-import '../../../../core/ui/loading/hkz_progress_indicator.dart';
+import '../../../../core/ui/loading/loading.dart';
 import '../../../auth/widgets/signup/approval_timeline_vm.dart';
 import '../../../auth/widgets/signup/approval_timeline_widget.dart';
 import '../../../organization/models/enums/organization_type.dart';
 import '../../../organization/models/organization_model.dart';
+import '../../../organization/services/org_photo_service.dart';
 import '../../services/org_management_service.dart';
 import '../../../user/models/user_model.dart';
 import '../../../user/screens/create_user_dialog.dart';
 import '../../../user/widgets/user_form_section.dart';
+import '../../../user/widgets/user_profile_photo_field.dart';
+import '../../../../utils/firestore_utils.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
 import '../services/tenant_workspace_validator.dart';
 import '../widgets/copy_organisation_code_button.dart';
 import '../widgets/workspace_check_row.dart';
+import 'register_workspace_dialog.dart';
 
 Future<bool> showAddOrganisationWizard({
   required BuildContext context,
@@ -64,6 +69,10 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   String? _addressError;
   String? _websiteError;
   String? _contactError;
+  PlatformFile? _iconFile;
+  String? _remotePhotoUrl;
+  String? _remoteThumbUrl;
+  bool _iconCleared = false;
 
   @override
   void initState() {
@@ -79,6 +88,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _website.text = item.organization.website;
       _contact.text = item.organization.contact;
       _type = item.organization.type;
+      _remotePhotoUrl = item.organization.photoUrl;
+      _remoteThumbUrl = item.organization.thumbnailUrl;
       _step = item.isComplete ? OrganisationOnboardingStep.activate : item.nextStep;
       if (_workspaceId.isEmpty) {
         _workspaceId = OrganisationOnboardingService.defaultWorkspaceId;
@@ -87,6 +98,12 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _step = OrganisationOnboardingStep.organisation;
       _workspaceId = OrganisationOnboardingService.defaultWorkspaceId;
     }
+    ApprovedTenantFirebase.refresh().then((_) {
+      if (mounted) setState(() {});
+    });
+    _name.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -123,8 +140,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return AppIcons.verification;
       case OrganisationOnboardingStep.validate:
         return AppIcons.checklist;
-      case OrganisationOnboardingStep.hackzSetup:
-        return AppIcons.orgSettings;
       case OrganisationOnboardingStep.initialAdmin:
         return AppIcons.adminProfile;
       case OrganisationOnboardingStep.activate:
@@ -176,6 +191,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             address: _address.text.trim(),
             website: _website.text.trim(),
             contact: _contact.text.trim(),
+            clearPhoto: _iconCleared && _iconFile == null,
           );
           final OrganisationOnboardingItem saved = await OrganisationOnboardingService.saveOrganisation(
             draft: draft,
@@ -183,6 +199,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           );
           _organization = saved.organization;
           _tenant = saved.tenant;
+          await _uploadIconIfNeeded();
           _changed = true;
           _step = OrganisationOnboardingStep.firebase;
         case OrganisationOnboardingStep.firebase:
@@ -207,8 +224,21 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             throw const OrganisationOnboardingException('Connect a workspace first.');
           }
           if (!_checksRan || !TenantWorkspaceValidator.allPassed(_checks)) {
-            final List<TenantWorkspaceCheck> checks =
-                await OrganisationOnboardingService.validateWorkspace(_workspaceId);
+            final List<TenantWorkspaceCheck> checks = await HkzAsyncLoader.run<List<TenantWorkspaceCheck>>(
+              context,
+              title: 'Checking workspace',
+              message: 'Preparing workspace checks...',
+              successMessage: 'All checks completed',
+              successHold: const Duration(milliseconds: 900),
+              task: () {
+                return OrganisationOnboardingService.validateWorkspace(
+                  _workspaceId,
+                  onProgress: (String message, double progress) {
+                    HkzAsyncLoader.update(message: message, progress: progress);
+                  },
+                );
+              },
+            );
             _checks = checks;
             _checksRan = true;
             return;
@@ -218,25 +248,10 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             checks: _checks,
           );
           _changed = true;
-          _step = OrganisationOnboardingStep.hackzSetup;
-        case OrganisationOnboardingStep.hackzSetup:
-          final TenantRecord? tenant = _tenant;
-          final OrganizationModel? org = _organization;
-          if (tenant == null || org == null) {
-            throw const OrganisationOnboardingException('Complete earlier steps first.');
-          }
-          _tenant = await OrganisationOnboardingService.initialiseHackz(
-            tenantId: tenant.tenantId,
-            organisationId: org.id,
-          );
-          _changed = true;
           _step = OrganisationOnboardingStep.initialAdmin;
         case OrganisationOnboardingStep.initialAdmin:
-          if (_admin == null) {
-            throw const OrganisationOnboardingException('Add the initial administrator to continue.');
-          }
           final TenantRecord? tenant = _tenant;
-          if (tenant != null) {
+          if (_admin != null && tenant != null) {
             _tenant = await OrganisationOnboardingService.markAdministratorReady(tenant.tenantId);
           }
           _changed = true;
@@ -278,10 +293,44 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     }
   }
 
-  void _back() {
-    if (_busy || _stepIndex == 0) return;
-    setState(() => _step = OrganisationOnboardingStep.values[_stepIndex - 1]);
+  Future<void> _uploadIconIfNeeded() async {
+    OrganizationModel? org = _organization;
+    if (org == null || org.id.trim().isEmpty || _iconFile == null) return;
+    final uploaded = await OrgPhotoService.uploadLogo(orgId: org.id, file: _iconFile!);
+    org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
+    await FirestoreUtils.upsertOrganization(org);
+    _organization = org;
+    _remotePhotoUrl = uploaded.photoUrl;
+    _remoteThumbUrl = uploaded.thumbnailUrl;
+    _iconFile = null;
   }
+
+  Future<void> _pickIcon() async {
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    setState(() {
+      _iconFile = result.files.first;
+      _iconCleared = false;
+    });
+  }
+
+  void _skip() {
+    if (_busy || _step != OrganisationOnboardingStep.initialAdmin) return;
+    setState(() => _step = OrganisationOnboardingStep.activate);
+  }
+
+  Future<void> _registerWorkspace() async {
+    final bool saved = await showRegisterWorkspaceDialog(context: context);
+    if (!saved) return;
+    await ApprovedTenantFirebase.refresh();
+    if (mounted) setState(() {});
+  }
+
+  bool get _skipEnabled => !_busy && _step == OrganisationOnboardingStep.initialAdmin;
 
   String get _primaryLabel {
     switch (_step) {
@@ -291,8 +340,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return 'Connect workspace';
       case OrganisationOnboardingStep.validate:
         return _checksRan && TenantWorkspaceValidator.allPassed(_checks) ? 'Continue' : 'Run checks';
-      case OrganisationOnboardingStep.hackzSetup:
-        return 'Initialise Hackz';
       case OrganisationOnboardingStep.initialAdmin:
         return 'Continue';
       case OrganisationOnboardingStep.activate:
@@ -368,8 +415,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return _workspaceStep();
       case OrganisationOnboardingStep.validate:
         return _validateStep();
-      case OrganisationOnboardingStep.hackzSetup:
-        return _setupStep();
       case OrganisationOnboardingStep.initialAdmin:
         return _adminStep();
       case OrganisationOnboardingStep.activate:
@@ -389,11 +434,29 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   Widget _organisationStep() {
     final bool wide = !ResponsiveHelper.isMobile(context);
     final Widget identity = UserFormSection(
-      title: 'Organisation',
-      subtitle: 'Name and type',
+      title: 'Identity',
+      subtitle: 'Icon, name, and type',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          UserProfilePhotoField(
+            displayName: _name.text,
+            localFile: _iconFile,
+            remoteUrl: _iconCleared ? null : (_remoteThumbUrl ?? _remotePhotoUrl),
+            enabled: !_busy,
+            title: 'Organization icon',
+            subtitle: 'Shown next to the organization name in the organizations list.',
+            buttonLabel: 'Upload icon',
+            circular: false,
+            onPick: _pickIcon,
+            onClear: () => setState(() {
+              _iconFile = null;
+              _remotePhotoUrl = null;
+              _remoteThumbUrl = null;
+              _iconCleared = true;
+            }),
+          ),
+          const SizedBox(height: 12),
           HackzInputDecoration.labeledField(
             label: 'Organisation name',
             required: true,
@@ -473,9 +536,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Expanded(child: identity),
+          Expanded(flex: 5, child: identity),
           const SizedBox(width: 12),
-          Expanded(child: details),
+          Expanded(flex: 6, child: details),
         ],
       );
     }
@@ -489,54 +552,70 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     return UserFormSection(
       title: 'Workspace connection',
       subtitle: 'Connect this college to an approved Hackz workspace. Colleges do not configure platform internals.',
+      trailing: TextButton.icon(
+        onPressed: _busy ? null : _registerWorkspace,
+        icon: const Icon(AppIcons.add, size: 16),
+        label: const Text('Register another workspace'),
+        style: TextButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+      ),
       child: Column(
-        children: workspaces.map((ApprovedTenantWorkspace workspace) {
-          final bool selected = _workspaceId == workspace.projectId;
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _busy ? null : () => setState(() => _workspaceId = workspace.projectId),
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0),
-                    width: selected ? 1.6 : 1,
-                  ),
-                ),
-                child: Row(
+        children: <Widget>[
+          for (int i = 0; i < workspaces.length; i++) ...<Widget>[
+            _workspaceTile(workspaces[i]),
+            if (i != workspaces.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _workspaceTile(ApprovedTenantWorkspace workspace) {
+    final bool selected = _workspaceId == workspace.projectId;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _busy ? null : () => setState(() => _workspaceId = workspace.projectId),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF5F3FF) : const Color(0xFFFCFDFF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? const Color(0xFF6A38FF) : const Color(0xFFE2E8F0),
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                selected ? AppIcons.workflowApproved : AppIcons.verification,
+                color: selected ? const Color(0xFF6A38FF) : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Icon(
-                      selected ? AppIcons.workflowApproved : AppIcons.verification,
-                      color: selected ? const Color(0xFF6A38FF) : const Color(0xFF64748B),
+                    Text(
+                      workspace.label,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            workspace.label,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            workspace.subtitle,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      workspace.subtitle,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
               ),
-            ),
-          );
-        }).toList(growable: false),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -553,7 +632,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           ];
     return UserFormSection(
       title: 'Workspace checks',
-      subtitle: 'Confirm the workspace is ready before Hackz is initialised.',
+      subtitle: 'Confirm the workspace is ready before this organisation is activated.',
       child: Column(
         children: <Widget>[
           for (int i = 0; i < pending.length; i++) ...<Widget>[
@@ -565,38 +644,17 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     );
   }
 
-  Widget _setupStep() {
-    return UserFormSection(
-      title: 'Hackz setup',
-      subtitle: 'Apply the minimum organisation settings this college needs to start.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const <Widget>[
-          Text(
-            'Hackz will create default organisation settings only. Empty data collections are not created in advance.',
-            style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF475569)),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'You can refine rules later from the college admin workspace.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _adminStep() {
     final UserModel? admin = _admin;
     return UserFormSection(
       title: 'Initial administrator',
-      subtitle: 'This person will manage the college in Hackz.',
+      subtitle: 'Optional. You can add this person now or skip and assign them later.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           if (admin == null)
             const Text(
-              'Add a college administrator using the standard Hackz user flow.',
+              'Adding a college administrator is optional. Skip this step to activate the organisation without one.',
               style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF475569)),
             )
           else
@@ -691,25 +749,35 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       ),
       child: Row(
         children: <Widget>[
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _busy ? null : (done || _stepIndex == 0 ? _close : _back),
-              child: Text(done || _stepIndex == 0 ? 'Close' : 'Back'),
+          OutlinedButton(
+            onPressed: _skipEnabled ? _skip : null,
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
+            child: const Text('Skip'),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _busy ? null : (done ? _close : _goNext),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF6A38FF),
-                foregroundColor: Colors.white,
-              ),
-              child: _busy
-                  ? const SizedBox(width: 22, height: 22, child: HkzProgressIndicator(size: 22, strokeWidth: 2.6))
-                  : Text(done ? 'Done' : _primaryLabel),
+          const Spacer(),
+          OutlinedButton(
+            onPressed: _busy ? null : _close,
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
+            child: const Text('Close'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: _busy ? null : (done ? _close : _goNext),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF6A38FF),
+              foregroundColor: Colors.white,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+            child: _busy
+                ? const SizedBox(width: 18, height: 18, child: HkzProgressIndicator(size: 18, strokeWidth: 2.4))
+                : Text(done ? 'Done' : _primaryLabel),
           ),
         ],
       ),

@@ -110,12 +110,6 @@ abstract final class TenantRegistry {
     if (!current.firebaseValidated) {
       throw StateError('Finish workspace checks before activating.');
     }
-    if (!current.hackzSetupComplete) {
-      throw StateError('Finish Hackz setup before activating.');
-    }
-    if (!current.initialAdminConfigured) {
-      throw StateError('Configure the initial administrator before activating.');
-    }
 
     Object? lastCollision;
     for (int attempt = 0; attempt < _maxCodeAttempts; attempt++) {
@@ -188,6 +182,18 @@ abstract final class TenantRegistry {
 
   /// Resolves [rawCode] to exactly one **active** tenant with an approved project.
   static Future<TenantRecord?> resolveActive(String rawCode) async {
+    try {
+      final TenantRecord? record = await lookupByOrganisationCode(rawCode);
+      if (record == null || record.status != TenantStatus.active) return null;
+      if (!ApprovedTenantFirebase.isApproved(record.firebaseProjectId)) return null;
+      return record;
+    } on StateError {
+      rethrow;
+    }
+  }
+
+  /// Registry lookup by organisation code (any status). Throws if more than one match.
+  static Future<TenantRecord?> lookupByOrganisationCode(String rawCode) async {
     final String? code = OrganisationCode.tryParse(rawCode);
     if (code == null) return null;
 
@@ -195,20 +201,17 @@ abstract final class TenantRegistry {
         .where('organisationCode', isEqualTo: code)
         .get();
 
-    final List<TenantRecord> active = <TenantRecord>[];
+    final List<TenantRecord> matches = <TenantRecord>[];
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       final TenantRecord record = TenantRecord.fromMap(doc.data());
-      if (record.status != TenantStatus.active) continue;
-      if (!ApprovedTenantFirebase.isApproved(record.firebaseProjectId)) continue;
       if (OrganisationCode.tryParse(record.organisationCode) != code) continue;
-      active.add(record);
+      matches.add(record);
     }
-
-    if (active.isEmpty) return null;
-    if (active.length > 1) {
-      throw StateError('Organisation code $code maps to ${active.length} active tenants.');
+    if (matches.isEmpty) return null;
+    if (matches.length > 1) {
+      throw StateError('Organisation code $code maps to ${matches.length} tenants.');
     }
-    return active.first;
+    return matches.first;
   }
 
   static Future<TenantRecord?> fetchByOrganisationCode(String rawCode) async {

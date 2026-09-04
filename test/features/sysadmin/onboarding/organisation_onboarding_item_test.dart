@@ -39,6 +39,15 @@ void main() {
     );
   }
 
+  test('administrator is optional after checks', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(projectId: 'hackz-a17b6', validated: true),
+    );
+    expect(item.nextStep, OrganisationOnboardingStep.initialAdmin);
+    expect(item.completedSteps, 3);
+  });
+
   test('progress starts at organisation when tenant is missing', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(organization: org());
     expect(item.completedSteps, 1);
@@ -53,13 +62,26 @@ void main() {
       tenant: tenant(
         projectId: 'hackz-a17b6',
         validated: true,
-        setup: true,
         admin: true,
       ),
     );
-    expect(item.completedSteps, 5);
+    expect(item.completedSteps, 4);
     expect(item.nextStep, OrganisationOnboardingStep.activate);
     expect(item.isComplete, isFalse);
+  });
+
+  test('active organisation is complete without an administrator', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(
+        status: TenantStatus.active,
+        code: 'HKZ-S7K4PM',
+        projectId: 'hackz-a17b6',
+        validated: true,
+      ),
+    );
+    expect(item.isComplete, isTrue);
+    expect(item.completedSteps, 4);
   });
 
   test('active tenant with code is complete', () {
@@ -70,12 +92,11 @@ void main() {
         code: 'HKZ-S7K4PM',
         projectId: 'hackz-a17b6',
         validated: true,
-        setup: true,
         admin: true,
       ),
     );
     expect(item.isComplete, isTrue);
-    expect(item.completedSteps, 6);
+    expect(item.completedSteps, 5);
     expect(item.organisationCode, 'HKZ-S7K4PM');
     expect(item.firebaseStatusLabel, 'Ready');
   });
