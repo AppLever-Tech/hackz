@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'hackz_firebase.dart';
+import 'tenant_context.dart';
 import 'tenant_resolver.dart';
 
 class FirebaseBootstrap {
@@ -15,7 +16,9 @@ class FirebaseBootstrap {
     WidgetsFlutterBinding.ensureInitialized();
     final FirebaseOptions options = _firebaseOptionsForCurrentPlatform;
     await Firebase.initializeApp(options: options);
-    HackzFirebase.bind(TenantResolver.bootstrap(options));
+    final TenantContext controlPlane = TenantResolver.controlPlane(options);
+    HackzFirebase.bindControlPlane(controlPlane);
+    HackzFirebase.bind(controlPlane);
   }
 
   static FirebaseOptions get _firebaseOptionsForCurrentPlatform {

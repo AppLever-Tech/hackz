@@ -11,8 +11,10 @@ import 'tenant_context.dart';
 ///
 /// Feature modules must use [HackzFirebase.current] instead of
 /// `FirebaseAuth.instance` / `FirebaseFirestore.instance` / `FirebaseStorage.instance`.
-/// Phase 1 binds the current (default) project; Phase 2 can re-bind a named
-/// tenant app without changing feature services.
+///
+/// [controlPlane] always talks to the Hackz Control Plane (bootstrap project)
+/// for tenant registry / routing. [current] is the active tenant app and may
+/// be re-bound later without changing feature services.
 class HackzFirebase {
   HackzFirebase._(this.context, this.app);
 
@@ -20,6 +22,7 @@ class HackzFirebase {
   final FirebaseApp app;
 
   static HackzFirebase? _current;
+  static HackzFirebase? _controlPlane;
 
   static HackzFirebase get current {
     final HackzFirebase? bound = _current;
@@ -31,17 +34,34 @@ class HackzFirebase {
     return bound;
   }
 
+  /// Control Plane Auth/Firestore/Storage (tenant registry). Independent of [current].
+  static HackzFirebase get controlPlane {
+    final HackzFirebase? bound = _controlPlane;
+    if (bound == null) {
+      throw StateError(
+        'HackzFirebase control plane is not bound. Call HackzFirebase.bindControlPlane after Firebase initialization.',
+      );
+    }
+    return bound;
+  }
+
   static bool get isBound => _current != null;
 
   FirebaseAuth get auth => FirebaseAuth.instanceFor(app: app);
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: app);
   FirebaseStorage get storage => FirebaseStorage.instanceFor(app: app);
 
-  /// Binds [context] to an initialized [FirebaseApp] (default app in Phase 1).
+  /// Binds the Control Plane to the bootstrap (Hackz) Firebase app.
+  static void bindControlPlane(TenantContext context, {FirebaseApp? app}) {
+    _controlPlane = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
+  }
+
+  /// Binds the active tenant app. Does not replace [controlPlane].
   ///
-  /// Phase 2: `Firebase.initializeApp(name: context.firebaseAppName, options:
-  /// context.firebaseOptions)` then [bind] that named app.
+  /// Later routing: `Firebase.initializeApp(name: context.firebaseAppName,
+  /// options: context.firebaseOptions)` then [bind] that named app.
   static void bind(TenantContext context, {FirebaseApp? app}) {
     _current = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
+    _controlPlane ??= _current;
   }
 }

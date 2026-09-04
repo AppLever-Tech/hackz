@@ -17,7 +17,7 @@ class TenantContext {
   /// Internal immutable tenant identifier.
   final String tenantId;
 
-  /// User-facing routing code (Phase 2 organisation-code login).
+  /// User-facing routing key (`HKZ-XXXXXX`). Never require [tenantId] in URLs.
   final String organisationCode;
 
   final String organisationName;

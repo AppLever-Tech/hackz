@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/enums/user_role.dart';
@@ -250,6 +251,7 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
 
   List<OrganizationModel> _allOrgs = <OrganizationModel>[];
   Map<String, OrgOperationalData> _operationalByOrgId = <String, OrgOperationalData>{};
+  Map<String, String> _organisationCodeByName = <String, String>{};
   bool _loading = true;
   String? _fetchError;
 
@@ -274,11 +276,15 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
     });
     try {
       final list = await widget.loadOrganizations();
-      final operational = await OrgManagementService.loadOperationalData(list);
+      final operationalFuture = OrgManagementService.loadOperationalData(list);
+      final tenantsFuture = TenantRegistry.list();
+      final operational = await operationalFuture;
+      final codes = TenantRegistry.uniqueCodesByOrganisationName(await tenantsFuture);
       if (!mounted) return;
       setState(() {
         _allOrgs = list;
         _operationalByOrgId = operational;
+        _organisationCodeByName = codes;
         _loading = false;
       });
     } catch (e) {
@@ -393,6 +399,7 @@ class _OrganizationDetailsViewState extends State<_OrganizationDetailsView> {
               OrganizationManagementGrid(
                 organizations: filtered,
                 operationalByOrgId: _operationalByOrgId,
+                organisationCodeByName: _organisationCodeByName,
                 onOrganizationChanged: _refreshList,
               ),
             ],

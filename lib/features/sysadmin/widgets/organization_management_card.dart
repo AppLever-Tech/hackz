@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../core/firebase/tenant_registry.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
@@ -25,11 +29,15 @@ class OrganizationManagementCard extends StatelessWidget {
     required this.organization,
     required this.operationalData,
     required this.onChanged,
+    this.organisationCode,
   });
 
   final OrganizationModel organization;
   final OrgOperationalData operationalData;
   final VoidCallback onChanged;
+
+  /// Control Plane routing code. Not stored on [OrganizationModel].
+  final String? organisationCode;
 
   Future<void> _removeCollegeAdmin(BuildContext context, UserModel admin) async {
     final adminId = admin.userId.trim();
@@ -84,6 +92,7 @@ class OrganizationManagementCard extends StatelessWidget {
     if (!ok) return;
     try {
       await FirestoreUtils.deleteOrganization(organization.id);
+      await TenantRegistry.inactivateByOrganisationName(organization.name);
       if (context.mounted) {
         FeedbackService.showSuccess(
           context,
@@ -113,7 +122,15 @@ class OrganizationManagementCard extends StatelessWidget {
 
   List<Widget> _metadataRows(BuildContext context) {
     final type = organization.type;
+    final String code = (organisationCode ?? '').trim();
     return <Widget>[
+      if (code.isNotEmpty)
+        OrgMetadataRow(
+          icon: AppIcons.key,
+          label: 'Organisation code',
+          value: code,
+          trailing: _CopyOrganisationCodeButton(code: code),
+        ),
       OrgMetadataRow(
         icon: AppIcons.address,
         label: 'Address',
@@ -333,6 +350,48 @@ class _CollegeAdminRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _CopyOrganisationCodeButton extends StatefulWidget {
+  const _CopyOrganisationCodeButton({required this.code});
+
+  final String code;
+
+  @override
+  State<_CopyOrganisationCodeButton> createState() => _CopyOrganisationCodeButtonState();
+}
+
+class _CopyOrganisationCodeButtonState extends State<_CopyOrganisationCodeButton> {
+  static const Duration _copiedDuration = Duration(seconds: 2);
+
+  bool _copied = false;
+  Timer? _revertTimer;
+
+  @override
+  void dispose() {
+    _revertTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.code));
+    if (!mounted) return;
+    _revertTimer?.cancel();
+    setState(() => _copied = true);
+    _revertTimer = Timer(_copiedDuration, () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return HoverIconActionButton(
+      icon: _copied ? AppIcons.copied : AppIcons.copy,
+      tooltip: _copied ? 'Copied' : 'Copy organisation code',
+      iconColor: _copied ? const Color(0xFF047857) : null,
+      onTap: _copy,
     );
   }
 }

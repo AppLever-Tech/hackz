@@ -11,11 +11,13 @@ class OrganizationManagementGrid extends StatelessWidget {
     required this.organizations,
     required this.operationalByOrgId,
     required this.onOrganizationChanged,
+    this.organisationCodeByName = const <String, String>{},
   });
 
   final List<OrganizationModel> organizations;
   final Map<String, OrgOperationalData> operationalByOrgId;
   final VoidCallback onOrganizationChanged;
+  final Map<String, String> organisationCodeByName;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,7 @@ class OrganizationManagementGrid extends StatelessWidget {
           key: ValueKey<String>(org.id),
           organization: org,
           operationalData: data,
+          organisationCode: organisationCodeByName[org.name],
           onChanged: onOrganizationChanged,
         );
       },

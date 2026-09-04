@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/firebase/tenant_record.dart';
+import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
@@ -127,6 +129,8 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   Future<void> _submit() async {
     if (!_validateForm()) return;
     setState(() => _busy = true);
+    TenantRecord? registered;
+    String? orgId;
     try {
       final OrganizationModel base = widget.initialOrganization ??
           OrganizationModel(
@@ -147,11 +151,23 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         clearPhoto: _iconCleared && _iconFile == null,
       );
 
-      final String orgId = await FirestoreUtils.upsertOrganization(org);
+      if (!_isEdit) {
+        registered = await TenantRegistry.register(organisationName: org.name);
+      }
+
+      orgId = await FirestoreUtils.upsertOrganization(org);
       org = org.copyWith(id: orgId);
 
       if (!_isEdit) {
         await OrgSettingsService.seedFor(orgId);
+      } else {
+        final String previousName = widget.initialOrganization!.name;
+        if (previousName.trim() != org.name) {
+          await TenantRegistry.syncOrganisationName(
+            previousName: previousName,
+            nextName: org.name,
+          );
+        }
       }
 
       if (_iconFile != null) {
@@ -161,8 +177,21 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
       }
 
       if (!mounted) return;
+      if (!_isEdit && registered != null) {
+        await FeedbackService.showSuccess(
+          context,
+          title: 'Organization created',
+          message:
+              'Organisation code ${registered.organisationCode} was assigned automatically. '
+              'Use this code as the routing key for this organisation. It cannot be changed.',
+        );
+      }
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
+      if (orgId == null && registered != null) {
+        await TenantRegistry.setStatus(registered.organisationCode, TenantStatus.inactive);
+      }
       if (!mounted) return;
       FeedbackService.showError(
         context,

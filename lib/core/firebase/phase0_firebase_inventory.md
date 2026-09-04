@@ -2,13 +2,13 @@
 
 Hackz today is a **single Firebase project** (`hackz-a17b6`). All organisations share one Auth, one Firestore, and one Storage bucket. Isolation is `orgId` on documents, not project boundaries.
 
-Phase 1 wires access through `HackzFirebase.current` without changing that runtime. Phase 2 (not implemented) is the Control Plane + Tenant Registry that can bind a different Firebase app.
+Phase 1 wires access through `HackzFirebase.current`. Phase 2 adds the Control Plane tenant registry (`hkzTenants`) on this same project. College business data is unchanged.
 
 ## Configuration / initialization (single-project assumptions)
 
 | Location | Role | Classification |
 | --- | --- | --- |
-| `lib/core/firebase/firebase_bootstrap.dart` | Hard-coded `FirebaseOptions` + `Firebase.initializeApp` (web + Android only) | **Shared/Application** init; options are the current tenant project |
+| `lib/core/firebase/firebase_bootstrap.dart` | Hard-coded `FirebaseOptions` + `Firebase.initializeApp` (web + Android only); binds Control Plane + current | **Shared/Application** init; also **Control Plane** bind |
 | `lib/main.dart` | Calls `FirebaseBootstrap.initialize()` then `AuthGate` | **Shared/Application** |
 | `.firebaserc` | `"default": "hackz-a17b6"` | **Shared/Application** (CLI/hosting) |
 | `firebase.json` | Hosting site `hackze`; Firestore indexes | **Shared/Application** |
@@ -30,19 +30,20 @@ There is no `firebase_options.dart` from FlutterFire CLI; options live in `Fireb
 | `lib/features/dashboard/chrome/dashboard_page_template.dart` | Logout `signOut` | **Tenant Data** Auth |
 | `lib/features/payment/widgets/payment_dialog.dart` | `currentUser?.uid` | **Tenant Data** Auth |
 
-SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firestore. Future Control Plane will own whitelist / tenant registry; today it is co-located.
+SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firestore. Control Plane also owns `hkzTenants`. Organisation-code login is not implemented yet; `TenantResolver.resolveByOrganisationCode` is the lookup API.
 
 ## Central Firestore helper
 
-`lib/utils/firestore_utils.dart` — `FirebaseFirestore.instance` and all `hkz*` collection names. Used across features. **Tenant Data** except collections listed as Control Plane / Shared below.
+`lib/utils/firestore_utils.dart` — `HackzFirebase.current.firestore` and all `hkz*` **business** collection names. Used across features. **Tenant Data** except collections listed as Control Plane / Shared below. Tenant registry is **not** accessed through this helper.
 
 ## Firestore collections (same project today)
 
-### Control Plane (future tenant registry / onboarding — currently co-located)
+### Control Plane (tenant registry / onboarding — currently co-located)
 
 | Collection | Notes |
 | --- | --- |
-| `hkzOrganizations` | Org records + `settings/org_settings` subcollection |
+| `hkzTenants` | Phase 2 registry: `tenantId`, `organisationCode` (`HKZ-XXXXXX`), `organisationName`, `firebaseProjectId`, `status`, `createdAt`. Document id = organisation code. |
+| `hkzOrganizations` | Org records + `settings/org_settings` subcollection (**tenant business**, not registry fields) |
 | `hkzSysAdminWhitelist` | First-time SysAdmin bootstrap |
 | `hkzDomains` | Org/department domain catalog (`DomainService`) |
 
@@ -59,27 +60,16 @@ SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firesto
 
 Storage paths for attachments, user photos, org logos, and problem files are **Tenant Data**.
 
-## Feature services using `FirebaseFirestore.instance`
+## Feature services using Firestore
 
-Direct default-instance access (Phase 1 routes these through `HackzFirebase.current.firestore`):
+Direct access goes through `HackzFirebase.current.firestore` (tenant) or `HackzFirebase.controlPlane.firestore` (registry):
 
-- Team: `team_service`, `teams_workspace_service`, `coordinator_team_registration_service`, `team_workspace_loader`
-- Idea: `idea_query_service`, `idea_workspace_loader`, `idea_event_participation_loader`
-- Problems: `problem_query_service`, `problem_utils`, `problem_workspace_loader`, `problem_authoring_workspace`
-- Ideathons: `ideathon_service`, `ideathon_query_service`, `ideathon_participation_service`, `ideathon_payment_service`, `ideathon_prototype_service`, `ideathon_evaluation_sync_service`, `ideathon_judge_assignment_service`, `ideathon_readiness_service`, `ideathon_details_loader`, `ideathon_workspace_loader`, `create_ideathon_workspace`
-- Evaluations: `judge_evaluation_service`, `judge_dashboard_service`, `evaluation_aggregation_sync_service`, `evaluation_details_loader`, `evaluation_results_query_service`, `evaluation_ranking_service`, `evaluation_assignment_service`, `evaluator_catalog_service`, `evaluation_workspace_loader`, `evaluate_idea_dialog`
-- Payment: `department_payments_service`, `payment_workspace_loader`
-- Requests: `workflow_request_service`, `team_change_request_service`
-- User: `manage_users_screen`, `user_workspace_loader`
-- Dashboards: `sysadmin_dashboard_service`, `department_dashboard_service`, `coordinator_dashboard_service`, `coordinator_dashboard`, `team_member_dashboard_service`
-- Imports: `user_import_handler`, `team_registration_import_handler`, `problems_import_handler`
-- Org settings: `org_settings_service`
-- Attachments: `attachment_service`, `attachment_workspace_loader`
-- Other: `app_metadata_service`, `domain_service`, `hackz_feedback_service`
+- Control Plane: `tenant_registry`
+- Team, Idea, Problems, Ideathons, Evaluations, Payment, Requests, User, Dashboards, Imports, Org settings, Attachments, App metadata, Domain, Feedback: **Tenant / Shared** via `HackzFirebase.current`
 
 Models import `cloud_firestore` only for `Timestamp` / map parsing — **not** live Firebase access.
 
-## Firebase Storage (`FirebaseStorage.instance`)
+## Firebase Storage (`HackzFirebase.current.storage`)
 
 | Location | Classification |
 | --- | --- |
@@ -89,9 +79,10 @@ Models import `cloud_firestore` only for `Timestamp` / map parsing — **not** l
 | `org_photo_service.dart` | **Tenant Data** |
 | `problem_utils.dart` | **Tenant Data** |
 
-## Architecture note for later phases
+## Architecture note
 
-- Do **not** add `tenantId` to Problem, Idea, Team, Event, Payment, Evaluation, User, or other business models.
+- Do **not** add `tenantId` to Problem, Idea, Team, Event, Payment, Evaluation, User, Organization, or other business models.
 - Tenant isolation = Firebase project (Auth + Firestore + Storage).
-- `TenantResolver.bootstrap` is the Phase 2 hook: replace with Control Plane registry lookup, then `HackzFirebase.bind` on a named `FirebaseApp`.
-- Feature services keep a single implementation; they read `HackzFirebase.current`.
+- Control Plane catalog (`ApprovedTenantFirebase`) is the only source of tenant Firebase options. Never trust user-supplied project config.
+- `TenantResolver.controlPlane` binds the Hackz project. `TenantResolver.resolveByOrganisationCode` reads `hkzTenants` for exactly one active, approved tenant. Feature services keep using `HackzFirebase.current`.
+- Organisation codes are generated as `HKZ-XXXXXX` (no `0/O`/`1/I`), globally unique, case-insensitive, stable, not derived from the organisation name.

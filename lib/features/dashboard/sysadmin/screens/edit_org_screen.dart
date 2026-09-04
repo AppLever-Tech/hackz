@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/user_model.dart';
@@ -83,13 +84,18 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     }
     setState(() => _isSaving = true);
     try {
+      final String nextName = _nameController.text.trim();
       await FirestoreUtils.upsertOrganization(
         widget.organization.copyWith(
-          name: _nameController.text.trim(),
+          name: nextName,
           address: _addressController.text.trim(),
           website: _websiteController.text.trim(),
           contact: _contactController.text.trim(),
         ),
+      );
+      await TenantRegistry.syncOrganisationName(
+        previousName: widget.organization.name,
+        nextName: nextName,
       );
       if (!mounted) return;
       FeedbackService.showSuccess(
@@ -118,6 +124,7 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     setState(() => _isDeleting = true);
     try {
       await FirestoreUtils.deleteOrganization(widget.organization.id);
+      await TenantRegistry.inactivateByOrganisationName(widget.organization.name);
       if (!mounted) return;
       if (widget.embedded) {
         widget.onOrganizationsChanged?.call();
