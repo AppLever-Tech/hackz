@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -24,6 +23,7 @@ import '../../services/problem_utils.dart';
 import '../../validators/problem_authoring_validators.dart';
 import 'problem_authoring_inputs.dart';
 import 'problem_authoring_section.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Full-screen "Problem Authoring Workspace" - replaces the old CRUD dialog.
 ///
@@ -522,7 +522,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       final orgTypeName = widget.currentUser.orgType?.name ?? 'college';
       final createProblemId = _isEdit
           ? widget.initialProblem!.problemId
-          : FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
+          : HackzFirebase.current.firestore.collection(FirestoreUtils.hkzProblems).doc().id;
 
       if (_attachments.isNotEmpty) {
         await AttachmentService.uploadAttachments(

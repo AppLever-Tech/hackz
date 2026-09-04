@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,6 +25,7 @@ import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/core/ui/loading/loading.dart';
 
 import '../models/payment_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Team Leader payment submission: amount and screenshot for the Idea's event.
 Future<bool?> showPaymentDialog({
@@ -152,7 +153,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         message: 'Uploading payment proof and updating records...',
         successMessage: 'Payment submitted',
         task: () async {
-          final authUid = FirebaseAuth.instance.currentUser?.uid;
+          final authUid = HackzFirebase.current.auth.currentUser?.uid;
           if (authUid == null || authUid.isEmpty) {
             throw StateError('Not signed in.');
           }

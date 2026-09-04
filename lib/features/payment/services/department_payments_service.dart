@@ -12,6 +12,7 @@ import 'package:hackz/utils/firestore_utils.dart';
 
 import '../models/payment_model.dart';
 import 'payment_finance_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 typedef _Docs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -126,7 +127,7 @@ enum DepartmentPaymentVerificationFilter {
 class DepartmentPaymentsService {
   DepartmentPaymentsService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static final Map<String, DepartmentPaymentsWorkspace> _cache = <String, DepartmentPaymentsWorkspace>{};
   static final Map<String, DateTime> _cacheAt = <String, DateTime>{};
   static const Duration _cacheTtl = Duration(minutes: 3);

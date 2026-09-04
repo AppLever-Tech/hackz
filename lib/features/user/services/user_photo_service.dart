@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:hackz/features/attachment/services/attachment_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Uploads hkzUsers profile photos to Firebase Storage.
 abstract final class UserPhotoService {
@@ -15,7 +16,7 @@ abstract final class UserPhotoService {
     final String ext = (file.extension ?? 'jpg').trim().toLowerCase();
     final String storagePath = 'users/$safeOrg/$safeUser/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-    final Reference ref = FirebaseStorage.instance.ref(storagePath);
+    final Reference ref = HackzFirebase.current.storage.ref(storagePath);
     await AttachmentService.createUploadTask(ref: ref, file: file);
     final String url = await ref.getDownloadURL();
     return (photoUrl: url, thumbnailUrl: url);

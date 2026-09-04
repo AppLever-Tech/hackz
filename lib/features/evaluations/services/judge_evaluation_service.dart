@@ -19,10 +19,11 @@ import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import 'judge_evaluation_feedback_codec.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Centralized judge-scoped evaluation queries and persistence.
 abstract final class JudgeEvaluationService {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static final Map<String, _CacheEntry> _cache = <String, _CacheEntry>{};
   static const Duration _ttl = Duration(seconds: 45);
 

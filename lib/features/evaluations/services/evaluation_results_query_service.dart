@@ -14,6 +14,7 @@ import 'evaluation_aggregation_service.dart';
 import 'evaluation_aggregation_sync_service.dart';
 import 'evaluation_ranking_service.dart';
 import 'evaluation_settings_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Filters for the Evaluation Results workspace.
 class EvaluationResultsQueryParams {
@@ -84,7 +85,7 @@ class EvaluationResultsQueryResult {
 abstract final class EvaluationResultsQueryService {
   EvaluationResultsQueryService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<EvaluationResultsQueryResult> fetch(EvaluationResultsQueryParams params) async {
     final String eventId = params.ideathonId.trim();

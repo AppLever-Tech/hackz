@@ -11,11 +11,12 @@ import '../../user/models/user_model.dart';
 import '../../app_metadata/services/app_metadata_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class AuthUtils {
   AuthUtils._();
 
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static FirebaseAuth get _auth => HackzFirebase.current.auth;
 
   static String? _verificationId;
   static ConfirmationResult? _webConfirmationResult;

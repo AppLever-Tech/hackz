@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/user_model.dart';
@@ -16,6 +15,7 @@ import '../../user/models/enums/user_status.dart';
 import '../../../utils/firestore_utils.dart';
 import 'auth_gate.dart';
 import 'landing_screen.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -61,7 +61,7 @@ class _SignInScreenState extends State<SignInScreen> {
           user: user,
           phase: phase,
           onSignOut: () {
-            FirebaseAuth.instance.signOut();
+            HackzFirebase.current.auth.signOut();
             Navigator.of(routeContext).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const LandingScreen()),
               (_) => false,
@@ -89,7 +89,7 @@ class _SignInScreenState extends State<SignInScreen> {
         return;
       }
 
-      await FirebaseAuth.instance.signOut();
+      await HackzFirebase.current.auth.signOut();
       if (!mounted) return;
       await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(

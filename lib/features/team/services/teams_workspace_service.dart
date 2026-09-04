@@ -10,6 +10,7 @@ import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'team_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamWorkspaceInsight {
   const TeamWorkspaceInsight({
@@ -68,7 +69,7 @@ class TeamsWorkspaceService {
     final ({int min, int max}) bounds = await TeamService.teamSizeBoundsForOrg(orgId);
     return TeamSizeBounds(min: bounds.min, max: bounds.max);
   }
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static final Map<String, TeamsWorkspaceData> _cache = <String, TeamsWorkspaceData>{};
   static final Map<String, DateTime> _cacheAt = <String, DateTime>{};
   static const Duration _cacheTtl = Duration(minutes: 3);

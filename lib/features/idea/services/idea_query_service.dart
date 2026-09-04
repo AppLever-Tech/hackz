@@ -13,6 +13,7 @@ import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import 'idea_event_participation_loader.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeaQueryParams {
   const IdeaQueryParams({
@@ -86,7 +87,7 @@ class IdeaListItem {
 class IdeaQueryService {
   IdeaQueryService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<IdeaListQueryResult> fetchIdeas(IdeaQueryParams params) async {
     final ideasSnap = await _db

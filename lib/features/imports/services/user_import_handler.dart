@@ -19,6 +19,7 @@ import 'import_department_validator.dart';
 import 'import_handler.dart';
 import 'import_role_validator.dart';
 import 'user_import_config.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class UserImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
@@ -343,7 +344,7 @@ class _UserImportLookup {
   final ImportDepartmentLookup departments;
 
   static Future<_UserImportLookup> load(String orgId) async {
-    final QuerySnapshot<Map<String, dynamic>> snap = await FirebaseFirestore.instance
+    final QuerySnapshot<Map<String, dynamic>> snap = await HackzFirebase.current.firestore
         .collection(FirestoreUtils.hkzUsers)
         .where('orgId', isEqualTo: orgId)
         .get();

@@ -15,6 +15,7 @@ import '../../org_settings/services/org_settings_service.dart';
 import 'landing_screen.dart';
 import '../widgets/signup/account_status_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -29,7 +30,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    _authSub = FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    _authSub = HackzFirebase.current.auth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
         // Belt-and-suspenders with dashboard logout: always drop session cache
@@ -48,7 +49,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: HackzFirebase.current.auth.authStateChanges(),
       builder: (BuildContext context, AsyncSnapshot<User?> authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -89,7 +90,7 @@ class _AuthGateState extends State<AuthGate> {
                       const SizedBox(height: 12),
                       FilledButton(
                         onPressed: () async {
-                          await FirebaseAuth.instance.signOut();
+                          await HackzFirebase.current.auth.signOut();
                         },
                         child: const Text('Go to Sign In'),
                       ),
@@ -109,7 +110,7 @@ class _AuthGateState extends State<AuthGate> {
                 user: appUser,
                 phase: appUser.status.toWorkspacePhase,
                 onSignOut: () async {
-                  await FirebaseAuth.instance.signOut();
+                  await HackzFirebase.current.auth.signOut();
                 },
               );
             }

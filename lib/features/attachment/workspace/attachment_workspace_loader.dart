@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
@@ -10,6 +9,7 @@ import 'package:hackz/features/problems/models/problem_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Linked entity surfaced in the attachment workspace.
 class AttachmentRelatedEntity {
@@ -67,7 +67,7 @@ abstract final class AttachmentWorkspaceLoader {
       throw StateError('Attachment not found');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final List<dynamic> results = await Future.wait<dynamic>(<Future<dynamic>>[
       FirestoreUtils.fetchUser(attachment.uploadedBy.trim()),
       _loadRelated(db, attachment),
@@ -94,7 +94,7 @@ abstract final class AttachmentWorkspaceLoader {
     final String path = attachment.storagePath.trim();
     if (path.isEmpty) return attachment.downloadUrl;
     try {
-      return await FirebaseStorage.instance.ref(path).getDownloadURL();
+      return await HackzFirebase.current.storage.ref(path).getDownloadURL();
     } catch (_) {
       return attachment.downloadUrl;
     }

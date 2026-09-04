@@ -13,12 +13,13 @@ import '../models/ideathon_model.dart';
 import '../models/ideathon_participation.dart';
 import 'ideathon_participation_service.dart';
 import 'ideathon_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Ideathon adapter for Event Payments: participations + payments scoped to one eventId.
 abstract final class IdeathonPaymentService {
   IdeathonPaymentService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<EventPaymentsViewModel> load(String eventId) async {
     final String id = eventId.trim();

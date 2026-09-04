@@ -13,11 +13,12 @@ import '../features/problems/models/problem_model.dart';
 import '../features/team/models/team_model.dart';
 import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class FirestoreUtils {
   FirestoreUtils._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static const String hkzUsers = 'hkzUsers';
   static const String hkzOrganizations = 'hkzOrganizations';

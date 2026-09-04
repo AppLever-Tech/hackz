@@ -23,6 +23,7 @@ import 'csv_parser_service.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Coordinator CSV import: one row per team member, grouped by team name.
 class TeamRegistrationImportHandler extends ImportHandler {
@@ -217,7 +218,7 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
     final List<String> list = phones.toList(growable: false);
     for (var i = 0; i < list.length; i += 10) {
       final List<String> chunk = list.sublist(i, i + 10 > list.length ? list.length : i + 10);
-      final QuerySnapshot<Map<String, dynamic>> snap = await FirebaseFirestore.instance
+      final QuerySnapshot<Map<String, dynamic>> snap = await HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzUsers)
           .where('phone', whereIn: chunk)
           .get();

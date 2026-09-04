@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
@@ -26,6 +25,7 @@ import '../../../core/responsive/responsive_dialog_actions.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import '../../events/widgets/event_meta_chip.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).
@@ -211,7 +211,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   Future<void> _loadProblem() async {
     setState(() => _loadingProblem = true);
     try {
-      final doc = await FirebaseFirestore.instance
+      final doc = await HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzProblems)
           .doc(widget.idea.problemId)
           .get();

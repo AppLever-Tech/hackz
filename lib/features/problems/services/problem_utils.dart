@@ -6,12 +6,13 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemUtils {
   ProblemUtils._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
+  static FirebaseStorage get _storage => HackzFirebase.current.storage;
 
   static Future<String> generateProblemNumber() async {
     final counterRef = _db

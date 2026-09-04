@@ -14,6 +14,7 @@ import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../services/idea_event_participation_loader.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeaWorkspaceViewModel {
   const IdeaWorkspaceViewModel({
@@ -52,7 +53,7 @@ abstract final class IdeaWorkspaceLoader {
       throw ArgumentError('ideaId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
         await db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
     if (!ideaDoc.exists || ideaDoc.data() == null) {

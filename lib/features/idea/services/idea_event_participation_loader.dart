@@ -7,12 +7,13 @@ import '../../ideathons/models/ideathon_status.dart';
 import '../../ideathons/models/ideathon_type.dart';
 import '../../ideathons/services/ideathon_participation_service.dart';
 import '../models/idea_event_participation_summary.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Loads event membership for ideas without treating score/payment as idea state.
 abstract final class IdeaEventParticipationLoader {
   IdeaEventParticipationLoader._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<List<IdeaEventParticipationSummary>> loadForIdea({
     required String ideaId,

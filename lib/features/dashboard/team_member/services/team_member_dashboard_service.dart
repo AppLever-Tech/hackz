@@ -14,9 +14,10 @@ import '../../../../features/user/models/user_model.dart';
 import '../../../../features/team/models/enums/team_status.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamMemberDashboardService {
-  TeamMemberDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+  TeamMemberDashboardService({FirebaseFirestore? db}) : _db = db ?? HackzFirebase.current.firestore;
 
   final FirebaseFirestore _db;
 

@@ -15,6 +15,7 @@ import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import 'ideathon_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// One Ideathon idea row with event-scoped judge assignments.
 class IdeathonJudgeAssignmentRow {
@@ -88,7 +89,7 @@ class IdeathonJudgeAssignmentViewModel {
 abstract final class IdeathonJudgeAssignmentService {
   IdeathonJudgeAssignmentService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static bool canManageAssignments(UserModel? actor) {
     if (actor == null) return false;

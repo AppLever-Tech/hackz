@@ -9,9 +9,10 @@ import '../models/score_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class JudgeDashboardService {
-  JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+  JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? HackzFirebase.current.firestore;
 
   final FirebaseFirestore _db;
 

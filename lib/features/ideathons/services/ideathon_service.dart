@@ -20,6 +20,7 @@ import '../models/ideathon_type.dart';
 import 'ideathon_participation_service.dart';
 import 'ideathon_settings_service.dart';
 import 'ideathon_team_eligibility.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class CreateIdeathonInput {
   const CreateIdeathonInput({
@@ -49,7 +50,7 @@ class CreateIdeathonInput {
 abstract final class IdeathonService {
   IdeathonService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<String> createIdeathon({
     required UserModel actor,

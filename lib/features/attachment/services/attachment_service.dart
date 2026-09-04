@@ -7,12 +7,13 @@ import 'package:flutter/foundation.dart';
 
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import 'package:hackz/utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class AttachmentService {
   AttachmentService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
+  static FirebaseStorage get _storage => HackzFirebase.current.storage;
 
   /// Cross-platform upload helper:
   /// - Web: putData(file.bytes)

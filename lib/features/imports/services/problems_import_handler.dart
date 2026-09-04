@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../domain/models/domain_model.dart';
 import '../../domain/services/domain_department_resolver.dart';
 import '../../domain/services/domain_service.dart';
@@ -22,6 +20,7 @@ import 'csv_parser_service.dart';
 import 'import_department_lookup.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemsImportHandler extends ImportHandler {
   static const List<String> headers = <String>[
@@ -283,7 +282,7 @@ Waste Segregation Monitor,Track recycling compliance on campus,Environment,Smart
         }
 
         final String problemId =
-            FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
+            HackzFirebase.current.firestore.collection(FirestoreUtils.hkzProblems).doc().id;
         final String problemNumber = await ProblemUtils.generateProblemNumber();
 
         final ProblemModel problem = ProblemModel(

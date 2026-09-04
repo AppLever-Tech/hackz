@@ -4,6 +4,7 @@ import '../../../utils/firestore_utils.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeathonListRow {
   const IdeathonListRow({required this.ideathon});
@@ -28,7 +29,7 @@ class IdeathonQueryParams {
 abstract final class IdeathonQueryService {
   IdeathonQueryService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<List<IdeathonListRow>> fetch(IdeathonQueryParams params) async {
     final String orgId = params.viewer.orgId.trim();

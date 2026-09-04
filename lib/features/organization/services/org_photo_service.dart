@@ -3,6 +3,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../../attachment/models/attachment_model.dart';
 import '../../attachment/services/attachment_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Uploads organisation icons to Firebase Storage.
 abstract final class OrgPhotoService {
@@ -19,7 +20,7 @@ abstract final class OrgPhotoService {
     );
     final String storagePath = '$folder/logo_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-    final Reference ref = FirebaseStorage.instance.ref(storagePath);
+    final Reference ref = HackzFirebase.current.storage.ref(storagePath);
     await AttachmentService.createUploadTask(ref: ref, file: file);
     final String url = await ref.getDownloadURL();
     return (photoUrl: url, thumbnailUrl: url);

@@ -16,6 +16,7 @@ import '../../ideathons/services/ideathon_service.dart';
 import '../services/judge_evaluation_feedback_codec.dart';
 import '../../leaderboard/services/leaderboard_ranking_engine.dart';
 import '../../../core/theme/status_styles.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 enum EvaluationWorkspaceScope { singleJudge, ideaAggregate }
 
@@ -151,7 +152,7 @@ abstract final class EvaluationWorkspaceLoader {
       throw ArgumentError('scoreId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> scoreDoc =
         await db.collection(FirestoreUtils.hkzScores).doc(id).get();
     if (!scoreDoc.exists || scoreDoc.data() == null) {
@@ -184,7 +185,7 @@ abstract final class EvaluationWorkspaceLoader {
       throw ArgumentError('evaluationId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> scoreDoc =
         await db.collection(FirestoreUtils.hkzScores).doc(id).get();
 
@@ -204,7 +205,7 @@ abstract final class EvaluationWorkspaceLoader {
 
     await OrgSettingsService.instance.ensureLoaded(orgId: score.orgId);
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
         await db.collection(FirestoreUtils.hkzIdeas).doc(ideaId).get();
     if (!ideaDoc.exists || ideaDoc.data() == null) {
@@ -384,7 +385,7 @@ abstract final class EvaluationWorkspaceLoader {
   }
 
   static Future<_IdeaContext> _loadIdeaContext(IdeaModel idea) async {
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final TeamModel? team = idea.teamId.trim().isEmpty
         ? null
         : await db.collection(FirestoreUtils.hkzTeams).doc(idea.teamId.trim()).get().then((doc) {

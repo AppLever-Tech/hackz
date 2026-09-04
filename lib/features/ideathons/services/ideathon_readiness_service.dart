@@ -5,6 +5,7 @@ import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../payment/models/payment_model.dart';
 import 'ideathon_settings_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeathonReadiness {
   const IdeathonReadiness({
@@ -23,7 +24,7 @@ class IdeathonReadiness {
 abstract final class IdeathonReadinessService {
   IdeathonReadinessService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<IdeathonReadiness> compute({
     required String orgId,

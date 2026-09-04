@@ -11,6 +11,7 @@ import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamMemberPreview {
   const TeamMemberPreview({
@@ -79,7 +80,7 @@ abstract final class TeamWorkspaceLoader {
       throw ArgumentError('teamId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> teamDoc =
         await db.collection(FirestoreUtils.hkzTeams).doc(id).get();
     if (!teamDoc.exists || teamDoc.data() == null) {

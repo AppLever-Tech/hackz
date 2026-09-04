@@ -7,11 +7,12 @@ import '../../../../utils/firestore_utils.dart';
 import '../models/evaluation_assignment_conflict.dart';
 import '../models/evaluation_assignment_group_model.dart';
 import '../models/evaluation_assignment_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class EvaluationAssignmentService {
   EvaluationAssignmentService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<Set<String>> assignedIdeaIdsForJudge({
     required String orgId,

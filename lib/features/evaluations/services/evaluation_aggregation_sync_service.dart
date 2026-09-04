@@ -5,6 +5,7 @@ import '../../../utils/firestore_utils.dart';
 import '../../idea/models/idea_model.dart';
 import 'evaluation_aggregation_service.dart';
 import '../../org_settings/services/org_settings_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Syncs evaluation aggregates onto ideas.
 ///
@@ -13,7 +14,7 @@ import '../../org_settings/services/org_settings_service.dart';
 abstract final class EvaluationAggregationSyncService {
   EvaluationAggregationSyncService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<void> syncIdea({
     required String ideaId,

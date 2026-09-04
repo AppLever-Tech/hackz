@@ -7,6 +7,7 @@ import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';
 import '../models/problem_status.dart';
 import '../services/problem_status_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemQueryParams {
   const ProblemQueryParams({
@@ -74,7 +75,7 @@ class ProblemListQueryResult {
 class ProblemQueryService {
   ProblemQueryService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<ProblemListQueryResult> fetchProblems(ProblemQueryParams params) async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[

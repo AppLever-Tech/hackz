@@ -4,19 +4,20 @@ import '../../../utils/firestore_utils.dart';
 import '../../idea/models/idea_model.dart';
 import '../../problems/models/problem_model.dart';
 import 'evaluation_aggregation_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Rank calculation for evaluated ideas (average score DESC).
 abstract final class EvaluationRankingService {
   EvaluationRankingService._();
 
   static Future<void> persistRanks(List<EvaluationResultsRow> rows) async {
-    final WriteBatch batch = FirebaseFirestore.instance.batch();
+    final WriteBatch batch = HackzFirebase.current.firestore.batch();
     var count = 0;
     for (final EvaluationResultsRow row in rows) {
       if (row.rank <= 0) continue;
       if (row.idea.evaluationRank == row.rank) continue;
       batch.update(
-        FirebaseFirestore.instance.collection(FirestoreUtils.hkzIdeas).doc(row.idea.ideaId),
+        HackzFirebase.current.firestore.collection(FirestoreUtils.hkzIdeas).doc(row.idea.ideaId),
         <String, dynamic>{IdeaModel.fieldEvaluationRank: row.rank},
       );
       count++;

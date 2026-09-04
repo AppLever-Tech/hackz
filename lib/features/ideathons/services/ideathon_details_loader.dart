@@ -6,6 +6,7 @@ import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dar
 import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 import 'package:hackz/utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeathonIdeaEntry {
   const IdeathonIdeaEntry({
@@ -80,7 +81,7 @@ abstract final class IdeathonDetailsLoader {
     final String id = snapshot.ideaId.trim();
     if (id.isNotEmpty) {
       final DocumentSnapshot<Map<String, dynamic>> doc =
-          await FirebaseFirestore.instance.collection(FirestoreUtils.hkzIdeas).doc(id).get();
+          await HackzFirebase.current.firestore.collection(FirestoreUtils.hkzIdeas).doc(id).get();
       if (doc.exists && doc.data() != null) {
         idea = IdeaModel.fromMap(doc.id, doc.data()!);
       }

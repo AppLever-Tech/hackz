@@ -4,12 +4,13 @@ import '../../../utils/firestore_utils.dart';
 import '../../payment/models/payment_model.dart';
 import '../models/ideathon_participation.dart';
 import '../models/ideathon_participation_status.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// CRUD for Idea ↔ Ideathon membership documents.
 abstract final class IdeathonParticipationService {
   IdeathonParticipationService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzIdeathonParticipations);

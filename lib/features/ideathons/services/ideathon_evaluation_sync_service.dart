@@ -5,6 +5,7 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../models/ideathon_model.dart';
 import 'ideathon_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Syncs Ideathon-scoped evaluation completion.
 ///
@@ -12,7 +13,7 @@ import 'ideathon_service.dart';
 abstract final class IdeathonEvaluationSyncService {
   IdeathonEvaluationSyncService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<void> syncIdeathonIdea({
     required String ideathonId,

@@ -11,6 +11,7 @@ import '../models/workflow_request.dart';
 import '../models/workflow_request_type.dart';
 import '../models/workflow_status.dart';
 import 'workflow_request_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Submitting + approving a team change request.
 ///
@@ -19,7 +20,7 @@ import 'workflow_request_service.dart';
 class TeamChangeRequestService {
   TeamChangeRequestService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static const int minMembersPerTeam = TeamsWorkspaceService.minMembersPerTeam;
   static const int maxMembersPerTeam = TeamsWorkspaceService.maxMembersPerTeam;

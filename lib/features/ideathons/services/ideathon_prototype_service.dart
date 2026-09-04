@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../../utils/firestore_utils.dart';
 import 'ideathon_settings_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Prototype selection helpers for Ideathon events.
 ///
@@ -11,7 +12,7 @@ import 'ideathon_settings_service.dart';
 abstract final class IdeathonPrototypeService {
   IdeathonPrototypeService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<double?> averageIdeathonScore({
     required String orgId,

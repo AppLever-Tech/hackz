@@ -25,6 +25,7 @@ import '../services/ideathon_service.dart';
 import '../services/ideathon_settings_service.dart';
 import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_type_selector.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Ideathon create / edit form. Ideas join later via Team Leader submission.
 class CreateIdeathonWorkspace extends StatefulWidget {
@@ -142,12 +143,12 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final String normalizedDept = dept.trim().toUpperCase();
     final List<Future<QuerySnapshot<Map<String, dynamic>>>> queries =
         <Future<QuerySnapshot<Map<String, dynamic>>>>[
-      FirebaseFirestore.instance
+      HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: orgId)
           .where('role', isEqualTo: UserRole.coordinator.code)
           .get(),
-      FirebaseFirestore.instance
+      HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: orgId)
           .where('role', isEqualTo: UserRole.departmentAdmin.code)

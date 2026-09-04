@@ -17,6 +17,7 @@ import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
 import '../services/ideathon_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class IdeathonWorkspaceViewModel {
   const IdeathonWorkspaceViewModel({
@@ -87,7 +88,7 @@ abstract final class IdeathonWorkspaceLoader {
       _fetchUsers(ideathon.judgeIds),
       _fetchUsers(ideathon.coordinatorIds),
       EvaluationAssignmentService.listByIdeathon(ideathonId: ideathon.ideathonId),
-      FirebaseFirestore.instance
+      HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzScores)
           .where('orgId', isEqualTo: ideathon.orgId)
           .where('ideathonId', isEqualTo: ideathon.ideathonId)

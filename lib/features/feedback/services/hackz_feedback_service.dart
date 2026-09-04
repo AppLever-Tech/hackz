@@ -16,6 +16,7 @@ import '../../user/services/user_role_labels.dart';
 import '../models/feedback_model.dart';
 import '../models/feedback_status.dart';
 import '../models/feedback_type.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Firestore + validation for the Feedback feature.
 ///
@@ -23,7 +24,7 @@ import '../models/feedback_type.dart';
 abstract final class HackzFeedbackService {
   HackzFeedbackService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzFeedback);
 

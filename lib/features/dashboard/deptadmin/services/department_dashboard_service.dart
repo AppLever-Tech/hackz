@@ -9,6 +9,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/idea/services/idea_department_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -314,7 +315,7 @@ class DepartmentDashboardService {
   }
 
   static Future<_FirestoreDocs> _fetchOrgCollection(String collection, String orgId) async {
-    final snap = await FirebaseFirestore.instance.collection(collection).where('orgId', isEqualTo: orgId).get();
+    final snap = await HackzFirebase.current.firestore.collection(collection).where('orgId', isEqualTo: orgId).get();
     return snap.docs;
   }
 

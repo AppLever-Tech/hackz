@@ -11,6 +11,7 @@ import 'package:hackz/core/workspace/workspace_attachment_counts.dart';
 
 import '../models/payment_model.dart';
 import '../services/payment_finance_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class PaymentWorkspaceViewModel {
   const PaymentWorkspaceViewModel({
@@ -49,7 +50,7 @@ abstract final class PaymentWorkspaceLoader {
       throw ArgumentError('paymentId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     PaymentModel? payment = await _loadPayment(db, id);
     if (payment == null) {
       throw StateError('Payment not found');

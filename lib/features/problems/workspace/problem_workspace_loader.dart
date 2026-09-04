@@ -12,6 +12,7 @@ import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../core/workspace/workspace_attachment_counts.dart';
 import '../models/problem_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemWorkspaceViewModel {
   const ProblemWorkspaceViewModel({
@@ -79,7 +80,7 @@ class ProblemIdeaPreview {
 
 abstract final class ProblemWorkspaceLoader {
   static Future<ProblemWorkspaceViewModel> load(String problemId) async {
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> doc =
         await db.collection(FirestoreUtils.hkzProblems).doc(problemId).get();
     if (!doc.exists || doc.data() == null) {

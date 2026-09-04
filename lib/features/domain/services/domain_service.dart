@@ -3,12 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/firestore_utils.dart';
 import '../constants/domain_constants.dart';
 import '../models/domain_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// CRUD and queries for [DomainModel] in `hkzDomains`.
 abstract final class DomainService {
   DomainService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static CollectionReference<Map<String, dynamic>> get _collection =>
       _db.collection(FirestoreUtils.hkzDomains);

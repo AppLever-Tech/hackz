@@ -18,6 +18,7 @@ import '../models/evaluation_details_view_model.dart';
 import '../models/score_model.dart';
 import 'evaluation_aggregation_service.dart';
 import 'evaluation_templates_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Loads evaluation-centric context for Evaluation Details (pane + workspace).
 ///
@@ -36,7 +37,7 @@ abstract final class EvaluationDetailsLoader {
     }
     final String eventId = ideathonId.trim();
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> ideaDoc =
         await db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
     if (!ideaDoc.exists || ideaDoc.data() == null) {

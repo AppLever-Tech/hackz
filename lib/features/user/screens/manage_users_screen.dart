@@ -46,6 +46,7 @@ import '../../team/widgets/team_metrics_row.dart';
 import '../../team/widgets/team_workspace_card.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({
@@ -149,12 +150,12 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   Future<void> _loadAll() async {
     try {
       final String deptCode = DepartmentModel.resolveCode(widget.user.departmentCode);
-      final queryFuture = FirebaseFirestore.instance
+      final queryFuture = HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzUsers)
           .where('orgId', isEqualTo: widget.user.orgId)
           .where('departmentCode', isEqualTo: deptCode)
           .get();
-      final codeFuture = FirebaseFirestore.instance
+      final codeFuture = HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzInviteCodes)
           .where('orgId', isEqualTo: widget.user.orgId)
           .where('departmentCode', isEqualTo: deptCode)
@@ -569,17 +570,17 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     );
     if (ok != true) return;
     final depCode = DepartmentModel.resolveCode(widget.user.departmentCode);
-    final active = await FirebaseFirestore.instance
+    final active = await HackzFirebase.current.firestore
         .collection(FirestoreUtils.hkzInviteCodes)
         .where('orgId', isEqualTo: widget.user.orgId)
         .where('departmentCode', isEqualTo: depCode)
         .where('isActive', isEqualTo: true)
         .get();
-    final batch = FirebaseFirestore.instance.batch();
+    final batch = HackzFirebase.current.firestore.batch();
     for (final d in active.docs) {
       batch.update(d.reference, <String, dynamic>{'isActive': false});
     }
-    final doc = FirebaseFirestore.instance.collection(FirestoreUtils.hkzInviteCodes).doc();
+    final doc = HackzFirebase.current.firestore.collection(FirestoreUtils.hkzInviteCodes).doc();
     batch.set(doc, <String, dynamic>{
       'code': _newInviteCode(),
       'orgId': widget.user.orgId,

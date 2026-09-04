@@ -2,6 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'hackz_firebase.dart';
+import 'tenant_resolver.dart';
+
 class FirebaseBootstrap {
   static const String _apiKey = 'AIzaSyAgyqYLei_lpMcWQSaHBfhraDwjZg4t2Rk';
   static const String _messagingSenderId = '439535394674';
@@ -10,9 +13,9 @@ class FirebaseBootstrap {
 
   static Future<void> initialize() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp(
-      options: _firebaseOptionsForCurrentPlatform,
-    );
+    final FirebaseOptions options = _firebaseOptionsForCurrentPlatform;
+    await Firebase.initializeApp(options: options);
+    HackzFirebase.bind(TenantResolver.bootstrap(options));
   }
 
   static FirebaseOptions get _firebaseOptionsForCurrentPlatform {

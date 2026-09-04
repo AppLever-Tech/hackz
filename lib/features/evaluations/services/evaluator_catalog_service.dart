@@ -4,12 +4,13 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/evaluator_source.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Loads and classifies users eligible for evaluation assignment.
 class EvaluatorCatalogService {
   EvaluatorCatalogService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<List<UserModel>> loadEvaluators({
     required String orgId,

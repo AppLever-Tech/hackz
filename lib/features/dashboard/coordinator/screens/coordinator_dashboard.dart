@@ -29,6 +29,7 @@ import '../../../../core/responsive/responsive_metric_grid.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/events/models/event_payment_entry.dart';
 import 'package:hackz/features/payment/widgets/payment_entries_view.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class CoordinatorDashboard extends StatelessWidget {
   const CoordinatorDashboard({super.key, required this.user});
@@ -322,7 +323,7 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
         list.map((PaymentModel p) => p.ideaId.trim()).where((String id) => id.isNotEmpty).toSet();
     final Map<String, String> ideaTitleById = <String, String>{};
     if (ideaIds.isNotEmpty) {
-      final QuerySnapshot<Map<String, dynamic>> ideaSnap = await FirebaseFirestore.instance
+      final QuerySnapshot<Map<String, dynamic>> ideaSnap = await HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzIdeas)
           .where('orgId', isEqualTo: widget.user.orgId)
           .get();
@@ -337,7 +338,7 @@ class _CoordinatorPaymentsViewState extends State<_CoordinatorPaymentsView> {
     final Set<String> paymentIds = list.map((PaymentModel p) => p.paymentId).toSet();
     final Map<String, int> attachmentCountByPaymentId = <String, int>{};
     if (paymentIds.isNotEmpty) {
-      final QuerySnapshot<Map<String, dynamic>> attachmentSnap = await FirebaseFirestore.instance
+      final QuerySnapshot<Map<String, dynamic>> attachmentSnap = await HackzFirebase.current.firestore
           .collection(FirestoreUtils.hkzAttachments)
           .where('orgId', isEqualTo: widget.user.orgId)
           .where('isActive', isEqualTo: true)

@@ -7,6 +7,7 @@ import '../constants/default_org_settings.dart';
 import '../constants/org_setting_keys.dart';
 import '../models/org_setting_definition.dart';
 import 'org_settings_validators.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Org-scoped runtime cache for organization settings.
 ///
@@ -37,7 +38,7 @@ class OrgSettingsService extends ChangeNotifier {
       'departmentEvaluationExtensions';
   static const String ideathonEvaluationTemplateIdField = 'ideathonEvaluationTemplateId';
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   final Map<String, dynamic> _valuesByKey = <String, dynamic>{};
   final Map<String, OrgSettingDefinition> _defByKey = <String, OrgSettingDefinition>{
@@ -468,7 +469,7 @@ class OrgSettingsService extends ChangeNotifier {
   static Future<void> seedFor(String orgId) async {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return;
-    final db = FirebaseFirestore.instance;
+    final db = HackzFirebase.current.firestore;
     final DocumentReference<Map<String, dynamic>> ref = db
         .collection(FirestoreUtils.hkzOrganizations)
         .doc(trimmed)

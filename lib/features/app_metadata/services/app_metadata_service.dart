@@ -5,12 +5,13 @@ import '../../../utils/firestore_utils.dart';
 import '../constants/app_metadata_keys.dart';
 import '../models/app_metadata_document.dart';
 import '../seed/default_metadata_seed.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Reads and writes global app metadata in `hkzAppMetadata`.
 abstract final class AppMetadataService {
   AppMetadataService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static bool _seedChecked = false;
   static Future<void>? _seedInFlight;
 

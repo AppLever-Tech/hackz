@@ -8,6 +8,7 @@ import '../../evaluations/models/score_model.dart';
 import '../models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// One line in the read-only “recent activity” summary.
 class UserActivityItem {
@@ -58,7 +59,7 @@ abstract final class UserWorkspaceLoader {
       );
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
 
     final List<Object?> secondary = await Future.wait<Object?>(<Future<Object?>>[
       _organizationName(orgId),

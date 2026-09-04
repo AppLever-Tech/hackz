@@ -11,6 +11,7 @@ import '../../ideathons/widgets/ideathon_list_cell.dart';
 import '../../user/models/user_model.dart';
 import '../models/team_model.dart';
 import 'team_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 enum TeamRegistrationOriginFilter { all, internal, external }
 
@@ -49,7 +50,7 @@ class CoordinatorTeamRegistrationSnapshot {
 abstract final class CoordinatorTeamRegistrationService {
   CoordinatorTeamRegistrationService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<CoordinatorTeamRegistrationSnapshot> load(UserModel actor) async {
     final String orgId = actor.orgId.trim();

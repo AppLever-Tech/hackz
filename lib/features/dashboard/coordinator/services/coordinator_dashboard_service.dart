@@ -11,6 +11,7 @@ import '../../../../features/user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/user/services/role_visibility_helpers.dart';
 import '../../../ideathons/services/ideathon_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -115,7 +116,7 @@ class CoordinatorDashboardAnalytics {
 class CoordinatorDashboardService {
   CoordinatorDashboardService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static final Map<String, CoordinatorDashboardAnalytics> _cache = <String, CoordinatorDashboardAnalytics>{};
   static final Map<String, DateTime> _cacheAt = <String, DateTime>{};
   static const Duration _cacheTtl = Duration(minutes: 3);

@@ -13,6 +13,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../models/enums/team_status.dart';
 import '../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamRuleException implements Exception {
   TeamRuleException(this.message);
@@ -24,7 +25,7 @@ class TeamRuleException implements Exception {
 
 class TeamService {
   TeamService._();
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<List<TeamModel>> getTeamsLedBy(String userId) =>
       FirestoreUtils.getTeamsLedBy(userId);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../organization/models/enums/organization_type.dart';
 import '../models/enums/account_workspace_phase.dart';
@@ -18,6 +17,7 @@ import '../services/auth_utils.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../widgets/signup/account_status_workspace.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key, this.phone = ''});
@@ -70,7 +70,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String get _accessCodeRaw => _accessCodeControllers.map((c) => c.text).join();
 
   Future<void> _cancelToLanding() async {
-    await FirebaseAuth.instance.signOut();
+    await HackzFirebase.current.auth.signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const LandingScreen()),
@@ -197,7 +197,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         user: createdUser,
                         phase: AccountWorkspacePhase.pendingApproval,
                         onSignOut: () {
-                          FirebaseAuth.instance.signOut();
+                          HackzFirebase.current.auth.signOut();
                           Navigator.of(routeContext).pushAndRemoveUntil(
                             MaterialPageRoute(builder: (_) => const LandingScreen()),
                             (_) => false,

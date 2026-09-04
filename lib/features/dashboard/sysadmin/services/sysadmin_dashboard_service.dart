@@ -5,6 +5,7 @@ import '../../../../features/user/models/enums/user_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/payment/models/payment_model.dart';
 import '../../../../utils/firestore_utils.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
 
@@ -263,7 +264,7 @@ class SysAdminDashboardService {
   }
 
   static Future<_FirestoreDocs> _fetchCollection(String collection) async {
-    final snap = await FirebaseFirestore.instance.collection(collection).get();
+    final snap = await HackzFirebase.current.firestore.collection(collection).get();
     return snap.docs;
   }
 
