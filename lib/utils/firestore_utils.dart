@@ -97,16 +97,17 @@ class FirestoreUtils {
     return UserModel.fromMap(doc.data()).copyWith(userId: doc.id);
   }
 
-  static Future<String> createUser(UserModel user) async {
-    final existing = await fetchUserByPhone(user.phone);
+  static Future<String> createUser(UserModel user, {FirebaseFirestore? database}) async {
+    final FirebaseFirestore db = _store(database);
+    final existing = await fetchUserByPhone(user.phone, database: db);
     if (existing != null) {
       throw StateError('User already exists for this phone.');
     }
 
     final String userId = user.userId.isEmpty
-        ? _db.collection(hkzUsers).doc().id
+        ? db.collection(hkzUsers).doc().id
         : user.userId;
-    await _db.collection(hkzUsers).doc(userId).set(
+    await db.collection(hkzUsers).doc(userId).set(
           user.copyWith(userId: userId).toMap(),
         );
     return userId;
@@ -140,9 +141,10 @@ class FirestoreUtils {
 
   static Future<void> updateUser(
     String userId,
-    Map<String, dynamic> updates,
-  ) async {
-    await _db.collection(hkzUsers).doc(userId).update(updates);
+    Map<String, dynamic> updates, {
+    FirebaseFirestore? database,
+  }) async {
+    await _store(database).collection(hkzUsers).doc(userId).update(updates);
   }
 
   static Future<Map<String, dynamic>?> fetchInviteCode(String code) async {
@@ -213,8 +215,9 @@ class FirestoreUtils {
   static Stream<List<UserModel>> watchUsersByOrgAndRole({
     required String orgId,
     required String roleCode,
+    FirebaseFirestore? database,
   }) {
-    return _db
+    return _store(database)
         .collection(hkzUsers)
         .where('orgId', isEqualTo: orgId)
         .where('role', isEqualTo: roleCode)
@@ -352,8 +355,8 @@ class FirestoreUtils {
     return list;
   }
 
-  static Future<List<OrganizationModel>> getOrganizations() async {
-    final snapshot = await _db.collection(hkzOrganizations).get();
+  static Future<List<OrganizationModel>> getOrganizations({FirebaseFirestore? database}) async {
+    final snapshot = await _store(database).collection(hkzOrganizations).get();
     final items = snapshot.docs
         .map((doc) => OrganizationModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
@@ -361,10 +364,13 @@ class FirestoreUtils {
     return items;
   }
 
-  static Future<OrganizationModel?> fetchOrganization(String orgId) async {
+  static Future<OrganizationModel?> fetchOrganization(
+    String orgId, {
+    FirebaseFirestore? database,
+  }) async {
     final id = orgId.trim();
     if (id.isEmpty) return null;
-    final doc = await _db.collection(hkzOrganizations).doc(id).get();
+    final doc = await _store(database).collection(hkzOrganizations).doc(id).get();
     if (!doc.exists || doc.data() == null) return null;
     return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
@@ -372,19 +378,26 @@ class FirestoreUtils {
   /// Returns the resolved organization id (newly generated for inserts or
   /// the existing id for edits). Callers can chain post-create work such as
   /// seeding per-org settings.
-  static Future<String> upsertOrganization(OrganizationModel org) async {
+  static Future<String> upsertOrganization(
+    OrganizationModel org, {
+    FirebaseFirestore? database,
+  }) async {
+    final FirebaseFirestore db = _store(database);
     final docRef = org.id.isEmpty
-        ? _db.collection(hkzOrganizations).doc()
-        : _db.collection(hkzOrganizations).doc(org.id);
+        ? db.collection(hkzOrganizations).doc()
+        : db.collection(hkzOrganizations).doc(org.id);
     final payload = org.copyWith(id: docRef.id).toMap();
     await docRef.set(payload, SetOptions(merge: true));
     return docRef.id;
   }
 
-  static Future<void> deleteOrganization(String orgId) async {
+  static Future<void> deleteOrganization(
+    String orgId, {
+    FirebaseFirestore? database,
+  }) async {
     final normalizedOrgId = orgId.trim();
     if (normalizedOrgId.isEmpty) return;
-    final orgRef = _db.collection(hkzOrganizations).doc(normalizedOrgId);
+    final orgRef = _store(database).collection(hkzOrganizations).doc(normalizedOrgId);
 
     // Firestore does not cascade subcollection deletes when deleting a parent doc.
     // Clean known org-scoped subcollections first.
@@ -398,21 +411,25 @@ class FirestoreUtils {
   ) async {
     final snapshot = await collectionRef.get();
     if (snapshot.docs.isEmpty) return;
-    final batch = _db.batch();
+    final batch = collectionRef.firestore.batch();
     for (final doc in snapshot.docs) {
       batch.delete(doc.reference);
     }
     await batch.commit();
   }
 
-  static Future<void> deleteUser(String userId) async {
-    await _db.collection(hkzUsers).doc(userId).delete();
+  static Future<void> deleteUser(String userId, {FirebaseFirestore? database}) async {
+    await _store(database).collection(hkzUsers).doc(userId).delete();
   }
 
-  static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(String orgId) async {
-    final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
+  static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(
+    String orgId, {
+    FirebaseFirestore? database,
+  }) async {
+    final FirebaseFirestore db = _store(database);
+    final usersSnapshot = await db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
     final Query<Map<String, dynamic>> departmentsQuery =
-        _db.collection(hkzDepartments).where('orgId', isEqualTo: orgId);
+        db.collection(hkzDepartments).where('orgId', isEqualTo: orgId);
     QuerySnapshot<Map<String, dynamic>> departmentsSnapshot;
     try {
       departmentsSnapshot = await departmentsQuery.get(const GetOptions(source: Source.server));

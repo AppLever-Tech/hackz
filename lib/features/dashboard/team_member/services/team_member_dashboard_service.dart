@@ -17,9 +17,11 @@ import '../../../../utils/firestore_utils.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamMemberDashboardService {
-  TeamMemberDashboardService({FirebaseFirestore? db}) : _db = db ?? HackzFirebase.current.firestore;
+  TeamMemberDashboardService({FirebaseFirestore? db}) : _dbOverride = db;
 
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _dbOverride;
+
+  FirebaseFirestore get _db => _dbOverride ?? HackzFirebase.current.firestore;
 
   Future<TeamMemberDashboardVm> load(UserModel teamMember) async {
     final teamId = (teamMember.teamId ?? '').trim();

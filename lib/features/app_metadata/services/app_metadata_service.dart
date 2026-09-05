@@ -7,11 +7,12 @@ import '../models/app_metadata_document.dart';
 import '../seed/default_metadata_seed.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
-/// Reads and writes global app metadata in `hkzAppMetadata`.
+/// Reads and writes global app metadata in `hkzAppMetadata` on the Control Plane.
+/// Organisation tenants never host product About / Terms / Privacy documents.
 abstract final class AppMetadataService {
   AppMetadataService._();
 
-  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
+  static FirebaseFirestore get _db => HackzFirebase.controlPlane.firestore;
   static bool _seedChecked = false;
   static Future<void>? _seedInFlight;
 

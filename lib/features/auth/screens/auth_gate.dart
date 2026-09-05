@@ -11,7 +11,7 @@ import '../services/auth_status_resolver.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../user/services/role_utils.dart';
 import '../../app_metadata/services/app_metadata_service.dart';
-import '../../org_settings/services/org_settings_service.dart';
+import '../../../features/dashboard/chrome/tenant_business_caches.dart';
 import 'landing_screen.dart';
 import '../widgets/signup/account_status_workspace.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
@@ -68,7 +68,7 @@ class _AuthGateState extends State<AuthGate> {
     _authSub = HackzFirebase.sessionAuth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
-        OrgSettingsService.instance.clearCache();
+        TenantBusinessCaches.clear();
       }
     });
   }

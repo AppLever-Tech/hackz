@@ -1,14 +1,15 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/firebase/hackz_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
+import '../../../sysadmin/onboarding/services/organisation_onboarding_service.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../../core/ui/inputs/hackz_select_field.dart';
-import '../../../../features/org_settings/services/org_settings_service.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/services/org_photo_service.dart';
@@ -148,12 +149,13 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         clearPhoto: _iconCleared && _iconFile == null,
       );
 
-      final String orgId = await FirestoreUtils.upsertOrganization(org);
+      final String orgId = await FirestoreUtils.upsertOrganization(
+        org,
+        database: HackzFirebase.controlPlane.firestore,
+      );
       org = org.copyWith(id: orgId);
 
-      if (!_isEdit) {
-        await OrgSettingsService.seedFor(orgId);
-      } else {
+      if (_isEdit) {
         final String previousName = widget.initialOrganization!.name;
         if (previousName.trim() != org.name) {
           await TenantRegistry.syncOrganisationName(
@@ -167,8 +169,9 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
       if (_iconFile != null) {
         final uploaded = await OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
         org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
-        await FirestoreUtils.upsertOrganization(org);
       }
+
+      await OrganisationOnboardingService.syncOrganisationDocument(org);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);

@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_icons.dart';
-import '../../../features/user/models/enums/user_role.dart';
-import '../../../features/user/models/user_model.dart';
-import '../coordinator/services/coordinator_dashboard_service.dart';
-import '../deptadmin/services/department_dashboard_service.dart';
-import '../../../features/team/services/teams_workspace_service.dart';
-import '../../../features/org_settings/services/org_settings_service.dart';
-import '../../../features/evaluations/services/judge_evaluation_service.dart';
-import '../sysadmin/services/sysadmin_dashboard_service.dart';
-import '../../../core/responsive/responsive_dashboard_layout.dart';
-import '../../../features/auth/screens/landing_screen.dart';
+import '../../../core/firebase/hackz_firebase.dart';
+import '../../../core/firebase/tenant_firebase.dart';
 import '../../../features/docs/data/docs_registry.dart';
 import '../../../features/domain/domain.dart';
+import '../../../features/user/models/enums/user_role.dart';
+import '../../../features/user/models/user_model.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/responsive/responsive_dashboard_layout.dart';
 import '../../../core/ui/common/page_header_context_pill.dart';
+import '../../../features/auth/screens/landing_screen.dart';
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'dashboard_chrome_controller.dart';
 import 'dashboard_chrome_scope.dart';
 import 'dashboard_components.dart';
 import 'dashboard_session_scope.dart';
-import 'package:hackz/core/workspace/workspace_controller.dart';
-import 'package:hackz/core/workspace/workspace_navigator.dart';
-import 'package:hackz/core/firebase/hackz_firebase.dart';
-import 'package:hackz/core/firebase/tenant_firebase.dart';
+import 'tenant_business_caches.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
   const DashboardPageTemplate({
@@ -68,12 +63,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   Future<void> _logout(BuildContext context) async {
     WorkspaceController.instance.close();
     _chromeController.clearOverlay();
-    OrgSettingsService.instance.clearCache();
-    SysAdminDashboardService.clearCache();
-    DepartmentDashboardService.clearCache();
-    TeamsWorkspaceService.clearCache();
-    CoordinatorDashboardService.clearCache();
-    JudgeEvaluationService.clearCache();
+    TenantBusinessCaches.clear();
     await TenantFirebase.releaseSession();
     if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -186,12 +176,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
       onPressed: () async {
         WorkspaceController.instance.close();
         _chromeController.clearOverlay();
-        OrgSettingsService.instance.clearCache();
-        SysAdminDashboardService.clearCache();
-        DepartmentDashboardService.clearCache();
-        TeamsWorkspaceService.clearCache();
-        CoordinatorDashboardService.clearCache();
-        JudgeEvaluationService.clearCache();
+        TenantBusinessCaches.clear();
         await TenantFirebase.returnToControlPlane();
       },
       icon: const Icon(Icons.arrow_back_rounded, size: 16),

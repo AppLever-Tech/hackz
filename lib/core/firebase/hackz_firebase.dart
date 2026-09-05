@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 import 'tenant_context.dart';
+import 'tenant_session_hooks.dart';
 
 /// Single Firebase access point for Hackz.
 ///
@@ -93,6 +94,7 @@ class HackzFirebase {
     _controlPlane = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
     generation.value++;
     tenantGeneration.value++;
+    TenantSessionHooks.notifyRebound();
   }
 
   /// Binds the active tenant app. Does not replace [controlPlane].
@@ -104,5 +106,24 @@ class HackzFirebase {
     _current = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
     tenantGeneration.value++;
     if (notifySession) generation.value++;
+    TenantSessionHooks.notifyRebound();
+  }
+
+  /// Runs [action] against [app] as [current] without notifying session or
+  /// tenant generation. Used by the platform console to read/write one
+  /// organisation's tenant project without switching the SysAdmin session.
+  /// Restores the previous [current] even if [action] throws.
+  static Future<T> runWithCurrent<T>(
+    TenantContext context,
+    FirebaseApp app,
+    Future<T> Function() action,
+  ) async {
+    final HackzFirebase? previous = _current;
+    _current = HackzFirebase._(context, app);
+    try {
+      return await action();
+    } finally {
+      _current = previous;
+    }
   }
 }

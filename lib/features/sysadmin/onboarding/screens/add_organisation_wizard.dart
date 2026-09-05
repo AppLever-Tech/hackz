@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
+import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -20,7 +21,6 @@ import '../../../user/models/user_model.dart';
 import '../../../user/screens/create_user_dialog.dart';
 import '../../../user/widgets/user_form_section.dart';
 import '../../../user/widgets/user_profile_photo_field.dart';
-import '../../../../utils/firestore_utils.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
 import '../services/tenant_workspace_validator.dart';
@@ -273,22 +273,27 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
 
   Future<void> _addAdmin() async {
     final OrganizationModel? org = _organization;
-    if (org == null) return;
-    final bool assigned = await showCreateUserDialog(
-      context: context,
-      roleCode: 'CADM',
-      organization: org,
-      initialUser: _admin,
-    );
+    final String? tenantId = _tenant?.tenantId;
+    if (org == null || tenantId == null || tenantId.isEmpty) return;
+    final bool assigned = await TenantFirebase.runAsOrganisation(tenantId, () {
+      return showCreateUserDialog(
+        context: context,
+        roleCode: 'CADM',
+        organization: org,
+        initialUser: _admin,
+      );
+    });
     if (!assigned) return;
-    final UserModel? admin = await OrgManagementService.fetchCollegeAdmin(org.id);
+    final UserModel? admin = await OrgManagementService.fetchCollegeAdmin(
+      org.id,
+      tenantId: tenantId,
+    );
     if (!mounted) return;
     setState(() {
       _admin = admin ?? _admin;
       _changed = true;
     });
-    final String? tenantId = _tenant?.tenantId;
-    if (tenantId != null && _admin != null) {
+    if (_admin != null) {
       _tenant = await OrganisationOnboardingService.markAdministratorReady(tenantId);
     }
   }
@@ -298,7 +303,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     if (org == null || org.id.trim().isEmpty || _iconFile == null) return;
     final uploaded = await OrgPhotoService.uploadLogo(orgId: org.id, file: _iconFile!);
     org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
-    await FirestoreUtils.upsertOrganization(org);
+    await OrganisationOnboardingService.syncOrganisationDocument(org);
     _organization = org;
     _remotePhotoUrl = uploaded.photoUrl;
     _remoteThumbUrl = uploaded.thumbnailUrl;

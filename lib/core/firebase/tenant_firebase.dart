@@ -98,6 +98,58 @@ abstract final class TenantFirebase {
     return _bind(context, notifySession: false);
   }
 
+  /// Reads/writes one organisation's Firestore without changing [HackzFirebase.current]
+  /// when the session is already on another project. Platform-admin only when the
+  /// requested tenant is not already bound.
+  static Future<T> withOrganisationFirestore<T>(
+    String tenantId,
+    Future<T> Function(FirebaseFirestore firestore) action,
+  ) async {
+    final FirebaseApp app = await _organisationApp(tenantId);
+    return action(FirebaseFirestore.instanceFor(app: app));
+  }
+
+  /// Runs [action] with [HackzFirebase.current] temporarily set to the organisation
+  /// project so User/Storage helpers keep using `.current`. Restores the previous
+  /// binding without notifying AuthGate. Platform-admin only when not already bound.
+  static Future<T> runAsOrganisation<T>(
+    String tenantId,
+    Future<T> Function() action,
+  ) async {
+    final String id = tenantId.trim();
+    if (HackzFirebase.isTenantBound && HackzFirebase.current.context.tenantId == id) {
+      return action();
+    }
+    final TenantContext context = await _requirePlatformOrganisation(id);
+    final FirebaseApp app = await ensureApp(
+      tenantId: context.tenantId,
+      options: context.firebaseOptions,
+    );
+    return HackzFirebase.runWithCurrent(context, app, action);
+  }
+
+  static Future<FirebaseApp> _organisationApp(String tenantId) async {
+    final String id = tenantId.trim();
+    if (HackzFirebase.isTenantBound && HackzFirebase.current.context.tenantId == id) {
+      return HackzFirebase.current.app;
+    }
+    final TenantContext context = await _requirePlatformOrganisation(id);
+    return ensureApp(
+      tenantId: context.tenantId,
+      options: context.firebaseOptions,
+    );
+  }
+
+  static Future<TenantContext> _requirePlatformOrganisation(String tenantId) async {
+    if (tenantId.isEmpty) {
+      throw const TenantConnectionException(TenantConnectionFailure.notFound);
+    }
+    if (!HackzFirebase.isPlatformAdminSession) {
+      throw const TenantConnectionException(TenantConnectionFailure.unauthorized);
+    }
+    return TenantResolver.resolveByTenantId(tenantId);
+  }
+
   /// Restores Control Plane data binding without signing the SysAdmin out.
   static Future<void> returnToControlPlane() async {
     await disconnect(notifySession: false);

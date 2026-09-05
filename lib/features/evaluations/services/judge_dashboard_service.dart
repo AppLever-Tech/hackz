@@ -12,9 +12,11 @@ import '../../../utils/firestore_utils.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class JudgeDashboardService {
-  JudgeDashboardService({FirebaseFirestore? db}) : _db = db ?? HackzFirebase.current.firestore;
+  JudgeDashboardService({FirebaseFirestore? db}) : _dbOverride = db;
 
-  final FirebaseFirestore _db;
+  final FirebaseFirestore? _dbOverride;
+
+  FirebaseFirestore get _db => _dbOverride ?? HackzFirebase.current.firestore;
 
   Future<JudgeDashboardVm> load(UserModel judge) async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[

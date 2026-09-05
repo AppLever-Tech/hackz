@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/tenant_connection_exception.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
+import '../../../../core/firebase/hackz_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
+import '../../../../features/dashboard/chrome/tenant_business_caches.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/loading/hkz_loading_overlay.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
-import '../../../../features/org_settings/services/org_settings_service.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
@@ -71,7 +72,7 @@ class OrganisationOnboardingCard extends StatelessWidget {
         message: item.name,
       );
       await TenantFirebase.enterAsPlatformAdmin(tenantId);
-      OrgSettingsService.instance.clearCache();
+      TenantBusinessCaches.clear();
       if (!context.mounted) return;
       HkzLoadingOverlay.hide();
     } on TenantConnectionException catch (e) {
@@ -107,16 +108,17 @@ class OrganisationOnboardingCard extends StatelessWidget {
   }
 
   Future<void> _assignAdmin(BuildContext context) async {
-    final bool assigned = await showCreateUserDialog(
-      context: context,
-      roleCode: 'CADM',
-      organization: item.organization,
-    );
-    if (!assigned) return;
     final String? tenantId = item.tenant?.tenantId;
-    if (tenantId != null && tenantId.isNotEmpty) {
-      await OrganisationOnboardingService.markAdministratorReady(tenantId);
-    }
+    if (tenantId == null || tenantId.isEmpty) return;
+    final bool assigned = await TenantFirebase.runAsOrganisation(tenantId, () {
+      return showCreateUserDialog(
+        context: context,
+        roleCode: 'CADM',
+        organization: item.organization,
+      );
+    });
+    if (!assigned) return;
+    await OrganisationOnboardingService.markAdministratorReady(tenantId);
     onChanged();
   }
 
@@ -130,7 +132,10 @@ class OrganisationOnboardingCard extends StatelessWidget {
     );
     if (!ok) return;
     try {
-      await FirestoreUtils.deleteOrganization(item.organization.id);
+      await FirestoreUtils.deleteOrganization(
+        item.organization.id,
+        database: HackzFirebase.controlPlane.firestore,
+      );
       await TenantRegistry.inactivateByOrganisationId(item.organization.id);
       await TenantRegistry.inactivateByOrganisationName(item.name);
       if (context.mounted) {

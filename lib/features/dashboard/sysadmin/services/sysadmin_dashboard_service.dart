@@ -139,6 +139,10 @@ class SysAdminDashboardAnalytics {
 class SysAdminDashboardService {
   SysAdminDashboardService._();
 
+  /// Platform overview always reads Control Plane catalogs, never the
+  /// organisation currently opened by SysAdmin.
+
+
   static SysAdminDashboardAnalytics? _cache;
   static DateTime? _cacheAt;
   static const Duration _cacheTtl = Duration(minutes: 5);
@@ -264,7 +268,7 @@ class SysAdminDashboardService {
   }
 
   static Future<_FirestoreDocs> _fetchCollection(String collection) async {
-    final snap = await HackzFirebase.current.firestore.collection(collection).get();
+    final snap = await HackzFirebase.controlPlane.firestore.collection(collection).get();
     return snap.docs;
   }
 

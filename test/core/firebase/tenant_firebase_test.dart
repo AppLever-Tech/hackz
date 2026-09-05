@@ -156,5 +156,25 @@ void main() {
         ),
       ),
     );
+    await expectLater(
+      TenantFirebase.withOrganisationFirestore('tenant-1', (_) async => null),
+      throwsA(
+        isA<TenantConnectionException>().having(
+          (TenantConnectionException e) => e.failure,
+          'failure',
+          TenantConnectionFailure.unauthorized,
+        ),
+      ),
+    );
+    await expectLater(
+      TenantFirebase.runAsOrganisation('tenant-1', () async => null),
+      throwsA(
+        isA<TenantConnectionException>().having(
+          (TenantConnectionException e) => e.failure,
+          'failure',
+          TenantConnectionFailure.unauthorized,
+        ),
+      ),
+    );
   });
 }
