@@ -214,6 +214,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             tenantId: tenant.tenantId,
             firebaseProjectId: _workspaceId,
           );
+          await _uploadIconIfNeeded();
           _changed = true;
           _checks = const <TenantWorkspaceCheck>[];
           _checksRan = false;
@@ -301,7 +302,12 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   Future<void> _uploadIconIfNeeded() async {
     OrganizationModel? org = _organization;
     if (org == null || org.id.trim().isEmpty || _iconFile == null) return;
-    final uploaded = await OrgPhotoService.uploadLogo(orgId: org.id, file: _iconFile!);
+    final String tenantId = (_tenant?.tenantId ?? '').trim();
+    final String projectId = (_tenant?.firebaseProjectId ?? '').trim();
+    if (tenantId.isEmpty || projectId.isEmpty) return;
+    final uploaded = await TenantFirebase.runAsOrganisation(tenantId, () {
+      return OrgPhotoService.uploadLogo(orgId: org.id, file: _iconFile!);
+    });
     org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
     await OrganisationOnboardingService.syncOrganisationDocument(org);
     _organization = org;

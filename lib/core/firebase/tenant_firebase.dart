@@ -117,7 +117,7 @@ abstract final class TenantFirebase {
     Future<T> Function() action,
   ) async {
     final String id = tenantId.trim();
-    if (HackzFirebase.isTenantBound && HackzFirebase.current.context.tenantId == id) {
+    if (HackzFirebase.isOrganisationWorkspace && HackzFirebase.current.context.tenantId == id) {
       return action();
     }
     final TenantContext context = await _requirePlatformOrganisation(id);
@@ -130,7 +130,7 @@ abstract final class TenantFirebase {
 
   static Future<FirebaseApp> _organisationApp(String tenantId) async {
     final String id = tenantId.trim();
-    if (HackzFirebase.isTenantBound && HackzFirebase.current.context.tenantId == id) {
+    if (HackzFirebase.isOrganisationWorkspace && HackzFirebase.current.context.tenantId == id) {
       return HackzFirebase.current.app;
     }
     final TenantContext context = await _requirePlatformOrganisation(id);
@@ -147,7 +147,7 @@ abstract final class TenantFirebase {
     if (!HackzFirebase.isPlatformAdminSession) {
       throw const TenantConnectionException(TenantConnectionFailure.unauthorized);
     }
-    return TenantResolver.resolveByTenantId(tenantId);
+    return TenantResolver.workspaceByTenantId(tenantId);
   }
 
   /// Restores Control Plane data binding without signing the SysAdmin out.

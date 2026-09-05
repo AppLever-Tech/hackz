@@ -12,7 +12,10 @@ class ProblemUtils {
   ProblemUtils._();
 
   static FirebaseFirestore get _db => HackzFirebase.current.firestore;
-  static FirebaseStorage get _storage => HackzFirebase.current.storage;
+  static FirebaseStorage get _storage {
+    HackzFirebase.assertOrganisationStorage();
+    return HackzFirebase.current.storage;
+  }
 
   static Future<String> generateProblemNumber() async {
     final counterRef = _db

@@ -20,6 +20,7 @@ abstract final class OrgPhotoService {
     );
     final String storagePath = '$folder/logo_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
+    HackzFirebase.assertOrganisationStorage();
     final Reference ref = HackzFirebase.current.storage.ref(storagePath);
     await AttachmentService.createUploadTask(ref: ref, file: file);
     final String url = await ref.getDownloadURL();

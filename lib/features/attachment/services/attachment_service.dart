@@ -70,6 +70,9 @@ class AttachmentService {
     String? fileType,
   }) async {
     if (files.isEmpty) return const <AttachmentModel>[];
+    if (entityType != AttachmentEntityType.feedback) {
+      HackzFirebase.assertOrganisationStorage();
+    }
     final folder = folderForEntity(entityType: entityType, orgId: orgId, entityId: entityId);
     final created = <AttachmentModel>[];
     final failedDetails = <String>[];

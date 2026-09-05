@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/hackz_firebase.dart';
+import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../sysadmin/onboarding/services/organisation_onboarding_service.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -167,8 +168,13 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
       }
 
       if (_iconFile != null) {
-        final uploaded = await OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
-        org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
+        final tenant = await TenantRegistry.fetchByOrganisationId(orgId);
+        if (tenant != null && tenant.firebaseProjectId.trim().isNotEmpty) {
+          final uploaded = await TenantFirebase.runAsOrganisation(tenant.tenantId, () {
+            return OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
+          });
+          org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
+        }
       }
 
       await OrganisationOnboardingService.syncOrganisationDocument(org);

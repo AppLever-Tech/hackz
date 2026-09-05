@@ -16,6 +16,7 @@ abstract final class UserPhotoService {
     final String ext = (file.extension ?? 'jpg').trim().toLowerCase();
     final String storagePath = 'users/$safeOrg/$safeUser/profile_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
+    HackzFirebase.assertOrganisationStorage();
     final Reference ref = HackzFirebase.current.storage.ref(storagePath);
     await AttachmentService.createUploadTask(ref: ref, file: file);
     final String url = await ref.getDownloadURL();

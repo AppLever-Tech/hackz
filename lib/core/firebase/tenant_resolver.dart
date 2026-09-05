@@ -20,7 +20,7 @@ abstract final class TenantResolver {
   /// [resolveByOrganisationCode].
   static TenantContext controlPlane(FirebaseOptions options) {
     return TenantContext(
-      tenantId: 'control-plane',
+      tenantId: TenantContext.controlPlaneTenantId,
       organisationCode: '',
       organisationName: 'Hackz',
       firebaseAppName: defaultFirebaseAppName,
@@ -66,6 +66,35 @@ abstract final class TenantResolver {
     await ApprovedTenantFirebase.refresh();
     final TenantRecord? record = await TenantRegistry.fetchByTenantId(id);
     return _validatedContext(record);
+  }
+
+  /// Platform-admin workspace access for setup or active tenants.
+  ///
+  /// Used to read/write organisation Firestore/Storage during onboarding
+  /// before the tenant is activated. Login routing still uses [resolveByTenantId].
+  static Future<TenantContext> workspaceByTenantId(String tenantId) async {
+    final String id = tenantId.trim();
+    if (id.isEmpty) {
+      throw const TenantConnectionException(TenantConnectionFailure.notFound);
+    }
+
+    await ApprovedTenantFirebase.refresh();
+    final TenantRecord? record = await TenantRegistry.fetchByTenantId(id);
+    if (record == null) {
+      throw const TenantConnectionException(TenantConnectionFailure.notFound);
+    }
+    if (record.status == TenantStatus.inactive) {
+      throw const TenantConnectionException(TenantConnectionFailure.inactive);
+    }
+    if (record.firebaseProjectId.trim().isEmpty) {
+      throw const TenantConnectionException(TenantConnectionFailure.unapproved);
+    }
+
+    final FirebaseOptions? options = ApprovedTenantFirebase.optionsFor(record.firebaseProjectId);
+    if (options == null) {
+      throw const TenantConnectionException(TenantConnectionFailure.unapproved);
+    }
+    return _contextFrom(record, options);
   }
 
   static Future<TenantContext> _validatedContext(TenantRecord? record) async {

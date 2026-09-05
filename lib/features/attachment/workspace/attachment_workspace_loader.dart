@@ -93,6 +93,9 @@ abstract final class AttachmentWorkspaceLoader {
   static Future<String> _resolveDownloadUrl(AttachmentModel attachment) async {
     final String path = attachment.storagePath.trim();
     if (path.isEmpty) return attachment.downloadUrl;
+    if (attachment.entityType != AttachmentEntityType.feedback) {
+      HackzFirebase.assertOrganisationStorage();
+    }
     try {
       return await HackzFirebase.current.storage.ref(path).getDownloadURL();
     } catch (_) {

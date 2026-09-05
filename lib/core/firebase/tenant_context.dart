@@ -15,8 +15,16 @@ class TenantContext {
     this.organisationId = '',
   });
 
+  /// [tenantId] for the Hackz Control Plane. Not an organisation workspace.
+  static const String controlPlaneTenantId = 'control-plane';
+
   /// Internal immutable tenant identifier.
   final String tenantId;
+
+  /// True when this context is an organisation Firebase workspace (setup or
+  /// active), including a hosted workspace that shares the Control Plane project.
+  bool get isOrganisationWorkspace =>
+      tenantId.isNotEmpty && tenantId != controlPlaneTenantId;
 
   /// User-facing routing key (`HKZ-XXXXXX`). Never require [tenantId] in URLs.
   final String organisationCode;

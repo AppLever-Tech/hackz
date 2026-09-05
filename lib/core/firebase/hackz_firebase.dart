@@ -64,6 +64,25 @@ class HackzFirebase {
     return bound.context.organisationCode.isNotEmpty;
   }
 
+  /// True when [current] is an organisation workspace (setup or active).
+  ///
+  /// Hosted colleges share the Control Plane Firebase project; they still
+  /// count because [TenantContext.tenantId] is the organisation tenant.
+  static bool get isOrganisationWorkspace {
+    final HackzFirebase? bound = _current;
+    if (bound == null) return false;
+    return bound.context.isOrganisationWorkspace;
+  }
+
+  /// Organisation-specific files must use tenant Storage, never Control Plane.
+  static void assertOrganisationStorage() {
+    if (!isOrganisationWorkspace) {
+      throw StateError(
+        'Organisation files must use the active tenant Firebase Storage.',
+      );
+    }
+  }
+
   /// True while a SysAdmin is signed in on Control Plane Auth.
   static bool get isPlatformAdminSession => _platformAdminSession;
 
@@ -87,6 +106,9 @@ class HackzFirebase {
 
   FirebaseAuth get auth => FirebaseAuth.instanceFor(app: app);
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: app);
+
+  /// Storage for this bound app. Do not cache [Reference]s across tenant rebinds;
+  /// resolve through [HackzFirebase.current.storage] after each bind.
   FirebaseStorage get storage => FirebaseStorage.instanceFor(app: app);
 
   /// Binds the Control Plane to the bootstrap (Hackz) Firebase app.
