@@ -12,14 +12,19 @@ import '../../app_metadata/services/app_metadata_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import 'package:hackz/core/firebase/phone_auth_challenge.dart';
 
 class AuthUtils {
   AuthUtils._();
 
-  static FirebaseAuth get _auth => HackzFirebase.sessionAuth;
-
-  static String? _verificationId;
-  static ConfirmationResult? _webConfirmationResult;
+  /// Organisation users: [HackzFirebase.current.auth] after tenant resolution.
+  /// SysAdmin: Control Plane Auth. Never [FirebaseAuth.instance].
+  static FirebaseAuth get _auth {
+    if (HackzFirebase.isPlatformAdminSession) {
+      return HackzFirebase.controlPlane.auth;
+    }
+    return HackzFirebase.current.auth;
+  }
 
   static Future<UserModel?> checkUserExists(String phone) {
     return FirestoreUtils.fetchUserByPhone(normalizePhoneE164(phone));
@@ -74,8 +79,14 @@ class AuthUtils {
     required String phone,
     required VoidCallback onCodeSent,
   }) async {
+    if (!HackzFirebase.isPlatformAdminSession && !HackzFirebase.isTenantBound) {
+      throw StateError('Organisation sign-in requires a resolved tenant Firebase.');
+    }
+
+    PhoneAuthChallenge.clear();
+
     if (kIsWeb) {
-      _webConfirmationResult = await _auth.signInWithPhoneNumber(phone);
+      PhoneAuthChallenge.webConfirmation = await _auth.signInWithPhoneNumber(phone);
       onCodeSent();
       return;
     }
@@ -105,14 +116,14 @@ class AuthUtils {
           }
         },
         codeSent: (String verificationId, int? _) {
-          _verificationId = verificationId;
+          PhoneAuthChallenge.verificationId = verificationId;
           onCodeSent();
           if (!sent.isCompleted) {
             sent.complete();
           }
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          _verificationId = verificationId;
+          PhoneAuthChallenge.verificationId = verificationId;
         },
       );
     } catch (e, st) {
@@ -126,21 +137,26 @@ class AuthUtils {
 
   static Future<UserCredential> verifyOtp(String otpCode) async {
     if (kIsWeb) {
-      final result = _webConfirmationResult;
+      final ConfirmationResult? result = PhoneAuthChallenge.webConfirmation;
       if (result == null) {
         throw StateError('OTP was not requested yet.');
       }
-      return result.confirm(otpCode);
+      final UserCredential credential = await result.confirm(otpCode);
+      PhoneAuthChallenge.clear();
+      return credential;
     }
 
-    if (_verificationId == null) {
+    final String? verificationId = PhoneAuthChallenge.verificationId;
+    if (verificationId == null) {
       throw StateError('Verification ID is missing. Request OTP first.');
     }
 
-    final credential = PhoneAuthProvider.credential(
-      verificationId: _verificationId!,
+    final PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      verificationId: verificationId,
       smsCode: otpCode,
     );
-    return _auth.signInWithCredential(credential);
+    final UserCredential signedIn = await _auth.signInWithCredential(credential);
+    PhoneAuthChallenge.clear();
+    return signedIn;
   }
 }

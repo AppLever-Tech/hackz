@@ -60,7 +60,7 @@ void main() {
     );
   });
 
-  test('named tenant apps are isolated from the Control Plane app', () {
+  test('named tenant apps are isolated from each other and the Control Plane', () {
     expect(
       TenantFirebase.appNameFor(
         tenantId: 'alpha',
@@ -84,6 +84,20 @@ void main() {
         controlPlaneProjectId: 'hackz-a17b6',
       ),
       'tenant-beta',
+    );
+    expect(
+      TenantFirebase.appNameFor(
+        tenantId: 'alpha',
+        projectId: 'college-one',
+        controlPlaneProjectId: 'hackz-a17b6',
+      ),
+      isNot(
+        TenantFirebase.appNameFor(
+          tenantId: 'beta',
+          projectId: 'college-two',
+          controlPlaneProjectId: 'hackz-a17b6',
+        ),
+      ),
     );
   });
 

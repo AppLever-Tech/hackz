@@ -68,8 +68,9 @@ class HackzFirebase {
 
   /// Auth that owns the signed-in Hackz session (OTP / AuthGate).
   ///
-  /// College users: [current]. Platform SysAdmin: Control Plane, even when
-  /// [current] is rebound to a tenant for organisation data.
+  /// Organisation users after tenant resolution: [current.auth]
+  /// (`HackzFirebase.current.auth`). Platform SysAdmin: Control Plane Auth,
+  /// even when [current] is rebound to a tenant for organisation data.
   static FirebaseAuth get sessionAuth {
     if (_platformAdminSession) return controlPlane.auth;
     return current.auth;

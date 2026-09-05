@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'approved_tenant_firebase.dart';
 import 'hackz_firebase.dart';
 import 'last_organisation_code_store.dart';
+import 'phone_auth_challenge.dart';
 import 'tenant_connection_exception.dart';
 import 'tenant_context.dart';
 import 'tenant_resolver.dart';
@@ -74,7 +75,9 @@ abstract final class TenantFirebase {
   }
 
   /// Resolves [organisationCode] from the Control Plane registry, validates the
-  /// tenant, initializes its Firebase app, and binds [HackzFirebase.current].
+  /// tenant, then initializes that tenant's Firebase Auth/Firestore/Storage and
+  /// binds [HackzFirebase.current]. Invalid or inactive tenants throw before
+  /// any tenant Auth is initialized.
   static Future<TenantContext> connect(
     String organisationCode, {
     bool notifySession = true,
@@ -104,6 +107,10 @@ abstract final class TenantFirebase {
     TenantContext context, {
     required bool notifySession,
   }) async {
+    PhoneAuthChallenge.clear();
+    if (notifySession && !HackzFirebase.isPlatformAdminSession) {
+      await _signOutOrganisationAuth();
+    }
     try {
       final FirebaseApp app = await ensureApp(
         tenantId: context.tenantId,
@@ -119,8 +126,16 @@ abstract final class TenantFirebase {
     }
   }
 
+  static Future<void> _signOutOrganisationAuth() async {
+    if (!HackzFirebase.isTenantBound) return;
+    try {
+      await HackzFirebase.current.auth.signOut();
+    } catch (_) {}
+  }
+
   /// Restores [HackzFirebase.current] to the Control Plane app.
   static Future<void> disconnect({bool notifySession = true}) async {
+    PhoneAuthChallenge.clear();
     await _releaseOtherTenantApps(keepName: HackzFirebase.controlPlane.app.name);
     HackzFirebase.bind(
       HackzFirebase.controlPlane.context,
@@ -134,6 +149,7 @@ abstract final class TenantFirebase {
   /// Use this when leaving a tenant session (logout / return to landing).
   /// Do not call it between OTP and Sign Up — that flow stays on the tenant.
   static Future<void> releaseSession() async {
+    PhoneAuthChallenge.clear();
     final FirebaseAuth auth = HackzFirebase.isBound
         ? HackzFirebase.sessionAuth
         : HackzFirebase.controlPlane.auth;
@@ -186,6 +202,9 @@ abstract final class TenantFirebase {
       if (app.name == keepName) continue;
       if (app.name == HackzFirebase.controlPlane.app.name) continue;
       if (!app.name.startsWith(_appPrefix) && !app.name.startsWith('workspace-')) continue;
+      try {
+        await FirebaseAuth.instanceFor(app: app).signOut();
+      } catch (_) {}
       try {
         await app.delete();
       } catch (_) {}

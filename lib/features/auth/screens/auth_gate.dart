@@ -64,6 +64,7 @@ class _AuthGateState extends State<AuthGate> {
 
   void _listenAuth() {
     _authSub?.cancel();
+    // Organisation users: current (tenant) Auth. SysAdmin: Control Plane Auth.
     _authSub = HackzFirebase.sessionAuth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
