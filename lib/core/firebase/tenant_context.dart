@@ -12,6 +12,7 @@ class TenantContext {
     required this.organisationName,
     required this.firebaseAppName,
     required this.firebaseOptions,
+    this.organisationId = '',
   });
 
   /// Internal immutable tenant identifier.
@@ -21,6 +22,9 @@ class TenantContext {
   final String organisationCode;
 
   final String organisationName;
+
+  /// Tenant `hkzOrganizations` document id. Empty on the Control Plane.
+  final String organisationId;
 
   /// [FirebaseApp.name] for this tenant. `[DEFAULT]` for the bootstrap project.
   final String firebaseAppName;

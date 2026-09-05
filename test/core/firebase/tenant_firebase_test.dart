@@ -31,6 +31,10 @@ void main() {
       const TenantConnectionException(TenantConnectionFailure.conflict).message,
       'This organisation code cannot be used. Contact Hackz support.',
     );
+    expect(
+      const TenantConnectionException(TenantConnectionFailure.unauthorized).message,
+      'Platform administration is required to open this organisation.',
+    );
   });
 
   test('invalid organisation codes fail before any Firebase lookup', () async {
@@ -112,5 +116,31 @@ void main() {
     expect(TenantFirebase.storageBucketConfigured(''), isFalse);
     expect(TenantFirebase.storageBucketConfigured('gs://'), isFalse);
     expect(TenantFirebase.storageBucketConfigured(null), isFalse);
+  });
+
+  test('empty tenant ids fail before any Firebase lookup', () async {
+    await expectLater(
+      TenantResolver.resolveByTenantId(''),
+      throwsA(
+        isA<TenantConnectionException>().having(
+          (TenantConnectionException e) => e.failure,
+          'failure',
+          TenantConnectionFailure.notFound,
+        ),
+      ),
+    );
+  });
+
+  test('opening an organisation without a platform-admin session is rejected', () async {
+    await expectLater(
+      TenantFirebase.enterAsPlatformAdmin('tenant-1'),
+      throwsA(
+        isA<TenantConnectionException>().having(
+          (TenantConnectionException e) => e.failure,
+          'failure',
+          TenantConnectionFailure.unauthorized,
+        ),
+      ),
+    );
   });
 }

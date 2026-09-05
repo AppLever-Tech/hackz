@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/user_model.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/loading/hkz_loading_overlay.dart';
 import '../widgets/auth_page_layout.dart';
@@ -36,6 +37,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _orgCodeController = TextEditingController();
   final FocusNode _orgCodeFocus = FocusNode();
   bool _isLoading = false;
+  bool _platformAdmin = false;
 
   @override
   void initState() {
@@ -94,6 +96,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _handlePostOtpRouting(String phone) async {
     final normalizedPhone = normalizePhoneE164(phone);
+    if (_platformAdmin) {
+      await _handlePlatformAdminRouting(normalizedPhone);
+      return;
+    }
+
     // Profile lookup is on the resolved tenant Firestore only — never Control Plane.
     final user = await FirestoreUtils.fetchUserByPhone(normalizedPhone);
     if (!mounted) return;
@@ -135,7 +142,44 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
+  Future<void> _handlePlatformAdminRouting(String phone) async {
+    final user = await FirestoreUtils.fetchUserByPhone(
+      phone,
+      database: HackzFirebase.controlPlane.firestore,
+    );
+    if (!mounted) return;
+
+    final bool isSysAdmin = user != null &&
+        UserRole.fromCode(user.role) == UserRole.sysAdmin;
+    if (!isSysAdmin) {
+      final whitelist = await AuthUtils.checkControlPlaneWhitelist(phone);
+      if (whitelist == null) {
+        await HackzFirebase.sessionAuth.signOut();
+        HackzFirebase.endPlatformAdminSession();
+        await LastOrganisationCodeStore.clearPlatformAdminSession();
+        if (!mounted) return;
+        FeedbackService.showError(
+          context,
+          title: 'Unable to sign in',
+          message: 'This number isn’t authorised for platform administration.',
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthGate()),
+      (_) => false,
+    );
+  }
+
   Future<void> _onContinue() async {
+    if (_platformAdmin) {
+      await _onPlatformAdminContinue();
+      return;
+    }
+
     final String? organisationCode = OrganisationCode.tryParse(_orgCodeController.text);
     if (organisationCode == null) {
       FeedbackService.showWarning(
@@ -159,6 +203,7 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = true);
     bool connected = false;
     try {
+      HackzFirebase.endPlatformAdminSession();
       HkzLoadingOverlay.show(
         context,
         title: 'Signing in',
@@ -204,33 +249,97 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
+  Future<void> _onPlatformAdminContinue() async {
+    if (!isValidPhoneInput(_phoneController.text)) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Invalid phone number',
+        message: 'Enter a valid 10-digit phone number',
+      );
+      return;
+    }
+
+    final String phone = normalizePhoneE164(_phoneController.text);
+    setState(() => _isLoading = true);
+    try {
+      if (HackzFirebase.isTenantBound) {
+        await TenantFirebase.disconnect();
+      }
+      HackzFirebase.beginPlatformAdminSession();
+      await LastOrganisationCodeStore.savePlatformAdminSession();
+      await AuthUtils.sendOtp(phone: phone, onCodeSent: () {});
+      if (!mounted) return;
+      if (HackzFirebase.sessionAuth.currentUser != null) {
+        await _handlePostOtpRouting(phone);
+        return;
+      }
+      _openOtp(phone);
+    } catch (e) {
+      HackzFirebase.endPlatformAdminSession();
+      await LastOrganisationCodeStore.clearPlatformAdminSession();
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Sign in failed',
+        message: '$e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthPageLayout(
-      title: 'Sign in',
-      subtitle: 'Enter your mobile number and organisation code',
+      title: _platformAdmin ? 'Platform Admin' : 'Sign in',
+      subtitle: _platformAdmin
+          ? 'Enter your mobile number'
+          : 'Enter your mobile number and organisation code',
       formContent: Column(
         children: <Widget>[
           PhoneNumberField(
             controller: _phoneController,
             autofocus: true,
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _orgCodeFocus.requestFocus(),
+            textInputAction: _platformAdmin ? TextInputAction.done : TextInputAction.next,
+            onSubmitted: (_) => _platformAdmin ? _onContinue() : _orgCodeFocus.requestFocus(),
             decoration: AuthTheme.filledField(
               prefixIcon: const Icon(Icons.phone_android_outlined),
             ),
           ),
-          const SizedBox(height: 12),
-          OrganisationCodeField(
-            controller: _orgCodeController,
-            focusNode: _orgCodeFocus,
-            onSubmitted: (_) => _onContinue(),
-          ),
+          if (!_platformAdmin) ...<Widget>[
+            const SizedBox(height: 12),
+            OrganisationCodeField(
+              controller: _orgCodeController,
+              focusNode: _orgCodeFocus,
+              onSubmitted: (_) => _onContinue(),
+            ),
+          ],
           const SizedBox(height: 10),
           const Text(
             'We’ll send a verification code to this number',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF595E80)),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _isLoading
+                ? null
+                : () => setState(() => _platformAdmin = !_platformAdmin),
+            style: TextButton.styleFrom(
+              foregroundColor: AuthTheme.muted,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: Text(
+              _platformAdmin ? 'Use organisation login' : 'Platform Admin',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

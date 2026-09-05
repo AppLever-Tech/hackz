@@ -16,7 +16,7 @@ import 'package:hackz/core/firebase/hackz_firebase.dart';
 class AuthUtils {
   AuthUtils._();
 
-  static FirebaseAuth get _auth => HackzFirebase.current.auth;
+  static FirebaseAuth get _auth => HackzFirebase.sessionAuth;
 
   static String? _verificationId;
   static ConfirmationResult? _webConfirmationResult;
@@ -27,6 +27,13 @@ class AuthUtils {
 
   static Future<Map<String, dynamic>?> checkWhitelist(String phone) {
     return FirestoreUtils.fetchWhitelistEntry(normalizePhoneE164(phone));
+  }
+
+  static Future<Map<String, dynamic>?> checkControlPlaneWhitelist(String phone) {
+    return FirestoreUtils.fetchWhitelistEntry(
+      normalizePhoneE164(phone),
+      database: HackzFirebase.controlPlane.firestore,
+    );
   }
 
   static Future<void> ensureSysAdminUserFromWhitelist({
@@ -55,6 +62,9 @@ class AuthUtils {
     await FirestoreUtils.ensureWhitelistedSysAdminProfile(
       firebaseAuthUid: uid,
       profile: user,
+      database: HackzFirebase.isPlatformAdminSession
+          ? HackzFirebase.controlPlane.firestore
+          : null,
     );
     // First SysAdmin bootstrap: copy bundled App Metadata defaults into Firestore.
     await AppMetadataService.ensureSeeded();

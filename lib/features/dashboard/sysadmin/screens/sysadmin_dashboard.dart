@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/app_metadata/screens/app_metadata_management_screen.dart';
-import '../../chrome/dashboard_page_template.dart';
-import '../../chrome/dashboard_components.dart';
+import '../../../../features/idea/screens/ideas_list_screen.dart';
+import '../../../../features/idea/services/idea_role_config.dart';
+import '../../../../features/org_settings/collegeadmin/org_settings_dashboard.dart';
+import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
+import '../../../../features/problems/services/problem_role_config.dart';
 import '../../../../features/sysadmin/onboarding/screens/organisations_onboarding_console.dart';
+import '../../chrome/dashboard_components.dart';
+import '../../chrome/dashboard_page_template.dart';
+import '../../collegeadmin/screens/manage_college_screen.dart';
 import '../services/sysadmin_dashboard_service.dart';
 import '../widgets/innovation_funnel_widget.dart';
 import '../widgets/organization_analytics_chart.dart';
@@ -22,31 +29,114 @@ import '../../../../core/responsive/responsive_metric_grid.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../widgets/recent_platform_activity_card.dart';
 
-class SysAdminDashboard extends StatelessWidget {
+class SysAdminDashboard extends StatefulWidget {
   const SysAdminDashboard({super.key, required this.user});
 
   final UserModel user;
 
   @override
+  State<SysAdminDashboard> createState() => _SysAdminDashboardState();
+}
+
+class _SysAdminDashboardState extends State<SysAdminDashboard> {
+  bool _returnToOrganisations = false;
+
+  static const List<DashboardMenuItem> _tenantMenus = <DashboardMenuItem>[
+    DashboardMenuItem(label: 'Manage College', icon: AppIcons.organizations),
+    DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
+    DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
+    DashboardMenuItem(label: 'Org Settings', icon: AppIcons.orgSettings),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    HackzFirebase.tenantGeneration.addListener(_onTenantGeneration);
+  }
+
+  @override
+  void dispose() {
+    HackzFirebase.tenantGeneration.removeListener(_onTenantGeneration);
+    super.dispose();
+  }
+
+  void _onTenantGeneration() {
+    final bool inTenant =
+        HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound;
+    if (!inTenant) {
+      _returnToOrganisations = true;
+    }
+    if (mounted) setState(() {});
+  }
+
+  UserModel get _tenantScopedUser {
+    final String orgId = HackzFirebase.current.context.organisationId;
+    return widget.user.copyWith(
+      orgId: orgId,
+      organisationName: HackzFirebase.current.context.organisationName,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (UserRole.fromCode(user.role) != UserRole.sysAdmin) {
+    if (UserRole.fromCode(widget.user.role) != UserRole.sysAdmin) {
       return const Scaffold(
         body: Center(child: Text('Access denied: SysAdmin only')),
       );
     }
 
+    final bool inTenant =
+        HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound;
+
     return DashboardPageTemplate(
-      user: user,
+      key: ValueKey<bool>(inTenant),
+      user: widget.user,
+      initialPrimaryMenuIndex: !inTenant && _returnToOrganisations ? 1 : 0,
+      primaryMenusOverride: inTenant ? _tenantMenus : null,
       bodyBuilder: (BuildContext context, int refreshToken, int selectedMenuIndex) {
+        if (inTenant) {
+          return _tenantBody(refreshToken, selectedMenuIndex);
+        }
         if (selectedMenuIndex == 2) {
           return AppMetadataManagementScreen(key: ValueKey<int>(refreshToken));
         }
         if (selectedMenuIndex == 1) {
-          return OrganisationsOnboardingConsole(key: ValueKey<int>(refreshToken), refreshToken: refreshToken);
+          return OrganisationsOnboardingConsole(
+            key: ValueKey<int>(refreshToken),
+            refreshToken: refreshToken,
+          );
         }
         return _SysAdminOverview(refreshToken: refreshToken);
       },
     );
+  }
+
+  Widget _tenantBody(int refreshToken, int selectedMenuIndex) {
+    final UserModel scoped = _tenantScopedUser;
+    switch (selectedMenuIndex) {
+      case 1:
+        return ProblemStatementsTableScreen(
+          key: ValueKey<int>(refreshToken),
+          currentUser: scoped,
+          config: ProblemRoleConfig.configFor(UserRole.collegeAdmin, scoped),
+        );
+      case 2:
+        return IdeasListScreen(
+          key: ValueKey<int>(refreshToken),
+          currentUser: scoped,
+          config: IdeaRoleConfig.configFor(UserRole.collegeAdmin, scoped),
+        );
+      case 3:
+        return OrgSettingsDashboard(
+          key: ValueKey<int>(refreshToken),
+          user: scoped,
+        );
+      default:
+        return ManageCollegeScreen(
+          key: ValueKey<int>(refreshToken),
+          user: scoped,
+        );
+    }
   }
 }
 

@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 import '../models/enums/account_workspace_phase.dart';
+import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
@@ -58,6 +60,10 @@ class AuthStatusResolver {
   }
 
   static Future<UserModel?> resolveSignedInUser(User firebaseUser) async {
+    if (HackzFirebase.isPlatformAdminSession) {
+      return _resolvePlatformAdmin(firebaseUser);
+    }
+
     final byUid = await FirestoreUtils.fetchUser(firebaseUser.uid);
     if (byUid != null) {
       await _ensureOrgSettingsForSession(byUid);
@@ -88,6 +94,39 @@ class AuthStatusResolver {
       return created;
     }
     return null;
+  }
+
+  static Future<UserModel?> _resolvePlatformAdmin(User firebaseUser) async {
+    final db = HackzFirebase.controlPlane.firestore;
+    final UserModel? byUid = await FirestoreUtils.fetchUser(
+      firebaseUser.uid,
+      database: db,
+    );
+    if (byUid != null) {
+      return UserRole.fromCode(byUid.role) == UserRole.sysAdmin ? byUid : null;
+    }
+
+    final String? phone = firebaseUser.phoneNumber;
+    if (phone == null || phone.trim().isEmpty) return null;
+    final String normalized = normalizePhoneE164(phone);
+    final UserModel? byPhone = await FirestoreUtils.fetchUserByPhone(
+      normalized,
+      database: db,
+    );
+    if (byPhone != null) {
+      return UserRole.fromCode(byPhone.role) == UserRole.sysAdmin ? byPhone : null;
+    }
+
+    final Map<String, dynamic>? whitelist = await AuthUtils.checkControlPlaneWhitelist(normalized);
+    if (whitelist == null) return null;
+
+    await AuthUtils.ensureSysAdminUserFromWhitelist(
+      firebaseAuthUid: firebaseUser.uid,
+      phone: normalized,
+      whitelist: whitelist,
+    );
+    return await FirestoreUtils.fetchUser(firebaseUser.uid, database: db) ??
+        await FirestoreUtils.fetchUserByPhone(normalized, database: db);
   }
 
   /// One load per login for org-scoped roles. Memory cache is kept until logout.

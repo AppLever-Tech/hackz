@@ -20,6 +20,9 @@ class FirestoreUtils {
 
   static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
+  static FirebaseFirestore _store(FirebaseFirestore? database) =>
+      database ?? HackzFirebase.current.firestore;
+
   static const String hkzUsers = 'hkzUsers';
   static const String hkzOrganizations = 'hkzOrganizations';
   static const String hkzSysAdminWhitelist = 'hkzSysAdminWhitelist';
@@ -67,16 +70,23 @@ class FirestoreUtils {
     );
   }
 
-  static Future<UserModel?> fetchUser(String userId) async {
-    final doc = await _db.collection(hkzUsers).doc(userId).get();
+  static Future<UserModel?> fetchUser(
+    String userId, {
+    FirebaseFirestore? database,
+  }) async {
+    final doc = await _store(database).collection(hkzUsers).doc(userId).get();
     if (!doc.exists || doc.data() == null) return null;
     return UserModel.fromMap(doc.data()!).copyWith(userId: doc.id);
   }
 
-  static Future<UserModel?> fetchUserByPhone(String phone) async {
+  static Future<UserModel?> fetchUserByPhone(
+    String phone, {
+    FirebaseFirestore? database,
+  }) async {
     final normalizedPhone = normalizePhoneE164(phone);
+    final FirebaseFirestore db = _store(database);
 
-    final hkzQuery = await _db
+    final hkzQuery = await db
         .collection(hkzUsers)
         .where('phone', isEqualTo: normalizedPhone)
         .limit(1)
@@ -108,17 +118,19 @@ class FirestoreUtils {
   static Future<void> ensureWhitelistedSysAdminProfile({
     required String firebaseAuthUid,
     required UserModel profile,
+    FirebaseFirestore? database,
   }) async {
     final uid = firebaseAuthUid.trim();
     if (uid.isEmpty) return;
+    final FirebaseFirestore db = _store(database);
 
     final normalizedPhone = normalizePhoneE164(profile.phone);
     if (normalizedPhone.isEmpty) return;
 
-    if ((await fetchUserByPhone(normalizedPhone)) != null) return;
+    if ((await fetchUserByPhone(normalizedPhone, database: db)) != null) return;
 
-    await _db.runTransaction((Transaction txn) async {
-      final userRef = _db.collection(hkzUsers).doc(uid);
+    await db.runTransaction((Transaction txn) async {
+      final userRef = db.collection(hkzUsers).doc(uid);
       final byUid = await txn.get(userRef);
       if (byUid.exists) return;
 
@@ -165,8 +177,11 @@ class FirestoreUtils {
     return null;
   }
 
-  static Future<Map<String, dynamic>?> fetchWhitelistEntry(String phone) async {
-    final query = await _db
+  static Future<Map<String, dynamic>?> fetchWhitelistEntry(
+    String phone, {
+    FirebaseFirestore? database,
+  }) async {
+    final query = await _store(database)
         .collection(hkzSysAdminWhitelist)
         .where('phone', isEqualTo: phone)
         .where('isActive', isEqualTo: true)

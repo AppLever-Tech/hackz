@@ -38,12 +38,17 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _prepareSession() async {
-    final String? lastCode = await LastOrganisationCodeStore.read();
-    if (lastCode != null && !HackzFirebase.isTenantBound) {
-      try {
-        await TenantFirebase.connect(lastCode);
-      } catch (_) {
-        // Last code is a convenience. Failed restore still shows landing.
+    final bool platformAdmin = await LastOrganisationCodeStore.isPlatformAdminSession();
+    if (platformAdmin) {
+      HackzFirebase.beginPlatformAdminSession();
+    } else {
+      final String? lastCode = await LastOrganisationCodeStore.read();
+      if (lastCode != null && !HackzFirebase.isTenantBound) {
+        try {
+          await TenantFirebase.connect(lastCode);
+        } catch (_) {
+          // Last code is a convenience. Failed restore still shows landing.
+        }
       }
     }
     if (!mounted) return;
@@ -59,7 +64,7 @@ class _AuthGateState extends State<AuthGate> {
 
   void _listenAuth() {
     _authSub?.cancel();
-    _authSub = HackzFirebase.current.auth.authStateChanges().listen((User? user) {
+    _authSub = HackzFirebase.sessionAuth.authStateChanges().listen((User? user) {
       if (user == null) {
         WorkspaceController.instance.close();
         OrgSettingsService.instance.clearCache();
@@ -88,7 +93,7 @@ class _AuthGateState extends State<AuthGate> {
       valueListenable: HackzFirebase.generation,
       builder: (BuildContext context, int _, Widget? __) {
         return StreamBuilder<User?>(
-          stream: HackzFirebase.current.auth.authStateChanges(),
+          stream: HackzFirebase.sessionAuth.authStateChanges(),
           builder: (BuildContext context, AsyncSnapshot<User?> authSnapshot) {
             if (authSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
@@ -139,10 +144,12 @@ class _AuthGateState extends State<AuthGate> {
                   );
                 }
 
-                FirestoreUtils.syncAuthUserMirror(
-                  firebaseAuthUid: firebaseUser.uid,
-                  profile: appUser,
-                );
+                if (!HackzFirebase.isPlatformAdminSession || !HackzFirebase.isTenantBound) {
+                  FirestoreUtils.syncAuthUserMirror(
+                    firebaseAuthUid: firebaseUser.uid,
+                    profile: appUser,
+                  );
+                }
 
                 if (appUser.status != UserStatus.active) {
                   return AccountStatusWorkspace(

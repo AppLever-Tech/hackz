@@ -23,4 +23,18 @@ void main() {
   test('returns null when nothing has been saved', () async {
     expect(await LastOrganisationCodeStore.read(), isNull);
   });
+
+  test('platform admin session is remembered separately from organisation code', () async {
+    await LastOrganisationCodeStore.save('HKZ-S7K4PM');
+    await LastOrganisationCodeStore.savePlatformAdminSession();
+    expect(await LastOrganisationCodeStore.isPlatformAdminSession(), isTrue);
+    expect(await LastOrganisationCodeStore.read(), 'HKZ-S7K4PM');
+
+    await LastOrganisationCodeStore.save('HKZ-S7K4PM');
+    expect(await LastOrganisationCodeStore.isPlatformAdminSession(), isFalse);
+
+    await LastOrganisationCodeStore.savePlatformAdminSession();
+    await LastOrganisationCodeStore.clearPlatformAdminSession();
+    expect(await LastOrganisationCodeStore.isPlatformAdminSession(), isFalse);
+  });
 }

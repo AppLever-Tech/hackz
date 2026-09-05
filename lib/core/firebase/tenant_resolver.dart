@@ -50,6 +50,25 @@ abstract final class TenantResolver {
       throw const TenantConnectionException(TenantConnectionFailure.conflict);
     }
 
+    return _validatedContext(record);
+  }
+
+  /// Resolves an active, approved tenant by Control Plane registry id.
+  ///
+  /// Used by SysAdmin organisation access. Does not treat the organisation
+  /// code as an authorization secret.
+  static Future<TenantContext> resolveByTenantId(String tenantId) async {
+    final String id = tenantId.trim();
+    if (id.isEmpty) {
+      throw const TenantConnectionException(TenantConnectionFailure.notFound);
+    }
+
+    await ApprovedTenantFirebase.refresh();
+    final TenantRecord? record = await TenantRegistry.fetchByTenantId(id);
+    return _validatedContext(record);
+  }
+
+  static Future<TenantContext> _validatedContext(TenantRecord? record) async {
     if (record == null) {
       throw const TenantConnectionException(TenantConnectionFailure.notFound);
     }
@@ -61,11 +80,15 @@ abstract final class TenantResolver {
     if (options == null) {
       throw const TenantConnectionException(TenantConnectionFailure.unapproved);
     }
+    return _contextFrom(record, options);
+  }
 
+  static TenantContext _contextFrom(TenantRecord record, FirebaseOptions options) {
     return TenantContext(
       tenantId: record.tenantId,
       organisationCode: record.organisationCode,
       organisationName: record.organisationName,
+      organisationId: record.organisationId,
       firebaseAppName: TenantFirebase.appNameFor(
         tenantId: record.tenantId,
         projectId: record.firebaseProjectId,

@@ -20,6 +20,7 @@ import 'dashboard_components.dart';
 import 'dashboard_session_scope.dart';
 import 'package:hackz/core/workspace/workspace_controller.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class DashboardPageTemplate extends StatefulWidget {
@@ -28,6 +29,7 @@ class DashboardPageTemplate extends StatefulWidget {
     required this.user,
     required this.bodyBuilder,
     this.primaryMenusOverride,
+    this.initialPrimaryMenuIndex = 0,
   });
 
   final UserModel user;
@@ -40,14 +42,22 @@ class DashboardPageTemplate extends StatefulWidget {
   /// When set, replaces the role-default primary navigation items.
   final List<DashboardMenuItem>? primaryMenusOverride;
 
+  final int initialPrimaryMenuIndex;
+
   @override
   State<DashboardPageTemplate> createState() => _DashboardPageTemplateState();
 }
 
 class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   int _refreshToken = 0;
-  int _selectedPrimaryMenuIndex = 0;
+  late int _selectedPrimaryMenuIndex;
   final DashboardChromeController _chromeController = DashboardChromeController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPrimaryMenuIndex = widget.initialPrimaryMenuIndex;
+  }
 
   @override
   void dispose() {
@@ -80,7 +90,9 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
         widget.primaryMenusOverride ?? menuConfig.primaryMenus;
     final String selectedMenuTitle = primaryMenus[_selectedPrimaryMenuIndex].label;
     final IconData selectedMenuIcon = primaryMenus[_selectedPrimaryMenuIndex].icon;
-    final bool isDashboardTab = _selectedPrimaryMenuIndex == 0;
+    final bool isDashboardTab = _selectedPrimaryMenuIndex == 0 &&
+        primaryMenus.isNotEmpty &&
+        primaryMenus.first.label == 'Dashboard';
 
     return DashboardSessionScope(
       user: widget.user,
@@ -88,7 +100,10 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
       child: DashboardChromeScope(
         controller: _chromeController,
         child: ListenableBuilder(
-          listenable: _chromeController,
+          listenable: Listenable.merge(<Listenable>[
+            _chromeController,
+            HackzFirebase.tenantGeneration,
+          ]),
           builder: (BuildContext context, Widget? child) {
             return ResponsiveDashboardLayout(
             primaryMenus: primaryMenus,
@@ -105,7 +120,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
             header: DashboardPageHeader(
               title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
-              contextPills: _chromeController.headerContextPills,
+              contextPills: _headerPills(),
               user: widget.user,
               onLogout: () => _logout(context),
               onUserTap: () => WorkspaceNavigator.openUser(
@@ -116,7 +131,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
               helpPageId: isDashboardTab
                   ? null
                   : DocsRegistry.helpPageForContext(selectedMenuTitle),
-              titleActions: _titleActionsFor(
+              titleActions: _combinedTitleActions(
                 context,
                 role: role,
                 selectedMenuTitle: selectedMenuTitle,
@@ -139,12 +154,83 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     );
   }
 
+  List<PageHeaderContextItem> _headerPills() {
+    final List<PageHeaderContextItem> pills =
+        List<PageHeaderContextItem>.from(_chromeController.headerContextPills);
+    if (HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound) {
+      final String name = HackzFirebase.current.context.organisationName.trim();
+      if (name.isNotEmpty &&
+          !pills.any((PageHeaderContextItem item) => item.kind == PageHeaderContextKind.organization)) {
+        pills.insert(0, PageHeaderContextItem.organization(name));
+      }
+    }
+    return pills;
+  }
+
+  Widget? _combinedTitleActions(
+    BuildContext context, {
+    required UserRole role,
+    required String selectedMenuTitle,
+  }) {
+    final Widget? menuActions = _titleActionsFor(
+      context,
+      role: role,
+      selectedMenuTitle: selectedMenuTitle,
+    );
+    final bool showPlatformBack =
+        HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound;
+    if (!showPlatformBack) return menuActions;
+
+    final bool compact = MediaQuery.sizeOf(context).width < 640;
+    final Widget back = TextButton.icon(
+      onPressed: () async {
+        WorkspaceController.instance.close();
+        _chromeController.clearOverlay();
+        OrgSettingsService.instance.clearCache();
+        SysAdminDashboardService.clearCache();
+        DepartmentDashboardService.clearCache();
+        TeamsWorkspaceService.clearCache();
+        CoordinatorDashboardService.clearCache();
+        JudgeEvaluationService.clearCache();
+        await TenantFirebase.returnToControlPlane();
+      },
+      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+      label: Text(
+        compact ? 'Platform' : 'Platform console',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        foregroundColor: const Color(0xFF4338CA),
+      ),
+    );
+
+    if (menuActions == null) return back;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        back,
+        const SizedBox(width: 4),
+        menuActions,
+      ],
+    );
+  }
+
   Widget? _titleActionsFor(
     BuildContext context, {
     required UserRole role,
     required String selectedMenuTitle,
   }) {
     if (selectedMenuTitle != 'Problem Statements') return null;
+    if (HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound) {
+      return DomainsHeaderAction(
+        onPressed: () => showCollegeDomainManagementDialog(
+          context: context,
+          orgId: HackzFirebase.current.context.organisationId,
+        ),
+      );
+    }
     if (role == UserRole.departmentAdmin) {
       return DomainsHeaderAction(
         onPressed: () => showDeptDomainManagementDialog(

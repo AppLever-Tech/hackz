@@ -24,9 +24,14 @@ class HackzFirebase {
 
   static HackzFirebase? _current;
   static HackzFirebase? _controlPlane;
+  static bool _platformAdminSession = false;
 
-  /// Increments when [bind] or [bindControlPlane] changes the active app.
+  /// Increments when the signed-in Auth app changes (college connect / logout).
   static final ValueNotifier<int> generation = ValueNotifier<int>(0);
+
+  /// Increments when [current] is rebound for data access, including SysAdmin
+  /// organisation switching that must not remount [AuthGate].
+  static final ValueNotifier<int> tenantGeneration = ValueNotifier<int>(0);
 
   static HackzFirebase get current {
     final HackzFirebase? bound = _current;
@@ -58,6 +63,26 @@ class HackzFirebase {
     return bound.context.organisationCode.isNotEmpty;
   }
 
+  /// True while a SysAdmin is signed in on Control Plane Auth.
+  static bool get isPlatformAdminSession => _platformAdminSession;
+
+  /// Auth that owns the signed-in Hackz session (OTP / AuthGate).
+  ///
+  /// College users: [current]. Platform SysAdmin: Control Plane, even when
+  /// [current] is rebound to a tenant for organisation data.
+  static FirebaseAuth get sessionAuth {
+    if (_platformAdminSession) return controlPlane.auth;
+    return current.auth;
+  }
+
+  static void beginPlatformAdminSession() {
+    _platformAdminSession = true;
+  }
+
+  static void endPlatformAdminSession() {
+    _platformAdminSession = false;
+  }
+
   FirebaseAuth get auth => FirebaseAuth.instanceFor(app: app);
   FirebaseFirestore get firestore => FirebaseFirestore.instanceFor(app: app);
   FirebaseStorage get storage => FirebaseStorage.instanceFor(app: app);
@@ -66,11 +91,17 @@ class HackzFirebase {
   static void bindControlPlane(TenantContext context, {FirebaseApp? app}) {
     _controlPlane = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
     generation.value++;
+    tenantGeneration.value++;
   }
 
   /// Binds the active tenant app. Does not replace [controlPlane].
-  static void bind(TenantContext context, {FirebaseApp? app}) {
+  static void bind(
+    TenantContext context, {
+    FirebaseApp? app,
+    bool notifySession = true,
+  }) {
     _current = HackzFirebase._(context, app ?? Firebase.app(context.firebaseAppName));
-    generation.value++;
+    tenantGeneration.value++;
+    if (notifySession) generation.value++;
   }
 }

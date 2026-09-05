@@ -5,9 +5,11 @@ import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
+import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/loading/hkz_loading_overlay.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
-import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../features/org_settings/services/org_settings_service.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
@@ -56,6 +58,38 @@ class OrganisationOnboardingCard extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
       await FeedbackService.showError(context, title: 'Unable to connect', message: '$e');
+    }
+  }
+
+  Future<void> _openOrganisation(BuildContext context) async {
+    final String? tenantId = item.tenant?.tenantId;
+    if (tenantId == null || tenantId.isEmpty || !item.isComplete) return;
+    try {
+      HkzLoadingOverlay.show(
+        context,
+        title: 'Opening organisation',
+        message: item.name,
+      );
+      await TenantFirebase.enterAsPlatformAdmin(tenantId);
+      OrgSettingsService.instance.clearCache();
+      if (!context.mounted) return;
+      HkzLoadingOverlay.hide();
+    } on TenantConnectionException catch (e) {
+      HkzLoadingOverlay.hide();
+      if (!context.mounted) return;
+      await FeedbackService.showError(
+        context,
+        title: 'Unable to open organisation',
+        message: e.message,
+      );
+    } catch (e) {
+      HkzLoadingOverlay.hide();
+      if (!context.mounted) return;
+      await FeedbackService.showError(
+        context,
+        title: 'Unable to open organisation',
+        message: '$e',
+      );
     }
   }
 
@@ -223,6 +257,22 @@ class OrganisationOnboardingCard extends StatelessWidget {
                     color: item.isComplete ? const Color(0xFF10B981) : const Color(0xFF6A38FF),
                   ),
                 ),
+                if (item.isComplete) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.icon(
+                      onPressed: () => _openOrganisation(context),
+                      icon: const Icon(AppIcons.openInNew, size: 16),
+                      label: const Text('Open organisation'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A38FF),
+                        foregroundColor: Colors.white,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
                 if (!item.isComplete) ...<Widget>[
                   const SizedBox(height: 12),
                   Align(

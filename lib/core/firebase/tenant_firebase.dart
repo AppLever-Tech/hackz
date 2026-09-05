@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import 'approved_tenant_firebase.dart';
 import 'hackz_firebase.dart';
+import 'last_organisation_code_store.dart';
 import 'tenant_connection_exception.dart';
 import 'tenant_context.dart';
 import 'tenant_resolver.dart';
@@ -74,15 +75,42 @@ abstract final class TenantFirebase {
 
   /// Resolves [organisationCode] from the Control Plane registry, validates the
   /// tenant, initializes its Firebase app, and binds [HackzFirebase.current].
-  static Future<TenantContext> connect(String organisationCode) async {
+  static Future<TenantContext> connect(
+    String organisationCode, {
+    bool notifySession = true,
+  }) async {
     final TenantContext context = await TenantResolver.resolveByOrganisationCode(organisationCode);
+    return _bind(context, notifySession: notifySession);
+  }
+
+  /// SysAdmin organisation access: bind tenant data without changing Control Plane Auth.
+  static Future<TenantContext> enterAsPlatformAdmin(String tenantId) async {
+    if (!HackzFirebase.isPlatformAdminSession) {
+      throw const TenantConnectionException(TenantConnectionFailure.unauthorized);
+    }
+    if (HackzFirebase.controlPlane.auth.currentUser == null) {
+      throw const TenantConnectionException(TenantConnectionFailure.unavailable);
+    }
+    final TenantContext context = await TenantResolver.resolveByTenantId(tenantId);
+    return _bind(context, notifySession: false);
+  }
+
+  /// Restores Control Plane data binding without signing the SysAdmin out.
+  static Future<void> returnToControlPlane() async {
+    await disconnect(notifySession: false);
+  }
+
+  static Future<TenantContext> _bind(
+    TenantContext context, {
+    required bool notifySession,
+  }) async {
     try {
       final FirebaseApp app = await ensureApp(
         tenantId: context.tenantId,
         options: context.firebaseOptions,
       );
       await _releaseOtherTenantApps(keepName: app.name);
-      HackzFirebase.bind(context, app: app);
+      HackzFirebase.bind(context, app: app, notifySession: notifySession);
       return context;
     } on TenantConnectionException {
       rethrow;
@@ -92,11 +120,12 @@ abstract final class TenantFirebase {
   }
 
   /// Restores [HackzFirebase.current] to the Control Plane app.
-  static Future<void> disconnect() async {
+  static Future<void> disconnect({bool notifySession = true}) async {
     await _releaseOtherTenantApps(keepName: HackzFirebase.controlPlane.app.name);
     HackzFirebase.bind(
       HackzFirebase.controlPlane.context,
       app: HackzFirebase.controlPlane.app,
+      notifySession: notifySession,
     );
   }
 
@@ -105,11 +134,14 @@ abstract final class TenantFirebase {
   /// Use this when leaving a tenant session (logout / return to landing).
   /// Do not call it between OTP and Sign Up — that flow stays on the tenant.
   static Future<void> releaseSession() async {
+    final FirebaseAuth auth = HackzFirebase.isBound
+        ? HackzFirebase.sessionAuth
+        : HackzFirebase.controlPlane.auth;
     try {
-      if (HackzFirebase.isBound) {
-        await HackzFirebase.current.auth.signOut();
-      }
+      await auth.signOut();
     } catch (_) {}
+    HackzFirebase.endPlatformAdminSession();
+    await LastOrganisationCodeStore.clearPlatformAdminSession();
     if (HackzFirebase.isTenantBound) {
       await disconnect();
     }

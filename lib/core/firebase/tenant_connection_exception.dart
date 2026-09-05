@@ -6,6 +6,7 @@ enum TenantConnectionFailure {
   unapproved,
   unavailable,
   conflict,
+  unauthorized,
 }
 
 class TenantConnectionException implements Exception {
@@ -29,6 +30,8 @@ class TenantConnectionException implements Exception {
         return 'The organisation workspace is unavailable right now. Try again.';
       case TenantConnectionFailure.conflict:
         return 'This organisation code cannot be used. Contact Hackz support.';
+      case TenantConnectionFailure.unauthorized:
+        return 'Platform administration is required to open this organisation.';
     }
   }
 
