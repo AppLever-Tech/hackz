@@ -24,6 +24,7 @@ void main() {
     bool validated = false,
     bool setup = false,
     bool admin = false,
+    ProvisioningAuthorizationStatus authorization = ProvisioningAuthorizationStatus.required,
   }) {
     return TenantRecord(
       tenantId: 't1',
@@ -36,16 +37,30 @@ void main() {
       firebaseValidated: validated,
       hackzSetupComplete: setup,
       initialAdminConfigured: admin,
+      provisioningAuthorization: authorization,
     );
   }
 
-  test('administrator is optional after checks', () {
+  test('authorization is required after workspace checks', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(
       organization: org(),
       tenant: tenant(projectId: 'hackz-a17b6', validated: true),
     );
-    expect(item.nextStep, OrganisationOnboardingStep.initialAdmin);
+    expect(item.nextStep, OrganisationOnboardingStep.authorization);
     expect(item.completedSteps, 3);
+  });
+
+  test('administrator is optional after authorization', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(
+        projectId: 'hackz-a17b6',
+        validated: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
+      ),
+    );
+    expect(item.nextStep, OrganisationOnboardingStep.initialAdmin);
+    expect(item.completedSteps, 4);
   });
 
   test('progress starts at organisation when tenant is missing', () {
@@ -56,16 +71,17 @@ void main() {
     expect(item.organisationCode, isEmpty);
   });
 
-  test('activate is next only after admin and checks', () {
+  test('activate is next after authorization and optional admin', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(
       organization: org(),
       tenant: tenant(
         projectId: 'hackz-a17b6',
         validated: true,
         admin: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
       ),
     );
-    expect(item.completedSteps, 4);
+    expect(item.completedSteps, 5);
     expect(item.nextStep, OrganisationOnboardingStep.activate);
     expect(item.isComplete, isFalse);
   });
@@ -78,10 +94,11 @@ void main() {
         code: 'HKZ-S7K4PM',
         projectId: 'hackz-a17b6',
         validated: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
       ),
     );
     expect(item.isComplete, isTrue);
-    expect(item.completedSteps, 4);
+    expect(item.completedSteps, 5);
   });
 
   test('active tenant with code is complete', () {
@@ -93,10 +110,11 @@ void main() {
         projectId: 'hackz-a17b6',
         validated: true,
         admin: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
       ),
     );
     expect(item.isComplete, isTrue);
-    expect(item.completedSteps, 5);
+    expect(item.completedSteps, 6);
     expect(item.organisationCode, 'HKZ-S7K4PM');
     expect(item.firebaseStatusLabel, 'Ready');
   });

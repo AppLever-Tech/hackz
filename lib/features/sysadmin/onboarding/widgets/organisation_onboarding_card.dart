@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/firebase/tenant_connection_exception.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/hackz_firebase.dart';
+import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../features/dashboard/chrome/tenant_business_caches.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -217,6 +218,14 @@ class OrganisationOnboardingCard extends StatelessWidget {
                       ready: item.firebaseValidated && item.firebaseConnected,
                       connected: item.firebaseConnected,
                     ),
+                    if (item.firebaseConnected)
+                      WorkspaceConnectionPill(
+                        label: item.tenant?.provisioningAuthorization.label ??
+                            ProvisioningAuthorizationStatus.required.label,
+                        ready: item.authorizationVerified,
+                        connected: item.tenant?.provisioningAuthorization ==
+                            ProvisioningAuthorizationStatus.pending,
+                      ),
                     _MetaChip(
                       icon: AppIcons.orgType,
                       label: item.organization.type.displayName,

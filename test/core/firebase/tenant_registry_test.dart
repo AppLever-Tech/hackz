@@ -25,6 +25,18 @@ void main() {
     expect(TenantStatus.fromWire('nope'), isNull);
   });
 
+  test('ProvisioningAuthorizationStatus parses registry values', () {
+    expect(ProvisioningAuthorizationStatus.fromWire('pending'), ProvisioningAuthorizationStatus.pending);
+    expect(
+      ProvisioningAuthorizationStatus.fromRegistry(raw: null, tenantStatus: TenantStatus.active),
+      ProvisioningAuthorizationStatus.verified,
+    );
+    expect(
+      ProvisioningAuthorizationStatus.fromRegistry(raw: null, tenantStatus: TenantStatus.setup),
+      ProvisioningAuthorizationStatus.required,
+    );
+  });
+
   test('uniqueCodesByOrganisationName keeps one non-inactive tenant per name', () {
     final Map<String, String> codes = TenantRegistry.uniqueCodesByOrganisationName(<TenantRecord>[
       tenant(name: 'Alpha', code: 'HKZ-S7K4PM'),

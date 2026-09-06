@@ -54,4 +54,5 @@ export type ControlPlaneTenant = {
   status: string;
   firebaseValidated: boolean;
   initialAdminConfigured: boolean;
+  provisioningAuthorization: string;
 };

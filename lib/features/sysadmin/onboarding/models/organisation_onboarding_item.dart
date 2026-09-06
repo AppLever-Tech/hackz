@@ -7,6 +7,7 @@ enum OrganisationOnboardingStep {
   organisation,
   firebase,
   validate,
+  authorization,
   initialAdmin,
   activate;
 
@@ -18,6 +19,8 @@ enum OrganisationOnboardingStep {
         return 'Workspace';
       case OrganisationOnboardingStep.validate:
         return 'Checks';
+      case OrganisationOnboardingStep.authorization:
+        return 'Authorization';
       case OrganisationOnboardingStep.initialAdmin:
         return 'Administrator';
       case OrganisationOnboardingStep.activate:
@@ -25,7 +28,7 @@ enum OrganisationOnboardingStep {
     }
   }
 
-  static const int total = 5;
+  static const int total = 6;
 }
 
 class OrganisationOnboardingItem {
@@ -54,6 +57,9 @@ class OrganisationOnboardingItem {
 
   bool get firebaseValidated => tenant?.firebaseValidated ?? false;
 
+  bool get authorizationVerified =>
+      tenant?.provisioningAuthorization == ProvisioningAuthorizationStatus.verified;
+
   bool get initialAdminConfigured =>
       (tenant?.initialAdminConfigured ?? false) || collegeAdmin != null;
 
@@ -69,6 +75,7 @@ class OrganisationOnboardingItem {
     if (organisationReady) count++;
     if (firebaseConnected) count++;
     if (firebaseValidated) count++;
+    if (authorizationVerified) count++;
     if (initialAdminConfigured) count++;
     if (isActivated) count++;
     return count;
@@ -78,6 +85,7 @@ class OrganisationOnboardingItem {
     if (!organisationReady || tenant == null) return OrganisationOnboardingStep.organisation;
     if (!firebaseConnected) return OrganisationOnboardingStep.firebase;
     if (!firebaseValidated) return OrganisationOnboardingStep.validate;
+    if (!authorizationVerified) return OrganisationOnboardingStep.authorization;
     if (!initialAdminConfigured) return OrganisationOnboardingStep.initialAdmin;
     if (!isActivated) return OrganisationOnboardingStep.activate;
     return OrganisationOnboardingStep.activate;

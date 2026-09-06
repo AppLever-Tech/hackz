@@ -73,10 +73,15 @@ abstract final class TenantRegistry {
     await _update(tenantId, <String, dynamic>{
       'firebaseProjectId': projectId,
       if (projectChanged) 'firebaseValidated': false,
+      if (projectChanged)
+        'provisioningAuthorization': ProvisioningAuthorizationStatus.required.wireValue,
     });
     return current.copyWith(
       firebaseProjectId: projectId,
       firebaseValidated: projectChanged ? false : current.firebaseValidated,
+      provisioningAuthorization: projectChanged
+          ? ProvisioningAuthorizationStatus.required
+          : current.provisioningAuthorization,
     );
   }
 
@@ -96,6 +101,17 @@ abstract final class TenantRegistry {
     return _patch(tenantId, <String, dynamic>{'initialAdminConfigured': true}, (TenantRecord r) {
       return r.copyWith(initialAdminConfigured: true);
     });
+  }
+
+  static Future<TenantRecord> setProvisioningAuthorization(
+    String tenantId,
+    ProvisioningAuthorizationStatus authorization,
+  ) {
+    return _patch(
+      tenantId,
+      <String, dynamic>{'provisioningAuthorization': authorization.wireValue},
+      (TenantRecord r) => r.copyWith(provisioningAuthorization: authorization),
+    );
   }
 
   /// Assigns a unique `HKZ-XXXXXX` code and marks the tenant active.

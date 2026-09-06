@@ -53,6 +53,23 @@ npx tsx src/cli.ts \
 
 Prints JSON. Exit `0` on success, `1` on failure. Deploy this folder independently as a one-shot job (Cloud Run job, VM, or operator laptop). Do not expose HTTP.
 
+## College authorization
+
+The college grants the provisioning identity on **their** Google Cloud project (IAM). Minimum roles:
+
+- `roles/firebaseauth.admin` — Firebase Authentication Admin
+- `roles/datastore.user` — Cloud Datastore User (Firestore). Do **not** grant Storage, Owner, or Editor.
+
+Hackz onboarding has a **College Controls Authorization** step. Validate in the UI confirms the project, Authentication, and Firestore are reachable. This job can re-check the provisioning identity itself:
+
+```bash
+npx tsx src/cli.ts --validate-authorization \
+  --tenant-project-id college-one \
+  --organisation-id <hkzOrganizations-id>
+```
+
+That command does not create users or business data. It writes only Control Plane `provisioningAuthorization` (`verified` or `revoked`).
+
 ## What it will not do
 
 - Organisation logos, admin photos, or any Storage

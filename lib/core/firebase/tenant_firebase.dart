@@ -267,6 +267,11 @@ abstract final class TenantFirebase {
     return a.projectId == b.projectId && a.apiKey == b.apiKey && a.appId == b.appId;
   }
 
+  /// Auth + Firestore reachability for provisioning authorization. No Storage, no writes.
+  static Future<({bool authOk, bool firestoreOk})> pingAuthAndFirestore(FirebaseApp app) async {
+    return (authOk: await _pingAuth(app), firestoreOk: await _pingFirestore(app));
+  }
+
   static Future<bool> _pingAuth(FirebaseApp app) async {
     try {
       await FirebaseAuth.instanceFor(app: app).authStateChanges().first.timeout(const Duration(seconds: 8));

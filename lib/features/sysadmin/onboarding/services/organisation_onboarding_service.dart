@@ -11,6 +11,7 @@ import '../../../org_settings/services/org_settings_service.dart';
 import '../../models/org_operational_data.dart';
 import '../../services/org_management_service.dart';
 import '../models/organisation_onboarding_item.dart';
+import 'provisioning_authorization_validator.dart';
 import 'tenant_workspace_validator.dart';
 
 class OrganisationOnboardingException implements Exception {
@@ -127,11 +128,49 @@ abstract final class OrganisationOnboardingService {
     return TenantRegistry.markFirebaseValidated(tenantId);
   }
 
+  static Future<TenantRecord> markAuthorizationPending(String tenantId) {
+    return TenantRegistry.setProvisioningAuthorization(
+      tenantId,
+      ProvisioningAuthorizationStatus.pending,
+    );
+  }
+
+  static Future<List<TenantWorkspaceCheck>> validateProvisioningAuthorization(
+    String firebaseProjectId,
+  ) {
+    return ProvisioningAuthorizationValidator.validate(firebaseProjectId);
+  }
+
+  static Future<TenantRecord> completeProvisioningAuthorization({
+    required String tenantId,
+    required List<TenantWorkspaceCheck> checks,
+    required ProvisioningAuthorizationStatus previous,
+  }) {
+    if (ProvisioningAuthorizationValidator.allPassed(checks)) {
+      return TenantRegistry.setProvisioningAuthorization(
+        tenantId,
+        ProvisioningAuthorizationStatus.verified,
+      );
+    }
+    final ProvisioningAuthorizationStatus next =
+        previous == ProvisioningAuthorizationStatus.verified
+            ? ProvisioningAuthorizationStatus.revoked
+            : ProvisioningAuthorizationStatus.pending;
+    return TenantRegistry.setProvisioningAuthorization(tenantId, next);
+  }
+
   static Future<TenantRecord> markAdministratorReady(String tenantId) {
     return TenantRegistry.markInitialAdminConfigured(tenantId);
   }
 
   static Future<TenantRecord> activate(String tenantId) async {
+    final TenantRecord current = await TenantRegistry.fetchByTenantId(tenantId) ??
+        (throw const OrganisationOnboardingException('That organisation is no longer in the registry.'));
+    if (current.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+      throw const OrganisationOnboardingException(
+        'The college must authorize Hackz provisioning before activation.',
+      );
+    }
     final TenantRecord tenant = await TenantRegistry.activate(tenantId);
     await _mirrorOrganisationForTenant(tenant);
     return tenant;

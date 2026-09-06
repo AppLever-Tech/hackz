@@ -28,6 +28,47 @@ enum TenantStatus {
   }
 }
 
+/// Control Plane metadata: whether the college has authorized Hackz provisioning.
+enum ProvisioningAuthorizationStatus {
+  required,
+  pending,
+  verified,
+  revoked;
+
+  String get wireValue => name;
+
+  String get label {
+    switch (this) {
+      case ProvisioningAuthorizationStatus.required:
+        return 'Authorization required';
+      case ProvisioningAuthorizationStatus.pending:
+        return 'Authorization pending';
+      case ProvisioningAuthorizationStatus.verified:
+        return 'Authorization verified';
+      case ProvisioningAuthorizationStatus.revoked:
+        return 'Authorization revoked';
+    }
+  }
+
+  static ProvisioningAuthorizationStatus? fromWire(Object? value) {
+    final String normalized = (value as String? ?? '').trim().toLowerCase();
+    for (final ProvisioningAuthorizationStatus status in ProvisioningAuthorizationStatus.values) {
+      if (status.name == normalized) return status;
+    }
+    return null;
+  }
+
+  static ProvisioningAuthorizationStatus fromRegistry({
+    required Object? raw,
+    required TenantStatus tenantStatus,
+  }) {
+    final ProvisioningAuthorizationStatus? parsed = fromWire(raw);
+    if (parsed != null) return parsed;
+    if (tenantStatus == TenantStatus.active) return ProvisioningAuthorizationStatus.verified;
+    return ProvisioningAuthorizationStatus.required;
+  }
+}
+
 /// Platform routing / onboarding record in `hkzTenants`. Not a college business model.
 class TenantRecord {
   const TenantRecord({
@@ -41,6 +82,7 @@ class TenantRecord {
     this.firebaseValidated = false,
     this.hackzSetupComplete = false,
     this.initialAdminConfigured = false,
+    this.provisioningAuthorization = ProvisioningAuthorizationStatus.required,
   });
 
   /// Internal immutable identifier. Never used in URLs or user-facing flows.
@@ -63,6 +105,7 @@ class TenantRecord {
   final bool firebaseValidated;
   final bool hackzSetupComplete;
   final bool initialAdminConfigured;
+  final ProvisioningAuthorizationStatus provisioningAuthorization;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -76,6 +119,7 @@ class TenantRecord {
       'firebaseValidated': firebaseValidated,
       'hackzSetupComplete': hackzSetupComplete,
       'initialAdminConfigured': initialAdminConfigured,
+      'provisioningAuthorization': provisioningAuthorization.wireValue,
     };
   }
 
@@ -95,6 +139,10 @@ class TenantRecord {
       firebaseValidated: map['firebaseValidated'] == true,
       hackzSetupComplete: map['hackzSetupComplete'] == true,
       initialAdminConfigured: map['initialAdminConfigured'] == true,
+      provisioningAuthorization: ProvisioningAuthorizationStatus.fromRegistry(
+        raw: map['provisioningAuthorization'],
+        tenantStatus: status,
+      ),
     );
   }
 
@@ -109,6 +157,7 @@ class TenantRecord {
     bool? firebaseValidated,
     bool? hackzSetupComplete,
     bool? initialAdminConfigured,
+    ProvisioningAuthorizationStatus? provisioningAuthorization,
   }) {
     return TenantRecord(
       tenantId: tenantId ?? this.tenantId,
@@ -121,6 +170,7 @@ class TenantRecord {
       firebaseValidated: firebaseValidated ?? this.firebaseValidated,
       hackzSetupComplete: hackzSetupComplete ?? this.hackzSetupComplete,
       initialAdminConfigured: initialAdminConfigured ?? this.initialAdminConfigured,
+      provisioningAuthorization: provisioningAuthorization ?? this.provisioningAuthorization,
     );
   }
 }

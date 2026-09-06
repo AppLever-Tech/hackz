@@ -16,6 +16,7 @@ function asTenant(id: string, data: DocumentData): ControlPlaneTenant {
     status: String(data.status ?? '').trim().toLowerCase(),
     firebaseValidated: data.firebaseValidated === true,
     initialAdminConfigured: data.initialAdminConfigured === true,
+    provisioningAuthorization: String(data.provisioningAuthorization ?? '').trim().toLowerCase(),
   };
 }
 
@@ -88,7 +89,18 @@ export async function markInitialAdminConfigured(tenantId: string): Promise<void
       {
         initialAdminConfigured: true,
         provisioningAuthorized: true,
+        provisioningAuthorization: 'verified',
       },
       { merge: true },
     );
+}
+
+export async function markProvisioningAuthorization(
+  tenantId: string,
+  status: 'required' | 'pending' | 'verified' | 'revoked',
+): Promise<void> {
+  await controlPlaneFirestore()
+    .collection(HKZ_TENANTS)
+    .doc(tenantId)
+    .set({ provisioningAuthorization: status }, { merge: true });
 }

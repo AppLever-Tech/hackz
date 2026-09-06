@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
+import '../../../../core/firebase/hackz_provisioning_identity.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -23,7 +24,9 @@ import '../../../user/widgets/user_form_section.dart';
 import '../../../user/widgets/user_profile_photo_field.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
+import '../services/provisioning_authorization_validator.dart';
 import '../services/tenant_workspace_validator.dart';
+import '../widgets/college_authorization_panel.dart';
 import '../widgets/copy_organisation_code_button.dart';
 import '../widgets/workspace_check_row.dart';
 import 'register_workspace_dialog.dart';
@@ -57,6 +60,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   String _workspaceId = '';
   List<TenantWorkspaceCheck> _checks = const <TenantWorkspaceCheck>[];
   bool _checksRan = false;
+  List<TenantWorkspaceCheck> _authorizationChecks = const <TenantWorkspaceCheck>[];
+  bool _authorizationRan = false;
+  HackzProvisioningIdentity? _provisioningIdentity;
   bool _busy = false;
   bool _changed = false;
 
@@ -101,6 +107,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     ApprovedTenantFirebase.refresh().then((_) {
       if (mounted) setState(() {});
     });
+    HackzProvisioningIdentity.load().then((HackzProvisioningIdentity identity) {
+      if (mounted) setState(() => _provisioningIdentity = identity);
+    });
     _name.addListener(() {
       if (mounted) setState(() {});
     });
@@ -140,6 +149,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return AppIcons.verification;
       case OrganisationOnboardingStep.validate:
         return AppIcons.checklist;
+      case OrganisationOnboardingStep.authorization:
+        return AppIcons.lock;
       case OrganisationOnboardingStep.initialAdmin:
         return AppIcons.adminProfile;
       case OrganisationOnboardingStep.activate:
@@ -218,6 +229,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           _changed = true;
           _checks = const <TenantWorkspaceCheck>[];
           _checksRan = false;
+          _authorizationChecks = const <TenantWorkspaceCheck>[];
+          _authorizationRan = false;
           _step = OrganisationOnboardingStep.validate;
         case OrganisationOnboardingStep.validate:
           final TenantRecord? tenant = _tenant;
@@ -248,6 +261,45 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             tenantId: tenant.tenantId,
             checks: _checks,
           );
+          _changed = true;
+          _step = OrganisationOnboardingStep.authorization;
+        case OrganisationOnboardingStep.authorization:
+          final TenantRecord? tenant = _tenant;
+          if (tenant == null) {
+            throw const OrganisationOnboardingException('Connect a workspace first.');
+          }
+          if (tenant.provisioningAuthorization == ProvisioningAuthorizationStatus.required) {
+            _tenant = await OrganisationOnboardingService.markAuthorizationPending(tenant.tenantId);
+          }
+          if (!mounted) return;
+          if (!_authorizationRan ||
+              !ProvisioningAuthorizationValidator.allPassed(_authorizationChecks)) {
+            final List<TenantWorkspaceCheck> checks =
+                await HkzAsyncLoader.run<List<TenantWorkspaceCheck>>(
+              context,
+              title: 'Validate authorization',
+              message: 'Checking provisioning access...',
+              successMessage: 'Authorization checks completed',
+              successHold: const Duration(milliseconds: 900),
+              task: () {
+                return OrganisationOnboardingService.validateProvisioningAuthorization(_workspaceId);
+              },
+            );
+            _authorizationChecks = checks;
+            _authorizationRan = true;
+            _tenant = await OrganisationOnboardingService.completeProvisioningAuthorization(
+              tenantId: tenant.tenantId,
+              checks: checks,
+              previous: (_tenant ?? tenant).provisioningAuthorization,
+            );
+            _changed = true;
+            return;
+          }
+          if (_tenant?.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+            throw const OrganisationOnboardingException(
+              'The college must authorize Hackz provisioning before continuing.',
+            );
+          }
           _changed = true;
           _step = OrganisationOnboardingStep.initialAdmin;
         case OrganisationOnboardingStep.initialAdmin:
@@ -352,6 +404,11 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return 'Connect workspace';
       case OrganisationOnboardingStep.validate:
         return _checksRan && TenantWorkspaceValidator.allPassed(_checks) ? 'Continue' : 'Run checks';
+      case OrganisationOnboardingStep.authorization:
+        return _authorizationRan &&
+                ProvisioningAuthorizationValidator.allPassed(_authorizationChecks)
+            ? 'Continue'
+            : 'Validate authorization';
       case OrganisationOnboardingStep.initialAdmin:
         return 'Continue';
       case OrganisationOnboardingStep.activate:
@@ -427,6 +484,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return _workspaceStep();
       case OrganisationOnboardingStep.validate:
         return _validateStep();
+      case OrganisationOnboardingStep.authorization:
+        return _authorizationStep();
       case OrganisationOnboardingStep.initialAdmin:
         return _adminStep();
       case OrganisationOnboardingStep.activate:
@@ -652,6 +711,52 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             if (i != pending.length - 1) const SizedBox(height: 8),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _authorizationStep() {
+    final List<TenantWorkspaceCheck> pending = _authorizationRan
+        ? _authorizationChecks
+        : const <TenantWorkspaceCheck>[
+            TenantWorkspaceCheck(
+              id: 'project',
+              label: 'Tenant Firebase project',
+              ok: false,
+              detail: 'Not checked yet.',
+            ),
+            TenantWorkspaceCheck(
+              id: 'identity',
+              label: 'Hackz provisioning identity',
+              ok: false,
+              detail: 'Not checked yet.',
+            ),
+            TenantWorkspaceCheck(
+              id: 'auth',
+              label: 'Firebase Authentication',
+              ok: false,
+              detail: 'Not checked yet.',
+            ),
+            TenantWorkspaceCheck(
+              id: 'firestore',
+              label: 'Firestore',
+              ok: false,
+              detail: 'Not checked yet.',
+            ),
+          ];
+    return UserFormSection(
+      title: 'College Controls Authorization',
+      subtitle: 'The college grants Hackz limited provisioning access on its own Firebase project.',
+      child: CollegeAuthorizationPanel(
+        projectId: _workspaceId,
+        identity: _provisioningIdentity ??
+            const HackzProvisioningIdentity(
+              serviceAccountEmail: 'hackz-provisioning@pending.iam.gserviceaccount.com',
+              iamRoles: HackzProvisioningIdentity.minimumIamRoles,
+            ),
+        status: _tenant?.provisioningAuthorization ?? ProvisioningAuthorizationStatus.required,
+        checks: pending,
+        checksRan: _authorizationRan,
       ),
     );
   }

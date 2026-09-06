@@ -97,6 +97,12 @@ export async function provisionTenantAdmin(
       tenantProjectId: input.tenantProjectId,
       organisationId: input.organisationId,
     });
+    if (tenant.provisioningAuthorization === 'revoked') {
+      throw new ProvisionError(
+        'PROVISIONING_NOT_AUTHORIZED',
+        'The college revoked Hackz provisioning access on this Firebase project.',
+      );
+    }
 
     const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
     await assertTenantAuthorized(app);
