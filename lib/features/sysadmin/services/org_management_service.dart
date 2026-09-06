@@ -21,18 +21,30 @@ abstract final class OrgManagementService {
     final entries = await Future.wait(
       organizations.map((OrganizationModel org) async {
         final String tenantId = (tenantIdByOrgId[org.id] ?? '').trim();
-        final departmentCount = (await _departmentsFor(org.id, tenantId)).length;
-        UserModel? collegeAdmin;
-        if (org.type == OrganizationType.college) {
-          collegeAdmin = await fetchCollegeAdmin(org.id, tenantId: tenantId);
+        try {
+          final departmentCount = (await _departmentsFor(org.id, tenantId)).length;
+          UserModel? collegeAdmin;
+          if (org.type == OrganizationType.college) {
+            collegeAdmin = await fetchCollegeAdmin(org.id, tenantId: tenantId);
+          }
+          return MapEntry<String, OrgOperationalData>(
+            org.id,
+            OrgOperationalData(
+              collegeAdmin: collegeAdmin,
+              departmentCount: departmentCount,
+            ),
+          );
+        } on FirebaseException catch (e) {
+          // Tenant peeks use the org project, not Control Plane Auth. A rules
+          // denial must not hide the Control Plane organisation catalog.
+          if (e.code == 'permission-denied') {
+            return MapEntry<String, OrgOperationalData>(
+              org.id,
+              const OrgOperationalData(),
+            );
+          }
+          rethrow;
         }
-        return MapEntry<String, OrgOperationalData>(
-          org.id,
-          OrgOperationalData(
-            collegeAdmin: collegeAdmin,
-            departmentCount: departmentCount,
-          ),
-        );
       }),
     );
     return Map<String, OrgOperationalData>.fromEntries(entries);

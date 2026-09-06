@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../organization/models/organization_model.dart';
@@ -426,12 +428,20 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
         FeedbackService.showError(
           context,
           title: 'Unable to save user',
-          message: '$e',
+          message: _saveUserErrorMessage(e),
         );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String _saveUserErrorMessage(Object error) {
+    final bool denied = error is FirebaseException && error.code == 'permission-denied';
+    if (denied && HackzFirebase.isPlatformAdminSession) {
+      return 'This organisation’s Firestore blocked the write. SysAdmin is signed into the Control Plane, not this tenant’s Auth. In that Firebase project’s console, allow client reads/writes (Hackz does not sign SysAdmin into tenant Auth).';
+    }
+    return '$error';
   }
 
   @override

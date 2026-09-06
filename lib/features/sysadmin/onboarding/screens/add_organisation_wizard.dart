@@ -305,8 +305,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     final String tenantId = (_tenant?.tenantId ?? '').trim();
     final String projectId = (_tenant?.firebaseProjectId ?? '').trim();
     if (tenantId.isEmpty || projectId.isEmpty) return;
+    final String orgId = org.id;
     final uploaded = await TenantFirebase.runAsOrganisation(tenantId, () {
-      return OrgPhotoService.uploadLogo(orgId: org.id, file: _iconFile!);
+      return OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
     });
     org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
     await OrganisationOnboardingService.syncOrganisationDocument(org);
