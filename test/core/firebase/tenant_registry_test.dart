@@ -27,6 +27,12 @@ void main() {
 
   test('ProvisioningAuthorizationStatus parses registry values', () {
     expect(ProvisioningAuthorizationStatus.fromWire('pending'), ProvisioningAuthorizationStatus.pending);
+    expect(ProvisioningAuthorizationStatus.fromWire('authorized'), ProvisioningAuthorizationStatus.verified);
+    expect(ProvisioningAuthorizationStatus.fromWire('verified')?.isAuthorized, isTrue);
+    expect(ProvisioningAuthorizationStatus.required.label, 'Pending');
+    expect(ProvisioningAuthorizationStatus.pending.label, 'Pending');
+    expect(ProvisioningAuthorizationStatus.verified.label, 'Authorized');
+    expect(ProvisioningAuthorizationStatus.revoked.label, 'Revoked');
     expect(
       ProvisioningAuthorizationStatus.fromRegistry(raw: null, tenantStatus: TenantStatus.active),
       ProvisioningAuthorizationStatus.verified,
@@ -35,6 +41,23 @@ void main() {
       ProvisioningAuthorizationStatus.fromRegistry(raw: null, tenantStatus: TenantStatus.setup),
       ProvisioningAuthorizationStatus.required,
     );
+  });
+
+  test('TenantRecord round-trips last authorization validation time', () {
+    final DateTime at = DateTime.utc(2026, 9, 6, 4, 30);
+    final TenantRecord record = TenantRecord(
+      tenantId: 't1',
+      organisationCode: 'HKZ-S7K4PM',
+      organisationName: 'Alpha',
+      firebaseProjectId: 'hackz-a17b6',
+      status: TenantStatus.active,
+      createdAt: DateTime.utc(2026, 1, 1),
+      provisioningAuthorization: ProvisioningAuthorizationStatus.verified,
+      provisioningAuthorizationValidatedAt: at,
+    );
+    final TenantRecord parsed = TenantRecord.fromMap(record.toMap());
+    expect(parsed.provisioningAuthorization.isAuthorized, isTrue);
+    expect(parsed.provisioningAuthorizationValidatedAt?.millisecondsSinceEpoch, at.millisecondsSinceEpoch);
   });
 
   test('uniqueCodesByOrganisationName keeps one non-inactive tenant per name', () {

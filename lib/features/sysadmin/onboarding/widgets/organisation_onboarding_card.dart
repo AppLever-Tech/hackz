@@ -9,6 +9,7 @@ import '../../../../features/dashboard/chrome/tenant_business_caches.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../../core/ui/loading/hkz_loading_overlay.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
@@ -23,6 +24,7 @@ import '../services/organisation_onboarding_service.dart';
 import 'copy_organisation_code_button.dart';
 import 'onboarding_readiness_checklist.dart';
 import 'onboarding_status_pill.dart';
+import 'provisioning_authorization_panel.dart';
 
 class OrganisationOnboardingCard extends StatelessWidget {
   const OrganisationOnboardingCard({
@@ -91,6 +93,30 @@ class OrganisationOnboardingCard extends StatelessWidget {
       await FeedbackService.showError(
         context,
         title: 'Unable to open organisation',
+        message: '$e',
+      );
+    }
+  }
+
+  Future<void> _validateAuthorization(BuildContext context) async {
+    final TenantRecord? tenant = item.tenant;
+    if (tenant == null || tenant.firebaseProjectId.trim().isEmpty) return;
+    try {
+      await HkzAsyncLoader.run<TenantRecord>(
+        context,
+        title: 'Validate authorization',
+        message: 'Checking provisioning access...',
+        successMessage: ProvisioningAuthorizationStatus.verified.lifecycleMessage,
+        successHold: const Duration(milliseconds: 900),
+        task: () => OrganisationOnboardingService.revalidateProvisioningAuthorization(tenant),
+      );
+      onChanged();
+    } catch (e) {
+      onChanged();
+      if (!context.mounted) return;
+      await FeedbackService.showError(
+        context,
+        title: 'Provisioning Authorization',
         message: '$e',
       );
     }
@@ -223,14 +249,6 @@ class OrganisationOnboardingCard extends StatelessWidget {
                       ready: item.firebaseValidated && item.firebaseConnected,
                       connected: item.firebaseConnected,
                     ),
-                    if (item.firebaseConnected)
-                      WorkspaceConnectionPill(
-                        label: item.tenant?.provisioningAuthorization.label ??
-                            ProvisioningAuthorizationStatus.required.label,
-                        ready: item.authorizationVerified,
-                        connected: item.tenant?.provisioningAuthorization ==
-                            ProvisioningAuthorizationStatus.pending,
-                      ),
                     _MetaChip(
                       icon: AppIcons.orgType,
                       label: item.organization.type.displayName,
@@ -239,6 +257,15 @@ class OrganisationOnboardingCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _CodeRow(code: code),
+                const SizedBox(height: 12),
+                ProvisioningAuthorizationPanel(
+                  status: item.tenant?.provisioningAuthorization ??
+                      ProvisioningAuthorizationStatus.required,
+                  lastValidatedAt: item.tenant?.provisioningAuthorizationValidatedAt,
+                  onValidateAgain: item.firebaseConnected
+                      ? () => _validateAuthorization(context)
+                      : null,
+                ),
                 const SizedBox(height: 12),
                 OnboardingReadinessChecklist(item: item),
                 const SizedBox(height: 12),

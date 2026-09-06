@@ -153,11 +153,31 @@ abstract final class OrganisationOnboardingService {
         ProvisioningAuthorizationStatus.verified,
       );
     }
-    final ProvisioningAuthorizationStatus next =
-        previous == ProvisioningAuthorizationStatus.verified
-            ? ProvisioningAuthorizationStatus.revoked
-            : ProvisioningAuthorizationStatus.pending;
+    final ProvisioningAuthorizationStatus next = previous.isAuthorized
+        ? ProvisioningAuthorizationStatus.revoked
+        : ProvisioningAuthorizationStatus.pending;
     return TenantRegistry.setProvisioningAuthorization(tenantId, next);
+  }
+
+  /// Re-runs college IAM validation. Does not change tenant users or business data.
+  static Future<TenantRecord> revalidateProvisioningAuthorization(TenantRecord tenant) async {
+    if (tenant.firebaseProjectId.trim().isEmpty) {
+      throw const OrganisationOnboardingException(
+        'Connect a workspace before validating authorization.',
+      );
+    }
+    final List<TenantWorkspaceCheck> checks = await validateProvisioningAuthorization(
+      tenant.firebaseProjectId,
+    );
+    final TenantRecord updated = await completeProvisioningAuthorization(
+      tenantId: tenant.tenantId,
+      checks: checks,
+      previous: tenant.provisioningAuthorization,
+    );
+    if (!ProvisioningAuthorizationValidator.allPassed(checks)) {
+      throw OrganisationOnboardingException(updated.provisioningAuthorization.lifecycleMessage);
+    }
+    return updated;
   }
 
   static Future<TenantRecord> markAdministratorReady(String tenantId) {
@@ -171,9 +191,11 @@ abstract final class OrganisationOnboardingService {
     required String email,
     required String phone,
   }) async {
-    if (tenant.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
-      throw const OrganisationOnboardingException(
-        'Validate college authorization before creating the College Admin.',
+    if (!tenant.provisioningAuthorization.isAuthorized) {
+      throw OrganisationOnboardingException(
+        tenant.provisioningAuthorization.isRevoked
+            ? tenant.provisioningAuthorization.lifecycleMessage
+            : 'Validate college authorization before creating the College Admin.',
       );
     }
     if (!tenant.firebaseValidated || tenant.firebaseProjectId.trim().isEmpty) {
@@ -198,9 +220,11 @@ abstract final class OrganisationOnboardingService {
   static Future<TenantRecord> activate(String tenantId) async {
     final TenantRecord current = await TenantRegistry.fetchByTenantId(tenantId) ??
         (throw const OrganisationOnboardingException('That organisation is no longer in the registry.'));
-    if (current.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
-      throw const OrganisationOnboardingException(
-        'The college must authorize Hackz provisioning before activation.',
+    if (!current.provisioningAuthorization.isAuthorized) {
+      throw OrganisationOnboardingException(
+        current.provisioningAuthorization.isRevoked
+            ? current.provisioningAuthorization.lifecycleMessage
+            : 'The college must authorize Hackz provisioning before activation.',
       );
     }
     if (!current.initialAdminConfigured) {

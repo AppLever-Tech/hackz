@@ -75,6 +75,7 @@ abstract final class TenantRegistry {
       if (projectChanged) 'firebaseValidated': false,
       if (projectChanged)
         'provisioningAuthorization': ProvisioningAuthorizationStatus.required.wireValue,
+      if (projectChanged) 'provisioningAuthorizationValidatedAt': FieldValue.delete(),
     });
     return current.copyWith(
       firebaseProjectId: projectId,
@@ -82,6 +83,7 @@ abstract final class TenantRegistry {
       provisioningAuthorization: projectChanged
           ? ProvisioningAuthorizationStatus.required
           : current.provisioningAuthorization,
+      clearProvisioningAuthorizationValidatedAt: projectChanged,
     );
   }
 
@@ -107,10 +109,17 @@ abstract final class TenantRegistry {
     String tenantId,
     ProvisioningAuthorizationStatus authorization,
   ) {
+    final DateTime validatedAt = DateTime.now().toUtc();
     return _patch(
       tenantId,
-      <String, dynamic>{'provisioningAuthorization': authorization.wireValue},
-      (TenantRecord r) => r.copyWith(provisioningAuthorization: authorization),
+      <String, dynamic>{
+        'provisioningAuthorization': authorization.wireValue,
+        'provisioningAuthorizationValidatedAt': Timestamp.fromDate(validatedAt),
+      },
+      (TenantRecord r) => r.copyWith(
+        provisioningAuthorization: authorization,
+        provisioningAuthorizationValidatedAt: validatedAt,
+      ),
     );
   }
 

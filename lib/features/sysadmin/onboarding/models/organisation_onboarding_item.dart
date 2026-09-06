@@ -57,8 +57,7 @@ class OrganisationOnboardingItem {
 
   bool get firebaseValidated => tenant?.firebaseValidated ?? false;
 
-  bool get authorizationVerified =>
-      tenant?.provisioningAuthorization == ProvisioningAuthorizationStatus.verified;
+  bool get authorizationVerified => tenant?.provisioningAuthorization.isAuthorized ?? false;
 
   bool get initialAdminConfigured =>
       (tenant?.initialAdminConfigured ?? false) || collegeAdmin != null;

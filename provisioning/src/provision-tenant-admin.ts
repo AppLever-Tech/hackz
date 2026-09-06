@@ -5,6 +5,7 @@ import { controlPlaneApp, tenantApp, tenantAuth, tenantFirestore } from './fireb
 import {
   markInitialAdminConfigured,
   resolveTenantFromRegistry,
+  isProvisioningAuthorized,
 } from './tenant-registry.js';
 import {
   COLLEGE_ADMIN_ROLE,
@@ -164,10 +165,10 @@ export async function provisionTenantAdmin(
     if (tenant.provisioningAuthorization === 'revoked') {
       throw new ProvisionError(
         'PROVISIONING_NOT_AUTHORIZED',
-        'The college revoked Hackz provisioning access on this Firebase project.',
+        'Provisioning access has been revoked by the organisation. Re-authorization is required for future privileged provisioning.',
       );
     }
-    if (tenant.provisioningAuthorization !== 'verified') {
+    if (!isProvisioningAuthorized(tenant.provisioningAuthorization)) {
       throw new ProvisionError(
         'PROVISIONING_NOT_AUTHORIZED',
         'Validate college authorization before creating the College Admin.',

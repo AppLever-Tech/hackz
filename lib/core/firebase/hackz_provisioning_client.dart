@@ -108,7 +108,9 @@ abstract final class HackzProvisioningClient {
   static String _actionableMessage({required String code, required String fallback}) {
     switch (code) {
       case 'PROVISIONING_NOT_AUTHORIZED':
-        return 'The college must grant the Hackz provisioning identity, then Validate authorization.';
+        return fallback.isEmpty
+            ? 'The college must grant the Hackz provisioning identity, then Validate authorization.'
+            : fallback;
       case 'TENANT_NOT_READY':
         return 'Finish workspace connection and checks before creating the College Admin.';
       case 'ADMIN_EXISTS':

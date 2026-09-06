@@ -29,6 +29,9 @@ enum TenantStatus {
 }
 
 /// Control Plane metadata: whether the college has authorized Hackz provisioning.
+///
+/// Lifecycle shown in the Admin Console is Pending / Authorized / Revoked.
+/// [required] is stored during early setup and displays as Pending.
 enum ProvisioningAuthorizationStatus {
   required,
   pending,
@@ -37,21 +40,38 @@ enum ProvisioningAuthorizationStatus {
 
   String get wireValue => name;
 
+  bool get isAuthorized => this == ProvisioningAuthorizationStatus.verified;
+
+  bool get isRevoked => this == ProvisioningAuthorizationStatus.revoked;
+
+  /// Compact console label: Pending, Authorized, or Revoked.
   String get label {
     switch (this) {
       case ProvisioningAuthorizationStatus.required:
-        return 'Authorization required';
       case ProvisioningAuthorizationStatus.pending:
-        return 'Authorization pending';
+        return 'Pending';
       case ProvisioningAuthorizationStatus.verified:
-        return 'Authorization verified';
+        return 'Authorized';
       case ProvisioningAuthorizationStatus.revoked:
-        return 'Authorization revoked';
+        return 'Revoked';
+    }
+  }
+
+  String get lifecycleMessage {
+    switch (this) {
+      case ProvisioningAuthorizationStatus.verified:
+        return 'Hackz provisioning access is authorized by this organisation.';
+      case ProvisioningAuthorizationStatus.revoked:
+        return 'Provisioning access has been revoked by the organisation. Re-authorization is required for future privileged provisioning.';
+      case ProvisioningAuthorizationStatus.required:
+      case ProvisioningAuthorizationStatus.pending:
+        return 'This organisation has not authorized Hackz provisioning yet.';
     }
   }
 
   static ProvisioningAuthorizationStatus? fromWire(Object? value) {
     final String normalized = (value as String? ?? '').trim().toLowerCase();
+    if (normalized == 'authorized') return ProvisioningAuthorizationStatus.verified;
     for (final ProvisioningAuthorizationStatus status in ProvisioningAuthorizationStatus.values) {
       if (status.name == normalized) return status;
     }
@@ -83,6 +103,7 @@ class TenantRecord {
     this.hackzSetupComplete = false,
     this.initialAdminConfigured = false,
     this.provisioningAuthorization = ProvisioningAuthorizationStatus.required,
+    this.provisioningAuthorizationValidatedAt,
   });
 
   /// Internal immutable identifier. Never used in URLs or user-facing flows.
@@ -107,6 +128,9 @@ class TenantRecord {
   final bool initialAdminConfigured;
   final ProvisioningAuthorizationStatus provisioningAuthorization;
 
+  /// Last time SysAdmin validated college IAM for provisioning. Null until first check.
+  final DateTime? provisioningAuthorizationValidatedAt;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'tenantId': tenantId,
@@ -120,6 +144,8 @@ class TenantRecord {
       'hackzSetupComplete': hackzSetupComplete,
       'initialAdminConfigured': initialAdminConfigured,
       'provisioningAuthorization': provisioningAuthorization.wireValue,
+      if (provisioningAuthorizationValidatedAt != null)
+        'provisioningAuthorizationValidatedAt': Timestamp.fromDate(provisioningAuthorizationValidatedAt!),
     };
   }
 
@@ -143,6 +169,7 @@ class TenantRecord {
         raw: map['provisioningAuthorization'],
         tenantStatus: status,
       ),
+      provisioningAuthorizationValidatedAt: (map['provisioningAuthorizationValidatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -158,6 +185,8 @@ class TenantRecord {
     bool? hackzSetupComplete,
     bool? initialAdminConfigured,
     ProvisioningAuthorizationStatus? provisioningAuthorization,
+    DateTime? provisioningAuthorizationValidatedAt,
+    bool clearProvisioningAuthorizationValidatedAt = false,
   }) {
     return TenantRecord(
       tenantId: tenantId ?? this.tenantId,
@@ -171,6 +200,9 @@ class TenantRecord {
       hackzSetupComplete: hackzSetupComplete ?? this.hackzSetupComplete,
       initialAdminConfigured: initialAdminConfigured ?? this.initialAdminConfigured,
       provisioningAuthorization: provisioningAuthorization ?? this.provisioningAuthorization,
+      provisioningAuthorizationValidatedAt: clearProvisioningAuthorizationValidatedAt
+          ? null
+          : (provisioningAuthorizationValidatedAt ?? this.provisioningAuthorizationValidatedAt),
     );
   }
 }

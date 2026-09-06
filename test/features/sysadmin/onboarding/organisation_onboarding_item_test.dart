@@ -138,4 +138,21 @@ void main() {
     expect(item.initialAdminConfigured, isTrue);
     expect(item.isActivated, isTrue);
   });
+
+  test('revoked authorization does not take down an active organisation', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(
+        status: TenantStatus.active,
+        code: 'HKZ-S7K4PM',
+        projectId: 'hackz-a17b6',
+        validated: true,
+        admin: true,
+        authorization: ProvisioningAuthorizationStatus.revoked,
+      ),
+    );
+    expect(item.isComplete, isTrue);
+    expect(item.authorizationVerified, isFalse);
+    expect(item.tenant?.provisioningAuthorization.label, 'Revoked');
+  });
 }

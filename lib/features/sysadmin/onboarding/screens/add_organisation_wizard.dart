@@ -378,7 +378,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             _changed = true;
             return;
           }
-          if (_tenant?.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+          if (_tenant?.provisioningAuthorization.isAuthorized != true) {
             throw const OrganisationOnboardingException(
               'The college must authorize Hackz provisioning before continuing.',
             );
@@ -390,7 +390,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           if (tenant == null) {
             throw const OrganisationOnboardingException('Connect a workspace first.');
           }
-          if (tenant.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+          if (!tenant.provisioningAuthorization.isAuthorized) {
             throw const OrganisationOnboardingException(
               'The college must authorize Hackz provisioning before creating the College Admin.',
             );
@@ -842,6 +842,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
               iamRoles: HackzProvisioningIdentity.minimumIamRoles,
             ),
         status: _tenant?.provisioningAuthorization ?? ProvisioningAuthorizationStatus.required,
+        lastValidatedAt: _tenant?.provisioningAuthorizationValidatedAt,
         checks: pending,
         checksRan: _authorizationRan,
       ),

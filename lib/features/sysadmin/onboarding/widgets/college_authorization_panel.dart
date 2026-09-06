@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/firebase/hackz_provisioning_identity.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../utils/common_helpers.dart';
 import '../services/tenant_workspace_validator.dart';
 import 'workspace_check_row.dart';
 
@@ -15,6 +16,7 @@ class CollegeAuthorizationPanel extends StatelessWidget {
     required this.projectId,
     required this.identity,
     required this.status,
+    this.lastValidatedAt,
     required this.checks,
     required this.checksRan,
   });
@@ -22,6 +24,7 @@ class CollegeAuthorizationPanel extends StatelessWidget {
   final String projectId;
   final HackzProvisioningIdentity identity;
   final ProvisioningAuthorizationStatus status;
+  final DateTime? lastValidatedAt;
   final List<TenantWorkspaceCheck> checks;
   final bool checksRan;
 
@@ -81,6 +84,18 @@ class CollegeAuthorizationPanel extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: _StatusChip(status: status),
         ),
+        const SizedBox(height: 8),
+        Text(
+          status.lifecycleMessage,
+          style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+        ),
+        if (lastValidatedAt != null) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(
+            'Last validated ${formatDateTime(lastValidatedAt!.toLocal())}',
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          ),
+        ],
         const SizedBox(height: 12),
         for (int i = 0; i < checks.length; i++) ...<Widget>[
           WorkspaceCheckRow(check: checks[i], pending: !checksRan),
@@ -100,9 +115,9 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color fg, Color bg) = switch (status) {
       ProvisioningAuthorizationStatus.verified => (const Color(0xFF047857), const Color(0xFFECFDF5)),
-      ProvisioningAuthorizationStatus.pending => (const Color(0xFFC2410C), const Color(0xFFFFF7ED)),
       ProvisioningAuthorizationStatus.revoked => (const Color(0xFFB91C1C), const Color(0xFFFEF2F2)),
-      ProvisioningAuthorizationStatus.required => (const Color(0xFF1D4ED8), const Color(0xFFEFF6FF)),
+      ProvisioningAuthorizationStatus.pending ||
+      ProvisioningAuthorizationStatus.required => (const Color(0xFFC2410C), const Color(0xFFFFF7ED)),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

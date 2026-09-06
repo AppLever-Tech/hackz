@@ -1,4 +1,4 @@
-import type { DocumentData } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { controlPlaneFirestore } from './firebase-apps.js';
 import {
@@ -81,6 +81,10 @@ export async function resolveTenantFromRegistry(input: {
   return tenant;
 }
 
+export function isProvisioningAuthorized(status: string): boolean {
+  return status === 'verified' || status === 'authorized';
+}
+
 export async function markInitialAdminConfigured(tenantId: string): Promise<void> {
   await controlPlaneFirestore()
     .collection(HKZ_TENANTS)
@@ -102,5 +106,11 @@ export async function markProvisioningAuthorization(
   await controlPlaneFirestore()
     .collection(HKZ_TENANTS)
     .doc(tenantId)
-    .set({ provisioningAuthorization: status }, { merge: true });
+    .set(
+      {
+        provisioningAuthorization: status,
+        provisioningAuthorizationValidatedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
 }
