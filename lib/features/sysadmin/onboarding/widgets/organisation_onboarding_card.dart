@@ -17,7 +17,6 @@ import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
 import '../../../user/models/user_model.dart';
-import '../../../user/screens/create_user_dialog.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../screens/add_organisation_wizard.dart';
 import '../services/organisation_onboarding_service.dart';
@@ -136,22 +135,8 @@ class OrganisationOnboardingCard extends StatelessWidget {
   }
 
   Future<void> _assignAdmin(BuildContext context) async {
-    if (!item.isComplete) {
-      await _continue(context);
-      return;
-    }
-    final String? tenantId = item.tenant?.tenantId;
-    if (tenantId == null || tenantId.isEmpty) return;
-    final bool assigned = await TenantFirebase.runAsOrganisation(tenantId, () {
-      return showCreateUserDialog(
-        context: context,
-        roleCode: 'CADM',
-        organization: item.organization,
-      );
-    });
-    if (!assigned) return;
-    await OrganisationOnboardingService.markAdministratorReady(tenantId);
-    onChanged();
+    if (item.isComplete) return;
+    await _continue(context);
   }
 
   Future<void> _delete(BuildContext context) async {
@@ -272,7 +257,7 @@ class OrganisationOnboardingCard extends StatelessWidget {
                 _AdminRow(
                   admin: admin,
                   onAdd: () => _assignAdmin(context),
-                  showAdd: !item.initialAdminConfigured || (item.isComplete && admin == null),
+                  showAdd: !item.isComplete && !item.initialAdminConfigured,
                 ),
                 const SizedBox(height: 14),
                 Row(

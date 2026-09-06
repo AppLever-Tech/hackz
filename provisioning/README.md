@@ -24,7 +24,7 @@ Creates the **first College Admin** on the tenant project:
 4. Confirms the college has granted this provisioning identity access (Firebase Auth Admin).
 5. Creates the tenant Auth user (phone + email). No Storage.
 6. Creates tenant `hkzUsers/{uid}` with the CADM fields Hackz already uses to sign in.
-7. Sets Control Plane `initialAdminConfigured` / `provisioningAuthorized` only. **No CADM document on Control Plane.**
+7. Sets Control Plane `initialAdminConfigured` only. **No CADM document on Control Plane.**
 
 If several organisations share one Firebase project (hosted workspace), pass `organisationId`.
 

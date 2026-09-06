@@ -92,8 +92,6 @@ export async function markInitialAdminConfigured(tenantId: string): Promise<void
     .set(
       {
         initialAdminConfigured: true,
-        provisioningAuthorized: true,
-        provisioningAuthorization: 'verified',
       },
       { merge: true },
     );
