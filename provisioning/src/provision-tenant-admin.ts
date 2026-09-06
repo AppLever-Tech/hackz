@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase-admin/auth';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { controlPlaneApp, tenantApp, tenantAuth, tenantFirestore } from './firebase-apps.js';
 import {
@@ -14,7 +14,21 @@ import {
   type ProvisionTenantAdminRequest,
   type ProvisionTenantAdminResult,
 } from './types.js';
-import { normalizeProvisionRequest } from './validate.js';
+import { normalizeProvisionRequest, type NormalizedAdminInput } from './validate.js';
+
+function isCollegeAdmin(data: DocumentData | undefined): boolean {
+  if (data == null) return false;
+  if (String(data.role ?? '').trim() === COLLEGE_ADMIN_ROLE) return true;
+  const roles = data.roles;
+  return Array.isArray(roles) && roles.some((role) => String(role).trim() === COLLEGE_ADMIN_ROLE);
+}
+
+function authErrorCode(error: unknown): string {
+  if (error != null && typeof error === 'object' && 'code' in error) {
+    return String(error.code);
+  }
+  return '';
+}
 
 async function assertControlPlaneReachable(): Promise<void> {
   try {
@@ -36,28 +50,10 @@ async function assertTenantAuthorized(app: ReturnType<typeof tenantApp>): Promis
     throw new ProvisionError(
       'PROVISIONING_NOT_AUTHORIZED',
       isPermissionDenied(error)
-        ? 'This college has not authorized the Hackz provisioning identity on its Firebase project.'
+        ? 'The college must authorize the Hackz provisioning identity, then Validate authorization.'
         : 'Unable to access tenant Firebase Auth for provisioning.',
     );
   }
-}
-
-async function existingCollegeAdmin(
-  db: ReturnType<typeof tenantFirestore>,
-  organisationId: string,
-): Promise<string | null> {
-  const snap = await db
-    .collection(HKZ_USERS)
-    .where('orgId', '==', organisationId)
-    .limit(50)
-    .get();
-  const admin = snap.docs.find((doc) => {
-    const data = doc.data();
-    if (String(data.role ?? '').trim() === COLLEGE_ADMIN_ROLE) return true;
-    const roles = data.roles;
-    return Array.isArray(roles) && roles.some((role) => String(role).trim() === COLLEGE_ADMIN_ROLE);
-  });
-  return admin?.id ?? null;
 }
 
 function collegeAdminDocument(input: {
@@ -87,6 +83,74 @@ function collegeAdminDocument(input: {
   };
 }
 
+async function findCollegeAdmin(
+  db: ReturnType<typeof tenantFirestore>,
+  organisationId: string,
+): Promise<{ id: string; phone: string } | null> {
+  const snap = await db
+    .collection(HKZ_USERS)
+    .where('orgId', '==', organisationId)
+    .limit(50)
+    .get();
+  const admin = snap.docs.find((doc) => isCollegeAdmin(doc.data()));
+  if (admin == null) return null;
+  return { id: admin.id, phone: String(admin.data().phone ?? '').trim() };
+}
+
+async function resolveAuthUid(
+  auth: ReturnType<typeof tenantAuth>,
+  input: NormalizedAdminInput,
+): Promise<{ uid: string; created: boolean }> {
+  try {
+    const existing = await auth.getUserByPhoneNumber(input.phone);
+    await auth.updateUser(existing.uid, {
+      email: input.email,
+      displayName: `${input.firstName} ${input.lastName}`.trim(),
+      disabled: false,
+    });
+    return { uid: existing.uid, created: false };
+  } catch (error) {
+    if (authErrorCode(error) !== 'auth/user-not-found') {
+      if (isPermissionDenied(error)) {
+        throw new ProvisionError(
+          'PROVISIONING_NOT_AUTHORIZED',
+          'The college must authorize Hackz to read tenant Auth users.',
+        );
+      }
+      throw error;
+    }
+  }
+
+  try {
+    const created = await auth.createUser({
+      phoneNumber: input.phone,
+      email: input.email,
+      displayName: `${input.firstName} ${input.lastName}`.trim(),
+      disabled: false,
+    });
+    return { uid: created.uid, created: true };
+  } catch (error) {
+    const code = authErrorCode(error);
+    if (code === 'auth/phone-number-already-exists') {
+      const existing = await auth.getUserByPhoneNumber(input.phone);
+      return { uid: existing.uid, created: false };
+    }
+    if (code === 'auth/email-already-exists') {
+      throw new ProvisionError(
+        'AUTH_CONFLICT',
+        'That email already exists in this tenant’s Authentication users.',
+      );
+    }
+    if (isPermissionDenied(error)) {
+      throw new ProvisionError(
+        'PROVISIONING_NOT_AUTHORIZED',
+        'The college must authorize Hackz to create tenant Auth users.',
+      );
+    }
+    throw error;
+  }
+}
+
 export async function provisionTenantAdmin(
   request: ProvisionTenantAdminRequest,
 ): Promise<ProvisionTenantAdminResult> {
@@ -103,118 +167,92 @@ export async function provisionTenantAdmin(
         'The college revoked Hackz provisioning access on this Firebase project.',
       );
     }
+    if (tenant.provisioningAuthorization !== 'verified') {
+      throw new ProvisionError(
+        'PROVISIONING_NOT_AUTHORIZED',
+        'Validate college authorization before creating the College Admin.',
+      );
+    }
 
     const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
     await assertTenantAuthorized(app);
     const auth = tenantAuth(app);
     const db = tenantFirestore(app);
 
-    const existingAdmin = await existingCollegeAdmin(db, tenant.organisationId).catch((error) => {
+    const existingAdmin = await findCollegeAdmin(db, tenant.organisationId).catch((error) => {
       if (isPermissionDenied(error)) {
         throw new ProvisionError(
           'PROVISIONING_NOT_AUTHORIZED',
-          'This college has not authorized Hackz to read tenant Firestore.',
+          'The college must authorize Hackz to read tenant Firestore.',
         );
       }
       throw error;
     });
-    if (existingAdmin != null) {
+    if (existingAdmin != null && existingAdmin.phone !== input.phone) {
       throw new ProvisionError(
         'ADMIN_EXISTS',
         'This organisation already has a College Admin.',
       );
     }
 
-    let existingAuthUid: string | undefined;
-    try {
-      existingAuthUid = (await auth.getUserByPhoneNumber(input.phone)).uid;
-    } catch (error) {
-      const code = error != null && typeof error === 'object' && 'code' in error
-        ? String(error.code)
-        : '';
-      if (code === 'auth/user-not-found') {
-        existingAuthUid = undefined;
-      } else if (isPermissionDenied(error)) {
-        throw new ProvisionError(
-          'PROVISIONING_NOT_AUTHORIZED',
-          'This college has not authorized Hackz to read tenant Auth users.',
-        );
-      } else {
-        throw error;
-      }
-    }
-    if (existingAuthUid != null) {
-      throw new ProvisionError(
-        'AUTH_CONFLICT',
-        'That phone already exists in this tenant’s Authentication users.',
-      );
-    }
-
-    const created = await auth.createUser({
-      phoneNumber: input.phone,
-      email: input.email,
-      displayName: `${input.firstName} ${input.lastName}`.trim(),
-      disabled: false,
-    }).catch((error) => {
-      const code = error != null && typeof error === 'object' && 'code' in error
-        ? String(error.code)
-        : '';
-      if (code === 'auth/phone-number-already-exists' || code === 'auth/email-already-exists') {
+    const { uid, created } = await resolveAuthUid(auth, input);
+    const profileRef = db.collection(HKZ_USERS).doc(uid);
+    const profile = await profileRef.get();
+    if (profile.exists) {
+      const data = profile.data() ?? {};
+      const orgId = String(data.orgId ?? '').trim();
+      if (orgId.length > 0 && orgId !== tenant.organisationId) {
         throw new ProvisionError(
           'AUTH_CONFLICT',
-          'That phone or email already exists in this tenant’s Authentication users.',
+          'That phone already belongs to another organisation in this workspace.',
         );
       }
-      if (isPermissionDenied(error)) {
+      if (!isCollegeAdmin(data) && String(data.role ?? '').trim().length > 0) {
         throw new ProvisionError(
-          'PROVISIONING_NOT_AUTHORIZED',
-          'This college has not authorized Hackz to create tenant Auth users.',
+          'AUTH_CONFLICT',
+          'That phone already exists as a different role in this tenant.',
         );
       }
-      throw error;
-    });
+    }
 
+    const payload = collegeAdminDocument({
+      userId: uid,
+      organisationId: tenant.organisationId,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      email: input.email,
+      phone: input.phone,
+    });
+    if (profile.exists) {
+      delete payload.createdAt;
+    }
     try {
-      await db
-        .collection(HKZ_USERS)
-        .doc(created.uid)
-        .create(
-          collegeAdminDocument({
-            userId: created.uid,
-            organisationId: tenant.organisationId,
-            firstName: input.firstName,
-            lastName: input.lastName,
-            email: input.email,
-            phone: input.phone,
-          }),
-        );
+      await profileRef.set(payload, { merge: true });
     } catch (error) {
-      try {
-        await auth.deleteUser(created.uid);
-      } catch {
-        // Best-effort compensation so a failed profile write does not leave Auth-only state.
+      if (created) {
+        try {
+          await auth.deleteUser(uid);
+        } catch {
+          // Best-effort compensation only when this request created Auth.
+        }
       }
       if (isPermissionDenied(error)) {
         throw new ProvisionError(
           'PROVISIONING_NOT_AUTHORIZED',
-          'This college has not authorized Hackz to write tenant Firestore.',
+          'The college must authorize Hackz to write tenant Firestore.',
         );
       }
       throw new ProvisionError('WRITE_FAILED', 'Unable to create the College Admin profile.');
     }
 
-    try {
-      await markInitialAdminConfigured(tenant.tenantId);
-    } catch {
-      // CADM lives on the tenant. Control Plane status is metadata only.
-    }
+    await markInitialAdminConfigured(tenant.tenantId);
 
     return {
       ok: true,
       tenantProjectId: tenant.firebaseProjectId,
       tenantId: tenant.tenantId,
       organisationId: tenant.organisationId,
-      userId: created.uid,
+      userId: uid,
       phone: input.phone,
       email: input.email,
     };

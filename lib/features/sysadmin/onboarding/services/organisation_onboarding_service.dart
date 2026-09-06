@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
 import '../../../../core/firebase/hackz_firebase.dart';
+import '../../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
@@ -163,12 +164,48 @@ abstract final class OrganisationOnboardingService {
     return TenantRegistry.markInitialAdminConfigured(tenantId);
   }
 
+  static Future<HackzProvisioningResult> provisionInitialCollegeAdmin({
+    required TenantRecord tenant,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+  }) async {
+    if (tenant.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+      throw const OrganisationOnboardingException(
+        'Validate college authorization before creating the College Admin.',
+      );
+    }
+    if (!tenant.firebaseValidated || tenant.firebaseProjectId.trim().isEmpty) {
+      throw const OrganisationOnboardingException(
+        'Connect and check the workspace before creating the College Admin.',
+      );
+    }
+    try {
+      return await HackzProvisioningClient.provisionTenantAdmin(
+        tenantProjectId: tenant.firebaseProjectId,
+        organisationId: tenant.organisationId,
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+      );
+    } on HackzProvisioningException catch (e) {
+      throw OrganisationOnboardingException(e.message);
+    }
+  }
+
   static Future<TenantRecord> activate(String tenantId) async {
     final TenantRecord current = await TenantRegistry.fetchByTenantId(tenantId) ??
         (throw const OrganisationOnboardingException('That organisation is no longer in the registry.'));
     if (current.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
       throw const OrganisationOnboardingException(
         'The college must authorize Hackz provisioning before activation.',
+      );
+    }
+    if (!current.initialAdminConfigured) {
+      throw const OrganisationOnboardingException(
+        'Create the initial College Admin before activation.',
       );
     }
     final TenantRecord tenant = await TenantRegistry.activate(tenantId);

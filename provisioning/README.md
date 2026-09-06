@@ -10,7 +10,7 @@ This job is:
 
 `Control Plane registry → Provisioning identity → College Firebase Auth + hkzUsers`
 
-It is not a Hackz backend, not a REST API, and not a path for problems, ideas, teams, events, payments, or evaluations.
+It is not a Hackz business backend and not a path for problems, ideas, teams, events, payments, or evaluations. SysAdmin onboarding may invoke one privileged provision operation.
 
 ## Capability
 
@@ -34,6 +34,21 @@ The college must add the Hackz provisioning service account on **their** Firebas
 
 Do not put a tenant service-account JSON in the Flutter app.
 
+The college grants the provisioning identity on **their** Google Cloud project (IAM). Minimum roles:
+
+- `roles/firebaseauth.admin` — Firebase Authentication Admin
+- `roles/datastore.user` — Cloud Datastore User (Firestore). Do **not** grant Storage, Owner, or Editor.
+
+Hackz onboarding has a **College Controls Authorization** step. Validate in the UI confirms the project, Authentication, and Firestore are reachable. This job can re-check the provisioning identity itself:
+
+```bash
+npx tsx src/cli.ts --validate-authorization \
+  --tenant-project-id college-one \
+  --organisation-id <hkzOrganizations-id>
+```
+
+That command does not create users or business data. It writes only Control Plane `provisioningAuthorization` (`verified` or `revoked`).
+
 ## Run
 
 ```bash
@@ -51,24 +66,15 @@ npx tsx src/cli.ts \
   --phone 9876543210
 ```
 
-Prints JSON. Exit `0` on success, `1` on failure. Deploy this folder independently as a one-shot job (Cloud Run job, VM, or operator laptop). Do not expose HTTP.
+Prints JSON. Exit `0` on success, `1` on failure.
 
-## College authorization
-
-The college grants the provisioning identity on **their** Google Cloud project (IAM). Minimum roles:
-
-- `roles/firebaseauth.admin` — Firebase Authentication Admin
-- `roles/datastore.user` — Cloud Datastore User (Firestore). Do **not** grant Storage, Owner, or Editor.
-
-Hackz onboarding has a **College Controls Authorization** step. Validate in the UI confirms the project, Authentication, and Firestore are reachable. This job can re-check the provisioning identity itself:
+SysAdmin onboarding invokes the same capability over one authenticated POST (`/provision-tenant-admin`) with a Control Plane ID token. It is not a business API.
 
 ```bash
-npx tsx src/cli.ts --validate-authorization \
-  --tenant-project-id college-one \
-  --organisation-id <hkzOrganizations-id>
+npm run serve
 ```
 
-That command does not create users or business data. It writes only Control Plane `provisioningAuthorization` (`verified` or `revoked`).
+Set `hkzProvisioningConfig/hackz.invokeUrl` on the Control Plane (for example `http://localhost:8787`).
 
 ## What it will not do
 

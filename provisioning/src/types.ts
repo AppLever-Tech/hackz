@@ -33,6 +33,7 @@ export type ProvisionFailureCode =
   | 'PROVISIONING_NOT_AUTHORIZED'
   | 'ADMIN_EXISTS'
   | 'AUTH_CONFLICT'
+  | 'UNAUTHORIZED'
   | 'WRITE_FAILED';
 
 export type ProvisionTenantAdminFailure = {

@@ -21,6 +21,7 @@ import '../models/organisation_onboarding_item.dart';
 import '../screens/add_organisation_wizard.dart';
 import '../services/organisation_onboarding_service.dart';
 import 'copy_organisation_code_button.dart';
+import 'onboarding_readiness_checklist.dart';
 import 'onboarding_status_pill.dart';
 
 class OrganisationOnboardingCard extends StatelessWidget {
@@ -109,6 +110,10 @@ class OrganisationOnboardingCard extends StatelessWidget {
   }
 
   Future<void> _assignAdmin(BuildContext context) async {
+    if (!item.isComplete) {
+      await _continue(context);
+      return;
+    }
     final String? tenantId = item.tenant?.tenantId;
     if (tenantId == null || tenantId.isEmpty) return;
     final bool assigned = await TenantFirebase.runAsOrganisation(tenantId, () {
@@ -235,9 +240,12 @@ class OrganisationOnboardingCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 _CodeRow(code: code),
                 const SizedBox(height: 12),
+                OnboardingReadinessChecklist(item: item),
+                const SizedBox(height: 12),
                 _AdminRow(
                   admin: admin,
                   onAdd: () => _assignAdmin(context),
+                  showAdd: !item.initialAdminConfigured || (item.isComplete && admin == null),
                 ),
                 const SizedBox(height: 14),
                 Row(
@@ -359,10 +367,15 @@ class _CodeRow extends StatelessWidget {
 }
 
 class _AdminRow extends StatelessWidget {
-  const _AdminRow({required this.admin, required this.onAdd});
+  const _AdminRow({
+    required this.admin,
+    required this.onAdd,
+    required this.showAdd,
+  });
 
   final UserModel? admin;
   final VoidCallback onAdd;
+  final bool showAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +400,7 @@ class _AdminRow extends StatelessWidget {
             ),
           ),
         ),
-        if (user == null)
+        if (showAdd)
           TextButton(
             onPressed: onAdd,
             child: const Text('Add'),

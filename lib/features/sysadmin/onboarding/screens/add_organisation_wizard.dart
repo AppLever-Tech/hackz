@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
+import '../../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../../core/firebase/hackz_provisioning_identity.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
@@ -9,17 +10,20 @@ import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/inputs/email_field.dart';
 import '../../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../../core/ui/inputs/hackz_select_field.dart';
+import '../../../../core/ui/inputs/phone_number_field.dart';
 import '../../../../core/ui/loading/loading.dart';
+import '../../../../utils/common_helpers.dart';
 import '../../../auth/widgets/signup/approval_timeline_vm.dart';
 import '../../../auth/widgets/signup/approval_timeline_widget.dart';
 import '../../../organization/models/enums/organization_type.dart';
 import '../../../organization/models/organization_model.dart';
 import '../../../organization/services/org_photo_service.dart';
-import '../../services/org_management_service.dart';
+import '../../../user/models/enums/user_role.dart';
+import '../../../user/models/enums/user_status.dart';
 import '../../../user/models/user_model.dart';
-import '../../../user/screens/create_user_dialog.dart';
 import '../../../user/widgets/user_form_section.dart';
 import '../../../user/widgets/user_profile_photo_field.dart';
 import '../models/organisation_onboarding_item.dart';
@@ -28,6 +32,7 @@ import '../services/provisioning_authorization_validator.dart';
 import '../services/tenant_workspace_validator.dart';
 import '../widgets/college_authorization_panel.dart';
 import '../widgets/copy_organisation_code_button.dart';
+import '../widgets/onboarding_readiness_checklist.dart';
 import '../widgets/workspace_check_row.dart';
 import 'register_workspace_dialog.dart';
 
@@ -70,11 +75,19 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   final TextEditingController _address = TextEditingController();
   final TextEditingController _website = TextEditingController();
   final TextEditingController _contact = TextEditingController();
+  final TextEditingController _adminFirstName = TextEditingController();
+  final TextEditingController _adminLastName = TextEditingController();
+  final TextEditingController _adminEmail = TextEditingController();
+  final TextEditingController _adminPhone = TextEditingController();
   OrganizationType _type = OrganizationType.college;
   String? _nameError;
   String? _addressError;
   String? _websiteError;
   String? _contactError;
+  String? _adminFirstNameError;
+  String? _adminLastNameError;
+  String? _adminEmailError;
+  String? _adminPhoneError;
   PlatformFile? _iconFile;
   String? _remotePhotoUrl;
   String? _remoteThumbUrl;
@@ -96,6 +109,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _type = item.organization.type;
       _remotePhotoUrl = item.organization.photoUrl;
       _remoteThumbUrl = item.organization.thumbnailUrl;
+      _hydrateAdminForm(item.collegeAdmin);
       _step = item.isComplete ? OrganisationOnboardingStep.activate : item.nextStep;
       if (_workspaceId.isEmpty) {
         _workspaceId = OrganisationOnboardingService.defaultWorkspaceId;
@@ -113,6 +127,12 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     _name.addListener(() {
       if (mounted) setState(() {});
     });
+    _adminEmail.addListener(() {
+      if (_adminEmailError != null && mounted) setState(() => _adminEmailError = null);
+    });
+    _adminPhone.addListener(() {
+      if (_adminPhoneError != null && mounted) setState(() => _adminPhoneError = null);
+    });
   }
 
   @override
@@ -121,7 +141,19 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     _address.dispose();
     _website.dispose();
     _contact.dispose();
+    _adminFirstName.dispose();
+    _adminLastName.dispose();
+    _adminEmail.dispose();
+    _adminPhone.dispose();
     super.dispose();
+  }
+
+  void _hydrateAdminForm(UserModel? admin) {
+    if (admin == null) return;
+    _adminFirstName.text = admin.firstName;
+    _adminLastName.text = admin.lastName;
+    _adminEmail.text = admin.email;
+    _adminPhone.text = admin.phone.replaceFirst('+91', '').replaceAll(RegExp(r'\D'), '');
   }
 
   int get _stepIndex => OrganisationOnboardingStep.values.indexOf(_step);
@@ -177,6 +209,57 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _contactError = _contact.text.trim().isEmpty ? 'Contact is required.' : null;
     });
     return _nameError == null && _addressError == null && _websiteError == null && _contactError == null;
+  }
+
+  bool get _adminAlreadyProvisioned =>
+      (_tenant?.initialAdminConfigured ?? false) || _admin != null;
+
+  bool _validateAdmin() {
+    setState(() {
+      _adminFirstNameError = _adminFirstName.text.trim().isEmpty ? 'First name is required.' : null;
+      _adminLastNameError = _adminLastName.text.trim().isEmpty ? 'Last name is required.' : null;
+      final String email = _adminEmail.text.trim();
+      if (email.isEmpty) {
+        _adminEmailError = 'Email is required.';
+      } else if (!isValidEmailInput(email)) {
+        _adminEmailError = 'Enter a valid email address.';
+      } else {
+        _adminEmailError = null;
+      }
+      if (_adminPhone.text.replaceAll(RegExp(r'\D'), '').isEmpty) {
+        _adminPhoneError = 'Mobile is required.';
+      } else if (!isValidPhoneInput(_adminPhone.text)) {
+        _adminPhoneError = 'Enter a valid 10-digit mobile number.';
+      } else {
+        _adminPhoneError = null;
+      }
+    });
+    return _adminFirstNameError == null &&
+        _adminLastNameError == null &&
+        _adminEmailError == null &&
+        _adminPhoneError == null;
+  }
+
+  UserModel _collegeAdminFromProvision({
+    required HackzProvisioningResult result,
+    required TenantRecord tenant,
+  }) {
+    return UserModel(
+      userId: result.userId,
+      phone: result.phone,
+      firstName: _adminFirstName.text.trim(),
+      lastName: _adminLastName.text.trim(),
+      email: result.email,
+      role: UserRole.collegeAdmin.code,
+      roles: <String>[UserRole.collegeAdmin.code],
+      orgType: OrganizationType.college,
+      orgId: tenant.organisationId,
+      department: '',
+      departmentCode: '',
+      status: UserStatus.active,
+      createdAt: DateTime.now(),
+      approvedAt: DateTime.now(),
+    );
   }
 
   Future<void> _goNext() async {
@@ -304,8 +387,46 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           _step = OrganisationOnboardingStep.initialAdmin;
         case OrganisationOnboardingStep.initialAdmin:
           final TenantRecord? tenant = _tenant;
-          if (_admin != null && tenant != null) {
+          if (tenant == null) {
+            throw const OrganisationOnboardingException('Connect a workspace first.');
+          }
+          if (tenant.provisioningAuthorization != ProvisioningAuthorizationStatus.verified) {
+            throw const OrganisationOnboardingException(
+              'The college must authorize Hackz provisioning before creating the College Admin.',
+            );
+          }
+          if (!_adminAlreadyProvisioned) {
+            if (!_validateAdmin()) return;
+            final HackzProvisioningResult result = await HkzAsyncLoader.run<HackzProvisioningResult>(
+              context,
+              title: 'Create College Admin',
+              message: 'Provisioning the administrator on the college Firebase project...',
+              successMessage: 'College Admin created',
+              successHold: const Duration(milliseconds: 900),
+              task: () {
+                return OrganisationOnboardingService.provisionInitialCollegeAdmin(
+                  tenant: tenant,
+                  firstName: _adminFirstName.text.trim(),
+                  lastName: _adminLastName.text.trim(),
+                  email: _adminEmail.text.trim(),
+                  phone: normalizePhoneE164(_adminPhone.text),
+                );
+              },
+            );
+            _admin = _collegeAdminFromProvision(result: result, tenant: tenant);
+            _tenant = tenant.copyWith(initialAdminConfigured: true);
+          } else if (!(tenant.initialAdminConfigured)) {
             _tenant = await OrganisationOnboardingService.markAdministratorReady(tenant.tenantId);
+          }
+          final TenantRecord ready = _tenant ?? tenant;
+          if (ready.status != TenantStatus.active) {
+            try {
+              _tenant = await OrganisationOnboardingService.activate(ready.tenantId);
+            } catch (error) {
+              _changed = true;
+              _step = OrganisationOnboardingStep.activate;
+              rethrow;
+            }
           }
           _changed = true;
           _step = OrganisationOnboardingStep.activate;
@@ -321,33 +442,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       await _fail(e);
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _addAdmin() async {
-    final OrganizationModel? org = _organization;
-    final String? tenantId = _tenant?.tenantId;
-    if (org == null || tenantId == null || tenantId.isEmpty) return;
-    final bool assigned = await TenantFirebase.runAsOrganisation(tenantId, () {
-      return showCreateUserDialog(
-        context: context,
-        roleCode: 'CADM',
-        organization: org,
-        initialUser: _admin,
-      );
-    });
-    if (!assigned) return;
-    final UserModel? admin = await OrgManagementService.fetchCollegeAdmin(
-      org.id,
-      tenantId: tenantId,
-    );
-    if (!mounted) return;
-    setState(() {
-      _admin = admin ?? _admin;
-      _changed = true;
-    });
-    if (_admin != null) {
-      _tenant = await OrganisationOnboardingService.markAdministratorReady(tenantId);
     }
   }
 
@@ -382,19 +476,12 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     });
   }
 
-  void _skip() {
-    if (_busy || _step != OrganisationOnboardingStep.initialAdmin) return;
-    setState(() => _step = OrganisationOnboardingStep.activate);
-  }
-
   Future<void> _registerWorkspace() async {
     final bool saved = await showRegisterWorkspaceDialog(context: context);
     if (!saved) return;
     await ApprovedTenantFirebase.refresh();
     if (mounted) setState(() {});
   }
-
-  bool get _skipEnabled => !_busy && _step == OrganisationOnboardingStep.initialAdmin;
 
   String get _primaryLabel {
     switch (_step) {
@@ -410,7 +497,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             ? 'Continue'
             : 'Validate authorization';
       case OrganisationOnboardingStep.initialAdmin:
-        return 'Continue';
+        return _adminAlreadyProvisioned ? 'Continue' : 'Create College Admin';
       case OrganisationOnboardingStep.activate:
         return _tenant != null && _tenant!.status == TenantStatus.active ? 'Done' : 'Activate';
     }
@@ -762,30 +849,104 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   }
 
   Widget _adminStep() {
-    final UserModel? admin = _admin;
+    final bool locked = _adminAlreadyProvisioned;
+    final bool invokeMissing = (_provisioningIdentity?.invokeUrl ?? '').trim().isEmpty;
     return UserFormSection(
-      title: 'Initial administrator',
-      subtitle: 'Optional. You can add this person now or skip and assign them later.',
+      title: 'Initial College Admin',
+      subtitle: locked
+          ? 'This College Admin is provisioned on the college Firebase project.'
+          : 'Hackz will create this College Admin on the college Firebase project. No photo is collected.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (admin == null)
+          if (invokeMissing && !locked) ...<Widget>[
             const Text(
-              'Adding a college administrator is optional. Skip this step to activate the organisation without one.',
-              style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF475569)),
-            )
-          else
-            Text(
-              '${admin.firstName} ${admin.lastName}'.trim().isEmpty ? admin.email : '${admin.firstName} ${admin.lastName}'.trim(),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              'Set hkzProvisioningConfig/hackz.invokeUrl so SysAdmin can provision a College Admin.',
+              style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFFB45309)),
             ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: _busy ? null : _addAdmin,
-              icon: Icon(admin == null ? AppIcons.add : AppIcons.edit, size: 16),
-              label: Text(admin == null ? 'Add administrator' : 'Edit administrator'),
+            const SizedBox(height: 12),
+          ],
+          HackzInputDecoration.labeledField(
+            label: 'First name',
+            required: true,
+            field: TextField(
+              controller: _adminFirstName,
+              enabled: !_busy && !locked,
+              style: HackzInputDecoration.fieldTextStyle,
+              decoration: _decoration(
+                'First name',
+                error: _adminFirstNameError,
+                icon: AppIcons.faculty,
+              ),
+              onChanged: (_) => setState(() => _adminFirstNameError = null),
+            ),
+          ),
+          const SizedBox(height: 10),
+          HackzInputDecoration.labeledField(
+            label: 'Last name',
+            required: true,
+            field: TextField(
+              controller: _adminLastName,
+              enabled: !_busy && !locked,
+              style: HackzInputDecoration.fieldTextStyle,
+              decoration: _decoration(
+                'Last name',
+                error: _adminLastNameError,
+                icon: AppIcons.faculty,
+              ),
+              onChanged: (_) => setState(() => _adminLastNameError = null),
+            ),
+          ),
+          const SizedBox(height: 10),
+          HackzInputDecoration.labeledField(
+            label: 'Email',
+            required: true,
+            field: locked
+                ? TextField(
+                    controller: _adminEmail,
+                    enabled: false,
+                    style: HackzInputDecoration.fieldTextStyle,
+                    decoration: _decoration('Email', icon: AppIcons.email),
+                  )
+                : EmailField(
+                    controller: _adminEmail,
+                    decoration: _decoration(
+                      'Email',
+                      error: _adminEmailError,
+                      icon: AppIcons.email,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          HackzInputDecoration.labeledField(
+            label: 'Mobile',
+            required: true,
+            field: locked
+                ? TextField(
+                    controller: _adminPhone,
+                    enabled: false,
+                    style: HackzInputDecoration.fieldTextStyle,
+                    decoration: _decoration('Mobile', icon: AppIcons.phone),
+                  )
+                : PhoneNumberField(
+                    controller: _adminPhone,
+                    decoration: _decoration(
+                      '10-digit mobile number',
+                      error: _adminPhoneError,
+                      icon: AppIcons.phone,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          HackzInputDecoration.labeledField(
+            label: 'Role / type',
+            required: true,
+            field: InputDecorator(
+              decoration: _decoration('College Admin', icon: AppIcons.adminProfile),
+              child: const Text(
+                'collegeAdmin',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+              ),
             ),
           ),
         ],
@@ -848,6 +1009,16 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
               ],
             ),
           ),
+          if (_organization != null) ...<Widget>[
+            const SizedBox(height: 14),
+            OnboardingReadinessChecklist(
+              item: OrganisationOnboardingItem(
+                organization: _organization!,
+                tenant: _tenant,
+                collegeAdmin: _admin,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -867,15 +1038,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       child: Row(
         children: <Widget>[
           OutlinedButton(
-            onPressed: _skipEnabled ? _skip : null,
-            style: OutlinedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
-            child: const Text('Skip'),
-          ),
-          const Spacer(),
-          OutlinedButton(
             onPressed: _busy ? null : _close,
             style: OutlinedButton.styleFrom(
               visualDensity: VisualDensity.compact,
@@ -883,7 +1045,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             ),
             child: const Text('Close'),
           ),
-          const SizedBox(width: 8),
+          const Spacer(),
           FilledButton(
             onPressed: _busy ? null : (done ? _close : _goNext),
             style: FilledButton.styleFrom(

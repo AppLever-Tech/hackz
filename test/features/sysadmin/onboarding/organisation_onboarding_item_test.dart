@@ -50,7 +50,7 @@ void main() {
     expect(item.completedSteps, 3);
   });
 
-  test('administrator is optional after authorization', () {
+  test('administrator is required after authorization', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(
       organization: org(),
       tenant: tenant(
@@ -61,6 +61,8 @@ void main() {
     );
     expect(item.nextStep, OrganisationOnboardingStep.initialAdmin);
     expect(item.completedSteps, 4);
+    expect(item.initialAdminConfigured, isFalse);
+    expect(item.authorizationVerified, isTrue);
   });
 
   test('progress starts at organisation when tenant is missing', () {
@@ -71,7 +73,7 @@ void main() {
     expect(item.organisationCode, isEmpty);
   });
 
-  test('activate is next after authorization and optional admin', () {
+  test('activate is next after authorization and administrator', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(
       organization: org(),
       tenant: tenant(
@@ -117,5 +119,23 @@ void main() {
     expect(item.completedSteps, 6);
     expect(item.organisationCode, 'HKZ-S7K4PM');
     expect(item.firebaseStatusLabel, 'Ready');
+  });
+
+  test('readiness flags match the onboarding console checklist', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(
+        status: TenantStatus.active,
+        code: 'HKZ-S7K4PM',
+        projectId: 'hackz-a17b6',
+        validated: true,
+        admin: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
+      ),
+    );
+    expect(item.firebaseConnected && item.firebaseValidated, isTrue);
+    expect(item.authorizationVerified, isTrue);
+    expect(item.initialAdminConfigured, isTrue);
+    expect(item.isActivated, isTrue);
   });
 }
