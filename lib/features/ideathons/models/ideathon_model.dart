@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../evaluations/models/evaluation_criterion.dart';
+import '../../events/models/event_kind.dart';
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
 import 'ideathon_type.dart';
@@ -23,6 +24,7 @@ class IdeathonModel {
     required this.createdAt,
     required this.updatedAt,
     this.problemId = '',
+    this.eventKind = EventKind.ideathon,
     this.ideathonType = IdeathonType.internal,
     this.evaluationCriteria = const <EvaluationCriterion>[],
     this.winnerIdeaId = '',
@@ -32,6 +34,7 @@ class IdeathonModel {
 
   final String ideathonId;
   final String orgId;
+  final EventKind eventKind;
   final IdeathonType ideathonType;
   final String name;
   final String description;
@@ -65,7 +68,9 @@ class IdeathonModel {
   bool get hasOptionalProblem => problemId.trim().isNotEmpty;
 
   /// Team Leader submissions/payments close one day before the event start.
-  DateTime get submissionCutoff => startDateTime.subtract(const Duration(days: 1));
+  /// Long-running events stay open until the scheduled end instead.
+  DateTime get submissionCutoff =>
+      eventKind.isLongRunning ? endDateTime : startDateTime.subtract(const Duration(days: 1));
 
   /// Scheduled/in-progress events that have not reached the submission cutoff.
   bool get isAcceptingSubmissions {
@@ -87,6 +92,7 @@ class IdeathonModel {
     return <String, dynamic>{
       'ideathonId': ideathonId,
       'orgId': orgId,
+      'eventKind': eventKind.wireValue,
       'ideathonType': ideathonType.value,
       'name': name,
       'description': description,
@@ -137,6 +143,7 @@ class IdeathonModel {
           ? ((map['ideathonId'] as String?) ?? '').trim()
           : id,
       orgId: (map['orgId'] as String? ?? '').trim(),
+      eventKind: EventKind.fromWire(map['eventKind']),
       ideathonType: IdeathonType.fromRaw(map['ideathonType'] as String?),
       name: (map['name'] as String? ?? '').trim(),
       description: (map['description'] as String? ?? '').trim(),

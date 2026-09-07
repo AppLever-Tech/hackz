@@ -51,7 +51,7 @@ class IdeathonEventSelectField extends StatelessWidget {
     final bool canSelect = enabled && !loading && events.isNotEmpty;
     final String hint = loading
         ? 'Loading events…'
-        : (events.isEmpty ? 'No eligible events' : 'Select an Ideathon');
+        : (events.isEmpty ? 'No eligible events' : 'Select an event');
 
     final Widget select = HackzSelectField<String>(
       value: selected?.ideathonId,
@@ -66,7 +66,7 @@ class IdeathonEventSelectField extends StatelessWidget {
       hint: hint,
       enabled: canSelect,
       compact: true,
-      prefixIcon: AppIcons.ideathons,
+      prefixIcon: selected?.eventKind.icon ?? AppIcons.event,
       errorText: errorText,
     );
 
@@ -105,7 +105,7 @@ class IdeathonEventSelectField extends StatelessWidget {
                 ContextPill(
                   label: selected.name.trim().isEmpty ? selected.ideathonId : selected.name.trim(),
                   semantic: ContextPillSemantic.event,
-                  icon: AppIcons.ideathons,
+                  icon: selected.eventKind.icon,
                   onTap: () {},
                   enabled: false,
                   compact: true,

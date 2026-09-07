@@ -38,7 +38,7 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
   late IdeathonJudgeAssignmentWorkspaceViewModel _vm;
   bool _busy = false;
 
-  static const EventKind _kind = EventKind.ideathon;
+  EventKind get _kind => _assignments.ideathon.eventKind;
   static const double _metricLabelWidth = 140;
   static const TextStyle _metricValueStyle = TextStyle(
     fontSize: 18,

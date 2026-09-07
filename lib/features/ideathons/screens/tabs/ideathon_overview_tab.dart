@@ -24,7 +24,7 @@ class IdeathonOverviewTab extends StatelessWidget {
 
     final Widget detailsCard = EventDetailSection(
       title: 'Details',
-      icon: AppIcons.ideathons,
+      icon: event.eventKind.icon,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -101,8 +101,10 @@ class IdeathonOverviewTab extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 10),
-        IdeathonLifecycleTab(vm: vm, embedded: true),
+        if (!event.eventKind.isLongRunning) ...<Widget>[
+          const SizedBox(height: 10),
+          IdeathonLifecycleTab(vm: vm, embedded: true),
+        ],
       ],
     );
   }

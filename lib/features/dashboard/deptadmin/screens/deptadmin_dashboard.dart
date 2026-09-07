@@ -15,6 +15,7 @@ import '../widgets/user_distribution_widget.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
+import '../../../../features/events/models/event_kind.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/user/screens/manage_users_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -72,6 +73,13 @@ class DeptAdminDashboard extends StatelessWidget {
           );
         }
         if (selectedMenuIndex == 5) {
+          return IdeathonsListScreen(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+            eventKind: EventKind.researchPaper,
+          );
+        }
+        if (selectedMenuIndex == 6) {
           return RequestsWorkspaceScreen(
             key: ValueKey<int>(refreshToken),
             user: user,

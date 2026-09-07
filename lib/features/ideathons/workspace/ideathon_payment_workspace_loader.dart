@@ -1,5 +1,4 @@
 import '../../../utils/firestore_utils.dart';
-import '../../events/models/event_kind.dart';
 import '../../events/models/event_payment_entry.dart';
 import '../../events/services/event_payments_service.dart';
 import '../../organization/models/organization_model.dart';
@@ -30,7 +29,7 @@ abstract final class IdeathonPaymentWorkspaceLoader {
     if (event == null) throw StateError('Ideathon not found.');
 
     final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
-      EventPaymentsService.load(kind: EventKind.ideathon, eventId: id),
+      EventPaymentsService.load(kind: event.eventKind, eventId: id),
       event.orgId.trim().isEmpty
           ? Future<OrganizationModel?>.value(null)
           : FirestoreUtils.fetchOrganization(event.orgId),

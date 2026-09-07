@@ -221,7 +221,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       FeedbackService.showWarning(
         context,
         title: 'Select an event',
-        message: 'Choose an eligible Ideathon before submitting.',
+        message: 'Choose an eligible event before submitting.',
       );
       return;
     }
@@ -537,7 +537,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
-                'Eligible Ideathons open for this team and problem',
+                'Eligible events open for this team and problem',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12, height: 1.3, color: Color(0xFF64748B)),
@@ -548,7 +548,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
         const SizedBox(height: 8),
         if (_selectedTeam == null)
           const Text(
-            'A team is required to see eligible Ideathons.',
+            'A team is required to see eligible events.',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           )
         else ...<Widget>[
@@ -563,7 +563,7 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
           if (!_loadingEvents && _events.isEmpty) ...<Widget>[
             const SizedBox(height: 8),
             const Text(
-              'No Ideathon is open for this team and problem. The submission cutoff may have passed.',
+              'No event is open for this team and problem. The submission window may have closed.',
               style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
             ),
           ],

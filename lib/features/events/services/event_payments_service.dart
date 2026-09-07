@@ -17,7 +17,7 @@ abstract final class EventPaymentsService {
     final String id = eventId.trim();
     if (id.isEmpty) throw ArgumentError('eventId must be non-empty');
     return switch (kind) {
-      EventKind.ideathon => IdeathonPaymentService.load(id),
+      EventKind.ideathon || EventKind.researchPaper => IdeathonPaymentService.load(id),
       EventKind.hackathon => Future<EventPaymentsViewModel>.value(
           EventPaymentsViewModel.empty(eventId: id, kind: kind),
         ),
@@ -31,7 +31,7 @@ abstract final class EventPaymentsService {
     required UserModel actor,
   }) {
     return switch (kind) {
-      EventKind.ideathon => IdeathonPaymentService.confirm(
+      EventKind.ideathon || EventKind.researchPaper => IdeathonPaymentService.confirm(
           eventId: eventId,
           entry: entry,
           actor: actor,
@@ -50,7 +50,7 @@ abstract final class EventPaymentsService {
     String? remarks,
   }) {
     return switch (kind) {
-      EventKind.ideathon => IdeathonPaymentService.markException(
+      EventKind.ideathon || EventKind.researchPaper => IdeathonPaymentService.markException(
           eventId: eventId,
           entry: entry,
           actor: actor,

@@ -98,6 +98,7 @@ class AppIcons {
   static const IconData statusEvaluated = Icons.verified_rounded;
   static const IconData statusIdeathonAssigned = Icons.event_available_outlined;
   static const IconData ideathons = Icons.celebration_outlined;
+  static const IconData researchPapers = Icons.article_outlined;
 
   // ── Workflow / verification (payments, requests, imports, team readiness) ──
   // Not [IdeaStatus] — approval pipelines and completion checks outside ideas.

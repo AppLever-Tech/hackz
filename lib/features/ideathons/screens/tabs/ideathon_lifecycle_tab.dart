@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
+import 'package:hackz/features/events/models/event_kind.dart';
 import 'package:hackz/features/events/models/event_lifecycle.dart';
 import 'package:hackz/features/events/models/event_lifecycle_stage.dart';
 import 'package:hackz/features/events/widgets/event_lifecycle_section.dart';
@@ -16,29 +17,31 @@ class IdeathonLifecycleTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final event = vm.ideathon;
+    final EventKind kind = event.eventKind;
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
-    final String currentId = EventLifecycle.currentStageId(progress);
+    final String currentId = EventLifecycle.currentStageId(progress, usesWinners: kind.usesWinners);
     final int pending = progress.pendingEvaluationCount;
+    final String entry = kind.payableItemLabel.toLowerCase();
 
     final List<EventLifecycleMoment> moments = <EventLifecycleMoment>[
       EventLifecycleMoment(
-        title: 'Ideathon created',
+        title: '${kind.label} created',
         subtitle: 'Event record saved. Judge assignment is the next operational step and is not automatic.',
         at: event.createdAt,
-        icon: AppIcons.ideathons,
+        icon: kind.icon,
         color: const Color(0xFF4F46E5),
       ),
       EventLifecycleMoment(
         title: progress.hasAssignments ? 'Judge assignment started' : 'Judge assignment pending',
         subtitle: progress.hasAssignments
-            ? '${vm.workspace.assignmentCount} explicit idea → judge assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}'
-            : 'Optional at first — assign paid ideas to judges from Judge Assignments',
+            ? '${vm.workspace.assignmentCount} explicit $entry → judge assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}'
+            : 'Optional at first — assign paid ${kind.entriesLabel.toLowerCase()} to judges from Judge Assignments',
         at: vm.workspace.firstAssignedAt,
         icon: AppIcons.judges,
         color: const Color(0xFF7C3AED),
       ),
       EventLifecycleMoment(
-        title: 'Scheduled window',
+        title: kind.isLongRunning ? 'Scheduled window' : 'Scheduled window',
         subtitle: '${formatDateTime(event.startDateTime.toLocal())} – ${formatDateTime(event.endDateTime.toLocal())}'
             '${progress.scheduleEnded && !progress.completed ? ' · ended (does not complete the event)' : ''}',
         at: event.startDateTime,
@@ -66,7 +69,7 @@ class IdeathonLifecycleTab extends StatelessWidget {
           icon: AppIcons.results,
           color: const Color(0xFF059669),
         ),
-      if (progress.winnersSelected)
+      if (kind.usesWinners && progress.winnersSelected)
         EventLifecycleMoment(
           title: 'Winners selected',
           subtitle: 'Department Admin selected the official winner'
@@ -78,7 +81,9 @@ class IdeathonLifecycleTab extends StatelessWidget {
       EventLifecycleMoment(
         title: IdeathonStatusHelpers.label(event.status),
         subtitle: progress.completed
-            ? 'Event completed · evaluations, assignments, template, and winners are locked'
+            ? (kind.usesWinners
+                ? 'Event completed · evaluations, assignments, template, and winners are locked'
+                : 'Event completed · evaluations, assignments, and template are locked')
             : 'Current stored lifecycle status',
         at: event.updatedAt,
         icon: IdeathonStatusHelpers.icon(event.status),
@@ -91,7 +96,7 @@ class IdeathonLifecycleTab extends StatelessWidget {
       });
 
     return EventLifecycleSection(
-      stages: EventLifecycle.standardStages(),
+      stages: EventLifecycle.stagesFor(kind),
       currentId: currentId,
       moments: moments,
       embedded: embedded,

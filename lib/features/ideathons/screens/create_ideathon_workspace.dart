@@ -15,6 +15,7 @@ import '../../../utils/firestore_utils.dart';
 import '../../evaluations/models/evaluation_template.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../evaluations/services/evaluator_catalog_service.dart';
+import '../../events/models/event_kind.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
@@ -34,11 +35,13 @@ class CreateIdeathonWorkspace extends StatefulWidget {
     required this.user,
     required this.onCreated,
     this.initialEvent,
+    this.eventKind = EventKind.ideathon,
   });
 
   final UserModel user;
   final ValueChanged<String> onCreated;
   final IdeathonModel? initialEvent;
+  final EventKind eventKind;
 
   @override
   State<CreateIdeathonWorkspace> createState() => _CreateIdeathonWorkspaceState();
@@ -66,6 +69,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool get _isEdit => widget.initialEvent != null;
 
+  EventKind get _kind => widget.initialEvent?.eventKind ?? widget.eventKind;
+
   /// Collapsible sections (details/schedule stay always open).
   final Map<String, bool> _sectionExpanded = <String, bool>{
     'evaluation': false,
@@ -78,7 +83,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     super.initState();
     final DateTime now = DateTime.now();
     _startDateTime = DateTime(now.year, now.month, now.day + 14, 9, 0);
-    _endDateTime = DateTime(now.year, now.month, now.day + 14, 17, 0);
+    _endDateTime = widget.eventKind.isLongRunning
+        ? EventKind.defaultEndDateTime(_startDateTime)
+        : DateTime(now.year, now.month, now.day + 14, 17, 0);
     _load();
   }
 
@@ -214,7 +221,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       firstDate: widget.initialEvent == null
           ? DateTime.now().subtract(const Duration(days: 1))
           : DateTime(current.year - 2),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      lastDate: DateTime.now().add(Duration(days: 365 * (_kind.isLongRunning ? 5 : 2))),
     );
     if (date == null || !mounted) return;
     final TimeOfDay? time = await showTimePicker(
@@ -227,7 +234,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       if (isStart) {
         _startDateTime = next;
         if (!_endDateTime.isAfter(_startDateTime)) {
-          _endDateTime = _startDateTime.add(const Duration(hours: 8));
+          _endDateTime = _kind.isLongRunning
+              ? EventKind.defaultEndDateTime(_startDateTime)
+              : _startDateTime.add(const Duration(hours: 8));
         }
       } else {
         _endDateTime = next;
@@ -241,7 +250,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       FeedbackService.showError(
         context,
         title: 'Not allowed',
-        message: _isEdit ? 'Only department admins can edit Ideathons.' : 'Only department admins can create Ideathons.',
+        message: _isEdit
+            ? 'Only department admins can edit ${_kind.listLabel}.'
+            : 'Only department admins can create ${_kind.listLabel}.',
       );
       return;
     }
@@ -256,6 +267,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         coordinatorIds: _selectedCoordinatorIds.toList(),
         evaluationTemplateId: _selectedTemplateId ?? '',
         problemId: _optionalProblemId ?? '',
+        eventKind: _kind,
         ideathonType: _ideathonType,
       );
       final String id;
@@ -273,16 +285,16 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       widget.onCreated(id);
       FeedbackService.showSuccess(
         context,
-        title: _isEdit ? 'Ideathon updated' : 'Ideathon created',
+        title: _isEdit ? '${_kind.label} updated' : '${_kind.label} created',
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
-            : 'Event created with no ideas yet. Ideas appear after Team Leader submission and coordinator payment validation.',
+            : 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and coordinator payment validation.',
       );
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(
         context,
-        title: _isEdit ? 'Unable to update ideathon' : 'Unable to create ideathon',
+        title: _isEdit ? 'Unable to update ${_kind.label.toLowerCase()}' : 'Unable to create ${_kind.label.toLowerCase()}',
         message: '$e',
       );
     } finally {
@@ -300,8 +312,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final EdgeInsets pad = EdgeInsets.fromLTRB(mobile ? 16 : 22, 8, mobile ? 16 : 22, 16);
 
     final Widget detailsCard = _sectionCard(
-      title: 'Ideathon Details',
-      icon: AppIcons.ideathons,
+      title: '${_kind.label} Details',
+      icon: _kind.icon,
       fillRemaining: !mobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,11 +364,18 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           ),
           const SizedBox(height: 12),
           _scheduleField(
-            label: 'End',
+            label: _kind.isLongRunning ? 'End (optional)' : 'End',
             icon: AppIcons.event,
             value: formatDateTime(_endDateTime.toLocal()),
             onTap: () => _pickDateTime(isStart: false),
           ),
+          if (_kind.isLongRunning) ...<Widget>[
+            const SizedBox(height: 8),
+            const Text(
+              'Defaults to 6 months from start. Reaching the end date does not complete the event.',
+              style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+            ),
+          ],
           if (!_scheduleValid) ...<Widget>[
             const SizedBox(height: 8),
             const Text(
@@ -382,15 +401,17 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFCD34D)),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
-                  SizedBox(width: 8),
+                  const Icon(AppIcons.lock, size: 18, color: Color(0xFFB45309)),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Event configuration is locked because evaluation has started. Submitted scores, results, and winners cannot be changed here.',
-                      style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                      _kind.usesWinners
+                          ? 'Event configuration is locked because evaluation has started. Submitted scores, results, and winners cannot be changed here.'
+                          : 'Event configuration is locked because evaluation has started. Submitted scores and results cannot be changed here. You can still extend the end date from Event actions.',
+                      style: const TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
                     ),
                   ),
                 ],
@@ -887,7 +908,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               )
             : Icon(_isEdit ? AppIcons.edit : AppIcons.add, size: 18),
-        label: Text(_isEdit ? 'Save changes' : 'Create Ideathon'),
+        label: Text(_isEdit ? 'Save changes' : 'Create ${_kind.label}'),
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 44),
           backgroundColor: const Color(0xFF6A38FF),

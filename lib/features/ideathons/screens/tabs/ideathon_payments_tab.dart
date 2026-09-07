@@ -12,12 +12,14 @@ class IdeathonPaymentsTab extends StatefulWidget {
     super.key,
     required this.ideathonId,
     this.actor,
+    this.kind = EventKind.ideathon,
     this.loadFuture,
     this.onChanged,
   });
 
   final String ideathonId;
   final UserModel? actor;
+  final EventKind kind;
 
   /// When set (e.g. details pane prefetch), reuse the in-flight load.
   final Future<EventPaymentsViewModel>? loadFuture;
@@ -48,7 +50,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
 
   Future<EventPaymentsViewModel> _load() {
     return EventPaymentsService.load(
-      kind: EventKind.ideathon,
+      kind: widget.kind,
       eventId: widget.ideathonId,
     );
   }
@@ -60,7 +62,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
   Future<void> _confirm(EventPaymentEntry entry) async {
     try {
       await EventPaymentsService.confirm(
-        kind: EventKind.ideathon,
+        kind: widget.kind,
         eventId: widget.ideathonId,
         entry: entry,
         actor: widget.actor!,
@@ -87,7 +89,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
   Future<void> _markException(EventPaymentEntry entry, String? remarks) async {
     try {
       await EventPaymentsService.markException(
-        kind: EventKind.ideathon,
+        kind: widget.kind,
         eventId: widget.ideathonId,
         entry: entry,
         actor: widget.actor!,
@@ -132,7 +134,7 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
         }
         final EventPaymentsViewModel vm = snapshot.data!;
         return EventPaymentsSection(
-          kind: EventKind.ideathon,
+          kind: vm.kind,
           eventId: widget.ideathonId,
           entries: vm.entries,
           metrics: vm.metrics,

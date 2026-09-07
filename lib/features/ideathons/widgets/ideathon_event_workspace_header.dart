@@ -1,4 +1,3 @@
-import '../../events/models/event_kind.dart';
 import '../../events/widgets/event_workspace_header.dart';
 import '../models/ideathon_model.dart';
 import 'ideathon_status_pill.dart';
@@ -10,7 +9,7 @@ EventWorkspaceHeader ideathonEventWorkspaceHeader({
   required String organisationName,
 }) {
   return EventWorkspaceHeader(
-    kind: EventKind.ideathon,
+    kind: event.eventKind,
     name: event.name,
     description: event.description,
     startDateTime: event.startDateTime,

@@ -5,6 +5,7 @@ import '../../evaluations/assignments/services/evaluation_assignment_service.dar
 import '../../evaluations/models/evaluation_criterion.dart';
 import '../../evaluations/services/evaluation_template_helpers.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
+import '../../events/models/event_kind.dart';
 import '../../idea/models/idea_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../payment/models/payment_model.dart';
@@ -32,6 +33,7 @@ class CreateIdeathonInput {
     required this.coordinatorIds,
     required this.evaluationTemplateId,
     this.problemId = '',
+    this.eventKind = EventKind.ideathon,
     this.ideathonType = IdeathonType.internal,
   });
 
@@ -44,6 +46,7 @@ class CreateIdeathonInput {
   final String evaluationTemplateId;
   /// Optional — not required for creation; does not limit the Ideathon to one Problem.
   final String problemId;
+  final EventKind eventKind;
   final IdeathonType ideathonType;
 }
 
@@ -57,7 +60,7 @@ abstract final class IdeathonService {
     required CreateIdeathonInput input,
   }) async {
     if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
-      throw StateError('Only department admins can create Ideathons.');
+      throw StateError('Only department admins can create ${input.eventKind.listLabel}.');
     }
     final String orgId = actor.orgId.trim();
     final String dept = actor.departmentCode.trim().toUpperCase();
@@ -85,6 +88,7 @@ abstract final class IdeathonService {
     final IdeathonModel ideathon = IdeathonModel(
       ideathonId: ref.id,
       orgId: orgId,
+      eventKind: input.eventKind,
       ideathonType: input.ideathonType,
       name: input.name.trim(),
       description: input.description.trim(),
@@ -134,15 +138,15 @@ abstract final class IdeathonService {
     required CreateIdeathonInput input,
   }) async {
     if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
-      throw StateError('Only department admins can edit Ideathons.');
+      throw StateError('Only department admins can edit events.');
     }
     final String id = ideathonId.trim();
-    if (id.isEmpty) throw StateError('Ideathon is required.');
+    if (id.isEmpty) throw StateError('Event is required.');
 
     final IdeathonModel? existing = await fetchById(id);
-    if (existing == null) throw StateError('Ideathon not found.');
+    if (existing == null) throw StateError('Event not found.');
     if (existing.orgId.trim() != actor.orgId.trim()) {
-      throw StateError('You can only edit Ideathons in your organization.');
+      throw StateError('You can only edit events in your organization.');
     }
     if (isEventCompleted(existing)) {
       throw StateError('This event is completed and can no longer be edited.');
@@ -182,6 +186,7 @@ abstract final class IdeathonService {
     final IdeathonModel updated = IdeathonModel(
       ideathonId: existing.ideathonId,
       orgId: existing.orgId,
+      eventKind: existing.eventKind,
       ideathonType: input.ideathonType,
       name: input.name.trim(),
       description: input.description.trim(),
@@ -214,13 +219,14 @@ abstract final class IdeathonService {
     }
   }
 
-  /// Locked once the event start time has passed, a score exists, or the event is completed.
+  /// Locked once evaluation begins, or (for day events) once the start time has passed.
   static bool isEvaluationTemplateLocked(
     IdeathonModel event, {
     bool evaluationStarted = false,
   }) {
     if (isEventCompleted(event)) return true;
     if (evaluationStarted) return true;
+    if (event.eventKind.isLongRunning) return false;
     return !DateTime.now().isBefore(event.startDateTime);
   }
 
@@ -234,7 +240,7 @@ abstract final class IdeathonService {
     if (evaluationStarted) {
       return 'Evaluation has started. The template can no longer be changed.';
     }
-    if (!DateTime.now().isBefore(event.startDateTime)) {
+    if (!event.eventKind.isLongRunning && !DateTime.now().isBefore(event.startDateTime)) {
       return 'The event has started. The evaluation template is locked.';
     }
     return '';
@@ -472,11 +478,39 @@ abstract final class IdeathonService {
     final IdeathonModel event = await _requireEvent(ideathonId);
     _assertCanManageOutcome(actor, event);
     if (isEventCompleted(event)) return;
-    if (event.winnerIdeaId.trim().isEmpty) {
+    if (event.winnerIdeaId.trim().isEmpty && event.eventKind.usesWinners) {
       throw StateError('Select winners before completing the event.');
     }
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
       'status': IdeathonStatus.completed.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Moves the scheduled end without changing lifecycle status.
+  ///
+  /// Allowed after the original end date, including after evaluation has started,
+  /// until the event is completed.
+  static Future<void> extendEndDate({
+    required UserModel actor,
+    required String ideathonId,
+    required DateTime endDateTime,
+  }) async {
+    if (!RoleVisibilityHelpers.canExtendEventSchedule(UserRole.fromCode(actor.role))) {
+      throw StateError('Only department or college admins can extend the event end date.');
+    }
+    final IdeathonModel event = await _requireEvent(ideathonId);
+    if (event.orgId.trim() != actor.orgId.trim()) {
+      throw StateError('You can only manage events in your organization.');
+    }
+    if (isEventCompleted(event)) {
+      throw StateError('This event is completed and can no longer be extended.');
+    }
+    if (!endDateTime.isAfter(event.startDateTime)) {
+      throw StateError('End date/time must be after start date/time.');
+    }
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
+      'endDateTime': Timestamp.fromDate(endDateTime),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

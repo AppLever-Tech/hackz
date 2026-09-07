@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
+import '../../events/models/event_kind.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
@@ -18,12 +19,14 @@ class IdeathonQueryParams {
     this.search = '',
     this.statusFilters = const <IdeathonStatus>{},
     this.departmentFilters = const <String>{},
+    this.eventKind,
   });
 
   final UserModel viewer;
   final String search;
   final Set<IdeathonStatus> statusFilters;
   final Set<String> departmentFilters;
+  final EventKind? eventKind;
 }
 
 abstract final class IdeathonQueryService {
@@ -46,6 +49,7 @@ abstract final class IdeathonQueryService {
     final List<IdeathonListRow> rows = <IdeathonListRow>[];
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       final IdeathonModel ideathon = IdeathonModel.fromMap(doc.id, doc.data());
+      if (params.eventKind != null && ideathon.eventKind != params.eventKind) continue;
       if (viewerDept.isNotEmpty && ideathon.departmentId.trim().toUpperCase() != viewerDept) continue;
       if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(ideathon.status)) continue;
       if (params.departmentFilters.isNotEmpty &&
@@ -54,7 +58,7 @@ abstract final class IdeathonQueryService {
       }
       if (search.isNotEmpty) {
         final String haystack =
-            '${ideathon.name} ${ideathon.description} ${ideathon.ideathonType.label}'.toLowerCase();
+            '${ideathon.name} ${ideathon.description} ${ideathon.ideathonType.label} ${ideathon.eventKind.label}'.toLowerCase();
         if (!haystack.contains(search)) continue;
       }
       rows.add(IdeathonListRow(ideathon: ideathon));

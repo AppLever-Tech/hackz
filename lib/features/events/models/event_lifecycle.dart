@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import 'event_kind.dart';
 import 'event_lifecycle_stage.dart';
 
 /// Shared event-lifecycle stage ids (Ideathon today; Hackathon later).
@@ -124,9 +125,16 @@ abstract final class EventLifecycle {
     ];
   }
 
-  static String currentStageId(EventLifecycleProgress progress) {
+  static List<EventLifecycleStage> stagesFor(EventKind kind) {
+    if (kind.usesWinners) return standardStages();
+    return standardStages()
+        .where((EventLifecycleStage stage) => stage.id != EventLifecycleStageId.winners)
+        .toList(growable: false);
+  }
+
+  static String currentStageId(EventLifecycleProgress progress, {bool usesWinners = true}) {
     if (progress.completed) return EventLifecycleStageId.completed;
-    if (progress.winnersSelected) return EventLifecycleStageId.winners;
+    if (usesWinners && progress.winnersSelected) return EventLifecycleStageId.winners;
     if (progress.resultsReady) return EventLifecycleStageId.resultsReady;
     if (progress.evaluationStarted) return EventLifecycleStageId.evaluation;
     if (progress.eventStarted) return EventLifecycleStageId.started;
@@ -138,18 +146,23 @@ abstract final class EventLifecycle {
   static EventPrimaryActionKind primaryAction(
     EventLifecycleProgress progress, {
     required bool canManageOutcome,
+    bool usesWinners = true,
   }) {
     if (progress.completed) {
-      return canManageOutcome
+      return canManageOutcome && usesWinners
           ? EventPrimaryActionKind.viewWinners
           : EventPrimaryActionKind.viewResults;
     }
-    if (canManageOutcome && progress.winnersSelected) {
+    if (usesWinners) {
+      if (canManageOutcome && progress.winnersSelected) {
+        return EventPrimaryActionKind.completeEvent;
+      }
+      if (progress.winnersSelected) return EventPrimaryActionKind.viewResults;
+      if (canManageOutcome && progress.resultsReady && progress.resultsReviewed) {
+        return EventPrimaryActionKind.selectWinners;
+      }
+    } else if (canManageOutcome && progress.resultsReady && progress.resultsReviewed) {
       return EventPrimaryActionKind.completeEvent;
-    }
-    if (progress.winnersSelected) return EventPrimaryActionKind.viewResults;
-    if (canManageOutcome && progress.resultsReady && progress.resultsReviewed) {
-      return EventPrimaryActionKind.selectWinners;
     }
     if (progress.resultsReady) return EventPrimaryActionKind.reviewResults;
     if (progress.evaluationStarted) return EventPrimaryActionKind.evaluationInProgress;

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../events/models/event_kind.dart';
 import '../../events/models/event_payment_entry.dart';
 import '../../idea/models/idea_model.dart';
 import '../../payment/models/payment_model.dart';
@@ -54,7 +53,7 @@ abstract final class IdeathonPaymentService {
 
     return EventPaymentsViewModel(
       eventId: id,
-      kind: EventKind.ideathon,
+      kind: ideathon.eventKind,
       entries: entries,
       metrics: _metrics(entries),
     );

@@ -17,7 +17,7 @@ class IdeathonResultsWorkspaceBody extends StatelessWidget {
 
   final IdeathonResultsWorkspaceViewModel vm;
 
-  static const EventKind _kind = EventKind.ideathon;
+  EventKind get _kind => vm.event.eventKind;
   static const double _metricLabelWidth = 140;
   static const TextStyle _metricValueStyle = TextStyle(
     fontSize: 18,

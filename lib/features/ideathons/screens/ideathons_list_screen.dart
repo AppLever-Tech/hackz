@@ -14,6 +14,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
+import '../../events/models/event_kind.dart';
 import '../services/ideathon_query_service.dart';
 import '../services/ideathon_status_helpers.dart';
 import '../widgets/ideathon_status_pill.dart';
@@ -22,9 +23,14 @@ import 'create_ideathon_workspace.dart';
 import 'ideathon_details_pane.dart';
 
 class IdeathonsListScreen extends StatefulWidget {
-  const IdeathonsListScreen({super.key, required this.user});
+  const IdeathonsListScreen({
+    super.key,
+    required this.user,
+    this.eventKind = EventKind.ideathon,
+  });
 
   final UserModel user;
+  final EventKind eventKind;
 
   @override
   State<IdeathonsListScreen> createState() => _IdeathonsListScreenState();
@@ -57,13 +63,20 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
           viewer: widget.user,
           search: _searchController.text,
           statusFilters: _statusFilters,
+          eventKind: widget.eventKind,
         ),
       );
     });
   }
 
   void _openIdeathon(String id) =>
-      showIdeathonDetailsPane(context, ideathonId: id, actor: widget.user);
+      showIdeathonDetailsPane(
+        context,
+        ideathonId: id,
+        actor: widget.user,
+        eventKind: widget.eventKind,
+        backTooltip: 'Back to ${widget.eventKind.listLabel}',
+      );
 
   void _clearAllFilters() {
     setState(() {
@@ -103,7 +116,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
 
   InputDecoration _searchDecoration() {
     return HackzInputDecoration.decorate(
-      hintText: 'Search ideathon events',
+      hintText: 'Search ${widget.eventKind.listLabel.toLowerCase()}',
       prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
       compact: true,
     );
@@ -139,12 +152,13 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     final bool mobile = ResponsiveHelper.isMobile(context);
     final Widget metrics = IdeathonMetricsRow(
       rows: rows,
+      eventKind: widget.eventKind,
       spacing: mobile ? 8 : 10,
       runSpacing: mobile ? 8 : 10,
     );
     final Widget searchBar = ResponsiveSearchFilterBar(
       searchController: _searchController,
-      searchHint: 'Search ideathon events',
+      searchHint: 'Search ${widget.eventKind.listLabel.toLowerCase()}',
       searchDecoration: _searchDecoration(),
       searchTextStyle: HackzInputDecoration.compactFieldTextStyle,
       filtersExpanded: _showFilters,
@@ -157,7 +171,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             children: <Widget>[
               MobileToolbarButtonStyles.filledIcon(
                 onPressed: () => setState(() => _showCreate = true),
-                label: 'Create Ideathon',
+                label: 'Create ${widget.eventKind.label}',
               ),
               const SizedBox(width: 8),
               Expanded(child: searchBar),
@@ -205,13 +219,14 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             child: Row(
               children: <Widget>[
                 IconButton(onPressed: () => setState(() => _showCreate = false), icon: const Icon(AppIcons.back)),
-                const Text('Create Ideathon', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                Text('Create ${widget.eventKind.label}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
           Expanded(
             child: CreateIdeathonWorkspace(
               user: widget.user,
+              eventKind: widget.eventKind,
               onCreated: (String id) {
                 setState(() => _showCreate = false);
                 _load();
@@ -240,7 +255,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                   child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
                       ? const Center(child: CircularProgressIndicator())
                       : rows.isEmpty
-                          ? const Center(child: Text('No ideathon events yet.'))
+                          ? Center(child: Text('No ${widget.eventKind.listLabel.toLowerCase()} yet.'))
                           : ListView.separated(
                               padding: EdgeInsets.only(
                                 bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 0,
@@ -286,7 +301,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             if (mobile && _canCreate)
               MobileCreateFab(
                 onPressed: () => setState(() => _showCreate = true),
-                tooltip: 'Create Ideathon',
+                tooltip: 'Create ${widget.eventKind.label}',
               ),
           ],
         );

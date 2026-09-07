@@ -13,11 +13,13 @@ import 'package:hackz/features/events/models/event_kind.dart';
 import 'package:hackz/features/events/models/event_lifecycle.dart';
 import 'package:hackz/features/events/screens/event_details_shell.dart';
 import 'package:hackz/features/events/widgets/event_meta_chip.dart';
+import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/ideathons/screens/create_ideathon_workspace.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_evaluation_template_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_ideas_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_judge_assignments_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_leaderboard_tab.dart';
+import 'package:hackz/features/ideathons/screens/tabs/ideathon_lifecycle_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_overview_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_payments_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_reports_tab.dart';
@@ -39,6 +41,7 @@ void showIdeathonDetailsPane(
   BuildContext context, {
   required String ideathonId,
   required UserModel actor,
+  EventKind eventKind = EventKind.ideathon,
   String backTooltip = 'Back to Ideathons',
 }) {
   WorkspaceController.instance.close();
@@ -48,6 +51,7 @@ void showIdeathonDetailsPane(
       key: ValueKey<String>(ideathonId),
       ideathonId: ideathonId,
       actor: actor,
+      eventKind: eventKind,
       onBack: chrome.clearOverlay,
       backTooltip: backTooltip,
     ),
@@ -60,12 +64,14 @@ class IdeathonDetailsPane extends StatefulWidget {
     required this.ideathonId,
     required this.actor,
     required this.onBack,
+    this.eventKind = EventKind.ideathon,
     this.backTooltip = 'Back to Ideathons',
   });
 
   final String ideathonId;
   final UserModel actor;
   final VoidCallback onBack;
+  final EventKind eventKind;
   final String backTooltip;
 
   @override
@@ -83,7 +89,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     super.initState();
     _future = IdeathonDetailsLoader.load(widget.ideathonId);
     _paymentsFuture = EventPaymentsService.load(
-      kind: EventKind.ideathon,
+      kind: widget.eventKind,
       eventId: widget.ideathonId,
     );
   }
@@ -92,7 +98,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     setState(() {
       _future = IdeathonDetailsLoader.load(widget.ideathonId);
       _paymentsFuture = EventPaymentsService.load(
-        kind: EventKind.ideathon,
+        kind: widget.eventKind,
         eventId: widget.ideathonId,
       );
     });
@@ -100,11 +106,15 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
 
   bool get _canEdit => RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.actor.role));
 
+  bool get _canExtend =>
+      RoleVisibilityHelpers.canExtendEventSchedule(UserRole.fromCode(widget.actor.role));
+
   EventDetailsCommand _commandFor(IdeathonDetailsViewModel vm) {
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
     final EventPrimaryActionKind kind = EventLifecycle.primaryAction(
       progress,
       canManageOutcome: _canEdit,
+      usesWinners: vm.ideathon.eventKind.usesWinners,
     );
     switch (kind) {
       case EventPrimaryActionKind.completeEvent:
@@ -176,8 +186,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final bool ok = await FeedbackService.showConfirmation(
       context,
       title: 'Complete event?',
-      message:
-          '${pendingLine}Completing locks evaluation configuration, judge assignments, the template, scores, results, and winner selection. Reports and results stay available.',
+      message: vm.ideathon.eventKind.usesWinners
+          ? '${pendingLine}Completing locks evaluation configuration, judge assignments, the template, scores, results, and winner selection. Reports and results stay available.'
+          : '${pendingLine}Completing locks evaluation configuration, judge assignments, the template, and scores. Results stay available.',
       confirmLabel: 'Complete Event',
       dangerConfirm: pending > 0,
     );
@@ -191,12 +202,47 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       FeedbackService.showSuccess(
         context,
         title: 'Event completed',
-        message: 'This Ideathon is read-only. Results and reports remain available.',
+        message: 'This ${vm.ideathon.eventKind.label} is read-only. Results remain available.',
       );
       _reload();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to complete event', message: '$e');
+    }
+  }
+
+  Future<void> _extendEndDate(IdeathonModel event) async {
+    final DateTime current = event.endDateTime.toLocal();
+    final DateTime start = event.startDateTime.toLocal();
+    final DateTime? date = await showDatePicker(
+      context: context,
+      initialDate: current.isAfter(start) ? current : start.add(const Duration(days: 1)),
+      firstDate: start,
+      lastDate: DateTime.now().add(Duration(days: 365 * (event.eventKind.isLongRunning ? 5 : 2))),
+    );
+    if (date == null || !mounted) return;
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+    );
+    if (time == null || !mounted) return;
+    final DateTime next = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    try {
+      await IdeathonService.extendEndDate(
+        actor: widget.actor,
+        ideathonId: event.ideathonId,
+        endDateTime: next,
+      );
+      if (!mounted) return;
+      FeedbackService.showSuccess(
+        context,
+        title: 'End date extended',
+        message: 'The scheduled end is now ${formatDateTime(next)}. The event lifecycle is unchanged.',
+      );
+      _reload();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Unable to extend end date', message: '$e');
     }
   }
 
@@ -244,8 +290,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final String templateName =
         vm.evaluationTemplateName.trim().isEmpty ? event.evaluationTemplateId.trim() : vm.evaluationTemplateName.trim();
     final EventMetaChip ideasChip = EventMetaChip(
-      icon: AppIcons.ideas,
-      label: '${vm.ideas.length} ${vm.ideas.length == 1 ? 'idea' : 'ideas'}',
+      icon: event.eventKind.entriesIcon,
+      label:
+          '${vm.ideas.length} ${vm.ideas.length == 1 ? event.eventKind.payableItemLabel.toLowerCase() : event.eventKind.entriesLabel.toLowerCase()}',
       color: const Color(0xFF4F46E5),
     );
     final List<Widget> statusPills = _statusPills(vm);
@@ -328,6 +375,170 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     }
   }
 
+  Widget? _eventActions(
+    IdeathonModel event, {
+    required bool eventCompleted,
+    required bool evaluationLocked,
+  }) {
+    if (eventCompleted) return null;
+    final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
+      if (_canEdit)
+        CardOverflowMenuAction(
+          value: 'edit',
+          icon: evaluationLocked ? AppIcons.lock : AppIcons.edit,
+          label: 'Edit event',
+        ),
+      if (_canExtend)
+        const CardOverflowMenuAction(
+          value: 'extend',
+          icon: AppIcons.clock,
+          label: 'Extend end date',
+        ),
+    ];
+    if (actions.isEmpty) return null;
+    return CardOverflowMenuButton(
+      tooltip: 'Event actions',
+      onSelected: (String value) {
+        if (value == 'edit') setState(() => _editing = true);
+        if (value == 'extend') _extendEndDate(event);
+      },
+      actions: actions,
+    );
+  }
+
+  List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsViewModel vm) {
+    final IdeathonModel event = vm.ideathon;
+    final EventKind kind = event.eventKind;
+    final List<EventDetailsNavGroup> groups = <EventDetailsNavGroup>[
+      EventDetailsNavGroup(
+        id: 'overview',
+        label: 'Overview',
+        icon: AppIcons.info,
+        items: <EventDetailsModule>[
+          EventDetailsModule(
+            id: 'overview',
+            label: 'Overview',
+            icon: AppIcons.info,
+            child: IdeathonOverviewTab(vm: vm),
+          ),
+        ],
+      ),
+      EventDetailsNavGroup(
+        id: 'entries',
+        label: kind.entriesLabel,
+        icon: kind.entriesIcon,
+        items: <EventDetailsModule>[
+          EventDetailsModule(
+            id: 'ideas',
+            label: kind.entriesLabel,
+            icon: kind.entriesIcon,
+            count: vm.ideas.isEmpty ? null : vm.ideas.length,
+            child: IdeathonIdeasTab(vm: vm, onRefresh: _reload),
+          ),
+        ],
+      ),
+      EventDetailsNavGroup(
+        id: 'payments',
+        label: 'Payments',
+        icon: AppIcons.payments,
+        items: <EventDetailsModule>[
+          EventDetailsModule(
+            id: 'payments',
+            label: 'Payments',
+            icon: AppIcons.payments,
+            child: IdeathonPaymentsTab(
+              ideathonId: event.ideathonId,
+              actor: widget.actor,
+              kind: kind,
+              loadFuture: _paymentsFuture,
+              onChanged: _reload,
+            ),
+          ),
+        ],
+      ),
+      EventDetailsNavGroup(
+        id: 'evaluation',
+        label: 'Evaluation',
+        icon: AppIcons.scoring,
+        items: <EventDetailsModule>[
+          EventDetailsModule(
+            id: 'assignments',
+            label: 'Judge Assignments',
+            icon: AppIcons.judges,
+            count: vm.workspace.assignmentCount == 0 ? null : vm.workspace.assignmentCount,
+            child: IdeathonJudgeAssignmentsTab(
+              key: ValueKey<String>('${event.ideathonId}:${vm.ideas.length}'),
+              ideathonId: event.ideathonId,
+              actor: widget.actor,
+            ),
+          ),
+          EventDetailsModule(
+            id: 'template',
+            label: 'Evaluation Template',
+            icon: AppIcons.scoring,
+            child: IdeathonEvaluationTemplateTab(
+              vm: vm,
+              actor: widget.actor,
+              onSaved: _reload,
+            ),
+          ),
+          EventDetailsModule(
+            id: 'results',
+            label: 'Evaluation Results',
+            icon: AppIcons.results,
+            child: IdeathonResultsTab(event: event, actor: widget.actor),
+          ),
+        ],
+      ),
+    ];
+    if (kind.usesWinners) {
+      groups.add(
+        EventDetailsNavGroup(
+          id: 'outcome',
+          label: 'Outcome',
+          icon: AppIcons.leaderboard,
+          items: <EventDetailsModule>[
+            EventDetailsModule(
+              id: 'winners',
+              label: 'Winners',
+              icon: AppIcons.star,
+              child: IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
+            ),
+            EventDetailsModule(
+              id: 'leaderboard',
+              label: 'Leaderboard',
+              icon: AppIcons.leaderboard,
+              child: IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
+            ),
+            EventDetailsModule(
+              id: 'reports',
+              label: 'Reports',
+              icon: AppIcons.docs,
+              child: IdeathonReportsTab(vm: vm, actor: widget.actor),
+            ),
+          ],
+        ),
+      );
+    } else {
+      groups.add(
+        EventDetailsNavGroup(
+          id: 'lifecycle',
+          label: 'Lifecycle',
+          icon: AppIcons.checklist,
+          items: <EventDetailsModule>[
+            EventDetailsModule(
+              id: 'lifecycle',
+              label: 'Lifecycle',
+              icon: AppIcons.checklist,
+              child: IdeathonLifecycleTab(vm: vm),
+            ),
+          ],
+        ),
+      );
+    }
+    return groups;
+  }
+
   @override
   Widget build(BuildContext context) {
     final DashboardSessionScope session = DashboardSessionScope.of(context);
@@ -337,14 +548,15 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         future: _future,
         builder: (BuildContext context, AsyncSnapshot<IdeathonDetailsViewModel> snapshot) {
           final String title = snapshot.data?.ideathon.name.trim() ?? '';
+          final EventKind kind = snapshot.data?.ideathon.eventKind ?? widget.eventKind;
           final Widget header = DashboardPageHeader(
-            title: title.isEmpty ? EventKind.ideathon.label : title,
-            titleIcon: AppIcons.ideathons,
+            title: title.isEmpty ? kind.label : title,
+            titleIcon: kind.icon,
             user: session.user,
             onLogout: session.onLogout,
             onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
             onRefresh: _reload,
-            helpPageId: EventKind.ideathon.helpPageId,
+            helpPageId: kind.helpPageId,
             leading: IconButton(
               onPressed: widget.onBack,
               icon: const Icon(Icons.arrow_back_rounded),
@@ -376,10 +588,10 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(AppIcons.ideathons, size: 40, color: Color(0xFF94A3B8)),
+                        const Icon(AppIcons.event, size: 40, color: Color(0xFF94A3B8)),
                         const SizedBox(height: 12),
                         Text(
-                          snapshot.hasError ? 'Unable to load: ${snapshot.error}' : 'Ideathon not found',
+                          snapshot.hasError ? 'Unable to load: ${snapshot.error}' : 'Event not found',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Color(0xFF64748B)),
                         ),
@@ -413,13 +625,14 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                         tooltip: 'Back to details',
                         visualDensity: VisualDensity.compact,
                       ),
-                      const Text('Edit Ideathon', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const Text('Edit event', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: CreateIdeathonWorkspace(
                     user: widget.actor,
+                    eventKind: event.eventKind,
                     initialEvent: event,
                     onCreated: (_) {
                       setState(() => _editing = false);
@@ -442,127 +655,8 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                   onSelected: (String id) => _moduleId = id,
                   command: _commandFor(vm),
                   contextPillsFor: (String id) => _contextPills(vm, id),
-                  headerActions: _canEdit && !eventCompleted
-                      ? CardOverflowMenuButton(
-                          tooltip: 'Event actions',
-                          onSelected: (String value) {
-                            if (value == 'edit') setState(() => _editing = true);
-                          },
-                          actions: <CardOverflowMenuAction>[
-                            CardOverflowMenuAction(
-                              value: 'edit',
-                              icon: evaluationLocked ? AppIcons.lock : AppIcons.edit,
-                              label: 'Edit event',
-                            ),
-                          ],
-                        )
-                      : null,
-                  navigation: <EventDetailsNavGroup>[
-                    EventDetailsNavGroup(
-                      id: 'overview',
-                      label: 'Overview',
-                      icon: AppIcons.info,
-                      items: <EventDetailsModule>[
-                        EventDetailsModule(
-                          id: 'overview',
-                          label: 'Overview',
-                          icon: AppIcons.info,
-                          child: IdeathonOverviewTab(vm: vm),
-                        ),
-                      ],
-                    ),
-                    EventDetailsNavGroup(
-                      id: 'entries',
-                      label: EventKind.ideathon.entriesLabel,
-                      icon: AppIcons.ideas,
-                      items: <EventDetailsModule>[
-                        EventDetailsModule(
-                          id: 'ideas',
-                          label: EventKind.ideathon.entriesLabel,
-                          icon: AppIcons.ideas,
-                          count: vm.ideas.isEmpty ? null : vm.ideas.length,
-                          child: IdeathonIdeasTab(vm: vm, onRefresh: _reload),
-                        ),
-                      ],
-                    ),
-                    EventDetailsNavGroup(
-                      id: 'payments',
-                      label: 'Payments',
-                      icon: AppIcons.payments,
-                      items: <EventDetailsModule>[
-                        EventDetailsModule(
-                          id: 'payments',
-                          label: 'Payments',
-                          icon: AppIcons.payments,
-                          child: IdeathonPaymentsTab(
-                            ideathonId: event.ideathonId,
-                            actor: widget.actor,
-                            loadFuture: _paymentsFuture,
-                            onChanged: _reload,
-                          ),
-                        ),
-                      ],
-                    ),
-                    EventDetailsNavGroup(
-                      id: 'evaluation',
-                      label: 'Evaluation',
-                      icon: AppIcons.scoring,
-                      items: <EventDetailsModule>[
-                        EventDetailsModule(
-                          id: 'assignments',
-                          label: 'Judge Assignments',
-                          icon: AppIcons.judges,
-                          count: vm.workspace.assignmentCount == 0 ? null : vm.workspace.assignmentCount,
-                          child: IdeathonJudgeAssignmentsTab(
-                            key: ValueKey<String>('${event.ideathonId}:${vm.ideas.length}'),
-                            ideathonId: event.ideathonId,
-                            actor: widget.actor,
-                          ),
-                        ),
-                        EventDetailsModule(
-                          id: 'template',
-                          label: 'Evaluation Template',
-                          icon: AppIcons.scoring,
-                          child: IdeathonEvaluationTemplateTab(
-                            vm: vm,
-                            actor: widget.actor,
-                            onSaved: _reload,
-                          ),
-                        ),
-                        EventDetailsModule(
-                          id: 'results',
-                          label: 'Evaluation Results',
-                          icon: AppIcons.results,
-                          child: IdeathonResultsTab(event: event, actor: widget.actor),
-                        ),
-                      ],
-                    ),
-                    EventDetailsNavGroup(
-                      id: 'outcome',
-                      label: 'Outcome',
-                      icon: AppIcons.leaderboard,
-                      items: <EventDetailsModule>[
-                        EventDetailsModule(
-                          id: 'winners',
-                          label: 'Winners',
-                          icon: AppIcons.star,
-                          child: IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
-                        ),
-                        EventDetailsModule(
-                          id: 'leaderboard',
-                          label: 'Leaderboard',
-                          icon: AppIcons.leaderboard,
-                          child: IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
-                        ),
-                        EventDetailsModule(
-                          id: 'reports',
-                          label: 'Reports',
-                          icon: AppIcons.docs,
-                          child: IdeathonReportsTab(vm: vm, actor: widget.actor),
-                        ),
-                      ],
-                    ),
-                  ],
+                  headerActions: _eventActions(event, eventCompleted: eventCompleted, evaluationLocked: evaluationLocked),
+                  navigation: _navigationFor(vm),
                 ),
               ),
             ],
