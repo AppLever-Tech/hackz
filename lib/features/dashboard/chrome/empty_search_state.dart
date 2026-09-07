@@ -90,6 +90,20 @@ class EmptySearchState extends StatelessWidget {
     );
   }
 
+  factory EmptySearchState.events({
+    Key? key,
+    required String listLabel,
+    required IconData icon,
+    VoidCallback? onClearSearch,
+  }) {
+    return EmptySearchState(
+      key: key,
+      title: 'No ${listLabel.toLowerCase()} found',
+      icon: icon,
+      onClearSearch: onClearSearch,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(

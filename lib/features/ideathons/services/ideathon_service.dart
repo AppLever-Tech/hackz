@@ -76,7 +76,10 @@ abstract final class IdeathonService {
 
     final String templateId = input.evaluationTemplateId.trim().isNotEmpty
         ? input.evaluationTemplateId.trim()
-        : IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
+        : IdeathonSettingsService.defaultEvaluationTemplateId(
+            orgId: orgId,
+            eventKind: input.eventKind,
+          );
     final resolved = EvaluationTemplatesService.resolveTemplate(templateId);
     if (resolved.templateId.trim().isEmpty) {
       throw StateError('Select an evaluation template.');

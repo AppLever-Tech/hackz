@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_icons.dart';
 import '../models/ideathon_type.dart';
 
-/// Compact Internal / External selector used on Ideathon creation.
+/// Compact Internal / External selector used on event creation.
 class IdeathonTypeSelector extends StatelessWidget {
   const IdeathonTypeSelector({
     super.key,
@@ -22,7 +22,7 @@ class IdeathonTypeSelector extends StatelessWidget {
         Row(
           children: <Widget>[
             const Text(
-              'Ideathon type',
+              'Type',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
             ),
             const SizedBox(width: 6),

@@ -106,8 +106,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final List<UserModel> evaluators = await EvaluatorCatalogService.loadEvaluators(orgId: orgId);
     final List<UserModel> coordinators = await _loadCoordinators(orgId: orgId, dept: dept);
     final List<EvaluationTemplate> templates = EvaluationTemplatesService.activeTemplates;
-    final String defaultTemplateId = IdeathonSettingsService.ideathonEvaluationTemplateId(orgId);
     final IdeathonModel? event = widget.initialEvent;
+    final String defaultTemplateId = IdeathonSettingsService.defaultEvaluationTemplateId(
+      orgId: orgId,
+      eventKind: event?.eventKind ?? widget.eventKind,
+    );
     final bool locked =
         event != null && await IdeathonService.hasEvaluationStarted(event.ideathonId);
 

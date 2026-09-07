@@ -8,6 +8,7 @@ import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/chrome/empty_search_state.dart';
 import '../widgets/ideathon_metrics_row.dart';
 import '../../user/models/user_model.dart';
 import '../../user/models/enums/user_role.dart';
@@ -255,7 +256,14 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                   child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
                       ? const Center(child: CircularProgressIndicator())
                       : rows.isEmpty
-                          ? Center(child: Text('No ${widget.eventKind.listLabel.toLowerCase()} yet.'))
+                          ? EmptySearchState.events(
+                              listLabel: widget.eventKind.listLabel,
+                              icon: widget.eventKind.icon,
+                              onClearSearch: () {
+                                _searchController.clear();
+                                _clearAllFilters();
+                              },
+                            )
                           : ListView.separated(
                               padding: EdgeInsets.only(
                                 bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 0,
