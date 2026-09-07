@@ -173,7 +173,7 @@ abstract final class IdeathonWorkspaceLoader {
       completedEvaluationCount: completed,
       evaluationStartedAt: evaluationStartedAt,
       firstAssignedAt: firstAssignedAt,
-      organisationName: (org?.name ?? '').trim(),
+      organisationName: _organisationName(org: org, orgId: ideathon.orgId),
       departmentName: (department?.name ?? ideathon.departmentId).trim(),
       evaluationTemplateName: templateName,
       winner: winner,
@@ -225,6 +225,22 @@ abstract final class IdeathonWorkspaceLoader {
       teamName: teamName,
       scoreLabel: '—',
     );
+  }
+
+  static String _organisationName({required OrganizationModel? org, required String orgId}) {
+    final String id = orgId.trim();
+    final String fromDoc = (org?.name ?? '').trim();
+    if (fromDoc.isNotEmpty && fromDoc != id) return fromDoc;
+
+    if (HackzFirebase.isOrganisationWorkspace) {
+      final String boundName = HackzFirebase.current.context.organisationName.trim();
+      final String boundId = HackzFirebase.current.context.organisationId.trim();
+      if (boundName.isNotEmpty && boundName != id && boundName != boundId) {
+        return boundName;
+      }
+    }
+
+    return '';
   }
 
   static Future<List<UserModel>> _fetchUsers(List<String> ids) async {

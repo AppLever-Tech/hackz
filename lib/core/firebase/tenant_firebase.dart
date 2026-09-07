@@ -188,6 +188,7 @@ abstract final class TenantFirebase {
   /// Restores [HackzFirebase.current] to the Control Plane app.
   static Future<void> disconnect({bool notifySession = true}) async {
     PhoneAuthChallenge.clear();
+    await _signOutOrganisationAuth();
     await _releaseOtherTenantApps(keepName: HackzFirebase.controlPlane.app.name);
     HackzFirebase.bind(
       HackzFirebase.controlPlane.context,
@@ -249,6 +250,11 @@ abstract final class TenantFirebase {
     return ensureApp(tenantId: 'workspace-$projectId', options: options);
   }
 
+  /// Signs other tenant apps out. Does not [FirebaseApp.delete] them.
+  ///
+  /// Deleting and recreating a named app (especially on web) terminates Auth
+  /// Recaptcha / ConfirmationResult and Firestore clients. The next OTP
+  /// confirm then fails with "The client has already been terminated".
   static Future<void> _releaseOtherTenantApps({required String keepName}) async {
     for (final FirebaseApp app in List<FirebaseApp>.from(Firebase.apps)) {
       if (app.name == keepName) continue;
@@ -256,9 +262,6 @@ abstract final class TenantFirebase {
       if (!app.name.startsWith(_appPrefix) && !app.name.startsWith('workspace-')) continue;
       try {
         await FirebaseAuth.instanceFor(app: app).signOut();
-      } catch (_) {}
-      try {
-        await app.delete();
       } catch (_) {}
     }
   }

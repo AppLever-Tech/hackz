@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'approved_tenant_firebase.dart';
 import 'hackz_firebase.dart';
 import 'organisation_code.dart';
+import 'tenant_connection_exception.dart';
 import 'tenant_record.dart';
 
 /// Control Plane tenant registry (`hkzTenants`).
@@ -222,9 +223,19 @@ abstract final class TenantRegistry {
     final String? code = OrganisationCode.tryParse(rawCode);
     if (code == null) return null;
 
-    final QuerySnapshot<Map<String, dynamic>> snap = await _col
-        .where('organisationCode', isEqualTo: code)
-        .get();
+    final QuerySnapshot<Map<String, dynamic>> snap;
+    try {
+      snap = await _col.where('organisationCode', isEqualTo: code).get();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw const TenantConnectionException(
+          TenantConnectionFailure.unavailable,
+          message:
+              'Organisation-code lookup is blocked by Control Plane Firestore rules. Allow unauthenticated reads of hkzTenants (routing only).',
+        );
+      }
+      rethrow;
+    }
 
     final List<TenantRecord> matches = <TenantRecord>[];
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {

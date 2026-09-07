@@ -141,9 +141,20 @@ class AuthUtils {
       if (result == null) {
         throw StateError('OTP was not requested yet.');
       }
-      final UserCredential credential = await result.confirm(otpCode);
-      PhoneAuthChallenge.clear();
-      return credential;
+      try {
+        final UserCredential credential = await result.confirm(otpCode);
+        PhoneAuthChallenge.clear();
+        return credential;
+      } catch (e) {
+        final String text = '$e'.toLowerCase();
+        if (text.contains('terminated')) {
+          PhoneAuthChallenge.clear();
+          throw StateError(
+            'Sign-in was reset after the previous session. Refresh the page, then request a new OTP.',
+          );
+        }
+        rethrow;
+      }
     }
 
     final String? verificationId = PhoneAuthChallenge.verificationId;

@@ -240,7 +240,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         ? formatShortDate(start)
         : '${formatShortDate(start)} – ${formatShortDate(end)}';
     final String timeLabel = '${formatShortTime(start)} – ${formatShortTime(end)}';
-    final String org = vm.organisationName.trim().isEmpty ? event.orgId : vm.organisationName.trim();
+    final String org = vm.organisationName.trim();
     final String templateName =
         vm.evaluationTemplateName.trim().isEmpty ? event.evaluationTemplateId.trim() : vm.evaluationTemplateName.trim();
     final EventMetaChip ideasChip = EventMetaChip(
