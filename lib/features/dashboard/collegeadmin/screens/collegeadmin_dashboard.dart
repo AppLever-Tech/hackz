@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
 
 import '../../../../core/theme/app_icons.dart';
+import '../../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../../core/ui/common/count_pill.dart';
 import '../../../../features/organization/models/organization_model.dart';
+import '../../../../features/organization/widgets/organization_thumbnail.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/org_settings/collegeadmin/org_settings_dashboard.dart';
@@ -21,6 +23,7 @@ import '../../../../core/responsive/adaptive_dashboard_panel.dart';
 import '../../../../core/responsive/responsive_columns.dart';
 import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../../core/responsive/responsive_metric_grid.dart';
+import '../../sysadmin/screens/organization_dialog.dart';
 import 'manage_college_screen.dart';
 
 class CollegeAdminDashboard extends StatelessWidget {
@@ -50,15 +53,6 @@ class CollegeAdminDashboard extends StatelessWidget {
       'ideaActivity': results[4] as List<Map<String, dynamic>>,
       'ideasByDept': results[5] as Map<String, int>,
     };
-  }
-
-  Uri? _parseWebsiteUri(String website) {
-    final normalized = website.trim();
-    if (normalized.isEmpty || normalized == '-') return null;
-    final withScheme = normalized.startsWith(RegExp(r'https?://'))
-        ? normalized
-        : 'https://$normalized';
-    return Uri.tryParse(withScheme);
   }
 
   @override
@@ -183,57 +177,9 @@ class CollegeAdminDashboard extends StatelessWidget {
                 ResponsivePair(
                   spacing: gap,
                   secondFlex: 2,
-                  first: ChartCard(
-                    title: 'College Details',
-                    icon: AppIcons.organizations,
-                    child: ResponsiveChartBox(
-                      desktopHeight: 200,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            _CollegeDetailItem(icon: AppIcons.organizations, label: 'Name', value: (org?.name ?? user.orgId)),
-                            _CollegeDetailItem(icon: AppIcons.orgType, label: 'Type', value: org?.type.displayName ?? 'College'),
-                            _CollegeDetailItem(
-                              icon: AppIcons.address,
-                              label: 'Address',
-                              value: org?.address.isNotEmpty == true ? org!.address : '-',
-                              wrapValue: true,
-                            ),
-                            _CollegeDetailItem(
-                              icon: AppIcons.website,
-                              label: 'Website',
-                              value: org?.website.isNotEmpty == true ? org!.website : '-',
-                              trailing: Builder(
-                                builder: (BuildContext context) {
-                                  final uri = _parseWebsiteUri(org?.website ?? '');
-                                  if (uri == null) return const SizedBox.shrink();
-                                  return Link(
-                                    uri: uri,
-                                    target: LinkTarget.blank,
-                                    builder: (BuildContext context, Future<void> Function()? followLink) {
-                                      return IconButton(
-                                        onPressed: followLink,
-                                        icon: const Icon(
-                                          AppIcons.openInNew,
-                                          size: 18,
-                                          color: Color(0xFF5A5F87),
-                                        ),
-                                        tooltip: 'Open website',
-                                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                        padding: EdgeInsets.zero,
-                                        splashRadius: 18,
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                            _CollegeDetailItem(icon: AppIcons.phone, label: 'Contact', value: org?.contact.isNotEmpty == true ? org!.contact : '-'),
-                          ],
-                        ),
-                      ),
-                    ),
+                  first: _EditableCollegeDetails(
+                    user: user,
+                    organization: org,
                   ),
                   second: ChartCard(
                     title: 'Department-wise Problems vs Ideas',
@@ -315,6 +261,133 @@ class CollegeAdminDashboard extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+Uri? _parseWebsiteUri(String website) {
+  final normalized = website.trim();
+  if (normalized.isEmpty || normalized == '-') return null;
+  final withScheme = normalized.startsWith(RegExp(r'https?://'))
+      ? normalized
+      : 'https://$normalized';
+  return Uri.tryParse(withScheme);
+}
+
+class _EditableCollegeDetails extends StatefulWidget {
+  const _EditableCollegeDetails({
+    required this.user,
+    required this.organization,
+  });
+
+  final UserModel user;
+  final OrganizationModel? organization;
+
+  @override
+  State<_EditableCollegeDetails> createState() => _EditableCollegeDetailsState();
+}
+
+class _EditableCollegeDetailsState extends State<_EditableCollegeDetails> {
+  late OrganizationModel? _org = widget.organization;
+
+  @override
+  void didUpdateWidget(covariant _EditableCollegeDetails oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.organization != widget.organization) {
+      _org = widget.organization;
+    }
+  }
+
+  Future<void> _edit() async {
+    final OrganizationModel? current = _org;
+    if (current == null) return;
+    final bool saved = await showOrganizationDialog(
+      context: context,
+      initialOrganization: current,
+    );
+    if (!saved || !mounted) return;
+    final OrganizationModel? next = await FirestoreUtils.fetchOrganization(widget.user.orgId);
+    if (!mounted) return;
+    setState(() => _org = next ?? current);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final OrganizationModel? org = _org;
+    return ChartCard(
+      title: 'College Details',
+      icon: AppIcons.organizations,
+      trailing: org == null
+          ? null
+          : HoverIconActionButton(
+              icon: AppIcons.edit,
+              tooltip: 'Edit organization',
+              onTap: _edit,
+            ),
+      child: ResponsiveChartBox(
+        desktopHeight: 200,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              if (org != null) ...<Widget>[
+                OrganizationThumbnail(organization: org, size: 40),
+                const SizedBox(height: 10),
+              ],
+              _CollegeDetailItem(
+                icon: AppIcons.organizations,
+                label: 'Name',
+                value: org?.name ?? widget.user.orgId,
+              ),
+              _CollegeDetailItem(
+                icon: AppIcons.orgType,
+                label: 'Type',
+                value: org?.type.displayName ?? 'College',
+              ),
+              _CollegeDetailItem(
+                icon: AppIcons.address,
+                label: 'Address',
+                value: org?.address.isNotEmpty == true ? org!.address : '-',
+                wrapValue: true,
+              ),
+              _CollegeDetailItem(
+                icon: AppIcons.website,
+                label: 'Website',
+                value: org?.website.isNotEmpty == true ? org!.website : '-',
+                trailing: Builder(
+                  builder: (BuildContext context) {
+                    final uri = _parseWebsiteUri(org?.website ?? '');
+                    if (uri == null) return const SizedBox.shrink();
+                    return Link(
+                      uri: uri,
+                      target: LinkTarget.blank,
+                      builder: (BuildContext context, Future<void> Function()? followLink) {
+                        return IconButton(
+                          onPressed: followLink,
+                          icon: const Icon(
+                            AppIcons.openInNew,
+                            size: 18,
+                            color: Color(0xFF5A5F87),
+                          ),
+                          tooltip: 'Open website',
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          padding: EdgeInsets.zero,
+                          splashRadius: 18,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              _CollegeDetailItem(
+                icon: AppIcons.phone,
+                label: 'Contact',
+                value: org?.contact.isNotEmpty == true ? org!.contact : '-',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

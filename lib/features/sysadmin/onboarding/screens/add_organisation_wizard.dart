@@ -1,10 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/approved_tenant_firebase.dart';
 import '../../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../../core/firebase/hackz_provisioning_identity.dart';
-import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
@@ -20,12 +18,10 @@ import '../../../auth/widgets/signup/approval_timeline_vm.dart';
 import '../../../auth/widgets/signup/approval_timeline_widget.dart';
 import '../../../organization/models/enums/organization_type.dart';
 import '../../../organization/models/organization_model.dart';
-import '../../../organization/services/org_photo_service.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/enums/user_status.dart';
 import '../../../user/models/user_model.dart';
 import '../../../user/widgets/user_form_section.dart';
-import '../../../user/widgets/user_profile_photo_field.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
 import '../services/provisioning_authorization_validator.dart';
@@ -88,10 +84,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   String? _adminLastNameError;
   String? _adminEmailError;
   String? _adminPhoneError;
-  PlatformFile? _iconFile;
-  String? _remotePhotoUrl;
-  String? _remoteThumbUrl;
-  bool _iconCleared = false;
 
   @override
   void initState() {
@@ -107,8 +99,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _website.text = item.organization.website;
       _contact.text = item.organization.contact;
       _type = item.organization.type;
-      _remotePhotoUrl = item.organization.photoUrl;
-      _remoteThumbUrl = item.organization.thumbnailUrl;
       _hydrateAdminForm(item.collegeAdmin);
       _step = item.isComplete ? OrganisationOnboardingStep.activate : item.nextStep;
       if (_workspaceId.isEmpty) {
@@ -123,9 +113,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     });
     HackzProvisioningIdentity.load().then((HackzProvisioningIdentity identity) {
       if (mounted) setState(() => _provisioningIdentity = identity);
-    });
-    _name.addListener(() {
-      if (mounted) setState(() {});
     });
     _adminEmail.addListener(() {
       if (_adminEmailError != null && mounted) setState(() => _adminEmailError = null);
@@ -285,7 +272,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             address: _address.text.trim(),
             website: _website.text.trim(),
             contact: _contact.text.trim(),
-            clearPhoto: _iconCleared && _iconFile == null,
           );
           final OrganisationOnboardingItem saved = await OrganisationOnboardingService.saveOrganisation(
             draft: draft,
@@ -293,7 +279,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           );
           _organization = saved.organization;
           _tenant = saved.tenant;
-          await _uploadIconIfNeeded();
           _changed = true;
           _step = OrganisationOnboardingStep.firebase;
         case OrganisationOnboardingStep.firebase:
@@ -308,7 +293,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             tenantId: tenant.tenantId,
             firebaseProjectId: _workspaceId,
           );
-          await _uploadIconIfNeeded();
           _changed = true;
           _checks = const <TenantWorkspaceCheck>[];
           _checksRan = false;
@@ -445,37 +429,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     }
   }
 
-  Future<void> _uploadIconIfNeeded() async {
-    OrganizationModel? org = _organization;
-    if (org == null || org.id.trim().isEmpty || _iconFile == null) return;
-    final String tenantId = (_tenant?.tenantId ?? '').trim();
-    final String projectId = (_tenant?.firebaseProjectId ?? '').trim();
-    if (tenantId.isEmpty || projectId.isEmpty) return;
-    final String orgId = org.id;
-    final uploaded = await TenantFirebase.runAsOrganisation(tenantId, () {
-      return OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
-    });
-    org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
-    await OrganisationOnboardingService.syncOrganisationDocument(org);
-    _organization = org;
-    _remotePhotoUrl = uploaded.photoUrl;
-    _remoteThumbUrl = uploaded.thumbnailUrl;
-    _iconFile = null;
-  }
-
-  Future<void> _pickIcon() async {
-    final FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-      allowMultiple: false,
-    );
-    if (result == null || result.files.isEmpty) return;
-    setState(() {
-      _iconFile = result.files.first;
-      _iconCleared = false;
-    });
-  }
-
   Future<void> _registerWorkspace() async {
     final bool saved = await showRegisterWorkspaceDialog(context: context);
     if (!saved) return;
@@ -593,28 +546,10 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     final bool wide = !ResponsiveHelper.isMobile(context);
     final Widget identity = UserFormSection(
       title: 'Identity',
-      subtitle: 'Icon, name, and type',
+      subtitle: 'Name and type',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          UserProfilePhotoField(
-            displayName: _name.text,
-            localFile: _iconFile,
-            remoteUrl: _iconCleared ? null : (_remoteThumbUrl ?? _remotePhotoUrl),
-            enabled: !_busy,
-            title: 'Organization icon',
-            subtitle: 'Shown next to the organization name in the organizations list.',
-            buttonLabel: 'Upload icon',
-            circular: false,
-            onPick: _pickIcon,
-            onClear: () => setState(() {
-              _iconFile = null;
-              _remotePhotoUrl = null;
-              _remoteThumbUrl = null;
-              _iconCleared = true;
-            }),
-          ),
-          const SizedBox(height: 12),
           HackzInputDecoration.labeledField(
             label: 'Organisation name',
             required: true,

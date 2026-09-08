@@ -2,7 +2,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/hackz_firebase.dart';
-import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../sysadmin/onboarding/services/organisation_onboarding_service.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -54,6 +53,9 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
   Map<_OrgFormField, String> _fieldErrors = <_OrgFormField, String>{};
 
   bool get _unifiedDialog => widget.asDialog && widget.organizationType == null;
+
+  /// SysAdmin onboarding has no tenant Storage. College Admin edits the icon later.
+  bool get _showIconUpload => _isEdit && !HackzFirebase.isPlatformAdminSession;
 
   String get _legacyDisplayType => (widget.organizationType ?? OrganizationType.college).displayName;
 
@@ -147,37 +149,37 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         address: _addressController.text.trim(),
         website: _websiteController.text.trim(),
         contact: _contactController.text.trim(),
-        clearPhoto: _iconCleared && _iconFile == null,
+        clearPhoto: _showIconUpload && _iconCleared && _iconFile == null,
       );
 
-      final String orgId = await FirestoreUtils.upsertOrganization(
-        org,
-        database: HackzFirebase.controlPlane.firestore,
-      );
-      org = org.copyWith(id: orgId);
+      if (HackzFirebase.isPlatformAdminSession) {
+        final String orgId = await FirestoreUtils.upsertOrganization(
+          org,
+          database: HackzFirebase.controlPlane.firestore,
+        );
+        org = org.copyWith(id: orgId);
 
-      if (_isEdit) {
-        final String previousName = widget.initialOrganization!.name;
-        if (previousName.trim() != org.name) {
-          await TenantRegistry.syncOrganisationName(
-            previousName: previousName,
-            nextName: org.name,
-            organisationId: orgId,
-          );
+        if (_isEdit) {
+          final String previousName = widget.initialOrganization!.name;
+          if (previousName.trim() != org.name) {
+            await TenantRegistry.syncOrganisationName(
+              previousName: previousName,
+              nextName: org.name,
+              organisationId: orgId,
+            );
+          }
         }
-      }
 
-      if (_iconFile != null) {
-        final tenant = await TenantRegistry.fetchByOrganisationId(orgId);
-        if (tenant != null && tenant.firebaseProjectId.trim().isNotEmpty) {
-          final uploaded = await TenantFirebase.runAsOrganisation(tenant.tenantId, () {
-            return OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
-          });
+        await OrganisationOnboardingService.syncOrganisationDocument(org);
+      } else {
+        final String orgId = await FirestoreUtils.upsertOrganization(org);
+        org = org.copyWith(id: orgId);
+        if (_iconFile != null) {
+          final uploaded = await OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
           org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
+          await FirestoreUtils.upsertOrganization(org);
         }
       }
-
-      await OrganisationOnboardingService.syncOrganisationDocument(org);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -269,7 +271,9 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         ? (_unifiedDialog ? 'Edit organization' : 'Edit ${_legacyDisplayType.toLowerCase()}')
         : (_unifiedDialog ? 'Create organization' : 'New ${_legacyDisplayType.toLowerCase()}');
     final String subtitle = _isEdit
-        ? 'Update identity, icon, and contact details.'
+        ? (_showIconUpload
+            ? 'Update identity, icon, and contact details.'
+            : 'Update identity and contact details.')
         : 'Add a new Hackz organization with identity and contact details.';
     return Container(
       width: double.infinity,
@@ -321,28 +325,30 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
     final String nameLabel = _unifiedDialog ? 'Organization name' : '$_legacyDisplayType name';
     return UserFormSection(
       title: 'Identity',
-      subtitle: 'Icon, name, and type',
+      subtitle: _showIconUpload ? 'Icon, name, and type' : 'Name and type',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          UserProfilePhotoField(
-            displayName: _nameController.text,
-            localFile: _iconFile,
-            remoteUrl: _iconCleared ? null : (_remoteThumbUrl ?? _remotePhotoUrl),
-            enabled: !_busy,
-            title: 'Organization icon',
-            subtitle: 'Shown next to the organization name in the organizations list.',
-            buttonLabel: 'Upload icon',
-            circular: false,
-            onPick: _pickIcon,
-            onClear: () => setState(() {
-              _iconFile = null;
-              _remotePhotoUrl = null;
-              _remoteThumbUrl = null;
-              _iconCleared = true;
-            }),
-          ),
-          const SizedBox(height: 12),
+          if (_showIconUpload) ...<Widget>[
+            UserProfilePhotoField(
+              displayName: _nameController.text,
+              localFile: _iconFile,
+              remoteUrl: _iconCleared ? null : (_remoteThumbUrl ?? _remotePhotoUrl),
+              enabled: !_busy,
+              title: 'Organization icon',
+              subtitle: 'Shown next to the organization name in the organizations list.',
+              buttonLabel: 'Upload icon',
+              circular: false,
+              onPick: _pickIcon,
+              onClear: () => setState(() {
+                _iconFile = null;
+                _remotePhotoUrl = null;
+                _remoteThumbUrl = null;
+                _iconCleared = true;
+              }),
+            ),
+            const SizedBox(height: 12),
+          ],
           HackzInputDecoration.labeledField(
             label: nameLabel,
             required: true,
