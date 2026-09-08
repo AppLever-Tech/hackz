@@ -5,7 +5,7 @@ class ExportColumn {
   final String header;
 }
 
-/// Normalized tabular payload shared by Excel and future PDF renderers.
+/// Normalized tabular payload shared by Excel and PDF renderers.
 ///
 /// Cell values are [String] or [num]. Numbers stay numeric in Excel.
 class ExportTable {

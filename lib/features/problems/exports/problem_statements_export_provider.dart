@@ -24,13 +24,17 @@ class ProblemStatementsExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.problemStatements;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[ExportFormat.excel];
+  List<ExportFormat> get supportedFormats => const <ExportFormat>[
+    ExportFormat.excel,
+    ExportFormat.pdf,
+  ];
 
   @override
   bool get requiresEvent => false;
 
   @override
-  bool canExport(UserModel actor) => ExportTenantGuard.actorMatchesBoundOrganisation(actor);
+  bool canExport(UserModel actor) =>
+      ExportTenantGuard.actorMatchesBoundOrganisation(actor);
 
   @override
   Future<ExportTable> load(ExportRequest request) async {
