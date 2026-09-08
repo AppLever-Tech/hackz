@@ -21,6 +21,7 @@ class HackzProvisioningIdentity {
 
   final String serviceAccountEmail;
   final List<ProvisioningIamRole> iamRoles;
+  /// Production Cloud Run URL, or `http://localhost:8787` for local development.
   final String invokeUrl;
 
   static const String collectionName = 'hkzProvisioningConfig';

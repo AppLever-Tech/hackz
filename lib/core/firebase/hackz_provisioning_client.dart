@@ -45,7 +45,7 @@ abstract final class HackzProvisioningClient {
     if (base.isEmpty) {
       throw const HackzProvisioningException(
         'CONTROL_PLANE_UNAVAILABLE',
-        'Set hkzProvisioningConfig/hackz.invokeUrl so SysAdmin can provision a College Admin.',
+        'Set hkzProvisioningConfig/hackz.invokeUrl to the Cloud Run provisioner (or http://localhost:8787 for local development).',
       );
     }
 
@@ -77,7 +77,7 @@ abstract final class HackzProvisioningClient {
     } catch (_) {
       throw const HackzProvisioningException(
         'CONTROL_PLANE_UNAVAILABLE',
-        'Unable to reach the provisioning service. Confirm invokeUrl and that the service is running.',
+        'Unable to reach the provisioning service. Confirm hkzProvisioningConfig/hackz.invokeUrl.',
       );
     }
 
@@ -122,7 +122,7 @@ abstract final class HackzProvisioningClient {
       case 'UNAUTHORIZED':
         return 'Sign in as SysAdmin to provision a College Admin.';
       case 'CONTROL_PLANE_UNAVAILABLE':
-        return 'The provisioning service cannot reach the Control Plane. Check the service is running.';
+        return 'The provisioning service cannot reach the Control Plane.';
       case 'TENANT_NOT_FOUND':
         return 'This organisation is not in the Control Plane tenant registry.';
       case 'TENANT_AMBIGUOUS':

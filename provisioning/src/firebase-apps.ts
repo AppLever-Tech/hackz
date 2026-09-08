@@ -6,6 +6,7 @@ import { ProvisionError } from './errors.js';
 const CONTROL_PLANE_APP = 'hackz-control-plane';
 
 function credentialOptions(projectId: string) {
+  // Local: GOOGLE_APPLICATION_CREDENTIALS. Cloud Run: runtime service account ADC.
   return {
     credential: applicationDefault(),
     projectId,

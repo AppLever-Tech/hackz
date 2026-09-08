@@ -862,7 +862,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         children: <Widget>[
           if (invokeMissing && !locked) ...<Widget>[
             const Text(
-              'Set hkzProvisioningConfig/hackz.invokeUrl so SysAdmin can provision a College Admin.',
+              'Set hkzProvisioningConfig/hackz.invokeUrl to the Cloud Run provisioner (or http://localhost:8787 for local development).',
               style: TextStyle(fontSize: 13, height: 1.4, color: Color(0xFFB45309)),
             ),
             const SizedBox(height: 12),

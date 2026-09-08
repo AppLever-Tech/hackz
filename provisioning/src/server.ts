@@ -4,7 +4,15 @@ import { ProvisionError } from './errors.js';
 import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
 
-const PORT = Number(process.env.HACKZ_PROVISIONING_PORT ?? 8787);
+function listenPort(): number {
+  for (const raw of [process.env.PORT, process.env.HACKZ_PROVISIONING_PORT]) {
+    const value = Number(String(raw ?? '').trim());
+    if (Number.isInteger(value) && value > 0 && value < 65536) return value;
+  }
+  return 8787;
+}
+
+const PORT = listenPort();
 const CORS = (process.env.HACKZ_CORS_ORIGIN ?? '*').trim() || '*';
 
 function send(res: ServerResponse, status: number, body: unknown): void {

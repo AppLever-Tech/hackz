@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.*
+*.local.json
+*-sa.json
+*-credentials.json
+serviceAccount*.json
+README.md
+.git
+.gitignore
