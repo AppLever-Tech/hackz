@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 
-/// Desktop save: native Save As, then write. Cancel returns false.
-Future<bool> downloadImportFile({
+/// Desktop / mobile save: native Save As, then write. Cancel returns false.
+Future<bool> saveHackzFile({
   required String fileName,
   required List<int> bytes,
   required String mimeType,

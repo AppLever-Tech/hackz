@@ -4,15 +4,17 @@ import 'dart:html' as html;
 import 'dart:js_util' as js_util;
 import 'dart:typed_data';
 
-/// Web save: File System Access Save As. Cancel/abort returns false.
-Future<bool> downloadImportFile({
+/// Web save: File System Access Save As when available; otherwise a blob download.
+/// Cancel/abort of the picker returns false.
+Future<bool> saveHackzFile({
   required String fileName,
   required List<int> bytes,
   required String mimeType,
 }) async {
   final Object? picker = js_util.getProperty(html.window, 'showSaveFilePicker');
   if (picker == null) {
-    throw UnsupportedError('Saving a template is not supported in this browser.');
+    _downloadViaAnchor(fileName: fileName, bytes: bytes, mimeType: mimeType);
+    return true;
   }
 
   final String extension = _extensionOf(fileName);
@@ -53,6 +55,22 @@ Future<bool> downloadImportFile({
     if (_isSaveCancelled(error)) return false;
     rethrow;
   }
+}
+
+void _downloadViaAnchor({
+  required String fileName,
+  required List<int> bytes,
+  required String mimeType,
+}) {
+  final html.Blob blob = html.Blob(<Object>[Uint8List.fromList(bytes)], mimeType);
+  final String url = html.Url.createObjectUrlFromBlob(blob);
+  final html.AnchorElement anchor = html.AnchorElement(href: url)
+    ..download = fileName
+    ..style.display = 'none';
+  html.document.body?.append(anchor);
+  anchor.click();
+  anchor.remove();
+  html.Url.revokeObjectUrl(url);
 }
 
 String _extensionOf(String fileName) {

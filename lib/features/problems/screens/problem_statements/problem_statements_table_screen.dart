@@ -35,6 +35,8 @@ import '../../models/problem_status.dart';
 import '../../services/problem_query_service.dart';
 import '../../services/problem_status_service.dart';
 import '../../validators/problem_submission_validators.dart';
+import '../../exports/problem_statements_export_provider.dart';
+import '../../../exports/exports.dart';
 import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
 import '../authoring/problem_authoring_workspace.dart';
@@ -689,7 +691,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
     final Widget metrics = ProblemMetricsRow(metrics: _metrics);
     final Widget? bulk = _buildBulkActions(problems);
-    final Widget searchBar = _buildSearchFilterBar(context);
+    final Widget searchBar = _buildSearchFilterBar(context, includeDownload: compact);
     final Widget filters = AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
           secondChild: ProblemFiltersPanel(
@@ -811,6 +813,25 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
+  Widget _buildDownloadButton({required bool labeled}) {
+    final Map<String, String> domainLabels = <String, String>{
+      for (final DomainModel d in _domainsById.values)
+        d.domainId: d.name.trim().isEmpty ? d.code : d.name.trim(),
+    };
+    return ExportDownloadButton(
+      labeled: labeled,
+      provider: ProblemStatementsExportProvider(
+        problems: _lastLoaded,
+        domainLabels: domainLabels,
+      ),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.problemStatements,
+        format: format,
+        actor: widget.currentUser,
+      ),
+    );
+  }
+
   Widget _buildViewModeIcons() {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -868,7 +889,7 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     );
   }
 
-  Widget _buildSearchFilterBar(BuildContext context) {
+  Widget _buildSearchFilterBar(BuildContext context, {bool includeDownload = false}) {
     return ResponsiveSearchFilterBar(
       searchController: _searchController,
       searchHint: 'Search problem number, title, department, tags…',
@@ -882,7 +903,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       onToggleFilters: () => setState(() => _showFilters = !_showFilters),
       onSearchSubmitted: _loadProblems,
       iconOnlyFilterOnMobile: true,
-      trailing: <Widget>[_buildViewModeIcons()],
+      trailing: <Widget>[
+        if (includeDownload) _buildDownloadButton(labeled: false),
+        _buildViewModeIcons(),
+      ],
     );
   }
 
@@ -916,6 +940,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           importButton,
           const SizedBox(width: 8),
         ],
+        _buildDownloadButton(labeled: true),
+        const SizedBox(width: 8),
         Expanded(child: _buildSearchFilterBar(context)),
         if (bulk != null) ...<Widget>[
           const SizedBox(width: 8),
