@@ -23,13 +23,14 @@ class EvaluationResultsExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.evaluationResults;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[ExportFormat.excel];
+  List<ExportFormat> get supportedFormats => ExportFormat.reportFormats;
 
   @override
   bool get requiresEvent => eventScoped;
 
   @override
-  bool canExport(UserModel actor) => ExportTenantGuard.actorMatchesBoundOrganisation(actor);
+  bool canExport(UserModel actor) =>
+      ExportTenantGuard.actorMatchesBoundOrganisation(actor);
 
   @override
   Future<ExportTable> load(ExportRequest request) async {
@@ -46,7 +47,9 @@ class EvaluationResultsExportProvider implements ExportDataProvider {
       final bool hideFinalAverage = eventScoped && !row.evaluationComplete;
       out.add(<String, Object?>{
         'order': row.rank > 0 ? row.rank : null,
-        'idea': row.idea.ideaTitle.trim().isEmpty ? row.idea.ideaId : row.idea.ideaTitle.trim(),
+        'idea': row.idea.ideaTitle.trim().isEmpty
+            ? row.idea.ideaId
+            : row.idea.ideaTitle.trim(),
         'department': row.idea.teamDepartmentCode.trim(),
         'problem': row.problemTitle.trim(),
         'category': row.category.trim(),
@@ -71,8 +74,12 @@ class EvaluationResultsExportProvider implements ExportDataProvider {
         const ExportColumn(key: 'average', header: 'Average score'),
         const ExportColumn(key: 'highest', header: 'Highest'),
         const ExportColumn(key: 'lowest', header: 'Lowest'),
-        ExportColumn(key: 'submitted', header: eventScoped ? 'Submitted' : 'Evaluators'),
-        if (eventScoped) const ExportColumn(key: 'assigned', header: 'Assigned judges'),
+        ExportColumn(
+          key: 'submitted',
+          header: eventScoped ? 'Submitted' : 'Evaluators',
+        ),
+        if (eventScoped)
+          const ExportColumn(key: 'assigned', header: 'Assigned judges'),
         const ExportColumn(key: 'status', header: 'Status'),
       ],
       rows: out,

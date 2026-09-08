@@ -225,4 +225,169 @@ abstract final class PdfEngine {
     }
     return 1;
   }
+
+  static pw.Widget certificatePage({
+    required PdfExportContext context,
+    required Map<String, Object?> row,
+  }) {
+    final String title = formatValue(row['title']);
+    final String recipient = formatValue(row['recipient']);
+    final String team = formatValue(row['team']);
+    final String entry = formatValue(row['entry']);
+    final String place = formatValue(row['place']);
+    final String eventType = formatValue(row['eventType']);
+    final String eventDates = formatValue(row['eventDates']);
+    final String referenceId = formatValue(row['referenceId']);
+    final String achievement = formatValue(row['achievement']);
+    final bool isAward = place.isNotEmpty;
+
+    return pw.Container(
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfTheme.brand, width: 2.2),
+      ),
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Container(
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfTheme.line, width: 0.9),
+        ),
+        padding: const pw.EdgeInsets.fromLTRB(28, 26, 28, 22),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: <pw.Widget>[
+            pw.Text(
+              'HACKZ',
+              style: PdfTheme.brandMark,
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              context.organisationName,
+              style: PdfTheme.headerTitle,
+              textAlign: pw.TextAlign.center,
+              maxLines: 2,
+            ),
+            pw.SizedBox(height: 14),
+            pw.Container(height: 1, color: PdfTheme.line),
+            pw.SizedBox(height: 18),
+            pw.Text(
+              'CERTIFICATE',
+              style: PdfTheme.certificateKicker,
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              title.isEmpty
+                  ? (isAward
+                        ? 'Certificate of Achievement'
+                        : 'Certificate of Participation')
+                  : title,
+              style: PdfTheme.certificateTitle,
+              textAlign: pw.TextAlign.center,
+              maxLines: 2,
+            ),
+            pw.Spacer(),
+            pw.Text(
+              'This is to certify that',
+              style: PdfTheme.certificateBody,
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              recipient,
+              style: PdfTheme.certificateRecipient,
+              textAlign: pw.TextAlign.center,
+              maxLines: 3,
+            ),
+            if (team.isNotEmpty &&
+                team.toLowerCase() != recipient.toLowerCase()) ...<pw.Widget>[
+              pw.SizedBox(height: 6),
+              pw.Text(
+                'Team $team',
+                style: PdfTheme.certificateBody,
+                textAlign: pw.TextAlign.center,
+                maxLines: 2,
+              ),
+            ],
+            pw.SizedBox(height: 14),
+            pw.Text(
+              achievement.isNotEmpty
+                  ? achievement
+                  : (isAward
+                        ? 'is awarded the following recognition'
+                        : 'has participated in the following event'),
+              style: PdfTheme.certificateBody,
+              textAlign: pw.TextAlign.center,
+            ),
+            if (place.isNotEmpty) ...<pw.Widget>[
+              pw.SizedBox(height: 10),
+              pw.Text(
+                place,
+                style: PdfTheme.certificatePlace,
+                textAlign: pw.TextAlign.center,
+              ),
+            ],
+            pw.SizedBox(height: 10),
+            pw.Text(
+              context.eventName.isEmpty ? 'the event' : context.eventName,
+              style: PdfTheme.certificateEvent,
+              textAlign: pw.TextAlign.center,
+              maxLines: 3,
+            ),
+            if (eventType.isNotEmpty || eventDates.isNotEmpty) ...<pw.Widget>[
+              pw.SizedBox(height: 6),
+              pw.Text(
+                <String>[
+                  eventType,
+                  eventDates,
+                ].where((String s) => s.isNotEmpty).join('  ·  '),
+                style: PdfTheme.caption,
+                textAlign: pw.TextAlign.center,
+              ),
+            ],
+            if (entry.isNotEmpty) ...<pw.Widget>[
+              pw.SizedBox(height: 10),
+              pw.Text(
+                entry,
+                style: PdfTheme.certificateBody,
+                textAlign: pw.TextAlign.center,
+                maxLines: 3,
+              ),
+            ],
+            pw.Spacer(),
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.end,
+              children: <pw.Widget>[
+                pw.Expanded(child: _signature('Authorised Signatory')),
+                pw.SizedBox(width: 36),
+                pw.Expanded(child: _signature('Faculty Coordinator')),
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            pw.Text(
+              referenceId.isEmpty
+                  ? 'Generated ${context.generatedAtLabel}'
+                  : 'Reference  $referenceId',
+              style: PdfTheme.footer,
+              textAlign: pw.TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _signature(String label) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: <pw.Widget>[
+        pw.Container(height: 0.8, color: PdfTheme.ink),
+        pw.SizedBox(height: 6),
+        pw.Text(
+          label,
+          style: PdfTheme.signatureLabel,
+          textAlign: pw.TextAlign.center,
+        ),
+      ],
+    );
+  }
 }

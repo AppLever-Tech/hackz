@@ -1,65 +1,179 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
-import 'package:hackz/core/ui/feedback/feedback.dart';
+import 'package:hackz/features/events/exports/event_certificates_export_provider.dart';
 import 'package:hackz/features/events/models/event_report_item.dart';
+import 'package:hackz/features/events/models/event_winner_entry.dart';
 import 'package:hackz/features/events/widgets/event_reports_section.dart';
+import 'package:hackz/features/exports/exports.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
 
 class IdeathonReportsTab extends StatelessWidget {
-  const IdeathonReportsTab({
-    super.key,
-    required this.vm,
-    required this.actor,
-  });
+  const IdeathonReportsTab({super.key, required this.vm, required this.actor});
 
   final IdeathonDetailsViewModel vm;
   final UserModel actor;
 
   @override
   Widget build(BuildContext context) {
-    final bool hasIdeas = vm.ideas.isNotEmpty;
-    final bool hasWinner = vm.ideathon.winnerIdeaId.trim().isNotEmpty;
-    final bool hasRunnerUp = vm.ideathon.runnerUpIdeaId.trim().isNotEmpty;
+    final bool usesWinners = vm.ideathon.eventKind.usesWinners;
+    final List<EventCertificateRecipient> participants = _participants();
+    final EventCertificateRecipient? winner = _recipientFromWinner(
+      vm.workspace.winner,
+      'Winner',
+    );
+    final EventCertificateRecipient? runnerUp = _recipientFromWinner(
+      vm.workspace.runnerUp,
+      'Runner-up',
+    );
+    final String eventDates = _eventDates();
+    final String eventType = vm.ideathon.eventKind.label;
+
     return EventReportsSection(
       items: <EventReportItem>[
-        EventReportItem(
+        _certificateItem(
           id: 'participation',
-          title: 'Participation e-certificates',
-          description: 'Certificates for ideas registered in this event.',
+          title: 'Participation certificates',
+          description:
+              'Certificates for teams that participated in this event.',
           icon: AppIcons.ideas,
-          available: hasIdeas,
-          unavailableReason: 'Add participating ideas before generating certificates.',
-          onDownload: () => _unavailable(context, 'Participation e-certificates'),
+          module: ExportModule.participationCertificate,
+          recipients: participants,
+          eventType: eventType,
+          eventDates: eventDates,
+          unavailableReason:
+              'Add participating ${vm.ideathon.eventKind.entriesLabel.toLowerCase()} before generating certificates.',
         ),
-        EventReportItem(
-          id: 'winner',
-          title: 'Winner certificates',
-          description: 'Certificates for the official winner selected by Department Admin.',
-          icon: AppIcons.achievement,
-          available: hasWinner,
-          unavailableReason: 'Winner certificates are available after Department Admin selects a winner.',
-          onDownload: () => _unavailable(context, 'Winner certificates'),
-        ),
-        EventReportItem(
-          id: 'runnerUp',
-          title: 'Runner-up certificates',
-          description: 'Certificates for the official runner-up selected by Department Admin.',
-          icon: AppIcons.results,
-          available: hasRunnerUp,
-          unavailableReason: 'Runner-up certificates are available after Department Admin selects a runner-up.',
-          onDownload: () => _unavailable(context, 'Runner-up certificates'),
-        ),
+        if (usesWinners)
+          _certificateItem(
+            id: 'winner',
+            title: 'Winner certificates',
+            description:
+                'Certificates for the official winner selected by Department Admin.',
+            icon: AppIcons.achievement,
+            module: ExportModule.winnerCertificate,
+            recipients: <EventCertificateRecipient>[if (winner != null) winner],
+            eventType: eventType,
+            eventDates: eventDates,
+            unavailableReason:
+                'Winner certificates are available after Department Admin selects a winner.',
+          ),
+        if (usesWinners)
+          _certificateItem(
+            id: 'runnerUp',
+            title: 'Runner-up certificates',
+            description:
+                'Certificates for the official runner-up selected by Department Admin.',
+            icon: AppIcons.results,
+            module: ExportModule.winnerCertificate,
+            recipients: <EventCertificateRecipient>[
+              if (runnerUp != null) runnerUp,
+            ],
+            eventType: eventType,
+            eventDates: eventDates,
+            unavailableReason:
+                'Runner-up certificates are available after Department Admin selects a runner-up.',
+          ),
       ],
     );
   }
 
-  static Future<void> _unavailable(BuildContext context, String title) {
-    return FeedbackService.showInfo(
-      context,
+  EventReportItem _certificateItem({
+    required String id,
+    required String title,
+    required String description,
+    required IconData icon,
+    required ExportModule module,
+    required List<EventCertificateRecipient> recipients,
+    required String eventType,
+    required String eventDates,
+    required String unavailableReason,
+  }) {
+    final EventCertificatesExportProvider provider =
+        EventCertificatesExportProvider(
+          module: module,
+          recipients: recipients,
+          eventType: eventType,
+          eventDates: eventDates,
+        );
+    final bool available = recipients.isNotEmpty && provider.canExport(actor);
+    return EventReportItem(
+      id: id,
       title: title,
-      message:
-          'Certificate templates are not configured for this organisation yet. The Reports module is ready for Hackathon reuse once generation is enabled.',
+      description: description,
+      icon: icon,
+      available: available,
+      unavailableReason: unavailableReason,
+      provider: provider,
+      actionLabel: 'Generate Certificate',
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: module,
+        format: format,
+        actor: actor,
+        eventId: vm.ideathon.ideathonId,
+        eventName: vm.ideathon.name,
+      ),
     );
+  }
+
+  List<EventCertificateRecipient> _participants() {
+    return vm.ideas
+        .map(
+          (IdeathonIdeaEntry entry) => EventCertificateRecipient(
+            recipientName: _recipientName(
+              teamName: entry.teamName,
+              entryTitle: entry.ideaTitle,
+              entryId: entry.ideaId,
+            ),
+            teamName: entry.teamName,
+            entryTitle: entry.ideaTitle,
+            entryId: entry.ideaId,
+          ),
+        )
+        .where(
+          (EventCertificateRecipient row) =>
+              row.recipientName.trim().isNotEmpty,
+        )
+        .toList(growable: false);
+  }
+
+  EventCertificateRecipient? _recipientFromWinner(
+    EventWinnerEntry? entry,
+    String place,
+  ) {
+    if (entry == null) return null;
+    final String recipient = _recipientName(
+      teamName: entry.teamName,
+      entryTitle: entry.ideaTitle,
+      entryId: entry.ideaId,
+    );
+    if (recipient.isEmpty) return null;
+    return EventCertificateRecipient(
+      recipientName: recipient,
+      teamName: entry.teamName,
+      entryTitle: entry.ideaTitle,
+      entryId: entry.ideaId,
+      placeLabel: place,
+    );
+  }
+
+  String _eventDates() {
+    final String start = formatDayMonthYear(vm.ideathon.startDateTime);
+    final String end = formatDayMonthYear(vm.ideathon.endDateTime);
+    if (start == end) return start;
+    return '$start – $end';
+  }
+
+  static String _recipientName({
+    required String teamName,
+    required String entryTitle,
+    required String entryId,
+  }) {
+    final String team = teamName.trim();
+    if (team.isNotEmpty) return team;
+    final String title = entryTitle.trim();
+    if (title.isNotEmpty) return title;
+    return entryId.trim();
   }
 }

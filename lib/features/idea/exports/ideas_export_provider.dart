@@ -23,7 +23,7 @@ class IdeasExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.ideas;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[ExportFormat.excel];
+  List<ExportFormat> get supportedFormats => ExportFormat.reportFormats;
 
   @override
   bool get requiresEvent => false;
@@ -44,13 +44,18 @@ class IdeasExportProvider implements ExportDataProvider {
     for (final IdeaListItem item in items) {
       if (orgId.isNotEmpty && item.idea.orgId.trim() != orgId) continue;
       rows.add(<String, Object?>{
-        'title': item.idea.ideaTitle.trim().isEmpty ? item.idea.ideaId : item.idea.ideaTitle.trim(),
+        'title': item.idea.ideaTitle.trim().isEmpty
+            ? item.idea.ideaId
+            : item.idea.ideaTitle.trim(),
         'team': item.teamName.trim(),
         'problemNumber': item.idea.problemNumber.trim(),
         'problem': item.idea.problemTitle.trim(),
         'department': item.idea.teamDepartmentCode.trim(),
         'status': IdeaStatusHelpers.label(item.idea.status),
-        'events': item.events.map(_eventCell).where((String s) => s.isNotEmpty).join('; '),
+        'events': item.events
+            .map(_eventCell)
+            .where((String s) => s.isNotEmpty)
+            .join('; '),
         'submitted': formatDateTime(item.idea.createdAt),
       });
     }

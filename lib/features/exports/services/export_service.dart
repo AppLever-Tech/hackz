@@ -28,7 +28,9 @@ abstract final class ExportService {
       throw ExportException.unauthorized();
     }
     if (request.module != provider.module) {
-      throw ExportException.generationFailed('Export module does not match the data provider.');
+      throw ExportException.generationFailed(
+        'Export module does not match the data provider.',
+      );
     }
     if (!provider.supportedFormats.contains(request.format)) {
       throw ExportException.unsupportedFormat();
@@ -52,7 +54,7 @@ abstract final class ExportService {
       throw ExportException.generationFailed('$error');
     }
     return HackzFileDownload.save(
-      fileName: ExportFileNamer.fileName(request: request),
+      fileName: ExportFileNamer.fileName(request: request, table: table),
       bytes: bytes,
       mimeType: request.format.mimeType,
     );

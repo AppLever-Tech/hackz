@@ -69,4 +69,33 @@ abstract final class PdfTheme {
 
   static pw.TextStyle get footer =>
       pw.TextStyle(font: pw.Font.helvetica(), fontSize: 8, color: muted);
+
+  static pw.TextStyle get certificateKicker => pw.TextStyle(
+    font: pw.Font.helvetica(),
+    fontSize: 10,
+    letterSpacing: 1.6,
+    color: muted,
+  );
+
+  static pw.TextStyle get certificateTitle =>
+      pw.TextStyle(font: pw.Font.helveticaBold(), fontSize: 22, color: ink);
+
+  static pw.TextStyle get certificateBody => pw.TextStyle(
+    font: pw.Font.helvetica(),
+    fontSize: 12,
+    color: muted,
+    lineSpacing: 1.4,
+  );
+
+  static pw.TextStyle get certificateRecipient =>
+      pw.TextStyle(font: pw.Font.helveticaBold(), fontSize: 22, color: brand);
+
+  static pw.TextStyle get certificateEvent =>
+      pw.TextStyle(font: pw.Font.helveticaBold(), fontSize: 14, color: ink);
+
+  static pw.TextStyle get certificatePlace =>
+      pw.TextStyle(font: pw.Font.helveticaBold(), fontSize: 13, color: brand);
+
+  static pw.TextStyle get signatureLabel =>
+      pw.TextStyle(font: pw.Font.helvetica(), fontSize: 9, color: muted);
 }

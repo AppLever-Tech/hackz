@@ -21,7 +21,7 @@ class EventIdeasExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.ideas;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[ExportFormat.excel];
+  List<ExportFormat> get supportedFormats => ExportFormat.reportFormats;
 
   @override
   bool get requiresEvent => true;
@@ -46,7 +46,9 @@ class EventIdeasExportProvider implements ExportDataProvider {
       final String ideaOrg = (entry.idea?.orgId ?? '').trim();
       if (orgId.isNotEmpty && ideaOrg.isNotEmpty && ideaOrg != orgId) continue;
       rows.add(<String, Object?>{
-        'title': entry.ideaTitle.trim().isEmpty ? entry.ideaId : entry.ideaTitle.trim(),
+        'title': entry.ideaTitle.trim().isEmpty
+            ? entry.ideaId
+            : entry.ideaTitle.trim(),
         'problem': entry.problemTitle.trim(),
         'team': entry.teamName.trim(),
         'department': (entry.idea?.teamDepartmentCode ?? '').trim(),

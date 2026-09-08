@@ -24,10 +24,7 @@ class ProblemStatementsExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.problemStatements;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[
-    ExportFormat.excel,
-    ExportFormat.pdf,
-  ];
+  List<ExportFormat> get supportedFormats => ExportFormat.reportFormats;
 
   @override
   bool get requiresEvent => false;

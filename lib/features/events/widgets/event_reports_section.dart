@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
+import '../../exports/exports.dart';
 import '../models/event_report_item.dart';
 import 'event_detail_section.dart';
 
@@ -9,8 +12,7 @@ class EventReportsSection extends StatelessWidget {
   const EventReportsSection({
     super.key,
     required this.items,
-    this.intro =
-        'Download event documents when they are available. Certificate files use the organisation’s configured templates.',
+    this.intro = 'Download event documents when they are available.',
   });
 
   final List<EventReportItem> items;
@@ -23,7 +25,12 @@ class EventReportsSection extends StatelessWidget {
       children: <Widget>[
         Text(
           intro,
-          style: const TextStyle(fontSize: 12, height: 1.45, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.45,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF64748B),
+          ),
         ),
         const SizedBox(height: 12),
         for (int i = 0; i < items.length; i++) ...<Widget>[
@@ -48,31 +55,60 @@ class _ReportCard extends StatelessWidget {
       titleFontSize: 14,
       titleFontWeight: FontWeight.w900,
       titleColor: const Color(0xFF0F172A),
-      trailing: FilledButton.tonalIcon(
-        onPressed: item.available ? item.onDownload : null,
-        icon: const Icon(AppIcons.download, size: 16),
-        label: const Text('Download'),
-        style: FilledButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-      ),
+      trailing: _action(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             item.description,
-            style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF475569)),
+            style: const TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: Color(0xFF475569),
+            ),
           ),
-          if (!item.available && item.unavailableReason.trim().isNotEmpty) ...<Widget>[
+          if (!item.available &&
+              item.unavailableReason.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
             Text(
               item.unavailableReason,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF94A3B8),
+              ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _action(BuildContext context) {
+    final ExportDataProvider? provider = item.provider;
+    final ExportRequest Function(ExportFormat format)? requestFor =
+        item.requestFor;
+    final Widget action =
+        item.available && provider != null && requestFor != null
+        ? ExportDownloadButton(
+            labeled: !ResponsiveHelper.isMobile(context),
+            label: item.actionLabel,
+            provider: provider,
+            requestFor: requestFor,
+          )
+        : OutlinedButton.icon(
+            onPressed: null,
+            icon: const Icon(
+              AppIcons.download,
+              size: MobileToolbarButtonStyles.toolbarIconSize,
+            ),
+            label: Text(item.actionLabel),
+            style: MobileToolbarButtonStyles.outlined(compact: true),
+          );
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: action,
     );
   }
 }

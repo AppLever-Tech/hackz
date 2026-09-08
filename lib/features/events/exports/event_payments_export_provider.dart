@@ -20,13 +20,14 @@ class EventPaymentsExportProvider implements ExportDataProvider {
   ExportModule get module => ExportModule.payments;
 
   @override
-  List<ExportFormat> get supportedFormats => const <ExportFormat>[ExportFormat.excel];
+  List<ExportFormat> get supportedFormats => ExportFormat.reportFormats;
 
   @override
   bool get requiresEvent => true;
 
   @override
-  bool canExport(UserModel actor) => ExportTenantGuard.actorMatchesBoundOrganisation(actor);
+  bool canExport(UserModel actor) =>
+      ExportTenantGuard.actorMatchesBoundOrganisation(actor);
 
   @override
   Future<ExportTable> load(ExportRequest request) async {
@@ -53,7 +54,9 @@ class EventPaymentsExportProvider implements ExportDataProvider {
         'status': _statusLabel(entry.status),
         'transactionId': (payment?.transactionId ?? '').trim(),
         'verifiedBy': (payment?.verifiedBy ?? '').trim(),
-        'verifiedAt': payment?.verifiedAt == null ? '' : formatDateTime(payment!.verifiedAt!),
+        'verifiedAt': payment?.verifiedAt == null
+            ? ''
+            : formatDateTime(payment!.verifiedAt!),
         'remarks': (payment?.remarks ?? '').trim(),
         'proof': entry.hasProof ? 'Yes' : 'No',
         'created': payment == null ? '' : formatDateTime(payment.createdAt),
