@@ -27,11 +27,9 @@ class ExcelExportRenderer implements ExportRenderer {
     sheet.appendRow(
       table.columns.map((ExportColumn column) => TextCellValue(column.header)).toList(growable: false),
     );
-    for (final Map<String, String> row in table.rows) {
+    for (final Map<String, Object?> row in table.rows) {
       sheet.appendRow(
-        table.columns
-            .map((ExportColumn column) => TextCellValue(row[column.key] ?? ''))
-            .toList(growable: false),
+        table.columns.map((ExportColumn column) => _cell(row[column.key])).toList(growable: false),
       );
     }
     final List<int>? bytes = book.encode();
@@ -39,6 +37,15 @@ class ExcelExportRenderer implements ExportRenderer {
       throw ExportException.generationFailed('Excel encoding returned an empty file.');
     }
     return bytes;
+  }
+
+  static CellValue _cell(Object? value) {
+    if (value == null) return TextCellValue('');
+    if (value is int) return IntCellValue(value);
+    if (value is double) return DoubleCellValue(value);
+    if (value is num) return DoubleCellValue(value.toDouble());
+    final String text = '$value';
+    return TextCellValue(text);
   }
 
   static String _sheetName(String raw) {

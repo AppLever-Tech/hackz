@@ -11,6 +11,9 @@ import '../../payment/models/payment_model.dart';
 import '../../payment/services/department_payments_service.dart';
 import '../../payment/widgets/payment_entries_view.dart';
 import '../../payment/widgets/payment_metrics_row.dart';
+import '../../exports/exports.dart';
+import '../../user/models/user_model.dart';
+import '../exports/event_payments_export_provider.dart';
 import '../models/event_kind.dart';
 import '../models/event_payment_entry.dart';
 
@@ -24,6 +27,8 @@ class EventPaymentsSection extends StatefulWidget {
     required this.eventId,
     required this.entries,
     required this.metrics,
+    this.eventName = '',
+    this.actor,
     this.embedded = false,
     this.onConfirm,
     this.onMarkException,
@@ -31,8 +36,10 @@ class EventPaymentsSection extends StatefulWidget {
 
   final EventKind kind;
   final String eventId;
+  final String eventName;
   final List<EventPaymentEntry> entries;
   final EventPaymentMetrics metrics;
+  final UserModel? actor;
   final bool embedded;
   final Future<void> Function(EventPaymentEntry entry)? onConfirm;
   final Future<void> Function(EventPaymentEntry entry, String? remarks)? onMarkException;
@@ -136,6 +143,7 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
             compact: true,
             prefixIcon: const Icon(AppIcons.search, size: 18),
           ),
+          trailing: widget.actor == null ? const <Widget>[] : <Widget>[_buildDownloadButton()],
         ),
         AnimatedCrossFade(
           firstChild: const SizedBox.shrink(),
@@ -211,6 +219,21 @@ class _EventPaymentsSectionState extends State<EventPaymentsSection> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadButton() {
+    final UserModel actor = widget.actor!;
+    return ExportDownloadButton(
+      labeled: false,
+      provider: EventPaymentsExportProvider(entries: _filtered),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.payments,
+        format: format,
+        actor: actor,
+        eventId: widget.eventId,
+        eventName: widget.eventName,
       ),
     );
   }

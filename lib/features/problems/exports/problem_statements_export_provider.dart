@@ -37,11 +37,11 @@ class ProblemStatementsExportProvider implements ExportDataProvider {
     if (!canExport(request.actor)) {
       throw ExportException.unauthorized();
     }
-    final String orgId = _resolvedOrgId(request.actor);
-    final List<Map<String, String>> rows = <Map<String, String>>[];
+    final String orgId = ExportTenantGuard.resolvedOrgId(request.actor);
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[];
     for (final ProblemModel problem in problems) {
       if (orgId.isNotEmpty && problem.orgId.trim() != orgId) continue;
-      rows.add(<String, String>{
+      rows.add(<String, Object?>{
         'number': problem.problemNumber,
         'title': problem.title,
         'department': problem.departmentCode,
@@ -74,11 +74,5 @@ class ProblemStatementsExportProvider implements ExportDataProvider {
     final String id = domainId.trim();
     if (id.isEmpty) return '';
     return (domainLabels[id] ?? id).trim();
-  }
-
-  String _resolvedOrgId(UserModel actor) {
-    final String actorOrg = actor.orgId.trim();
-    if (actorOrg.isNotEmpty) return actorOrg;
-    return ExportTenantGuard.boundOrganisationId();
   }
 }

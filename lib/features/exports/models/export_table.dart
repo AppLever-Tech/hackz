@@ -6,6 +6,8 @@ class ExportColumn {
 }
 
 /// Normalized tabular payload shared by Excel and future PDF renderers.
+///
+/// Cell values are [String] or [num]. Numbers stay numeric in Excel.
 class ExportTable {
   const ExportTable({
     required this.sheetName,
@@ -15,7 +17,7 @@ class ExportTable {
 
   final String sheetName;
   final List<ExportColumn> columns;
-  final List<Map<String, String>> rows;
+  final List<Map<String, Object?>> rows;
 
   bool get isEmpty => rows.isEmpty;
 }

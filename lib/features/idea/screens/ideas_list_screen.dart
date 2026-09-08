@@ -8,6 +8,8 @@ import '../services/idea_status_helpers.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import '../../user/models/user_model.dart';
 import '../services/idea_query_service.dart';
+import '../exports/ideas_export_provider.dart';
+import '../../exports/exports.dart';
 import '../../user/services/role_visibility_helpers.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../widgets/idea_table_columns.dart';
@@ -285,6 +287,8 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       onToggleFilters: () => setState(() => _showFilters = !_showFilters),
       onSearchSubmitted: _loadIdeas,
       iconOnlyFilterOnMobile: true,
+      leading: compact ? const <Widget>[] : <Widget>[_buildDownloadButton(labeled: true)],
+      trailing: compact ? <Widget>[_buildDownloadButton(labeled: false)] : const <Widget>[],
     );
     final Widget filters = AnimatedCrossFade(
       firstChild: const SizedBox.shrink(),
@@ -332,6 +336,18 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         ],
         const SizedBox(height: 12),
       ],
+    );
+  }
+
+  Widget _buildDownloadButton({required bool labeled}) {
+    return ExportDownloadButton(
+      labeled: labeled,
+      provider: IdeasExportProvider(items: _lastLoaded),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.ideas,
+        format: format,
+        actor: widget.currentUser,
+      ),
     );
   }
 

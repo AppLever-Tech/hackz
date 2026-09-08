@@ -11,6 +11,7 @@ class IdeathonPaymentsTab extends StatefulWidget {
   const IdeathonPaymentsTab({
     super.key,
     required this.ideathonId,
+    this.eventName = '',
     this.actor,
     this.kind = EventKind.ideathon,
     this.loadFuture,
@@ -18,6 +19,7 @@ class IdeathonPaymentsTab extends StatefulWidget {
   });
 
   final String ideathonId;
+  final String eventName;
   final UserModel? actor;
   final EventKind kind;
 
@@ -136,6 +138,8 @@ class _IdeathonPaymentsTabState extends State<IdeathonPaymentsTab> {
         return EventPaymentsSection(
           kind: vm.kind,
           eventId: widget.ideathonId,
+          eventName: widget.eventName,
+          actor: widget.actor,
           entries: vm.entries,
           metrics: vm.metrics,
           embedded: true,

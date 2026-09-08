@@ -1,6 +1,5 @@
-import 'package:hackz/core/firebase/hackz_firebase.dart';
-
 import '../../user/models/user_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Tenant isolation for exports. Role checks stay in each module provider.
 abstract final class ExportTenantGuard {
@@ -24,5 +23,11 @@ abstract final class ExportTenantGuard {
 
   static String boundOrganisationId() {
     return HackzFirebase.current.context.organisationId.trim();
+  }
+
+  static String resolvedOrgId(UserModel actor) {
+    final String actorOrg = actor.orgId.trim();
+    if (actorOrg.isNotEmpty) return actorOrg;
+    return boundOrganisationId();
   }
 }

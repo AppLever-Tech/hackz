@@ -17,6 +17,8 @@ import '../widgets/evaluation_results_metrics_row.dart';
 import '../services/evaluation_ranking_service.dart';
 import '../services/evaluation_results_query_service.dart';
 import '../widgets/evaluation_results_table_columns.dart';
+import '../exports/evaluation_results_export_provider.dart';
+import '../../exports/exports.dart';
 
 /// Department-admin workspace for reviewing evaluation outcomes and rankings.
 ///
@@ -47,6 +49,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
   Future<EvaluationResultsQueryResult>? _future;
   EvaluationResultsMetrics _metrics = EvaluationResultsMetrics.empty;
+  List<EvaluationResultsRow> _lastLoaded = <EvaluationResultsRow>[];
   List<String> _categories = <String>[];
   List<String> _departments = <String>[];
   String _ideathonName = '';
@@ -192,6 +195,7 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
 
         final EvaluationResultsQueryResult? data = snapshot.data;
         final List<EvaluationResultsRow> rows = _sortedRows(data?.rows ?? const <EvaluationResultsRow>[]);
+        _lastLoaded = rows;
         final EvaluationResultsMetrics metrics = data?.metrics ?? _metrics;
         final List<String> categories = data?.categories ?? _categories;
         final List<String> departments = data?.departments ?? _departments;
@@ -296,6 +300,8 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       onToggleFilters: () => setState(() => _showFilters = !_showFilters),
       onSearchSubmitted: _load,
       iconOnlyFilterOnMobile: true,
+      leading: compact ? const <Widget>[] : <Widget>[_buildDownloadButton(labeled: true)],
+      trailing: compact ? <Widget>[_buildDownloadButton(labeled: false)] : const <Widget>[],
     );
     final Widget filters = AnimatedCrossFade(
       firstChild: const SizedBox.shrink(),
@@ -351,6 +357,23 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
           activeFilters,
         ],
       ],
+    );
+  }
+
+  Widget _buildDownloadButton({required bool labeled}) {
+    return ExportDownloadButton(
+      labeled: labeled,
+      provider: EvaluationResultsExportProvider(
+        rows: _lastLoaded,
+        eventScoped: _isIdeathonScoped,
+      ),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.evaluationResults,
+        format: format,
+        actor: widget.user,
+        eventId: _eventId,
+        eventName: _ideathonName,
+      ),
     );
   }
 

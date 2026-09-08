@@ -6,13 +6,22 @@ import 'package:hackz/core/ui/data_view/data_table_column.dart';
 import 'package:hackz/core/ui/data_view/data_table_view.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/events/models/event_kind.dart';
+import 'package:hackz/features/exports/exports.dart';
 import 'package:hackz/features/idea/services/idea_status_helpers.dart';
+import 'package:hackz/features/ideathons/exports/event_ideas_export_provider.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
+import 'package:hackz/features/user/models/user_model.dart';
 
 class IdeathonIdeasTab extends StatelessWidget {
-  const IdeathonIdeasTab({super.key, required this.vm, this.onRefresh});
+  const IdeathonIdeasTab({
+    super.key,
+    required this.vm,
+    required this.actor,
+    this.onRefresh,
+  });
 
   final IdeathonDetailsViewModel vm;
+  final UserModel actor;
   final VoidCallback? onRefresh;
 
   @override
@@ -34,6 +43,7 @@ class IdeathonIdeasTab extends StatelessWidget {
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
                 ),
               ),
+              _buildDownloadButton(),
               if (onRefresh != null)
                 IconButton(
                   tooltip: 'Refresh $entries',
@@ -171,6 +181,22 @@ class IdeathonIdeasTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDownloadButton() {
+    final EventIdeasExportProvider provider = EventIdeasExportProvider(entries: vm.ideas);
+    if (!provider.canExport(actor)) return const SizedBox.shrink();
+    return ExportDownloadButton(
+      labeled: false,
+      provider: provider,
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.ideas,
+        format: format,
+        actor: actor,
+        eventId: vm.ideathon.ideathonId,
+        eventName: vm.ideathon.name,
+      ),
     );
   }
 

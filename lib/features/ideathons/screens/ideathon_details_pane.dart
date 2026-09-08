@@ -433,7 +433,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             label: kind.entriesLabel,
             icon: kind.entriesIcon,
             count: vm.ideas.isEmpty ? null : vm.ideas.length,
-            child: IdeathonIdeasTab(vm: vm, onRefresh: _reload),
+            child: IdeathonIdeasTab(vm: vm, actor: widget.actor, onRefresh: _reload),
           ),
         ],
       ),
@@ -448,6 +448,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             icon: AppIcons.payments,
             child: IdeathonPaymentsTab(
               ideathonId: event.ideathonId,
+              eventName: event.name,
               actor: widget.actor,
               kind: kind,
               loadFuture: _paymentsFuture,
