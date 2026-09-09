@@ -84,6 +84,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   String? _excelSheetName;
   List<Map<String, String>> _parsedSourceRows = const <Map<String, String>>[];
   Map<String, ImportDepartmentMapping> _departmentResolutions = <String, ImportDepartmentMapping>{};
+  int _departmentsCreated = 0;
 
   ImportHandler get _handler => widget.handler;
   bool get _isProblemsImport => _handler.type == ImportType.problems;
@@ -341,6 +342,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         _reviewSearchController.clear();
         _parsedSourceRows = parsed;
         _departmentResolutions = <String, ImportDepartmentMapping>{};
+        _departmentsCreated = 0;
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
@@ -480,6 +482,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         ..._departmentResolutions,
         DepartmentModel.normalizeKey(rawValue): result.mapping,
       };
+      if (result.departmentCreated) _departmentsCreated += 1;
       await _revalidateParsedRows();
     } catch (e) {
       if (!mounted) return;
@@ -536,7 +539,13 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   Future<void> _runImport() async {
-    if (_unresolvedDepartments.isNotEmpty) {
+    if (_supportsDepartmentResolution) {
+      final String? blocked = ImportDepartmentResolutionPolicy.atomicBlockReason(_rows);
+      if (blocked != null) {
+        FeedbackService.showWarning(context, title: 'Import blocked', message: blocked);
+        return;
+      }
+    } else if (_unresolvedDepartments.isNotEmpty) {
       FeedbackService.showWarning(
         context,
         title: 'Departments unresolved',
@@ -576,16 +585,22 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         ),
       );
       if (!mounted) return;
+      final ImportExecutionResult withResolution = result.copyWith(
+        departmentsResolved: _departmentResolutions.length,
+        departmentsCreated: _departmentsCreated,
+      );
       setState(() {
-        _result = result;
+        _result = withResolution;
         _step = _ImportStep.result;
         _previewWorkspace.close();
       });
-      if (result.imported > 0) {
+      if (withResolution.imported > 0) {
         FeedbackService.showSuccess(
           context,
           title: 'Import complete',
-          message: 'Imported ${result.imported}, skipped ${result.skipped}, failed ${result.failed}.',
+          message: _supportsDepartmentResolution
+              ? _resolutionSuccessMessage(withResolution)
+              : 'Imported ${withResolution.imported}, skipped ${withResolution.skipped}, failed ${withResolution.failed}.',
         );
       }
     } catch (e) {
@@ -853,7 +868,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           Text(
             _unresolvedDepartments.isNotEmpty
                 ? ImportConstants.departmentImportBlockedMessage
-                : 'Fix or exclude invalid records to enable import.',
+                : (_supportsDepartmentResolution && _rows.any((ImportReviewRow r) => !r.importable)
+                    ? ImportConstants.partialImportBlockedMessage
+                    : 'Fix or exclude invalid records to enable import.'),
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
           ),
         ],
@@ -899,9 +916,22 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
         ),
         const SizedBox(height: 12),
-        _resultTile('Imported', result.imported, const Color(0xFF047857)),
-        _resultTile('Skipped', result.skipped, const Color(0xFFB45309)),
-        _resultTile('Failed', result.failed, const Color(0xFFB91C1C)),
+        if (_supportsDepartmentResolution) ...<Widget>[
+          if (result.usersImported > 0 || _handler.type == ImportType.users)
+            _resultTile('Users imported', result.usersImported, const Color(0xFF047857)),
+          if (result.teamsImported > 0 || _handler.type == ImportType.teamRegistration)
+            _resultTile('Teams imported', result.teamsImported, const Color(0xFF047857)),
+          if (result.departmentsResolved > 0)
+            _resultTile('Departments resolved', result.departmentsResolved, const Color(0xFF1D4ED8)),
+          if (result.departmentsCreated > 0)
+            _resultTile('New departments created', result.departmentsCreated, const Color(0xFF6A38FF)),
+          if (result.skipped > 0) _resultTile('Skipped', result.skipped, const Color(0xFFB45309)),
+          if (result.failed > 0) _resultTile('Failed', result.failed, const Color(0xFFB91C1C)),
+        ] else ...<Widget>[
+          _resultTile('Imported', result.imported, const Color(0xFF047857)),
+          _resultTile('Skipped', result.skipped, const Color(0xFFB45309)),
+          _resultTile('Failed', result.failed, const Color(0xFFB91C1C)),
+        ],
         if (result.failures.isNotEmpty) ...<Widget>[
           const SizedBox(height: 12),
           const Text('Failures', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
@@ -915,6 +945,16 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         ],
       ],
     );
+  }
+
+  String _resolutionSuccessMessage(ImportExecutionResult result) {
+    final List<String> parts = <String>[];
+    if (result.usersImported > 0) parts.add('${result.usersImported} users');
+    if (result.teamsImported > 0) parts.add('${result.teamsImported} teams');
+    if (result.departmentsResolved > 0) parts.add('${result.departmentsResolved} departments resolved');
+    if (result.departmentsCreated > 0) parts.add('${result.departmentsCreated} new departments');
+    if (parts.isEmpty) return 'Imported ${result.imported} record${result.imported == 1 ? '' : 's'}.';
+    return 'Imported ${parts.join(', ')}.';
   }
 
   Widget _resultTile(String label, int value, Color color) {
@@ -941,6 +981,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     if (summary == null) return false;
     if (summary.validRows <= 0) return false;
     if (_unresolvedDepartments.isNotEmpty) return false;
+    if (_supportsDepartmentResolution) {
+      return !_rows.any((ImportReviewRow r) => !r.importable);
+    }
     if (_handler.blockImportOnAnyError && summary.errorRows > 0) return false;
     return true;
   }
@@ -966,6 +1009,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                       _fileName = null;
                       _parsedSourceRows = const <Map<String, String>>[];
                       _departmentResolutions = <String, ImportDepartmentMapping>{};
+                      _departmentsCreated = 0;
                     }),
             child: const Text('Back'),
           ),

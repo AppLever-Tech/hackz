@@ -59,6 +59,17 @@ abstract final class ImportConstants {
       'A new department cannot be created without an eligible administrator. '
       'Assign an existing Department Admin or College Admin, or create a Department Admin first.';
 
+  static const String departmentAdminAssignRequiredMessage =
+      'This department has no administrator. Assign an existing Department Admin or College Admin before import.';
+
+  static const String coordinatorCannotAssignAdminMessage =
+      'This department has no administrator. A College Admin or Department Admin must assign one before it can be used in import.';
+
+  static const String importValidationBlockedMessage = 'Fix validation errors before importing.';
+
+  static const String partialImportBlockedMessage =
+      'Import is blocked until every row is valid. Some records cannot be imported while others are skipped.';
+
   static const String missingImportDepartmentMessage =
       'Select a department before importing problems.';
 

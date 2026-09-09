@@ -3,6 +3,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../constants/import_constants.dart';
 import '../models/import_review_row.dart';
+import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
 import 'import_handler.dart';
 import 'team_registration_import_handler.dart';
@@ -45,7 +46,8 @@ abstract final class ImportDepartmentResolutionPolicy {
 
   static bool canCreateDepartment(UserRole? role) => role == UserRole.collegeAdmin;
 
-  static bool canAssignAdministrator(UserRole? role) => role == UserRole.collegeAdmin;
+  static bool canAssignAdministrator(UserRole? role) =>
+      role == UserRole.collegeAdmin || role == UserRole.departmentAdmin;
 
   static bool canCreateDepartmentAdmin(UserRole? role) => role == UserRole.collegeAdmin;
 
@@ -67,5 +69,19 @@ abstract final class ImportDepartmentResolutionPolicy {
       }
     }
     return byKey.values.toList(growable: false);
+  }
+
+  /// Returns a blocking message when the file is not ready for an all-or-nothing import.
+  static String? atomicBlockReason(List<ImportReviewRow> rows) {
+    if (rows.any((ImportReviewRow r) => r.metadata['departmentNeedsResolution'] == '1')) {
+      return ImportConstants.departmentImportBlockedMessage;
+    }
+    if (rows.any((ImportReviewRow r) => r.severity == ImportRowSeverity.error)) {
+      return ImportConstants.importValidationBlockedMessage;
+    }
+    if (rows.any((ImportReviewRow r) => !r.importable)) {
+      return ImportConstants.partialImportBlockedMessage;
+    }
+    return null;
   }
 }

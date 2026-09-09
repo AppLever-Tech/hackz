@@ -4,7 +4,6 @@ import '../../user/constants/csv_import_role_constants.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
-import '../../user/services/user_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../constants/import_constants.dart';
@@ -14,7 +13,9 @@ import '../models/import_review_row.dart';
 import '../models/import_row_severity.dart';
 import '../models/import_type.dart';
 import 'csv_parser_service.dart';
+import 'import_atomic_writer.dart';
 import 'import_department_lookup.dart';
+import 'import_department_resolution_policy.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
 import 'import_role_validator.dart';
@@ -254,70 +255,71 @@ Rahul,Das,9876543212,,,
     void Function(int current, int total)? onProgress,
   }) async {
     final UserImportHandlerContext userContext = context as UserImportHandlerContext;
-    if (rows.any((ImportReviewRow r) => r.metadata['departmentNeedsResolution'] == '1')) {
+    final String? blocked = ImportDepartmentResolutionPolicy.atomicBlockReason(rows);
+    if (blocked != null) {
       return ImportExecutionResult(
         imported: 0,
-        skipped: rows.length,
+        skipped: 0,
         failed: 0,
-        failures: const <String>[ImportConstants.departmentImportBlockedMessage],
+        failures: <String>[blocked],
       );
     }
-    final List<ImportReviewRow> importable =
-        rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
 
-    var imported = 0;
-    var skipped = rows.length - importable.length;
-    var failed = 0;
-    final List<String> failures = <String>[];
-
-    for (final ImportReviewRow row in importable) {
-      try {
-        final String departmentCode =
-            row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
-        final String departmentName = row.metadata['departmentName'] ?? departmentCode;
-        final String roleCode = row.metadata['roleCode'] ?? UserRole.teamMember.code;
-        final String phone = normalizePhoneE164(row.valueFor(ImportConstants.phoneColumnKey));
-
-        final UserModel draft = UserModel(
-          userId: '',
-          phone: phone,
-          firstName: row.valueFor(ImportConstants.firstNameColumnKey),
-          lastName: row.valueFor(ImportConstants.lastNameColumnKey),
-          email: row.valueFor(ImportConstants.emailColumnKey),
-          role: roleCode,
-          roles: <String>[roleCode],
-          orgType: userContext.config.organizationType,
-          orgId: context.orgId,
-          department: departmentName,
-          departmentCode: departmentCode,
-          status: UserStatus.active,
-          createdAt: DateTime.now(),
-          approvedAt: DateTime.now(),
-          approvedBy: context.actorUserId,
-          createdSource: ImportCreatedSource.csvImport.value,
-          createdBy: context.actorUserId,
+    final List<ImportAtomicWrite> writes = <ImportAtomicWrite>[];
+    for (final ImportReviewRow row in rows) {
+      final String departmentCode =
+          row.metadata['departmentCode'] ?? row.valueFor(ImportConstants.departmentColumnKey);
+      if (departmentCode.trim().isEmpty) {
+        return ImportExecutionResult(
+          imported: 0,
+          skipped: 0,
+          failed: 0,
+          failures: const <String>[ImportConstants.departmentImportBlockedMessage],
         );
-
-        final String createdId = await UserService.createUser(user: draft);
-        await FirestoreUtils.updateUser(createdId, <String, dynamic>{
-          'orgId': context.orgId,
-          'department': departmentName,
-          'departmentCode': departmentCode,
-          'createdSource': ImportCreatedSource.csvImport.value,
-          'createdBy': context.actorUserId,
-        });
-        imported++;
-      } catch (e) {
-        failed++;
-        failures.add('Row ${row.rowNumber}: $e');
       }
+      final String departmentName = row.metadata['departmentName'] ?? departmentCode;
+      final String roleCode = row.metadata['roleCode'] ?? UserRole.teamMember.code;
+      final String phone = normalizePhoneE164(row.valueFor(ImportConstants.phoneColumnKey));
+      final DocumentReference<Map<String, dynamic>> ref =
+          HackzFirebase.current.firestore.collection(FirestoreUtils.hkzUsers).doc();
+      final UserModel draft = UserModel(
+        userId: ref.id,
+        phone: phone,
+        firstName: row.valueFor(ImportConstants.firstNameColumnKey),
+        lastName: row.valueFor(ImportConstants.lastNameColumnKey),
+        email: row.valueFor(ImportConstants.emailColumnKey),
+        role: roleCode,
+        roles: <String>[roleCode],
+        orgType: userContext.config.organizationType,
+        orgId: context.orgId,
+        department: departmentName,
+        departmentCode: departmentCode,
+        status: UserStatus.active,
+        createdAt: DateTime.now(),
+        approvedAt: DateTime.now(),
+        approvedBy: context.actorUserId,
+        createdSource: ImportCreatedSource.csvImport.value,
+        createdBy: context.actorUserId,
+      );
+      writes.add(ImportAtomicWrite(ref: ref, data: draft.toMap()));
+    }
+
+    try {
+      await ImportAtomicWriter.commit(writes);
+    } catch (e) {
+      return ImportExecutionResult(
+        imported: 0,
+        skipped: 0,
+        failed: writes.length,
+        failures: <String>['$e'],
+      );
     }
 
     return ImportExecutionResult(
-      imported: imported,
-      skipped: skipped,
-      failed: failed,
-      failures: failures,
+      imported: writes.length,
+      skipped: 0,
+      failed: 0,
+      usersImported: writes.length,
     );
   }
 }

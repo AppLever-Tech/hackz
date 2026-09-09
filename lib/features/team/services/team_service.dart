@@ -188,9 +188,49 @@ class TeamService {
     required Set<String> studentIds,
     required String teamLeaderId,
   }) async {
+    final batch = _db.batch();
+    final String teamId = writeCreateTeam(
+      batch,
+      actor: actor,
+      teamName: teamName,
+      studentIds: studentIds,
+      teamLeaderId: teamLeaderId,
+    );
+    await batch.commit();
+    return teamId;
+  }
+
+  /// Same writes as [createTeam], added to an existing batch (CSV import atomic commit).
+  static String writeCreateTeam(
+    WriteBatch batch, {
+    required UserModel actor,
+    required String teamName,
+    required Set<String> studentIds,
+    required String teamLeaderId,
+  }) {
+    final PreparedTeamCreate prepared = prepareCreateTeam(
+      actor: actor,
+      teamName: teamName,
+      studentIds: studentIds,
+      teamLeaderId: teamLeaderId,
+    );
+    batch.set(prepared.teamRef, prepared.team.toMap(), SetOptions(merge: true));
+    for (final String studentId in prepared.memberIds) {
+      final userRef = _db.collection(FirestoreUtils.hkzUsers).doc(studentId);
+      batch.set(userRef, <String, dynamic>{'teamId': prepared.team.teamId}, SetOptions(merge: true));
+    }
+    return prepared.team.teamId;
+  }
+
+  static PreparedTeamCreate prepareCreateTeam({
+    required UserModel actor,
+    required String teamName,
+    required Set<String> studentIds,
+    required String teamLeaderId,
+  }) {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: studentIds);
-    final doc = _db.collection(FirestoreUtils.hkzTeams).doc();
-    final team = TeamModel(
+    final DocumentReference<Map<String, dynamic>> doc = _db.collection(FirestoreUtils.hkzTeams).doc();
+    final TeamModel team = TeamModel(
       teamId: doc.id,
       teamName: teamName.trim(),
       teamLeaderId: teamLeaderId.trim(),
@@ -201,14 +241,7 @@ class TeamService {
       createdAt: DateTime.now(),
       createdBy: actor.userId.trim(),
     );
-    final batch = _db.batch();
-    batch.set(doc, team.toMap(), SetOptions(merge: true));
-    for (final studentId in studentIds) {
-      final userRef = _db.collection(FirestoreUtils.hkzUsers).doc(studentId);
-      batch.set(userRef, <String, dynamic>{'teamId': doc.id}, SetOptions(merge: true));
-    }
-    await batch.commit();
-    return doc.id;
+    return PreparedTeamCreate(teamRef: doc, team: team, memberIds: studentIds.toList(growable: false));
   }
 
   /// Department Admin: set [teamLeaderId] on an existing team. Leader stays a team member.
@@ -411,4 +444,16 @@ class TeamService {
     final ideas = await _db.collection(FirestoreUtils.hkzIdeas).where('teamId', isEqualTo: teamId).get();
     return ideas.docs.isEmpty;
   }
+}
+
+class PreparedTeamCreate {
+  const PreparedTeamCreate({
+    required this.teamRef,
+    required this.team,
+    required this.memberIds,
+  });
+
+  final DocumentReference<Map<String, dynamic>> teamRef;
+  final TeamModel team;
+  final List<String> memberIds;
 }

@@ -9,7 +9,6 @@ import '../../team/services/team_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
-import '../../user/services/user_service.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import '../constants/import_constants.dart';
@@ -20,7 +19,9 @@ import '../models/import_row_severity.dart';
 import '../models/import_summary.dart';
 import '../models/import_type.dart';
 import 'csv_parser_service.dart';
+import 'import_atomic_writer.dart';
 import 'import_department_lookup.dart';
+import 'import_department_resolution_policy.dart';
 import 'import_department_validator.dart';
 import 'import_handler.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
@@ -248,32 +249,20 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
         failures: <String>['Team Registration import is available to Coordinators and Department Admins only.'],
       );
     }
-    if (rows.any((ImportReviewRow r) => r.metadata['departmentNeedsResolution'] == '1')) {
+    final String? blocked = ImportDepartmentResolutionPolicy.atomicBlockReason(rows);
+    if (blocked != null) {
       return ImportExecutionResult(
         imported: 0,
-        skipped: rows.length,
+        skipped: 0,
         failed: 0,
-        failures: const <String>[ImportConstants.departmentImportBlockedMessage],
-      );
-    }
-    if (rows.any((ImportReviewRow r) => r.severity == ImportRowSeverity.error)) {
-      return ImportExecutionResult(
-        imported: 0,
-        skipped: rows.length,
-        failed: 0,
-        failures: const <String>['Fix validation errors before importing.'],
+        failures: <String>[blocked],
       );
     }
 
-    final List<ImportReviewRow> importable =
-        rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
-    if (importable.isEmpty) {
-      return ImportExecutionResult(imported: 0, skipped: rows.length, failed: 0);
-    }
-
+    final List<ImportReviewRow> importable = rows;
     final Map<String, String> userIdByPhone = <String, String>{};
-    var failed = 0;
-    final List<String> failures = <String>[];
+    final List<ImportAtomicWrite> writes = <ImportAtomicWrite>[];
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
 
     for (final ImportReviewRow row in importable) {
       final String phone = row.metadata['phoneE164'] ?? '';
@@ -283,49 +272,35 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
         userIdByPhone[phone] = existingId;
         continue;
       }
-      try {
-        final String affiliationOrg = (row.metadata['organisationName'] ?? '').trim();
-        final String affiliationDept = (row.metadata['affiliationDepartment'] ?? '').trim();
-        final bool external = affiliationOrg.isNotEmpty;
-        final String hackzDept = row.metadata['departmentName'] ?? '';
-        final String hackzDeptCode = row.metadata['departmentCode'] ?? '';
-        final String createdId = await UserService.createUser(
-          user: UserModel(
-            userId: '',
-            phone: phone,
-            firstName: row.valueFor(ImportConstants.firstNameColumnKey),
-            lastName: row.valueFor(ImportConstants.lastNameColumnKey),
-            email: row.valueFor(ImportConstants.emailColumnKey),
-            role: UserRole.teamMember.code,
-            roles: <String>[UserRole.teamMember.code],
-            orgType: teamContext.actor.orgType,
-            orgId: teamContext.orgId,
-            organisationName: affiliationOrg,
-            department: external ? '' : hackzDept,
-            departmentCode: external ? '' : hackzDeptCode,
-            departmentName: external ? affiliationDept : '',
-            status: UserStatus.active,
-            createdAt: DateTime.now(),
-            approvedAt: DateTime.now(),
-            approvedBy: teamContext.actorUserId,
-            createdSource: ImportCreatedSource.csvImport.value,
-            createdBy: teamContext.actorUserId,
-          ),
-        );
-        userIdByPhone[phone] = createdId;
-      } catch (e) {
-        failed++;
-        failures.add('Row ${row.rowNumber}: $e');
-      }
-    }
-
-    if (failed > 0) {
-      return ImportExecutionResult(
-        imported: 0,
-        skipped: 0,
-        failed: failed,
-        failures: failures,
+      final String affiliationOrg = (row.metadata['organisationName'] ?? '').trim();
+      final String affiliationDept = (row.metadata['affiliationDepartment'] ?? '').trim();
+      final bool external = affiliationOrg.isNotEmpty;
+      final String hackzDept = row.metadata['departmentName'] ?? '';
+      final String hackzDeptCode = row.metadata['departmentCode'] ?? '';
+      final DocumentReference<Map<String, dynamic>> ref = db.collection(FirestoreUtils.hkzUsers).doc();
+      final UserModel draft = UserModel(
+        userId: ref.id,
+        phone: phone,
+        firstName: row.valueFor(ImportConstants.firstNameColumnKey),
+        lastName: row.valueFor(ImportConstants.lastNameColumnKey),
+        email: row.valueFor(ImportConstants.emailColumnKey),
+        role: UserRole.teamMember.code,
+        roles: <String>[UserRole.teamMember.code],
+        orgType: teamContext.actor.orgType,
+        orgId: teamContext.orgId,
+        organisationName: affiliationOrg,
+        department: external ? '' : hackzDept,
+        departmentCode: external ? '' : hackzDeptCode,
+        departmentName: external ? affiliationDept : '',
+        status: UserStatus.active,
+        createdAt: DateTime.now(),
+        approvedAt: DateTime.now(),
+        approvedBy: teamContext.actorUserId,
+        createdSource: ImportCreatedSource.csvImport.value,
+        createdBy: teamContext.actorUserId,
       );
+      userIdByPhone[phone] = ref.id;
+      writes.add(ImportAtomicWrite(ref: ref, data: draft.toMap()));
     }
 
     final Map<String, List<ImportReviewRow>> byTeam = <String, List<ImportReviewRow>>{};
@@ -335,9 +310,8 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
       byTeam.putIfAbsent(key, () => <ImportReviewRow>[]).add(row);
     }
 
-    var importedTeams = 0;
-    for (final List<ImportReviewRow> members in byTeam.values) {
-      try {
+    try {
+      for (final List<ImportReviewRow> members in byTeam.values) {
         final Set<String> memberIds = <String>{};
         String leaderId = '';
         for (final ImportReviewRow row in members) {
@@ -349,24 +323,44 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
           memberIds.add(userId);
           if (row.metadata['isTeamLeader'] == '1') leaderId = userId;
         }
-        await TeamService.createTeam(
+        final PreparedTeamCreate prepared = TeamService.prepareCreateTeam(
           actor: teamContext.actor,
           teamName: members.first.valueFor(ImportConstants.teamNameColumnKey),
           studentIds: memberIds,
           teamLeaderId: leaderId,
         );
-        importedTeams++;
-      } catch (e) {
-        failed++;
-        failures.add('${members.first.valueFor(ImportConstants.teamNameColumnKey)}: $e');
+        writes.add(
+          ImportAtomicWrite(ref: prepared.teamRef, data: prepared.team.toMap(), merge: true),
+        );
+        for (final String memberId in prepared.memberIds) {
+          writes.add(
+            ImportAtomicWrite(
+              ref: db.collection(FirestoreUtils.hkzUsers).doc(memberId),
+              data: <String, dynamic>{'teamId': prepared.team.teamId},
+              merge: true,
+              deleteOnRollback: false,
+            ),
+          );
+        }
       }
+      await ImportAtomicWriter.commit(writes);
+    } catch (e) {
+      return ImportExecutionResult(
+        imported: 0,
+        skipped: 0,
+        failed: importable.length,
+        failures: <String>['$e'],
+      );
     }
 
+    final int createdUsers = writes.where((ImportAtomicWrite w) => !w.merge).length;
+
     return ImportExecutionResult(
-      imported: importedTeams,
-      skipped: rows.length - importable.length,
-      failed: failed,
-      failures: failures,
+      imported: byTeam.length,
+      skipped: 0,
+      failed: 0,
+      usersImported: createdUsers,
+      teamsImported: byTeam.length,
     );
   }
 

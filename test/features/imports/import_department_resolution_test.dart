@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hackz/features/imports/models/import_review_row.dart';
+import 'package:hackz/features/imports/models/import_row_severity.dart';
 import 'package:hackz/features/imports/services/import_department_lookup.dart';
 import 'package:hackz/features/imports/services/import_department_validator.dart';
 import 'package:hackz/features/organization/models/department_model.dart';
@@ -127,11 +129,17 @@ void main() {
   });
 
   group('ImportDepartmentResolutionPolicy', () {
-    test('hides create and admin assignment from Department Admin and Coordinator', () {
+    test('College Admin and Department Admin may assign existing administrators', () {
+      expect(ImportDepartmentResolutionPolicy.canAssignAdministrator(UserRole.collegeAdmin), isTrue);
+      expect(ImportDepartmentResolutionPolicy.canAssignAdministrator(UserRole.departmentAdmin), isTrue);
+      expect(ImportDepartmentResolutionPolicy.canAssignAdministrator(UserRole.coordinator), isFalse);
+    });
+
+    test('hides create department and new Department Admin from Department Admin and Coordinator', () {
       expect(ImportDepartmentResolutionPolicy.canMap(UserRole.coordinator), isTrue);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.coordinator), isFalse);
-      expect(ImportDepartmentResolutionPolicy.canAssignAdministrator(UserRole.coordinator), isFalse);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartmentAdmin(UserRole.departmentAdmin), isFalse);
+      expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.departmentAdmin), isFalse);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.collegeAdmin), isTrue);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartmentAdmin(UserRole.collegeAdmin), isTrue);
     });
@@ -139,6 +147,54 @@ void main() {
     test('only CADM and DADM may save aliases', () {
       expect(ImportDepartmentResolutionPolicy.canSaveAlias(UserRole.coordinator), isFalse);
       expect(ImportDepartmentResolutionPolicy.canSaveAlias(UserRole.departmentAdmin), isTrue);
+    });
+  });
+
+  group('ImportDepartmentResolutionPolicy.atomicBlockReason', () {
+    ImportReviewRow row({
+      required bool importable,
+      ImportRowSeverity severity = ImportRowSeverity.valid,
+      Map<String, String> metadata = const <String, String>{},
+    }) {
+      return ImportReviewRow(
+        rowNumber: 1,
+        values: const <String, String>{},
+        severity: severity,
+        statusLabel: 'test',
+        importable: importable,
+        metadata: metadata,
+      );
+    }
+
+    test('blocks unresolved departments', () {
+      expect(
+        ImportDepartmentResolutionPolicy.atomicBlockReason(<ImportReviewRow>[
+          row(importable: false, severity: ImportRowSeverity.error, metadata: const <String, String>{
+            'departmentNeedsResolution': '1',
+          }),
+        ]),
+        isNotNull,
+      );
+    });
+
+    test('blocks mixed valid and skipped rows', () {
+      expect(
+        ImportDepartmentResolutionPolicy.atomicBlockReason(<ImportReviewRow>[
+          row(importable: true),
+          row(importable: false, severity: ImportRowSeverity.warning),
+        ]),
+        isNotNull,
+      );
+    });
+
+    test('allows a fully valid file', () {
+      expect(
+        ImportDepartmentResolutionPolicy.atomicBlockReason(<ImportReviewRow>[
+          row(importable: true),
+          row(importable: true),
+        ]),
+        isNull,
+      );
     });
   });
 

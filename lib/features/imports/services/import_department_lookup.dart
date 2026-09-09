@@ -20,13 +20,17 @@ class ImportDepartmentInfo {
     required this.code,
     required this.name,
     this.id = '',
+    this.adminUserId = '',
     this.aliases = const <String>[],
   });
 
   final String id;
   final String code;
   final String name;
+  final String adminUserId;
   final List<String> aliases;
+
+  bool get hasAdministrator => adminUserId.trim().isNotEmpty;
 
   String get displayLabel => name.isEmpty ? code : '$code – $name';
 
@@ -113,6 +117,7 @@ class ImportDepartmentLookup {
           id: ((doc['id'] as String?) ?? '').trim(),
           code: code,
           name: name,
+          adminUserId: ((doc['adminUserId'] as String?) ?? '').trim(),
           aliases: DepartmentModel.parseAliases(doc['aliases']),
         ),
       );
