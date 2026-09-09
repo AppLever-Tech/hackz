@@ -449,6 +449,7 @@ class FirestoreUtils {
         'id': dep.id,
         'name': name,
         'code': code,
+        'aliases': DepartmentModel.parseAliases(data['aliases']),
         'adminUserId': (data['adminUserId'] as String?)?.trim() ?? '',
         'departmentAdmin': '-',
         'totalUsers': 0,
@@ -641,16 +642,81 @@ class FirestoreUtils {
     required String orgId,
     required String name,
     required String code,
+    String adminUserId = '',
+    List<String> aliases = const <String>[],
   }) async {
     final DocumentReference<Map<String, dynamic>> ref =
         await _db.collection(hkzDepartments).add(<String, dynamic>{
       'orgId': orgId,
       'name': name.trim(),
       'code': code.trim().toUpperCase(),
-      'adminUserId': '',
+      'adminUserId': adminUserId.trim(),
+      'aliases': DepartmentModel.parseAliases(aliases),
       'createdAt': FieldValue.serverTimestamp(),
     });
     return ref.id;
+  }
+
+  static Future<void> addDepartmentAlias({
+    required String departmentId,
+    required String alias,
+  }) async {
+    final String id = departmentId.trim();
+    final String trimmed = alias.trim();
+    if (id.isEmpty || trimmed.isEmpty) return;
+
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(hkzDepartments).doc(id).get();
+    if (!doc.exists || doc.data() == null) return;
+    final Map<String, dynamic> data = doc.data()!;
+    final String name = (data['name'] as String?)?.trim() ?? '';
+    final String code = (data['code'] as String?)?.trim() ?? '';
+    if (DepartmentModel.aliasMatchesDepartment(alias: trimmed, name: name, code: code)) {
+      return;
+    }
+
+    final List<String> existing = DepartmentModel.parseAliases(data['aliases']);
+    final List<String> merged = DepartmentModel.mergeAliases(existing, <String>[trimmed]);
+    if (merged.length == existing.length) return;
+
+    await _db.collection(hkzDepartments).doc(id).set(<String, dynamic>{
+      'aliases': merged,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Active College Admins and Department Admins who may own a department.
+  static Future<List<UserModel>> listEligibleDepartmentAdministrators({
+    required String orgId,
+  }) async {
+    final List<QuerySnapshot<Map<String, dynamic>>> snaps = await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      _db
+          .collection(hkzUsers)
+          .where('orgId', isEqualTo: orgId)
+          .where('role', isEqualTo: UserRole.collegeAdmin.code)
+          .get(),
+      _db
+          .collection(hkzUsers)
+          .where('orgId', isEqualTo: orgId)
+          .where('role', isEqualTo: UserRole.departmentAdmin.code)
+          .get(),
+    ]);
+
+    final List<UserModel> users = <UserModel>[];
+    for (final QuerySnapshot<Map<String, dynamic>> snap in snaps) {
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+        final UserModel user = UserModel.fromMap(doc.data()).copyWith(userId: doc.id);
+        if (user.status != UserStatus.active) continue;
+        if (!UserRole.isEligibleDepartmentAdministrator(user.role)) continue;
+        users.add(user);
+      }
+    }
+    users.sort((UserModel a, UserModel b) {
+      final int byRole = a.role.compareTo(b.role);
+      if (byRole != 0) return byRole;
+      return userDisplayName(a).toLowerCase().compareTo(userDisplayName(b).toLowerCase());
+    });
+    return users;
   }
 
   static Future<void> updateDepartment({

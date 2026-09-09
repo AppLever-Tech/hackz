@@ -91,7 +91,7 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
         'isTeamLeader: true/false — exactly one true per team.',
         'Existing Hackz users are reused by phone; new users are created as Team Members.',
         'Teams are always created under this college.',
-        'Internal members (this college) use a Hackz department; blank department defaults to the coordinator’s department.',
+        'Internal members (this college) use a Hackz department (code, name, or alias); blank department defaults to the coordinator’s department.',
         'Any other organisation name is stored as participant affiliation on this college — including names that match another Hackz college.',
         'External department is optional free text, is not matched to this college’s departments, and is not created as a Hackz department.',
       ];
@@ -246,6 +246,14 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
         skipped: 0,
         failed: 0,
         failures: <String>['Team Registration import is available to Coordinators and Department Admins only.'],
+      );
+    }
+    if (rows.any((ImportReviewRow r) => r.metadata['departmentNeedsResolution'] == '1')) {
+      return ImportExecutionResult(
+        imported: 0,
+        skipped: rows.length,
+        failed: 0,
+        failures: const <String>[ImportConstants.departmentImportBlockedMessage],
       );
     }
     if (rows.any((ImportReviewRow r) => r.severity == ImportRowSeverity.error)) {
@@ -436,9 +444,11 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
         final ImportDepartmentValidation dept = ImportDepartmentValidator.validate(
           rawInput: row.departmentRaw,
           lookup: lookup.owningDepartments,
+          resolutions: context.departmentResolutions,
         );
         if (!dept.isValid) {
           row.addError(ImportConstants.departmentColumnKey, dept.errorMessage ?? 'Invalid department.');
+          if (dept.needsResolution) row.departmentNeedsResolution = true;
         } else {
           row.departmentCode = dept.canonicalCode ?? '';
           row.departmentName = dept.departmentName ?? row.departmentRaw;
@@ -539,6 +549,7 @@ class TeamRegistrationImportHandlerContext extends ImportHandlerContext {
   TeamRegistrationImportHandlerContext({
     required this.actor,
     required this.orgName,
+    super.departmentResolutions,
   }) : super(
           actorUserId: actor.userId,
           orgId: actor.orgId,
@@ -548,6 +559,16 @@ class TeamRegistrationImportHandlerContext extends ImportHandlerContext {
 
   final UserModel actor;
   final String orgName;
+
+  TeamRegistrationImportHandlerContext copyWith({
+    Map<String, ImportDepartmentMapping>? departmentResolutions,
+  }) {
+    return TeamRegistrationImportHandlerContext(
+      actor: actor,
+      orgName: orgName,
+      departmentResolutions: departmentResolutions ?? this.departmentResolutions,
+    );
+  }
 }
 
 class _ParsedRow {
@@ -578,6 +599,7 @@ class _ParsedRow {
   bool isOwningOrg = false;
   String departmentCode = '';
   String departmentName = '';
+  bool departmentNeedsResolution = false;
   bool? isTeamLeader;
   UserModel? existingUser;
 
@@ -628,6 +650,8 @@ class _ParsedRow {
         if (resolvedOrgId != null) 'orgId': resolvedOrgId!,
         'departmentCode': isOwningOrg ? departmentCode : '',
         'departmentName': isOwningOrg ? (departmentName.isEmpty ? departmentRaw : departmentName) : '',
+        if (isOwningOrg && departmentRaw.isNotEmpty) 'departmentRaw': departmentRaw,
+        if (isOwningOrg && departmentNeedsResolution) 'departmentNeedsResolution': '1',
         'organisationName': isOwningOrg ? '' : organisation,
         'affiliationDepartment': isOwningOrg ? '' : departmentRaw,
         'isTeamLeader': isTeamLeader == true ? '1' : '0',

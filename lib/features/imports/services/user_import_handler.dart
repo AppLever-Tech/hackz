@@ -87,6 +87,7 @@ Rahul,Das,9876543212,,,
       else
         'Role is required. Use ${allowedRoles.join(', ')}.',
       'Blank department defaults to your department.',
+      'A non-empty department is matched by code, name, or alias — unknown values must be mapped before import.',
       'Role values are case-sensitive.',
     ];
   }
@@ -173,9 +174,13 @@ Rahul,Das,9876543212,,,
         lookup: lookup.departments,
         defaultCode: context.defaultDepartmentCode,
         defaultName: context.defaultDepartmentName,
+        resolutions: context.departmentResolutions,
       );
       if (!deptResult.isValid) {
-        markError(deptResult.errorMessage ?? 'Invalid department code', deptResult.statusLabel ?? 'Invalid Department');
+        markError(
+          deptResult.errorMessage ?? 'Invalid department',
+          deptResult.statusLabel ?? 'Invalid Department',
+        );
       } else {
         departmentCode = deptResult.canonicalCode;
         departmentName = deptResult.departmentName;
@@ -232,6 +237,8 @@ Rahul,Das,9876543212,,,
             if (roleCode != null) 'roleCode': roleCode,
             if (departmentCode != null) 'departmentCode': departmentCode,
             if (departmentName != null && departmentName.isNotEmpty) 'departmentName': departmentName,
+            if (departmentRaw.isNotEmpty) 'departmentRaw': departmentRaw,
+            if (deptResult.needsResolution) 'departmentNeedsResolution': '1',
             if (email.isNotEmpty || departmentDisplay.isNotEmpty) 'expandable': '1',
           },
         ),
@@ -247,6 +254,14 @@ Rahul,Das,9876543212,,,
     void Function(int current, int total)? onProgress,
   }) async {
     final UserImportHandlerContext userContext = context as UserImportHandlerContext;
+    if (rows.any((ImportReviewRow r) => r.metadata['departmentNeedsResolution'] == '1')) {
+      return ImportExecutionResult(
+        imported: 0,
+        skipped: rows.length,
+        failed: 0,
+        failures: const <String>[ImportConstants.departmentImportBlockedMessage],
+      );
+    }
     final List<ImportReviewRow> importable =
         rows.where((ImportReviewRow r) => r.importable).toList(growable: false);
 
@@ -313,6 +328,7 @@ class UserImportHandlerContext extends ImportHandlerContext {
     required super.orgId,
     required super.defaultDepartmentName,
     required super.defaultDepartmentCode,
+    super.departmentResolutions,
     required this.config,
   });
 
@@ -320,6 +336,19 @@ class UserImportHandlerContext extends ImportHandlerContext {
 
   @override
   Set<String>? get supportedCsvRoles => config.allowedCsvRoles;
+
+  UserImportHandlerContext copyWith({
+    Map<String, ImportDepartmentMapping>? departmentResolutions,
+  }) {
+    return UserImportHandlerContext(
+      actorUserId: actorUserId,
+      orgId: orgId,
+      defaultDepartmentName: defaultDepartmentName,
+      defaultDepartmentCode: defaultDepartmentCode,
+      departmentResolutions: departmentResolutions ?? this.departmentResolutions,
+      config: config,
+    );
+  }
 
   factory UserImportHandlerContext.fromConfig(UserImportConfig config) {
     return UserImportHandlerContext(

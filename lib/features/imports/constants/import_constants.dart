@@ -48,6 +48,17 @@ abstract final class ImportConstants {
       'Department Code "$code" not found.\n\n'
       'Please create the department first under Department Management and retry the import.';
 
+  static String departmentUnresolvedMessage(String value) =>
+      'Department "$value" has no matching department.\n\n'
+      'Map it to an existing department before import. A default or General department will not be used.';
+
+  static const String departmentImportBlockedMessage =
+      'Import is blocked until every department value is mapped to an existing department.';
+
+  static const String departmentAdminRequiredMessage =
+      'A new department cannot be created without an eligible administrator. '
+      'Assign an existing Department Admin or College Admin, or create a Department Admin first.';
+
   static const String missingImportDepartmentMessage =
       'Select a department before importing problems.';
 

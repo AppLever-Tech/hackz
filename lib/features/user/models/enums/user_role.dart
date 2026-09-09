@@ -26,4 +26,10 @@ enum UserRole {
     final String role = _normalized(code);
     return role == teamMember.code || role == coordinator.code || role == judge.code;
   }
+
+  /// Users who may administer a department: existing College Admin or Department Admin only.
+  static bool isEligibleDepartmentAdministrator(String? code) {
+    final String role = _normalized(code);
+    return role == collegeAdmin.code || role == departmentAdmin.code;
+  }
 }

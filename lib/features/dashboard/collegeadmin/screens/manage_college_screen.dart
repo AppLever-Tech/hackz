@@ -233,7 +233,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                 return;
               }
 
-              final departmentCode = _resolveDepartmentCode(departmentName);
+              final departmentCode = DepartmentModel.suggestCode(departmentName);
               setState(() => isSaving = true);
               var didPop = false;
               try {
@@ -388,21 +388,6 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       customDepartmentController.dispose();
     });
     if (mounted && shouldRefresh == true) _reloadDepartments();
-  }
-
-  String _resolveDepartmentCode(String departmentName) {
-    final master = DepartmentModel.byName(departmentName);
-    if (master != null) return master.code;
-    final words = departmentName
-        .split(RegExp(r'\s+'))
-        .map((word) => word.replaceAll(RegExp(r'[^A-Za-z0-9]'), ''))
-        .where((word) => word.isNotEmpty)
-        .toList(growable: false);
-    if (words.length > 1) {
-      return words.map((word) => word[0]).join().toUpperCase();
-    }
-    final compact = departmentName.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    return compact.length <= 6 ? compact : compact.substring(0, 6);
   }
 
   @override

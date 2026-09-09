@@ -9,7 +9,9 @@ import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/docs/widgets/help_action_button.dart';
+import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_statement_source.dart';
+import '../../user/models/user_model.dart';
 import '../constants/import_constants.dart';
 import '../models/import_created_source.dart';
 import '../models/import_execution_result.dart';
@@ -20,16 +22,20 @@ import '../models/import_type.dart';
 import '../services/csv_parser_service.dart';
 import '../services/excel_parser_service.dart';
 import '../services/import_department_lookup.dart';
+import '../services/import_department_resolution_policy.dart';
 import '../services/import_handler.dart';
 import '../services/import_platform_support.dart';
 import '../services/import_registry.dart';
 import '../services/import_template_service.dart';
 import '../services/problems_import_handler.dart';
+import '../services/team_registration_import_handler.dart';
+import '../services/user_import_handler.dart';
 import '../sources/problem_import_source_kind.dart';
 import '../sources/problem_source_extract_exception.dart';
 import '../sources/problem_source_extractors.dart';
 import '../../../core/workspace/workspace_controller.dart';
 import '../../../core/workspace/workspace_host.dart';
+import '../widgets/import_department_resolution_section.dart';
 import '../widgets/import_download_template_section.dart';
 import '../widgets/import_problem_context_section.dart';
 import '../widgets/import_review_filter_bar.dart';
@@ -76,9 +82,18 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   final Set<int> _excludedRowNumbers = <int>{};
   ImportReviewStatusFilter _reviewFilter = ImportReviewStatusFilter.all;
   String? _excelSheetName;
+  List<Map<String, String>> _parsedSourceRows = const <Map<String, String>>[];
+  Map<String, ImportDepartmentMapping> _departmentResolutions = <String, ImportDepartmentMapping>{};
 
   ImportHandler get _handler => widget.handler;
   bool get _isProblemsImport => _handler.type == ImportType.problems;
+  bool get _supportsDepartmentResolution =>
+      ImportDepartmentResolutionPolicy.supports(_handler.type);
+  UserModel? get _actor => ImportDepartmentResolutionPolicy.actorOf(widget.contextData);
+  List<ImportUnresolvedDepartment> get _unresolvedDepartments =>
+      _supportsDepartmentResolution
+          ? ImportDepartmentResolutionPolicy.unresolvedFromRows(_rows)
+          : const <ImportUnresolvedDepartment>[];
   ProblemsImportHandlerContext? get _problemContext =>
       widget.contextData is ProblemsImportHandlerContext
           ? widget.contextData as ProblemsImportHandlerContext
@@ -190,20 +205,29 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
 
   ImportHandlerContext _effectiveContext() {
     final ProblemsImportHandlerContext? problemContext = _problemContext;
-    if (problemContext == null) return widget.contextData;
-    return problemContext.copyWith(
-      defaultDepartmentCode: _selectedDepartmentCode,
-      defaultDepartmentName: _selectedDepartmentName,
-      orgName: _orgName,
-      problemSource: _importSource.isGoogle ? ProblemStatementSource.external : _problemSource,
-      sourceUrl: _importSource.isGoogle ? _sourceUrlController.text.trim() : '',
-      createdSource: switch (_importSource) {
-        ProblemImportSourceKind.googleDoc || ProblemImportSourceKind.googleSheet =>
-          ImportCreatedSource.googleImport,
-        ProblemImportSourceKind.excel => ImportCreatedSource.excelImport,
-        ProblemImportSourceKind.csv => ImportCreatedSource.csvImport,
-      },
-    );
+    if (problemContext != null) {
+      return problemContext.copyWith(
+        defaultDepartmentCode: _selectedDepartmentCode,
+        defaultDepartmentName: _selectedDepartmentName,
+        orgName: _orgName,
+        problemSource: _importSource.isGoogle ? ProblemStatementSource.external : _problemSource,
+        sourceUrl: _importSource.isGoogle ? _sourceUrlController.text.trim() : '',
+        createdSource: switch (_importSource) {
+          ProblemImportSourceKind.googleDoc || ProblemImportSourceKind.googleSheet =>
+            ImportCreatedSource.googleImport,
+          ProblemImportSourceKind.excel => ImportCreatedSource.excelImport,
+          ProblemImportSourceKind.csv => ImportCreatedSource.csvImport,
+        },
+      );
+    }
+    final ImportHandlerContext data = widget.contextData;
+    if (data is UserImportHandlerContext) {
+      return data.copyWith(departmentResolutions: _departmentResolutions);
+    }
+    if (data is TeamRegistrationImportHandlerContext) {
+      return data.copyWith(departmentResolutions: _departmentResolutions);
+    }
+    return data;
   }
 
   bool get _isExcelImport =>
@@ -315,6 +339,8 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         _excludedRowNumbers.clear();
         _reviewFilter = ImportReviewStatusFilter.all;
         _reviewSearchController.clear();
+        _parsedSourceRows = parsed;
+        _departmentResolutions = <String, ImportDepartmentMapping>{};
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
@@ -397,6 +423,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         _excludedRowNumbers.clear();
         _reviewFilter = ImportReviewStatusFilter.all;
         _reviewSearchController.clear();
+        _parsedSourceRows = extracted;
         _validatedRows = validated;
         _rows = validated;
         _summary = _handler.summarize(validated);
@@ -421,6 +448,45 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
         else
           row,
     ];
+  }
+
+  Future<void> _revalidateParsedRows() async {
+    if (_parsedSourceRows.isEmpty) return;
+    final List<ImportReviewRow> validated =
+        await _handler.validateRows(_parsedSourceRows, _effectiveContext());
+    if (!mounted) return;
+    setState(() {
+      _validatedRows = validated;
+      _rows = _isProblemsImport ? _applyExcluded(validated) : validated;
+      _summary = _handler.summarize(_rows);
+    });
+  }
+
+  Future<void> _onDepartmentResolved(String rawValue, ImportDepartmentResolutionResult result) async {
+    setState(() => _busy = true);
+    try {
+      if (result.saveAlias && result.mapping.id.trim().isNotEmpty) {
+        await FirestoreUtils.addDepartmentAlias(
+          departmentId: result.mapping.id,
+          alias: rawValue,
+        );
+      }
+      if (result.reloadLookup) {
+        final ImportDepartmentLookup lookup =
+            await ImportDepartmentLookup.load(widget.contextData.orgId);
+        if (mounted) _departments = lookup;
+      }
+      _departmentResolutions = <String, ImportDepartmentMapping>{
+        ..._departmentResolutions,
+        DepartmentModel.normalizeKey(rawValue): result.mapping,
+      };
+      await _revalidateParsedRows();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Could not apply department mapping', message: '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   void _setRowExcluded(ImportReviewRow row, bool excluded) {
@@ -470,6 +536,14 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   }
 
   Future<void> _runImport() async {
+    if (_unresolvedDepartments.isNotEmpty) {
+      FeedbackService.showWarning(
+        context,
+        title: 'Departments unresolved',
+        message: ImportConstants.departmentImportBlockedMessage,
+      );
+      return;
+    }
     final List<ImportReviewRow> importable =
         _rows.where((ImportReviewRow r) => r.importable && !r.excluded).toList(growable: false);
     if (importable.isEmpty) {
@@ -545,7 +619,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                             ? 'Upload an Excel workbook (.xlsx or .xls), pick a sheet if needed, then review before import.'
                             : 'Download the template, fill it in, then upload for validation.')
                     : _step == _ImportStep.review
-                        ? 'Review validated rows before importing.'
+                        ? (_unresolvedDepartments.isNotEmpty
+                            ? 'Map unresolved departments before import. No records will be imported until every department is resolved.'
+                            : 'Review validated rows before importing.')
                         : 'Import completed.',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -762,11 +838,23 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       children: <Widget>[
         if (_sourceCaption != null) _sourceCaption!,
         ImportSummaryMetrics(summary: summary, compactSingleRow: _isProblemsImport),
+        if (_actor != null && _unresolvedDepartments.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
+          ImportDepartmentResolutionSection(
+            unresolved: _unresolvedDepartments,
+            departments: _departments?.departments ?? const <ImportDepartmentInfo>[],
+            actor: _actor!,
+            busy: _busy,
+            onResolved: _onDepartmentResolved,
+          ),
+        ],
         if (summary.errorRows > 0) ...<Widget>[
           const SizedBox(height: 8),
-          const Text(
-            'Fix or exclude invalid records to enable import.',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
+          Text(
+            _unresolvedDepartments.isNotEmpty
+                ? ImportConstants.departmentImportBlockedMessage
+                : 'Fix or exclude invalid records to enable import.',
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
           ),
         ],
         if (_isProblemsImport) ...<Widget>[
@@ -852,6 +940,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     final ImportSummary? summary = _summary;
     if (summary == null) return false;
     if (summary.validRows <= 0) return false;
+    if (_unresolvedDepartments.isNotEmpty) return false;
     if (_handler.blockImportOnAnyError && summary.errorRows > 0) return false;
     return true;
   }
@@ -875,6 +964,8 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                       _excelSheetName = null;
                       _summary = null;
                       _fileName = null;
+                      _parsedSourceRows = const <Map<String, String>>[];
+                      _departmentResolutions = <String, ImportDepartmentMapping>{};
                     }),
             child: const Text('Back'),
           ),

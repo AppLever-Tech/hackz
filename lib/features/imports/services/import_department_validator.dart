@@ -1,7 +1,8 @@
+import '../../organization/models/department_model.dart';
 import '../constants/import_constants.dart';
 import 'import_department_lookup.dart';
 
-/// Result of validating a CSV department code cell.
+/// Result of validating a CSV department cell.
 class ImportDepartmentValidation {
   const ImportDepartmentValidation({
     required this.isValid,
@@ -9,6 +10,8 @@ class ImportDepartmentValidation {
     this.departmentName,
     this.errorMessage,
     this.statusLabel,
+    this.needsResolution = false,
+    this.rawInput = '',
   });
 
   final bool isValid;
@@ -16,18 +19,22 @@ class ImportDepartmentValidation {
   final String? departmentName;
   final String? errorMessage;
   final String? statusLabel;
+  final bool needsResolution;
+  final String rawInput;
 }
 
-/// Shared department-code validation for all CSV import types.
+/// Shared department validation for CSV import types.
 abstract final class ImportDepartmentValidator {
   ImportDepartmentValidator._();
 
-  /// Validates [rawInput] as an org department **code** (not a display name).
+  /// Empty input uses [defaultCode]/[defaultName]. Non-empty values must resolve
+  /// to an org department (code, name, normalized match, alias, or session mapping).
   static ImportDepartmentValidation validate({
     required String rawInput,
     required ImportDepartmentLookup lookup,
     String? defaultCode,
     String? defaultName,
+    Map<String, ImportDepartmentMapping> resolutions = const <String, ImportDepartmentMapping>{},
   }) {
     final String trimmed = rawInput.trim();
     if (trimmed.isEmpty) {
@@ -48,20 +55,34 @@ abstract final class ImportDepartmentValidator {
       );
     }
 
-    final String code = trimmed.toUpperCase();
-    if (!lookup.codes.contains(code)) {
+    final ImportDepartmentMapping? mapped = resolutions[DepartmentModel.normalizeKey(trimmed)];
+    if (mapped != null) {
       return ImportDepartmentValidation(
-        isValid: false,
-        errorMessage: ImportConstants.departmentNotFoundMessage(trimmed),
-        statusLabel: 'Invalid Department',
+        isValid: true,
+        canonicalCode: mapped.code,
+        departmentName: mapped.name.isNotEmpty ? mapped.name : lookup.codeToName[mapped.code],
+        statusLabel: 'Valid',
+        rawInput: trimmed,
+      );
+    }
+
+    final ImportDepartmentInfo? match = lookup.resolve(trimmed);
+    if (match != null) {
+      return ImportDepartmentValidation(
+        isValid: true,
+        canonicalCode: match.code,
+        departmentName: match.name,
+        statusLabel: 'Valid',
+        rawInput: trimmed,
       );
     }
 
     return ImportDepartmentValidation(
-      isValid: true,
-      canonicalCode: code,
-      departmentName: lookup.codeToName[code],
-      statusLabel: 'Valid',
+      isValid: false,
+      needsResolution: true,
+      rawInput: trimmed,
+      errorMessage: ImportConstants.departmentUnresolvedMessage(trimmed),
+      statusLabel: 'Unresolved Department',
     );
   }
 }

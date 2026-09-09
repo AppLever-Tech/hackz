@@ -1,3 +1,4 @@
+import 'import_department_lookup.dart';
 import '../models/import_execution_result.dart';
 import '../models/import_review_row.dart';
 import '../models/import_summary.dart';
@@ -62,12 +63,16 @@ class ImportHandlerContext {
     required this.orgId,
     required this.defaultDepartmentName,
     required this.defaultDepartmentCode,
+    this.departmentResolutions = const <String, ImportDepartmentMapping>{},
   });
 
   final String actorUserId;
   final String orgId;
   final String defaultDepartmentName;
   final String defaultDepartmentCode;
+
+  /// CSV department values mapped during the review step (normalized key → department).
+  final Map<String, ImportDepartmentMapping> departmentResolutions;
 
   /// CSV role labels shown in Supported Values (user import only).
   Set<String>? get supportedCsvRoles => null;
