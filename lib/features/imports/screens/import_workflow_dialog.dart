@@ -103,6 +103,9 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
   bool get _hasDepartment => _selectedDepartmentCode.trim().isNotEmpty;
 
   String get _headerTitle {
+    if (_step == _ImportStep.review && !_isProblemsImport) {
+      return _reviewTitlePrefix;
+    }
     if (!_isProblemsImport || _step != _ImportStep.review) return _handler.title;
     return switch (_importSource) {
       ProblemImportSourceKind.csv => 'Import Problems from CSV',
@@ -110,6 +113,18 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       ProblemImportSourceKind.googleSheet => 'Import Problems from Google Sheets',
       ProblemImportSourceKind.googleDoc => 'Import Problems from Google Docs',
     };
+  }
+
+  String get _reviewTitlePrefix {
+    if (_handler.type == ImportType.teamRegistration) return 'Import Team Registration from File: ';
+    return 'Import Users from File: ';
+  }
+
+  String get _reviewFileLabel {
+    final String fileLabel = (_fileName ?? '').trim();
+    final String sheet = (_excelSheetName ?? '').trim();
+    if (fileLabel.isEmpty) return 'file';
+    return sheet.isEmpty ? fileLabel : '$fileLabel · $sheet';
   }
 
   Widget? get _sourceCaption {
@@ -617,35 +632,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          _headerTitle,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                _step == _ImportStep.template
-                    ? (_importSource.isGoogle
-                        ? 'Paste a public URL, fetch problem statements, then review before import.'
-                        : _importSource == ProblemImportSourceKind.excel
-                            ? 'Upload an Excel workbook (.xlsx or .xls), pick a sheet if needed, then review before import.'
-                            : 'Download the template, fill it in, then upload for validation.')
-                    : _step == _ImportStep.review
-                        ? (_unresolvedDepartments.isNotEmpty
-                            ? 'Map unresolved departments before import. No records will be imported until every department is resolved.'
-                            : 'Review validated rows before importing.')
-                        : 'Import completed.',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
-              ),
-            ),
-            const HelpActionButton(pageId: 'csv-import'),
-          ],
-        ),
+        _buildDialogHeader(),
         const SizedBox(height: 14),
         if (_busy) const LinearProgressIndicator(minHeight: 2),
         if (_busy) const SizedBox(height: 10),
@@ -672,6 +659,65 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDialogHeader() {
+    const TextStyle titleStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F172A));
+    final bool reviewFileTitle = _step == _ImportStep.review && !_isProblemsImport;
+    if (reviewFileTitle) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: titleStyle,
+                children: <InlineSpan>[
+                  TextSpan(text: _reviewTitlePrefix),
+                  TextSpan(
+                    text: _reviewFileLabel,
+                    style: titleStyle.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const HelpActionButton(pageId: 'csv-import'),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(_headerTitle, style: titleStyle.copyWith(fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                _step == _ImportStep.template
+                    ? (_importSource.isGoogle
+                        ? 'Paste a public URL, fetch problem statements, then review before import.'
+                        : _importSource == ProblemImportSourceKind.excel
+                            ? 'Upload an Excel workbook (.xlsx or .xls), pick a sheet if needed, then review before import.'
+                            : 'Download the template, fill it in, then upload for validation.')
+                    : _step == _ImportStep.review
+                        ? 'Review validated rows before importing.'
+                        : 'Import completed.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+              ),
+            ),
+            const HelpActionButton(pageId: 'csv-import'),
+          ],
+        ),
+      ],
     );
   }
 
@@ -851,7 +897,7 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (_sourceCaption != null) _sourceCaption!,
+        if (_isProblemsImport && _sourceCaption != null) _sourceCaption!,
         ImportSummaryMetrics(summary: summary, compactSingleRow: _isProblemsImport),
         if (_actor != null && _unresolvedDepartments.isNotEmpty) ...<Widget>[
           const SizedBox(height: 10),
@@ -871,6 +917,8 @@ class _ImportWorkflowDialogState extends State<ImportWorkflowDialog> {
                 : (_supportsDepartmentResolution && _rows.any((ImportReviewRow r) => !r.importable)
                     ? ImportConstants.partialImportBlockedMessage
                     : 'Fix or exclude invalid records to enable import.'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFB91C1C)),
           ),
         ],

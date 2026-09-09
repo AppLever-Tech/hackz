@@ -32,7 +32,7 @@ class ImportDepartmentResolutionResult {
 enum _DepartmentMapMode { map, assignAdmin }
 
 /// Compact unresolved-department list shown before CSV user/team import.
-class ImportDepartmentResolutionSection extends StatelessWidget {
+class ImportDepartmentResolutionSection extends StatefulWidget {
   const ImportDepartmentResolutionSection({
     super.key,
     required this.unresolved,
@@ -48,65 +48,70 @@ class ImportDepartmentResolutionSection extends StatelessWidget {
   final bool busy;
   final Future<void> Function(String rawValue, ImportDepartmentResolutionResult result) onResolved;
 
-  UserRole get _role => UserRole.fromCode(actor.role);
+  @override
+  State<ImportDepartmentResolutionSection> createState() => _ImportDepartmentResolutionSectionState();
+}
+
+class _ImportDepartmentResolutionSectionState extends State<ImportDepartmentResolutionSection> {
+  UserRole get _role => UserRole.fromCode(widget.actor.role);
 
   @override
   Widget build(BuildContext context) {
-    if (unresolved.isEmpty) return const SizedBox.shrink();
+    if (widget.unresolved.isEmpty) return const SizedBox.shrink();
     final bool canMap = ImportDepartmentResolutionPolicy.canMap(_role);
     final bool canCreate = ImportDepartmentResolutionPolicy.canCreateDepartment(_role);
     final bool canAssign = ImportDepartmentResolutionPolicy.canAssignAdministrator(_role);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFED7AA)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const Text(
-            'Unresolved departments',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9A3412)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
+          childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          visualDensity: VisualDensity.compact,
+          collapsedIconColor: const Color(0xFF9A3412),
+          iconColor: const Color(0xFF9A3412),
+          title: Text(
+            'Unresolved Departments (${widget.unresolved.length})',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF9A3412)),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Import is blocked until every department value is mapped. No records will be imported.',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
-          ),
-          const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: ListView.separated(
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              itemCount: unresolved.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (BuildContext context, int index) {
-                final ImportUnresolvedDepartment item = unresolved[index];
-                return _UnresolvedDepartmentTile(
-                  item: item,
-                  canMap: canMap,
-                  canAssign: canAssign,
-                  canCreate: canCreate,
-                  enabled: !busy,
-                  onMap: () => _openMap(context, item, _DepartmentMapMode.map),
-                  onAssign: () => _openMap(context, item, _DepartmentMapMode.assignAdmin),
-                  onCreate: () => _createDepartment(context, item),
-                );
-              },
+          children: <Widget>[
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 168),
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: widget.unresolved.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 4),
+                itemBuilder: (BuildContext context, int index) {
+                  final ImportUnresolvedDepartment item = widget.unresolved[index];
+                  return _UnresolvedDepartmentTile(
+                    item: item,
+                    canMap: canMap,
+                    canAssign: canAssign,
+                    canCreate: canCreate,
+                    enabled: !widget.busy,
+                    onMap: () => _openMap(context, item, _DepartmentMapMode.map),
+                    onAssign: () => _openMap(context, item, _DepartmentMapMode.assignAdmin),
+                    onCreate: () => _createDepartment(context, item),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _openMap(BuildContext context, ImportUnresolvedDepartment item, _DepartmentMapMode mode) async {
-    if (departments.isEmpty) {
+    if (widget.departments.isEmpty) {
       FeedbackService.showWarning(
         context,
         title: 'No departments',
@@ -121,26 +126,26 @@ class ImportDepartmentResolutionSection extends StatelessWidget {
       width: DialogWidthPreset.compact,
       child: _MapExistingDepartmentDialog(
         csvValue: item.rawValue,
-        departments: departments,
-        orgId: actor.orgId,
+        departments: widget.departments,
+        orgId: widget.actor.orgId,
         mode: mode,
         canSaveAlias: ImportDepartmentResolutionPolicy.canSaveAlias(_role),
         canAssignAdmin: ImportDepartmentResolutionPolicy.canAssignAdministrator(_role),
       ),
     );
     if (result == null) return;
-    await onResolved(item.rawValue, result);
+    await widget.onResolved(item.rawValue, result);
   }
 
   Future<void> _createDepartment(BuildContext context, ImportUnresolvedDepartment item) async {
     final ImportDepartmentInfo? created = await showImportCreateDepartmentDialog(
       context: context,
-      actor: actor,
+      actor: widget.actor,
       csvValue: item.rawValue,
-      lookup: ImportDepartmentLookup(departments: departments),
+      lookup: ImportDepartmentLookup(departments: widget.departments),
     );
     if (created == null) return;
-    await onResolved(
+    await widget.onResolved(
       item.rawValue,
       ImportDepartmentResolutionResult(
         mapping: created.toMapping(),
@@ -174,47 +179,83 @@ class _UnresolvedDepartmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ButtonStyle compact = OutlinedButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      minimumSize: Size.zero,
+    );
+    final ButtonStyle compactFilled = FilledButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      minimumSize: Size.zero,
+    );
+    final List<Widget> actions = <Widget>[
+      if (canMap)
+        OutlinedButton(
+          onPressed: enabled ? onMap : null,
+          style: compact,
+          child: const Text('Map to Existing'),
+        ),
+      if (canAssign)
+        OutlinedButton(
+          onPressed: enabled ? onAssign : null,
+          style: compact,
+          child: const Text('Assign Administrator'),
+        ),
+      if (canCreate)
+        FilledButton(
+          onPressed: enabled ? onCreate : null,
+          style: compactFilled,
+          child: const Text('Create Department'),
+        ),
+    ];
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFFED7AA)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            item.rawValue,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  item.rawValue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), height: 1.2),
+                ),
+              ),
+              if (actions.isNotEmpty) ...<Widget>[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: actions,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           Text(
             'No existing match · ${item.rowCount} row${item.rowCount == 1 ? '' : 's'}',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: <Widget>[
-              if (canMap)
-                OutlinedButton(
-                  onPressed: enabled ? onMap : null,
-                  child: const Text('Map to Existing'),
-                ),
-              if (canAssign)
-                OutlinedButton(
-                  onPressed: enabled ? onAssign : null,
-                  child: const Text('Assign Administrator'),
-                ),
-              if (canCreate)
-                FilledButton(
-                  onPressed: enabled ? onCreate : null,
-                  child: const Text('Create Department'),
-                ),
-            ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF9A3412), height: 1.2),
           ),
         ],
       ),

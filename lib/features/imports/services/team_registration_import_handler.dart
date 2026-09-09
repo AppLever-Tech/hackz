@@ -637,7 +637,9 @@ class _ParsedRow {
           : warning
               ? 'Warning'
               : 'Valid',
-      messages: error ? _errors : _warnings,
+      messages: <String>[..._errors, ..._warnings],
+      errorMessages: List<String>.of(_errors),
+      warningMessages: List<String>.of(_warnings),
       importable: importable && !error,
       metadata: <String, String>{
         if (phoneE164 != null) 'phoneE164': phoneE164!,

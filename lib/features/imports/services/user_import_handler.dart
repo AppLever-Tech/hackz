@@ -118,6 +118,8 @@ Rahul,Das,9876543212,,,
       final String departmentRaw = CsvParserService.cell(row, ImportConstants.departmentColumnKey);
 
       final List<String> issues = <String>[];
+      final List<String> errorMessages = <String>[];
+      final List<String> warningMessages = <String>[];
       ImportRowSeverity severity = ImportRowSeverity.valid;
       var importable = true;
       String statusLabel = 'Valid';
@@ -128,6 +130,7 @@ Rahul,Das,9876543212,,,
 
       void markError(String message, String label) {
         issues.add(message);
+        errorMessages.add(message);
         severity = ImportRowSeverity.error;
         importable = false;
         statusLabel = label;
@@ -135,6 +138,7 @@ Rahul,Das,9876543212,,,
 
       void markWarning(String message, String label) {
         issues.add(message);
+        warningMessages.add(message);
         if (severity != ImportRowSeverity.error) {
           severity = ImportRowSeverity.warning;
           importable = false;
@@ -233,6 +237,8 @@ Rahul,Das,9876543212,,,
           severity: severity,
           statusLabel: statusLabel,
           messages: issues,
+          errorMessages: List<String>.of(errorMessages),
+          warningMessages: List<String>.of(warningMessages),
           importable: importable,
           metadata: <String, String>{
             if (roleCode != null) 'roleCode': roleCode,

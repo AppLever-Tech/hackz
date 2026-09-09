@@ -18,7 +18,8 @@ abstract final class ImportReviewColumnLayout {
   static const double phone = 88;
   static const double role = 104;
   static const double teamLeader = 88;
-  static const double status = 132;
+  static const double lastName = 90;
+  static const double status = 220;
   static const double actions = 72;
   static const double gap = 8;
   static const double compactBreakpoint = 760;
@@ -46,12 +47,12 @@ class ImportReviewColumn {
       ImportConstants.firstNameColumnKey => const ImportReviewColumn(
           key: ImportConstants.firstNameColumnKey,
           label: 'First name',
-          flex: 2,
+          flex: 1,
         ),
       ImportConstants.lastNameColumnKey => const ImportReviewColumn(
           key: ImportConstants.lastNameColumnKey,
           label: 'Last name',
-          flex: 2,
+          width: ImportReviewColumnLayout.lastName,
         ),
       ImportConstants.phoneColumnKey => const ImportReviewColumn(
           key: ImportConstants.phoneColumnKey,
@@ -131,16 +132,17 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool compact = constraints.maxWidth < ImportReviewColumnLayout.compactBreakpoint;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            _header(compact: compact),
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-            Expanded(
-              child: ListView.builder(
-                itemCount: widget.rows.length,
-                itemBuilder: (BuildContext context, int index) =>
+        return CustomScrollView(
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _header(compact: compact)),
+            const SliverToBoxAdapter(
+              child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) =>
                     _expandableRow(widget.rows[index], compact: compact),
+                childCount: widget.rows.length,
               ),
             ),
           ],
@@ -264,6 +266,8 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   }
 
   bool _canExpand(ImportReviewRow row) {
+    if (row.displayErrorMessages.isNotEmpty || row.displayWarningMessages.isNotEmpty) return true;
+    if (row.messages.isNotEmpty) return true;
     if (row.metadata['expandable'] == '1') return true;
     return widget.expansionColumns.any((ImportReviewColumn c) => row.valueFor(c.key).isNotEmpty);
   }
@@ -469,12 +473,28 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
     final List<ImportReviewColumn> provided = widget.expansionColumns
         .where((ImportReviewColumn column) => row.valueFor(column.key).isNotEmpty)
         .toList(growable: false);
-    if (provided.isEmpty) return const SizedBox.shrink();
+    final String warningText = row.displayWarningMessages.join(', ');
+    final String errorText = row.displayErrorMessages.join(', ');
+    if (provided.isEmpty && warningText.isEmpty && errorText.isEmpty) return const SizedBox.shrink();
 
     return Padding(
       padding: EdgeInsets.fromLTRB(compact ? 8 : 56, 0, 8, 8),
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
+          final List<Widget> issueLines = <Widget>[
+            if (warningText.isNotEmpty)
+              _IssueLine(
+                icon: AppIcons.info,
+                color: const Color(0xFFEA580C),
+                text: warningText,
+              ),
+            if (errorText.isNotEmpty)
+              _IssueLine(
+                icon: AppIcons.workflowRejected,
+                color: const Color(0xFFB91C1C),
+                text: errorText,
+              ),
+          ];
           final bool twoCol = constraints.hasBoundedWidth && constraints.maxWidth >= 520 && provided.length > 1;
           final List<Widget> tiles = provided
               .map(
@@ -486,40 +506,50 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
               )
               .toList(growable: false);
 
-          if (!twoCol) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (var i = 0; i < tiles.length; i++) ...<Widget>[
-                  if (i > 0) const SizedBox(height: 6),
-                  tiles[i],
-                ],
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              for (var i = 0; i < issueLines.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(height: 4),
+                issueLines[i],
               ],
-            );
-          }
-
-          final List<Widget> rows = <Widget>[];
-          for (var i = 0; i < tiles.length; i += 2) {
-            if (i > 0) rows.add(const SizedBox(height: 6));
-            if (i + 1 < tiles.length) {
-              rows.add(
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(child: tiles[i]),
-                    const SizedBox(width: 8),
-                    Expanded(child: tiles[i + 1]),
+              if (issueLines.isNotEmpty && tiles.isNotEmpty) const SizedBox(height: 6),
+              if (!twoCol)
+                ...<Widget>[
+                  for (var i = 0; i < tiles.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(height: 6),
+                    tiles[i],
                   ],
-                ),
-              );
-            } else {
-              rows.add(tiles[i]);
-            }
-          }
-          return Column(children: rows);
+                ]
+              else
+                ..._twoColumnTiles(tiles),
+            ],
+          );
         },
       ),
     );
+  }
+
+  List<Widget> _twoColumnTiles(List<Widget> tiles) {
+    final List<Widget> rows = <Widget>[];
+    for (var i = 0; i < tiles.length; i += 2) {
+      if (i > 0) rows.add(const SizedBox(height: 6));
+      if (i + 1 < tiles.length) {
+        rows.add(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: tiles[i]),
+              const SizedBox(width: 8),
+              Expanded(child: tiles[i + 1]),
+            ],
+          ),
+        );
+      } else {
+        rows.add(tiles[i]);
+      }
+    }
+    return rows;
   }
 
   IconData _iconFor(String key) {
@@ -539,6 +569,40 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
       ImportConstants.roleColumnKey => AppIcons.teamMember,
       _ => AppIcons.info,
     };
+  }
+}
+
+class _IssueLine extends StatelessWidget {
+  const _IssueLine({
+    required this.icon,
+    required this.color,
+    required this.text,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.25,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -571,9 +635,7 @@ class _DetailTile extends StatelessWidget {
             style: EntityCardStyles.fieldLabel,
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: _TruncatedText(text: display),
-          ),
+          Expanded(child: _TruncatedText(text: display)),
         ],
       ),
     );
