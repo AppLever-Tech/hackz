@@ -29,6 +29,7 @@ import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/events/models/event_payment_entry.dart';
 import 'package:hackz/features/events/services/event_payments_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
+import 'package:hackz/features/ideathons/widgets/event_commercial_access_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
 import 'package:hackz/features/user/models/enums/user_role.dart';
@@ -250,6 +251,8 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
     return <Widget>[
       IdeathonStatusPill(status: vm.ideathon.status, compact: false),
+      if (vm.ideathon.commercialAccess.isPending)
+        const EventCommercialAccessPill(compact: false),
       if (progress.pendingEvaluationCount > 0 && !progress.completed)
         EventMetaChip(
           icon: AppIcons.clock,

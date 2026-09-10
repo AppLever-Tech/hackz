@@ -1,6 +1,9 @@
 export const HKZ_TENANTS = 'hkzTenants';
 export const HKZ_USERS = 'hkzUsers';
+export const HKZ_ORGANIZATIONS = 'hkzOrganizations';
+export const HKZ_EVENT_ENTITLEMENTS = 'hkzEventEntitlements';
 export const COLLEGE_ADMIN_ROLE = 'CADM';
+export const DEPARTMENT_ADMIN_ROLE = 'DADM';
 export const USER_STATUS_ACTIVE = 'active';
 export const ORG_TYPE_COLLEGE = 1;
 
@@ -45,6 +48,24 @@ export type ProvisionTenantAdminFailure = {
 export type ProvisionTenantAdminResult =
   | ProvisionTenantAdminSuccess
   | ProvisionTenantAdminFailure;
+
+export type EventEntitlementRequest = {
+  organisationId: string;
+  eventId: string;
+  eventName: string;
+  eventType: string;
+};
+
+export type EventEntitlementSuccess = {
+  ok: true;
+  skipped: boolean;
+  existing: boolean;
+  entitlementId: string;
+  organisationId: string;
+  eventId: string;
+};
+
+export type EventEntitlementResult = EventEntitlementSuccess | ProvisionTenantAdminFailure;
 
 export type ControlPlaneTenant = {
   tenantId: string;

@@ -13,6 +13,9 @@ abstract final class OrganisationAccess {
 
   static const String inactiveMessage = 'This organisation does not currently have Hackz access.';
 
+  static OrganizationModel? _cached;
+  static String? _cachedOrgId;
+
   /// Effective access right now. Expired subscriptions are treated as inactive.
   static bool isGranted(OrganizationModel org, {DateTime? now}) {
     if (org.status != OrganizationAccessStatus.active) return false;
@@ -35,10 +38,32 @@ abstract final class OrganisationAccess {
     return isGranted(org, now: now);
   }
 
-  static Future<OrganizationModel?> fetch(String orgId) {
-    return FirestoreUtils.fetchOrganization(
-      orgId,
+  static Future<OrganizationModel?> fetch(String orgId) async {
+    final String id = orgId.trim();
+    if (id.isEmpty) return null;
+    if (_cachedOrgId == id) return _cached;
+    final OrganizationModel? org = await FirestoreUtils.fetchOrganization(
+      id,
       database: HackzFirebase.controlPlane.firestore,
     );
+    _cached = org;
+    _cachedOrgId = id;
+    return org;
+  }
+
+  /// `true` / `false` when Control Plane access mode is known; `null` on miss.
+  static Future<bool?> isPerEvent(String orgId) async {
+    try {
+      final OrganizationModel? org = await fetch(orgId);
+      if (org == null) return null;
+      return org.accessMode == OrganizationAccessMode.perEvent;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static void clearCache() {
+    _cached = null;
+    _cachedOrgId = null;
   }
 }

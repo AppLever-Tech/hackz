@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
+import '../../../core/firebase/hackz_firebase.dart';
+import '../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/models/evaluation_criterion.dart';
@@ -8,11 +11,13 @@ import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_kind.dart';
 import '../../idea/models/idea_model.dart';
 import '../../organization/models/department_model.dart';
+import '../../organization/services/organisation_access.dart';
 import '../../payment/models/payment_model.dart';
 import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/services/role_visibility_helpers.dart';
+import '../models/event_commercial_access.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_participation.dart';
@@ -21,7 +26,6 @@ import '../models/ideathon_type.dart';
 import 'ideathon_participation_service.dart';
 import 'ideathon_settings_service.dart';
 import 'ideathon_team_eligibility.dart';
-import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class CreateIdeathonInput {
   const CreateIdeathonInput({
@@ -88,6 +92,9 @@ abstract final class IdeathonService {
     final DateTime now = DateTime.now();
     final DocumentReference<Map<String, dynamic>> ref =
         _db.collection(FirestoreUtils.hkzIdeathons).doc();
+    final bool? perEvent = await OrganisationAccess.isPerEvent(orgId);
+    final EventCommercialAccess commercialAccess =
+        perEvent == true ? EventCommercialAccess.disabled : EventCommercialAccess.enabled;
     final IdeathonModel ideathon = IdeathonModel(
       ideathonId: ref.id,
       orgId: orgId,
@@ -109,9 +116,15 @@ abstract final class IdeathonService {
       createdBy: actor.userId,
       createdAt: now,
       updatedAt: now,
+      commercialAccess: commercialAccess,
     );
 
     await ref.set(ideathon.toMap());
+    await _registerPerEventEntitlement(
+      perEvent: perEvent,
+      event: ideathon,
+      eventRef: ref,
+    );
     return ideathon.ideathonId;
   }
 
@@ -210,6 +223,7 @@ abstract final class IdeathonService {
       createdBy: existing.createdBy,
       createdAt: existing.createdAt,
       updatedAt: now,
+      commercialAccess: existing.commercialAccess,
     );
 
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(id).set(updated.toMap());
@@ -577,5 +591,30 @@ abstract final class IdeathonService {
       'status': status.value,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// Control Plane entitlement only. Never rolls back the tenant event.
+  static Future<void> _registerPerEventEntitlement({
+    required bool? perEvent,
+    required IdeathonModel event,
+    required DocumentReference<Map<String, dynamic>> eventRef,
+  }) async {
+    if (perEvent == false) return;
+    try {
+      final HackzEventEntitlementResult result = await HackzProvisioningClient.registerEventEntitlement(
+        organisationId: event.orgId,
+        eventId: event.ideathonId,
+        eventName: event.name,
+        eventType: event.eventKind.wireValue,
+      );
+      if (perEvent == null && result.registered && !event.commercialAccess.isPending) {
+        await eventRef.update(<String, dynamic>{
+          'commercialAccess': EventCommercialAccess.disabled.toMap(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      debugPrint('Event entitlement registration failed for ${event.ideathonId}: $error');
+    }
   }
 }

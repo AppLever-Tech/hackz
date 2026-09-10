@@ -13,7 +13,7 @@
     "provision-admin": "tsx src/cli.ts",
     "serve": "tsx --env-file=.env src/server.ts",
     "start": "node dist/server.js",
-    "test": "tsx --test src/phone.test.ts src/validate.test.ts"
+    "test": "tsx --test src/phone.test.ts src/validate.test.ts src/event-entitlement.test.ts"
   },
   "dependencies": {
     "firebase-admin": "^13.5.0"

@@ -3,6 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { ProvisionError } from './errors.js';
 import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
+import { registerEventEntitlement } from './register-event-entitlement.js';
 
 function listenPort(): number {
   for (const raw of [process.env.PORT, process.env.HACKZ_PROVISIONING_PORT]) {
@@ -91,22 +92,38 @@ const server = createServer((req, res) => {
       return;
     }
     const url = new URL(req.url ?? '/', 'http://localhost');
-    if (req.method !== 'POST' || url.pathname !== '/provision-tenant-admin') {
+    if (req.method !== 'POST') {
       send(res, 404, { ok: false, code: 'INVALID_INPUT', message: 'Unknown provisioning operation.' });
       return;
     }
     try {
-      await assertControlPlaneSysAdmin(bearerToken(req));
-      const body = await readJson(req);
-      const result = await provisionTenantAdmin({
-        tenantProjectId: String(body.tenantProjectId ?? ''),
-        organisationId: String(body.organisationId ?? ''),
-        firstName: String(body.firstName ?? ''),
-        lastName: String(body.lastName ?? ''),
-        email: String(body.email ?? ''),
-        phone: String(body.phone ?? ''),
-      });
-      send(res, result.ok ? 200 : 409, result);
+      if (url.pathname === '/provision-tenant-admin') {
+        await assertControlPlaneSysAdmin(bearerToken(req));
+        const body = await readJson(req);
+        const result = await provisionTenantAdmin({
+          tenantProjectId: String(body.tenantProjectId ?? ''),
+          organisationId: String(body.organisationId ?? ''),
+          firstName: String(body.firstName ?? ''),
+          lastName: String(body.lastName ?? ''),
+          email: String(body.email ?? ''),
+          phone: String(body.phone ?? ''),
+        });
+        send(res, result.ok ? 200 : 409, result);
+        return;
+      }
+      if (url.pathname === '/register-event-entitlement') {
+        const body = await readJson(req);
+        const result = await registerEventEntitlement({
+          idToken: bearerToken(req),
+          organisationId: String(body.organisationId ?? ''),
+          eventId: String(body.eventId ?? ''),
+          eventName: String(body.eventName ?? ''),
+          eventType: String(body.eventType ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      send(res, 404, { ok: false, code: 'INVALID_INPUT', message: 'Unknown provisioning operation.' });
     } catch (error) {
       if (error instanceof ProvisionError) {
         send(res, error.code === 'UNAUTHORIZED' ? 401 : 400, error.toResult());

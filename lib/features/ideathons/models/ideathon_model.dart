@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../evaluations/models/evaluation_criterion.dart';
 import '../../events/models/event_kind.dart';
+import 'event_commercial_access.dart';
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
 import 'ideathon_type.dart';
@@ -30,6 +31,7 @@ class IdeathonModel {
     this.winnerIdeaId = '',
     this.runnerUpIdeaId = '',
     this.resultsReviewedAt,
+    this.commercialAccess = EventCommercialAccess.enabled,
   });
 
   final String ideathonId;
@@ -61,6 +63,9 @@ class IdeathonModel {
   final String runnerUpIdeaId;
   /// Set when Department Admin reviews results (unlocks Select Winners).
   final DateTime? resultsReviewedAt;
+
+  /// Commercial entitlement flag only. Existing lifecycle [status] is unchanged.
+  final EventCommercialAccess commercialAccess;
 
   int get ideaCount => ideas.length;
   int get judgeCount => judgeIds.length;
@@ -114,6 +119,7 @@ class IdeathonModel {
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'commercialAccess': commercialAccess.toMap(),
     };
   }
 
@@ -163,6 +169,7 @@ class IdeathonModel {
       createdBy: (map['createdBy'] as String? ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      commercialAccess: EventCommercialAccess.fromMap(map['commercialAccess']),
     );
   }
 

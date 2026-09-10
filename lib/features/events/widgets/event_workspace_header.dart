@@ -18,6 +18,7 @@ class EventWorkspaceHeader extends StatelessWidget {
     required this.entryCount,
     required this.typePill,
     required this.statusPill,
+    this.accessPill,
   });
 
   final EventKind kind;
@@ -29,6 +30,7 @@ class EventWorkspaceHeader extends StatelessWidget {
   final int entryCount;
   final Widget typePill;
   final Widget statusPill;
+  final Widget? accessPill;
 
   static const double _labelWidth = 110;
   static const TextStyle _valueStyle = TextStyle(
@@ -79,13 +81,18 @@ class EventWorkspaceHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                typePill,
-                const SizedBox(width: 6),
-                statusPill,
-              ],
+            Flexible(
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
+                  typePill,
+                  statusPill,
+                  if (accessPill != null) accessPill!,
+                ],
+              ),
             ),
           ],
         ),

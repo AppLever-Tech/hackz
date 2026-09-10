@@ -28,6 +28,24 @@ class HackzProvisioningResult {
   final String organisationId;
 }
 
+class HackzEventEntitlementResult {
+  const HackzEventEntitlementResult({
+    required this.skipped,
+    required this.existing,
+    required this.entitlementId,
+    required this.organisationId,
+    required this.eventId,
+  });
+
+  final bool skipped;
+  final bool existing;
+  final String entitlementId;
+  final String organisationId;
+  final String eventId;
+
+  bool get registered => !skipped;
+}
+
 /// Invokes the privileged provisioning service. Not used for later College Admin edits.
 abstract final class HackzProvisioningClient {
   HackzProvisioningClient._();
@@ -40,52 +58,18 @@ abstract final class HackzProvisioningClient {
     required String email,
     required String phone,
   }) async {
-    final HackzProvisioningIdentity identity = await HackzProvisioningIdentity.load();
-    final String base = identity.invokeUrl.replaceAll(RegExp(r'/$'), '');
-    if (base.isEmpty) {
-      throw const HackzProvisioningException(
-        'CONTROL_PLANE_UNAVAILABLE',
-        'Set hkzProvisioningConfig/hackz.invokeUrl to the Cloud Run provisioner (or http://localhost:8787 for local development).',
-      );
-    }
-
-    final String? token = await HackzFirebase.sessionAuth.currentUser?.getIdToken();
-    if (token == null || token.isEmpty) {
-      throw const HackzProvisioningException(
-        'UNAUTHORIZED',
-        'Sign in as SysAdmin to provision a College Admin.',
-      );
-    }
-
-    late final http.Response response;
-    try {
-      response = await http.post(
-        Uri.parse('$base/provision-tenant-admin'),
-        headers: <String, String>{
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(<String, String>{
-          'tenantProjectId': tenantProjectId,
-          'organisationId': organisationId,
-          'firstName': firstName,
-          'lastName': lastName,
-          'email': email,
-          'phone': phone,
-        }),
-      );
-    } catch (_) {
-      throw const HackzProvisioningException(
-        'CONTROL_PLANE_UNAVAILABLE',
-        'Unable to reach the provisioning service. Confirm hkzProvisioningConfig/hackz.invokeUrl.',
-      );
-    }
-
-    Map<String, dynamic> body = <String, dynamic>{};
-    try {
-      final Object? decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic>) body = decoded;
-    } catch (_) {}
+    final Map<String, dynamic> body = await _postJson(
+      path: '/provision-tenant-admin',
+      payload: <String, String>{
+        'tenantProjectId': tenantProjectId,
+        'organisationId': organisationId,
+        'firstName': firstName,
+        'lastName': lastName,
+        'email': email,
+        'phone': phone,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to provision a College Admin.',
+    );
 
     if (body['ok'] == true) {
       return HackzProvisioningResult(
@@ -103,6 +87,86 @@ abstract final class HackzProvisioningClient {
         fallback: (body['message'] as String? ?? 'Unable to provision the College Admin.').trim(),
       ),
     );
+  }
+
+  /// Registers Control Plane event entitlement metadata for a per-event organisation.
+  ///
+  /// Uses the signed-in tenant session. Does not write tenant event business data.
+  static Future<HackzEventEntitlementResult> registerEventEntitlement({
+    required String organisationId,
+    required String eventId,
+    required String eventName,
+    required String eventType,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/register-event-entitlement',
+      payload: <String, String>{
+        'organisationId': organisationId,
+        'eventId': eventId,
+        'eventName': eventName,
+        'eventType': eventType,
+      },
+      missingTokenMessage: 'Sign in as a Department Admin to register event access.',
+    );
+
+    if (body['ok'] == true) {
+      return HackzEventEntitlementResult(
+        skipped: body['skipped'] == true,
+        existing: body['existing'] == true,
+        entitlementId: (body['entitlementId'] as String? ?? '').trim(),
+        organisationId: (body['organisationId'] as String? ?? '').trim(),
+        eventId: (body['eventId'] as String? ?? '').trim(),
+      );
+    }
+
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      (body['message'] as String? ?? 'Unable to register event access.').trim(),
+    );
+  }
+
+  static Future<Map<String, dynamic>> _postJson({
+    required String path,
+    required Map<String, String> payload,
+    required String missingTokenMessage,
+  }) async {
+    final HackzProvisioningIdentity identity = await HackzProvisioningIdentity.load();
+    final String base = identity.invokeUrl.replaceAll(RegExp(r'/$'), '');
+    if (base.isEmpty) {
+      throw const HackzProvisioningException(
+        'CONTROL_PLANE_UNAVAILABLE',
+        'Set hkzProvisioningConfig/hackz.invokeUrl to the Cloud Run provisioner (or http://localhost:8787 for local development).',
+      );
+    }
+
+    final String? token = await HackzFirebase.sessionAuth.currentUser?.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw HackzProvisioningException('UNAUTHORIZED', missingTokenMessage);
+    }
+
+    late final http.Response response;
+    try {
+      response = await http.post(
+        Uri.parse('$base$path'),
+        headers: <String, String>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(payload),
+      );
+    } catch (_) {
+      throw const HackzProvisioningException(
+        'CONTROL_PLANE_UNAVAILABLE',
+        'Unable to reach the provisioning service. Confirm hkzProvisioningConfig/hackz.invokeUrl.',
+      );
+    }
+
+    Map<String, dynamic> body = <String, dynamic>{};
+    try {
+      final Object? decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) body = decoded;
+    } catch (_) {}
+    return body;
   }
 
   static String _actionableMessage({required String code, required String fallback}) {

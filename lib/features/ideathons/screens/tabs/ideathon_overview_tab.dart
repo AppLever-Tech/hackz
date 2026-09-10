@@ -9,6 +9,7 @@ import 'package:hackz/features/events/widgets/event_people_section.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_lifecycle_tab.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
+import 'package:hackz/features/ideathons/widgets/event_commercial_access_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
 import 'package:hackz/utils/common_helpers.dart';
@@ -39,6 +40,7 @@ class IdeathonOverviewTab extends StatelessWidget {
               ),
               IdeathonTypePill(type: event.ideathonType, compact: true),
               IdeathonStatusPill(status: event.status, compact: true),
+              if (event.commercialAccess.isPending) const EventCommercialAccessPill(),
             ],
           ),
           if (event.description.trim().isNotEmpty) ...<Widget>[

@@ -18,6 +18,7 @@ import '../models/ideathon_status.dart';
 import '../../events/models/event_kind.dart';
 import '../services/ideathon_query_service.dart';
 import '../services/ideathon_status_helpers.dart';
+import '../widgets/event_commercial_access_pill.dart';
 import '../widgets/ideathon_status_pill.dart';
 import '../widgets/ideathon_type_pill.dart';
 import 'create_ideathon_workspace.dart';
@@ -294,9 +295,20 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                             ],
                                           ),
                                         ),
-                                        IdeathonTypePill(type: row.ideathonType),
-                                        const SizedBox(width: 6),
-                                        IdeathonStatusPill(status: row.status),
+                                        Flexible(
+                                          child: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 4,
+                                            alignment: WrapAlignment.end,
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            children: <Widget>[
+                                              IdeathonTypePill(type: row.ideathonType),
+                                              IdeathonStatusPill(status: row.status),
+                                              if (row.commercialAccess.isPending)
+                                                const EventCommercialAccessPill(),
+                                            ],
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),

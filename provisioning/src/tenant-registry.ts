@@ -81,6 +81,47 @@ export async function resolveTenantFromRegistry(input: {
   return tenant;
 }
 
+export async function resolveActiveTenantByOrganisationId(
+  organisationId: string,
+): Promise<ControlPlaneTenant> {
+  const id = organisationId.trim();
+  if (id.length === 0) {
+    throw new ProvisionError('INVALID_INPUT', 'organisationId is required.');
+  }
+
+  const db = controlPlaneFirestore();
+  let snap;
+  try {
+    snap = await db.collection(HKZ_TENANTS).where('organisationId', '==', id).get();
+  } catch (error) {
+    throw new ProvisionError(
+      'CONTROL_PLANE_UNAVAILABLE',
+      isPermissionDenied(error)
+        ? 'The provisioning identity cannot read the Control Plane tenant registry.'
+        : 'Unable to read the Control Plane tenant registry.',
+    );
+  }
+
+  const matches = snap.docs
+    .map((doc) => asTenant(doc.id, doc.data()))
+    .filter((tenant) => tenant.status === 'active')
+    .filter((tenant) => tenant.organisationId === id);
+
+  if (matches.length === 0) {
+    throw new ProvisionError(
+      'TENANT_NOT_FOUND',
+      'No Control Plane tenant is registered for that organisation.',
+    );
+  }
+  if (matches.length > 1) {
+    throw new ProvisionError(
+      'TENANT_AMBIGUOUS',
+      'Multiple active tenants share that organisation id.',
+    );
+  }
+  return matches[0];
+}
+
 export function isProvisioningAuthorized(status: string): boolean {
   return status === 'verified' || status === 'authorized';
 }

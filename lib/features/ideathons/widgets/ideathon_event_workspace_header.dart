@@ -1,5 +1,6 @@
 import '../../events/widgets/event_workspace_header.dart';
 import '../models/ideathon_model.dart';
+import 'event_commercial_access_pill.dart';
 import 'ideathon_status_pill.dart';
 import 'ideathon_type_pill.dart';
 
@@ -18,5 +19,6 @@ EventWorkspaceHeader ideathonEventWorkspaceHeader({
     entryCount: event.ideaCount,
     typePill: IdeathonTypePill(type: event.ideathonType, compact: true),
     statusPill: IdeathonStatusPill(status: event.status, compact: true),
+    accessPill: EventCommercialAccessPill.maybe(event.commercialAccess, compact: true),
   );
 }
