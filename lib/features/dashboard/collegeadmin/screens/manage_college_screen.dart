@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
+import '../../../../core/responsive/responsive_helper.dart';
+import '../../../../core/responsive/responsive_filter_bar.dart';
 import '../../../../core/theme/app_icons.dart';
+import '../../../../features/imports/imports.dart';
 import '../../../../features/domain/services/domain_service.dart';
 import '../../../../features/organization/models/department_model.dart';
 import '../../../../features/organization/models/organization_model.dart';
@@ -15,12 +19,10 @@ import '../../../../features/user/screens/create_user_dialog.dart';
 import '../../chrome/dashboard_chrome_controller.dart';
 import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_components.dart';
-import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/inputs/hackz_select_field.dart';
-import '../../../../core/responsive/responsive_filter_bar.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/workspace/user_workspace_avatar.dart';
 
@@ -390,6 +392,28 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     if (mounted && shouldRefresh == true) _reloadDepartments();
   }
 
+  Future<void> _openImportUsers() async {
+    final bool? imported = await showUserImportWorkflow(
+      context: context,
+      config: UserImportConfig(
+        actor: widget.user,
+        organizationType: widget.user.orgType ?? OrganizationType.college,
+        departmentName: widget.user.department,
+        departmentCode: DepartmentModel.resolveCode(widget.user.departmentCode),
+      ),
+    );
+    if (imported == true && mounted) _reloadDepartments();
+  }
+
+  Future<void> _openImportTeams() async {
+    final bool? imported = await showTeamRegistrationImportWorkflow(
+      context: context,
+      actor: widget.user,
+      orgName: _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim(),
+    );
+    if (imported == true && mounted) _reloadDepartments();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -405,6 +429,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
         final int deptCount = departments.length;
         final isMobile = ResponsiveHelper.isMobile(context);
 
+        final bool canImport = !isMobile && ImportPlatformSupport.isSupported(context);
         final Widget title = Text(
           'Departments ($deptCount)',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
@@ -413,6 +438,26 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
           onPressed: _showAddDepartmentDialog,
           icon: const Icon(AppIcons.add),
           label: const Text('Add Department'),
+        );
+        final Widget toolbarActions = Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            if (canImport) ...<Widget>[
+              MobileToolbarButtonStyles.outlinedIcon(
+                onPressed: _openImportUsers,
+                icon: AppIcons.users,
+                label: 'Import Users',
+              ),
+              MobileToolbarButtonStyles.outlinedIcon(
+                onPressed: _openImportTeams,
+                icon: AppIcons.teams,
+                label: 'Import Teams',
+              ),
+            ],
+            addDepartmentButton,
+          ],
         );
         final Widget departmentList = departments.isEmpty
             ? Text(
@@ -478,7 +523,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
                 alignment: WrapAlignment.spaceBetween,
                 children: <Widget>[
                   title,
-                  addDepartmentButton,
+                  toolbarActions,
                 ],
               ),
             const SizedBox(height: 12),

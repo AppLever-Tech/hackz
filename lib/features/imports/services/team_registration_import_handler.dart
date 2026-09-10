@@ -241,12 +241,16 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
   }) async {
     final TeamRegistrationImportHandlerContext teamContext = _requireContext(context);
     final UserRole actorRole = UserRole.fromCode(teamContext.actor.role);
-    if (actorRole != UserRole.coordinator && actorRole != UserRole.departmentAdmin) {
+    if (actorRole != UserRole.coordinator &&
+        actorRole != UserRole.departmentAdmin &&
+        actorRole != UserRole.collegeAdmin) {
       return const ImportExecutionResult(
         imported: 0,
         skipped: 0,
         failed: 0,
-        failures: <String>['Team Registration import is available to Coordinators and Department Admins only.'],
+        failures: <String>[
+          'Team Registration import is available to College Admins, Department Admins, and Coordinators only.',
+        ],
       );
     }
     final String? blocked = ImportDepartmentResolutionPolicy.atomicBlockReason(rows);
