@@ -227,6 +227,7 @@ class TeamService {
     required String teamName,
     required Set<String> studentIds,
     required String teamLeaderId,
+    String? departmentCode,
   }) {
     requireTeamLeaderInMembers(teamLeaderId: teamLeaderId, memberIds: studentIds);
     final DocumentReference<Map<String, dynamic>> doc = _db.collection(FirestoreUtils.hkzTeams).doc();
@@ -236,7 +237,7 @@ class TeamService {
       teamLeaderId: teamLeaderId.trim(),
       studentIds: studentIds.toList(growable: false),
       orgId: actor.orgId,
-      departmentCode: actor.departmentCode.trim().toUpperCase(),
+      departmentCode: (departmentCode ?? actor.departmentCode).trim().toUpperCase(),
       status: TeamStatus.active,
       createdAt: DateTime.now(),
       createdBy: actor.userId.trim(),

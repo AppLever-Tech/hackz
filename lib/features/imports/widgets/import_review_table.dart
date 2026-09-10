@@ -154,38 +154,38 @@ class _ImportReviewTableState extends State<ImportReviewTable> {
   Widget _buildDataTable() {
     return SingleChildScrollView(
       child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 720),
-          child: DataTable(
-            headingRowHeight: 40,
-            dataRowMinHeight: 44,
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 720),
+        child: DataTable(
+          headingRowHeight: 40,
+          dataRowMinHeight: 44,
             dataRowMaxHeight: 88,
-            columnSpacing: 16,
-            columns: <DataColumn>[
-              const DataColumn(label: Text('Row', style: TextStyle(fontWeight: FontWeight.w800))),
+          columnSpacing: 16,
+          columns: <DataColumn>[
+            const DataColumn(label: Text('Row', style: TextStyle(fontWeight: FontWeight.w800))),
               ...widget.columns.map(
-                (ImportReviewColumn c) => DataColumn(
-                  label: Text(c.label, style: const TextStyle(fontWeight: FontWeight.w800)),
-                ),
+              (ImportReviewColumn c) => DataColumn(
+                label: Text(c.label, style: const TextStyle(fontWeight: FontWeight.w800)),
               ),
-              const DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w800))),
-            ],
+            ),
+            const DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.w800))),
+          ],
             rows: widget.rows
-                .map(
-                  (ImportReviewRow row) => DataRow(
-                    cells: <DataCell>[
-                      DataCell(Text('${row.rowNumber}')),
+              .map(
+                (ImportReviewRow row) => DataRow(
+                  cells: <DataCell>[
+                    DataCell(Text('${row.rowNumber}')),
                       ...widget.columns.map(
                         (ImportReviewColumn c) => DataCell(_cellFor(c, row)),
                       ),
-                      DataCell(_StatusCell(row: row)),
-                    ],
-                  ),
-                )
-                .toList(growable: false),
-          ),
+                    DataCell(_StatusCell(row: row)),
+                  ],
+                ),
+              )
+              .toList(growable: false),
         ),
+      ),
       ),
     );
   }

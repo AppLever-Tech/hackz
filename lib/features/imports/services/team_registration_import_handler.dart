@@ -327,11 +327,20 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
           memberIds.add(userId);
           if (row.metadata['isTeamLeader'] == '1') leaderId = userId;
         }
+        String teamDepartmentCode = '';
+        for (final ImportReviewRow row in members) {
+          final String code = (row.metadata['departmentCode'] ?? '').trim().toUpperCase();
+          if (code.isNotEmpty) {
+            teamDepartmentCode = code;
+            break;
+          }
+        }
         final PreparedTeamCreate prepared = TeamService.prepareCreateTeam(
           actor: teamContext.actor,
           teamName: members.first.valueFor(ImportConstants.teamNameColumnKey),
           studentIds: memberIds,
           teamLeaderId: leaderId,
+          departmentCode: teamDepartmentCode.isEmpty ? null : teamDepartmentCode,
         );
         writes.add(
           ImportAtomicWrite(ref: prepared.teamRef, data: prepared.team.toMap(), merge: true),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
@@ -248,22 +249,31 @@ class _ImportCreateDepartmentDialogState extends State<_ImportCreateDepartmentDi
         else if (_loadError != null)
           Text(_loadError!, style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13))
         else ...<Widget>[
-          TextField(
+          _labeledValueField(
+            label: 'Department name',
             controller: _nameController,
-            enabled: !_saving,
-            style: HackzInputDecoration.fieldTextStyle,
-            decoration: HackzInputDecoration.decorate(hintText: 'Department name'),
+            hint: 'Department name',
           ),
-          const SizedBox(height: 10),
-          TextField(
+          _labeledValueField(
+            label: 'Department code',
             controller: _codeController,
-            enabled: !_saving,
-            textCapitalization: TextCapitalization.characters,
-            style: HackzInputDecoration.fieldTextStyle,
-            decoration: HackzInputDecoration.decorate(hintText: 'Department code'),
+            hint: 'Department code',
+            capitalize: true,
           ),
-          const SizedBox(height: 12),
-          HackzInputDecoration.fieldLabel('Department administrator', required: true),
+          const SizedBox(height: 4),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: HackzInputDecoration.fieldLabel('Department administrator', required: true),
+              ),
+              FilledButton.icon(
+                onPressed: _saving ? null : _createDepartmentAdmin,
+                icon: const Icon(AppIcons.add, size: MobileToolbarButtonStyles.toolbarIconSize),
+                label: const Text('Create Department Admin'),
+                style: MobileToolbarButtonStyles.filled(compact: true),
+              ),
+            ],
+          ),
           const SizedBox(height: 6),
           if (_admins.isEmpty)
             Text(
@@ -281,15 +291,6 @@ class _ImportCreateDepartmentDialogState extends State<_ImportCreateDepartmentDi
                   '${userDisplayName(user)} · ${UserRoleLabels.labelForCode(user.role)}',
               onChanged: (UserModel user) => setState(() => _selectedAdmin = user),
             ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _saving ? null : _createDepartmentAdmin,
-              icon: const Icon(AppIcons.add, size: 16),
-              label: const Text('Create Department Admin'),
-            ),
-          ),
         ],
         const SizedBox(height: 8),
         Row(
@@ -307,6 +308,36 @@ class _ImportCreateDepartmentDialogState extends State<_ImportCreateDepartmentDi
           ],
         ),
       ],
+    );
+  }
+
+  Widget _labeledValueField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    bool capitalize = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            width: 128,
+            child: HackzInputDecoration.fieldLabel(label),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: !_saving,
+              textCapitalization: capitalize ? TextCapitalization.characters : TextCapitalization.none,
+              style: HackzInputDecoration.compactFieldTextStyle,
+              decoration: HackzInputDecoration.decorate(hintText: hint, compact: true),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

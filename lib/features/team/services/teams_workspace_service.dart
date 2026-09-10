@@ -89,6 +89,50 @@ class TeamsWorkspaceService {
   static String _cacheKey(UserModel actor, {required bool departmentScoped}) =>
       departmentScoped ? 'dept:${actor.userId}' : actor.userId;
 
+  /// Department Teams list. College Admin import used to stamp the actor department
+  /// (empty for CADM); those teams still belong to the members' department.
+  static Future<List<TeamModel>> _departmentTeams(
+    List<TeamModel> rawTeams, {
+    required String departmentCode,
+    required Set<String> memberIdsInDept,
+  }) async {
+    final String dept = departmentCode.trim().toUpperCase();
+    if (dept.isEmpty) return const <TeamModel>[];
+
+    final List<TeamModel> matched = <TeamModel>[];
+    final List<TeamModel> toRepair = <TeamModel>[];
+    for (final TeamModel team in rawTeams) {
+      final String teamDept = team.departmentCode.trim().toUpperCase();
+      if (teamDept == dept) {
+        matched.add(team);
+        continue;
+      }
+      if (teamDept.isEmpty &&
+          team.studentIds.any((String id) => memberIdsInDept.contains(id.trim()))) {
+        final TeamModel repaired = team.copyWith(departmentCode: dept);
+        matched.add(repaired);
+        toRepair.add(repaired);
+      }
+    }
+
+    if (toRepair.isNotEmpty) {
+      try {
+        final WriteBatch batch = _db.batch();
+        for (final TeamModel team in toRepair) {
+          batch.set(
+            _db.collection(FirestoreUtils.hkzTeams).doc(team.teamId),
+            <String, dynamic>{'departmentCode': dept},
+            SetOptions(merge: true),
+          );
+        }
+        await batch.commit();
+      } catch (_) {
+        // Listing still uses in-memory repaired teams.
+      }
+    }
+    return matched;
+  }
+
   static Future<TeamsWorkspaceData> load(UserModel actor, {bool forceRefresh = false}) =>
       _load(actor, forceRefresh: forceRefresh, departmentScoped: false);
 
@@ -119,13 +163,20 @@ class TeamsWorkspaceService {
     ]);
 
     final List<TeamModel> rawTeams = results[0] as List<TeamModel>;
+    final List<UserModel> departmentMembers = results[1] as List<UserModel>;
     final String dept = actor.departmentCode.trim().toUpperCase();
+    final Set<String> memberIdsInDept = departmentMembers
+        .map((UserModel u) => u.userId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toSet();
     final List<TeamModel> teams = departmentScoped
-        ? rawTeams
-            .where((TeamModel t) => t.departmentCode.trim().toUpperCase() == dept)
-            .toList(growable: false)
+        ? await _departmentTeams(
+            rawTeams,
+            departmentCode: dept,
+            memberIdsInDept: memberIdsInDept,
+          )
         : rawTeams;
-    var teamMembers = sortUsersByDisplayName(results[1] as List<UserModel>);
+    var teamMembers = sortUsersByDisplayName(departmentMembers);
     teamMembers = await _withTeamMembers(teams, teamMembers);
     final problems = results[2] as List<ProblemModel>;
     final teamIds = teams.map((team) => team.teamId).toSet();
