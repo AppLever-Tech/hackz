@@ -65,7 +65,7 @@ Must use the active organisation: `HackzFirebase.current` after `TenantFirebase.
 | Payments | `DepartmentPaymentsService`; `payment_workspace_loader`; payment dialog attachments | `current` |
 | Evaluation | Judge dashboard/evaluation; assignments; aggregation; ranking; results; evaluate dialog | `current` getter; optional `_dbOverride` unused in production |
 | Leaderboard / winners / reports | In-memory over tenant-loaded ideas/events | No extra Firebase client |
-| Org settings / domains / departments / requests | `OrgSettingsService`; `DomainService`; `FirestoreUtils` departments; `WorkflowRequestService` | `current`; org-settings cache cleared on rebind |
+| Org settings / domains / departments / requests | `OrgSettingsService` (`hkzOrgSettings`); `DomainService`; `FirestoreUtils` departments; `WorkflowRequestService` | `current`; org-settings cache cleared on rebind |
 | Attachments / photos | `AttachmentService`; loaders; `UserPhotoService`; `OrgPhotoService` | `current.storage`; org files require `assertOrganisationStorage` |
 | Dashboards (CADM / DADM / COO / JUD / TMEM) | Role services + `FirestoreUtils` | `current`; caches in `TenantBusinessCaches` |
 | SysAdmin inside an organisation | Manage College / problems / ideas / org settings | `enterAsPlatformAdmin` then `current` |

@@ -43,7 +43,7 @@ SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firesto
 | Collection | Notes |
 | --- | --- |
 | `hkzTenants` | Phase 2 registry: `tenantId`, `organisationCode` (`HKZ-XXXXXX`), `organisationName`, `firebaseProjectId`, `status`, `createdAt`. Document id = organisation code. |
-| `hkzOrganizations` | Org records + `settings/org_settings` subcollection (**tenant business**, not registry fields) |
+| `hkzOrganizations` | Organisation registry/catalog metadata for Control Plane administration. Not operational settings. |
 | `hkzSysAdminWhitelist` | First-time SysAdmin bootstrap |
 | `hkzDomains` | Org/department domain catalog (`DomainService`) |
 
@@ -56,7 +56,7 @@ SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firesto
 
 ### Tenant Data (organisation-specific)
 
-`hkzUsers`, `hkzUserAuthMirror`, `hkzTeams`, `hkzIdeas`, `hkzProblems`, `hkzPayments`, `hkzScores`, `hkzDepartments`, `hkzInviteCodes`, `hkzCounters`, `hkzAttachments`, `hkzRequests`, `hkzEvaluationGroups`, `hkzEvaluationAssignments`, `hkzIdeathons`, `hkzIdeathonParticipations`.
+`hkzUsers`, `hkzUserAuthMirror`, `hkzTeams`, `hkzIdeas`, `hkzProblems`, `hkzPayments`, `hkzScores`, `hkzDepartments`, `hkzInviteCodes`, `hkzCounters`, `hkzAttachments`, `hkzRequests`, `hkzEvaluationGroups`, `hkzEvaluationAssignments`, `hkzIdeathons`, `hkzIdeathonParticipations`, `hkzOrgSettings`.
 
 Storage paths for attachments, user photos, org logos, and problem files are **Tenant Data**.
 

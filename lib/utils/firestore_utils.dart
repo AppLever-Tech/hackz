@@ -25,7 +25,8 @@ class FirestoreUtils {
 
   static const String hkzUsers = 'hkzUsers';
   static const String hkzOrganizations = 'hkzOrganizations';
-  /// Tenant organisation settings documents (`org_settings` and related).
+  /// Tenant organisation operational settings (`hkzOrgSettings/org_settings`).
+  /// Not used for Control Plane organisation registry metadata.
   static const String hkzOrgSettings = 'hkzOrgSettings';
   static const String hkzSysAdminWhitelist = 'hkzSysAdminWhitelist';
   static const String hkzInviteCodes = 'hkzInviteCodes';
@@ -378,8 +379,7 @@ class FirestoreUtils {
   }
 
   /// Returns the resolved organization id (newly generated for inserts or
-  /// the existing id for edits). Callers can chain post-create work such as
-  /// seeding per-org settings.
+  /// the existing id for edits). Does not write organisation operational settings.
   static Future<String> upsertOrganization(
     OrganizationModel org, {
     FirebaseFirestore? database,
@@ -401,7 +401,6 @@ class FirestoreUtils {
     if (normalizedOrgId.isEmpty) return;
     final FirebaseFirestore db = _store(database);
     await db.collection(hkzOrganizations).doc(normalizedOrgId).delete();
-    await db.collection(hkzOrgSettings).doc('org_settings').delete();
   }
 
   static Future<void> deleteUser(String userId, {FirebaseFirestore? database}) async {

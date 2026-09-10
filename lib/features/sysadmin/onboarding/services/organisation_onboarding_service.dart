@@ -272,6 +272,7 @@ abstract final class OrganisationOnboardingService {
     try {
       await TenantFirebase.withOrganisationFirestore(tenantId, (FirebaseFirestore db) async {
         await FirestoreUtils.upsertOrganization(org, database: db);
+        // Tenant operational settings — never written to Control Plane hkzOrganizations.
         await OrgSettingsService.seedFor(org.id, firestore: db);
       });
     } catch (_) {
