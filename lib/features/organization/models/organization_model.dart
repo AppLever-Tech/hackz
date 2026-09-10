@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'enums/organization_access_mode.dart';
+import 'enums/organization_access_status.dart';
 import 'enums/organization_type.dart';
 
 class OrganizationModel {
@@ -13,6 +15,10 @@ class OrganizationModel {
     required this.createdAt,
     this.photoUrl,
     this.thumbnailUrl,
+    this.status = OrganizationAccessStatus.active,
+    this.accessMode = OrganizationAccessMode.perIdea,
+    this.validFrom,
+    this.validUntil,
   });
 
   final String id;
@@ -25,6 +31,12 @@ class OrganizationModel {
   final String? photoUrl;
   final String? thumbnailUrl;
 
+  /// Commercial access status on Control Plane `hkzOrganizations`.
+  final OrganizationAccessStatus status;
+  final OrganizationAccessMode accessMode;
+  final DateTime? validFrom;
+  final DateTime? validUntil;
+
   String get avatarUrl {
     final String thumb = (thumbnailUrl ?? '').trim();
     if (thumb.isNotEmpty) return thumb;
@@ -32,6 +44,25 @@ class OrganizationModel {
   }
 
   Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'id': id,
+      'name': name,
+      'type': type.value,
+      'address': address,
+      'website': website,
+      'contact': contact,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'photoUrl': (photoUrl ?? '').trim(),
+      'thumbnailUrl': (thumbnailUrl ?? '').trim(),
+      'status': status.wireValue,
+      'accessMode': accessMode.wireValue,
+      'validFrom': validFrom == null ? null : Timestamp.fromDate(validFrom!),
+      'validUntil': validUntil == null ? null : Timestamp.fromDate(validUntil!),
+    };
+  }
+
+  /// Catalog fields mirrored to tenant Firebase. Commercial access stays on Control Plane.
+  Map<String, dynamic> toCatalogMap() {
     return <String, dynamic>{
       'id': id,
       'name': name,
@@ -56,12 +87,22 @@ class OrganizationModel {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       photoUrl: _optionalUrl(map['photoUrl']),
       thumbnailUrl: _optionalUrl(map['thumbnailUrl']),
+      status: OrganizationAccessStatus.fromWire(map['status']),
+      accessMode: OrganizationAccessMode.fromWire(map['accessMode']),
+      validFrom: _optionalDate(map['validFrom']),
+      validUntil: _optionalDate(map['validUntil']),
     );
   }
 
   static String? _optionalUrl(Object? value) {
     final String trimmed = (value as String? ?? '').trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  static DateTime? _optionalDate(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
   }
 
   OrganizationModel copyWith({
@@ -75,6 +116,12 @@ class OrganizationModel {
     String? photoUrl,
     String? thumbnailUrl,
     bool clearPhoto = false,
+    OrganizationAccessStatus? status,
+    OrganizationAccessMode? accessMode,
+    DateTime? validFrom,
+    DateTime? validUntil,
+    bool clearValidFrom = false,
+    bool clearValidUntil = false,
   }) {
     return OrganizationModel(
       id: id ?? this.id,
@@ -86,6 +133,10 @@ class OrganizationModel {
       createdAt: createdAt ?? this.createdAt,
       photoUrl: clearPhoto ? null : (photoUrl ?? this.photoUrl),
       thumbnailUrl: clearPhoto ? null : (thumbnailUrl ?? this.thumbnailUrl),
+      status: status ?? this.status,
+      accessMode: accessMode ?? this.accessMode,
+      validFrom: clearValidFrom ? null : (validFrom ?? this.validFrom),
+      validUntil: clearValidUntil ? null : (validUntil ?? this.validUntil),
     );
   }
 }

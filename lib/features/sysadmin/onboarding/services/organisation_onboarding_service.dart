@@ -239,6 +239,12 @@ abstract final class OrganisationOnboardingService {
 
   static String get defaultWorkspaceId => ApprovedTenantFirebase.controlPlaneProjectId;
 
+  /// Writes commercial access on Control Plane `hkzOrganizations` only.
+  static Future<void> updateCommercialAccess(OrganizationModel org) async {
+    if (org.id.trim().isEmpty) return;
+    await FirestoreUtils.upsertOrganization(org, database: _controlPlane);
+  }
+
   /// Writes the organisation catalog row on the Control Plane and, when a
   /// tenant workspace is connected, copies the same document to that project.
   static Future<void> syncOrganisationDocument(OrganizationModel org) async {
@@ -271,7 +277,10 @@ abstract final class OrganisationOnboardingService {
     if (org.id.trim().isEmpty) return;
     try {
       await TenantFirebase.withOrganisationFirestore(tenantId, (FirebaseFirestore db) async {
-        await FirestoreUtils.upsertOrganization(org, database: db);
+        await db.collection(FirestoreUtils.hkzOrganizations).doc(org.id).set(
+              org.toCatalogMap(),
+              SetOptions(merge: true),
+            );
         // Tenant operational settings — never written to Control Plane hkzOrganizations.
         await OrgSettingsService.seedFor(org.id, firestore: db);
       });

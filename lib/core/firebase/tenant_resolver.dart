@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 
+import '../../features/organization/services/organisation_access.dart';
 import 'approved_tenant_firebase.dart';
 import 'organisation_code.dart';
 import 'tenant_connection_exception.dart';
@@ -103,6 +104,12 @@ abstract final class TenantResolver {
     }
     if (record.status != TenantStatus.active) {
       throw const TenantConnectionException(TenantConnectionFailure.inactive);
+    }
+    if (!await OrganisationAccess.isGrantedForOrgId(record.organisationId)) {
+      throw const TenantConnectionException(
+        TenantConnectionFailure.inactive,
+        message: OrganisationAccess.inactiveMessage,
+      );
     }
 
     final FirebaseOptions? options = ApprovedTenantFirebase.optionsFor(record.firebaseProjectId);

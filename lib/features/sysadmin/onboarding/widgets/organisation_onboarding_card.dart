@@ -15,6 +15,7 @@ import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
+import '../../../organization/services/organisation_access.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
 import '../../../user/models/user_model.dart';
 import '../models/organisation_onboarding_item.dart';
@@ -23,6 +24,7 @@ import '../services/organisation_onboarding_service.dart';
 import 'copy_organisation_code_button.dart';
 import 'onboarding_readiness_checklist.dart';
 import 'onboarding_status_pill.dart';
+import 'organisation_access_control.dart';
 import 'provisioning_authorization_panel.dart';
 
 class OrganisationOnboardingCard extends StatelessWidget {
@@ -243,6 +245,11 @@ class OrganisationOnboardingCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 _CodeRow(code: code),
                 const SizedBox(height: 12),
+                OrganisationAccessControl(
+                  organization: item.organization,
+                  onChanged: onChanged,
+                ),
+                const SizedBox(height: 12),
                 ProvisioningAuthorizationPanel(
                   status: item.tenant?.provisioningAuthorization ??
                       ProvisioningAuthorizationStatus.required,
@@ -296,7 +303,9 @@ class OrganisationOnboardingCard extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: FilledButton.icon(
-                      onPressed: () => _openOrganisation(context),
+                      onPressed: OrganisationAccess.isGranted(item.organization)
+                          ? () => _openOrganisation(context)
+                          : null,
                       icon: const Icon(AppIcons.openInNew, size: 16),
                       label: const Text('Open organisation'),
                       style: FilledButton.styleFrom(
