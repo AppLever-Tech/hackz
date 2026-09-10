@@ -251,8 +251,8 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
     return <Widget>[
       IdeathonStatusPill(status: vm.ideathon.status, compact: false),
-      if (vm.ideathon.commercialAccess.isPending)
-        const EventCommercialAccessPill(compact: false),
+      if (!vm.ideathon.commercialAccess.isEnabled)
+        EventCommercialAccessPill(access: vm.ideathon.commercialAccess, compact: false),
       if (progress.pendingEvaluationCount > 0 && !progress.completed)
         EventMetaChip(
           icon: AppIcons.clock,

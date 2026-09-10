@@ -10,6 +10,7 @@ import '../../ideathons/models/ideathon_status.dart';
 import '../../ideathons/services/ideathon_evaluation_sync_service.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../ideathons/services/ideathon_status_helpers.dart';
+import '../../organization/services/commercial_access.dart';
 import 'package:hackz/features/attachment/models/attachment_model.dart';
 import '../../user/models/enums/user_role.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -63,8 +64,11 @@ abstract final class JudgeEvaluationService {
     final String trimmedIdeathonId = ideathonId.trim();
     if (trimmedIdeathonId.isNotEmpty) {
       final IdeathonModel? event = await IdeathonService.fetchById(trimmedIdeathonId);
-      if (event != null && IdeathonService.isEventCompleted(event)) {
-        throw StateError('This event is completed. Evaluations are locked.');
+      if (event != null) {
+        if (IdeathonService.isEventCompleted(event)) {
+          throw StateError('This event is completed. Evaluations are locked.');
+        }
+        await CommercialAccess.assertEventLicensed(event);
       }
     }
     final List<EvaluationAssignmentModel> assignments =

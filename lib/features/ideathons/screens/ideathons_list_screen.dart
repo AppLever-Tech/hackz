@@ -304,8 +304,8 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                             children: <Widget>[
                                               IdeathonTypePill(type: row.ideathonType),
                                               IdeathonStatusPill(status: row.status),
-                                              if (row.commercialAccess.isPending)
-                                                const EventCommercialAccessPill(),
+                                            if (!row.commercialAccess.isEnabled)
+                                              EventCommercialAccessPill(access: row.commercialAccess),
                                             ],
                                           ),
                                         ),

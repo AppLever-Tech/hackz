@@ -4,8 +4,11 @@ export const HKZ_ORGANIZATIONS = 'hkzOrganizations';
 export const HKZ_EVENT_ENTITLEMENTS = 'hkzEventEntitlements';
 /** Tenant event documents. Hackz does not use a separate hkzEvents collection. */
 export const HKZ_IDEATHONS = 'hkzIdeathons';
+export const HKZ_PAYMENTS = 'hkzPayments';
+export const HKZ_IDEATHON_PARTICIPATIONS = 'hkzIdeathonParticipations';
 export const COLLEGE_ADMIN_ROLE = 'CADM';
 export const DEPARTMENT_ADMIN_ROLE = 'DADM';
+export const COORDINATOR_ROLE = 'COO';
 export const USER_STATUS_ACTIVE = 'active';
 export const ORG_TYPE_COLLEGE = 1;
 

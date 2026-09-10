@@ -5,6 +5,9 @@ void main() {
   EventEntitlement entitlement({
     String status = 'pending',
     String paymentStatus = 'unpaid',
+    bool lumpSumVerified = false,
+    int ideaPaymentCount = 0,
+    int ideaPaymentsVerified = 0,
   }) {
     return EventEntitlement.fromMap(
       'org-1_evt1',
@@ -16,6 +19,9 @@ void main() {
         'status': status,
         'paymentMode': 'perEvent',
         'paymentStatus': paymentStatus,
+        'lumpSumVerified': lumpSumVerified,
+        'ideaPaymentCount': ideaPaymentCount,
+        'ideaPaymentsVerified': ideaPaymentsVerified,
       },
     );
   }
@@ -35,12 +41,22 @@ void main() {
     expect(entitlement(status: 'disabled').displayState, EventEntitlementDisplayState.disabled);
   });
 
-  test('activate and disable remain available except for the current licensing state', () {
-    expect(entitlement().canActivate, isTrue);
+  test('activate requires payment readiness', () {
+    expect(entitlement().canActivate, isFalse);
+    expect(entitlement(paymentStatus: 'paid').canActivate, isTrue);
+    expect(entitlement(lumpSumVerified: true).canActivate, isTrue);
+    expect(
+      entitlement(ideaPaymentCount: 2, ideaPaymentsVerified: 2).canActivate,
+      isTrue,
+    );
+    expect(
+      entitlement(ideaPaymentCount: 2, ideaPaymentsVerified: 1).canActivate,
+      isFalse,
+    );
+    expect(entitlement(status: 'enabled', paymentStatus: 'paid').canActivate, isFalse);
+    expect(entitlement(status: 'disabled', paymentStatus: 'paid').canActivate, isTrue);
+    expect(entitlement(status: 'disabled').canActivate, isFalse);
     expect(entitlement().canDisable, isTrue);
-    expect(entitlement(status: 'enabled').canActivate, isFalse);
-    expect(entitlement(status: 'enabled').canDisable, isTrue);
-    expect(entitlement(status: 'disabled').canActivate, isTrue);
     expect(entitlement(status: 'disabled').canDisable, isFalse);
   });
 

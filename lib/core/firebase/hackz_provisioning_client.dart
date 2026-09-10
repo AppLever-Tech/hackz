@@ -176,6 +176,26 @@ abstract final class HackzProvisioningClient {
     );
   }
 
+  /// Writes Control Plane payment readiness counts only. Not payment transactions.
+  static Future<void> syncEventPaymentReadiness({
+    required String organisationId,
+    required String eventId,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/sync-event-payment-readiness',
+      payload: <String, String>{
+        'organisationId': organisationId,
+        'eventId': eventId,
+      },
+      missingTokenMessage: 'Sign in to update event payment readiness.',
+    );
+    if (body['ok'] == true) return;
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      (body['message'] as String? ?? 'Unable to update event payment readiness.').trim(),
+    );
+  }
+
   static Future<Map<String, dynamic>> _postJson({
     required String path,
     required Map<String, String> payload,

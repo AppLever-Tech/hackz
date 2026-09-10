@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ProvisionError } from './errors.js';
 import {
+  computeEventPaymentReadiness,
   eventEntitlementDisplayState,
   eventEntitlementDocId,
   initialEventEntitlementFields,
@@ -137,4 +138,62 @@ test('set-event-entitlement-status is idempotent and maps only commercialAccess'
       }),
     (error: unknown) => error instanceof ProvisionError && error.code === 'INVALID_INPUT',
   );
+});
+
+test('event payment readiness is lump-sum OR all idea payments verified', () => {
+  const unpaid = computeEventPaymentReadiness({
+    eventId: 'evt1',
+    payments: [],
+    participations: [],
+  });
+  assert.equal(unpaid.ready, false);
+  assert.equal(unpaid.paymentStatus, 'unpaid');
+
+  const lump = computeEventPaymentReadiness({
+    eventId: 'evt1',
+    payments: [{ ideaId: 'evt1', status: 'verified' }],
+    participations: [],
+  });
+  assert.equal(lump.lumpSumVerified, true);
+  assert.equal(lump.ready, true);
+  assert.equal(lump.paymentStatus, 'paid');
+
+  const emptyIdeaIdLump = computeEventPaymentReadiness({
+    eventId: 'evt1',
+    payments: [{ ideaId: '', status: 'verified' }],
+    participations: [{ ideaId: 'idea-1', paymentStatus: 'pending' }],
+  });
+  assert.equal(emptyIdeaIdLump.lumpSumVerified, true);
+  assert.equal(emptyIdeaIdLump.ready, true);
+
+  const partial = computeEventPaymentReadiness({
+    eventId: 'evt1',
+    payments: [
+      { ideaId: 'idea-1', status: 'verified' },
+      { ideaId: 'idea-2', status: 'pending' },
+    ],
+    participations: [
+      { ideaId: 'idea-1', paymentStatus: 'verified' },
+      { ideaId: 'idea-2', paymentStatus: 'pending' },
+    ],
+  });
+  assert.equal(partial.ready, false);
+  assert.equal(partial.paymentStatus, 'pending');
+  assert.equal(partial.ideaPaymentCount, 2);
+  assert.equal(partial.ideaPaymentsVerified, 1);
+
+  const allIdeas = computeEventPaymentReadiness({
+    eventId: 'evt1',
+    payments: [
+      { ideaId: 'idea-1', status: 'verified' },
+      { ideaId: 'idea-2', status: 'verified' },
+    ],
+    participations: [
+      { ideaId: 'idea-1', paymentStatus: 'verified' },
+      { ideaId: 'idea-2', paymentStatus: 'verified' },
+    ],
+  });
+  assert.equal(allIdeas.ready, true);
+  assert.equal(allIdeas.paymentStatus, 'paid');
+  assert.equal(Object.prototype.hasOwnProperty.call(allIdeas, 'transactionId'), false);
 });

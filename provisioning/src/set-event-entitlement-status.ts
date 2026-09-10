@@ -7,6 +7,7 @@ import {
 } from './event-entitlement.js';
 import { isNotFound, isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
+import { loadEventPaymentReadiness, paymentReadinessFields } from './event-payment-readiness.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   HKZ_EVENT_ENTITLEMENTS,
@@ -60,10 +61,26 @@ export async function setEventEntitlementStatus(
   const unchanged = isSameLicensingStatus(currentStatus, normalized.status);
   const now = Timestamp.now();
 
+  let readinessFields: Record<string, string | number | boolean> = {};
+  if (normalized.status === 'enabled' && !unchanged) {
+    const readiness = await loadEventPaymentReadiness({
+      organisationId: normalized.organisationId,
+      eventId: normalized.eventId,
+    });
+    if (!readiness.ready) {
+      throw new ProvisionError(
+        'INVALID_INPUT',
+        'Event payment condition is not satisfied. Verify the lump-sum event payment or all required idea payments first.',
+      );
+    }
+    readinessFields = paymentReadinessFields(readiness);
+  }
+
   try {
     await cpRef.set(
       {
         status: normalized.status,
+        ...readinessFields,
         updatedAt: now,
       },
       { merge: true },

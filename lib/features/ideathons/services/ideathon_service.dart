@@ -11,6 +11,7 @@ import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_kind.dart';
 import '../../idea/models/idea_model.dart';
 import '../../organization/models/department_model.dart';
+import '../../organization/services/commercial_access.dart';
 import '../../organization/services/organisation_access.dart';
 import '../../payment/models/payment_model.dart';
 import '../../team/models/team_model.dart';
@@ -76,6 +77,8 @@ abstract final class IdeathonService {
     if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
     if (input.coordinatorIds.isEmpty) throw StateError('Assign at least one coordinator.');
 
+    await CommercialAccess.assertOrganisationOperational(orgId);
+
     await IdeathonSettingsService.ensureLoaded(orgId: orgId);
 
     final String templateId = input.evaluationTemplateId.trim().isNotEmpty
@@ -94,7 +97,7 @@ abstract final class IdeathonService {
         _db.collection(FirestoreUtils.hkzIdeathons).doc();
     final bool? perEvent = await OrganisationAccess.isPerEvent(orgId);
     final EventCommercialAccess commercialAccess =
-        perEvent == true ? EventCommercialAccess.disabled : EventCommercialAccess.enabled;
+        CommercialAccess.initialEventAccess(perEvent: perEvent == true);
     final IdeathonModel ideathon = IdeathonModel(
       ideathonId: ref.id,
       orgId: orgId,
@@ -276,6 +279,7 @@ abstract final class IdeathonService {
   static Future<void> assertAcceptingParticipation(String eventId) async {
     final IdeathonModel? event = await fetchById(eventId);
     if (event == null) throw StateError('Event not found.');
+    await CommercialAccess.assertEventParticipation(event);
     if (isEventCompleted(event)) {
       throw StateError('This event is completed. New ideas cannot join.');
     }
@@ -294,6 +298,9 @@ abstract final class IdeathonService {
   }) async {
     final String orgId = team.orgId.trim();
     if (orgId.isEmpty) return const <IdeathonModel>[];
+    if (!await OrganisationAccess.isGrantedForOrgId(orgId)) {
+      return const <IdeathonModel>[];
+    }
     final CollectionReference<Map<String, dynamic>> col = _db.collection(FirestoreUtils.hkzIdeathons);
     final List<QuerySnapshot<Map<String, dynamic>>> snaps = await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
       col.where('orgId', isEqualTo: orgId).get(),
@@ -309,6 +316,7 @@ abstract final class IdeathonService {
     final String problem = problemId.trim();
     final List<IdeathonModel> open = <IdeathonModel>[];
     for (final IdeathonModel event in byId.values) {
+      if (!CommercialAccess.allowsEventParticipation(event)) continue;
       if (!event.isAcceptingSubmissions) continue;
       if (!teamMayJoin(event, team)) continue;
       if (problem.isNotEmpty && !event.acceptsProblem(problem)) continue;
@@ -349,6 +357,7 @@ abstract final class IdeathonService {
         participationId: membership!.participationId,
       ),
     );
+    await syncEventPaymentReadiness(orgId: payment.orgId, eventId: eventId);
   }
 
   /// After coordinator verification, add the canonical idea to the event roster.
@@ -401,6 +410,7 @@ abstract final class IdeathonService {
       teamName = await _fetchTeamName(teamId);
     }
     await registerConfirmedIdea(eventId: eventId, idea: idea, teamName: teamName);
+    await syncEventPaymentReadiness(orgId: payment.orgId, eventId: eventId);
   }
 
   static Future<IdeaModel?> _fetchIdea(String ideaId) async {
@@ -445,6 +455,7 @@ abstract final class IdeathonService {
   }) async {
     final IdeathonModel event = await _requireEvent(ideathonId);
     _assertCanManageOutcome(actor, event);
+    await CommercialAccess.assertEventLicensed(event);
     if (isEventCompleted(event)) return;
     if (event.resultsReviewedAt != null) return;
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
@@ -461,6 +472,7 @@ abstract final class IdeathonService {
   }) async {
     final IdeathonModel event = await _requireEvent(ideathonId);
     _assertCanManageOutcome(actor, event);
+    await CommercialAccess.assertEventLicensed(event);
     if (isEventCompleted(event)) {
       throw StateError('This event is completed. Winner selection is locked.');
     }
@@ -494,6 +506,7 @@ abstract final class IdeathonService {
   }) async {
     final IdeathonModel event = await _requireEvent(ideathonId);
     _assertCanManageOutcome(actor, event);
+    await CommercialAccess.assertEventLicensed(event);
     if (isEventCompleted(event)) return;
     if (event.winnerIdeaId.trim().isEmpty && event.eventKind.usesWinners) {
       throw StateError('Select winners before completing the event.');
@@ -609,12 +622,30 @@ abstract final class IdeathonService {
       );
       if (perEvent == null && result.registered && !event.commercialAccess.isPending) {
         await eventRef.update(<String, dynamic>{
-          'commercialAccess': EventCommercialAccess.disabled.toMap(),
+          'commercialAccess': EventCommercialAccess.pending.toMap(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
       }
     } catch (error) {
       debugPrint('Event entitlement registration failed for ${event.ideathonId}: $error');
+    }
+  }
+
+  static Future<void> syncEventPaymentReadiness({
+    required String orgId,
+    required String eventId,
+  }) async {
+    final String organisationId = orgId.trim();
+    final String id = eventId.trim();
+    if (organisationId.isEmpty || id.isEmpty) return;
+    if (await OrganisationAccess.isPerEvent(organisationId) != true) return;
+    try {
+      await HackzProvisioningClient.syncEventPaymentReadiness(
+        organisationId: organisationId,
+        eventId: id,
+      );
+    } catch (error) {
+      debugPrint('Event payment readiness sync failed for $id: $error');
     }
   }
 }

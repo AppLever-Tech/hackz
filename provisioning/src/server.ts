@@ -5,6 +5,7 @@ import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
 import { registerEventEntitlement } from './register-event-entitlement.js';
 import { setEventEntitlementStatus } from './set-event-entitlement-status.js';
+import { syncEventPaymentReadiness } from './sync-event-payment-readiness.js';
 
 function listenPort(): number {
   for (const raw of [process.env.PORT, process.env.HACKZ_PROVISIONING_PORT]) {
@@ -139,6 +140,16 @@ const server = createServer((req, res) => {
           organisationId: String(body.organisationId ?? ''),
           eventId: String(body.eventId ?? ''),
           status: String(body.status ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/sync-event-payment-readiness') {
+        const body = await readJson(req);
+        const result = await syncEventPaymentReadiness({
+          idToken: bearerToken(req),
+          organisationId: String(body.organisationId ?? ''),
+          eventId: String(body.eventId ?? ''),
         });
         send(res, 200, result);
         return;

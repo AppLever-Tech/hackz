@@ -55,6 +55,9 @@ class EventEntitlement {
     required this.status,
     required this.paymentMode,
     required this.paymentStatus,
+    this.lumpSumVerified = false,
+    this.ideaPaymentCount = 0,
+    this.ideaPaymentsVerified = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -67,19 +70,34 @@ class EventEntitlement {
   final EventEntitlementStatus status;
   final String paymentMode;
   final EventEntitlementPaymentStatus paymentStatus;
+  final bool lumpSumVerified;
+  final int ideaPaymentCount;
+  final int ideaPaymentsVerified;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  bool get paymentReady =>
+      lumpSumVerified ||
+      paymentStatus == EventEntitlementPaymentStatus.paid ||
+      (ideaPaymentCount > 0 && ideaPaymentsVerified >= ideaPaymentCount);
+
+  String get paymentSummary {
+    if (lumpSumVerified) return 'Lump-sum event payment verified';
+    if (ideaPaymentCount <= 0) return 'Waiting for event payment';
+    return '$ideaPaymentsVerified of $ideaPaymentCount idea payments verified';
+  }
 
   EventEntitlementDisplayState get displayState {
     if (status == EventEntitlementStatus.enabled) return EventEntitlementDisplayState.enabled;
     if (status == EventEntitlementStatus.disabled) return EventEntitlementDisplayState.disabled;
-    if (paymentStatus == EventEntitlementPaymentStatus.paid) {
+    if (paymentStatus == EventEntitlementPaymentStatus.paid || paymentReady) {
       return EventEntitlementDisplayState.readyForActivation;
     }
     return EventEntitlementDisplayState.pending;
   }
 
-  bool get canActivate => status != EventEntitlementStatus.enabled;
+  bool get canActivate =>
+      status != EventEntitlementStatus.enabled && paymentReady;
   bool get canDisable => status != EventEntitlementStatus.disabled;
 
   factory EventEntitlement.fromMap(String id, Map<String, dynamic> map) {
@@ -92,6 +110,9 @@ class EventEntitlement {
       status: EventEntitlementStatus.fromWire(map['status']),
       paymentMode: (map['paymentMode'] as String? ?? 'perEvent').trim(),
       paymentStatus: EventEntitlementPaymentStatus.fromWire(map['paymentStatus']),
+      lumpSumVerified: map['lumpSumVerified'] == true,
+      ideaPaymentCount: (map['ideaPaymentCount'] as num?)?.toInt() ?? 0,
+      ideaPaymentsVerified: (map['ideaPaymentsVerified'] as num?)?.toInt() ?? 0,
       createdAt: _optionalDate(map['createdAt']),
       updatedAt: _optionalDate(map['updatedAt']),
     );

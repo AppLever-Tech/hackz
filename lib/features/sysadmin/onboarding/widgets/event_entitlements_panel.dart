@@ -61,8 +61,19 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
       _error = null;
     });
     try {
-      final List<EventEntitlement> items =
+      List<EventEntitlement> items =
           await OrganisationOnboardingService.listEventEntitlements(widget.organization.id);
+      await Future.wait(
+        items.map((EventEntitlement item) async {
+          try {
+            await HackzProvisioningClient.syncEventPaymentReadiness(
+              organisationId: item.orgId,
+              eventId: item.eventId,
+            );
+          } catch (_) {}
+        }),
+      );
+      items = await OrganisationOnboardingService.listEventEntitlements(widget.organization.id);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -91,7 +102,7 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
       context,
       title: 'Activate event access?',
       message:
-          '"${item.eventName}" will be commercially enabled. Event lifecycle and configuration are unchanged.',
+          '"${item.eventName}" will be commercially enabled after the event payment condition is satisfied. Event lifecycle is unchanged.',
       confirmLabel: 'Activate',
     );
     if (!ok) return;
@@ -295,6 +306,11 @@ class _EventEntitlementRow extends StatelessWidget {
               _MetaPill(label: kind.label),
               _DisplayStatePill(state: item.displayState),
             ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            item.paymentSummary,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 8),
           Wrap(

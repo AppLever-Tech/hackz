@@ -8,6 +8,7 @@ import '../../payment/models/payment_model.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
+import '../../organization/services/commercial_access.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_participation.dart';
 import 'ideathon_participation_service.dart';
@@ -75,11 +76,16 @@ abstract final class IdeathonPaymentService {
     String? remarks,
   }) async {
     final PaymentModel payment = _requireEventPayment(eventId: eventId, entry: entry);
+    final IdeathonModel? event = await IdeathonService.fetchById(eventId);
+    if (event != null) {
+      await CommercialAccess.assertEventParticipation(event);
+    }
     await FirestoreUtils.rejectIdeaPayment(
       paymentId: payment.paymentId,
       coordinatorId: actor.userId,
       remarks: remarks,
     );
+    await IdeathonService.syncEventPaymentReadiness(orgId: payment.orgId, eventId: eventId);
   }
 
   static PaymentModel _requireEventPayment({

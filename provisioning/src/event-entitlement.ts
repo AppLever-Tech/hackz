@@ -72,6 +72,55 @@ export function normalizeEventEntitlementStatus(value: string): EventEntitlement
   return 'pending';
 }
 
+export type EventPaymentReadiness = {
+  lumpSumVerified: boolean;
+  ideaPaymentCount: number;
+  ideaPaymentsVerified: number;
+  ready: boolean;
+  paymentStatus: 'unpaid' | 'pending' | 'paid';
+};
+
+export function computeEventPaymentReadiness(input: {
+  eventId: string;
+  payments: Array<{ ideaId: string; status: string }>;
+  participations: Array<{ ideaId: string; paymentStatus: string }>;
+}): EventPaymentReadiness {
+  const eventId = input.eventId.trim();
+  let lumpSumVerified = false;
+  const ideaPayments: Array<{ ideaId: string; status: string }> = [];
+  for (const payment of input.payments) {
+    const ideaId = payment.ideaId.trim();
+    const isLumpSum = ideaId.length === 0 || ideaId === eventId;
+    if (isLumpSum) {
+      if (payment.status.trim().toLowerCase() === 'verified') lumpSumVerified = true;
+      continue;
+    }
+    ideaPayments.push(payment);
+  }
+
+  const required =
+    input.participations.length > 0
+      ? input.participations.map((row) => ({
+          ideaId: row.ideaId,
+          status: row.paymentStatus,
+        }))
+      : ideaPayments;
+  const ideaPaymentCount = required.length;
+  const ideaPaymentsVerified = required.filter(
+    (row) => row.status.trim().toLowerCase() === 'verified',
+  ).length;
+  const ideasReady = ideaPaymentCount > 0 && ideaPaymentsVerified === ideaPaymentCount;
+  const ready = lumpSumVerified || ideasReady;
+  const hasActivity = input.payments.length > 0 || ideaPaymentCount > 0;
+  return {
+    lumpSumVerified,
+    ideaPaymentCount,
+    ideaPaymentsVerified,
+    ready,
+    paymentStatus: ready ? 'paid' : hasActivity ? 'pending' : 'unpaid',
+  };
+}
+
 export function eventEntitlementDisplayState(input: {
   status: string;
   paymentStatus: string;
