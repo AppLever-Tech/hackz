@@ -1,5 +1,5 @@
 /// Centralized keys for the per-org settings document.
-/// Stored under `hkzOrganizations/{orgId}/settings/org_settings`.
+/// Stored at `hkzOrgSettings/org_settings` on Tenant Firebase.
 abstract final class OrgSettingKeys {
   OrgSettingKeys._();
 

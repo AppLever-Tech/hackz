@@ -25,6 +25,8 @@ class FirestoreUtils {
 
   static const String hkzUsers = 'hkzUsers';
   static const String hkzOrganizations = 'hkzOrganizations';
+  /// Tenant organisation settings documents (`org_settings` and related).
+  static const String hkzOrgSettings = 'hkzOrgSettings';
   static const String hkzSysAdminWhitelist = 'hkzSysAdminWhitelist';
   static const String hkzInviteCodes = 'hkzInviteCodes';
   static const String hkzCounters = 'hkzCounters';
@@ -397,25 +399,9 @@ class FirestoreUtils {
   }) async {
     final normalizedOrgId = orgId.trim();
     if (normalizedOrgId.isEmpty) return;
-    final orgRef = _store(database).collection(hkzOrganizations).doc(normalizedOrgId);
-
-    // Firestore does not cascade subcollection deletes when deleting a parent doc.
-    // Clean known org-scoped subcollections first.
-    await _deleteSubcollectionDocs(orgRef.collection('settings'));
-
-    await orgRef.delete();
-  }
-
-  static Future<void> _deleteSubcollectionDocs(
-    CollectionReference<Map<String, dynamic>> collectionRef,
-  ) async {
-    final snapshot = await collectionRef.get();
-    if (snapshot.docs.isEmpty) return;
-    final batch = collectionRef.firestore.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
-    }
-    await batch.commit();
+    final FirebaseFirestore db = _store(database);
+    await db.collection(hkzOrganizations).doc(normalizedOrgId).delete();
+    await db.collection(hkzOrgSettings).doc('org_settings').delete();
   }
 
   static Future<void> deleteUser(String userId, {FirebaseFirestore? database}) async {

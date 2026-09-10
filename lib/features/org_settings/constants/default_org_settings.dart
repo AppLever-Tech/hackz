@@ -5,7 +5,7 @@ import 'org_setting_keys.dart';
 /// Dart source of truth for org-setting defaults.
 ///
 /// Bootstrap writes [defaultOrgSettingsFirestoreEntries] to
-/// `hkzOrganizations/{orgId}/settings/org_settings` when the document is missing;
+/// `hkzOrgSettings/org_settings` when the document is missing;
 /// runtime values are read from Firestore and merged with any new keys from
 /// this list.
 const int kOrgSettingsSchemaVersion = 1;

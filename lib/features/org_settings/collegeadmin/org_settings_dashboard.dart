@@ -18,7 +18,7 @@ import '../services/org_settings_service.dart';
 import '../widgets/org_setting_value_tile.dart';
 import '../widgets/settings_group_widget.dart';
 
-/// College Admin: org-scoped rules (`hkzOrganizations/{orgId}/settings/org_settings`).
+/// College Admin: org-scoped rules (`hkzOrgSettings/org_settings`).
 class OrgSettingsDashboard extends StatefulWidget {
   const OrgSettingsDashboard({super.key, required this.user});
 

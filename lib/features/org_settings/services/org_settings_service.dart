@@ -11,7 +11,8 @@ import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Org-scoped runtime cache for organization settings.
 ///
-/// Firestore path: `hkzOrganizations/{orgId}/settings/org_settings`.
+/// Firestore path: `hkzOrgSettings/org_settings` on the bound Tenant Firebase.
+/// Isolation is the tenant project; the document id is not an organisation id.
 ///
 /// Lifecycle:
 ///   1. On login, [ensureLoaded] loads once for the user's `orgId` (server read).
@@ -24,10 +25,7 @@ class OrgSettingsService extends ChangeNotifier {
 
   static final OrgSettingsService instance = OrgSettingsService._();
 
-  /// Sub-collection name under `hkzOrganizations/{orgId}` that holds settings docs.
-  static const String settingsSubcollection = 'settings';
-
-  /// Doc id for the single per-org settings document.
+  /// Document id in [FirestoreUtils.hkzOrgSettings].
   static const String orgSettingsDocId = 'org_settings';
 
   /// Top-level field on the org_settings document that holds the list of
@@ -135,12 +133,8 @@ class OrgSettingsService extends ChangeNotifier {
     }
   }
 
-  DocumentReference<Map<String, dynamic>> _configRefFor(String orgId) {
-    return _db
-        .collection(FirestoreUtils.hkzOrganizations)
-        .doc(orgId)
-        .collection(settingsSubcollection)
-        .doc(orgSettingsDocId);
+  static DocumentReference<Map<String, dynamic>> _settingsDoc(FirebaseFirestore db) {
+    return db.collection(FirestoreUtils.hkzOrgSettings).doc(orgSettingsDocId);
   }
 
   DocumentReference<Map<String, dynamic>> get _configRef {
@@ -148,7 +142,7 @@ class OrgSettingsService extends ChangeNotifier {
     if (id == null || id.isEmpty) {
       throw StateError('OrgSettingsService not loaded for any org.');
     }
-    return _configRefFor(id);
+    return _settingsDoc(_db);
   }
 
   /// Prefer a server read so logout→login picks up College Admin writes.
@@ -460,21 +454,17 @@ class OrgSettingsService extends ChangeNotifier {
     return null;
   }
 
-  /// One-shot seed for a freshly created organization. Writes the default
-  /// settings document if it doesn't already exist. Best-effort: callers can
-  /// also rely on lazy bootstrap inside [ensureLoaded].
+  /// One-shot seed for a freshly connected tenant. Writes
+  /// `hkzOrgSettings/org_settings` if it doesn't already exist. Best-effort:
+  /// callers can also rely on lazy bootstrap inside [ensureLoaded].
   ///
-  /// Used by the org creation flow so new colleges land with sane defaults
-  /// before any admin first opens the dashboard.
+  /// Used by the org creation / workspace-connect flow so new colleges land
+  /// with sane defaults before any admin first opens the dashboard.
   static Future<void> seedFor(String orgId, {FirebaseFirestore? firestore}) async {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return;
     final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
-    final DocumentReference<Map<String, dynamic>> ref = db
-        .collection(FirestoreUtils.hkzOrganizations)
-        .doc(trimmed)
-        .collection(settingsSubcollection)
-        .doc(orgSettingsDocId);
+    final DocumentReference<Map<String, dynamic>> ref = _settingsDoc(db);
     try {
       await db.runTransaction((Transaction txn) async {
         final snap = await txn.get(ref);
@@ -498,12 +488,7 @@ class OrgSettingsService extends ChangeNotifier {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return false;
     final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
-    final DocumentSnapshot<Map<String, dynamic>> snap = await db
-        .collection(FirestoreUtils.hkzOrganizations)
-        .doc(trimmed)
-        .collection(settingsSubcollection)
-        .doc(orgSettingsDocId)
-        .get();
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _settingsDoc(db).get();
     return snap.exists;
   }
 }
