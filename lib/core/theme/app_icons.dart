@@ -15,6 +15,7 @@ class AppIcons {
   static const IconData refresh = Icons.refresh;
   static const IconData copy = Icons.copy;
   static const IconData copied = Icons.check;
+  static const IconData snippet = Icons.data_object_outlined;
   static const IconData key = Icons.key_outlined;
   static const IconData back = Icons.arrow_back_rounded;
   static const IconData more = Icons.more_vert;
