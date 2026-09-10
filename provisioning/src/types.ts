@@ -2,6 +2,8 @@ export const HKZ_TENANTS = 'hkzTenants';
 export const HKZ_USERS = 'hkzUsers';
 export const HKZ_ORGANIZATIONS = 'hkzOrganizations';
 export const HKZ_EVENT_ENTITLEMENTS = 'hkzEventEntitlements';
+/** Tenant event documents. Hackz does not use a separate hkzEvents collection. */
+export const HKZ_IDEATHONS = 'hkzIdeathons';
 export const COLLEGE_ADMIN_ROLE = 'CADM';
 export const DEPARTMENT_ADMIN_ROLE = 'DADM';
 export const USER_STATUS_ACTIVE = 'active';
@@ -66,6 +68,25 @@ export type EventEntitlementSuccess = {
 };
 
 export type EventEntitlementResult = EventEntitlementSuccess | ProvisionTenantAdminFailure;
+
+export type SetEventEntitlementStatusRequest = {
+  organisationId: string;
+  eventId: string;
+  status: string;
+};
+
+export type SetEventEntitlementStatusSuccess = {
+  ok: true;
+  unchanged: boolean;
+  entitlementId: string;
+  organisationId: string;
+  eventId: string;
+  status: 'enabled' | 'disabled';
+};
+
+export type SetEventEntitlementStatusResult =
+  | SetEventEntitlementStatusSuccess
+  | ProvisionTenantAdminFailure;
 
 export type ControlPlaneTenant = {
   tenantId: string;

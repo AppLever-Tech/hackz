@@ -47,6 +47,8 @@ class FirestoreUtils {
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
   static const String hkzIdeathons = 'hkzIdeathons';
+  /// Control Plane event licensing metadata only. Not tenant event business data.
+  static const String hkzEventEntitlements = 'hkzEventEntitlements';
   /// Idea ↔ Ideathon membership (idea already paid before create).
   static const String hkzIdeathonParticipations = 'hkzIdeathonParticipations';
   static const String hkzAppMetadata = 'hkzAppMetadata';

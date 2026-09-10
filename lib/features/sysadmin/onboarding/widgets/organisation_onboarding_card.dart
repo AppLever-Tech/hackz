@@ -15,6 +15,7 @@ import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
+import '../../../organization/models/enums/organization_access_mode.dart';
 import '../../../organization/services/organisation_access.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
 import '../../../user/models/user_model.dart';
@@ -25,6 +26,7 @@ import 'copy_organisation_code_button.dart';
 import 'onboarding_readiness_checklist.dart';
 import 'onboarding_status_pill.dart';
 import 'organisation_access_control.dart';
+import 'event_entitlements_panel.dart';
 import 'provisioning_authorization_panel.dart';
 
 class OrganisationOnboardingCard extends StatelessWidget {
@@ -249,6 +251,13 @@ class OrganisationOnboardingCard extends StatelessWidget {
                   organization: item.organization,
                   onChanged: onChanged,
                 ),
+                if (item.organization.accessMode == OrganizationAccessMode.perEvent) ...<Widget>[
+                  const SizedBox(height: 12),
+                  EventEntitlementsPanel(
+                    key: ValueKey<String>(item.organization.id),
+                    organization: item.organization,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 ProvisioningAuthorizationPanel(
                   status: item.tenant?.provisioningAuthorization ??

@@ -11,6 +11,7 @@ import '../../../../utils/firestore_utils.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../models/org_operational_data.dart';
 import '../../services/org_management_service.dart';
+import '../models/event_entitlement.dart';
 import '../models/organisation_onboarding_item.dart';
 import 'provisioning_authorization_validator.dart';
 import 'tenant_workspace_validator.dart';
@@ -243,6 +244,26 @@ abstract final class OrganisationOnboardingService {
   static Future<void> updateCommercialAccess(OrganizationModel org) async {
     if (org.id.trim().isEmpty) return;
     await FirestoreUtils.upsertOrganization(org, database: _controlPlane);
+  }
+
+  static Future<List<EventEntitlement>> listEventEntitlements(String orgId) async {
+    final String id = orgId.trim();
+    if (id.isEmpty) return const <EventEntitlement>[];
+    final QuerySnapshot<Map<String, dynamic>> snap = await _controlPlane
+        .collection(FirestoreUtils.hkzEventEntitlements)
+        .where('orgId', isEqualTo: id)
+        .get();
+    final List<EventEntitlement> items = snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => EventEntitlement.fromMap(doc.id, doc.data()))
+        .toList();
+    items.sort((EventEntitlement a, EventEntitlement b) {
+      final DateTime aAt = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime bAt = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final int byDate = bAt.compareTo(aAt);
+      if (byDate != 0) return byDate;
+      return a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase());
+    });
+    return items;
   }
 
   /// Writes the organisation catalog row on the Control Plane and, when a

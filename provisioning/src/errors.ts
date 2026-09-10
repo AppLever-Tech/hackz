@@ -14,6 +14,19 @@ export class ProvisionError extends Error {
   }
 }
 
+export function isNotFound(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const code = 'code' in error ? String(error.code) : '';
+  const message = 'message' in error ? String(error.message) : '';
+  return (
+    code === 'not-found' ||
+    code === '5' ||
+    code.includes('NOT_FOUND') ||
+    message.includes('NOT_FOUND') ||
+    message.toLowerCase().includes('not found')
+  );
+}
+
 export function isPermissionDenied(error: unknown): boolean {
   if (error == null || typeof error !== 'object') return false;
   const code = 'code' in error ? String(error.code) : '';

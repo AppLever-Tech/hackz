@@ -4,6 +4,7 @@ import { ProvisionError } from './errors.js';
 import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
 import { registerEventEntitlement } from './register-event-entitlement.js';
+import { setEventEntitlementStatus } from './set-event-entitlement-status.js';
 
 function listenPort(): number {
   for (const raw of [process.env.PORT, process.env.HACKZ_PROVISIONING_PORT]) {
@@ -51,9 +52,13 @@ function bearerToken(req: IncomingMessage): string {
   return (match?.[1] ?? '').trim();
 }
 
-async function assertControlPlaneSysAdmin(idToken: string): Promise<void> {
+async function assertControlPlaneSysAdmin(
+  idToken: string,
+  missing = 'Sign in as SysAdmin to provision a College Admin.',
+  denied = 'Only a Control Plane SysAdmin can provision a College Admin.',
+): Promise<void> {
   if (idToken.length === 0) {
-    throw new ProvisionError('UNAUTHORIZED', 'Sign in as SysAdmin to provision a College Admin.');
+    throw new ProvisionError('UNAUTHORIZED', missing);
   }
   let uid = '';
   let phone = '';
@@ -62,7 +67,7 @@ async function assertControlPlaneSysAdmin(idToken: string): Promise<void> {
     uid = decoded.uid;
     phone = String(decoded.phone_number ?? '').trim();
   } catch {
-    throw new ProvisionError('UNAUTHORIZED', 'Sign in as SysAdmin to provision a College Admin.');
+    throw new ProvisionError('UNAUTHORIZED', missing);
   }
 
   const db = controlPlaneFirestore();
@@ -82,7 +87,7 @@ async function assertControlPlaneSysAdmin(idToken: string): Promise<void> {
     if (!whitelist.empty) return;
   }
 
-  throw new ProvisionError('UNAUTHORIZED', 'Only a Control Plane SysAdmin can provision a College Admin.');
+  throw new ProvisionError('UNAUTHORIZED', denied);
 }
 
 const server = createServer((req, res) => {
@@ -119,6 +124,21 @@ const server = createServer((req, res) => {
           eventId: String(body.eventId ?? ''),
           eventName: String(body.eventName ?? ''),
           eventType: String(body.eventType ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/set-event-entitlement-status') {
+        await assertControlPlaneSysAdmin(
+          bearerToken(req),
+          'Sign in as SysAdmin to update event access.',
+          'Only a Control Plane SysAdmin can update event access.',
+        );
+        const body = await readJson(req);
+        const result = await setEventEntitlementStatus({
+          organisationId: String(body.organisationId ?? ''),
+          eventId: String(body.eventId ?? ''),
+          status: String(body.status ?? ''),
         });
         send(res, 200, result);
         return;

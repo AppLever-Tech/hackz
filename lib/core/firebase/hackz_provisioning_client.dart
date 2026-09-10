@@ -46,6 +46,22 @@ class HackzEventEntitlementResult {
   bool get registered => !skipped;
 }
 
+class HackzEventEntitlementStatusResult {
+  const HackzEventEntitlementStatusResult({
+    required this.unchanged,
+    required this.entitlementId,
+    required this.organisationId,
+    required this.eventId,
+    required this.status,
+  });
+
+  final bool unchanged;
+  final String entitlementId;
+  final String organisationId;
+  final String eventId;
+  final String status;
+}
+
 /// Invokes the privileged provisioning service. Not used for later College Admin edits.
 abstract final class HackzProvisioningClient {
   HackzProvisioningClient._();
@@ -125,6 +141,41 @@ abstract final class HackzProvisioningClient {
     );
   }
 
+  /// SysAdmin activate/disable. Updates Control Plane licensing then tenant commercialAccess.
+  static Future<HackzEventEntitlementStatusResult> setEventEntitlementStatus({
+    required String organisationId,
+    required String eventId,
+    required String status,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/set-event-entitlement-status',
+      payload: <String, String>{
+        'organisationId': organisationId,
+        'eventId': eventId,
+        'status': status,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to update event access.',
+    );
+
+    if (body['ok'] == true) {
+      return HackzEventEntitlementStatusResult(
+        unchanged: body['unchanged'] == true,
+        entitlementId: (body['entitlementId'] as String? ?? '').trim(),
+        organisationId: (body['organisationId'] as String? ?? '').trim(),
+        eventId: (body['eventId'] as String? ?? '').trim(),
+        status: (body['status'] as String? ?? '').trim(),
+      );
+    }
+
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      _actionableMessage(
+        code: (body['code'] as String? ?? '').trim(),
+        fallback: (body['message'] as String? ?? 'Unable to update event access.').trim(),
+      ),
+    );
+  }
+
   static Future<Map<String, dynamic>> _postJson({
     required String path,
     required Map<String, String> payload,
@@ -184,7 +235,7 @@ abstract final class HackzProvisioningClient {
             ? 'That phone or email is already used in this tenant.'
             : fallback;
       case 'UNAUTHORIZED':
-        return 'Sign in as SysAdmin to provision a College Admin.';
+        return fallback.isEmpty ? 'Sign in as SysAdmin to continue.' : fallback;
       case 'CONTROL_PLANE_UNAVAILABLE':
         return 'The provisioning service cannot reach the Control Plane.';
       case 'TENANT_NOT_FOUND':
@@ -192,7 +243,7 @@ abstract final class HackzProvisioningClient {
       case 'TENANT_AMBIGUOUS':
         return 'Multiple organisations share that Firebase project. Reconnect the correct workspace.';
       default:
-        return fallback.isEmpty ? 'Unable to provision the College Admin.' : fallback;
+        return fallback.isEmpty ? 'Unable to complete the provisioning operation.' : fallback;
     }
   }
 }

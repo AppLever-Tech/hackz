@@ -2,10 +2,14 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ProvisionError } from './errors.js';
 import {
+  eventEntitlementDisplayState,
   eventEntitlementDocId,
   initialEventEntitlementFields,
   isPerEventAccessMode,
+  isSameLicensingStatus,
   normalizeEventEntitlementRequest,
+  normalizeSetEventEntitlementStatusRequest,
+  tenantCommercialAccessStatus,
 } from './event-entitlement.js';
 
 test('eventEntitlementDocId is deterministic for orgId + eventId', () => {
@@ -88,4 +92,49 @@ test('initialEventEntitlementFields stores only SysAdmin entitlement metadata', 
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'ideas'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'teams'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'users'), false);
+});
+
+test('display state is Pending / Ready for Activation / Enabled / Disabled', () => {
+  assert.equal(
+    eventEntitlementDisplayState({ status: 'pending', paymentStatus: 'unpaid' }),
+    'pending',
+  );
+  assert.equal(
+    eventEntitlementDisplayState({ status: 'pending', paymentStatus: 'paid' }),
+    'readyForActivation',
+  );
+  assert.equal(
+    eventEntitlementDisplayState({ status: 'enabled', paymentStatus: 'unpaid' }),
+    'enabled',
+  );
+  assert.equal(
+    eventEntitlementDisplayState({ status: 'disabled', paymentStatus: 'paid' }),
+    'disabled',
+  );
+});
+
+test('set-event-entitlement-status is idempotent and maps only commercialAccess', () => {
+  const input = normalizeSetEventEntitlementStatusRequest({
+    organisationId: ' org-1 ',
+    eventId: ' evt1 ',
+    status: ' Enabled ',
+  });
+  assert.equal(input.organisationId, 'org-1');
+  assert.equal(input.eventId, 'evt1');
+  assert.equal(input.status, 'enabled');
+  assert.equal(eventEntitlementDocId(input.organisationId, input.eventId), 'org-1_evt1');
+  assert.equal(isSameLicensingStatus('enabled', 'enabled'), true);
+  assert.equal(isSameLicensingStatus('pending', 'enabled'), false);
+  assert.equal(isSameLicensingStatus('disabled', 'disabled'), true);
+  assert.equal(tenantCommercialAccessStatus('enabled'), 'enabled');
+  assert.equal(tenantCommercialAccessStatus('disabled'), 'disabled');
+  assert.throws(
+    () =>
+      normalizeSetEventEntitlementStatusRequest({
+        organisationId: 'org-1',
+        eventId: 'evt1',
+        status: 'scheduled',
+      }),
+    (error: unknown) => error instanceof ProvisionError && error.code === 'INVALID_INPUT',
+  );
 });
