@@ -358,7 +358,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final Widget detailsCard = _sectionCard(
       title: 'Event Details',
       icon: _kind.icon,
-      fillRemaining: !mobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -402,7 +401,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final Widget scheduleCard = _sectionCard(
       title: 'Schedule',
       icon: AppIcons.clock,
-      fillRemaining: !mobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -484,15 +482,13 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 const SizedBox(height: 14),
                 scheduleCard,
               ] else
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Expanded(child: detailsCard),
-                      const SizedBox(width: 14),
-                      Expanded(child: scheduleCard),
-                    ],
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(child: detailsCard),
+                    const SizedBox(width: 14),
+                    Expanded(child: scheduleCard),
+                  ],
                 ),
               const SizedBox(height: 14),
               _sectionCard(

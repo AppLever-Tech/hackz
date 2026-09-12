@@ -443,18 +443,21 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         actor: widget.actor,
         ideathonId: vm.ideathon.ideathonId,
       );
-      if (!mounted) return;
-      FeedbackService.showSuccess(
-        context,
-        title: 'Event deleted',
-        message: 'The unused event was removed.',
-      );
-      widget.onDeleted?.call();
-      widget.onBack();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to delete event', message: '$e');
+      return;
     }
+    if (!mounted) return;
+    final NavigatorState navigator = Navigator.of(context, rootNavigator: true);
+    widget.onBack();
+    widget.onDeleted?.call();
+    if (!navigator.mounted) return;
+    FeedbackService.showSuccess(
+      navigator.context,
+      title: 'Event deleted',
+      message: 'The unused event was removed.',
+    );
   }
 
   List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsViewModel vm) {

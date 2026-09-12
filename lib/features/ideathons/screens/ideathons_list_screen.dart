@@ -57,11 +57,13 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
 
   @override
   void dispose() {
+    _searchController.removeListener(_load);
     _searchController.dispose();
     super.dispose();
   }
 
   void _load() {
+    if (!mounted) return;
     setState(() {
       _future = IdeathonQueryService.fetch(
         IdeathonQueryParams(
