@@ -17,6 +17,7 @@ import '../../ideathons/models/ideathon_model.dart';
 import '../../ideathons/services/ideathon_participation_service.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../ideathons/widgets/ideathon_event_select_field.dart';
+import '../../organization/services/commercial_access.dart';
 import '../../payment/widgets/payment_dialog.dart';
 import '../../team/services/teams_workspace_service.dart';
 import '../../team/services/team_service.dart';
@@ -233,6 +234,9 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
       await IdeathonService.assertAcceptingParticipation(eventId);
       if (!mounted) return;
       late final IdeaModel submitted;
+      final bool ideaPaymentRequired =
+          await CommercialAccess.requiresIdeaPaymentForOrg(widget.currentUser.orgId);
+      if (!mounted) return;
       await HkzAsyncLoader.run<void>(
         context,
         title: 'Submitting Innovation',
@@ -261,16 +265,25 @@ class _InnovationSubmissionWorkspaceState extends State<InnovationSubmissionWork
             ideathonId: eventId,
             ideaId: submitted.ideaId,
           );
+          if (!ideaPaymentRequired) {
+            await IdeathonService.qualifySubmittedIdea(
+              eventId: eventId,
+              idea: submitted,
+              teamName: team.teamName,
+            );
+          }
           TeamsWorkspaceService.clearCache();
         },
       );
       if (!mounted) return;
-      await showPaymentDialog(
-        context: context,
-        currentUser: widget.currentUser,
-        idea: submitted,
-        team: team,
-      );
+      if (ideaPaymentRequired) {
+        await showPaymentDialog(
+          context: context,
+          currentUser: widget.currentUser,
+          idea: submitted,
+          team: team,
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on TeamRuleException catch (e) {

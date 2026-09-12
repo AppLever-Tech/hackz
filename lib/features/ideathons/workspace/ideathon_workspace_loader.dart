@@ -10,7 +10,10 @@ import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_lifecycle.dart';
 import '../../events/models/event_winner_entry.dart';
 import '../../organization/models/department_model.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
 import '../../organization/models/organization_model.dart';
+import '../../organization/services/commercial_access.dart';
+import '../../organization/services/organisation_access.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
@@ -35,6 +38,7 @@ class IdeathonWorkspaceViewModel {
     this.evaluationTemplateName = '',
     this.winner,
     this.runnerUp,
+    this.commercialPlan = OrganizationCommercialPlan.perIdea,
   });
 
   final IdeathonModel ideathon;
@@ -51,6 +55,9 @@ class IdeathonWorkspaceViewModel {
   final String evaluationTemplateName;
   final EventWinnerEntry? winner;
   final EventWinnerEntry? runnerUp;
+  final OrganizationCommercialPlan commercialPlan;
+
+  bool get requiresIdeaPayment => CommercialAccess.requiresIdeaPayment(commercialPlan);
 
   bool get evaluationStarted => evaluationStartedAt != null;
 
@@ -79,8 +86,12 @@ abstract final class IdeathonWorkspaceLoader {
   IdeathonWorkspaceLoader._();
 
   static Future<IdeathonWorkspaceViewModel> load(String ideathonId) async {
-    final IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
+    IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
     if (ideathon == null) throw StateError('Ideathon not found');
+
+    if (await IdeathonService.promoteEligibleSubmissionsWithoutIdeaPayment(ideathon.ideathonId)) {
+      ideathon = await IdeathonService.fetchById(ideathonId) ?? ideathon;
+    }
 
     await OrgSettingsService.instance.ensureLoaded(orgId: ideathon.orgId);
 
@@ -99,6 +110,9 @@ abstract final class IdeathonWorkspaceLoader {
       EvaluationResultsQueryService.fetch(
         EvaluationResultsQueryParams(ideathonId: ideathon.ideathonId),
       ),
+      ideathon.orgId.trim().isEmpty
+          ? Future<OrganizationModel?>.value(null)
+          : OrganisationAccess.fetch(ideathon.orgId),
     ]);
 
     final List<UserModel> judges = parallel[0] as List<UserModel>;
@@ -109,6 +123,8 @@ abstract final class IdeathonWorkspaceLoader {
         parallel[3] as QuerySnapshot<Map<String, dynamic>>;
     final OrganizationModel? org = parallel[4] as OrganizationModel?;
     final EvaluationResultsQueryResult results = parallel[5] as EvaluationResultsQueryResult;
+    final OrganizationModel? controlPlaneOrg = parallel[6] as OrganizationModel?;
+    final OrganizationCommercialPlan commercialPlan = CommercialAccess.planOf(controlPlaneOrg);
 
     DateTime? firstAssignedAt;
     for (final assignment in assignments) {
@@ -178,6 +194,7 @@ abstract final class IdeathonWorkspaceLoader {
       evaluationTemplateName: templateName,
       winner: winner,
       runnerUp: runnerUp,
+      commercialPlan: commercialPlan,
     );
   }
 

@@ -44,6 +44,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
   Future<IdeaListQueryResult>? _ideasFuture;
   List<IdeaListItem> _lastLoaded = <IdeaListItem>[];
   IdeaDepartmentMetrics _metrics = IdeaDepartmentMetrics.empty;
+  bool _canUploadPayment = false;
 
   bool _showFilters = false;
   Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
@@ -57,6 +58,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
     _sort = widget.config.enabledSorts.contains(IdeaSortType.newest)
         ? IdeaSortType.newest
         : widget.config.enabledSorts.first;
+    _canUploadPayment = widget.config.canUploadPayment;
     _loadIdeas();
     _searchController.addListener(_onSearchChanged);
   }
@@ -115,10 +117,16 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
           return Text('Unable to load ideas: ${snapshot.error}');
         }
         final IdeaListQueryResult result = snapshot.data ??
-            IdeaListQueryResult(items: _lastLoaded, metrics: _metrics);
+            IdeaListQueryResult(
+              items: _lastLoaded,
+              metrics: _metrics,
+              canUploadPayment: _canUploadPayment,
+            );
         final ideas = result.items;
         _lastLoaded = ideas;
         _metrics = result.metrics;
+        _canUploadPayment = result.canUploadPayment;
+        final IdeaListConfig listConfig = widget.config.copyWith(canUploadPayment: _canUploadPayment);
         final availableProblems = <String, String>{
           for (final item in ideas)
             if (item.idea.problemId.isNotEmpty)
@@ -164,7 +172,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                         itemBuilder: (BuildContext context, int index) {
                           return IdeaListRowCard(
                             item: displayItems[index],
-                            config: widget.config,
+                            config: listConfig,
                             actions: tableActions,
                           );
                         },
@@ -172,7 +180,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
                     : DataTableView<IdeaListItem>(
                         items: displayItems,
                         columns: IdeaTableColumns.build(
-                          config: widget.config,
+                          config: listConfig,
                           actions: tableActions,
                         ),
                         onSort: _onTableSort,
@@ -246,7 +254,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
         if (id.isEmpty) return;
         WorkspaceNavigator.openIdeathon(context, id, actor: widget.currentUser);
       },
-      onUploadPayment: widget.config.canUploadPayment ? _openUploadPayment : null,
+      onUploadPayment: _canUploadPayment ? _openUploadPayment : null,
     );
   }
 

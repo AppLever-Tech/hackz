@@ -17,6 +17,8 @@ import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
 import '../../events/models/event_kind.dart';
 import '../../events/widgets/event_kind_pill.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
+import '../../organization/services/commercial_access.dart';
 import '../services/ideathon_query_service.dart';
 import '../services/ideathon_status_helpers.dart';
 import '../widgets/event_commercial_access_pill.dart';
@@ -47,6 +49,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
   Set<IdeathonStatus> _statusFilters = <IdeathonStatus>{};
   Set<EventKind> _templateFilters = <EventKind>{};
   late Future<List<IdeathonListRow>> _future;
+  OrganizationCommercialPlan? _commercialPlan;
 
   @override
   void initState() {
@@ -75,6 +78,13 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
         ),
       );
     });
+    _loadCommercialPlan();
+  }
+
+  Future<void> _loadCommercialPlan() async {
+    final OrganizationCommercialPlan plan = await CommercialAccess.planForOrg(widget.user.orgId);
+    if (!mounted || plan == _commercialPlan) return;
+    setState(() => _commercialPlan = plan);
   }
 
   void _openIdeathon(String id) =>
@@ -337,8 +347,10 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                               EventKindPill(kind: row.eventKind),
                                               IdeathonTypePill(type: row.ideathonType),
                                               IdeathonStatusPill(status: row.status),
-                                            if (!row.commercialAccess.isEnabled)
-                                              EventCommercialAccessPill(access: row.commercialAccess),
+                                              EventCommercialAccessPill.forEvent(
+                                                event: row,
+                                                plan: _commercialPlan,
+                                              ),
                                             ],
                                           ),
                                         ),

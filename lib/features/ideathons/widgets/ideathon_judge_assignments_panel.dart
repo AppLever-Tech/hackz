@@ -320,7 +320,7 @@ class _IdeathonJudgeAssignmentsPanelState
               ),
               const SizedBox(height: 8),
               const Text(
-                'Explicitly assign judges to paid ideas registered for this Ideathon. Judges are not assigned automatically. The evaluation template is fixed for the event.',
+                'Explicitly assign judges to eligible ideas registered for this event. Judges are not assigned automatically. The evaluation template is fixed for the event.',
                 style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
               ),
               if (_vm.evaluationLocked) ...<Widget>[

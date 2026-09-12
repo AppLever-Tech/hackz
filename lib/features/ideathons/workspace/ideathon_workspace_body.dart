@@ -58,18 +58,20 @@ class IdeathonWorkspaceBody extends StatelessWidget {
           count: event.ideas.length,
           child: _ideas(context, event.ideas),
         ),
-        const SizedBox(height: 10),
-        WorkspaceCollapsibleSection(
-          title: 'Event Payment',
-          icon: AppIcons.payments,
-          child: EntityCardPills.workspace(
-            'Event Payments',
-            ContextPillSemantic.payment,
-            onOpenPayments ?? () {},
-            enabled: onOpenPayments != null,
+        if (vm.requiresIdeaPayment) ...<Widget>[
+          const SizedBox(height: 10),
+          WorkspaceCollapsibleSection(
+            title: 'Event Payment',
             icon: AppIcons.payments,
+            child: EntityCardPills.workspace(
+              'Event Payments',
+              ContextPillSemantic.payment,
+              onOpenPayments ?? () {},
+              enabled: onOpenPayments != null,
+              icon: AppIcons.payments,
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 10),
         WorkspaceCollapsibleSection(
           title: 'Judge assignment',
@@ -135,6 +137,7 @@ class IdeathonWorkspaceBody extends StatelessWidget {
         ideathonEventWorkspaceHeader(
           event: event,
           organisationName: vm.organisationName,
+          commercialPlan: vm.commercialPlan,
         ),
         const SizedBox(height: 10),
         EventLabeledField(

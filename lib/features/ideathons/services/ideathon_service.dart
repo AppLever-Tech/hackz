@@ -11,6 +11,7 @@ import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_kind.dart';
 import '../../events/models/event_schedule_type.dart';
 import '../../idea/models/idea_model.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/services/commercial_access.dart';
 import '../../organization/services/organisation_access.dart';
@@ -392,6 +393,9 @@ abstract final class IdeathonService {
     if (payment.ideathonId.trim().isNotEmpty && payment.ideathonId.trim() != eventId) {
       throw StateError('Payment must use the same event as the idea.');
     }
+    if (!await CommercialAccess.requiresIdeaPaymentForOrg(payment.orgId)) {
+      throw StateError(CommercialAccess.ideaPaymentNotRequiredMessage);
+    }
     await assertAcceptingParticipation(eventId);
     final IdeathonModel event = await _requireEvent(eventId);
     if (!event.acceptsProblem(payment.problemId)) {
@@ -433,6 +437,58 @@ abstract final class IdeathonService {
       ],
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// Marks a submitted idea eligible for the event without creating a PaymentModel.
+  /// Used when the commercial plan does not require individual idea payment.
+  static Future<void> qualifySubmittedIdea({
+    required String eventId,
+    required IdeaModel idea,
+    String teamName = '',
+  }) async {
+    await registerConfirmedIdea(eventId: eventId, idea: idea, teamName: teamName);
+    final IdeathonParticipation? membership =
+        await IdeathonParticipationService.fetchByIdeathonAndIdea(
+      ideathonId: eventId,
+      ideaId: idea.ideaId,
+    );
+    if (membership == null) return;
+    if (membership.paymentStatus == PaymentRecordStatus.verified) return;
+    await IdeathonParticipationService.syncPaymentStatus(
+      participationId: membership.participationId,
+      paymentStatus: PaymentRecordStatus.verified,
+    );
+  }
+
+  /// Adds already-submitted unpaid participations to the event roster when
+  /// individual idea payment is not required (PER_EVENT / ANNUAL).
+  static Future<bool> promoteEligibleSubmissionsWithoutIdeaPayment(String eventId) async {
+    final String id = eventId.trim();
+    if (id.isEmpty) return false;
+    final IdeathonModel? event = await fetchById(id);
+    if (event == null) return false;
+    if (await CommercialAccess.requiresIdeaPaymentForOrg(event.orgId)) return false;
+
+    final List<IdeathonParticipation> rows = await IdeathonParticipationService.listByIdeathon(id);
+    if (rows.isEmpty) return false;
+
+    bool changed = false;
+    for (final IdeathonParticipation row in rows) {
+      final String ideaId = row.ideaId.trim();
+      if (ideaId.isEmpty) continue;
+      final IdeaModel? idea = await _fetchIdea(ideaId);
+      if (idea == null) continue;
+      if (!IdeaStatusHelpers.isEligibleForIdeathon(idea.status)) continue;
+      final bool onRoster = event.ideas.any((IdeathonIdeaSnapshot s) => s.ideaId.trim() == ideaId);
+      if (onRoster && row.paymentStatus == PaymentRecordStatus.verified) continue;
+      String teamName = '';
+      if (idea.teamId.trim().isNotEmpty) {
+        teamName = await _fetchTeamName(idea.teamId);
+      }
+      await qualifySubmittedIdea(eventId: id, idea: idea, teamName: teamName);
+      changed = true;
+    }
+    return changed;
   }
 
   static Future<void> confirmTeamLeaderPayment({

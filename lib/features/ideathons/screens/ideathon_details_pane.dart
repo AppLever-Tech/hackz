@@ -259,8 +259,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
     return <Widget>[
       IdeathonStatusPill(status: vm.ideathon.status, compact: false),
-      if (!vm.ideathon.commercialAccess.isEnabled)
-        EventCommercialAccessPill(access: vm.ideathon.commercialAccess, compact: false),
+      EventCommercialAccessPill.forEvent(
+        event: vm.ideathon,
+        plan: vm.workspace.commercialPlan,
+        compact: false,
+      ),
       if (progress.pendingEvaluationCount > 0 && !progress.completed)
         EventMetaChip(
           icon: AppIcons.clock,
@@ -491,26 +494,27 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
           ),
         ],
       ),
-      EventDetailsNavGroup(
-        id: 'payments',
-        label: 'Payments',
-        icon: AppIcons.payments,
-        items: <EventDetailsModule>[
-          EventDetailsModule(
-            id: 'payments',
-            label: 'Payments',
-            icon: AppIcons.payments,
-            child: IdeathonPaymentsTab(
-              ideathonId: event.ideathonId,
-              eventName: event.name,
-              actor: widget.actor,
-              kind: kind,
-              loadFuture: _paymentsFuture,
-              onChanged: _reload,
+      if (vm.requiresIdeaPayment)
+        EventDetailsNavGroup(
+          id: 'payments',
+          label: 'Payments',
+          icon: AppIcons.payments,
+          items: <EventDetailsModule>[
+            EventDetailsModule(
+              id: 'payments',
+              label: 'Payments',
+              icon: AppIcons.payments,
+              child: IdeathonPaymentsTab(
+                ideathonId: event.ideathonId,
+                eventName: event.name,
+                actor: widget.actor,
+                kind: kind,
+                loadFuture: _paymentsFuture,
+                onChanged: _reload,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       EventDetailsNavGroup(
         id: 'evaluation',
         label: 'Evaluation',
@@ -706,7 +710,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               const SizedBox(height: 8),
               Expanded(
                 child: EventDetailsShell(
-                  initialId: _moduleId,
+                  initialId: (!vm.requiresIdeaPayment && _moduleId == 'payments') ? 'overview' : _moduleId,
                   onSelected: (String id) => _moduleId = id,
                   command: _commandFor(vm),
                   contextPillsFor: (String id) => _contextPills(vm, id),

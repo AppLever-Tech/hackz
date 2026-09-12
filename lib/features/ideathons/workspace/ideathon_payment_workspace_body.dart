@@ -34,53 +34,67 @@ class IdeathonPaymentWorkspaceBody extends StatelessWidget {
         ideathonEventWorkspaceHeader(
           event: vm.event,
           organisationName: vm.organisationName,
+          commercialPlan: vm.commercialPlan,
         ),
         const SizedBox(height: 14),
-        WorkspaceCollapsibleSection(
-          title: 'Payments',
-          icon: AppIcons.payments,
-          collapsible: false,
-          initiallyExpanded: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _metric(
-                icon: AppIcons.payments,
-                label: PaymentMetricLabels.collection,
-                value: PaymentFinanceHelpers.formatCurrency(amounts.collection),
-              ),
-              _metric(
-                icon: AppIcons.workflowApproved,
-                label: PaymentMetricLabels.verified,
-                value: PaymentFinanceHelpers.formatCurrency(amounts.confirmed),
-              ),
-              _metric(
-                icon: AppIcons.workflowPendingReview,
-                label: PaymentMetricLabels.eventPending,
-                value: PaymentFinanceHelpers.formatCurrency(amounts.pending),
-              ),
-              _metric(
-                icon: AppIcons.workflowRejected,
-                label: PaymentMetricLabels.rejected,
-                value: PaymentFinanceHelpers.formatCurrency(amounts.rejected),
-                isLast: true,
-              ),
-            ],
+        if (!vm.requiresIdeaPayment)
+          const WorkspaceCollapsibleSection(
+            title: 'Payments',
+            icon: AppIcons.payments,
+            collapsible: false,
+            initiallyExpanded: true,
+            child: Text(
+              'Individual idea payment is not required for this commercial plan. Valid submissions are eligible without Team Leader payment or coordinator confirmation.',
+              style: TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            ),
+          )
+        else ...<Widget>[
+          WorkspaceCollapsibleSection(
+            title: 'Payments',
+            icon: AppIcons.payments,
+            collapsible: false,
+            initiallyExpanded: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _metric(
+                  icon: AppIcons.payments,
+                  label: PaymentMetricLabels.collection,
+                  value: PaymentFinanceHelpers.formatCurrency(amounts.collection),
+                ),
+                _metric(
+                  icon: AppIcons.workflowApproved,
+                  label: PaymentMetricLabels.verified,
+                  value: PaymentFinanceHelpers.formatCurrency(amounts.confirmed),
+                ),
+                _metric(
+                  icon: AppIcons.workflowPendingReview,
+                  label: PaymentMetricLabels.eventPending,
+                  value: PaymentFinanceHelpers.formatCurrency(amounts.pending),
+                ),
+                _metric(
+                  icon: AppIcons.workflowRejected,
+                  label: PaymentMetricLabels.rejected,
+                  value: PaymentFinanceHelpers.formatCurrency(amounts.rejected),
+                  isLast: true,
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        WorkspaceCollapsibleSection(
-          title: vm.event.eventKind.entriesLabel,
-          icon: vm.event.eventKind.entriesIcon,
-          count: vm.entries.length,
-          child: PaymentEntriesView(
-            entries: vm.entries,
-            ideaColumnLabel: vm.event.eventKind.payableItemLabel,
-            emptyTitle: 'No payments found',
-            emptyMessage: 'No ${vm.event.eventKind.payableItemLabel.toLowerCase()} payments for this event yet.',
-            compactIdeaPaymentRows: true,
+          const SizedBox(height: 10),
+          WorkspaceCollapsibleSection(
+            title: vm.event.eventKind.entriesLabel,
+            icon: vm.event.eventKind.entriesIcon,
+            count: vm.entries.length,
+            child: PaymentEntriesView(
+              entries: vm.entries,
+              ideaColumnLabel: vm.event.eventKind.payableItemLabel,
+              emptyTitle: 'No payments found',
+              emptyMessage: 'No ${vm.event.eventKind.payableItemLabel.toLowerCase()} payments for this event yet.',
+              compactIdeaPaymentRows: true,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

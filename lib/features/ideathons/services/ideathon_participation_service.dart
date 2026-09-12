@@ -16,7 +16,9 @@ abstract final class IdeathonParticipationService {
       _db.collection(FirestoreUtils.hkzIdeathonParticipations);
 
   /// Pending membership so Event Payments can show the canonical payment.
-  /// Does not add the idea to the event Ideas roster — that happens on confirm.
+  /// Does not add the idea to the event Ideas roster — that happens on
+  /// coordinator confirmation (PER_IDEA) or [IdeathonService.qualifySubmittedIdea]
+  /// when individual idea payment is not required.
   static Future<IdeathonParticipation> ensurePending({
     required String orgId,
     required String ideathonId,

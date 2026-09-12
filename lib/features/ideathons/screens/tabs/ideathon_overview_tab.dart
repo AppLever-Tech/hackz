@@ -42,8 +42,7 @@ class IdeathonOverviewTab extends StatelessWidget {
               EventKindPill(kind: event.eventKind),
               IdeathonTypePill(type: event.ideathonType, compact: true),
               IdeathonStatusPill(status: event.status, compact: true),
-              if (!event.commercialAccess.isEnabled)
-                EventCommercialAccessPill(access: event.commercialAccess),
+              EventCommercialAccessPill.forEvent(event: event, plan: vm.workspace.commercialPlan),
             ],
           ),
           if (event.description.trim().isNotEmpty) ...<Widget>[

@@ -31,7 +31,7 @@ class EventCommercialAccess {
 
   bool get isEnabled => status == EventCommercialAccessStatus.enabled;
 
-  /// Awaiting SysAdmin activation (per-event). Payments may still be collected.
+  /// Awaiting SysAdmin activation (per-event).
   bool get isPending => status == EventCommercialAccessStatus.pending;
 
   /// SysAdmin revoked commercial access. Existing data is preserved.

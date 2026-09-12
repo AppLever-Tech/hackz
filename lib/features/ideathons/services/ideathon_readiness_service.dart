@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
+import '../../organization/services/commercial_access.dart';
 import '../../payment/models/payment_model.dart';
 import 'ideathon_settings_service.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
@@ -41,16 +42,19 @@ abstract final class IdeathonReadinessService {
         .get();
 
     final List<PaymentModel> payments = await FirestoreUtils.getPaymentsByOrg(org);
-    final Set<String> verifiedIdeaIds = payments
-        .where((PaymentModel p) => p.status == PaymentRecordStatus.verified)
-        .map((PaymentModel p) => p.ideaId.trim())
-        .where((String id) => id.isNotEmpty)
-        .toSet();
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(org);
+    final Set<String> verifiedIdeaIds = ideaPaymentRequired
+        ? payments
+            .where((PaymentModel p) => p.status == PaymentRecordStatus.verified)
+            .map((PaymentModel p) => p.ideaId.trim())
+            .where((String id) => id.isNotEmpty)
+            .toSet()
+        : const <String>{};
 
     final int count = snap.docs.where((QueryDocumentSnapshot<Map<String, dynamic>> doc) {
       final IdeaModel idea = IdeaModel.fromMap(doc.id, doc.data());
       if (!IdeaStatusHelpers.isEligibleForIdeathon(idea.status)) return false;
-      if (!verifiedIdeaIds.contains(idea.ideaId.trim())) return false;
+      if (ideaPaymentRequired && !verifiedIdeaIds.contains(idea.ideaId.trim())) return false;
       if (dept.isEmpty) return true;
       return idea.problemDepartmentCode.trim().toUpperCase() == dept;
     }).length;

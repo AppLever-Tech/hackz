@@ -54,6 +54,7 @@ class IdeathonDetailsViewModel {
   IdeathonModel get ideathon => workspace.ideathon;
   List<UserModel> get judges => workspace.judges;
   List<UserModel> get coordinators => workspace.coordinators;
+  bool get requiresIdeaPayment => workspace.requiresIdeaPayment;
 }
 
 abstract final class IdeathonDetailsLoader {

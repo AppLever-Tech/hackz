@@ -9,6 +9,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../../organization/services/commercial_access.dart';
 import 'team_service.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
@@ -209,15 +210,18 @@ class TeamsWorkspaceService {
     }
 
     final insights = <String, TeamWorkspaceInsight>{};
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(actor.orgId);
     for (final team in teams) {
       final teamIdeas = ideasByTeam[team.teamId] ?? const <IdeaModel>[];
       insights[team.teamId] = TeamWorkspaceInsight(
         team: team,
         ideas: teamIdeas,
-        paymentStatuses: teamIdeas
-            .map((idea) => paymentsByIdea[idea.ideaId])
-            .whereType<PaymentRecordStatus>()
-            .toList(growable: false),
+        paymentStatuses: ideaPaymentRequired
+            ? teamIdeas
+                .map((idea) => paymentsByIdea[idea.ideaId])
+                .whereType<PaymentRecordStatus>()
+                .toList(growable: false)
+            : const <PaymentRecordStatus>[],
         evaluationCount: teamIdeas.fold<int>(0, (sum, idea) => sum + (scoresByIdea[idea.ideaId] ?? 0)),
       );
     }

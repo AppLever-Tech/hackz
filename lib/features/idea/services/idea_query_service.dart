@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../organization/models/department_model.dart';
+import '../../organization/services/commercial_access.dart';
 import '../../user/models/enums/user_role.dart';
 import '../models/idea_event_participation_summary.dart';
 import '../models/idea_list_config.dart';
@@ -60,10 +61,12 @@ class IdeaListQueryResult {
   const IdeaListQueryResult({
     required this.items,
     required this.metrics,
+    this.canUploadPayment = false,
   });
 
   final List<IdeaListItem> items;
   final IdeaDepartmentMetrics metrics;
+  final bool canUploadPayment;
 }
 
 class IdeaListItem {
@@ -120,7 +123,9 @@ class IdeaQueryService {
       orgId: params.config.orgId,
       ideaIds: ideas.map((IdeaModel e) => e.ideaId).toSet(),
     );
-    final Map<String, PaymentModel> paymentByIdeaId = params.config.canUploadPayment
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(params.config.orgId);
+    final bool canUploadPayment = params.config.canUploadPayment && ideaPaymentRequired;
+    final Map<String, PaymentModel> paymentByIdeaId = canUploadPayment
         ? await _fetchPaymentByIdea(
             orgId: params.config.orgId,
             ideaIds: ideas.map((IdeaModel e) => e.ideaId),
@@ -139,11 +144,12 @@ class IdeaQueryService {
               team: team,
               events: eventsByIdea[idea.ideaId] ?? const <IdeaEventParticipationSummary>[],
               payment: payment,
-              canUploadPayment: _viewerCanUploadPayment(
-                viewer: viewer,
-                team: team,
-                payment: payment,
-              ),
+              canUploadPayment: canUploadPayment &&
+                  _viewerCanUploadPayment(
+                    viewer: viewer,
+                    team: team,
+                    payment: payment,
+                  ),
             );
           },
         )
@@ -151,7 +157,7 @@ class IdeaQueryService {
     items = _applyViewerScope(items, viewer);
     items = _applySort(items, params.sortType);
     final IdeaDepartmentMetrics metrics = _computeMetrics(deptScoped);
-    return IdeaListQueryResult(items: items, metrics: metrics);
+    return IdeaListQueryResult(items: items, metrics: metrics, canUploadPayment: canUploadPayment);
   }
 
   static List<IdeaModel> _applyDepartmentScope(List<IdeaModel> ideas, IdeaQueryParams params) {

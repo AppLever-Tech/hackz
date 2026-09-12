@@ -38,4 +38,20 @@ class IdeaListConfig {
   final String departmentCode;
   final Set<IdeaFilterType> enabledFilters;
   final Set<IdeaSortType> enabledSorts;
+
+  IdeaListConfig copyWith({bool? canUploadPayment}) {
+    return IdeaListConfig(
+      canViewIdeas: canViewIdeas,
+      canCreateIdea: canCreateIdea,
+      canEvaluate: canEvaluate,
+      canViewStatus: canViewStatus,
+      canUploadPayment: canUploadPayment ?? this.canUploadPayment,
+      canAssignJudge: canAssignJudge,
+      ideaDepartmentScope: ideaDepartmentScope,
+      orgId: orgId,
+      departmentCode: departmentCode,
+      enabledFilters: enabledFilters,
+      enabledSorts: enabledSorts,
+    );
+  }
 }

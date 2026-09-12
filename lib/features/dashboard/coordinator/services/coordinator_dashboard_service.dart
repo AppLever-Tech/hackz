@@ -11,6 +11,7 @@ import '../../../../features/user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/user/services/role_visibility_helpers.dart';
 import '../../../ideathons/services/ideathon_service.dart';
+import '../../../organization/services/commercial_access.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 typedef _FirestoreDocs = List<QueryDocumentSnapshot<Map<String, dynamic>>>;
@@ -197,39 +198,47 @@ class CoordinatorDashboardService {
       attachmentsByPayment.putIfAbsent(attachment.entityId, () => <AttachmentModel>[]).add(attachment);
     }
 
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(user.orgId);
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final verifiedToday = payments.where((payment) {
-      final verifiedAt = payment.verifiedAt;
-      return payment.status == PaymentRecordStatus.verified && verifiedAt != null && !verifiedAt.isBefore(today);
-    }).length;
+    final verifiedToday = ideaPaymentRequired
+        ? payments.where((payment) {
+            final verifiedAt = payment.verifiedAt;
+            return payment.status == PaymentRecordStatus.verified && verifiedAt != null && !verifiedAt.isBefore(today);
+          }).length
+        : 0;
 
-    final pendingQueue = payments
-        .where((payment) => payment.status == PaymentRecordStatus.pending)
-        .map((payment) {
-          final idea = ideaById[payment.ideaId];
-          final hasProof = payment.paymentProofUrl.trim().isNotEmpty || (attachmentsByPayment[payment.paymentId]?.isNotEmpty ?? false);
-          return PaymentQueueItem(
-            payment: payment,
-            teamName: teamNameById[payment.teamId] ?? payment.teamId,
-            ideaId: payment.ideaId,
-            ideaName: _ideaLabel(idea, payment),
-            hasProof: hasProof,
-            isOverdue: now.difference(payment.createdAt) > _overdueThreshold,
-            submittedAt: payment.createdAt,
-          );
-        })
-        .toList(growable: false)
-      ..sort((a, b) => a.submittedAt.compareTo(b.submittedAt));
+    final pendingQueue = ideaPaymentRequired
+        ? (payments
+            .where((payment) => payment.status == PaymentRecordStatus.pending)
+            .map((payment) {
+              final idea = ideaById[payment.ideaId];
+              final hasProof = payment.paymentProofUrl.trim().isNotEmpty || (attachmentsByPayment[payment.paymentId]?.isNotEmpty ?? false);
+              return PaymentQueueItem(
+                payment: payment,
+                teamName: teamNameById[payment.teamId] ?? payment.teamId,
+                ideaId: payment.ideaId,
+                ideaName: _ideaLabel(idea, payment),
+                hasProof: hasProof,
+                isOverdue: now.difference(payment.createdAt) > _overdueThreshold,
+                submittedAt: payment.createdAt,
+              );
+            })
+            .toList(growable: false)
+          ..sort((a, b) => a.submittedAt.compareTo(b.submittedAt)))
+        : const <PaymentQueueItem>[];
 
     final pendingPayments = pendingQueue.length;
-    final rejectedPayments = payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length;
-    // Ideas with a pending payment awaiting coordinator validation (payment is
-    // independent of IdeaStatus; ideas are typically already Submitted).
-    final ideasAwaitingValidation = ideas.where((idea) {
-      final payment = paymentByIdea[idea.ideaId];
-      return payment != null && payment.status == PaymentRecordStatus.pending;
-    }).length;
+    final rejectedPayments = ideaPaymentRequired
+        ? payments.where((payment) => payment.status == PaymentRecordStatus.rejected).length
+        : 0;
+    final ideasAwaitingValidation = ideaPaymentRequired
+        ? ideas.where((idea) {
+            final payment = paymentByIdea[idea.ideaId];
+            return payment != null && payment.status == PaymentRecordStatus.pending;
+          }).length
+        : 0;
 
     final analytics = CoordinatorDashboardAnalytics(
       pendingPayments: pendingPayments,
@@ -237,11 +246,19 @@ class CoordinatorDashboardService {
       ideasAwaitingValidation: ideasAwaitingValidation,
       rejectedPayments: rejectedPayments,
       trendsByTimeframe: <CoordinatorDashboardTimeframe, List<CoordinatorTrendPoint>>{
-        for (final timeframe in CoordinatorDashboardTimeframe.values) timeframe: _buildTrend(payments, timeframe),
+        for (final timeframe in CoordinatorDashboardTimeframe.values)
+          timeframe: _buildTrend(ideaPaymentRequired ? payments : const <PaymentModel>[], timeframe),
       },
-      workflow: _buildWorkflow(ideas, payments, paymentOnly: !RoleVisibilityHelpers.canViewIdeas(UserRole.fromCode(user.role))),
+      workflow: _buildWorkflow(
+        ideas,
+        ideaPaymentRequired ? payments : const <PaymentModel>[],
+        paymentOnly: !RoleVisibilityHelpers.canViewIdeas(UserRole.fromCode(user.role)),
+      ),
       pendingQueue: pendingQueue,
-      recentActivity: _buildActivity(payments, scores),
+      recentActivity: _buildActivity(
+        ideaPaymentRequired ? payments : const <PaymentModel>[],
+        scores,
+      ),
     );
 
     _cache[key] = analytics;
@@ -250,11 +267,13 @@ class CoordinatorDashboardService {
   }
 
   static Future<void> verifyPayment({required PaymentModel payment, required UserModel coordinator}) async {
+    if (!await CommercialAccess.requiresIdeaPaymentForOrg(coordinator.orgId)) return;
     await IdeathonService.confirmTeamLeaderPayment(payment: payment, coordinator: coordinator);
     clearCache();
   }
 
   static Future<void> rejectPayment({required PaymentModel payment, required UserModel coordinator, String? remarks}) async {
+    if (!await CommercialAccess.requiresIdeaPaymentForOrg(coordinator.orgId)) return;
     await FirestoreUtils.rejectIdeaPayment(paymentId: payment.paymentId, coordinatorId: coordinator.userId, remarks: remarks);
     clearCache();
   }

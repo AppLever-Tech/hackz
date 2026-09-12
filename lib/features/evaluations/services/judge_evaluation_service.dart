@@ -195,6 +195,8 @@ abstract final class JudgeEvaluationService {
       return hit.vm;
     }
 
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(judge.orgId);
+
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
       _db.collection(FirestoreUtils.hkzIdeas).where('orgId', isEqualTo: judge.orgId).get(),
       _db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: judge.orgId).get(),
@@ -303,6 +305,7 @@ abstract final class JudgeEvaluationService {
 
     bool judgeMayEvaluate(IdeaModel idea) {
       if (idea.status == IdeaStatus.draft) return false;
+      if (!ideaPaymentRequired) return true;
       final pay = paymentByIdeaId[idea.ideaId];
       if (pay != null &&
           pay.status != PaymentRecordStatus.verified &&

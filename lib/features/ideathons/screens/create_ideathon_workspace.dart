@@ -20,6 +20,8 @@ import '../../events/models/event_schedule_type.dart';
 import '../../events/widgets/event_schedule_type_selector.dart';
 import '../../events/widgets/event_template_selector.dart';
 import '../../org_settings/services/org_settings_service.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
+import '../../organization/services/commercial_access.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../../user/services/role_visibility_helpers.dart';
@@ -69,6 +71,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   List<EvaluationTemplate> _templates = <EvaluationTemplate>[];
   String? _selectedTemplateId;
   String? _optionalProblemId;
+  OrganizationCommercialPlan _commercialPlan = OrganizationCommercialPlan.perIdea;
 
   final Set<String> _selectedJudgeIds = <String>{};
   final Set<String> _selectedCoordinatorIds = <String>{};
@@ -121,9 +124,11 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     );
     final bool locked =
         event != null && await IdeathonService.hasEvaluationStarted(event.ideathonId);
+    final OrganizationCommercialPlan plan = await CommercialAccess.planForOrg(orgId);
 
     if (!mounted) return;
     setState(() {
+      _commercialPlan = plan;
       _evaluators = evaluators;
       _coordinators = coordinators;
       _templates = templates;
@@ -332,7 +337,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         title: _isEdit ? '${_kind.label} updated' : 'Event created',
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
-            : 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and coordinator payment validation.',
+            : CommercialAccess.requiresIdeaPayment(_commercialPlan)
+                ? 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and coordinator payment validation.'
+                : 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear automatically after Team Leader submission. Individual idea payment is not required.',
       );
     } catch (e) {
       if (!mounted) return;

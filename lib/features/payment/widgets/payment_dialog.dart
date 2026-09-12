@@ -19,6 +19,7 @@ import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/ideathons/services/ideathon_participation_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
+import 'package:hackz/features/organization/services/commercial_access.dart';
 import 'package:hackz/features/team/models/team_model.dart';
 import 'package:hackz/features/team/services/team_service.dart';
 import 'package:hackz/features/user/models/user_model.dart';
@@ -99,6 +100,15 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       final String eventId = membership?.ideathonId.trim() ?? '';
       final IdeathonModel? event =
           eventId.isEmpty ? null : await IdeathonService.fetchById(eventId);
+      if (!mounted) return;
+      if (event != null && !await CommercialAccess.requiresIdeaPaymentForOrg(widget.idea.orgId)) {
+        if (!mounted) return;
+        setState(() {
+          _event = null;
+          _errorMessage = CommercialAccess.ideaPaymentNotRequiredMessage;
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _event = event;

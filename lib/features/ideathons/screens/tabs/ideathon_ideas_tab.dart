@@ -57,7 +57,9 @@ class IdeathonIdeasTab extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${kind.entriesLabel} appear here after Team Leaders submit and coordinators validate payment.',
+            vm.requiresIdeaPayment
+                ? '${kind.entriesLabel} appear here after Team Leaders submit and coordinators validate payment.'
+                : '${kind.entriesLabel} appear here automatically after Team Leaders submit. Individual payment is not required.',
             style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
           ),
         ],
@@ -85,7 +87,9 @@ class IdeathonIdeasTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '$entries will appear here automatically after Team Leaders submit and their payments are validated.',
+                      vm.requiresIdeaPayment
+                          ? '$entries will appear here automatically after Team Leaders submit and their payments are validated.'
+                          : '$entries will appear here automatically after Team Leaders submit.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12.5, height: 1.4, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                     ),

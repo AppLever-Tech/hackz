@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../../../../features/organization/models/department_model.dart';
+import '../../../../features/organization/services/commercial_access.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
@@ -251,8 +252,13 @@ class DepartmentDashboardService {
     const int rejectedIdeas = 0;
 
     final List<PaymentRecordStatus> paymentStatuses = payments.map((doc) => PaymentRecordStatus.fromRaw((doc.data()['status'] as String?) ?? '')).toList(growable: false);
-    final int pendingPayments = paymentStatuses.where((s) => s == PaymentRecordStatus.pending).length;
-    final int verifiedPayments = paymentStatuses.where((s) => s == PaymentRecordStatus.verified).length;
+    final bool ideaPaymentRequired = await CommercialAccess.requiresIdeaPaymentForOrg(orgId);
+    final int pendingPayments = ideaPaymentRequired
+        ? paymentStatuses.where((s) => s == PaymentRecordStatus.pending).length
+        : 0;
+    final int verifiedPayments = ideaPaymentRequired
+        ? paymentStatuses.where((s) => s == PaymentRecordStatus.verified).length
+        : 0;
 
     final analytics = DepartmentDashboardAnalytics(
       totalActiveUsers: activeUsers,

@@ -65,6 +65,9 @@ abstract final class IdeathonPaymentService {
     required EventPaymentEntry entry,
     required UserModel actor,
   }) async {
+    if (!await CommercialAccess.requiresIdeaPaymentForOrg(actor.orgId)) {
+      throw StateError(CommercialAccess.ideaPaymentNotRequiredMessage);
+    }
     final PaymentModel payment = _requireEventPayment(eventId: eventId, entry: entry);
     await IdeathonService.confirmTeamLeaderPayment(payment: payment, coordinator: actor);
   }
@@ -75,6 +78,9 @@ abstract final class IdeathonPaymentService {
     required UserModel actor,
     String? remarks,
   }) async {
+    if (!await CommercialAccess.requiresIdeaPaymentForOrg(actor.orgId)) {
+      throw StateError(CommercialAccess.ideaPaymentNotRequiredMessage);
+    }
     final PaymentModel payment = _requireEventPayment(eventId: eventId, entry: entry);
     final IdeathonModel? event = await IdeathonService.fetchById(eventId);
     if (event != null) {

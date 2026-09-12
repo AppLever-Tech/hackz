@@ -1,5 +1,6 @@
 import '../../ideathons/models/event_commercial_access.dart';
 import '../../ideathons/models/ideathon_model.dart';
+import '../models/enums/organization_commercial_plan.dart';
 import '../models/organization_model.dart';
 import 'organisation_access.dart';
 
@@ -16,6 +17,14 @@ abstract final class CommercialAccess {
       'This event does not currently have commercial access.';
   static const String eventNotLicensedMessage =
       'This event is not commercially enabled yet.';
+  static const String ideaPaymentNotRequiredMessage =
+      'Individual idea payment is not required for this organisation commercial plan.';
+
+  static const String individualPaymentLabel = 'Individual Payment';
+  static const String activationPendingLabel = 'Activation Pending';
+  static const String commercialAccessActiveLabel = 'Commercial Access Active';
+  static const String annualContractLabel = 'Active — Annual Contract';
+  static const String accessDisabledLabel = 'Access disabled';
 
   static bool isOrganisationOperational(OrganizationModel org, {DateTime? now}) {
     return OrganisationAccess.isGranted(org, now: now);
@@ -53,5 +62,39 @@ abstract final class CommercialAccess {
 
   static EventCommercialAccess initialEventAccess({required bool perEvent}) {
     return perEvent ? EventCommercialAccess.pending : EventCommercialAccess.enabled;
+  }
+
+  /// Missing Control Plane rows default to per-idea so payments are not skipped.
+  static OrganizationCommercialPlan planOf(OrganizationModel? org) {
+    return org?.commercialPlan ?? OrganizationCommercialPlan.perIdea;
+  }
+
+  static Future<OrganizationCommercialPlan> planForOrg(String orgId) async {
+    return planOf(await OrganisationAccess.fetch(orgId));
+  }
+
+  /// Individual idea/student payment is required only on the per-idea plan.
+  static bool requiresIdeaPayment(OrganizationCommercialPlan plan) {
+    return plan == OrganizationCommercialPlan.perIdea;
+  }
+
+  static Future<bool> requiresIdeaPaymentForOrg(String orgId) async {
+    return requiresIdeaPayment(await planForOrg(orgId));
+  }
+
+  /// Compact Department Admin label. Not a SysAdmin control.
+  static String departmentAdminIndicator({
+    required OrganizationCommercialPlan plan,
+    required EventCommercialAccess access,
+  }) {
+    if (access.isRevoked) return accessDisabledLabel;
+    switch (plan) {
+      case OrganizationCommercialPlan.perIdea:
+        return individualPaymentLabel;
+      case OrganizationCommercialPlan.perEvent:
+        return access.isEnabled ? commercialAccessActiveLabel : activationPendingLabel;
+      case OrganizationCommercialPlan.annual:
+        return annualContractLabel;
+    }
   }
 }

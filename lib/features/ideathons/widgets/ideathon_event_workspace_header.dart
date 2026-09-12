@@ -1,4 +1,5 @@
 import '../../events/widgets/event_workspace_header.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
 import '../models/ideathon_model.dart';
 import 'event_commercial_access_pill.dart';
 import 'ideathon_status_pill.dart';
@@ -8,6 +9,7 @@ import 'ideathon_type_pill.dart';
 EventWorkspaceHeader ideathonEventWorkspaceHeader({
   required IdeathonModel event,
   required String organisationName,
+  OrganizationCommercialPlan? commercialPlan,
 }) {
   return EventWorkspaceHeader(
     kind: event.eventKind,
@@ -19,6 +21,10 @@ EventWorkspaceHeader ideathonEventWorkspaceHeader({
     entryCount: event.ideaCount,
     typePill: IdeathonTypePill(type: event.ideathonType, compact: true),
     statusPill: IdeathonStatusPill(status: event.status, compact: true),
-    accessPill: EventCommercialAccessPill.maybe(event.commercialAccess, compact: true),
+    accessPill: EventCommercialAccessPill.forEvent(
+      event: event,
+      plan: commercialPlan,
+      compact: true,
+    ),
   );
 }

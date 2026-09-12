@@ -11,6 +11,7 @@ import '../models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../../organization/services/commercial_access.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamMemberPreview {
@@ -161,6 +162,8 @@ abstract final class TeamWorkspaceLoader {
       );
     }).toList(growable: false);
 
+    final bool ideaPaymentRequired =
+        orgId.isEmpty ? false : await CommercialAccess.requiresIdeaPaymentForOrg(orgId);
     final List<TeamIdeaPreview> ideaPreviews = ideas.map((IdeaModel idea) {
       final List<ScoreModel> sc = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
       final double? avg = sc.isEmpty
@@ -170,13 +173,17 @@ abstract final class TeamWorkspaceLoader {
       return TeamIdeaPreview(
         idea: idea,
         avgScore: avg,
-        paymentStatus: paymentByIdea[idea.ideaId],
+        paymentStatus: ideaPaymentRequired ? paymentByIdea[idea.ideaId] : null,
         createdByName: creator == null ? idea.createdBy : userDisplayName(creator),
         createdByUserId: idea.createdBy,
       );
     }).toList(growable: false);
 
-    final List<TeamActivityItem> activity = _buildActivity(ideas, scoresByIdea, paymentByIdea);
+    final List<TeamActivityItem> activity = _buildActivity(
+      ideas,
+      scoresByIdea,
+      ideaPaymentRequired ? paymentByIdea : const <String, PaymentRecordStatus>{},
+    );
 
     return TeamWorkspaceViewModel(
       team: team,
