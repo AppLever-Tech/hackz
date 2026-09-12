@@ -1,18 +1,21 @@
 import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import {
+  EVENT_ENTITLEMENT_STATUS_PENDING,
   eventEntitlementDocId,
   initialEventEntitlementFields,
   isPerEventCommercialPlan,
   normalizeEventEntitlementRequest,
   ORG_COMMERCIAL_PLAN_PER_EVENT,
+  readEntitlementStatus,
 } from './event-entitlement.js';
+import { alignTenantCommercialAccess } from './event-payment-readiness.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantAuth, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
+import { readOrganisationCommercialPlan } from './organisation-plan.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   DEPARTMENT_ADMIN_ROLE,
   HKZ_EVENT_ENTITLEMENTS,
-  HKZ_ORGANIZATIONS,
   HKZ_USERS,
   type EventEntitlementRequest,
   type EventEntitlementResult,
@@ -84,27 +87,23 @@ async function assertTenantDepartmentAdmin(
   }
 }
 
-async function organisationCommercialPlan(organisationId: string): Promise<string> {
-  let doc;
+async function alignPendingTenantAccess(organisationId: string, eventId: string): Promise<void> {
   try {
-    doc = await controlPlaneFirestore().collection(HKZ_ORGANIZATIONS).doc(organisationId).get();
-  } catch (error) {
-    throw new ProvisionError(
-      'CONTROL_PLANE_UNAVAILABLE',
-      isPermissionDenied(error)
-        ? 'The provisioning identity cannot read Control Plane organisations.'
-        : 'Unable to read Control Plane organisation commercial plan.',
-    );
+    await alignTenantCommercialAccess({
+      organisationId,
+      eventId,
+      licensingStatus: EVENT_ENTITLEMENT_STATUS_PENDING,
+    });
+  } catch {
+    // Tenant align is best-effort. Control Plane entitlement remains the source of truth.
   }
-  const data = doc.data() ?? {};
-  return String(data.commercialPlan ?? data.accessMode ?? '').trim();
 }
 
 export async function registerEventEntitlement(input: EventEntitlementRequest & { idToken: string }): Promise<EventEntitlementResult> {
   const normalized = normalizeEventEntitlementRequest(input);
   await assertTenantDepartmentAdmin(input.idToken, normalized.organisationId);
 
-  const commercialPlan = await organisationCommercialPlan(normalized.organisationId);
+  const commercialPlan = await readOrganisationCommercialPlan(normalized.organisationId);
   if (!isPerEventCommercialPlan(commercialPlan)) {
     return {
       ok: true,
@@ -122,6 +121,9 @@ export async function registerEventEntitlement(input: EventEntitlementRequest & 
   try {
     const existing = await ref.get();
     if (existing.exists) {
+      if (readEntitlementStatus(existing.data() ?? {}) === EVENT_ENTITLEMENT_STATUS_PENDING) {
+        await alignPendingTenantAccess(normalized.organisationId, normalized.eventId);
+      }
       return {
         ok: true,
         skipped: false,
@@ -149,6 +151,14 @@ export async function registerEventEntitlement(input: EventEntitlementRequest & 
     });
   } catch (error) {
     if (isAlreadyExists(error)) {
+      try {
+        const raced = await ref.get();
+        if (readEntitlementStatus(raced.data() ?? {}) === EVENT_ENTITLEMENT_STATUS_PENDING) {
+          await alignPendingTenantAccess(normalized.organisationId, normalized.eventId);
+        }
+      } catch {
+        // Existing entitlement is enough. Tenant align retries on the next open.
+      }
       return {
         ok: true,
         skipped: false,
@@ -165,6 +175,8 @@ export async function registerEventEntitlement(input: EventEntitlementRequest & 
         : 'Unable to register event access.',
     );
   }
+
+  await alignPendingTenantAccess(normalized.organisationId, normalized.eventId);
 
   return {
     ok: true,

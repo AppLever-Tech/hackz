@@ -715,22 +715,38 @@ abstract final class IdeathonService {
     required DocumentReference<Map<String, dynamic>> eventRef,
   }) async {
     if (perEvent == false) return;
-    try {
-      final HackzEventEntitlementResult result = await HackzProvisioningClient.registerEventEntitlement(
-        organisationId: event.orgId,
-        eventId: event.ideathonId,
-        eventName: event.name,
-        eventType: event.eventKind.wireValue,
-      );
-      if (perEvent == null && result.registered && !event.commercialAccess.isPending) {
-        await eventRef.update(<String, dynamic>{
-          'commercialAccess': EventCommercialAccess.pending.toMap(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      debugPrint('Event entitlement registration failed for ${event.ideathonId}: $error');
+    final HackzEventEntitlementResult result = await _registerEventEntitlementWithRetry(event);
+    if (result.registered && event.commercialAccess.isEnabled) {
+      await eventRef.update(<String, dynamic>{
+        'commercialAccess': EventCommercialAccess.pending.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     }
+  }
+
+  /// Idempotent Control Plane register so a failed create-time call can heal on open.
+  static Future<void> ensurePerEventEntitlement(IdeathonModel event) async {
+    if (await OrganisationAccess.isPerEvent(event.orgId) != true) return;
+    await _registerEventEntitlementWithRetry(event);
+  }
+
+  static Future<HackzEventEntitlementResult> _registerEventEntitlementWithRetry(IdeathonModel event) async {
+    Object? lastError;
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await HackzProvisioningClient.registerEventEntitlement(
+          organisationId: event.orgId,
+          eventId: event.ideathonId,
+          eventName: event.name,
+          eventType: event.eventKind.wireValue,
+        );
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw StateError(
+      'Event entitlement registration failed for ${event.ideathonId}. $lastError',
+    );
   }
 
   static Future<void> syncEventPaymentReadiness({

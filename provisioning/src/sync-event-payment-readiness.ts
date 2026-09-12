@@ -16,6 +16,7 @@ import {
   tenantFirestore,
 } from './firebase-apps.js';
 import { alignTenantCommercialAccess } from './event-payment-readiness.js';
+import { assertOrganisationIsPerEvent } from './organisation-plan.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   COLLEGE_ADMIN_ROLE,
@@ -109,6 +110,7 @@ export async function syncEventPaymentReadiness(input: {
     throw new ProvisionError('INVALID_INPUT', 'organisationId and eventId are required.');
   }
   await assertSysAdminOrTenantOperator(input.idToken, organisationId);
+  await assertOrganisationIsPerEvent(organisationId);
 
   const entitlementId = eventEntitlementDocId(organisationId, eventId);
   const ref = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);

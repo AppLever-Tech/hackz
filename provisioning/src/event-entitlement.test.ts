@@ -80,6 +80,13 @@ test('isPerEventCommercialPlan matches PER_EVENT and existing perEvent values', 
   assert.equal(isPerEventCommercialPlan(''), false);
 });
 
+test('SysAdmin cannot treat PER_IDEA or ANNUAL orgs as per-event entitlements', () => {
+  assert.equal(isPerEventCommercialPlan('PER_IDEA'), false);
+  assert.equal(isPerEventCommercialPlan('ANNUAL'), false);
+  assert.equal(isPerEventCommercialPlan('perIdea'), false);
+  assert.equal(isPerEventCommercialPlan('subscription'), false);
+});
+
 test('initialEventEntitlementFields stores only SysAdmin entitlement metadata', () => {
   const fields = initialEventEntitlementFields({
     organisationId: 'org-1',

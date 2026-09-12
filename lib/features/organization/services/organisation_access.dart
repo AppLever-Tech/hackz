@@ -15,6 +15,8 @@ abstract final class OrganisationAccess {
 
   static OrganizationModel? _cached;
   static String? _cachedOrgId;
+  static DateTime? _cachedAt;
+  static const Duration _ttl = Duration(seconds: 30);
 
   /// Commercially usable when status is ACTIVE, and for time-bound plans the
   /// current date is within validFrom/validUntil.
@@ -42,13 +44,19 @@ abstract final class OrganisationAccess {
   static Future<OrganizationModel?> fetch(String orgId) async {
     final String id = orgId.trim();
     if (id.isEmpty) return null;
-    if (_cachedOrgId == id) return _cached;
+    final DateTime now = DateTime.now();
+    if (_cachedOrgId == id &&
+        _cachedAt != null &&
+        now.difference(_cachedAt!) < _ttl) {
+      return _cached;
+    }
     final OrganizationModel? org = await FirestoreUtils.fetchOrganization(
       id,
       database: HackzFirebase.controlPlane.firestore,
     );
     _cached = org;
     _cachedOrgId = id;
+    _cachedAt = now;
     return org;
   }
 
@@ -66,5 +74,6 @@ abstract final class OrganisationAccess {
   static void clearCache() {
     _cached = null;
     _cachedOrgId = null;
+    _cachedAt = null;
   }
 }

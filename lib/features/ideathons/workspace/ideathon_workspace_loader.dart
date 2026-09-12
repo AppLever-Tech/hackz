@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -88,6 +89,13 @@ abstract final class IdeathonWorkspaceLoader {
   static Future<IdeathonWorkspaceViewModel> load(String ideathonId) async {
     IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
     if (ideathon == null) throw StateError('Ideathon not found');
+
+    try {
+      await IdeathonService.ensurePerEventEntitlement(ideathon);
+      ideathon = await IdeathonService.fetchById(ideathonId) ?? ideathon;
+    } catch (error) {
+      debugPrint('Event entitlement registration retry failed for ${ideathon.ideathonId}: $error');
+    }
 
     if (await IdeathonService.promoteEligibleSubmissionsWithoutIdeaPayment(ideathon.ideathonId)) {
       ideathon = await IdeathonService.fetchById(ideathonId) ?? ideathon;

@@ -71,6 +71,16 @@ void main() {
     expect(OrganisationAccess.isGranted(annual, now: DateTime(2027, 1, 2)), isFalse);
   });
 
+  test('annual grant uses the current date even when the org row was previously granted', () {
+    final OrganizationModel annual = org(
+      commercialPlan: OrganizationCommercialPlan.annual,
+      validFrom: DateTime(2026, 1, 1),
+      validUntil: DateTime(2026, 6, 30),
+    );
+    expect(OrganisationAccess.isGranted(annual, now: DateTime(2026, 6, 30)), isTrue);
+    expect(OrganisationAccess.isGranted(annual, now: DateTime(2026, 7, 1)), isFalse);
+  });
+
   test('registry maps persist organisation status and commercial plan', () {
     final OrganizationModel source = org(
       status: OrganizationAccessStatus.inactive,

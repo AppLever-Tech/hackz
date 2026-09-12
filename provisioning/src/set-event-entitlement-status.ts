@@ -9,6 +9,7 @@ import {
 } from './event-entitlement.js';
 import { isNotFound, isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
+import { assertOrganisationIsPerEvent } from './organisation-plan.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   HKZ_EVENT_ENTITLEMENTS,
@@ -21,6 +22,7 @@ export async function setEventEntitlementStatus(
   input: SetEventEntitlementStatusRequest,
 ): Promise<SetEventEntitlementStatusResult> {
   const normalized = normalizeSetEventEntitlementStatusRequest(input);
+  await assertOrganisationIsPerEvent(normalized.organisationId);
   const entitlementId = eventEntitlementDocId(normalized.organisationId, normalized.eventId);
   const cpRef = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);
 

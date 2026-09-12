@@ -7,6 +7,7 @@ import {
 } from './event-entitlement.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { controlPlaneFirestore } from './firebase-apps.js';
+import { assertOrganisationIsPerEvent } from './organisation-plan.js';
 import {
   HKZ_EVENT_ENTITLEMENTS,
   type RecordEventEntitlementPaymentRequest,
@@ -17,6 +18,7 @@ export async function recordEventEntitlementPayment(
   input: RecordEventEntitlementPaymentRequest,
 ): Promise<RecordEventEntitlementPaymentResult> {
   const normalized = normalizeRecordEventEntitlementPaymentRequest(input);
+  await assertOrganisationIsPerEvent(normalized.organisationId);
   const entitlementId = eventEntitlementDocId(normalized.organisationId, normalized.eventId);
   const cpRef = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);
 
