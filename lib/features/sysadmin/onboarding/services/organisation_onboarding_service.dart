@@ -6,12 +6,14 @@ import '../../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../../core/firebase/tenant_firebase.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
+import '../../../organization/models/enums/organization_commercial_plan.dart';
 import '../../../organization/models/organization_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../models/org_operational_data.dart';
 import '../../services/org_management_service.dart';
 import '../models/event_entitlement.dart';
+import '../models/organisation_event_commercial_item.dart';
 import '../models/organisation_onboarding_item.dart';
 import 'provisioning_authorization_validator.dart';
 import 'tenant_workspace_validator.dart';
@@ -264,6 +266,84 @@ abstract final class OrganisationOnboardingService {
       return a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase());
     });
     return items;
+  }
+
+  /// SysAdmin commercial list: Control Plane entitlements for PER_EVENT, tenant catalog otherwise.
+  static Future<List<OrganisationEventCommercialItem>> listEventCommercialAccess({
+    required OrganizationModel organization,
+    String tenantId = '',
+  }) async {
+    if (organization.commercialPlan == OrganizationCommercialPlan.perEvent) {
+      final List<EventEntitlement> entitlements = await listEventEntitlements(organization.id);
+      return entitlements
+          .map(OrganisationEventCommercialItem.fromEntitlement)
+          .toList(growable: false);
+    }
+    final List<TenantEventCatalogEntry> events = await listTenantEventCatalog(
+      orgId: organization.id,
+      tenantId: tenantId,
+    );
+    return events
+        .map(
+          (TenantEventCatalogEntry event) => OrganisationEventCommercialItem.fromCatalog(
+            organization: organization,
+            event: event,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  /// Minimal tenant event names/types for commercial display. Does not load event administration data.
+  static Future<List<TenantEventCatalogEntry>> listTenantEventCatalog({
+    required String orgId,
+    required String tenantId,
+  }) async {
+    final String id = orgId.trim();
+    final String tenant = tenantId.trim();
+    if (id.isEmpty || tenant.isEmpty) return const <TenantEventCatalogEntry>[];
+    try {
+      return TenantFirebase.withOrganisationFirestore(tenant, (FirebaseFirestore db) async {
+        QuerySnapshot<Map<String, dynamic>> snap;
+        try {
+          snap = await db
+              .collection(FirestoreUtils.hkzIdeathons)
+              .where('orgId', isEqualTo: id)
+              .get();
+        } catch (_) {
+          snap = await db.collection(FirestoreUtils.hkzIdeathons).get();
+        }
+        final List<TenantEventCatalogEntry> items = <TenantEventCatalogEntry>[];
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+          final Map<String, dynamic> data = doc.data();
+          if ((data['orgId'] as String? ?? '').trim() != id) continue;
+          items.add(
+            TenantEventCatalogEntry(
+              eventId: doc.id,
+              eventName: (data['name'] as String? ?? '').trim(),
+              eventType: (data['eventKind'] as String? ?? data['eventType'] as String? ?? '').trim(),
+              createdAt: _optionalDate(data['createdAt']),
+            ),
+          );
+        }
+        items.sort((TenantEventCatalogEntry a, TenantEventCatalogEntry b) {
+          final DateTime aAt = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final DateTime bAt = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final int byDate = bAt.compareTo(aAt);
+          if (byDate != 0) return byDate;
+          return a.eventName.toLowerCase().compareTo(b.eventName.toLowerCase());
+        });
+        return items;
+      });
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') return const <TenantEventCatalogEntry>[];
+      rethrow;
+    }
+  }
+
+  static DateTime? _optionalDate(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
   }
 
   /// Writes the organisation catalog row on the Control Plane and, when a

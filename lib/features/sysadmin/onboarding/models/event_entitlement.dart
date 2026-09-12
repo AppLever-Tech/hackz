@@ -40,7 +40,7 @@ enum EventEntitlementDisplayState {
   disabled;
 
   String get label => switch (this) {
-        EventEntitlementDisplayState.pending => 'Pending',
+        EventEntitlementDisplayState.pending => 'Payment Pending',
         EventEntitlementDisplayState.readyForActivation => 'Ready for Activation',
         EventEntitlementDisplayState.enabled => 'Enabled',
         EventEntitlementDisplayState.disabled => 'Disabled',
