@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../organization/models/enums/organization_commercial_plan.dart';
+
 /// Control Plane event licensing metadata. Not a tenant event and not lifecycle.
 enum EventEntitlementStatus {
   pending,
@@ -17,17 +19,17 @@ enum EventEntitlementStatus {
 }
 
 enum EventEntitlementPaymentStatus {
-  unpaid,
   pending,
   paid;
 
   String get wireValue => name;
 
+  String get label => this == EventEntitlementPaymentStatus.paid ? 'Payment received' : 'Payment pending';
+
   static EventEntitlementPaymentStatus fromWire(Object? value) {
     final String normalized = (value as String? ?? '').trim().toLowerCase();
     if (normalized == paid.wireValue) return paid;
-    if (normalized == pending.wireValue) return pending;
-    return unpaid;
+    return pending;
   }
 }
 
@@ -52,14 +54,14 @@ class EventEntitlement {
     required this.eventId,
     required this.eventName,
     required this.eventType,
-    required this.status,
-    required this.paymentMode,
+    required this.entitlementStatus,
+    required this.commercialPlan,
     required this.paymentStatus,
-    this.lumpSumVerified = false,
-    this.ideaPaymentCount = 0,
-    this.ideaPaymentsVerified = 0,
     this.createdAt,
     this.updatedAt,
+    this.activatedAt,
+    this.disabledAt,
+    this.paymentReceivedAt,
   });
 
   final String id;
@@ -67,38 +69,33 @@ class EventEntitlement {
   final String eventId;
   final String eventName;
   final String eventType;
-  final EventEntitlementStatus status;
-  final String paymentMode;
+  final EventEntitlementStatus entitlementStatus;
+  final OrganizationCommercialPlan commercialPlan;
   final EventEntitlementPaymentStatus paymentStatus;
-  final bool lumpSumVerified;
-  final int ideaPaymentCount;
-  final int ideaPaymentsVerified;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? activatedAt;
+  final DateTime? disabledAt;
+  final DateTime? paymentReceivedAt;
 
-  bool get paymentReady =>
-      lumpSumVerified ||
-      paymentStatus == EventEntitlementPaymentStatus.paid ||
-      (ideaPaymentCount > 0 && ideaPaymentsVerified >= ideaPaymentCount);
+  bool get paymentReceived => paymentStatus == EventEntitlementPaymentStatus.paid;
 
-  String get paymentSummary {
-    if (lumpSumVerified) return 'Lump-sum event payment verified';
-    if (ideaPaymentCount <= 0) return 'Waiting for event payment';
-    return '$ideaPaymentsVerified of $ideaPaymentCount idea payments verified';
-  }
+  String get paymentSummary => paymentStatus.label;
 
   EventEntitlementDisplayState get displayState {
-    if (status == EventEntitlementStatus.enabled) return EventEntitlementDisplayState.enabled;
-    if (status == EventEntitlementStatus.disabled) return EventEntitlementDisplayState.disabled;
-    if (paymentStatus == EventEntitlementPaymentStatus.paid || paymentReady) {
-      return EventEntitlementDisplayState.readyForActivation;
+    if (entitlementStatus == EventEntitlementStatus.enabled) {
+      return EventEntitlementDisplayState.enabled;
     }
+    if (entitlementStatus == EventEntitlementStatus.disabled) {
+      return EventEntitlementDisplayState.disabled;
+    }
+    if (paymentReceived) return EventEntitlementDisplayState.readyForActivation;
     return EventEntitlementDisplayState.pending;
   }
 
-  bool get canActivate =>
-      status != EventEntitlementStatus.enabled && paymentReady;
-  bool get canDisable => status != EventEntitlementStatus.disabled;
+  bool get canRecordPayment => !paymentReceived;
+  bool get canActivate => entitlementStatus != EventEntitlementStatus.enabled && paymentReceived;
+  bool get canDisable => entitlementStatus != EventEntitlementStatus.disabled;
 
   factory EventEntitlement.fromMap(String id, Map<String, dynamic> map) {
     return EventEntitlement(
@@ -106,15 +103,19 @@ class EventEntitlement {
       orgId: (map['orgId'] as String? ?? '').trim(),
       eventId: (map['eventId'] as String? ?? '').trim(),
       eventName: (map['eventName'] as String? ?? '').trim(),
-      eventType: (map['eventType'] as String? ?? '').trim(),
-      status: EventEntitlementStatus.fromWire(map['status']),
-      paymentMode: (map['paymentMode'] as String? ?? 'perEvent').trim(),
+      eventType: (map['eventType'] as String? ?? map['eventTemplate'] as String? ?? '').trim(),
+      entitlementStatus: EventEntitlementStatus.fromWire(
+        map['entitlementStatus'] ?? map['status'],
+      ),
+      commercialPlan: OrganizationCommercialPlan.fromWire(
+        map['commercialPlan'] ?? map['paymentMode'] ?? OrganizationCommercialPlan.perEvent.wireValue,
+      ),
       paymentStatus: EventEntitlementPaymentStatus.fromWire(map['paymentStatus']),
-      lumpSumVerified: map['lumpSumVerified'] == true,
-      ideaPaymentCount: (map['ideaPaymentCount'] as num?)?.toInt() ?? 0,
-      ideaPaymentsVerified: (map['ideaPaymentsVerified'] as num?)?.toInt() ?? 0,
       createdAt: _optionalDate(map['createdAt']),
       updatedAt: _optionalDate(map['updatedAt']),
+      activatedAt: _optionalDate(map['activatedAt']),
+      disabledAt: _optionalDate(map['disabledAt']),
+      paymentReceivedAt: _optionalDate(map['paymentReceivedAt']),
     );
   }
 

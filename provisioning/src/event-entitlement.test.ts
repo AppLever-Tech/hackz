@@ -6,10 +6,13 @@ import {
   eventEntitlementDisplayState,
   eventEntitlementDocId,
   initialEventEntitlementFields,
+  isEventCommercialPaymentReceived,
   isPerEventCommercialPlan,
   isSameLicensingStatus,
   normalizeEventEntitlementRequest,
+  normalizeRecordEventEntitlementPaymentRequest,
   normalizeSetEventEntitlementStatusRequest,
+  readEntitlementStatus,
   tenantCommercialAccessStatus,
 } from './event-entitlement.js';
 
@@ -89,32 +92,56 @@ test('initialEventEntitlementFields stores only SysAdmin entitlement metadata', 
     eventId: 'evt1',
     eventName: 'Spring Ideathon',
     eventType: 'hackathon',
-    status: 'pending',
-    paymentMode: 'perEvent',
-    paymentStatus: 'unpaid',
+    commercialPlan: 'PER_EVENT',
+    entitlementStatus: 'pending',
+    paymentStatus: 'pending',
   });
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'ideas'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'teams'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(fields, 'users'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(fields, 'status'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(fields, 'paymentMode'), false);
 });
 
 test('display state is Pending / Ready for Activation / Enabled / Disabled', () => {
+  assert.equal(
+    eventEntitlementDisplayState({ entitlementStatus: 'pending', paymentStatus: 'pending' }),
+    'pending',
+  );
   assert.equal(
     eventEntitlementDisplayState({ status: 'pending', paymentStatus: 'unpaid' }),
     'pending',
   );
   assert.equal(
-    eventEntitlementDisplayState({ status: 'pending', paymentStatus: 'paid' }),
+    eventEntitlementDisplayState({ entitlementStatus: 'pending', paymentStatus: 'paid' }),
     'readyForActivation',
   );
   assert.equal(
-    eventEntitlementDisplayState({ status: 'enabled', paymentStatus: 'unpaid' }),
+    eventEntitlementDisplayState({ entitlementStatus: 'enabled', paymentStatus: 'pending' }),
     'enabled',
   );
   assert.equal(
     eventEntitlementDisplayState({ status: 'disabled', paymentStatus: 'paid' }),
     'disabled',
   );
+});
+
+test('Control Plane entitlementStatus prefers the new field over status', () => {
+  assert.equal(readEntitlementStatus({ entitlementStatus: 'enabled', status: 'pending' }), 'enabled');
+  assert.equal(readEntitlementStatus({ status: 'disabled' }), 'disabled');
+  assert.equal(isEventCommercialPaymentReceived('paid'), true);
+  assert.equal(isEventCommercialPaymentReceived('pending'), false);
+  assert.equal(isEventCommercialPaymentReceived('unpaid'), false);
+});
+
+test('record event payment request is idempotent identity only', () => {
+  const input = normalizeRecordEventEntitlementPaymentRequest({
+    organisationId: ' org-1 ',
+    eventId: ' evt1 ',
+  });
+  assert.equal(input.organisationId, 'org-1');
+  assert.equal(input.eventId, 'evt1');
+  assert.equal(eventEntitlementDocId(input.organisationId, input.eventId), 'org-1_evt1');
 });
 
 test('set-event-entitlement-status is idempotent and maps only commercialAccess', () => {

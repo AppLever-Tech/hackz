@@ -4,9 +4,9 @@ import type { EventEntitlementRequest } from './types.js';
 export const EVENT_ENTITLEMENT_STATUS_PENDING = 'pending';
 export const EVENT_ENTITLEMENT_STATUS_ENABLED = 'enabled';
 export const EVENT_ENTITLEMENT_STATUS_DISABLED = 'disabled';
-export const EVENT_PAYMENT_MODE_PER_EVENT = 'perEvent';
-export const EVENT_PAYMENT_STATUS_UNPAID = 'unpaid';
+export const EVENT_PAYMENT_STATUS_PENDING = 'pending';
 export const EVENT_PAYMENT_STATUS_PAID = 'paid';
+export const EVENT_PAYMENT_STATUS_UNPAID = 'unpaid';
 export const ORG_COMMERCIAL_PLAN_PER_EVENT = 'PER_EVENT';
 
 export type EventEntitlementLicensingStatus = 'pending' | 'enabled' | 'disabled';
@@ -31,6 +31,18 @@ export type NormalizedEventEntitlementInput = {
   eventName: string;
   eventType: string;
 };
+
+type EntitlementRecord = Record<string, unknown> | undefined;
+
+export function readEntitlementStatus(data: EntitlementRecord): EventEntitlementLicensingStatus {
+  return normalizeEventEntitlementStatus(
+    String(data?.entitlementStatus ?? data?.status ?? ''),
+  );
+}
+
+export function isEventCommercialPaymentReceived(paymentStatus: string): boolean {
+  return paymentStatus.trim().toLowerCase() === EVENT_PAYMENT_STATUS_PAID;
+}
 
 function required(value: string | undefined, label: string): string {
   const text = (value ?? '').trim();
@@ -126,13 +138,17 @@ export function computeEventPaymentReadiness(input: {
 }
 
 export function eventEntitlementDisplayState(input: {
-  status: string;
+  entitlementStatus?: string;
+  status?: string;
   paymentStatus: string;
 }): EventEntitlementDisplayState {
-  const status = normalizeEventEntitlementStatus(input.status);
+  const status = readEntitlementStatus({
+    entitlementStatus: input.entitlementStatus,
+    status: input.status,
+  });
   if (status === 'enabled') return 'enabled';
   if (status === 'disabled') return 'disabled';
-  if (input.paymentStatus.trim().toLowerCase() === EVENT_PAYMENT_STATUS_PAID) {
+  if (isEventCommercialPaymentReceived(input.paymentStatus)) {
     return 'readyForActivation';
   }
   return 'pending';
@@ -171,14 +187,32 @@ export function isSameLicensingStatus(
   return normalizeEventEntitlementStatus(current) === next;
 }
 
-export function initialEventEntitlementFields(input: NormalizedEventEntitlementInput): Record<string, string> {
+export type NormalizedRecordEventEntitlementPaymentInput = {
+  organisationId: string;
+  eventId: string;
+};
+
+export function normalizeRecordEventEntitlementPaymentRequest(input: {
+  organisationId: string;
+  eventId: string;
+}): NormalizedRecordEventEntitlementPaymentInput {
+  return {
+    organisationId: requiredId(input.organisationId, 'organisationId'),
+    eventId: requiredId(input.eventId, 'eventId'),
+  };
+}
+
+export function initialEventEntitlementFields(
+  input: NormalizedEventEntitlementInput,
+  commercialPlan: string = ORG_COMMERCIAL_PLAN_PER_EVENT,
+): Record<string, string> {
   return {
     orgId: input.organisationId,
     eventId: input.eventId,
     eventName: input.eventName,
     eventType: input.eventType,
-    status: EVENT_ENTITLEMENT_STATUS_PENDING,
-    paymentMode: EVENT_PAYMENT_MODE_PER_EVENT,
-    paymentStatus: EVENT_PAYMENT_STATUS_UNPAID,
+    commercialPlan,
+    entitlementStatus: EVENT_ENTITLEMENT_STATUS_PENDING,
+    paymentStatus: EVENT_PAYMENT_STATUS_PENDING,
   };
 }

@@ -1,13 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hackz/features/organization/models/enums/organization_commercial_plan.dart';
 import 'package:hackz/features/sysadmin/onboarding/models/event_entitlement.dart';
 
 void main() {
   EventEntitlement entitlement({
-    String status = 'pending',
-    String paymentStatus = 'unpaid',
-    bool lumpSumVerified = false,
-    int ideaPaymentCount = 0,
-    int ideaPaymentsVerified = 0,
+    String? entitlementStatus,
+    String? status,
+    String paymentStatus = 'pending',
+    String? commercialPlan,
+    String? paymentMode,
   }) {
     return EventEntitlement.fromMap(
       'org-1_evt1',
@@ -16,12 +17,11 @@ void main() {
         'eventId': 'evt1',
         'eventName': 'Spring Ideathon',
         'eventType': 'ideathon',
-        'status': status,
-        'paymentMode': 'perEvent',
+        if (entitlementStatus != null) 'entitlementStatus': entitlementStatus,
+        if (status != null) 'status': status,
+        if (commercialPlan != null) 'commercialPlan': commercialPlan,
+        if (paymentMode != null) 'paymentMode': paymentMode,
         'paymentStatus': paymentStatus,
-        'lumpSumVerified': lumpSumVerified,
-        'ideaPaymentCount': ideaPaymentCount,
-        'ideaPaymentsVerified': ideaPaymentsVerified,
       },
     );
   }
@@ -37,27 +37,52 @@ void main() {
       entitlement(paymentStatus: 'paid').displayState.label,
       'Ready for Activation',
     );
-    expect(entitlement(status: 'enabled').displayState, EventEntitlementDisplayState.enabled);
-    expect(entitlement(status: 'disabled').displayState, EventEntitlementDisplayState.disabled);
+    expect(
+      entitlement(entitlementStatus: 'enabled').displayState,
+      EventEntitlementDisplayState.enabled,
+    );
+    expect(
+      entitlement(entitlementStatus: 'disabled').displayState,
+      EventEntitlementDisplayState.disabled,
+    );
   });
 
-  test('activate requires payment readiness', () {
+  test('activate requires Control Plane payment received, not tenant idea payments', () {
     expect(entitlement().canActivate, isFalse);
+    expect(entitlement().canRecordPayment, isTrue);
     expect(entitlement(paymentStatus: 'paid').canActivate, isTrue);
-    expect(entitlement(lumpSumVerified: true).canActivate, isTrue);
+    expect(entitlement(paymentStatus: 'paid').canRecordPayment, isFalse);
+    expect(entitlement(paymentStatus: 'unpaid').canActivate, isFalse);
     expect(
-      entitlement(ideaPaymentCount: 2, ideaPaymentsVerified: 2).canActivate,
-      isTrue,
-    );
-    expect(
-      entitlement(ideaPaymentCount: 2, ideaPaymentsVerified: 1).canActivate,
+      entitlement(entitlementStatus: 'enabled', paymentStatus: 'paid').canActivate,
       isFalse,
     );
-    expect(entitlement(status: 'enabled', paymentStatus: 'paid').canActivate, isFalse);
-    expect(entitlement(status: 'disabled', paymentStatus: 'paid').canActivate, isTrue);
-    expect(entitlement(status: 'disabled').canActivate, isFalse);
+    expect(
+      entitlement(entitlementStatus: 'disabled', paymentStatus: 'paid').canActivate,
+      isTrue,
+    );
+    expect(entitlement(entitlementStatus: 'disabled').canActivate, isFalse);
     expect(entitlement().canDisable, isTrue);
-    expect(entitlement(status: 'disabled').canDisable, isFalse);
+    expect(entitlement(entitlementStatus: 'disabled').canDisable, isFalse);
+  });
+
+  test('fromMap reads entitlementStatus and existing status field', () {
+    expect(
+      entitlement(status: 'enabled').entitlementStatus,
+      EventEntitlementStatus.enabled,
+    );
+    expect(
+      entitlement(entitlementStatus: 'disabled', status: 'enabled').entitlementStatus,
+      EventEntitlementStatus.disabled,
+    );
+    expect(
+      entitlement(commercialPlan: 'PER_EVENT').commercialPlan,
+      OrganizationCommercialPlan.perEvent,
+    );
+    expect(
+      entitlement(paymentMode: 'perEvent').commercialPlan,
+      OrganizationCommercialPlan.perEvent,
+    );
   });
 
   test('licensing status is separate from event lifecycle values', () {

@@ -91,6 +91,24 @@ export type SetEventEntitlementStatusResult =
   | SetEventEntitlementStatusSuccess
   | ProvisionTenantAdminFailure;
 
+export type RecordEventEntitlementPaymentRequest = {
+  organisationId: string;
+  eventId: string;
+};
+
+export type RecordEventEntitlementPaymentSuccess = {
+  ok: true;
+  unchanged: boolean;
+  entitlementId: string;
+  organisationId: string;
+  eventId: string;
+  paymentStatus: 'paid';
+};
+
+export type RecordEventEntitlementPaymentResult =
+  | RecordEventEntitlementPaymentSuccess
+  | ProvisionTenantAdminFailure;
+
 export type ControlPlaneTenant = {
   tenantId: string;
   organisationCode: string;

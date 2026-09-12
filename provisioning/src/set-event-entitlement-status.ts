@@ -1,13 +1,14 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import {
   eventEntitlementDocId,
+  isEventCommercialPaymentReceived,
   isSameLicensingStatus,
   normalizeSetEventEntitlementStatusRequest,
+  readEntitlementStatus,
   tenantCommercialAccessStatus,
 } from './event-entitlement.js';
 import { isNotFound, isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
-import { loadEventPaymentReadiness, paymentReadinessFields } from './event-payment-readiness.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   HKZ_EVENT_ENTITLEMENTS,
@@ -38,6 +39,18 @@ export async function setEventEntitlementStatus(
     throw new ProvisionError('INVALID_INPUT', 'Event entitlement was not found.');
   }
 
+  const data = existing.data() ?? {};
+  const currentStatus = readEntitlementStatus(data);
+  const unchanged = isSameLicensingStatus(currentStatus, normalized.status);
+  if (normalized.status === 'enabled' && !unchanged) {
+    if (!isEventCommercialPaymentReceived(String(data.paymentStatus ?? ''))) {
+      throw new ProvisionError(
+        'INVALID_INPUT',
+        'Record the agreed event commercial payment before activating.',
+      );
+    }
+  }
+
   const tenant = await resolveActiveTenantByOrganisationId(normalized.organisationId);
   const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
   const eventRef = tenantFirestore(app).collection(HKZ_IDEATHONS).doc(normalized.eventId);
@@ -57,34 +70,20 @@ export async function setEventEntitlementStatus(
     );
   }
 
-  const currentStatus = String(existing.data()?.status ?? '');
-  const unchanged = isSameLicensingStatus(currentStatus, normalized.status);
   const now = Timestamp.now();
-
-  let readinessFields: Record<string, string | number | boolean> = {};
-  if (normalized.status === 'enabled' && !unchanged) {
-    const readiness = await loadEventPaymentReadiness({
-      organisationId: normalized.organisationId,
-      eventId: normalized.eventId,
-    });
-    if (!readiness.ready) {
-      throw new ProvisionError(
-        'INVALID_INPUT',
-        'Event payment condition is not satisfied. Verify the lump-sum event payment or all required idea payments first.',
-      );
-    }
-    readinessFields = paymentReadinessFields(readiness);
+  const payload: Record<string, unknown> = {
+    entitlementStatus: normalized.status,
+    updatedAt: now,
+  };
+  if (!unchanged && normalized.status === 'enabled') {
+    payload.activatedAt = now;
+  }
+  if (!unchanged && normalized.status === 'disabled') {
+    payload.disabledAt = now;
   }
 
   try {
-    await cpRef.set(
-      {
-        status: normalized.status,
-        ...readinessFields,
-        updatedAt: now,
-      },
-      { merge: true },
-    );
+    await cpRef.set(payload, { merge: true });
   } catch (error) {
     throw new ProvisionError(
       'WRITE_FAILED',

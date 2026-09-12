@@ -61,19 +61,8 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
       _error = null;
     });
     try {
-      List<EventEntitlement> items =
+      final List<EventEntitlement> items =
           await OrganisationOnboardingService.listEventEntitlements(widget.organization.id);
-      await Future.wait(
-        items.map((EventEntitlement item) async {
-          try {
-            await HackzProvisioningClient.syncEventPaymentReadiness(
-              organisationId: item.orgId,
-              eventId: item.eventId,
-            );
-          } catch (_) {}
-        }),
-      );
-      items = await OrganisationOnboardingService.listEventEntitlements(widget.organization.id);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -97,12 +86,46 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
   int _count(EventEntitlementDisplayState state) =>
       _items.where((EventEntitlement item) => item.displayState == state).length;
 
+  Future<void> _recordPayment(EventEntitlement item) async {
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Record event payment?',
+      message:
+          'Mark the agreed commercial payment for "${item.eventName}" as received. This does not copy tenant payment transactions and does not change event lifecycle.',
+      confirmLabel: 'Record payment',
+    );
+    if (!ok) return;
+    if (!mounted) return;
+    if (_busyEventId != null) return;
+    setState(() => _busyEventId = item.eventId);
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Record payment',
+        message: item.eventName,
+        successMessage: 'Event payment recorded.',
+        task: () async {
+          await HackzProvisioningClient.recordEventEntitlementPayment(
+            organisationId: item.orgId,
+            eventId: item.eventId,
+          );
+        },
+      );
+      await _reload();
+    } catch (e) {
+      if (!mounted) return;
+      await FeedbackService.showError(context, title: 'Could not record event payment', message: '$e');
+    } finally {
+      if (mounted) setState(() => _busyEventId = null);
+    }
+  }
+
   Future<void> _activate(EventEntitlement item) async {
     final bool ok = await FeedbackService.showConfirmation(
       context,
       title: 'Activate event access?',
       message:
-          '"${item.eventName}" will be commercially enabled after the event payment condition is satisfied. Event lifecycle is unchanged.',
+          '"${item.eventName}" will be commercially enabled on the tenant event. Event lifecycle is unchanged.',
       confirmLabel: 'Activate',
     );
     if (!ok) return;
@@ -180,11 +203,11 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'Event access',
+                      'Event entitlement',
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
                     ),
                     Text(
-                      'Per-event licensing. Separate from event lifecycle.',
+                      'Per-event commercial access. Record the agreed event payment, then activate. Separate from event lifecycle.',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
                     ),
                   ],
@@ -250,6 +273,7 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
                   item: item,
                   busy: _busyEventId == item.eventId,
                   enabled: _busyEventId == null,
+                  onRecordPayment: item.canRecordPayment ? () => _recordPayment(item) : null,
                   onActivate: item.canActivate ? () => _activate(item) : null,
                   onDisable: item.canDisable ? () => _disable(item) : null,
                 ),
@@ -268,6 +292,7 @@ class _EventEntitlementRow extends StatelessWidget {
     required this.item,
     required this.busy,
     required this.enabled,
+    required this.onRecordPayment,
     required this.onActivate,
     required this.onDisable,
   });
@@ -275,6 +300,7 @@ class _EventEntitlementRow extends StatelessWidget {
   final EventEntitlement item;
   final bool busy;
   final bool enabled;
+  final VoidCallback? onRecordPayment;
   final VoidCallback? onActivate;
   final VoidCallback? onDisable;
 
@@ -304,19 +330,22 @@ class _EventEntitlementRow extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               _MetaPill(label: kind.label),
+              _MetaPill(label: item.commercialPlan.label),
               _DisplayStatePill(state: item.displayState),
+              _MetaPill(label: item.paymentSummary),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.paymentSummary,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 6,
             children: <Widget>[
+              _ActionButton(
+                label: 'Record payment',
+                filled: false,
+                enabled: enabled && onRecordPayment != null && !busy,
+                onTap: onRecordPayment,
+              ),
               _ActionButton(
                 label: 'Activate',
                 filled: true,

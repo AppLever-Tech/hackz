@@ -1,6 +1,12 @@
-import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import { eventEntitlementDocId } from './event-entitlement.js';
+import type { DocumentData } from 'firebase-admin/firestore';
+import {
+  EVENT_ENTITLEMENT_STATUS_PENDING,
+  EVENT_PAYMENT_STATUS_PENDING,
+  eventEntitlementDocId,
+  isEventCommercialPaymentReceived,
+  readEntitlementStatus,
+} from './event-entitlement.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import {
   controlPlaneApp,
@@ -9,17 +15,13 @@ import {
   tenantAuth,
   tenantFirestore,
 } from './firebase-apps.js';
-import {
-  alignTenantCommercialAccess,
-  entitlementRef,
-  loadEventPaymentReadiness,
-  paymentReadinessFields,
-} from './event-payment-readiness.js';
+import { alignTenantCommercialAccess } from './event-payment-readiness.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   COLLEGE_ADMIN_ROLE,
   COORDINATOR_ROLE,
   DEPARTMENT_ADMIN_ROLE,
+  HKZ_EVENT_ENTITLEMENTS,
   HKZ_USERS,
 } from './types.js';
 
@@ -109,7 +111,7 @@ export async function syncEventPaymentReadiness(input: {
   await assertSysAdminOrTenantOperator(input.idToken, organisationId);
 
   const entitlementId = eventEntitlementDocId(organisationId, eventId);
-  const ref = entitlementRef(organisationId, eventId);
+  const ref = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);
   let existing;
   try {
     existing = await ref.get();
@@ -125,33 +127,19 @@ export async function syncEventPaymentReadiness(input: {
     throw new ProvisionError('INVALID_INPUT', 'Event entitlement was not found.');
   }
 
-  const readiness = await loadEventPaymentReadiness({ organisationId, eventId });
-  try {
-    await ref.set(
-      {
-        ...paymentReadinessFields(readiness),
-        updatedAt: Timestamp.now(),
-      },
-      { merge: true },
-    );
-  } catch (error) {
-    throw new ProvisionError(
-      'WRITE_FAILED',
-      isPermissionDenied(error)
-        ? 'The provisioning identity cannot write Control Plane event entitlements.'
-        : 'Unable to update event payment readiness.',
-    );
-  }
+  const data = existing.data() ?? {};
+  const paymentStatus = String(data.paymentStatus ?? EVENT_PAYMENT_STATUS_PENDING).trim();
+  const ready = isEventCommercialPaymentReceived(paymentStatus);
 
-  if (String(existing.data()?.status ?? '') === 'pending') {
+  if (readEntitlementStatus(data) === EVENT_ENTITLEMENT_STATUS_PENDING) {
     try {
       await alignTenantCommercialAccess({
         organisationId,
         eventId,
-        licensingStatus: 'pending',
+        licensingStatus: EVENT_ENTITLEMENT_STATUS_PENDING,
       });
     } catch {
-      // Payment summary is Control Plane source; tenant align is best-effort.
+      // Tenant align is best-effort. Event commercial payment stays on Control Plane.
     }
   }
 
@@ -160,10 +148,10 @@ export async function syncEventPaymentReadiness(input: {
     entitlementId,
     organisationId,
     eventId,
-    paymentStatus: readiness.paymentStatus,
-    lumpSumVerified: readiness.lumpSumVerified,
-    ideaPaymentCount: readiness.ideaPaymentCount,
-    ideaPaymentsVerified: readiness.ideaPaymentsVerified,
-    ready: readiness.ready,
+    paymentStatus,
+    lumpSumVerified: false,
+    ideaPaymentCount: 0,
+    ideaPaymentsVerified: 0,
+    ready,
   };
 }

@@ -4,6 +4,7 @@ import {
   initialEventEntitlementFields,
   isPerEventCommercialPlan,
   normalizeEventEntitlementRequest,
+  ORG_COMMERCIAL_PLAN_PER_EVENT,
 } from './event-entitlement.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantAuth, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
@@ -142,7 +143,7 @@ export async function registerEventEntitlement(input: EventEntitlementRequest & 
   const now = Timestamp.now();
   try {
     await ref.create({
-      ...initialEventEntitlementFields(normalized),
+      ...initialEventEntitlementFields(normalized, ORG_COMMERCIAL_PLAN_PER_EVENT),
       createdAt: now,
       updatedAt: now,
     });

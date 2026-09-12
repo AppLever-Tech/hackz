@@ -3,6 +3,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { ProvisionError } from './errors.js';
 import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
+import { recordEventEntitlementPayment } from './record-event-entitlement-payment.js';
 import { registerEventEntitlement } from './register-event-entitlement.js';
 import { setEventEntitlementStatus } from './set-event-entitlement-status.js';
 import { syncEventPaymentReadiness } from './sync-event-payment-readiness.js';
@@ -140,6 +141,20 @@ const server = createServer((req, res) => {
           organisationId: String(body.organisationId ?? ''),
           eventId: String(body.eventId ?? ''),
           status: String(body.status ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/record-event-entitlement-payment') {
+        await assertControlPlaneSysAdmin(
+          bearerToken(req),
+          'Sign in as SysAdmin to record event payment.',
+          'Only a Control Plane SysAdmin can record event payment.',
+        );
+        const body = await readJson(req);
+        const result = await recordEventEntitlementPayment({
+          organisationId: String(body.organisationId ?? ''),
+          eventId: String(body.eventId ?? ''),
         });
         send(res, 200, result);
         return;

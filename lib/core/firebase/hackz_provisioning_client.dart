@@ -62,6 +62,22 @@ class HackzEventEntitlementStatusResult {
   final String status;
 }
 
+class HackzEventEntitlementPaymentResult {
+  const HackzEventEntitlementPaymentResult({
+    required this.unchanged,
+    required this.entitlementId,
+    required this.organisationId,
+    required this.eventId,
+    required this.paymentStatus,
+  });
+
+  final bool unchanged;
+  final String entitlementId;
+  final String organisationId;
+  final String eventId;
+  final String paymentStatus;
+}
+
 /// Invokes the privileged provisioning service. Not used for later College Admin edits.
 abstract final class HackzProvisioningClient {
   HackzProvisioningClient._();
@@ -176,7 +192,40 @@ abstract final class HackzProvisioningClient {
     );
   }
 
-  /// Writes Control Plane payment readiness counts only. Not payment transactions.
+  /// SysAdmin records the agreed event commercial payment on Control Plane only.
+  static Future<HackzEventEntitlementPaymentResult> recordEventEntitlementPayment({
+    required String organisationId,
+    required String eventId,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/record-event-entitlement-payment',
+      payload: <String, String>{
+        'organisationId': organisationId,
+        'eventId': eventId,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to record event payment.',
+    );
+
+    if (body['ok'] == true) {
+      return HackzEventEntitlementPaymentResult(
+        unchanged: body['unchanged'] == true,
+        entitlementId: (body['entitlementId'] as String? ?? '').trim(),
+        organisationId: (body['organisationId'] as String? ?? '').trim(),
+        eventId: (body['eventId'] as String? ?? '').trim(),
+        paymentStatus: (body['paymentStatus'] as String? ?? '').trim(),
+      );
+    }
+
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      _actionableMessage(
+        code: (body['code'] as String? ?? '').trim(),
+        fallback: (body['message'] as String? ?? 'Unable to record event payment.').trim(),
+      ),
+    );
+  }
+
+  /// Kept for existing callers. Event commercial payment is Control Plane authoritative.
   static Future<void> syncEventPaymentReadiness({
     required String organisationId,
     required String eventId,
