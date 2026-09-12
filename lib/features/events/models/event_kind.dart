@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_icons.dart';
+import 'event_schedule_type.dart';
 
-/// Shared event kinds that use the Event Details framework.
+/// Event template on the shared event document. Presentation and defaults only —
+/// Ideathon, Hackathon, and Research Paper share one event/submission model.
 enum EventKind {
   ideathon,
   hackathon,
@@ -12,6 +14,12 @@ enum EventKind {
         EventKind.ideathon => 'Ideathon',
         EventKind.hackathon => 'Hackathon',
         EventKind.researchPaper => 'Research Paper',
+      };
+
+  /// Create-event picker label.
+  String get templateLabel => switch (this) {
+        EventKind.researchPaper => 'Research Papers',
+        _ => label,
       };
 
   String get listLabel => switch (this) {
@@ -29,7 +37,7 @@ enum EventKind {
   String get entriesLabel => switch (this) {
         EventKind.ideathon => 'Ideas',
         EventKind.hackathon => 'Prototypes',
-        EventKind.researchPaper => 'Research Papers',
+        EventKind.researchPaper => 'Papers',
       };
 
   IconData get entriesIcon => switch (this) {
@@ -38,11 +46,11 @@ enum EventKind {
         EventKind.researchPaper => AppIcons.researchPapers,
       };
 
-  /// Singular payable item for event payment copy (Idea vs Prototype vs Research Paper).
+  /// Singular payable item for event payment copy (Idea vs Prototype vs Paper).
   String get payableItemLabel => switch (this) {
         EventKind.ideathon => 'Idea',
         EventKind.hackathon => 'Prototype',
-        EventKind.researchPaper => 'Research Paper',
+        EventKind.researchPaper => 'Paper',
       };
 
   String get helpPageId => switch (this) {
@@ -55,8 +63,22 @@ enum EventKind {
 
   bool get usesIdeaPayments => this == EventKind.ideathon || this == EventKind.researchPaper;
 
-  /// Long-running evaluation container (not a same-day event).
-  bool get isLongRunning => this == EventKind.researchPaper;
+  EventScheduleType get defaultScheduleType => switch (this) {
+        EventKind.researchPaper => EventScheduleType.evaluationEvent,
+        _ => EventScheduleType.dayEvent,
+      };
+
+  /// Default schedule for this template. Prefer [IdeathonModel.scheduleType] on saved events.
+  bool get isLongRunning => defaultScheduleType.isEvaluationEvent;
+
+  String defaultEventName([int? year]) {
+    final int y = year ?? DateTime.now().year;
+    return switch (this) {
+      EventKind.ideathon => 'Ideathon $y',
+      EventKind.hackathon => 'Hackathon $y',
+      EventKind.researchPaper => 'Research Paper Evaluation $y',
+    };
+  }
 
   String get wireValue => name;
 
@@ -69,8 +91,8 @@ enum EventKind {
     };
   }
 
-  /// Default Research Paper window: six months after [start].
+  /// Default Research Paper / evaluation-event window: six months after [start].
   static DateTime defaultEndDateTime(DateTime start) {
-    return DateTime(start.year, start.month + 6, start.day, start.hour, start.minute);
+    return EventScheduleType.evaluationEvent.defaultEndDateTime(start);
   }
 }

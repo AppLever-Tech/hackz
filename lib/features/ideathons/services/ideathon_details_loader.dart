@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/ideathons/models/ideathon_idea_snapshot.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
+import 'package:hackz/features/ideathons/services/ideathon_service.dart';
 import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
 import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
@@ -40,6 +41,7 @@ class IdeathonDetailsViewModel {
     required this.departmentLabel,
     required this.evaluationTemplateName,
     required this.ideas,
+    this.unusedDeletable = false,
   });
 
   final IdeathonWorkspaceViewModel workspace;
@@ -47,6 +49,7 @@ class IdeathonDetailsViewModel {
   final String departmentLabel;
   final String evaluationTemplateName;
   final List<IdeathonIdeaEntry> ideas;
+  final bool unusedDeletable;
 
   IdeathonModel get ideathon => workspace.ideathon;
   List<UserModel> get judges => workspace.judges;
@@ -60,6 +63,7 @@ abstract final class IdeathonDetailsLoader {
     final IdeathonWorkspaceViewModel workspace = await IdeathonWorkspaceLoader.load(ideathonId);
     final IdeathonModel event = workspace.ideathon;
     final DepartmentModel? department = DepartmentModel.byCode(event.departmentId);
+    final bool unusedDeletable = await IdeathonService.isUnusedEvent(event);
 
     return IdeathonDetailsViewModel(
       workspace: workspace,
@@ -69,6 +73,7 @@ abstract final class IdeathonDetailsLoader {
           : '${department.code} · ${department.name}',
       evaluationTemplateName: workspace.evaluationTemplateName,
       ideas: await _loadIdeas(event.ideas),
+      unusedDeletable: unusedDeletable,
     );
   }
 

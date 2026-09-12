@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/responsive/responsive_metric_grid.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../events/models/event_kind.dart';
 import '../models/ideathon_status.dart';
@@ -12,13 +13,13 @@ class IdeathonMetricsRow extends StatelessWidget {
   const IdeathonMetricsRow({
     super.key,
     required this.rows,
-    this.eventKind = EventKind.ideathon,
+    this.eventKind,
     this.spacing = 10,
     this.runSpacing = 10,
   });
 
   final List<IdeathonListRow> rows;
-  final EventKind eventKind;
+  final EventKind? eventKind;
   final double spacing;
   final double runSpacing;
 
@@ -37,8 +38,8 @@ class IdeathonMetricsRow extends StatelessWidget {
           label: 'Total Events',
           value: '${rows.length}',
           color: const Color(0xFF4A67FF),
-          icon: eventKind.icon,
-          tooltip: '${eventKind.listLabel} in this department.',
+          icon: eventKind?.icon ?? AppIcons.event,
+          tooltip: 'Events in this department.',
         ),
         DashboardMetricChipData.single(
           label: 'Scheduled',

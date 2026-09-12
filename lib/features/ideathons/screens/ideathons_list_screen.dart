@@ -16,6 +16,7 @@ import '../../user/services/role_visibility_helpers.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
 import '../../events/models/event_kind.dart';
+import '../../events/widgets/event_kind_pill.dart';
 import '../services/ideathon_query_service.dart';
 import '../services/ideathon_status_helpers.dart';
 import '../widgets/event_commercial_access_pill.dart';
@@ -28,11 +29,12 @@ class IdeathonsListScreen extends StatefulWidget {
   const IdeathonsListScreen({
     super.key,
     required this.user,
-    this.eventKind = EventKind.ideathon,
+    this.eventKind,
   });
 
   final UserModel user;
-  final EventKind eventKind;
+  /// When set, the list is limited to one template. Null shows every event.
+  final EventKind? eventKind;
 
   @override
   State<IdeathonsListScreen> createState() => _IdeathonsListScreenState();
@@ -43,6 +45,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
   bool _showFilters = false;
   bool _showCreate = false;
   Set<IdeathonStatus> _statusFilters = <IdeathonStatus>{};
+  Set<EventKind> _templateFilters = <EventKind>{};
   late Future<List<IdeathonListRow>> _future;
 
   @override
@@ -66,6 +69,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
           search: _searchController.text,
           statusFilters: _statusFilters,
           eventKind: widget.eventKind,
+          templateFilters: _templateFilters,
         ),
       );
     });
@@ -76,13 +80,14 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
         context,
         ideathonId: id,
         actor: widget.user,
-        eventKind: widget.eventKind,
-        backTooltip: 'Back to ${widget.eventKind.listLabel}',
+        backTooltip: 'Back to Events',
+        onDeleted: _load,
       );
 
   void _clearAllFilters() {
     setState(() {
       _statusFilters = <IdeathonStatus>{};
+      _templateFilters = <EventKind>{};
       _load();
     });
   }
@@ -93,6 +98,17 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
         _statusFilters.remove(status);
       } else {
         _statusFilters.add(status);
+      }
+      _load();
+    });
+  }
+
+  void _toggleTemplateFilter(EventKind kind) {
+    setState(() {
+      if (_templateFilters.contains(kind)) {
+        _templateFilters.remove(kind);
+      } else {
+        _templateFilters.add(kind);
       }
       _load();
     });
@@ -118,7 +134,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
 
   InputDecoration _searchDecoration() {
     return HackzInputDecoration.decorate(
-      hintText: 'Search ${widget.eventKind.listLabel.toLowerCase()}',
+      hintText: 'Search events',
       prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
       compact: true,
     );
@@ -142,6 +158,21 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
               )
               .toList(growable: false),
         ),
+        if (widget.eventKind == null)
+          HackzFilterSection.chips(
+            icon: AppIcons.event,
+            label: 'Template',
+            chips: EventKind.values
+                .map(
+                  (EventKind kind) => HackzFilterChips.toggle(
+                    icon: kind.icon,
+                    label: kind.templateLabel,
+                    selected: _templateFilters.contains(kind),
+                    onSelected: (_) => _toggleTemplateFilter(kind),
+                  ),
+                )
+                .toList(growable: false),
+          ),
       ],
     );
   }
@@ -154,13 +185,12 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
     final bool mobile = ResponsiveHelper.isMobile(context);
     final Widget metrics = IdeathonMetricsRow(
       rows: rows,
-      eventKind: widget.eventKind,
       spacing: mobile ? 8 : 10,
       runSpacing: mobile ? 8 : 10,
     );
     final Widget searchBar = ResponsiveSearchFilterBar(
       searchController: _searchController,
-      searchHint: 'Search ${widget.eventKind.listLabel.toLowerCase()}',
+      searchHint: 'Search events',
       searchDecoration: _searchDecoration(),
       searchTextStyle: HackzInputDecoration.compactFieldTextStyle,
       filtersExpanded: _showFilters,
@@ -173,7 +203,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             children: <Widget>[
               MobileToolbarButtonStyles.filledIcon(
                 onPressed: () => setState(() => _showCreate = true),
-                label: 'Create ${widget.eventKind.label}',
+                label: 'Create Event',
               ),
               const SizedBox(width: 8),
               Expanded(child: searchBar),
@@ -221,14 +251,14 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             child: Row(
               children: <Widget>[
                 IconButton(onPressed: () => setState(() => _showCreate = false), icon: const Icon(AppIcons.back)),
-                Text('Create ${widget.eventKind.label}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                Text('Create Event', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
           Expanded(
             child: CreateIdeathonWorkspace(
               user: widget.user,
-              eventKind: widget.eventKind,
+              eventKind: widget.eventKind ?? EventKind.ideathon,
               onCreated: (String id) {
                 setState(() => _showCreate = false);
                 _load();
@@ -258,8 +288,8 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                       ? const Center(child: CircularProgressIndicator())
                       : rows.isEmpty
                           ? EmptySearchState.events(
-                              listLabel: widget.eventKind.listLabel,
-                              icon: widget.eventKind.icon,
+                              listLabel: 'Events',
+                              icon: AppIcons.event,
                               onClearSearch: () {
                                 _searchController.clear();
                                 _clearAllFilters();
@@ -281,7 +311,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                     decoration: kDashboardCardDecoration,
                                     child: Row(
                                       children: <Widget>[
-                                        const Icon(AppIcons.ideathons, color: Color(0xFF6A38FF)),
+                                        Icon(row.eventKind.icon, color: const Color(0xFF6A38FF)),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Column(
@@ -289,7 +319,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                             children: <Widget>[
                                               Text(row.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                                               Text(
-                                                '${row.ideaCount} ideas · ${formatDateTime(row.startDateTime.toLocal())}',
+                                                '${row.ideaCount} ${row.ideaCount == 1 ? row.eventKind.payableItemLabel.toLowerCase() : row.eventKind.entriesLabel.toLowerCase()} · ${formatDateTime(row.startDateTime.toLocal())}',
                                                 style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                                               ),
                                             ],
@@ -302,6 +332,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                                             alignment: WrapAlignment.end,
                                             crossAxisAlignment: WrapCrossAlignment.center,
                                             children: <Widget>[
+                                              EventKindPill(kind: row.eventKind),
                                               IdeathonTypePill(type: row.ideathonType),
                                               IdeathonStatusPill(status: row.status),
                                             if (!row.commercialAccess.isEnabled)
@@ -321,7 +352,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
             if (mobile && _canCreate)
               MobileCreateFab(
                 onPressed: () => setState(() => _showCreate = true),
-                tooltip: 'Create ${widget.eventKind.label}',
+                tooltip: 'Create Event',
               ),
           ],
         );

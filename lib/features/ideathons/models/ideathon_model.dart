@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../evaluations/models/evaluation_criterion.dart';
 import '../../events/models/event_kind.dart';
+import '../../events/models/event_schedule_type.dart';
 import 'event_commercial_access.dart';
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
@@ -26,6 +27,7 @@ class IdeathonModel {
     required this.updatedAt,
     this.problemId = '',
     this.eventKind = EventKind.ideathon,
+    this.scheduleType = EventScheduleType.dayEvent,
     this.ideathonType = IdeathonType.internal,
     this.evaluationCriteria = const <EvaluationCriterion>[],
     this.winnerIdeaId = '',
@@ -37,6 +39,7 @@ class IdeathonModel {
   final String ideathonId;
   final String orgId;
   final EventKind eventKind;
+  final EventScheduleType scheduleType;
   final IdeathonType ideathonType;
   final String name;
   final String description;
@@ -72,10 +75,12 @@ class IdeathonModel {
   int get coordinatorCount => coordinatorIds.length;
   bool get hasOptionalProblem => problemId.trim().isNotEmpty;
 
+  bool get isLongRunning => scheduleType.isEvaluationEvent;
+
   /// Team Leader submissions/payments close one day before the event start.
-  /// Long-running events stay open until the scheduled end instead.
+  /// Evaluation events stay open until the scheduled end instead.
   DateTime get submissionCutoff =>
-      eventKind.isLongRunning ? endDateTime : startDateTime.subtract(const Duration(days: 1));
+      isLongRunning ? endDateTime : startDateTime.subtract(const Duration(days: 1));
 
   /// Scheduled/in-progress events that have not reached the submission cutoff.
   bool get isAcceptingSubmissions {
@@ -98,6 +103,7 @@ class IdeathonModel {
       'ideathonId': ideathonId,
       'orgId': orgId,
       'eventKind': eventKind.wireValue,
+      'scheduleType': scheduleType.value,
       'ideathonType': ideathonType.value,
       'name': name,
       'description': description,
@@ -144,12 +150,17 @@ class IdeathonModel {
     }
     final DateTime start = (map['startDateTime'] as Timestamp?)?.toDate() ?? DateTime.now();
     final DateTime end = (map['endDateTime'] as Timestamp?)?.toDate() ?? start.add(const Duration(hours: 8));
+    final EventKind kind = EventKind.fromWire(map['eventKind']);
     return IdeathonModel(
       ideathonId: ((map['ideathonId'] as String?) ?? '').trim().isNotEmpty
           ? ((map['ideathonId'] as String?) ?? '').trim()
           : id,
       orgId: (map['orgId'] as String? ?? '').trim(),
-      eventKind: EventKind.fromWire(map['eventKind']),
+      eventKind: kind,
+      scheduleType: EventScheduleType.fromRaw(
+        map['scheduleType'] as String?,
+        fallback: kind.defaultScheduleType,
+      ),
       ideathonType: IdeathonType.fromRaw(map['ideathonType'] as String?),
       name: (map['name'] as String? ?? '').trim(),
       description: (map['description'] as String? ?? '').trim(),

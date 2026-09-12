@@ -16,7 +16,6 @@ import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
 import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
-import '../../../../features/events/models/event_kind.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/responsive/adaptive_dashboard_panel.dart';
@@ -90,7 +89,6 @@ class CollegeAdminDashboard extends StatelessWidget {
           return IdeathonsListScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
-            eventKind: EventKind.researchPaper,
           );
         }
         if (selectedMenuIndex == 5) {

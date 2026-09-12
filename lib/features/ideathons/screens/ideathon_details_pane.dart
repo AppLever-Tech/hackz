@@ -43,7 +43,8 @@ void showIdeathonDetailsPane(
   required String ideathonId,
   required UserModel actor,
   EventKind eventKind = EventKind.ideathon,
-  String backTooltip = 'Back to Ideathons',
+  String backTooltip = 'Back to Events',
+  VoidCallback? onDeleted,
 }) {
   WorkspaceController.instance.close();
   final chrome = DashboardChromeScope.of(context);
@@ -55,6 +56,7 @@ void showIdeathonDetailsPane(
       eventKind: eventKind,
       onBack: chrome.clearOverlay,
       backTooltip: backTooltip,
+      onDeleted: onDeleted,
     ),
   );
 }
@@ -66,7 +68,8 @@ class IdeathonDetailsPane extends StatefulWidget {
     required this.actor,
     required this.onBack,
     this.eventKind = EventKind.ideathon,
-    this.backTooltip = 'Back to Ideathons',
+    this.backTooltip = 'Back to Events',
+    this.onDeleted,
   });
 
   final String ideathonId;
@@ -74,6 +77,7 @@ class IdeathonDetailsPane extends StatefulWidget {
   final VoidCallback onBack;
   final EventKind eventKind;
   final String backTooltip;
+  final VoidCallback? onDeleted;
 
   @override
   State<IdeathonDetailsPane> createState() => _IdeathonDetailsPaneState();
@@ -89,18 +93,22 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   void initState() {
     super.initState();
     _future = IdeathonDetailsLoader.load(widget.ideathonId);
-    _paymentsFuture = EventPaymentsService.load(
-      kind: widget.eventKind,
-      eventId: widget.ideathonId,
+    _paymentsFuture = _future.then(
+      (IdeathonDetailsViewModel vm) => EventPaymentsService.load(
+        kind: vm.ideathon.eventKind,
+        eventId: widget.ideathonId,
+      ),
     );
   }
 
   void _reload() {
     setState(() {
       _future = IdeathonDetailsLoader.load(widget.ideathonId);
-      _paymentsFuture = EventPaymentsService.load(
-        kind: widget.eventKind,
-        eventId: widget.ideathonId,
+      _paymentsFuture = _future.then(
+        (IdeathonDetailsViewModel vm) => EventPaymentsService.load(
+          kind: vm.ideathon.eventKind,
+          eventId: widget.ideathonId,
+        ),
       );
     });
   }
@@ -219,7 +227,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       context: context,
       initialDate: current.isAfter(start) ? current : start.add(const Duration(days: 1)),
       firstDate: start,
-      lastDate: DateTime.now().add(Duration(days: 365 * (event.eventKind.isLongRunning ? 5 : 2))),
+      lastDate: DateTime.now().add(Duration(days: 365 * (event.isLongRunning ? 5 : 2))),
     );
     if (date == null || !mounted) return;
     final TimeOfDay? time = await showTimePicker(
@@ -379,34 +387,74 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   }
 
   Widget? _eventActions(
-    IdeathonModel event, {
+    IdeathonDetailsViewModel vm, {
     required bool eventCompleted,
     required bool evaluationLocked,
   }) {
-    if (eventCompleted) return null;
+    final IdeathonModel event = vm.ideathon;
+    if (eventCompleted && !vm.unusedDeletable) return null;
     final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
-      if (_canEdit)
+      if (_canEdit && !eventCompleted)
         CardOverflowMenuAction(
           value: 'edit',
           icon: evaluationLocked ? AppIcons.lock : AppIcons.edit,
           label: 'Edit event',
         ),
-      if (_canExtend)
+      if (_canExtend && !eventCompleted)
         const CardOverflowMenuAction(
           value: 'extend',
           icon: AppIcons.clock,
           label: 'Extend end date',
         ),
+      if (_canEdit && vm.unusedDeletable)
+        const CardOverflowMenuAction(
+          value: 'delete',
+          icon: AppIcons.delete,
+          label: 'Delete event',
+          danger: true,
+        ),
     ];
     if (actions.isEmpty) return null;
     return CardOverflowMenuButton(
       tooltip: 'Event actions',
+      dividersBefore: const <String>{'delete'},
       onSelected: (String value) {
         if (value == 'edit') setState(() => _editing = true);
         if (value == 'extend') _extendEndDate(event);
+        if (value == 'delete') _deleteEvent(vm);
       },
       actions: actions,
     );
+  }
+
+  Future<void> _deleteEvent(IdeathonDetailsViewModel vm) async {
+    final bool ok = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete event?',
+      message:
+          'Delete ${vm.ideathon.name.trim().isEmpty ? 'this event' : '"${vm.ideathon.name.trim()}"'}? '
+          'This cannot be undone. Only unused events with no submissions, payments, or evaluation records can be deleted.',
+      confirmLabel: 'Delete Event',
+      dangerConfirm: true,
+    );
+    if (!ok) return;
+    try {
+      await IdeathonService.deleteUnusedEvent(
+        actor: widget.actor,
+        ideathonId: vm.ideathon.ideathonId,
+      );
+      if (!mounted) return;
+      FeedbackService.showSuccess(
+        context,
+        title: 'Event deleted',
+        message: 'The unused event was removed.',
+      );
+      widget.onDeleted?.call();
+      widget.onBack();
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(context, title: 'Unable to delete event', message: '$e');
+    }
   }
 
   List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsViewModel vm) {
@@ -659,7 +707,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                   onSelected: (String id) => _moduleId = id,
                   command: _commandFor(vm),
                   contextPillsFor: (String id) => _contextPills(vm, id),
-                  headerActions: _eventActions(event, eventCompleted: eventCompleted, evaluationLocked: evaluationLocked),
+                  headerActions: _eventActions(vm, eventCompleted: eventCompleted, evaluationLocked: evaluationLocked),
                   navigation: _navigationFor(vm),
                 ),
               ),

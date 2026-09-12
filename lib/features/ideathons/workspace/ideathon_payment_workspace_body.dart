@@ -70,14 +70,14 @@ class IdeathonPaymentWorkspaceBody extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         WorkspaceCollapsibleSection(
-          title: 'Ideas',
-          icon: AppIcons.ideas,
+          title: vm.event.eventKind.entriesLabel,
+          icon: vm.event.eventKind.entriesIcon,
           count: vm.entries.length,
           child: PaymentEntriesView(
             entries: vm.entries,
-            ideaColumnLabel: 'Idea',
+            ideaColumnLabel: vm.event.eventKind.payableItemLabel,
             emptyTitle: 'No payments found',
-            emptyMessage: 'No idea payments for this event yet.',
+            emptyMessage: 'No ${vm.event.eventKind.payableItemLabel.toLowerCase()} payments for this event yet.',
             compactIdeaPaymentRows: true,
           ),
         ),

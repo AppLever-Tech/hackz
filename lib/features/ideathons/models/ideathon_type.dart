@@ -1,4 +1,4 @@
-/// Whether an Ideathon is limited to the host organisation or open more broadly.
+/// Event participant scope (Internal / External). Not a separate participant model.
 enum IdeathonType {
   internal('INTERNAL', 'Internal'),
   external('EXTERNAL', 'External');

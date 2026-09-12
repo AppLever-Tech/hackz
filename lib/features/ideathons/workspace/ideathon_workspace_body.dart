@@ -53,8 +53,8 @@ class IdeathonWorkspaceBody extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         WorkspaceCollapsibleSection(
-          title: 'Ideas',
-          icon: AppIcons.ideas,
+          title: event.eventKind.entriesLabel,
+          icon: event.eventKind.entriesIcon,
           count: event.ideas.length,
           child: _ideas(context, event.ideas),
         ),

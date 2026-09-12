@@ -9,6 +9,7 @@ import '../../evaluations/models/evaluation_criterion.dart';
 import '../../evaluations/services/evaluation_template_helpers.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_kind.dart';
+import '../../events/models/event_schedule_type.dart';
 import '../../idea/models/idea_model.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/services/commercial_access.dart';
@@ -39,6 +40,7 @@ class CreateIdeathonInput {
     required this.evaluationTemplateId,
     this.problemId = '',
     this.eventKind = EventKind.ideathon,
+    this.scheduleType = EventScheduleType.dayEvent,
     this.ideathonType = IdeathonType.internal,
   });
 
@@ -52,6 +54,7 @@ class CreateIdeathonInput {
   /// Optional — not required for creation; does not limit the Ideathon to one Problem.
   final String problemId;
   final EventKind eventKind;
+  final EventScheduleType scheduleType;
   final IdeathonType ideathonType;
 }
 
@@ -74,8 +77,6 @@ abstract final class IdeathonService {
     if (!input.endDateTime.isAfter(input.startDateTime)) {
       throw StateError('End date/time must be after start date/time.');
     }
-    if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
-    if (input.coordinatorIds.isEmpty) throw StateError('Assign at least one coordinator.');
 
     await CommercialAccess.assertOrganisationOperational(orgId);
 
@@ -102,6 +103,7 @@ abstract final class IdeathonService {
       ideathonId: ref.id,
       orgId: orgId,
       eventKind: input.eventKind,
+      scheduleType: input.scheduleType,
       ideathonType: input.ideathonType,
       name: input.name.trim(),
       description: input.description.trim(),
@@ -180,8 +182,6 @@ abstract final class IdeathonService {
     if (!input.endDateTime.isAfter(input.startDateTime)) {
       throw StateError('End date/time must be after start date/time.');
     }
-    if (input.judgeIds.isEmpty) throw StateError('Assign at least one judge.');
-    if (input.coordinatorIds.isEmpty) throw StateError('Assign at least one coordinator.');
 
     await IdeathonSettingsService.ensureLoaded(orgId: existing.orgId);
 
@@ -206,6 +206,7 @@ abstract final class IdeathonService {
       ideathonId: existing.ideathonId,
       orgId: existing.orgId,
       eventKind: existing.eventKind,
+      scheduleType: input.scheduleType,
       ideathonType: input.ideathonType,
       name: input.name.trim(),
       description: input.description.trim(),
@@ -239,6 +240,51 @@ abstract final class IdeathonService {
     }
   }
 
+  /// True when the event has no submissions, payments, scores, assignments, or participations.
+  static Future<bool> isUnusedEvent(IdeathonModel event) async {
+    if (event.ideas.isNotEmpty) return false;
+    final String id = event.ideathonId.trim();
+    if (id.isEmpty) return false;
+    final List<QuerySnapshot<Map<String, dynamic>>> snaps = await Future.wait(
+      <Future<QuerySnapshot<Map<String, dynamic>>>>[
+        _db.collection(FirestoreUtils.hkzIdeathonParticipations).where('ideathonId', isEqualTo: id).limit(1).get(),
+        _db.collection(FirestoreUtils.hkzPayments).where('ideathonId', isEqualTo: id).limit(1).get(),
+        _db.collection(FirestoreUtils.hkzScores).where('ideathonId', isEqualTo: id).limit(1).get(),
+        _db.collection(FirestoreUtils.hkzEvaluationAssignments).where('ideathonId', isEqualTo: id).limit(1).get(),
+      ],
+    );
+    for (final QuerySnapshot<Map<String, dynamic>> snap in snaps) {
+      if (snap.docs.isNotEmpty) return false;
+    }
+    return true;
+  }
+
+  static Future<void> deleteUnusedEvent({
+    required UserModel actor,
+    required String ideathonId,
+  }) async {
+    if (!RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(actor.role))) {
+      throw StateError('Only department admins can delete events.');
+    }
+    final String id = ideathonId.trim();
+    if (id.isEmpty) throw StateError('Event is required.');
+    final IdeathonModel? existing = await fetchById(id);
+    if (existing == null) throw StateError('Event not found.');
+    if (existing.orgId.trim() != actor.orgId.trim()) {
+      throw StateError('You can only delete events in your organization.');
+    }
+    final String actorDept = actor.departmentCode.trim().toUpperCase();
+    if (actorDept.isNotEmpty && existing.departmentId.trim().toUpperCase() != actorDept) {
+      throw StateError('You can only delete events in your department.');
+    }
+    if (!await isUnusedEvent(existing)) {
+      throw StateError(
+        'This event has submissions, payments, or evaluation data and cannot be deleted.',
+      );
+    }
+    await _db.collection(FirestoreUtils.hkzIdeathons).doc(id).delete();
+  }
+
   /// Locked once evaluation begins, or (for day events) once the start time has passed.
   static bool isEvaluationTemplateLocked(
     IdeathonModel event, {
@@ -246,7 +292,7 @@ abstract final class IdeathonService {
   }) {
     if (isEventCompleted(event)) return true;
     if (evaluationStarted) return true;
-    if (event.eventKind.isLongRunning) return false;
+    if (event.isLongRunning) return false;
     return !DateTime.now().isBefore(event.startDateTime);
   }
 
@@ -260,7 +306,7 @@ abstract final class IdeathonService {
     if (evaluationStarted) {
       return 'Evaluation has started. The template can no longer be changed.';
     }
-    if (!event.eventKind.isLongRunning && !DateTime.now().isBefore(event.startDateTime)) {
+    if (!event.isLongRunning && !DateTime.now().isBefore(event.startDateTime)) {
       return 'The event has started. The evaluation template is locked.';
     }
     return '';

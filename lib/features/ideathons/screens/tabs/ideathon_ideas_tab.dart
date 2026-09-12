@@ -185,7 +185,10 @@ class IdeathonIdeasTab extends StatelessWidget {
   }
 
   Widget _buildDownloadButton() {
-    final EventIdeasExportProvider provider = EventIdeasExportProvider(entries: vm.ideas);
+    final EventIdeasExportProvider provider = EventIdeasExportProvider(
+      entries: vm.ideas,
+      kind: vm.ideathon.eventKind,
+    );
     if (!provider.canExport(actor)) return const SizedBox.shrink();
     return ExportDownloadButton(
       labeled: false,

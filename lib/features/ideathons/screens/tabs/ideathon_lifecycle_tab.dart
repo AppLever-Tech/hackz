@@ -41,7 +41,7 @@ class IdeathonLifecycleTab extends StatelessWidget {
         color: const Color(0xFF7C3AED),
       ),
       EventLifecycleMoment(
-        title: kind.isLongRunning ? 'Scheduled window' : 'Scheduled window',
+        title: event.scheduleType.isEvaluationEvent ? 'Submission / evaluation period' : 'Event schedule',
         subtitle: '${formatDateTime(event.startDateTime.toLocal())} – ${formatDateTime(event.endDateTime.toLocal())}'
             '${progress.scheduleEnded && !progress.completed ? ' · ended (does not complete the event)' : ''}',
         at: event.startDateTime,

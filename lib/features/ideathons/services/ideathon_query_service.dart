@@ -20,6 +20,7 @@ class IdeathonQueryParams {
     this.statusFilters = const <IdeathonStatus>{},
     this.departmentFilters = const <String>{},
     this.eventKind,
+    this.templateFilters = const <EventKind>{},
   });
 
   final UserModel viewer;
@@ -27,6 +28,7 @@ class IdeathonQueryParams {
   final Set<IdeathonStatus> statusFilters;
   final Set<String> departmentFilters;
   final EventKind? eventKind;
+  final Set<EventKind> templateFilters;
 }
 
 abstract final class IdeathonQueryService {
@@ -50,6 +52,7 @@ abstract final class IdeathonQueryService {
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       final IdeathonModel ideathon = IdeathonModel.fromMap(doc.id, doc.data());
       if (params.eventKind != null && ideathon.eventKind != params.eventKind) continue;
+      if (params.templateFilters.isNotEmpty && !params.templateFilters.contains(ideathon.eventKind)) continue;
       if (viewerDept.isNotEmpty && ideathon.departmentId.trim().toUpperCase() != viewerDept) continue;
       if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(ideathon.status)) continue;
       if (params.departmentFilters.isNotEmpty &&

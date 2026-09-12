@@ -4,6 +4,7 @@ import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/events/widgets/event_detail_section.dart';
+import 'package:hackz/features/events/widgets/event_kind_pill.dart';
 import 'package:hackz/features/events/widgets/event_labeled_field.dart';
 import 'package:hackz/features/events/widgets/event_people_section.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
@@ -38,6 +39,7 @@ class IdeathonOverviewTab extends StatelessWidget {
                 event.name,
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
               ),
+              EventKindPill(kind: event.eventKind),
               IdeathonTypePill(type: event.ideathonType, compact: true),
               IdeathonStatusPill(status: event.status, compact: true),
               if (!event.commercialAccess.isEnabled)
@@ -52,8 +54,15 @@ class IdeathonOverviewTab extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          EventLabeledField(label: 'Starts', value: formatDateTime(event.startDateTime.toLocal())),
-          EventLabeledField(label: 'Ends', value: formatDateTime(event.endDateTime.toLocal())),
+          EventLabeledField(
+            label: event.scheduleType.isEvaluationEvent ? 'Period starts' : 'Starts',
+            value: formatDateTime(event.startDateTime.toLocal()),
+          ),
+          EventLabeledField(
+            label: event.scheduleType.isEvaluationEvent ? 'Period ends' : 'Ends',
+            value: formatDateTime(event.endDateTime.toLocal()),
+          ),
+          EventLabeledField(label: 'Schedule type', value: event.scheduleType.label),
           EventLabeledField(
             label: 'Organisation',
             value: vm.organisationName.trim().isEmpty ? '—' : vm.organisationName.trim(),
@@ -104,7 +113,7 @@ class IdeathonOverviewTab extends StatelessWidget {
             );
           },
         ),
-        if (!event.eventKind.isLongRunning) ...<Widget>[
+        if (!event.isLongRunning) ...<Widget>[
           const SizedBox(height: 10),
           IdeathonLifecycleTab(vm: vm, embedded: true),
         ],

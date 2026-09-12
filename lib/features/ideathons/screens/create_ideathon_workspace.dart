@@ -16,6 +16,9 @@ import '../../evaluations/models/evaluation_template.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../evaluations/services/evaluator_catalog_service.dart';
 import '../../events/models/event_kind.dart';
+import '../../events/models/event_schedule_type.dart';
+import '../../events/widgets/event_schedule_type_selector.dart';
+import '../../events/widgets/event_template_selector.dart';
 import '../../org_settings/services/org_settings_service.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
@@ -28,7 +31,7 @@ import '../widgets/ideathon_assignee_select_row.dart';
 import '../widgets/ideathon_type_selector.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
-/// Ideathon create / edit form. Ideas join later via Team Leader submission.
+/// Generic event create / edit form. Submissions join later via Team Leader flow.
 class CreateIdeathonWorkspace extends StatefulWidget {
   const CreateIdeathonWorkspace({
     super.key,
@@ -53,6 +56,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   late DateTime _startDateTime;
   late DateTime _endDateTime;
+  late EventKind _kind;
+  late EventScheduleType _scheduleType;
+  String _appliedDefaultName = '';
 
   bool _loading = true;
   bool _saving = false;
@@ -69,8 +75,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   bool get _isEdit => widget.initialEvent != null;
 
-  EventKind get _kind => widget.initialEvent?.eventKind ?? widget.eventKind;
-
   /// Collapsible sections (details/schedule stay always open).
   final Map<String, bool> _sectionExpanded = <String, bool>{
     'evaluation': false,
@@ -82,10 +86,14 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   void initState() {
     super.initState();
     final DateTime now = DateTime.now();
+    _kind = widget.initialEvent?.eventKind ?? widget.eventKind;
+    _scheduleType = widget.initialEvent?.scheduleType ?? _kind.defaultScheduleType;
     _startDateTime = DateTime(now.year, now.month, now.day + 14, 9, 0);
-    _endDateTime = widget.eventKind.isLongRunning
-        ? EventKind.defaultEndDateTime(_startDateTime)
-        : DateTime(now.year, now.month, now.day + 14, 17, 0);
+    _endDateTime = _scheduleType.defaultEndDateTime(_startDateTime);
+    if (widget.initialEvent == null) {
+      _appliedDefaultName = _kind.defaultEventName();
+      _nameController.text = _appliedDefaultName;
+    }
     _load();
   }
 
@@ -124,6 +132,8 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
           : (templates.isNotEmpty ? templates.first.templateId : null);
       _evaluationLocked = locked;
       if (event != null) {
+        _kind = event.eventKind;
+        _scheduleType = event.scheduleType;
         _ideathonType = event.ideathonType;
         _nameController.text = event.name;
         _descriptionController.text = event.description;
@@ -147,6 +157,40 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
 
   void _setIdeathonType(IdeathonType type) {
     setState(() => _ideathonType = type);
+  }
+
+  void _onTemplateChanged(EventKind next) {
+    if (_isEdit || next == _kind) return;
+    setState(() {
+      final bool nameIsDefault =
+          _nameController.text.trim() == _appliedDefaultName || _nameController.text.trim().isEmpty;
+      _kind = next;
+      _scheduleType = next.defaultScheduleType;
+      _endDateTime = _scheduleType.defaultEndDateTime(_startDateTime);
+      if (nameIsDefault) {
+        _appliedDefaultName = next.defaultEventName();
+        _nameController.text = _appliedDefaultName;
+      }
+      final String defaultTemplateId = IdeathonSettingsService.defaultEvaluationTemplateId(
+        orgId: widget.user.orgId.trim(),
+        eventKind: next,
+      );
+      _selectedTemplateId = _templates.any((EvaluationTemplate t) => t.templateId == defaultTemplateId)
+          ? defaultTemplateId
+          : (templatesFirstId());
+    });
+  }
+
+  String? templatesFirstId() => _templates.isNotEmpty ? _templates.first.templateId : null;
+
+  void _onScheduleTypeChanged(EventScheduleType next) {
+    if (next == _scheduleType) return;
+    setState(() {
+      _scheduleType = next;
+      if (!_isEdit || !_endDateTime.isAfter(_startDateTime)) {
+        _endDateTime = next.defaultEndDateTime(_startDateTime);
+      }
+    });
   }
 
   Future<List<UserModel>> _loadCoordinators({required String orgId, required String dept}) async {
@@ -211,8 +255,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       !_evaluationLocked &&
       _nameController.text.trim().isNotEmpty &&
       _scheduleValid &&
-      _selectedJudgeIds.isNotEmpty &&
-      _selectedCoordinatorIds.isNotEmpty &&
       (_selectedTemplateId ?? '').trim().isNotEmpty &&
       !_saving;
 
@@ -224,7 +266,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       firstDate: widget.initialEvent == null
           ? DateTime.now().subtract(const Duration(days: 1))
           : DateTime(current.year - 2),
-      lastDate: DateTime.now().add(Duration(days: 365 * (_kind.isLongRunning ? 5 : 2))),
+      lastDate: DateTime.now().add(Duration(days: 365 * (_scheduleType.isEvaluationEvent ? 5 : 2))),
     );
     if (date == null || !mounted) return;
     final TimeOfDay? time = await showTimePicker(
@@ -237,9 +279,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       if (isStart) {
         _startDateTime = next;
         if (!_endDateTime.isAfter(_startDateTime)) {
-          _endDateTime = _kind.isLongRunning
-              ? EventKind.defaultEndDateTime(_startDateTime)
-              : _startDateTime.add(const Duration(hours: 8));
+          _endDateTime = _scheduleType.defaultEndDateTime(_startDateTime);
         }
       } else {
         _endDateTime = next;
@@ -255,7 +295,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         title: 'Not allowed',
         message: _isEdit
             ? 'Only department admins can edit ${_kind.listLabel}.'
-            : 'Only department admins can create ${_kind.listLabel}.',
+            : 'Only department admins can create events.',
       );
       return;
     }
@@ -271,6 +311,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         evaluationTemplateId: _selectedTemplateId ?? '',
         problemId: _optionalProblemId ?? '',
         eventKind: _kind,
+        scheduleType: _scheduleType,
         ideathonType: _ideathonType,
       );
       final String id;
@@ -288,7 +329,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       widget.onCreated(id);
       FeedbackService.showSuccess(
         context,
-        title: _isEdit ? '${_kind.label} updated' : '${_kind.label} created',
+        title: _isEdit ? '${_kind.label} updated' : 'Event created',
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
             : 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and coordinator payment validation.',
@@ -297,7 +338,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       if (!mounted) return;
       FeedbackService.showError(
         context,
-        title: _isEdit ? 'Unable to update ${_kind.label.toLowerCase()}' : 'Unable to create ${_kind.label.toLowerCase()}',
+        title: _isEdit ? 'Unable to update event' : 'Unable to create event',
         message: '$e',
       );
     } finally {
@@ -315,12 +356,23 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     final EdgeInsets pad = EdgeInsets.fromLTRB(mobile ? 16 : 22, 8, mobile ? 16 : 22, 16);
 
     final Widget detailsCard = _sectionCard(
-      title: '${_kind.label} Details',
+      title: 'Event Details',
       icon: _kind.icon,
       fillRemaining: !mobile,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          EventTemplateSelector(
+            value: _kind,
+            enabled: !_isEdit,
+            onChanged: _onTemplateChanged,
+          ),
+          const SizedBox(height: 12),
+          IdeathonTypeSelector(
+            value: _ideathonType,
+            onChanged: _setIdeathonType,
+          ),
+          const SizedBox(height: 12),
           TextField(
             controller: _nameController,
             onChanged: (_) => setState(() {}),
@@ -343,11 +395,6 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
             style: HackzInputDecoration.fieldTextStyle,
             decoration: HackzInputDecoration.decorate(labelText: 'Description (optional)'),
           ),
-          const SizedBox(height: 14),
-          IdeathonTypeSelector(
-            value: _ideathonType,
-            onChanged: _setIdeathonType,
-          ),
         ],
       ),
     );
@@ -359,20 +406,25 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          EventScheduleTypeSelector(
+            value: _scheduleType,
+            onChanged: _onScheduleTypeChanged,
+          ),
+          const SizedBox(height: 12),
           _scheduleField(
-            label: 'Start',
+            label: _scheduleType.isEvaluationEvent ? 'Period start' : 'Start',
             icon: AppIcons.event,
             value: formatDateTime(_startDateTime.toLocal()),
             onTap: () => _pickDateTime(isStart: true),
           ),
           const SizedBox(height: 12),
           _scheduleField(
-            label: _kind.isLongRunning ? 'End (optional)' : 'End',
+            label: _scheduleType.isEvaluationEvent ? 'Period end' : 'End',
             icon: AppIcons.event,
             value: formatDateTime(_endDateTime.toLocal()),
             onTap: () => _pickDateTime(isStart: false),
           ),
-          if (_kind.isLongRunning) ...<Widget>[
+          if (_scheduleType.isEvaluationEvent) ...<Widget>[
             const SizedBox(height: 8),
             const Text(
               'Defaults to 6 months from start. Reaching the end date does not complete the event.',
@@ -498,13 +550,13 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         _statusChip(
-          ok: judges > 0,
+          ok: true,
           icon: AppIcons.judges,
           label: '$judges',
         ),
         const SizedBox(width: 6),
         _statusChip(
-          ok: coordinators > 0,
+          ok: true,
           icon: AppIcons.coordinator,
           label: '$coordinators',
         ),
@@ -662,7 +714,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         : '${_selectedCoordinatorIds.length} selected';
     return Column(
       children: <Widget>[
-        _summaryRow('Type', value: _ideathonType.label),
+        _summaryRow('Template', value: _kind.label),
+        _summaryRow('Participant type', value: _ideathonType.label),
+        _summaryRow('Schedule type', value: _scheduleType.label),
         _summaryRow('Schedule', value: '${formatDateTime(_startDateTime.toLocal())} → ${formatDateTime(_endDateTime.toLocal())}'),
         _summaryRow(
           'Evaluation template',
@@ -837,9 +891,9 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Text(
-          'Select at least one judge and one coordinator. Assign judges to specific ideas from the Judge Assignments tab after the event is saved. Assignment is not automatic.',
-          style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
+        Text(
+          'Judges and coordinators are optional at creation. Assign judges to specific ${_kind.entriesLabel.toLowerCase()} from the Judge Assignments tab after the event is saved. Assignment is not automatic.',
+          style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 10),
         body,
@@ -911,7 +965,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
               )
             : Icon(_isEdit ? AppIcons.edit : AppIcons.add, size: 18),
-        label: Text(_isEdit ? 'Save changes' : 'Create ${_kind.label}'),
+        label: Text(_isEdit ? 'Save changes' : 'Create Event'),
         style: FilledButton.styleFrom(
           minimumSize: const Size(double.infinity, 44),
           backgroundColor: const Color(0xFF6A38FF),

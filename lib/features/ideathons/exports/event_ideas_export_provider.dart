@@ -1,3 +1,4 @@
+import '../../events/models/event_kind.dart';
 import '../../exports/models/export_exception.dart';
 import '../../exports/models/export_format.dart';
 import '../../exports/models/export_module.dart';
@@ -13,9 +14,13 @@ import '../services/ideathon_details_loader.dart';
 
 /// Event-scoped ideas already loaded on Event Details → Entries.
 class EventIdeasExportProvider implements ExportDataProvider {
-  const EventIdeasExportProvider({required this.entries});
+  const EventIdeasExportProvider({
+    required this.entries,
+    this.kind = EventKind.ideathon,
+  });
 
   final List<IdeathonIdeaEntry> entries;
+  final EventKind kind;
 
   @override
   ExportModule get module => ExportModule.ideas;
@@ -58,13 +63,13 @@ class EventIdeasExportProvider implements ExportDataProvider {
       });
     }
     return ExportTable(
-      sheetName: 'Ideas',
-      columns: const <ExportColumn>[
-        ExportColumn(key: 'title', header: 'Idea'),
-        ExportColumn(key: 'problem', header: 'Problem'),
-        ExportColumn(key: 'team', header: 'Team'),
-        ExportColumn(key: 'department', header: 'Department'),
-        ExportColumn(key: 'status', header: 'Status'),
+      sheetName: kind.entriesLabel,
+      columns: <ExportColumn>[
+        ExportColumn(key: 'title', header: kind.payableItemLabel),
+        const ExportColumn(key: 'problem', header: 'Problem'),
+        const ExportColumn(key: 'team', header: 'Team'),
+        const ExportColumn(key: 'department', header: 'Department'),
+        const ExportColumn(key: 'status', header: 'Status'),
       ],
       rows: rows,
     );

@@ -364,7 +364,7 @@ abstract final class DocsRegistry {
       'judge dashboard' ||
       'judges panel' =>
         'evaluation-lifecycle',
-      'ideathons' || 'ideathon' || 'ideathon workspace' => 'ideathon',
+      'ideathons' || 'ideathon' || 'ideathon workspace' || 'events' || 'event' => 'ideathon',
       'hackathon' || 'hackathon workspace' => 'hackathon',
       'org settings' || 'organization settings' => 'org-settings',
       'domains' || 'domain management' => 'domain-management',
