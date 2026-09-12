@@ -7,7 +7,7 @@ import 'organisation_access.dart';
 ///
 /// Per-idea: organisation grant + existing idea payments.
 /// Per-event: organisation grant + event commercialAccess (activation).
-/// Subscription: organisation grant (validFrom/validUntil) + events created enabled.
+/// Annual: organisation grant (validFrom/validUntil) + events created enabled.
 abstract final class CommercialAccess {
   CommercialAccess._();
 

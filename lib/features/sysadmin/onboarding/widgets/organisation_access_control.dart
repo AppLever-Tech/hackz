@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/feedback/feedback.dart';
-import '../../../../features/organization/models/enums/organization_access_mode.dart';
 import '../../../../features/organization/models/enums/organization_access_status.dart';
+import '../../../../features/organization/models/enums/organization_commercial_plan.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/services/organisation_access.dart';
 import '../services/organisation_onboarding_service.dart';
 
-/// Premium Active/Inactive commercial-access control for the SysAdmin listing.
+/// Organisation status and commercial plan on the SysAdmin listing card.
 class OrganisationAccessControl extends StatefulWidget {
   const OrganisationAccessControl({
     super.key,
@@ -28,16 +28,18 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
 
   OrganizationModel get _org => widget.organization;
 
-  bool get _granted => OrganisationAccess.isGranted(_org);
+  bool get _statusActive => _org.status == OrganizationAccessStatus.active;
 
-  String get _caption {
-    if (_org.status == OrganizationAccessStatus.inactive) {
-      return 'Users cannot sign in to this organisation.';
+  bool get _usable => OrganisationAccess.isGranted(_org);
+
+  String get _statusCaption {
+    if (!_statusActive) {
+      return 'Organisation is inactive. Users cannot use Hackz.';
     }
-    if (_org.accessMode == OrganizationAccessMode.subscription && !_granted) {
-      return 'Subscription window is missing or expired.';
+    if (_org.commercialPlan.isTimeBound && !_usable) {
+      return 'Organisation is active, but the annual validity window is missing or expired.';
     }
-    return _org.accessMode.label;
+    return 'Organisation is commercially usable.';
   }
 
   Future<void> _save(OrganizationModel next) async {
@@ -49,7 +51,7 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      await FeedbackService.showError(context, title: 'Could not update access', message: '$e');
+      await FeedbackService.showError(context, title: 'Could not update organisation', message: '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -57,23 +59,31 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
 
   Future<void> _setActive(bool active) async {
     if (active) {
-      if (_org.accessMode == OrganizationAccessMode.subscription &&
+      if (_org.commercialPlan.isTimeBound &&
           !OrganisationAccess.isGranted(_org.copyWith(status: OrganizationAccessStatus.active))) {
         await FeedbackService.showWarning(
           context,
-          title: 'Subscription required',
-          message: 'Set a valid From / Until window before activating subscription access.',
+          title: 'Validity required',
+          message: 'Set a valid From / Until window before activating an annual commercial plan.',
         );
         return;
       }
+      final bool ok = await FeedbackService.showConfirmation(
+        context,
+        title: 'Activate organisation?',
+        message:
+            '"${_org.name}" will be commercially usable according to its commercial plan.',
+        confirmLabel: 'Activate',
+      );
+      if (!ok) return;
       await _save(_org.copyWith(status: OrganizationAccessStatus.active));
       return;
     }
     final bool ok = await FeedbackService.showConfirmation(
       context,
-      title: 'Deactivate access?',
+      title: 'Deactivate organisation?',
       message:
-          '"${_org.name}" will be treated as inactive. Users will not be able to use Hackz until access is activated again.',
+          '"${_org.name}" will be treated as inactive. Users will not be able to use Hackz until the organisation is activated again.',
       confirmLabel: 'Deactivate',
       dangerConfirm: true,
     );
@@ -81,9 +91,9 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
     await _save(_org.copyWith(status: OrganizationAccessStatus.inactive));
   }
 
-  Future<void> _setMode(OrganizationAccessMode mode) async {
-    if (mode == _org.accessMode) return;
-    await _save(_org.copyWith(accessMode: mode));
+  Future<void> _setPlan(OrganizationCommercialPlan plan) async {
+    if (plan == _org.commercialPlan) return;
+    await _save(_org.copyWith(commercialPlan: plan));
   }
 
   Future<void> _pickDate({required bool from}) async {
@@ -118,7 +128,7 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -134,9 +144,9 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
           Row(
             children: <Widget>[
               Icon(
-                _granted ? AppIcons.workflowApproved : AppIcons.lock,
+                _statusActive ? AppIcons.workflowApproved : AppIcons.lock,
                 size: 16,
-                color: _granted ? const Color(0xFF047857) : const Color(0xFF6A38FF),
+                color: _statusActive ? const Color(0xFF047857) : const Color(0xFF6A38FF),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -144,11 +154,11 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     const Text(
-                      'Hackz access',
+                      'Organisation status',
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
                     ),
                     Text(
-                      _caption,
+                      _statusCaption,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
@@ -164,28 +174,38 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
                 )
               else
                 _StatusToggle(
-                  active: _granted,
+                  active: _statusActive,
                   onActive: () => _setActive(true),
                   onInactive: () => _setActive(false),
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          const Text(
+            'Commercial plan',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+          ),
+          const SizedBox(height: 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
-              for (final OrganizationAccessMode mode in OrganizationAccessMode.values)
-                _ModeChip(
-                  label: mode.label,
-                  selected: _org.accessMode == mode,
+              for (final OrganizationCommercialPlan plan in OrganizationCommercialPlan.values)
+                _PlanChip(
+                  label: plan.label,
+                  selected: _org.commercialPlan == plan,
                   enabled: !_busy,
-                  onTap: () => _setMode(mode),
+                  onTap: () => _setPlan(plan),
                 ),
             ],
           ),
-          if (_org.accessMode == OrganizationAccessMode.subscription) ...<Widget>[
-            const SizedBox(height: 8),
+          if (_org.commercialPlan.isTimeBound) ...<Widget>[
+            const SizedBox(height: 10),
+            const Text(
+              'Validity period',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
+            ),
+            const SizedBox(height: 6),
             Wrap(
               spacing: 8,
               runSpacing: 6,
@@ -234,14 +254,14 @@ class _StatusToggle extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           _StatusPart(
-            label: 'Active',
+            label: OrganizationAccessStatus.active.label,
             selected: active,
             selectedColor: const Color(0xFF047857),
             selectedFill: const Color(0xFFECFDF5),
             onTap: onActive,
           ),
           _StatusPart(
-            label: 'Inactive',
+            label: OrganizationAccessStatus.inactive.label,
             selected: !active,
             selectedColor: const Color(0xFF64748B),
             selectedFill: const Color(0xFFF1F5F9),
@@ -292,8 +312,8 @@ class _StatusPart extends StatelessWidget {
   }
 }
 
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
+class _PlanChip extends StatelessWidget {
+  const _PlanChip({
     required this.label,
     required this.selected,
     required this.enabled,

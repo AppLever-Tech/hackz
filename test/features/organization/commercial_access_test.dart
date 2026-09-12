@@ -28,7 +28,7 @@ void main() {
     );
   }
 
-  test('subscription and per-idea events start commercially enabled', () {
+  test('annual and per-idea events start commercially enabled', () {
     expect(CommercialAccess.initialEventAccess(perEvent: false).isEnabled, isTrue);
   });
 

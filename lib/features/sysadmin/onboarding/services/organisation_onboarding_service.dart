@@ -240,7 +240,7 @@ abstract final class OrganisationOnboardingService {
 
   static String get defaultWorkspaceId => ApprovedTenantFirebase.controlPlaneProjectId;
 
-  /// Writes commercial access on Control Plane `hkzOrganizations` only.
+  /// Writes organisation status and commercial plan on Control Plane `hkzOrganizations` only.
   static Future<void> updateCommercialAccess(OrganizationModel org) async {
     if (org.id.trim().isEmpty) return;
     await FirestoreUtils.upsertOrganization(org, database: _controlPlane);

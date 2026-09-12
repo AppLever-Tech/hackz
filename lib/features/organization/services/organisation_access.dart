@@ -1,10 +1,10 @@
 import '../../../core/firebase/hackz_firebase.dart';
 import '../../../utils/firestore_utils.dart';
-import '../models/enums/organization_access_mode.dart';
 import '../models/enums/organization_access_status.dart';
+import '../models/enums/organization_commercial_plan.dart';
 import '../models/organization_model.dart';
 
-/// Control Plane commercial-access check for an organisation.
+/// Control Plane organisation-access check.
 ///
 /// Reads `hkzOrganizations` on [HackzFirebase.controlPlane] only. Tenant
 /// features should call this instead of inspecting tenant Firestore.
@@ -16,10 +16,11 @@ abstract final class OrganisationAccess {
   static OrganizationModel? _cached;
   static String? _cachedOrgId;
 
-  /// Effective access right now. Expired subscriptions are treated as inactive.
+  /// Commercially usable when status is ACTIVE, and for time-bound plans the
+  /// current date is within validFrom/validUntil.
   static bool isGranted(OrganizationModel org, {DateTime? now}) {
     if (org.status != OrganizationAccessStatus.active) return false;
-    if (org.accessMode != OrganizationAccessMode.subscription) return true;
+    if (!org.commercialPlan.isTimeBound) return true;
     final DateTime? from = org.validFrom;
     final DateTime? until = org.validUntil;
     if (from == null || until == null) return false;
@@ -51,12 +52,12 @@ abstract final class OrganisationAccess {
     return org;
   }
 
-  /// `true` / `false` when Control Plane access mode is known; `null` on miss.
+  /// `true` / `false` when Control Plane commercial plan is known; `null` on miss.
   static Future<bool?> isPerEvent(String orgId) async {
     try {
       final OrganizationModel? org = await fetch(orgId);
       if (org == null) return null;
-      return org.accessMode == OrganizationAccessMode.perEvent;
+      return org.commercialPlan == OrganizationCommercialPlan.perEvent;
     } catch (_) {
       return null;
     }

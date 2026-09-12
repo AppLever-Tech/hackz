@@ -5,7 +5,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../../features/events/models/event_kind.dart';
-import '../../../../features/organization/models/enums/organization_access_mode.dart';
+import '../../../../features/organization/models/enums/organization_commercial_plan.dart';
 import '../../../../features/organization/models/organization_model.dart';
 import '../models/event_entitlement.dart';
 import '../services/organisation_onboarding_service.dart';
@@ -30,7 +30,7 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
   String? _error;
   String? _busyEventId;
 
-  bool get _perEvent => widget.organization.accessMode == OrganizationAccessMode.perEvent;
+  bool get _perEvent => widget.organization.commercialPlan == OrganizationCommercialPlan.perEvent;
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _EventEntitlementsPanelState extends State<EventEntitlementsPanel> {
   void didUpdateWidget(EventEntitlementsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.organization.id != widget.organization.id ||
-        oldWidget.organization.accessMode != widget.organization.accessMode) {
+        oldWidget.organization.commercialPlan != widget.organization.commercialPlan) {
       _reload();
     }
   }

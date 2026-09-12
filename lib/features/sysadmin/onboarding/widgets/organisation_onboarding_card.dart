@@ -15,7 +15,9 @@ import '../../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../organization/models/enums/organization_access_mode.dart';
+import '../../../organization/models/enums/organization_access_status.dart';
+import '../../../organization/models/enums/organization_commercial_plan.dart';
+import '../../../organization/models/organization_model.dart';
 import '../../../organization/services/organisation_access.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
 import '../../../user/models/user_model.dart';
@@ -242,6 +244,19 @@ class OrganisationOnboardingCard extends StatelessWidget {
                       icon: AppIcons.orgType,
                       label: item.organization.type.displayName,
                     ),
+                    _AccessChip(
+                      active: item.organization.status == OrganizationAccessStatus.active,
+                      label: 'Access: ${item.organization.status.label}',
+                    ),
+                    _MetaChip(
+                      icon: AppIcons.payments,
+                      label: 'Plan: ${item.organization.commercialPlan.label}',
+                    ),
+                    if (item.organization.commercialPlan.isTimeBound)
+                      _MetaChip(
+                        icon: AppIcons.event,
+                        label: _validityLabel(item.organization),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -251,7 +266,7 @@ class OrganisationOnboardingCard extends StatelessWidget {
                   organization: item.organization,
                   onChanged: onChanged,
                 ),
-                if (item.organization.accessMode == OrganizationAccessMode.perEvent) ...<Widget>[
+                if (item.organization.commercialPlan == OrganizationCommercialPlan.perEvent) ...<Widget>[
                   const SizedBox(height: 12),
                   EventEntitlementsPanel(
                     key: ValueKey<String>(item.organization.id),
@@ -436,6 +451,45 @@ class _AdminRow extends StatelessWidget {
             child: const Text('Add'),
           ),
       ],
+    );
+  }
+}
+
+String _validityLabel(OrganizationModel organization) {
+  final DateTime? from = organization.validFrom;
+  final DateTime? until = organization.validUntil;
+  if (from == null || until == null) return 'Validity not set';
+  return '${formatShortDate(from)} – ${formatShortDate(until)}';
+}
+
+class _AccessChip extends StatelessWidget {
+  const _AccessChip({required this.active, required this.label});
+
+  final bool active;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = active ? const Color(0xFF047857) : const Color(0xFF64748B);
+    final Color bg = active ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fg.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(active ? AppIcons.workflowApproved : AppIcons.lock, size: 13, color: fg),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: fg),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -7,14 +7,18 @@ export const EVENT_ENTITLEMENT_STATUS_DISABLED = 'disabled';
 export const EVENT_PAYMENT_MODE_PER_EVENT = 'perEvent';
 export const EVENT_PAYMENT_STATUS_UNPAID = 'unpaid';
 export const EVENT_PAYMENT_STATUS_PAID = 'paid';
-export const ORG_ACCESS_MODE_PER_EVENT = 'perEvent';
+export const ORG_COMMERCIAL_PLAN_PER_EVENT = 'PER_EVENT';
 
 export type EventEntitlementLicensingStatus = 'pending' | 'enabled' | 'disabled';
 export type EventEntitlementActionStatus = 'enabled' | 'disabled';
 export type EventEntitlementDisplayState = 'pending' | 'readyForActivation' | 'enabled' | 'disabled';
 
-export function isPerEventAccessMode(accessMode: string): boolean {
-  return accessMode.trim() === ORG_ACCESS_MODE_PER_EVENT;
+function commercialPlanToken(value: string): string {
+  return value.trim().toUpperCase().replace(/[\s_-]/g, '');
+}
+
+export function isPerEventCommercialPlan(value: string): boolean {
+  return commercialPlanToken(value) === commercialPlanToken(ORG_COMMERCIAL_PLAN_PER_EVENT);
 }
 
 const ALLOWED_EVENT_TYPES = new Set(['ideathon', 'hackathon', 'researchPaper']);

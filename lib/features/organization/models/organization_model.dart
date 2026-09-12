@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'enums/organization_access_mode.dart';
 import 'enums/organization_access_status.dart';
+import 'enums/organization_commercial_plan.dart';
 import 'enums/organization_type.dart';
 
 class OrganizationModel {
@@ -16,7 +16,7 @@ class OrganizationModel {
     this.photoUrl,
     this.thumbnailUrl,
     this.status = OrganizationAccessStatus.active,
-    this.accessMode = OrganizationAccessMode.perIdea,
+    this.commercialPlan = OrganizationCommercialPlan.perIdea,
     this.validFrom,
     this.validUntil,
   });
@@ -31,9 +31,11 @@ class OrganizationModel {
   final String? photoUrl;
   final String? thumbnailUrl;
 
-  /// Commercial access status on Control Plane `hkzOrganizations`.
+  /// Organisation access status on Control Plane `hkzOrganizations`.
   final OrganizationAccessStatus status;
-  final OrganizationAccessMode accessMode;
+
+  /// Commercial plan on Control Plane `hkzOrganizations`.
+  final OrganizationCommercialPlan commercialPlan;
   final DateTime? validFrom;
   final DateTime? validUntil;
 
@@ -55,13 +57,13 @@ class OrganizationModel {
       'photoUrl': (photoUrl ?? '').trim(),
       'thumbnailUrl': (thumbnailUrl ?? '').trim(),
       'status': status.wireValue,
-      'accessMode': accessMode.wireValue,
+      'commercialPlan': commercialPlan.wireValue,
       'validFrom': validFrom == null ? null : Timestamp.fromDate(validFrom!),
       'validUntil': validUntil == null ? null : Timestamp.fromDate(validUntil!),
     };
   }
 
-  /// Catalog fields mirrored to tenant Firebase. Commercial access stays on Control Plane.
+  /// Catalog fields mirrored to tenant Firebase. Commercial fields stay on Control Plane.
   Map<String, dynamic> toCatalogMap() {
     return <String, dynamic>{
       'id': id,
@@ -88,7 +90,9 @@ class OrganizationModel {
       photoUrl: _optionalUrl(map['photoUrl']),
       thumbnailUrl: _optionalUrl(map['thumbnailUrl']),
       status: OrganizationAccessStatus.fromWire(map['status']),
-      accessMode: OrganizationAccessMode.fromWire(map['accessMode']),
+      commercialPlan: OrganizationCommercialPlan.fromWire(
+        map['commercialPlan'] ?? map['accessMode'],
+      ),
       validFrom: _optionalDate(map['validFrom']),
       validUntil: _optionalDate(map['validUntil']),
     );
@@ -117,7 +121,7 @@ class OrganizationModel {
     String? thumbnailUrl,
     bool clearPhoto = false,
     OrganizationAccessStatus? status,
-    OrganizationAccessMode? accessMode,
+    OrganizationCommercialPlan? commercialPlan,
     DateTime? validFrom,
     DateTime? validUntil,
     bool clearValidFrom = false,
@@ -134,7 +138,7 @@ class OrganizationModel {
       photoUrl: clearPhoto ? null : (photoUrl ?? this.photoUrl),
       thumbnailUrl: clearPhoto ? null : (thumbnailUrl ?? this.thumbnailUrl),
       status: status ?? this.status,
-      accessMode: accessMode ?? this.accessMode,
+      commercialPlan: commercialPlan ?? this.commercialPlan,
       validFrom: clearValidFrom ? null : (validFrom ?? this.validFrom),
       validUntil: clearValidUntil ? null : (validUntil ?? this.validUntil),
     );

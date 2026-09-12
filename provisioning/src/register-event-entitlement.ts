@@ -2,7 +2,7 @@ import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import {
   eventEntitlementDocId,
   initialEventEntitlementFields,
-  isPerEventAccessMode,
+  isPerEventCommercialPlan,
   normalizeEventEntitlementRequest,
 } from './event-entitlement.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
@@ -83,7 +83,7 @@ async function assertTenantDepartmentAdmin(
   }
 }
 
-async function organisationAccessMode(organisationId: string): Promise<string> {
+async function organisationCommercialPlan(organisationId: string): Promise<string> {
   let doc;
   try {
     doc = await controlPlaneFirestore().collection(HKZ_ORGANIZATIONS).doc(organisationId).get();
@@ -92,18 +92,19 @@ async function organisationAccessMode(organisationId: string): Promise<string> {
       'CONTROL_PLANE_UNAVAILABLE',
       isPermissionDenied(error)
         ? 'The provisioning identity cannot read Control Plane organisations.'
-        : 'Unable to read Control Plane organisation access.',
+        : 'Unable to read Control Plane organisation commercial plan.',
     );
   }
-  return String(doc.data()?.accessMode ?? '').trim();
+  const data = doc.data() ?? {};
+  return String(data.commercialPlan ?? data.accessMode ?? '').trim();
 }
 
 export async function registerEventEntitlement(input: EventEntitlementRequest & { idToken: string }): Promise<EventEntitlementResult> {
   const normalized = normalizeEventEntitlementRequest(input);
   await assertTenantDepartmentAdmin(input.idToken, normalized.organisationId);
 
-  const accessMode = await organisationAccessMode(normalized.organisationId);
-  if (!isPerEventAccessMode(accessMode)) {
+  const commercialPlan = await organisationCommercialPlan(normalized.organisationId);
+  if (!isPerEventCommercialPlan(commercialPlan)) {
     return {
       ok: true,
       skipped: true,

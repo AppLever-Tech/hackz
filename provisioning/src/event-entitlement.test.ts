@@ -6,7 +6,7 @@ import {
   eventEntitlementDisplayState,
   eventEntitlementDocId,
   initialEventEntitlementFields,
-  isPerEventAccessMode,
+  isPerEventCommercialPlan,
   isSameLicensingStatus,
   normalizeEventEntitlementRequest,
   normalizeSetEventEntitlementStatusRequest,
@@ -66,12 +66,15 @@ test('normalizeEventEntitlementRequest rejects missing and invalid fields', () =
   );
 });
 
-test('isPerEventAccessMode skips non-perEvent organisations', () => {
-  assert.equal(isPerEventAccessMode('perEvent'), true);
-  assert.equal(isPerEventAccessMode(' perEvent '), true);
-  assert.equal(isPerEventAccessMode('perIdea'), false);
-  assert.equal(isPerEventAccessMode('subscription'), false);
-  assert.equal(isPerEventAccessMode(''), false);
+test('isPerEventCommercialPlan matches PER_EVENT and existing perEvent values', () => {
+  assert.equal(isPerEventCommercialPlan('PER_EVENT'), true);
+  assert.equal(isPerEventCommercialPlan('perEvent'), true);
+  assert.equal(isPerEventCommercialPlan(' perEvent '), true);
+  assert.equal(isPerEventCommercialPlan('PER_IDEA'), false);
+  assert.equal(isPerEventCommercialPlan('perIdea'), false);
+  assert.equal(isPerEventCommercialPlan('ANNUAL'), false);
+  assert.equal(isPerEventCommercialPlan('subscription'), false);
+  assert.equal(isPerEventCommercialPlan(''), false);
 });
 
 test('initialEventEntitlementFields stores only SysAdmin entitlement metadata', () => {

@@ -1,4 +1,4 @@
-/// Commercial access status on Control Plane `hkzOrganizations`.
+/// Organisation access status on Control Plane `hkzOrganizations`.
 enum OrganizationAccessStatus {
   active,
   inactive;
