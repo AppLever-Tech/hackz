@@ -87,8 +87,9 @@ abstract final class IdeathonWorkspaceLoader {
   IdeathonWorkspaceLoader._();
 
   static Future<IdeathonWorkspaceViewModel> load(String ideathonId) async {
-    IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
-    if (ideathon == null) throw StateError('Ideathon not found');
+    final IdeathonModel? loaded = await IdeathonService.fetchById(ideathonId);
+    if (loaded == null) throw StateError('Ideathon not found');
+    IdeathonModel ideathon = loaded;
 
     try {
       await IdeathonService.ensurePerEventEntitlement(ideathon);
