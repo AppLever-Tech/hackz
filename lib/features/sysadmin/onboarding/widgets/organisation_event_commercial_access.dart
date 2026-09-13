@@ -64,6 +64,14 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
   }
 
   Future<void> _reload() async {
+    if (!_perEvent) {
+      setState(() {
+        _items = const <OrganisationEventCommercialItem>[];
+        _loading = false;
+        _error = null;
+      });
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -247,13 +255,13 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
                   ],
                 ),
               ),
-              if (_loading || _busyEventId != null)
+              if (_perEvent && (_loading || _busyEventId != null))
                 const SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              else
+              else if (_perEvent)
                 InkWell(
                   onTap: _reload,
                   borderRadius: BorderRadius.circular(16),
@@ -267,7 +275,7 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
           if (_error != null) ...<Widget>[
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C))),
-          ] else if (!_loading && _items.isEmpty) ...<Widget>[
+          ] else if (_perEvent && !_loading && _items.isEmpty) ...<Widget>[
             const SizedBox(height: 8),
             Text(
               _emptyMessage,

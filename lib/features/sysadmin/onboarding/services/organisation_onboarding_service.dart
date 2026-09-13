@@ -268,28 +268,18 @@ abstract final class OrganisationOnboardingService {
     return items;
   }
 
-  /// SysAdmin commercial list: Control Plane entitlements for PER_EVENT, tenant catalog otherwise.
+  /// SysAdmin commercial list: Control Plane entitlements for PER_EVENT only.
+  /// PER_IDEA / ANNUAL do not peek tenant event documents from this console.
   static Future<List<OrganisationEventCommercialItem>> listEventCommercialAccess({
     required OrganizationModel organization,
     String tenantId = '',
   }) async {
-    if (organization.commercialPlan == OrganizationCommercialPlan.perEvent) {
-      final List<EventEntitlement> entitlements = await listEventEntitlements(organization.id);
-      return entitlements
-          .map(OrganisationEventCommercialItem.fromEntitlement)
-          .toList(growable: false);
+    if (organization.commercialPlan != OrganizationCommercialPlan.perEvent) {
+      return const <OrganisationEventCommercialItem>[];
     }
-    final List<TenantEventCatalogEntry> events = await listTenantEventCatalog(
-      orgId: organization.id,
-      tenantId: tenantId,
-    );
-    return events
-        .map(
-          (TenantEventCatalogEntry event) => OrganisationEventCommercialItem.fromCatalog(
-            organization: organization,
-            event: event,
-          ),
-        )
+    final List<EventEntitlement> entitlements = await listEventEntitlements(organization.id);
+    return entitlements
+        .map(OrganisationEventCommercialItem.fromEntitlement)
         .toList(growable: false);
   }
 
@@ -309,8 +299,14 @@ abstract final class OrganisationOnboardingService {
               .collection(FirestoreUtils.hkzIdeathons)
               .where('orgId', isEqualTo: id)
               .get();
-        } catch (_) {
-          snap = await db.collection(FirestoreUtils.hkzIdeathons).get();
+        } catch (error) {
+          if (_isPermissionDenied(error)) return const <TenantEventCatalogEntry>[];
+          try {
+            snap = await db.collection(FirestoreUtils.hkzIdeathons).get();
+          } catch (fallback) {
+            if (_isPermissionDenied(fallback)) return const <TenantEventCatalogEntry>[];
+            rethrow;
+          }
         }
         final List<TenantEventCatalogEntry> items = <TenantEventCatalogEntry>[];
         for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
@@ -338,6 +334,10 @@ abstract final class OrganisationOnboardingService {
       if (e.code == 'permission-denied') return const <TenantEventCatalogEntry>[];
       rethrow;
     }
+  }
+
+  static bool _isPermissionDenied(Object error) {
+    return error is FirebaseException && error.code == 'permission-denied';
   }
 
   static DateTime? _optionalDate(Object? value) {

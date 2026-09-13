@@ -30,7 +30,7 @@ import 'organisation_access_control.dart';
 import 'organisation_event_commercial_access.dart';
 import 'provisioning_authorization_panel.dart';
 
-class OrganisationOnboardingCard extends StatelessWidget {
+class OrganisationOnboardingCard extends StatefulWidget {
   const OrganisationOnboardingCard({
     super.key,
     required this.item,
@@ -39,6 +39,16 @@ class OrganisationOnboardingCard extends StatelessWidget {
 
   final OrganisationOnboardingItem item;
   final VoidCallback onChanged;
+
+  @override
+  State<OrganisationOnboardingCard> createState() => _OrganisationOnboardingCardState();
+}
+
+class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard> {
+  bool _expanded = false;
+
+  OrganisationOnboardingItem get item => widget.item;
+  VoidCallback get onChanged => widget.onChanged;
 
   Future<void> _testConnection(BuildContext context) async {
     final String code = item.organisationCode;
@@ -188,174 +198,236 @@ class OrganisationOnboardingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          DashboardCardTitleBand(
-            title: item.name,
-            leading: OrganizationThumbnail(organization: item.organization, size: 32),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (item.isComplete)
-                  HoverIconActionButton(
-                    icon: AppIcons.verification,
-                    tooltip: 'Test workspace',
-                    iconSize: 17,
-                    onTap: () => _testConnection(context),
-                  ),
-                if (!item.isComplete)
-                  HoverIconActionButton(
-                    icon: AppIcons.onboardingNext,
-                    tooltip: 'Continue setup',
-                    iconSize: 17,
-                    onTap: () => _continue(context),
-                  ),
-                HoverIconActionButton(
-                  icon: AppIcons.edit,
-                  tooltip: 'Edit organization',
-                  iconSize: 17,
-                  onTap: () => _edit(context),
+          Material(
+            color: DashboardCardTitleStyle.bandFill,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: _expanded
+                      ? const BorderSide(color: DashboardCardTitleStyle.bandDivider)
+                      : BorderSide.none,
                 ),
-                HoverIconActionButton(
-                  icon: AppIcons.delete,
-                  tooltip: 'Delete organization',
-                  destructive: true,
-                  iconSize: 17,
-                  onTap: () => _delete(context),
-                ),
-              ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _expanded = !_expanded),
+                      child: Padding(
+                        padding: DashboardCardTitleStyle.bandPadding,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            OrganizationThumbnail(organization: item.organization, size: 32),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    item.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: DashboardCardTitleStyle.textStyle,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    children: <Widget>[
+                                      OnboardingStatusPill(status: item.status, compact: true),
+                                      _AccessChip(
+                                        active: item.organization.status == OrganizationAccessStatus.active,
+                                        label: item.organization.status.label,
+                                      ),
+                                      _MetaChip(
+                                        icon: AppIcons.payments,
+                                        label: item.organization.commercialPlan.label,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, top: 4),
+                              child: Icon(
+                                _expanded ? AppIcons.expandLess : AppIcons.expandMore,
+                                size: 22,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 6, 8, 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        if (item.isComplete)
+                          HoverIconActionButton(
+                            icon: AppIcons.verification,
+                            tooltip: 'Test workspace',
+                            iconSize: 17,
+                            onTap: () => _testConnection(context),
+                          ),
+                        if (!item.isComplete)
+                          HoverIconActionButton(
+                            icon: AppIcons.onboardingNext,
+                            tooltip: 'Continue setup',
+                            iconSize: 17,
+                            onTap: () => _continue(context),
+                          ),
+                        HoverIconActionButton(
+                          icon: AppIcons.edit,
+                          tooltip: 'Edit organization',
+                          iconSize: 17,
+                          onTap: () => _edit(context),
+                        ),
+                        HoverIconActionButton(
+                          icon: AppIcons.delete,
+                          tooltip: 'Delete organization',
+                          destructive: true,
+                          iconSize: 17,
+                          onTap: () => _delete(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    OnboardingStatusPill(status: item.status),
-                    WorkspaceConnectionPill(
-                      label: item.firebaseStatusLabel,
-                      ready: item.firebaseValidated && item.firebaseConnected,
-                      connected: item.firebaseConnected,
-                    ),
-                    _MetaChip(
-                      icon: AppIcons.orgType,
-                      label: item.organization.type.displayName,
-                    ),
-                    _AccessChip(
-                      active: item.organization.status == OrganizationAccessStatus.active,
-                      label: 'Access: ${item.organization.status.label}',
-                    ),
-                    _MetaChip(
-                      icon: AppIcons.payments,
-                      label: 'Plan: ${item.organization.commercialPlan.label}',
-                    ),
-                    if (item.organization.commercialPlan.isTimeBound)
+          if (_expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      WorkspaceConnectionPill(
+                        label: item.firebaseStatusLabel,
+                        ready: item.firebaseValidated && item.firebaseConnected,
+                        connected: item.firebaseConnected,
+                      ),
                       _MetaChip(
-                        icon: AppIcons.event,
-                        label: _validityLabel(item.organization),
+                        icon: AppIcons.orgType,
+                        label: item.organization.type.displayName,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _CodeRow(code: code),
-                const SizedBox(height: 12),
-                OrganisationAccessControl(
-                  organization: item.organization,
-                  onChanged: onChanged,
-                ),
-                const SizedBox(height: 12),
-                OrganisationEventCommercialAccess(
-                  key: ValueKey<String>(item.organization.id),
-                  item: item,
-                ),
-                const SizedBox(height: 12),
-                ProvisioningAuthorizationPanel(
-                  status: item.tenant?.provisioningAuthorization ??
-                      ProvisioningAuthorizationStatus.required,
-                  lastValidatedAt: item.tenant?.provisioningAuthorizationValidatedAt,
-                  onValidateAgain: item.firebaseConnected
-                      ? () => _validateAuthorization(context)
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                OnboardingReadinessChecklist(item: item),
-                const SizedBox(height: 12),
-                _AdminRow(
-                  admin: admin,
-                  onAdd: () => _assignAdmin(context),
-                  showAdd: !item.isComplete && !item.initialAdminConfigured,
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: <Widget>[
-                    Text(
-                      '${item.completedSteps} of ${OrganisationOnboardingStep.total}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        item.isComplete ? 'Ready to use Hackz' : 'Next: ${item.nextStep.label}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    backgroundColor: const Color(0xFFE2E8F0),
-                    color: item.isComplete ? const Color(0xFF10B981) : const Color(0xFF6A38FF),
+                      if (item.organization.commercialPlan.isTimeBound)
+                        _MetaChip(
+                          icon: AppIcons.event,
+                          label: _validityLabel(item.organization),
+                        ),
+                    ],
                   ),
-                ),
-                if (item.isComplete) ...<Widget>[
                   const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.icon(
-                      onPressed: OrganisationAccess.isGranted(item.organization)
-                          ? () => _openOrganisation(context)
-                          : null,
-                      icon: const Icon(AppIcons.openInNew, size: 16),
-                      label: const Text('Open organisation'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF6A38FF),
-                        foregroundColor: Colors.white,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ),
-                ],
-                if (!item.isComplete) ...<Widget>[
+                  _CodeRow(code: code),
                   const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.icon(
-                      onPressed: () => _continue(context),
-                      icon: const Icon(AppIcons.onboardingNext, size: 16),
-                      label: const Text('Continue setup'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF6A38FF),
-                        foregroundColor: Colors.white,
-                        visualDensity: VisualDensity.compact,
+                  OrganisationAccessControl(
+                    organization: item.organization,
+                    onChanged: onChanged,
+                  ),
+                  const SizedBox(height: 12),
+                  OrganisationEventCommercialAccess(
+                    key: ValueKey<String>(item.organization.id),
+                    item: item,
+                  ),
+                  const SizedBox(height: 12),
+                  ProvisioningAuthorizationPanel(
+                    status: item.tenant?.provisioningAuthorization ??
+                        ProvisioningAuthorizationStatus.required,
+                    lastValidatedAt: item.tenant?.provisioningAuthorizationValidatedAt,
+                    onValidateAgain: item.firebaseConnected
+                        ? () => _validateAuthorization(context)
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  OnboardingReadinessChecklist(item: item),
+                  const SizedBox(height: 12),
+                  _AdminRow(
+                    admin: admin,
+                    onAdd: () => _assignAdmin(context),
+                    showAdd: !item.isComplete && !item.initialAdminConfigured,
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: <Widget>[
+                      Text(
+                        '${item.completedSteps} of ${OrganisationOnboardingStep.total}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF334155),
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          item.isComplete ? 'Ready to use Hackz' : 'Next: ${item.nextStep.label}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 6,
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      color: item.isComplete ? const Color(0xFF10B981) : const Color(0xFF6A38FF),
                     ),
                   ),
+                  if (item.isComplete) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.icon(
+                        onPressed: OrganisationAccess.isGranted(item.organization)
+                            ? () => _openOrganisation(context)
+                            : null,
+                        icon: const Icon(AppIcons.openInNew, size: 16),
+                        label: const Text('Open organisation'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF6A38FF),
+                          foregroundColor: Colors.white,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (!item.isComplete) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton.icon(
+                        onPressed: () => _continue(context),
+                        icon: const Icon(AppIcons.onboardingNext, size: 16),
+                        label: const Text('Continue setup'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF6A38FF),
+                          foregroundColor: Colors.white,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );
