@@ -1,0 +1,55 @@
+rules_version = '2';
+// Tenant Firebase projects only. Isolation is the project.
+// hackz-a17b6 already allowed signed-in uploads before multi-tenancy.
+// New college projects default to deny-all until these rules are published.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /payments/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /ideas/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /problems/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /orgs/{orgId}/{allPaths=**} {
+      allow read, write: if signedIn();
+    }
+    match /users/{orgId}/{allPaths=**} {
+      allow read, write: if signedIn();
+    }
+    match /feedback/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+  }
+}
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /payments/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /ideas/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /problems/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+    match /orgs/{orgId}/{allPaths=**} {
+      allow read, write: if signedIn();
+    }
+    match /users/{orgId}/{allPaths=**} {
+      allow read, write: if signedIn();
+    }
+    match /feedback/{id}/{fileName} {
+      allow read, write: if signedIn();
+    }
+  }
+}

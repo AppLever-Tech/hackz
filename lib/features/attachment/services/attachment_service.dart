@@ -22,23 +22,46 @@ class AttachmentService {
     required Reference ref,
     required PlatformFile file,
   }) {
+    final SettableMetadata metadata = metadataFor(file);
     if (kIsWeb) {
       final bytes = file.bytes;
       if (bytes == null || bytes.isEmpty) {
         throw StateError('Missing bytes for web upload: ${file.name}');
       }
-      return ref.putData(bytes);
+      return ref.putData(bytes, metadata);
     }
 
     final path = file.path;
     if (path != null && path.trim().isNotEmpty) {
-      return ref.putFile(File(path));
+      return ref.putFile(File(path), metadata);
     }
     final bytes = file.bytes;
     if (bytes != null && bytes.isNotEmpty) {
-      return ref.putData(bytes);
+      return ref.putData(bytes, metadata);
     }
     throw StateError('Missing file path/bytes: ${file.name}');
+  }
+
+  /// Object name for Storage. Keeps the original display name in Firestore.
+  static String storageObjectName(String originalName) {
+    final String trimmed = originalName.trim();
+    final int dot = trimmed.lastIndexOf('.');
+    String stem = trimmed;
+    String ext = '';
+    if (dot > 0 && dot < trimmed.length - 1) {
+      stem = trimmed.substring(0, dot);
+      ext = trimmed.substring(dot + 1).toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    }
+    String safe = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    safe = safe.replaceAll(RegExp(r'_+'), '_').replaceAll(RegExp(r'^_|_$'), '');
+    if (safe.isEmpty) safe = 'file';
+    if (safe.length > 80) safe = safe.substring(0, 80);
+    return ext.isEmpty ? safe : '$safe.$ext';
+  }
+
+  static SettableMetadata metadataFor(PlatformFile file) {
+    final String ext = (file.extension ?? '').trim().toLowerCase();
+    return SettableMetadata(contentType: _mimeForExt(ext));
   }
 
   static String folderForEntity({
@@ -80,7 +103,8 @@ class AttachmentService {
     for (final file in files) {
       final name = file.name.trim().isEmpty ? 'file_${DateTime.now().millisecondsSinceEpoch}' : file.name.trim();
       final ext = (file.extension ?? '').trim().toLowerCase();
-      final storagePath = '$folder/$name';
+      final String objectName = storageObjectName(name);
+      final storagePath = '$folder/$objectName';
       try {
         final ref = _storage.ref(storagePath);
         final task = createUploadTask(ref: ref, file: file);

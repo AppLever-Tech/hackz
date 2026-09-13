@@ -109,7 +109,11 @@ class HackzFirebase {
 
   /// Storage for this bound app. Do not cache [Reference]s across tenant rebinds;
   /// resolve through [HackzFirebase.current.storage] after each bind.
-  FirebaseStorage get storage => FirebaseStorage.instanceFor(app: app);
+  FirebaseStorage get storage {
+    final String bucket = (app.options.storageBucket ?? '').trim();
+    if (bucket.isEmpty) return FirebaseStorage.instanceFor(app: app);
+    return FirebaseStorage.instanceFor(app: app, bucket: bucket);
+  }
 
   /// Binds the Control Plane to the bootstrap (Hackz) Firebase app.
   static void bindControlPlane(TenantContext context, {FirebaseApp? app}) {

@@ -61,6 +61,15 @@ void main() {
     );
   });
 
+  test('payment screenshots use a Storage-safe object name', () {
+    expect(
+      AttachmentService.storageObjectName('WhatsApp Image 2026-04-23 at 21.07.25.jpeg'),
+      'WhatsApp_Image_2026-04-23_at_21.07.25.jpeg',
+    );
+    expect(AttachmentService.storageObjectName('proof.png'), 'proof.png');
+    expect(AttachmentService.storageObjectName('   '), 'file');
+  });
+
   test('organisation Storage paths are unchanged', () {
     expect(
       AttachmentService.folderForEntity(
