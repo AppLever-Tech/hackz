@@ -27,6 +27,8 @@ class HackzProvisioningIdentity {
   static const String collectionName = 'hkzProvisioningConfig';
   static const String documentId = 'hackz';
 
+  static HackzProvisioningIdentity? _cached;
+
   static const List<ProvisioningIamRole> minimumIamRoles = <ProvisioningIamRole>[
     ProvisioningIamRole(
       role: 'roles/firebaseauth.admin',
@@ -40,7 +42,12 @@ class HackzProvisioningIdentity {
     ),
   ];
 
+  /// Reads invokeUrl from Control Plane. Tenant sessions are not signed into
+  /// Control Plane Auth, so that document must allow unauthenticated read.
   static Future<HackzProvisioningIdentity> load() async {
+    final HackzProvisioningIdentity? cached = _cached;
+    if (cached != null && cached.invokeUrl.isNotEmpty) return cached;
+
     String email = '';
     String invokeUrl = '';
     try {
@@ -59,10 +66,16 @@ class HackzProvisioningIdentity {
       final String projectId = HackzFirebase.controlPlane.context.firebaseOptions.projectId.trim();
       email = 'hackz-provisioning@$projectId.iam.gserviceaccount.com';
     }
-    return HackzProvisioningIdentity(
+    final HackzProvisioningIdentity identity = HackzProvisioningIdentity(
       serviceAccountEmail: email,
       iamRoles: minimumIamRoles,
       invokeUrl: invokeUrl,
     );
+    if (invokeUrl.isNotEmpty) _cached = identity;
+    return identity;
+  }
+
+  static void clearCache() {
+    _cached = null;
   }
 }

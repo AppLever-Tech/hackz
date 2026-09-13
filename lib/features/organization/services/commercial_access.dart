@@ -64,6 +64,11 @@ abstract final class CommercialAccess {
     return perEvent ? EventCommercialAccess.pending : EventCommercialAccess.enabled;
   }
 
+  /// Control Plane event entitlement is created only for a known Per event plan.
+  static bool requiresEventEntitlementRegistration(bool? perEvent) {
+    return perEvent == true;
+  }
+
   /// Missing Control Plane rows default to per-idea so payments are not skipped.
   static OrganizationCommercialPlan planOf(OrganizationModel? org) {
     return org?.commercialPlan ?? OrganizationCommercialPlan.perIdea;

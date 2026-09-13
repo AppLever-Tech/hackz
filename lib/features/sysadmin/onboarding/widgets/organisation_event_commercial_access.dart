@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/firebase/hackz_provisioning_client.dart';
-import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/app_icons.dart';
 import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../core/ui/loading/hkz_async_loader.dart';
@@ -221,7 +220,6 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
 
   @override
   Widget build(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
@@ -240,19 +238,10 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
             children: <Widget>[
               const Icon(AppIcons.event, size: 16, color: Color(0xFF6A38FF)),
               const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      'Events / Commercial Access',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                    ),
-                    Text(
-                      _caption,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                    ),
-                  ],
+              const Expanded(
+                child: Text(
+                  'Events / Commercial Access',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
                 ),
               ),
               if (_perEvent && (_loading || _busyEventId != null))
@@ -271,6 +260,11 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
                   ),
                 ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _caption,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.35),
           ),
           if (_error != null) ...<Widget>[
             const SizedBox(height: 8),
@@ -311,221 +305,26 @@ class _OrganisationEventCommercialAccessState extends State<OrganisationEventCom
                 'No events in this filter.',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
               )
-            else if (mobile)
-              ...<Widget>[
-                for (final OrganisationEventCommercialItem item in _visible) ...<Widget>[
-                  _EventCommercialCard(
-                    item: item,
-                    busy: _busyEventId == item.eventId,
-                    enabled: _busyEventId == null,
-                    onRecordPayment: item.canRecordPayment ? () => _recordPayment(item) : null,
-                    onActivate: item.canActivate ? () => _activate(item) : null,
-                    onDisable: item.canDisable ? () => _disable(item) : null,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ]
             else
-              _EventCommercialTable(
-                items: _visible,
-                busyEventId: _busyEventId,
-                onRecordPayment: _recordPayment,
-                onActivate: _activate,
-                onDisable: _disable,
-              ),
+              ...<Widget>[
+                for (int i = 0; i < _visible.length; i++) ...<Widget>[
+                  if (i > 0) const SizedBox(height: 8),
+                  _EventCommercialCard(
+                    item: _visible[i],
+                    busy: _busyEventId == _visible[i].eventId,
+                    enabled: _busyEventId == null,
+                    onRecordPayment: _visible[i].canRecordPayment ? () => _recordPayment(_visible[i]) : null,
+                    onActivate: _visible[i].canActivate ? () => _activate(_visible[i]) : null,
+                    onDisable: _visible[i].canDisable ? () => _disable(_visible[i]) : null,
+                  ),
+                ],
+              ],
           ],
         ],
       ),
     );
   }
 }
-
-class _EventCommercialTable extends StatelessWidget {
-  const _EventCommercialTable({
-    required this.items,
-    required this.busyEventId,
-    required this.onRecordPayment,
-    required this.onActivate,
-    required this.onDisable,
-  });
-
-  final List<OrganisationEventCommercialItem> items;
-  final String? busyEventId;
-  final ValueChanged<OrganisationEventCommercialItem> onRecordPayment;
-  final ValueChanged<OrganisationEventCommercialItem> onActivate;
-  final ValueChanged<OrganisationEventCommercialItem> onDisable;
-
-  static const double _minWidth = 920;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double width = constraints.maxWidth.isFinite ? constraints.maxWidth : _minWidth;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: width < _minWidth ? _minWidth : width),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                children: <Widget>[
-                  const _TableHeader(),
-                  for (int i = 0; i < items.length; i++)
-                    _TableRow(
-                      item: items[i],
-                      striped: i.isOdd,
-                      busy: busyEventId == items[i].eventId,
-                      enabled: busyEventId == null,
-                      onRecordPayment: items[i].canRecordPayment ? () => onRecordPayment(items[i]) : null,
-                      onActivate: items[i].canActivate ? () => onActivate(items[i]) : null,
-                      onDisable: items[i].canDisable ? () => onDisable(items[i]) : null,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  const _TableHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF1F4FB),
-        border: Border(bottom: BorderSide(color: Color(0xFFE3E8F4))),
-      ),
-      child: const Row(
-        children: <Widget>[
-          _HeaderCell('Event', flex: 3),
-          _HeaderCell('Template', flex: 2),
-          _HeaderCell('Commercial Plan', flex: 2),
-          _HeaderCell('Payment', flex: 2),
-          _HeaderCell('Commercial Access', flex: 3),
-          _HeaderCell('Created', flex: 2),
-          _HeaderCell('Action', flex: 3),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell(this.label, {required this.flex});
-
-  final String label;
-  final int flex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
-      ),
-    );
-  }
-}
-
-class _TableRow extends StatelessWidget {
-  const _TableRow({
-    required this.item,
-    required this.striped,
-    required this.busy,
-    required this.enabled,
-    required this.onRecordPayment,
-    required this.onActivate,
-    required this.onDisable,
-  });
-
-  final OrganisationEventCommercialItem item;
-  final bool striped;
-  final bool busy;
-  final bool enabled;
-  final VoidCallback? onRecordPayment;
-  final VoidCallback? onActivate;
-  final VoidCallback? onDisable;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: striped ? const Color(0xFFFAFBFE) : Colors.white,
-        border: const Border(bottom: BorderSide(color: Color(0xFFE3E8F4))),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          _BodyCell(
-            flex: 3,
-            child: Text(
-              item.eventName.isEmpty ? item.eventId : item.eventName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
-            ),
-          ),
-          _BodyCell(flex: 2, child: Text(item.eventKind.label, style: _cellStyle)),
-          _BodyCell(flex: 2, child: Text(item.commercialPlan.label, style: _cellStyle)),
-          _BodyCell(flex: 2, child: Text(item.paymentLabel, style: _cellStyle)),
-          _BodyCell(flex: 3, child: _AccessPill(item: item)),
-          _BodyCell(
-            flex: 2,
-            child: Text(
-              item.createdAt == null ? '—' : formatShortDate(item.createdAt!),
-              style: _cellStyle,
-            ),
-          ),
-          _BodyCell(
-            flex: 3,
-            child: item.isPerEvent
-                ? _ActionRow(
-                    busy: busy,
-                    enabled: enabled,
-                    onRecordPayment: onRecordPayment,
-                    onActivate: onActivate,
-                    onDisable: onDisable,
-                  )
-                : const Text('—', style: _cellStyle),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BodyCell extends StatelessWidget {
-  const _BodyCell({required this.flex, required this.child});
-
-  final int flex;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: child,
-      ),
-    );
-  }
-}
-
-const TextStyle _cellStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569));
 
 class _EventCommercialCard extends StatelessWidget {
   const _EventCommercialCard({
@@ -558,23 +357,21 @@ class _EventCommercialCard extends StatelessWidget {
         children: <Widget>[
           Text(
             item.eventName.isEmpty ? item.eventId : item.eventName,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), height: 1.3),
           ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               _MetaPill(label: item.eventKind.label),
-              _MetaPill(label: item.commercialPlan.label),
-              _AccessPill(item: item),
-              _MetaPill(label: item.paymentLabel),
               if (item.createdAt != null) _MetaPill(label: formatShortDate(item.createdAt!)),
             ],
           ),
+          const SizedBox(height: 8),
+          _FactRow(label: 'Commercial plan', child: Text(item.commercialPlan.label, style: _factValueStyle)),
+          _FactRow(label: 'Payment', child: Text(item.paymentLabel, style: _factValueStyle)),
+          _FactRow(label: 'Commercial access', child: _AccessPill(item: item)),
           if (item.isPerEvent) ...<Widget>[
             const SizedBox(height: 8),
             _ActionRow(
@@ -590,6 +387,38 @@ class _EventCommercialCard extends StatelessWidget {
     );
   }
 }
+
+class _FactRow extends StatelessWidget {
+  const _FactRow({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), height: 1.3),
+          ),
+          const SizedBox(height: 2),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+const TextStyle _factValueStyle = TextStyle(
+  fontSize: 12,
+  fontWeight: FontWeight.w600,
+  color: Color(0xFF334155),
+  height: 1.35,
+);
 
 class _AccessPill extends StatelessWidget {
   const _AccessPill({required this.item});
@@ -608,7 +437,7 @@ class _AccessPill extends StatelessWidget {
       ),
       child: Text(
         item.accessLabel,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: fg, height: 1.3),
       ),
     );
   }
@@ -742,6 +571,8 @@ class _ActionButton extends StatelessWidget {
             disabledBackgroundColor: const Color(0xFFE2E8F0),
             disabledForegroundColor: const Color(0xFF94A3B8),
             visualDensity: VisualDensity.compact,
+            minimumSize: const Size(0, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
           )
@@ -749,6 +580,8 @@ class _ActionButton extends StatelessWidget {
             foregroundColor: const Color(0xFF64748B),
             disabledForegroundColor: const Color(0xFF94A3B8),
             visualDensity: VisualDensity.compact,
+            minimumSize: const Size(0, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
           );

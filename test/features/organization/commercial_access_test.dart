@@ -37,6 +37,12 @@ void main() {
     expect(CommercialAccess.initialEventAccess(perEvent: true).isPending, isTrue);
   });
 
+  test('event entitlement registration runs only for a known per-event plan', () {
+    expect(CommercialAccess.requiresEventEntitlementRegistration(true), isTrue);
+    expect(CommercialAccess.requiresEventEntitlementRegistration(false), isFalse);
+    expect(CommercialAccess.requiresEventEntitlementRegistration(null), isFalse);
+  });
+
   test('pending events allow participation but are not licensed', () {
     final IdeathonModel pending = event(access: EventCommercialAccess.pending);
     expect(CommercialAccess.allowsEventParticipation(pending), isTrue);

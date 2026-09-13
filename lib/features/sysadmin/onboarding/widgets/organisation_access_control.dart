@@ -149,21 +149,10 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
                 color: _statusActive ? const Color(0xFF047857) : const Color(0xFF6A38FF),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      'Organisation status',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
-                    ),
-                    Text(
-                      _statusCaption,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                    ),
-                  ],
+              const Expanded(
+                child: Text(
+                  'Organisation status',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8)),
                 ),
               ),
               if (_busy)
@@ -171,14 +160,23 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                _StatusToggle(
-                  active: _statusActive,
-                  onActive: () => _setActive(true),
-                  onInactive: () => _setActive(false),
                 ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _statusCaption,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155), height: 1.35),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _StatusToggle(
+              active: _statusActive,
+              enabled: !_busy,
+              onActive: () => _setActive(true),
+              onInactive: () => _setActive(false),
+            ),
           ),
           const SizedBox(height: 12),
           const Text(
@@ -234,11 +232,13 @@ class _OrganisationAccessControlState extends State<OrganisationAccessControl> {
 class _StatusToggle extends StatelessWidget {
   const _StatusToggle({
     required this.active,
+    required this.enabled,
     required this.onActive,
     required this.onInactive,
   });
 
   final bool active;
+  final bool enabled;
   final VoidCallback onActive;
   final VoidCallback onInactive;
 
@@ -258,14 +258,14 @@ class _StatusToggle extends StatelessWidget {
             selected: active,
             selectedColor: const Color(0xFF047857),
             selectedFill: const Color(0xFFECFDF5),
-            onTap: onActive,
+            onTap: enabled ? onActive : null,
           ),
           _StatusPart(
             label: OrganizationAccessStatus.inactive.label,
             selected: !active,
             selectedColor: const Color(0xFF64748B),
             selectedFill: const Color(0xFFF1F5F9),
-            onTap: onInactive,
+            onTap: enabled ? onInactive : null,
           ),
         ],
       ),
@@ -286,7 +286,7 @@ class _StatusPart extends StatelessWidget {
   final bool selected;
   final Color selectedColor;
   final Color selectedFill;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

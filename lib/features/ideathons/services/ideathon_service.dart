@@ -714,7 +714,7 @@ abstract final class IdeathonService {
     required IdeathonModel event,
     required DocumentReference<Map<String, dynamic>> eventRef,
   }) async {
-    if (perEvent == false) return;
+    if (!CommercialAccess.requiresEventEntitlementRegistration(perEvent)) return;
     final HackzEventEntitlementResult result = await _registerEventEntitlementWithRetry(event);
     if (result.registered && event.commercialAccess.isEnabled) {
       await eventRef.update(<String, dynamic>{

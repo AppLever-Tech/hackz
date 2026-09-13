@@ -129,12 +129,17 @@ class ContextPill extends StatelessWidget {
       style: labelStyle,
     );
 
+    // Inner row sits inside padding; cap it so a long label fills the parent
+    // then ellipsizes instead of overflowing the icon + text Row.
     final double innerBudget = layoutMaxWidth == null
         ? double.infinity
-        : (layoutMaxWidth - pillPadding.horizontal).clamp(0.0, double.infinity);
-    final double textBudget = (innerBudget - resolvedIconSize - iconGap).clamp(0.0, double.infinity);
+        : (layoutMaxWidth -
+                pillPadding.horizontal -
+                ContextPillMetrics.borderWidthHover * 2)
+            .clamp(0.0, double.infinity);
+    final bool boundLabel = expandWidth || innerBudget.isFinite;
 
-    final Widget labelRow = Row(
+    Widget labelRow = Row(
       mainAxisSize: expandWidth ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -143,15 +148,18 @@ class ContextPill extends StatelessWidget {
         SizedBox(width: iconGap),
         if (expandWidth)
           Expanded(child: labelText)
-        else if (layoutMaxWidth != null)
-          ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: textBudget),
-            child: labelText,
-          )
+        else if (boundLabel)
+          Flexible(child: labelText)
         else
           labelText,
       ],
     );
+    if (!expandWidth && innerBudget.isFinite) {
+      labelRow = ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: innerBudget),
+        child: labelRow,
+      );
+    }
 
     final double pillMaxWidth = expandWidth
         ? (layoutMaxWidth ?? (boundedWidth ? constraints.maxWidth : double.infinity))

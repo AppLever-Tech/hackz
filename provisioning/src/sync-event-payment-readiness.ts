@@ -1,5 +1,4 @@
 import { getAuth } from 'firebase-admin/auth';
-import type { DocumentData } from 'firebase-admin/firestore';
 import {
   EVENT_ENTITLEMENT_STATUS_PENDING,
   EVENT_PAYMENT_STATUS_PENDING,
@@ -17,6 +16,12 @@ import {
 } from './firebase-apps.js';
 import { alignTenantCommercialAccess } from './event-payment-readiness.js';
 import { assertOrganisationIsPerEvent } from './organisation-plan.js';
+import {
+  firestoreUserLookup,
+  loadTenantUserProfile,
+  profileHasRole,
+  profileOrganisationId,
+} from './tenant-operator.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
   COLLEGE_ADMIN_ROLE,
@@ -38,13 +43,6 @@ export type SyncEventPaymentReadinessResult = {
   ready: boolean;
 };
 
-function hasRole(data: DocumentData | undefined, role: string): boolean {
-  if (data == null) return false;
-  if (String(data.role ?? '').trim() === role) return true;
-  const roles = data.roles;
-  return Array.isArray(roles) && roles.some((value) => String(value).trim() === role);
-}
-
 async function assertSysAdminOrTenantOperator(idToken: string, organisationId: string): Promise<void> {
   if (idToken.trim().length === 0) {
     throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
@@ -54,7 +52,7 @@ async function assertSysAdminOrTenantOperator(idToken: string, organisationId: s
     const decoded = await getAuth(controlPlaneApp()).verifyIdToken(idToken);
     const profile = await controlPlaneFirestore().collection(HKZ_USERS).doc(decoded.uid).get();
     const data = profile.data() ?? {};
-    if (hasRole(data, 'SADM')) return;
+    if (profileHasRole(data, 'SADM')) return;
     const phone = String(decoded.phone_number ?? '').trim();
     if (phone.length > 0) {
       const whitelist = await controlPlaneFirestore()
@@ -71,16 +69,16 @@ async function assertSysAdminOrTenantOperator(idToken: string, organisationId: s
 
   const tenant = await resolveActiveTenantByOrganisationId(organisationId);
   const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
-  let uid = '';
+  let decoded;
   try {
-    uid = (await tenantAuth(app).verifyIdToken(idToken)).uid;
+    decoded = await tenantAuth(app).verifyIdToken(idToken);
   } catch {
     throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
   }
 
-  let profile;
+  let data;
   try {
-    profile = await tenantFirestore(app).collection(HKZ_USERS).doc(uid).get();
+    data = await loadTenantUserProfile(firestoreUserLookup(tenantFirestore(app)), decoded);
   } catch (error) {
     throw new ProvisionError(
       'PROVISIONING_NOT_AUTHORIZED',
@@ -89,12 +87,11 @@ async function assertSysAdminOrTenantOperator(idToken: string, organisationId: s
         : 'Unable to read the tenant user profile.',
     );
   }
-  const data = profile.data();
   const allowed =
-    hasRole(data, DEPARTMENT_ADMIN_ROLE) ||
-    hasRole(data, COLLEGE_ADMIN_ROLE) ||
-    hasRole(data, COORDINATOR_ROLE);
-  if (!profile.exists || !allowed || String(data?.orgId ?? '').trim() !== organisationId) {
+    profileHasRole(data, DEPARTMENT_ADMIN_ROLE) ||
+    profileHasRole(data, COLLEGE_ADMIN_ROLE) ||
+    profileHasRole(data, COORDINATOR_ROLE);
+  if (!allowed || profileOrganisationId(data) !== organisationId) {
     throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
   }
 }

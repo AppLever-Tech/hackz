@@ -101,13 +101,16 @@ abstract final class IdeaTableColumns {
         label: 'Events',
         fixedWidth: 148,
         minWidth: 148,
-        align: Alignment.center,
+        align: Alignment.centerLeft,
         gapAfter: config.canUploadPayment ? _kLeadingColumnGap : null,
         cell: (BuildContext context, IdeaListItem item) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: IdeaEventPills(
-            events: item.events,
-            onOpenEvent: (event) => actions.onOpenEvent(item, event.eventId),
+          child: SizedBox(
+            width: double.infinity,
+            child: IdeaEventPills(
+              events: item.events,
+              onOpenEvent: (event) => actions.onOpenEvent(item, event.eventId),
+            ),
           ),
         ),
       ),

@@ -1,5 +1,7 @@
 export const HKZ_TENANTS = 'hkzTenants';
 export const HKZ_USERS = 'hkzUsers';
+/** Tenant Auth UID → `hkzUsers` profile id. Profiles are not keyed by Auth UID. */
+export const HKZ_USER_AUTH_MIRROR = 'hkzUserAuthMirror';
 export const HKZ_ORGANIZATIONS = 'hkzOrganizations';
 export const HKZ_EVENT_ENTITLEMENTS = 'hkzEventEntitlements';
 /** Tenant event documents. Hackz does not use a separate hkzEvents collection. */

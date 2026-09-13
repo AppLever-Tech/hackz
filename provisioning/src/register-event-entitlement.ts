@@ -1,4 +1,4 @@
-import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import {
   EVENT_ENTITLEMENT_STATUS_PENDING,
   eventEntitlementDocId,
@@ -12,11 +12,15 @@ import { alignTenantCommercialAccess } from './event-payment-readiness.js';
 import { isPermissionDenied, ProvisionError } from './errors.js';
 import { tenantApp, tenantAuth, tenantFirestore, controlPlaneFirestore } from './firebase-apps.js';
 import { readOrganisationCommercialPlan } from './organisation-plan.js';
+import {
+  firestoreUserLookup,
+  isDepartmentAdmin,
+  loadTenantUserProfile,
+  profileOrganisationId,
+} from './tenant-operator.js';
 import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
 import {
-  DEPARTMENT_ADMIN_ROLE,
   HKZ_EVENT_ENTITLEMENTS,
-  HKZ_USERS,
   type EventEntitlementRequest,
   type EventEntitlementResult,
 } from './types.js';
@@ -25,13 +29,6 @@ function isAlreadyExists(error: unknown): boolean {
   if (error == null || typeof error !== 'object') return false;
   const code = 'code' in error ? String(error.code) : '';
   return code === 'already-exists' || code === '6' || code.includes('ALREADY_EXISTS');
-}
-
-function isDepartmentAdmin(data: DocumentData | undefined): boolean {
-  if (data == null) return false;
-  if (String(data.role ?? '').trim() === DEPARTMENT_ADMIN_ROLE) return true;
-  const roles = data.roles;
-  return Array.isArray(roles) && roles.some((role) => String(role).trim() === DEPARTMENT_ADMIN_ROLE);
 }
 
 async function assertTenantDepartmentAdmin(
@@ -48,10 +45,9 @@ async function assertTenantDepartmentAdmin(
   const tenant = await resolveActiveTenantByOrganisationId(organisationId);
   const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
 
-  let uid = '';
+  let decoded;
   try {
-    const decoded = await tenantAuth(app).verifyIdToken(idToken);
-    uid = decoded.uid;
+    decoded = await tenantAuth(app).verifyIdToken(idToken);
   } catch {
     throw new ProvisionError(
       'UNAUTHORIZED',
@@ -59,9 +55,9 @@ async function assertTenantDepartmentAdmin(
     );
   }
 
-  let profile;
+  let data;
   try {
-    profile = await tenantFirestore(app).collection(HKZ_USERS).doc(uid).get();
+    data = await loadTenantUserProfile(firestoreUserLookup(tenantFirestore(app)), decoded);
   } catch (error) {
     throw new ProvisionError(
       'PROVISIONING_NOT_AUTHORIZED',
@@ -71,15 +67,7 @@ async function assertTenantDepartmentAdmin(
     );
   }
 
-  const data = profile.data();
-  if (!profile.exists || !isDepartmentAdmin(data)) {
-    throw new ProvisionError(
-      'UNAUTHORIZED',
-      'Only a Department Admin can register event access.',
-    );
-  }
-  const userOrgId = String(data?.orgId ?? '').trim();
-  if (userOrgId !== organisationId) {
+  if (!isDepartmentAdmin(data) || profileOrganisationId(data) !== organisationId) {
     throw new ProvisionError(
       'UNAUTHORIZED',
       'Only a Department Admin can register event access.',
@@ -101,8 +89,6 @@ async function alignPendingTenantAccess(organisationId: string, eventId: string)
 
 export async function registerEventEntitlement(input: EventEntitlementRequest & { idToken: string }): Promise<EventEntitlementResult> {
   const normalized = normalizeEventEntitlementRequest(input);
-  await assertTenantDepartmentAdmin(input.idToken, normalized.organisationId);
-
   const commercialPlan = await readOrganisationCommercialPlan(normalized.organisationId);
   if (!isPerEventCommercialPlan(commercialPlan)) {
     return {
@@ -114,6 +100,8 @@ export async function registerEventEntitlement(input: EventEntitlementRequest & 
       eventId: normalized.eventId,
     };
   }
+
+  await assertTenantDepartmentAdmin(input.idToken, normalized.organisationId);
 
   const entitlementId = eventEntitlementDocId(normalized.organisationId, normalized.eventId);
   const ref = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);

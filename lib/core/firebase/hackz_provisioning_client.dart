@@ -255,7 +255,7 @@ abstract final class HackzProvisioningClient {
     if (base.isEmpty) {
       throw const HackzProvisioningException(
         'CONTROL_PLANE_UNAVAILABLE',
-        'Set hkzProvisioningConfig/hackz.invokeUrl to the Cloud Run provisioner (or http://localhost:8787 for local development).',
+        'The provisioning URL could not be read. On Control Plane (hackz-a17b6), allow unauthenticated read of hkzProvisioningConfig/hackz. Do not copy this document onto the tenant project.',
       );
     }
 
