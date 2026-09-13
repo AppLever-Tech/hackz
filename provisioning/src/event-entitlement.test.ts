@@ -6,6 +6,7 @@ import {
   eventEntitlementDisplayState,
   eventEntitlementDocId,
   initialEventEntitlementFields,
+  isClosedTenantEventStatus,
   isEventCommercialPaymentReceived,
   isPerEventCommercialPlan,
   isSameLicensingStatus,
@@ -78,6 +79,13 @@ test('isPerEventCommercialPlan matches PER_EVENT and existing perEvent values', 
   assert.equal(isPerEventCommercialPlan('ANNUAL'), false);
   assert.equal(isPerEventCommercialPlan('subscription'), false);
   assert.equal(isPerEventCommercialPlan(''), false);
+});
+
+test('closed tenant event statuses freeze commercial access', () => {
+  assert.equal(isClosedTenantEventStatus('completed'), true);
+  assert.equal(isClosedTenantEventStatus('archived'), true);
+  assert.equal(isClosedTenantEventStatus('inProgress'), false);
+  assert.equal(isClosedTenantEventStatus('scheduled'), false);
 });
 
 test('SysAdmin cannot treat PER_IDEA or ANNUAL orgs as per-event entitlements', () => {

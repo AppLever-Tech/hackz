@@ -88,6 +88,12 @@ export function normalizeEventEntitlementStatus(value: string): EventEntitlement
   return 'pending';
 }
 
+/** Completed/archived tenant events keep the commercial access they were granted. */
+export function isClosedTenantEventStatus(value: string): boolean {
+  const status = value.trim().toLowerCase().replace(/[\s_]/g, '');
+  return status === 'completed' || status === 'archived';
+}
+
 export type EventPaymentReadiness = {
   lumpSumVerified: boolean;
   ideaPaymentCount: number;

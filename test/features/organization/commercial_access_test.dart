@@ -7,7 +7,12 @@ import 'package:hackz/features/organization/models/enums/organization_commercial
 import 'package:hackz/features/organization/services/commercial_access.dart';
 
 void main() {
-  IdeathonModel event({EventCommercialAccess access = EventCommercialAccess.enabled}) {
+  IdeathonModel event({
+    EventCommercialAccess access = EventCommercialAccess.enabled,
+    IdeathonStatus status = IdeathonStatus.scheduled,
+    OrganizationCommercialPlan? grantedPlan,
+    EventCommercialAccess? grantedAccess,
+  }) {
     final DateTime now = DateTime.utc(2026, 6, 1);
     return IdeathonModel(
       ideathonId: 'evt1',
@@ -17,7 +22,7 @@ void main() {
       departmentId: 'CSE',
       startDateTime: now,
       endDateTime: now.add(const Duration(days: 1)),
-      status: IdeathonStatus.scheduled,
+      status: status,
       judgeIds: const <String>[],
       coordinatorIds: const <String>[],
       ideas: const <IdeathonIdeaSnapshot>[],
@@ -26,6 +31,8 @@ void main() {
       createdAt: now,
       updatedAt: now,
       commercialAccess: access,
+      grantedCommercialPlan: grantedPlan,
+      grantedCommercialAccess: grantedAccess,
     );
   }
 
@@ -108,5 +115,44 @@ void main() {
       ),
       CommercialAccess.accessDisabledLabel,
     );
+  });
+
+  test('completed events keep granted plan and access instead of the live organisation plan', () {
+    final IdeathonModel completed = event(
+      status: IdeathonStatus.completed,
+      access: EventCommercialAccess.disabled,
+      grantedPlan: OrganizationCommercialPlan.perEvent,
+      grantedAccess: EventCommercialAccess.enabled,
+    );
+    expect(
+      CommercialAccess.indicatorPlan(
+        event: completed,
+        currentPlan: OrganizationCommercialPlan.perIdea,
+      ),
+      OrganizationCommercialPlan.perEvent,
+    );
+    expect(CommercialAccess.indicatorAccess(completed), EventCommercialAccess.enabled);
+    expect(
+      CommercialAccess.departmentAdminIndicator(
+        plan: CommercialAccess.indicatorPlan(
+          event: completed,
+          currentPlan: OrganizationCommercialPlan.annual,
+        ),
+        access: CommercialAccess.indicatorAccess(completed),
+      ),
+      CommercialAccess.commercialAccessActiveLabel,
+    );
+  });
+
+  test('open events still follow the live organisation plan', () {
+    final IdeathonModel open = event(access: EventCommercialAccess.pending);
+    expect(
+      CommercialAccess.indicatorPlan(
+        event: open,
+        currentPlan: OrganizationCommercialPlan.perEvent,
+      ),
+      OrganizationCommercialPlan.perEvent,
+    );
+    expect(CommercialAccess.indicatorAccess(open), EventCommercialAccess.pending);
   });
 }

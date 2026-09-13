@@ -1,6 +1,7 @@
 import {
   computeEventPaymentReadiness,
   eventEntitlementDocId,
+  isClosedTenantEventStatus,
   normalizeEventEntitlementStatus,
   type EventPaymentReadiness,
 } from './event-entitlement.js';
@@ -75,12 +76,13 @@ export async function alignTenantCommercialAccess(input: {
   const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
   const status = normalizeEventEntitlementStatus(input.licensingStatus);
   try {
-    await tenantFirestore(app)
-      .collection(HKZ_IDEATHONS)
-      .doc(input.eventId)
-      .update({
-        commercialAccess: { status },
-      });
+    const eventRef = tenantFirestore(app).collection(HKZ_IDEATHONS).doc(input.eventId);
+    const eventSnap = await eventRef.get();
+    if (!eventSnap.exists) return;
+    if (isClosedTenantEventStatus(String(eventSnap.data()?.status ?? ''))) return;
+    await eventRef.update({
+      commercialAccess: { status },
+    });
   } catch (error) {
     if (isPermissionDenied(error)) {
       throw new ProvisionError(

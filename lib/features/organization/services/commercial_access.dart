@@ -102,4 +102,23 @@ abstract final class CommercialAccess {
         return annualContractLabel;
     }
   }
+
+  /// Completed events keep the plan they were granted, not the live organisation plan.
+  static OrganizationCommercialPlan indicatorPlan({
+    required IdeathonModel event,
+    required OrganizationCommercialPlan currentPlan,
+  }) {
+    if (event.commercialGrantIsFrozen && event.grantedCommercialPlan != null) {
+      return event.grantedCommercialPlan!;
+    }
+    return currentPlan;
+  }
+
+  /// Completed events keep the access they were granted, not a later SysAdmin change.
+  static EventCommercialAccess indicatorAccess(IdeathonModel event) {
+    if (event.commercialGrantIsFrozen && event.grantedCommercialAccess != null) {
+      return event.grantedCommercialAccess!;
+    }
+    return event.commercialAccess;
+  }
 }

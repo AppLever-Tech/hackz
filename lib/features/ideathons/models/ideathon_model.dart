@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../evaluations/models/evaluation_criterion.dart';
 import '../../events/models/event_kind.dart';
 import '../../events/models/event_schedule_type.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
 import 'event_commercial_access.dart';
 import 'ideathon_idea_snapshot.dart';
 import 'ideathon_status.dart';
@@ -34,6 +35,8 @@ class IdeathonModel {
     this.runnerUpIdeaId = '',
     this.resultsReviewedAt,
     this.commercialAccess = EventCommercialAccess.enabled,
+    this.grantedCommercialPlan,
+    this.grantedCommercialAccess,
   });
 
   final String ideathonId;
@@ -69,6 +72,15 @@ class IdeathonModel {
 
   /// Commercial entitlement flag only. Existing lifecycle [status] is unchanged.
   final EventCommercialAccess commercialAccess;
+
+  /// Organisation plan this event was created under. Frozen for completed events.
+  final OrganizationCommercialPlan? grantedCommercialPlan;
+
+  /// Commercial access at completion. Live [commercialAccess] must not replace this.
+  final EventCommercialAccess? grantedCommercialAccess;
+
+  bool get commercialGrantIsFrozen =>
+      status == IdeathonStatus.completed || status == IdeathonStatus.archived;
 
   int get ideaCount => ideas.length;
   int get judgeCount => judgeIds.length;
@@ -126,6 +138,8 @@ class IdeathonModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'commercialAccess': commercialAccess.toMap(),
+      if (grantedCommercialPlan != null) 'grantedCommercialPlan': grantedCommercialPlan!.wireValue,
+      if (grantedCommercialAccess != null) 'grantedCommercialAccess': grantedCommercialAccess!.toMap(),
     };
   }
 
@@ -181,6 +195,12 @@ class IdeathonModel {
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       commercialAccess: EventCommercialAccess.fromMap(map['commercialAccess']),
+      grantedCommercialPlan: map['grantedCommercialPlan'] == null
+          ? null
+          : OrganizationCommercialPlan.fromWire(map['grantedCommercialPlan']),
+      grantedCommercialAccess: map['grantedCommercialAccess'] == null
+          ? null
+          : EventCommercialAccess.fromMap(map['grantedCommercialAccess']),
     );
   }
 

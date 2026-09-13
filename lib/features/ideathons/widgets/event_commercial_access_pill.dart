@@ -26,16 +26,12 @@ class EventCommercialAccessPill extends StatelessWidget {
   }) {
     if (plan != null) {
       return EventCommercialAccessPill(
-        plan: plan,
-        access: event.commercialAccess,
+        plan: CommercialAccess.indicatorPlan(event: event, currentPlan: plan),
+        access: CommercialAccess.indicatorAccess(event),
         compact: compact,
       );
     }
-    return _AsyncEventCommercialAccessPill(
-      orgId: event.orgId,
-      access: event.commercialAccess,
-      compact: compact,
-    );
+    return _AsyncEventCommercialAccessPill(event: event, compact: compact);
   }
 
   @override
@@ -86,24 +82,22 @@ class EventCommercialAccessPill extends StatelessWidget {
 
 class _AsyncEventCommercialAccessPill extends StatelessWidget {
   const _AsyncEventCommercialAccessPill({
-    required this.orgId,
-    required this.access,
+    required this.event,
     required this.compact,
   });
 
-  final String orgId;
-  final EventCommercialAccess access;
+  final IdeathonModel event;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<OrganizationCommercialPlan>(
-      future: CommercialAccess.planForOrg(orgId),
+      future: CommercialAccess.planForOrg(event.orgId),
       builder: (BuildContext context, AsyncSnapshot<OrganizationCommercialPlan> snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         return EventCommercialAccessPill(
-          plan: snapshot.data!,
-          access: access,
+          plan: CommercialAccess.indicatorPlan(event: event, currentPlan: snapshot.data!),
+          access: CommercialAccess.indicatorAccess(event),
           compact: compact,
         );
       },

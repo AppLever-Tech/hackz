@@ -13,6 +13,7 @@ import '../../events/models/event_schedule_type.dart';
 import '../../idea/models/idea_model.dart';
 import '../../idea/services/idea_status_helpers.dart';
 import '../../organization/models/department_model.dart';
+import '../../organization/models/enums/organization_commercial_plan.dart';
 import '../../organization/services/commercial_access.dart';
 import '../../organization/services/organisation_access.dart';
 import '../../payment/models/payment_model.dart';
@@ -97,9 +98,10 @@ abstract final class IdeathonService {
     final DateTime now = DateTime.now();
     final DocumentReference<Map<String, dynamic>> ref =
         _db.collection(FirestoreUtils.hkzIdeathons).doc();
-    final bool? perEvent = await OrganisationAccess.isPerEvent(orgId);
-    final EventCommercialAccess commercialAccess =
-        CommercialAccess.initialEventAccess(perEvent: perEvent == true);
+    final OrganizationCommercialPlan grantedPlan = await CommercialAccess.planForOrg(orgId);
+    final EventCommercialAccess commercialAccess = CommercialAccess.initialEventAccess(
+      perEvent: grantedPlan == OrganizationCommercialPlan.perEvent,
+    );
     final IdeathonModel ideathon = IdeathonModel(
       ideathonId: ref.id,
       orgId: orgId,
@@ -123,11 +125,12 @@ abstract final class IdeathonService {
       createdAt: now,
       updatedAt: now,
       commercialAccess: commercialAccess,
+      grantedCommercialPlan: grantedPlan,
     );
 
     await ref.set(ideathon.toMap());
     await _registerPerEventEntitlement(
-      perEvent: perEvent,
+      perEvent: grantedPlan == OrganizationCommercialPlan.perEvent,
       event: ideathon,
       eventRef: ref,
     );
@@ -229,6 +232,8 @@ abstract final class IdeathonService {
       createdAt: existing.createdAt,
       updatedAt: now,
       commercialAccess: existing.commercialAccess,
+      grantedCommercialPlan: existing.grantedCommercialPlan,
+      grantedCommercialAccess: existing.grantedCommercialAccess,
     );
 
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(id).set(updated.toMap());
@@ -613,8 +618,12 @@ abstract final class IdeathonService {
     if (event.winnerIdeaId.trim().isEmpty && event.eventKind.usesWinners) {
       throw StateError('Select winners before completing the event.');
     }
+    final OrganizationCommercialPlan grantedPlan =
+        event.grantedCommercialPlan ?? await CommercialAccess.planForOrg(event.orgId);
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
       'status': IdeathonStatus.completed.value,
+      'grantedCommercialPlan': grantedPlan.wireValue,
+      'grantedCommercialAccess': event.commercialAccess.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }

@@ -1,6 +1,7 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import {
   eventEntitlementDocId,
+  isClosedTenantEventStatus,
   isEventCommercialPaymentReceived,
   isSameLicensingStatus,
   normalizeSetEventEntitlementStatusRequest,
@@ -57,11 +58,13 @@ export async function setEventEntitlementStatus(
   const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
   const eventRef = tenantFirestore(app).collection(HKZ_IDEATHONS).doc(normalized.eventId);
 
+  let freezeTenantAccess = false;
   try {
     const eventSnap = await eventRef.get();
     if (!eventSnap.exists) {
       throw new ProvisionError('WRITE_FAILED', 'The tenant event was not found.');
     }
+    freezeTenantAccess = isClosedTenantEventStatus(String(eventSnap.data()?.status ?? ''));
   } catch (error) {
     if (error instanceof ProvisionError) throw error;
     throw new ProvisionError(
@@ -96,10 +99,12 @@ export async function setEventEntitlementStatus(
   }
 
   try {
-    await eventRef.update({
-      commercialAccess: { status: tenantCommercialAccessStatus(normalized.status) },
-      updatedAt: now,
-    });
+    if (!freezeTenantAccess) {
+      await eventRef.update({
+        commercialAccess: { status: tenantCommercialAccessStatus(normalized.status) },
+        updatedAt: now,
+      });
+    }
   } catch (error) {
     if (isNotFound(error)) {
       throw new ProvisionError('WRITE_FAILED', 'The tenant event was not found.');
