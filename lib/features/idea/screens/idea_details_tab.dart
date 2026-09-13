@@ -186,15 +186,13 @@ class IdeaDetailsTab extends StatelessWidget {
           const SizedBox(height: 8),
           teamCard,
         ] else
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Expanded(child: ideaCard),
-                const SizedBox(width: 8),
-                Expanded(child: teamCard),
-              ],
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(child: ideaCard),
+              const SizedBox(width: 8),
+              Expanded(child: teamCard),
+            ],
           ),
         const SizedBox(height: 8),
         eventsCard,
