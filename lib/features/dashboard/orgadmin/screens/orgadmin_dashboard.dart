@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
@@ -8,7 +9,10 @@ import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
 import '../../../../features/payment/screens/per_idea_payment_verification_screen.dart';
+import '../services/tenant_setup_readiness_service.dart';
+import '../widgets/tenant_setup_readiness_panel.dart';
 import '../../chrome/dashboard_page_template.dart';
+import '../../chrome/dashboard_components.dart';
 import '../../collegeadmin/screens/manage_college_screen.dart';
 
 /// Hackz org admin tenant operations — reuses existing tenant modules.
@@ -55,40 +59,96 @@ class OrgAdminDashboard extends StatelessWidget {
   }
 }
 
-class _OrgAdminOverview extends StatelessWidget {
+class _OrgAdminOverview extends StatefulWidget {
   const _OrgAdminOverview({required this.user, required this.refreshToken});
 
   final UserModel user;
   final int refreshToken;
 
   @override
+  State<_OrgAdminOverview> createState() => _OrgAdminOverviewState();
+}
+
+class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
+  late Future<TenantSetupReadiness> _readinessFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _readinessFuture = TenantSetupReadinessService.load(widget.user.orgId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrgAdminOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshToken != widget.refreshToken) {
+      _reload();
+    }
+  }
+
+  void _reload() {
+    setState(() {
+      _readinessFuture = TenantSetupReadinessService.load(widget.user.orgId);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+    final String orgLabel = widget.user.organisationName.trim().isEmpty
+        ? (widget.user.orgId.trim().isEmpty ? 'Hackz Organisation Admin' : widget.user.orgId.trim())
+        : widget.user.organisationName.trim();
+    final double gap = ResponsiveHelper.dashboardSectionGap(context);
+
+    return FutureBuilder<TenantSetupReadiness>(
+      future: _readinessFuture,
+      builder: (BuildContext context, AsyncSnapshot<TenantSetupReadiness> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('Unable to load setup status: ${snapshot.error}');
+        }
+        final TenantSetupReadiness readiness = snapshot.data!;
+        return SingleChildScrollView(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Icon(Icons.support_agent_rounded, size: 48, color: Color(0xFF6A38FF)),
-              const SizedBox(height: 16),
-              Text(
-                user.organisationName.trim().isEmpty ? 'Hackz Organisation Admin' : user.organisationName.trim(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              SectionContainer(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Icon(Icons.support_agent_rounded, size: 40, color: Color(0xFF6A38FF)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            orgLabel,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Initial tenant setup uses the same modules as day-to-day operations: '
+                            'departments, problems, teams, events, then PER_IDEA payment verification when applicable.',
+                            style: TextStyle(fontSize: 13, height: 1.45, color: Colors.grey.shade700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Use the navigation to monitor departments, problems, ideas, events, and verify '
-                'PER_IDEA payments for this organisation.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, height: 1.45, color: Colors.grey.shade700),
-              ),
+              SizedBox(height: gap),
+              TenantSetupReadinessPanel(readiness: readiness, onRefresh: _reload),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

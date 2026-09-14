@@ -141,7 +141,9 @@ void main() {
       expect(ImportDepartmentResolutionPolicy.canCreateDepartmentAdmin(UserRole.departmentAdmin), isFalse);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.departmentAdmin), isFalse);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.collegeAdmin), isTrue);
+      expect(ImportDepartmentResolutionPolicy.canCreateDepartment(UserRole.orgAdmin), isTrue);
       expect(ImportDepartmentResolutionPolicy.canCreateDepartmentAdmin(UserRole.collegeAdmin), isTrue);
+      expect(ImportDepartmentResolutionPolicy.canCreateDepartmentAdmin(UserRole.orgAdmin), isFalse);
     });
 
     test('only CADM and DADM may save aliases', () {
