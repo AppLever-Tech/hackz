@@ -755,7 +755,6 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             TenantWorkspaceCheck(id: 'connection', label: 'Platform connection', ok: false, detail: 'Not checked yet.'),
             TenantWorkspaceCheck(id: 'auth', label: 'Sign-in ready', ok: false, detail: 'Not checked yet.'),
             TenantWorkspaceCheck(id: 'data', label: 'Workspace data ready', ok: false, detail: 'Not checked yet.'),
-            TenantWorkspaceCheck(id: 'files', label: 'File storage ready', ok: false, detail: 'Not checked yet.'),
             TenantWorkspaceCheck(id: 'access', label: 'Administrator access', ok: false, detail: 'Not checked yet.'),
           ];
     return UserFormSection(

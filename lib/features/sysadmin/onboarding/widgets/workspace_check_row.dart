@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../services/tenant_workspace_validator.dart';
+import 'workspace_check_help_icon.dart';
 
 class WorkspaceCheckRow extends StatelessWidget {
   const WorkspaceCheckRow({super.key, required this.check, this.pending = false});
@@ -45,9 +46,18 @@ class WorkspaceCheckRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
-                  check.label,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        check.label,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    WorkspaceCheckHelpIcon(checkId: check.id),
+                  ],
                 ),
                 if (check.detail.trim().isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),

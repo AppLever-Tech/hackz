@@ -24,7 +24,8 @@ class TenantWorkspaceProbe {
   final bool firestoreOk;
   final bool storageOk;
 
-  bool get ok => authOk && firestoreOk && storageOk;
+  /// Storage is optional for onboarding; tenant sign-in and Firestore are required.
+  bool get ok => authOk && firestoreOk;
 
   String get projectId => context.firebaseOptions.projectId;
 }
@@ -199,8 +200,8 @@ abstract final class TenantFirebase {
     }
   }
 
-  /// Validates Auth, Firestore, and Storage on the tenant project without
-  /// switching the active session (SysAdmin stays on the Control Plane).
+  /// Validates Auth and Firestore on the tenant project (Storage reported but not required).
+  /// Does not switch the active session (SysAdmin stays on the Control Plane).
   static Future<TenantWorkspaceProbe> probe(String organisationCode) async {
     final TenantContext context = await TenantResolver.resolveByOrganisationCode(organisationCode);
     try {

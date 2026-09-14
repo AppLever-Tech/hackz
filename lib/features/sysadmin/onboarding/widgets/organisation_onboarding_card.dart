@@ -59,7 +59,7 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
           context,
           title: 'Workspace ready',
           message:
-              'Connected to ${probe.projectId}. Sign-in, data, and files resolved to this organisation.',
+              'Connected to ${probe.projectId}. Sign-in and workspace data are reachable for this organisation.',
         );
         return;
       }
@@ -67,7 +67,9 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
         context,
         title: 'Workspace check failed',
         message:
-            'Project ${probe.projectId}. Sign-in: ${probe.authOk ? 'ready' : 'failed'}. Data: ${probe.firestoreOk ? 'ready' : 'failed'}. Files: ${probe.storageOk ? 'ready' : 'failed'}.',
+            'Project ${probe.projectId}. Sign-in: ${probe.authOk ? 'ready' : 'failed'}. '
+            'Data: ${probe.firestoreOk ? 'ready' : 'failed'}.'
+            '${probe.storageOk ? '' : ' File storage is not configured (optional until logos or payment proofs are used).'}',
       );
     } on TenantConnectionException catch (e) {
       if (!context.mounted) return;

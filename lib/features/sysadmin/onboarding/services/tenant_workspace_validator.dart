@@ -22,6 +22,19 @@ class TenantWorkspaceCheck {
   final String detail;
 }
 
+/// What each onboarding workspace check validates (shown in wizard help).
+class TenantWorkspaceCheckGuideEntry {
+  const TenantWorkspaceCheckGuideEntry({
+    required this.checkId,
+    required this.label,
+    required this.validates,
+  });
+
+  final String checkId;
+  final String label;
+  final String validates;
+}
+
 typedef TenantWorkspaceCheckProgress = void Function(String message, double progress);
 
 /// Live checks against an approved workspace. Does not bind [HackzFirebase.current].
@@ -29,6 +42,40 @@ abstract final class TenantWorkspaceValidator {
   TenantWorkspaceValidator._();
 
   static const Duration _timeout = Duration(seconds: 8);
+
+  static const List<TenantWorkspaceCheckGuideEntry> onboardingCheckGuide =
+      <TenantWorkspaceCheckGuideEntry>[
+    TenantWorkspaceCheckGuideEntry(
+      checkId: 'connection',
+      label: 'Platform connection',
+      validates: 'Approved Hackz workspace project opens and matches the selected project.',
+    ),
+    TenantWorkspaceCheckGuideEntry(
+      checkId: 'auth',
+      label: 'Sign-in ready',
+      validates: 'Tenant Firebase Auth responds (required for organisation code + mobile OTP).',
+    ),
+    TenantWorkspaceCheckGuideEntry(
+      checkId: 'data',
+      label: 'Workspace data ready',
+      validates:
+          'Tenant Firestore is reachable (organisation data probe; permission-denied still means the project is reachable).',
+    ),
+    TenantWorkspaceCheckGuideEntry(
+      checkId: 'access',
+      label: 'Administrator access',
+      validates:
+          'Signed-in SysAdmin can read Control Plane hkzTenants (required to register and activate organisations).',
+    ),
+  ];
+
+  static TenantWorkspaceCheckGuideEntry? guideForCheckId(String checkId) {
+    final String id = checkId.trim();
+    for (final TenantWorkspaceCheckGuideEntry entry in onboardingCheckGuide) {
+      if (entry.checkId == id) return entry;
+    }
+    return null;
+  }
 
   static Future<List<TenantWorkspaceCheck>> validate(
     String firebaseProjectId, {
@@ -66,10 +113,6 @@ abstract final class TenantWorkspaceValidator {
         run: () => _checkData(app),
       ),
       (
-        message: 'Checking file storage...',
-        run: () => _checkFiles(app),
-      ),
-      (
         message: 'Checking administrator access...',
         run: () => _checkAccess(),
       ),
@@ -99,7 +142,6 @@ abstract final class TenantWorkspaceValidator {
       ),
       const TenantWorkspaceCheck(id: 'auth', label: 'Sign-in ready', ok: false),
       const TenantWorkspaceCheck(id: 'data', label: 'Workspace data ready', ok: false),
-      const TenantWorkspaceCheck(id: 'files', label: 'File storage ready', ok: false),
       const TenantWorkspaceCheck(id: 'access', label: 'Administrator access', ok: false),
     ];
   }
@@ -183,42 +225,6 @@ abstract final class TenantWorkspaceValidator {
         label: 'Workspace data ready',
         ok: false,
         detail: 'Unable to read organisation data.',
-      );
-    }
-  }
-
-  static Future<TenantWorkspaceCheck> _checkFiles(FirebaseApp app) async {
-    try {
-      final String bucket = (app.options.storageBucket ?? '').trim();
-      if (bucket.isEmpty) {
-        return const TenantWorkspaceCheck(
-          id: 'files',
-          label: 'File storage ready',
-          ok: false,
-          detail: 'File storage is not configured.',
-        );
-      }
-      final bool reachable = await TenantFirebase.isStorageReachable(app);
-      if (!reachable) {
-        return const TenantWorkspaceCheck(
-          id: 'files',
-          label: 'File storage ready',
-          ok: false,
-          detail: 'File storage is not responding.',
-        );
-      }
-      return const TenantWorkspaceCheck(
-        id: 'files',
-        label: 'File storage ready',
-        ok: true,
-        detail: 'Logos and documents can be stored.',
-      );
-    } catch (_) {
-      return const TenantWorkspaceCheck(
-        id: 'files',
-        label: 'File storage ready',
-        ok: false,
-        detail: 'File storage is not responding.',
       );
     }
   }
