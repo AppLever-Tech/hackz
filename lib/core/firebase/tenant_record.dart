@@ -102,6 +102,8 @@ class TenantRecord {
     this.firebaseValidated = false,
     this.hackzSetupComplete = false,
     this.initialAdminConfigured = false,
+    this.hackzOrgAdminConfigured = false,
+    this.hackzOrgAdminId = '',
     this.provisioningAuthorization = ProvisioningAuthorizationStatus.required,
     this.provisioningAuthorizationValidatedAt,
   });
@@ -126,6 +128,13 @@ class TenantRecord {
   final bool firebaseValidated;
   final bool hackzSetupComplete;
   final bool initialAdminConfigured;
+
+  /// True once SysAdmin selected a Hackz org admin for this tenant (Phase 2 provisioning handoff).
+  final bool hackzOrgAdminConfigured;
+
+  /// Control Plane `hkzOrgAdmins` document id selected for tenant provisioning.
+  final String hackzOrgAdminId;
+
   final ProvisioningAuthorizationStatus provisioningAuthorization;
 
   /// Last time SysAdmin validated college IAM for provisioning. Null until first check.
@@ -143,6 +152,8 @@ class TenantRecord {
       'firebaseValidated': firebaseValidated,
       'hackzSetupComplete': hackzSetupComplete,
       'initialAdminConfigured': initialAdminConfigured,
+      'hackzOrgAdminConfigured': hackzOrgAdminConfigured,
+      'hackzOrgAdminId': hackzOrgAdminId.trim(),
       'provisioningAuthorization': provisioningAuthorization.wireValue,
       if (provisioningAuthorizationValidatedAt != null)
         'provisioningAuthorizationValidatedAt': Timestamp.fromDate(provisioningAuthorizationValidatedAt!),
@@ -165,6 +176,8 @@ class TenantRecord {
       firebaseValidated: map['firebaseValidated'] == true,
       hackzSetupComplete: map['hackzSetupComplete'] == true,
       initialAdminConfigured: map['initialAdminConfigured'] == true,
+      hackzOrgAdminConfigured: map['hackzOrgAdminConfigured'] == true,
+      hackzOrgAdminId: (map['hackzOrgAdminId'] as String? ?? '').trim(),
       provisioningAuthorization: ProvisioningAuthorizationStatus.fromRegistry(
         raw: map['provisioningAuthorization'],
         tenantStatus: status,
@@ -184,6 +197,8 @@ class TenantRecord {
     bool? firebaseValidated,
     bool? hackzSetupComplete,
     bool? initialAdminConfigured,
+    bool? hackzOrgAdminConfigured,
+    String? hackzOrgAdminId,
     ProvisioningAuthorizationStatus? provisioningAuthorization,
     DateTime? provisioningAuthorizationValidatedAt,
     bool clearProvisioningAuthorizationValidatedAt = false,
@@ -199,6 +214,8 @@ class TenantRecord {
       firebaseValidated: firebaseValidated ?? this.firebaseValidated,
       hackzSetupComplete: hackzSetupComplete ?? this.hackzSetupComplete,
       initialAdminConfigured: initialAdminConfigured ?? this.initialAdminConfigured,
+      hackzOrgAdminConfigured: hackzOrgAdminConfigured ?? this.hackzOrgAdminConfigured,
+      hackzOrgAdminId: hackzOrgAdminId ?? this.hackzOrgAdminId,
       provisioningAuthorization: provisioningAuthorization ?? this.provisioningAuthorization,
       provisioningAuthorizationValidatedAt: clearProvisioningAuthorizationValidatedAt
           ? null

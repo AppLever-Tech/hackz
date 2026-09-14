@@ -155,6 +155,8 @@ class AppIcons {
     switch (role) {
       case UserRole.sysAdmin:
         return settings;
+      case UserRole.orgAdmin:
+        return helpSupport;
       case UserRole.collegeAdmin:
         return organizations;
       case UserRole.departmentAdmin:
@@ -179,6 +181,8 @@ class AppIcons {
         return teamMember;
       case 'SADM':
         return settings;
+      case 'OADM':
+        return helpSupport;
       case 'CADM':
         return organizations;
       case 'DADM':

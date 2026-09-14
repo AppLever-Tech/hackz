@@ -9,6 +9,7 @@ enum OrganisationOnboardingStep {
   validate,
   authorization,
   initialAdmin,
+  hackzOrgAdmin,
   activate;
 
   String get label {
@@ -22,13 +23,15 @@ enum OrganisationOnboardingStep {
       case OrganisationOnboardingStep.authorization:
         return 'Authorization';
       case OrganisationOnboardingStep.initialAdmin:
-        return 'Administrator';
+        return 'College Admin';
+      case OrganisationOnboardingStep.hackzOrgAdmin:
+        return 'Hackz Org Admin';
       case OrganisationOnboardingStep.activate:
         return 'Activate';
     }
   }
 
-  static const int total = 6;
+  static const int total = 7;
 }
 
 class OrganisationOnboardingItem {
@@ -62,6 +65,8 @@ class OrganisationOnboardingItem {
   bool get initialAdminConfigured =>
       (tenant?.initialAdminConfigured ?? false) || collegeAdmin != null;
 
+  bool get hackzOrgAdminConfigured => tenant?.hackzOrgAdminConfigured ?? false;
+
   bool get isActivated =>
       status == TenantStatus.active && organisationCode.isNotEmpty;
 
@@ -76,6 +81,7 @@ class OrganisationOnboardingItem {
     if (firebaseValidated) count++;
     if (authorizationVerified) count++;
     if (initialAdminConfigured) count++;
+    if (hackzOrgAdminConfigured) count++;
     if (isActivated) count++;
     return count;
   }
@@ -86,6 +92,7 @@ class OrganisationOnboardingItem {
     if (!firebaseValidated) return OrganisationOnboardingStep.validate;
     if (!authorizationVerified) return OrganisationOnboardingStep.authorization;
     if (!initialAdminConfigured) return OrganisationOnboardingStep.initialAdmin;
+    if (!hackzOrgAdminConfigured) return OrganisationOnboardingStep.hackzOrgAdmin;
     if (!isActivated) return OrganisationOnboardingStep.activate;
     return OrganisationOnboardingStep.activate;
   }

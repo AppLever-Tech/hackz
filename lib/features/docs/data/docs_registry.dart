@@ -273,6 +273,10 @@ abstract final class DocsRegistry {
           'roles-responsibilities',
           'problem-lifecycle',
         ],
+      UserRole.orgAdmin => const <String>[
+          'platform-overview',
+          'roles-responsibilities',
+        ],
     };
   }
 

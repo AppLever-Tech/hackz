@@ -130,6 +130,20 @@ class IdeaRoleConfig {
           enabledFilters: const <IdeaFilterType>{},
           enabledSorts: const <IdeaSortType>{},
         );
+      case UserRole.orgAdmin:
+        return IdeaListConfig(
+          canViewIdeas: canViewIdeas,
+          canCreateIdea: false,
+          canEvaluate: false,
+          canViewStatus: false,
+          canUploadPayment: false,
+          canAssignJudge: false,
+          ideaDepartmentScope: scope,
+          orgId: user.orgId,
+          departmentCode: user.departmentCode,
+          enabledFilters: const <IdeaFilterType>{},
+          enabledSorts: const <IdeaSortType>{},
+        );
     }
   }
 }

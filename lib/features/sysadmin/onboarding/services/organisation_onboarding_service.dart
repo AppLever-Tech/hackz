@@ -16,6 +16,7 @@ import '../models/event_entitlement.dart';
 import '../models/organisation_event_commercial_item.dart';
 import '../models/organisation_onboarding_item.dart';
 import 'provisioning_authorization_validator.dart';
+import '../../org_admin/services/hkz_org_admin_service.dart';
 import 'tenant_workspace_validator.dart';
 
 class OrganisationOnboardingException implements Exception {
@@ -220,6 +221,20 @@ abstract final class OrganisationOnboardingService {
     }
   }
 
+  static Future<TenantRecord> bindHackzOrgAdmin({
+    required String tenantId,
+    required String hackzOrgAdminId,
+  }) async {
+    try {
+      return await HkzOrgAdminService.bindHackzOrgAdminToTenant(
+        tenantId: tenantId,
+        orgAdminId: hackzOrgAdminId,
+      );
+    } on HkzOrgAdminException catch (e) {
+      throw OrganisationOnboardingException(e.message);
+    }
+  }
+
   static Future<TenantRecord> activate(String tenantId) async {
     final TenantRecord current = await TenantRegistry.fetchByTenantId(tenantId) ??
         (throw const OrganisationOnboardingException('That organisation is no longer in the registry.'));
@@ -233,6 +248,17 @@ abstract final class OrganisationOnboardingService {
     if (!current.initialAdminConfigured) {
       throw const OrganisationOnboardingException(
         'Create the initial College Admin before activation.',
+      );
+    }
+    if (!current.hackzOrgAdminConfigured || current.hackzOrgAdminId.trim().isEmpty) {
+      throw const OrganisationOnboardingException(
+        'Select an active Hackz Organisation Admin before activation.',
+      );
+    }
+    final bool hasActive = await HkzOrgAdminService.organisationHasActiveOrgAdmin(current.organisationId);
+    if (!hasActive) {
+      throw const OrganisationOnboardingException(
+        'This organisation must have at least one active Hackz org admin assignment.',
       );
     }
     final TenantRecord tenant = await TenantRegistry.activate(tenantId);

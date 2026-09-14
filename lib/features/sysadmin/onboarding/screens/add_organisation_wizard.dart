@@ -26,6 +26,8 @@ import '../models/organisation_onboarding_item.dart';
 import '../services/organisation_onboarding_service.dart';
 import '../services/provisioning_authorization_validator.dart';
 import '../services/tenant_workspace_validator.dart';
+import '../../org_admin/models/hkz_org_admin.dart';
+import '../../org_admin/services/hkz_org_admin_service.dart';
 import '../widgets/college_authorization_panel.dart';
 import '../widgets/copy_organisation_code_button.dart';
 import '../widgets/onboarding_readiness_checklist.dart';
@@ -66,6 +68,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   HackzProvisioningIdentity? _provisioningIdentity;
   bool _busy = false;
   bool _changed = false;
+  String? _selectedHackzOrgAdminId;
+  List<HkzOrgAdmin> _eligibleHackzOrgAdmins = const <HkzOrgAdmin>[];
+  bool _loadingHackzOrgAdmins = false;
 
   final TextEditingController _name = TextEditingController();
   final TextEditingController _address = TextEditingController();
@@ -100,6 +105,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       _contact.text = item.organization.contact;
       _type = item.organization.type;
       _hydrateAdminForm(item.collegeAdmin);
+      _selectedHackzOrgAdminId = (item.tenant?.hackzOrgAdminId ?? '').trim().isEmpty
+          ? null
+          : item.tenant!.hackzOrgAdminId.trim();
       _step = item.isComplete ? OrganisationOnboardingStep.activate : item.nextStep;
       if (_workspaceId.isEmpty) {
         _workspaceId = OrganisationOnboardingService.defaultWorkspaceId;
@@ -114,6 +122,9 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     HackzProvisioningIdentity.load().then((HackzProvisioningIdentity identity) {
       if (mounted) setState(() => _provisioningIdentity = identity);
     });
+    if (_step == OrganisationOnboardingStep.hackzOrgAdmin) {
+      _refreshHackzOrgAdminOptions();
+    }
     _adminEmail.addListener(() {
       if (_adminEmailError != null && mounted) setState(() => _adminEmailError = null);
     });
@@ -172,6 +183,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return AppIcons.lock;
       case OrganisationOnboardingStep.initialAdmin:
         return AppIcons.adminProfile;
+      case OrganisationOnboardingStep.hackzOrgAdmin:
+        return AppIcons.helpSupport;
       case OrganisationOnboardingStep.activate:
         return AppIcons.key;
     }
@@ -402,18 +415,27 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
           } else if (!(tenant.initialAdminConfigured)) {
             _tenant = await OrganisationOnboardingService.markAdministratorReady(tenant.tenantId);
           }
-          final TenantRecord ready = _tenant ?? tenant;
-          if (ready.status != TenantStatus.active) {
-            try {
-              _tenant = await OrganisationOnboardingService.activate(ready.tenantId);
-            } catch (error) {
-              _changed = true;
-              _step = OrganisationOnboardingStep.activate;
-              rethrow;
-            }
+          _changed = true;
+          _step = OrganisationOnboardingStep.hackzOrgAdmin;
+          await _refreshHackzOrgAdminOptions();
+          return;
+        case OrganisationOnboardingStep.hackzOrgAdmin:
+          final TenantRecord? tenantForOrgAdmin = _tenant;
+          if (tenantForOrgAdmin == null) {
+            throw const OrganisationOnboardingException('Complete earlier steps first.');
           }
+          if (( _selectedHackzOrgAdminId ?? '').trim().isEmpty) {
+            throw const OrganisationOnboardingException(
+              'Select an active Hackz Organisation Admin for this college.',
+            );
+          }
+          _tenant = await OrganisationOnboardingService.bindHackzOrgAdmin(
+            tenantId: tenantForOrgAdmin.tenantId,
+            hackzOrgAdminId: _selectedHackzOrgAdminId!.trim(),
+          );
           _changed = true;
           _step = OrganisationOnboardingStep.activate;
+          return;
         case OrganisationOnboardingStep.activate:
           final TenantRecord? tenant = _tenant;
           if (tenant == null) {
@@ -451,6 +473,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             : 'Validate authorization';
       case OrganisationOnboardingStep.initialAdmin:
         return _adminAlreadyProvisioned ? 'Continue' : 'Create College Admin';
+      case OrganisationOnboardingStep.hackzOrgAdmin:
+        return 'Continue';
       case OrganisationOnboardingStep.activate:
         return _tenant != null && _tenant!.status == TenantStatus.active ? 'Done' : 'Activate';
     }
@@ -528,6 +552,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         return _authorizationStep();
       case OrganisationOnboardingStep.initialAdmin:
         return _adminStep();
+      case OrganisationOnboardingStep.hackzOrgAdmin:
+        return _hackzOrgAdminStep();
       case OrganisationOnboardingStep.activate:
         return _activateStep();
     }
@@ -885,6 +911,79 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _refreshHackzOrgAdminOptions() async {
+    if (mounted) setState(() => _loadingHackzOrgAdmins = true);
+    final String orgId = (_tenant?.organisationId ?? _organization?.id ?? '').trim();
+    List<HkzOrgAdmin> options;
+    if (orgId.isEmpty) {
+      final List<HkzOrgAdmin> all = await HkzOrgAdminService.list();
+      options = all.where((HkzOrgAdmin a) => a.isActive).toList(growable: false);
+    } else {
+      options = await HkzOrgAdminService.listActiveForOrganisation(orgId);
+      if (options.isEmpty) {
+        final List<HkzOrgAdmin> all = await HkzOrgAdminService.list();
+        options = all.where((HkzOrgAdmin a) => a.isActive).toList(growable: false);
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _eligibleHackzOrgAdmins = options;
+      _loadingHackzOrgAdmins = false;
+    });
+  }
+
+  HkzOrgAdmin? get _selectedHackzOrgAdmin {
+    final String? id = _selectedHackzOrgAdminId;
+    if (id == null || id.isEmpty) return null;
+    for (final HkzOrgAdmin admin in _eligibleHackzOrgAdmins) {
+      if (admin.id == id) return admin;
+    }
+    return null;
+  }
+
+  Widget _hackzOrgAdminStep() {
+    if (_loadingHackzOrgAdmins) {
+      return const Center(child: HkzProgressIndicator());
+    }
+    final List<HkzOrgAdmin> options = _eligibleHackzOrgAdmins;
+    final HkzOrgAdmin? picked = _selectedHackzOrgAdmin;
+    return UserFormSection(
+      title: 'Hackz Organisation Admin',
+      subtitle:
+          'Select a Hackz support user authorised for this organisation. '
+          'This is not a college employee.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (options.isEmpty)
+            const Text(
+              'No active Hackz org admins yet. Add one from SysAdmin → Hackz Org Admins, then return here.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+            )
+          else
+            HackzSelectField<String>(
+              value: _selectedHackzOrgAdminId,
+              hint: 'Select Hackz org admin',
+              enabled: !_busy,
+              prefixIcon: AppIcons.helpSupport,
+              options: options.map((HkzOrgAdmin a) => a.id).toList(growable: false),
+              labelBuilder: (String id) {
+                return options.firstWhere((HkzOrgAdmin a) => a.id == id).displayName;
+              },
+              onChanged: (String? id) => setState(() => _selectedHackzOrgAdminId = id),
+            ),
+          if (picked != null) ...<Widget>[
+            const SizedBox(height: 10),
+            Text(
+              '${picked.email} · ${picked.phone}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+          ],
         ],
       ),
     );

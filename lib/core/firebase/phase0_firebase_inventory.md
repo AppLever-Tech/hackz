@@ -45,6 +45,7 @@ SysAdmin whitelist (`hkzSysAdminWhitelist`) is looked up in the **same** Firesto
 | `hkzTenants` | Phase 2 registry: `tenantId`, `organisationCode` (`HKZ-XXXXXX`), `organisationName`, `firebaseProjectId`, `status`, `createdAt`. Document id = organisation code. |
 | `hkzOrganizations` | Organisation registry/catalog metadata for Control Plane administration. Not operational settings. |
 | `hkzSysAdminWhitelist` | First-time SysAdmin bootstrap |
+| `hkzOrgAdmins` | Hackz orgAdmin support users and organisation assignments (SysAdmin only) |
 | `hkzDomains` | Org/department domain catalog (`DomainService`) |
 
 ### Shared / Application (product-global, not org workflow)

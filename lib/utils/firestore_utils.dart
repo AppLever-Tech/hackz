@@ -29,6 +29,8 @@ class FirestoreUtils {
   /// Not used for Control Plane organisation registry metadata.
   static const String hkzOrgSettings = 'hkzOrgSettings';
   static const String hkzSysAdminWhitelist = 'hkzSysAdminWhitelist';
+  /// Control Plane Hackz orgAdmin assignments (not tenant business data).
+  static const String hkzOrgAdmins = 'hkzOrgAdmins';
   static const String hkzInviteCodes = 'hkzInviteCodes';
   static const String hkzCounters = 'hkzCounters';
   static const String hkzIdeas = 'hkzIdeas';

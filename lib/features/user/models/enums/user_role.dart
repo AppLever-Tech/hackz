@@ -1,5 +1,6 @@
 enum UserRole {
   sysAdmin('SADM'),
+  orgAdmin('OADM'),
   collegeAdmin('CADM'),
   departmentAdmin('DADM'),
   judge('JUD'),
@@ -20,6 +21,9 @@ enum UserRole {
 
   /// Platform operator — never part of college or department user directories.
   static bool isSysAdminCode(String? code) => _normalized(code) == sysAdmin.code;
+
+  /// Hackz-controlled support user authorised for assigned organisation tenants.
+  static bool isOrgAdminCode(String? code) => _normalized(code) == orgAdmin.code;
 
   /// Department People & Teams directory: team members, coordinators, and judges.
   static bool isDepartmentPeopleCode(String? code) {

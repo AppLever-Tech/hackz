@@ -106,6 +106,24 @@ abstract final class TenantRegistry {
     });
   }
 
+  static Future<TenantRecord> setHackzOrgAdminForTenant({
+    required String tenantId,
+    required String hackzOrgAdminId,
+  }) {
+    final String id = hackzOrgAdminId.trim();
+    return _patch(
+      tenantId,
+      <String, dynamic>{
+        'hackzOrgAdminId': id,
+        'hackzOrgAdminConfigured': id.isNotEmpty,
+      },
+      (TenantRecord r) => r.copyWith(
+        hackzOrgAdminId: id,
+        hackzOrgAdminConfigured: id.isNotEmpty,
+      ),
+    );
+  }
+
   static Future<TenantRecord> setProvisioningAuthorization(
     String tenantId,
     ProvisioningAuthorizationStatus authorization,

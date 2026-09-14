@@ -32,6 +32,8 @@ void main() {
         organisationId: 'org-1',
         firebaseValidated: true,
         initialAdminConfigured: true,
+        hackzOrgAdminConfigured: true,
+        hackzOrgAdminId: 'oa-1',
         provisioningAuthorization: ProvisioningAuthorizationStatus.verified,
       ),
     );
@@ -45,6 +47,7 @@ void main() {
     expect(find.text('Firebase Connected  ✓'), findsOneWidget);
     expect(find.text('College Authorization  ✓'), findsOneWidget);
     expect(find.text('Initial Administrator  ✓'), findsOneWidget);
+    expect(find.text('Hackz Organisation Admin  ✓'), findsOneWidget);
     expect(find.text('Organisation Ready  ✓'), findsOneWidget);
   });
 }

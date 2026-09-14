@@ -11,6 +11,7 @@ import '../../../../features/org_settings/collegeadmin/org_settings_dashboard.da
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
 import '../../../../features/sysadmin/onboarding/screens/organisations_onboarding_console.dart';
+import '../../../../features/sysadmin/org_admin/screens/hackz_org_admins_console.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../collegeadmin/screens/manage_college_screen.dart';
@@ -97,8 +98,11 @@ class _SysAdminDashboardState extends State<SysAdminDashboard> {
         if (inTenant) {
           return _tenantBody(refreshToken, selectedMenuIndex);
         }
-        if (selectedMenuIndex == 2) {
+        if (selectedMenuIndex == 3) {
           return AppMetadataManagementScreen(key: ValueKey<int>(refreshToken));
+        }
+        if (selectedMenuIndex == 2) {
+          return HackzOrgAdminsConsole(key: ValueKey<int>(refreshToken));
         }
         if (selectedMenuIndex == 1) {
           return OrganisationsOnboardingConsole(

@@ -5,6 +5,7 @@ import '../../../features/dashboard/coordinator/screens/coordinator_dashboard.da
 import '../../../features/dashboard/deptadmin/screens/deptadmin_dashboard.dart';
 import '../../../features/dashboard/judge/screens/judge_dashboard.dart';
 import '../../../features/dashboard/team_member/screens/team_member_dashboard.dart';
+import '../../../features/dashboard/orgadmin/screens/orgadmin_dashboard.dart';
 import '../../../features/dashboard/sysadmin/screens/sysadmin_dashboard.dart';
 import '../models/enums/user_role.dart';
 import '../models/user_model.dart';
@@ -23,6 +24,8 @@ class RoleUtils {
     switch (toEnum(user.role)) {
       case UserRole.sysAdmin:
         return SysAdminDashboard(user: user);
+      case UserRole.orgAdmin:
+        return OrgAdminDashboard(user: user);
       case UserRole.collegeAdmin:
         return CollegeAdminDashboard(user: user);
       case UserRole.departmentAdmin:

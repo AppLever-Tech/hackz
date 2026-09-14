@@ -9,6 +9,8 @@ export const HKZ_IDEATHONS = 'hkzIdeathons';
 export const HKZ_PAYMENTS = 'hkzPayments';
 export const HKZ_IDEATHON_PARTICIPATIONS = 'hkzIdeathonParticipations';
 export const COLLEGE_ADMIN_ROLE = 'CADM';
+export const ORG_ADMIN_ROLE = 'OADM';
+export const HKZ_ORG_ADMINS = 'hkzOrgAdmins';
 export const DEPARTMENT_ADMIN_ROLE = 'DADM';
 export const COORDINATOR_ROLE = 'COO';
 export const USER_STATUS_ACTIVE = 'active';
@@ -120,5 +122,7 @@ export type ControlPlaneTenant = {
   status: string;
   firebaseValidated: boolean;
   initialAdminConfigured: boolean;
+  hackzOrgAdminConfigured: boolean;
+  hackzOrgAdminId: string;
   provisioningAuthorization: string;
 };

@@ -16,6 +16,8 @@ function asTenant(id: string, data: DocumentData): ControlPlaneTenant {
     status: String(data.status ?? '').trim().toLowerCase(),
     firebaseValidated: data.firebaseValidated === true,
     initialAdminConfigured: data.initialAdminConfigured === true,
+    hackzOrgAdminConfigured: data.hackzOrgAdminConfigured === true,
+    hackzOrgAdminId: String(data.hackzOrgAdminId ?? '').trim(),
     provisioningAuthorization: String(data.provisioningAuthorization ?? '').trim().toLowerCase(),
   };
 }

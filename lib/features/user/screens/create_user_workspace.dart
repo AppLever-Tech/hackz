@@ -759,7 +759,11 @@ class _CreateUserWorkspaceState extends State<CreateUserWorkspace> {
   }
 
   Widget _buildRolePicker() {
-    final List<String> options = (widget.roleOptions ?? UserRole.values.map((UserRole r) => r.code).toList())
+    final List<String> options = (widget.roleOptions ??
+            UserRole.values
+                .where((UserRole r) => r != UserRole.sysAdmin && r != UserRole.orgAdmin)
+                .map((UserRole r) => r.code)
+                .toList())
         .map((String e) => e.trim())
         .where((String e) => e.isNotEmpty)
         .toList();

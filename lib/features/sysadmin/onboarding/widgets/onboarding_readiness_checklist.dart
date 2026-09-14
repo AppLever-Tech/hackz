@@ -14,6 +14,7 @@ class OnboardingReadinessChecklist extends StatelessWidget {
       ('Firebase Connected', item.firebaseConnected && item.firebaseValidated),
       ('College Authorization', item.authorizationVerified),
       ('Initial Administrator', item.initialAdminConfigured),
+      ('Hackz Organisation Admin', item.hackzOrgAdminConfigured),
       ('Organisation Ready', item.isActivated),
     ];
     return Column(

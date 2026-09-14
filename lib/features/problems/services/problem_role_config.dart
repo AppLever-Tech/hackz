@@ -186,6 +186,20 @@ class ProblemRoleConfig {
             ProblemSortType.deadline,
           },
         );
+      case UserRole.orgAdmin:
+        return ProblemListConfig(
+          canCreate: false,
+          canEdit: false,
+          canToggleActive: false,
+          canDeleteDraft: false,
+          canSubmitIdea: false,
+          canAssignJudge: false,
+          restrictToDepartment: false,
+          orgId: user.orgId,
+          departmentCode: user.departmentCode,
+          enabledFilters: const <ProblemFilterType>{},
+          enabledSorts: const <ProblemSortType>{},
+        );
     }
   }
 }

@@ -8,6 +8,7 @@ abstract final class UserRoleLabels {
   static String labelFor(UserRole role) {
     return switch (role) {
       UserRole.sysAdmin => 'System Admin',
+      UserRole.orgAdmin => 'Hackz Organisation Admin',
       UserRole.collegeAdmin => 'College Admin',
       UserRole.departmentAdmin => 'Department Admin',
       UserRole.judge => 'Judge',
@@ -23,6 +24,7 @@ abstract final class UserRoleLabels {
   static String pluralLabelFor(UserRole role) {
     return switch (role) {
       UserRole.sysAdmin => 'System Admins',
+      UserRole.orgAdmin => 'Hackz Organisation Admins',
       UserRole.collegeAdmin => 'College Admins',
       UserRole.departmentAdmin => 'Department Admins',
       UserRole.judge => 'Judges',

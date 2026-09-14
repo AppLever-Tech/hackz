@@ -254,6 +254,7 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organisations', icon: AppIcons.organizations),
+            DashboardMenuItem(label: 'Hackz Org Admins', icon: AppIcons.helpSupport),
             DashboardMenuItem(label: 'App Metadata', icon: AppIcons.info),
           ],
           secondaryMenus: <DashboardMenuItem>[],
@@ -305,6 +306,13 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Team Registration', icon: AppIcons.teams),
             DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
+          ],
+          secondaryMenus: <DashboardMenuItem>[],
+        );
+      case UserRole.orgAdmin:
+        return const _RoleMenuConfig(
+          primaryMenus: <DashboardMenuItem>[
+            DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );

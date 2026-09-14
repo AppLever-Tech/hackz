@@ -73,7 +73,7 @@ void main() {
     expect(item.organisationCode, isEmpty);
   });
 
-  test('activate is next after authorization and administrator', () {
+  test('hackz org admin is next after college administrator', () {
     final OrganisationOnboardingItem item = OrganisationOnboardingItem(
       organization: org(),
       tenant: tenant(
@@ -84,6 +84,21 @@ void main() {
       ),
     );
     expect(item.completedSteps, 5);
+    expect(item.nextStep, OrganisationOnboardingStep.hackzOrgAdmin);
+    expect(item.isComplete, isFalse);
+  });
+
+  test('activate is next after hackz org admin is configured', () {
+    final OrganisationOnboardingItem item = OrganisationOnboardingItem(
+      organization: org(),
+      tenant: tenant(
+        projectId: 'hackz-a17b6',
+        validated: true,
+        admin: true,
+        authorization: ProvisioningAuthorizationStatus.verified,
+      ).copyWith(hackzOrgAdminConfigured: true, hackzOrgAdminId: 'oa-1'),
+    );
+    expect(item.completedSteps, 6);
     expect(item.nextStep, OrganisationOnboardingStep.activate);
     expect(item.isComplete, isFalse);
   });
@@ -113,10 +128,10 @@ void main() {
         validated: true,
         admin: true,
         authorization: ProvisioningAuthorizationStatus.verified,
-      ),
+      ).copyWith(hackzOrgAdminConfigured: true, hackzOrgAdminId: 'oa-1'),
     );
     expect(item.isComplete, isTrue);
-    expect(item.completedSteps, 6);
+    expect(item.completedSteps, 7);
     expect(item.organisationCode, 'HKZ-S7K4PM');
     expect(item.firebaseStatusLabel, 'Ready');
   });
