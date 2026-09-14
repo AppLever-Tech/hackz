@@ -267,15 +267,11 @@ class CoordinatorDashboardService {
   }
 
   static Future<void> verifyPayment({required PaymentModel payment, required UserModel coordinator}) async {
-    if (!await CommercialAccess.requiresIdeaPaymentForOrg(coordinator.orgId)) return;
-    await IdeathonService.confirmTeamLeaderPayment(payment: payment, coordinator: coordinator);
-    clearCache();
+    throw StateError('Coordinators cannot verify idea payments. A Hackz org admin must approve.');
   }
 
   static Future<void> rejectPayment({required PaymentModel payment, required UserModel coordinator, String? remarks}) async {
-    if (!await CommercialAccess.requiresIdeaPaymentForOrg(coordinator.orgId)) return;
-    await FirestoreUtils.rejectIdeaPayment(paymentId: payment.paymentId, coordinatorId: coordinator.userId, remarks: remarks);
-    clearCache();
+    throw StateError('Coordinators cannot reject idea payments. A Hackz org admin must review.');
   }
 
   static Future<_FirestoreDocs> _fetchOrg(String collection, String orgId) async {

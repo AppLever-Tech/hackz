@@ -20,20 +20,22 @@ enum IdeaDepartmentScope {
 
 /// Centralized judge vs coordinator (and related) visibility rules.
 abstract final class RoleVisibilityHelpers {
-  /// Coordinators register teams and verify payments — no idea lists, detail, or leaderboard idea views.
-  static bool canViewIdeas(UserRole role) =>
-      role != UserRole.coordinator && role != UserRole.orgAdmin;
+  /// Coordinators register teams — no idea lists, detail, or leaderboard idea views.
+  static bool canViewIdeas(UserRole role) => role != UserRole.coordinator;
 
-  /// Only department admins create Ideathons. Coordinators cannot.
-  static bool canCreateIdeathon(UserRole role) => role == UserRole.departmentAdmin;
+  /// Department admins and Hackz org admins may create/configure initial events.
+  static bool canCreateIdeathon(UserRole role) =>
+      role == UserRole.departmentAdmin || role == UserRole.orgAdmin;
 
   /// Department and college admins may extend an incomplete event's end date.
   static bool canExtendEventSchedule(UserRole role) =>
       role == UserRole.departmentAdmin || role == UserRole.collegeAdmin;
 
-  /// Coordinators verify payments; department admins can do the same from Event Payments.
-  static bool canManageEventPayments(UserRole role) =>
-      role == UserRole.coordinator || role == UserRole.departmentAdmin;
+  /// PER_IDEA idea payment verification — Hackz org admin only.
+  static bool canVerifyPerIdeaPayments(UserRole role) => role == UserRole.orgAdmin;
+
+  /// Event Payments confirm/reject for PER_IDEA (same authority as idea payment verification).
+  static bool canManageEventPayments(UserRole role) => canVerifyPerIdeaPayments(role);
 
   static IdeaDepartmentScope ideaDepartmentScopeFor(UserRole role) {
     switch (role) {

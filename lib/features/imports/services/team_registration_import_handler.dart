@@ -243,13 +243,14 @@ Team Alpha,Rahul,Das,false,9876543212,ABC College,,
     final UserRole actorRole = UserRole.fromCode(teamContext.actor.role);
     if (actorRole != UserRole.coordinator &&
         actorRole != UserRole.departmentAdmin &&
-        actorRole != UserRole.collegeAdmin) {
+        actorRole != UserRole.collegeAdmin &&
+        actorRole != UserRole.orgAdmin) {
       return const ImportExecutionResult(
         imported: 0,
         skipped: 0,
         failed: 0,
         failures: <String>[
-          'Team Registration import is available to College Admins, Department Admins, and Coordinators only.',
+          'Team Registration import is available to College Admins, Department Admins, Coordinators, and Hackz Organisation Admins only.',
         ],
       );
     }

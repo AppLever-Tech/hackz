@@ -145,17 +145,7 @@ void main() {
     );
   });
 
-  test('opening an organisation without a platform-admin session is rejected', () async {
-    await expectLater(
-      TenantFirebase.enterAsPlatformAdmin('tenant-1'),
-      throwsA(
-        isA<TenantConnectionException>().having(
-          (TenantConnectionException e) => e.failure,
-          'failure',
-          TenantConnectionFailure.unauthorized,
-        ),
-      ),
-    );
+  test('organisation Firestore helpers require a platform-admin session', () async {
     await expectLater(
       TenantFirebase.withOrganisationFirestore('tenant-1', (_) async => null),
       throwsA(

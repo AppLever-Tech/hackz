@@ -188,17 +188,33 @@ class ProblemRoleConfig {
         );
       case UserRole.orgAdmin:
         return ProblemListConfig(
-          canCreate: false,
-          canEdit: false,
-          canToggleActive: false,
-          canDeleteDraft: false,
+          canCreate: true,
+          canEdit: true,
+          canToggleActive: true,
+          canDeleteDraft: true,
           canSubmitIdea: false,
           canAssignJudge: false,
           restrictToDepartment: false,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
-          enabledFilters: const <ProblemFilterType>{},
-          enabledSorts: const <ProblemSortType>{},
+          enabledFilters: const <ProblemFilterType>{
+            ProblemFilterType.department,
+            ProblemFilterType.domain,
+            ProblemFilterType.status,
+            ProblemFilterType.source,
+            ProblemFilterType.tags,
+            ProblemFilterType.attachments,
+          },
+          enabledSorts: const <ProblemSortType>{
+            ProblemSortType.newest,
+            ProblemSortType.oldest,
+            ProblemSortType.psNumber,
+            ProblemSortType.titleAZ,
+            ProblemSortType.department,
+            ProblemSortType.category,
+            ProblemSortType.ideasCount,
+            ProblemSortType.deadline,
+          },
         );
     }
   }

@@ -86,18 +86,6 @@ abstract final class TenantFirebase {
     return _bind(context, notifySession: notifySession);
   }
 
-  /// SysAdmin organisation access: bind tenant data without changing Control Plane Auth.
-  static Future<TenantContext> enterAsPlatformAdmin(String tenantId) async {
-    if (!HackzFirebase.isPlatformAdminSession) {
-      throw const TenantConnectionException(TenantConnectionFailure.unauthorized);
-    }
-    if (HackzFirebase.controlPlane.auth.currentUser == null) {
-      throw const TenantConnectionException(TenantConnectionFailure.unavailable);
-    }
-    final TenantContext context = await TenantResolver.resolveByTenantId(tenantId);
-    return _bind(context, notifySession: false);
-  }
-
   /// Reads/writes one organisation's Firestore without changing [HackzFirebase.current]
   /// when the session is already on another project. Platform-admin only when the
   /// requested tenant is not already bound.
@@ -148,11 +136,6 @@ abstract final class TenantFirebase {
       throw const TenantConnectionException(TenantConnectionFailure.unauthorized);
     }
     return TenantResolver.workspaceByTenantId(tenantId);
-  }
-
-  /// Restores Control Plane data binding without signing the SysAdmin out.
-  static Future<void> returnToControlPlane() async {
-    await disconnect(notifySession: false);
   }
 
   static Future<TenantContext> _bind(

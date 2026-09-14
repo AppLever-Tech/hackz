@@ -42,9 +42,13 @@ abstract final class ImportDepartmentResolutionPolicy {
   }
 
   static bool canMap(UserRole? role) =>
-      role == UserRole.collegeAdmin || role == UserRole.departmentAdmin || role == UserRole.coordinator;
+      role == UserRole.collegeAdmin ||
+      role == UserRole.departmentAdmin ||
+      role == UserRole.coordinator ||
+      role == UserRole.orgAdmin;
 
-  static bool canCreateDepartment(UserRole? role) => role == UserRole.collegeAdmin;
+  static bool canCreateDepartment(UserRole? role) =>
+      role == UserRole.collegeAdmin || role == UserRole.orgAdmin;
 
   static bool canAssignAdministrator(UserRole? role) =>
       role == UserRole.collegeAdmin || role == UserRole.departmentAdmin;
@@ -52,7 +56,9 @@ abstract final class ImportDepartmentResolutionPolicy {
   static bool canCreateDepartmentAdmin(UserRole? role) => role == UserRole.collegeAdmin;
 
   static bool canSaveAlias(UserRole? role) =>
-      role == UserRole.collegeAdmin || role == UserRole.departmentAdmin;
+      role == UserRole.collegeAdmin ||
+      role == UserRole.departmentAdmin ||
+      role == UserRole.orgAdmin;
 
   static List<ImportUnresolvedDepartment> unresolvedFromRows(List<ImportReviewRow> rows) {
     final Map<String, ImportUnresolvedDepartment> byKey = <String, ImportUnresolvedDepartment>{};

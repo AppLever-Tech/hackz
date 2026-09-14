@@ -80,38 +80,6 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
     }
   }
 
-  Future<void> _openOrganisation(BuildContext context) async {
-    final String? tenantId = item.tenant?.tenantId;
-    if (tenantId == null || tenantId.isEmpty || !item.isComplete) return;
-    try {
-      HkzLoadingOverlay.show(
-        context,
-        title: 'Opening organisation',
-        message: item.name,
-      );
-      await TenantFirebase.enterAsPlatformAdmin(tenantId);
-      TenantBusinessCaches.clear();
-      if (!context.mounted) return;
-      HkzLoadingOverlay.hide();
-    } on TenantConnectionException catch (e) {
-      HkzLoadingOverlay.hide();
-      if (!context.mounted) return;
-      await FeedbackService.showError(
-        context,
-        title: 'Unable to open organisation',
-        message: e.message,
-      );
-    } catch (e) {
-      HkzLoadingOverlay.hide();
-      if (!context.mounted) return;
-      await FeedbackService.showError(
-        context,
-        title: 'Unable to open organisation',
-        message: '$e',
-      );
-    }
-  }
-
   Future<void> _validateAuthorization(BuildContext context) async {
     final TenantRecord? tenant = item.tenant;
     if (tenant == null || tenant.firebaseProjectId.trim().isEmpty) return;
@@ -391,24 +359,6 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
                       color: item.isComplete ? const Color(0xFF10B981) : const Color(0xFF6A38FF),
                     ),
                   ),
-                  if (item.isComplete) ...<Widget>[
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton.icon(
-                        onPressed: OrganisationAccess.isGranted(item.organization)
-                            ? () => _openOrganisation(context)
-                            : null,
-                        icon: const Icon(AppIcons.openInNew, size: 16),
-                        label: const Text('Open organisation'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF6A38FF),
-                          foregroundColor: Colors.white,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
-                  ],
                   if (!item.isComplete) ...<Widget>[
                     const SizedBox(height: 12),
                     Align(

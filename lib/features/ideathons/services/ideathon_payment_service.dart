@@ -86,6 +86,9 @@ abstract final class IdeathonPaymentService {
     if (event != null) {
       await CommercialAccess.assertEventParticipation(event);
     }
+    if (!RoleVisibilityHelpers.canVerifyPerIdeaPayments(UserRole.fromCode(actor.role))) {
+      throw StateError('Only a Hackz Organisation Admin can reject idea payments.');
+    }
     await FirestoreUtils.rejectIdeaPayment(
       paymentId: payment.paymentId,
       coordinatorId: actor.userId,

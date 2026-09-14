@@ -145,16 +145,7 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
   }
 
   List<PageHeaderContextItem> _headerPills() {
-    final List<PageHeaderContextItem> pills =
-        List<PageHeaderContextItem>.from(_chromeController.headerContextPills);
-    if (HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound) {
-      final String name = HackzFirebase.current.context.organisationName.trim();
-      if (name.isNotEmpty &&
-          !pills.any((PageHeaderContextItem item) => item.kind == PageHeaderContextKind.organization)) {
-        pills.insert(0, PageHeaderContextItem.organization(name));
-      }
-    }
-    return pills;
+    return List<PageHeaderContextItem>.from(_chromeController.headerContextPills);
   }
 
   Widget? _combinedTitleActions(
@@ -162,43 +153,10 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     required UserRole role,
     required String selectedMenuTitle,
   }) {
-    final Widget? menuActions = _titleActionsFor(
+    return _titleActionsFor(
       context,
       role: role,
       selectedMenuTitle: selectedMenuTitle,
-    );
-    final bool showPlatformBack =
-        HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound;
-    if (!showPlatformBack) return menuActions;
-
-    final bool compact = MediaQuery.sizeOf(context).width < 640;
-    final Widget back = TextButton.icon(
-      onPressed: () async {
-        WorkspaceController.instance.close();
-        _chromeController.clearOverlay();
-        TenantBusinessCaches.clear();
-        await TenantFirebase.returnToControlPlane();
-      },
-      icon: const Icon(Icons.arrow_back_rounded, size: 16),
-      label: Text(
-        compact ? 'Platform' : 'Platform console',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      style: TextButton.styleFrom(
-        visualDensity: VisualDensity.compact,
-        foregroundColor: const Color(0xFF4338CA),
-      ),
-    );
-
-    if (menuActions == null) return back;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        back,
-        const SizedBox(width: 4),
-        menuActions,
-      ],
     );
   }
 
@@ -208,11 +166,11 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
     required String selectedMenuTitle,
   }) {
     if (selectedMenuTitle != 'Problem Statements') return null;
-    if (HackzFirebase.isPlatformAdminSession && HackzFirebase.isTenantBound) {
+    if (role == UserRole.orgAdmin || role == UserRole.collegeAdmin) {
       return DomainsHeaderAction(
         onPressed: () => showCollegeDomainManagementDialog(
           context: context,
-          orgId: HackzFirebase.current.context.organisationId,
+          orgId: widget.user.orgId,
         ),
       );
     }
@@ -223,14 +181,6 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
           orgId: widget.user.orgId,
           departmentCode: widget.user.departmentCode,
           departmentName: widget.user.department,
-        ),
-      );
-    }
-    if (role == UserRole.collegeAdmin) {
-      return DomainsHeaderAction(
-        onPressed: () => showCollegeDomainManagementDialog(
-          context: context,
-          orgId: widget.user.orgId,
         ),
       );
     }
@@ -305,7 +255,6 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
             DashboardMenuItem(label: 'Team Registration', icon: AppIcons.teams),
-            DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -313,6 +262,11 @@ class _RoleMenuConfig {
         return const _RoleMenuConfig(
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: AppIcons.dashboard),
+            DashboardMenuItem(label: 'Manage College', icon: AppIcons.organizations),
+            DashboardMenuItem(label: 'Problem Statements', icon: AppIcons.problems),
+            DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
+            DashboardMenuItem(label: 'Events', icon: AppIcons.event),
+            DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );

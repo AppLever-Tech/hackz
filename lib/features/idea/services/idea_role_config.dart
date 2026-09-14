@@ -135,14 +135,22 @@ class IdeaRoleConfig {
           canViewIdeas: canViewIdeas,
           canCreateIdea: false,
           canEvaluate: false,
-          canViewStatus: false,
+          canViewStatus: true,
           canUploadPayment: false,
           canAssignJudge: false,
           ideaDepartmentScope: scope,
           orgId: user.orgId,
           departmentCode: user.departmentCode,
-          enabledFilters: const <IdeaFilterType>{},
-          enabledSorts: const <IdeaSortType>{},
+          enabledFilters: const <IdeaFilterType>{
+            IdeaFilterType.status,
+            IdeaFilterType.problem,
+            IdeaFilterType.department,
+          },
+          enabledSorts: const <IdeaSortType>{
+            IdeaSortType.newest,
+            IdeaSortType.oldest,
+            IdeaSortType.status,
+          },
         );
     }
   }

@@ -500,6 +500,9 @@ abstract final class IdeathonService {
     required PaymentModel payment,
     required UserModel coordinator,
   }) async {
+    if (!RoleVisibilityHelpers.canVerifyPerIdeaPayments(UserRole.fromCode(coordinator.role))) {
+      throw StateError('Only a Hackz Organisation Admin can verify idea payments.');
+    }
     final String eventId = payment.ideathonId.trim();
     if (eventId.isNotEmpty) {
       await assertAcceptingParticipation(eventId);
