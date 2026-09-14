@@ -3,6 +3,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { ProvisionError } from './errors.js';
 import { controlPlaneApp, controlPlaneFirestore } from './firebase-apps.js';
 import { provisionTenantAdmin } from './provision-tenant-admin.js';
+import { provisionTenantOrgAdmin } from './provision-tenant-org-admin.js';
+import { revokeTenantOrgAdmin } from './revoke-tenant-org-admin.js';
 import { recordEventEntitlementPayment } from './record-event-entitlement-payment.js';
 import { registerEventEntitlement } from './register-event-entitlement.js';
 import { setEventEntitlementStatus } from './set-event-entitlement-status.js';
@@ -114,6 +116,36 @@ const server = createServer((req, res) => {
           lastName: String(body.lastName ?? ''),
           email: String(body.email ?? ''),
           phone: String(body.phone ?? ''),
+        });
+        send(res, result.ok ? 200 : 409, result);
+        return;
+      }
+      if (url.pathname === '/provision-tenant-org-admin') {
+        await assertControlPlaneSysAdmin(
+          bearerToken(req),
+          'Sign in as SysAdmin to provision a Hackz org admin.',
+          'Only a Control Plane SysAdmin can provision a Hackz org admin.',
+        );
+        const body = await readJson(req);
+        const result = await provisionTenantOrgAdmin({
+          tenantProjectId: String(body.tenantProjectId ?? ''),
+          organisationId: String(body.organisationId ?? ''),
+          hackzOrgAdminId: String(body.hackzOrgAdminId ?? ''),
+        });
+        send(res, result.ok ? 200 : 409, result);
+        return;
+      }
+      if (url.pathname === '/revoke-tenant-org-admin') {
+        await assertControlPlaneSysAdmin(
+          bearerToken(req),
+          'Sign in as SysAdmin to revoke Hackz org admin access.',
+          'Only a Control Plane SysAdmin can revoke Hackz org admin access.',
+        );
+        const body = await readJson(req);
+        const result = await revokeTenantOrgAdmin({
+          tenantProjectId: String(body.tenantProjectId ?? ''),
+          organisationId: String(body.organisationId ?? ''),
+          hackzOrgAdminId: String(body.hackzOrgAdminId ?? ''),
         });
         send(res, result.ok ? 200 : 409, result);
         return;

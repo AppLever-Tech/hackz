@@ -1,7 +1,11 @@
-import { getAuth } from 'firebase-admin/auth';
 import { Timestamp, type DocumentData } from 'firebase-admin/firestore';
 import { isPermissionDenied, ProvisionError } from './errors.js';
-import { controlPlaneApp, tenantApp, tenantAuth, tenantFirestore } from './firebase-apps.js';
+import { tenantApp, tenantAuth, tenantFirestore } from './firebase-apps.js';
+import {
+  assertControlPlaneReachable,
+  assertTenantAuthorized,
+  resolveAuthUid,
+} from './provision-auth.js';
 import {
   markInitialAdminConfigured,
   resolveTenantFromRegistry,
@@ -22,39 +26,6 @@ function isCollegeAdmin(data: DocumentData | undefined): boolean {
   if (String(data.role ?? '').trim() === COLLEGE_ADMIN_ROLE) return true;
   const roles = data.roles;
   return Array.isArray(roles) && roles.some((role) => String(role).trim() === COLLEGE_ADMIN_ROLE);
-}
-
-function authErrorCode(error: unknown): string {
-  if (error != null && typeof error === 'object' && 'code' in error) {
-    return String(error.code);
-  }
-  return '';
-}
-
-async function assertControlPlaneReachable(): Promise<void> {
-  try {
-    await getAuth(controlPlaneApp()).listUsers(1);
-  } catch (error) {
-    throw new ProvisionError(
-      'CONTROL_PLANE_UNAVAILABLE',
-      isPermissionDenied(error)
-        ? 'The provisioning identity cannot access the Control Plane Firebase project.'
-        : 'Unable to validate the Control Plane operation.',
-    );
-  }
-}
-
-async function assertTenantAuthorized(app: ReturnType<typeof tenantApp>): Promise<void> {
-  try {
-    await tenantAuth(app).listUsers(1);
-  } catch (error) {
-    throw new ProvisionError(
-      'PROVISIONING_NOT_AUTHORIZED',
-      isPermissionDenied(error)
-        ? 'The college must authorize the Hackz provisioning identity, then Validate authorization.'
-        : 'Unable to access tenant Firebase Auth for provisioning.',
-    );
-  }
 }
 
 function collegeAdminDocument(input: {
@@ -96,60 +67,6 @@ async function findCollegeAdmin(
   const admin = snap.docs.find((doc) => isCollegeAdmin(doc.data()));
   if (admin == null) return null;
   return { id: admin.id, phone: String(admin.data().phone ?? '').trim() };
-}
-
-async function resolveAuthUid(
-  auth: ReturnType<typeof tenantAuth>,
-  input: NormalizedAdminInput,
-): Promise<{ uid: string; created: boolean }> {
-  try {
-    const existing = await auth.getUserByPhoneNumber(input.phone);
-    await auth.updateUser(existing.uid, {
-      email: input.email,
-      displayName: `${input.firstName} ${input.lastName}`.trim(),
-      disabled: false,
-    });
-    return { uid: existing.uid, created: false };
-  } catch (error) {
-    if (authErrorCode(error) !== 'auth/user-not-found') {
-      if (isPermissionDenied(error)) {
-        throw new ProvisionError(
-          'PROVISIONING_NOT_AUTHORIZED',
-          'The college must authorize Hackz to read tenant Auth users.',
-        );
-      }
-      throw error;
-    }
-  }
-
-  try {
-    const created = await auth.createUser({
-      phoneNumber: input.phone,
-      email: input.email,
-      displayName: `${input.firstName} ${input.lastName}`.trim(),
-      disabled: false,
-    });
-    return { uid: created.uid, created: true };
-  } catch (error) {
-    const code = authErrorCode(error);
-    if (code === 'auth/phone-number-already-exists') {
-      const existing = await auth.getUserByPhoneNumber(input.phone);
-      return { uid: existing.uid, created: false };
-    }
-    if (code === 'auth/email-already-exists') {
-      throw new ProvisionError(
-        'AUTH_CONFLICT',
-        'That email already exists in this tenant’s Authentication users.',
-      );
-    }
-    if (isPermissionDenied(error)) {
-      throw new ProvisionError(
-        'PROVISIONING_NOT_AUTHORIZED',
-        'The college must authorize Hackz to create tenant Auth users.',
-      );
-    }
-    throw error;
-  }
 }
 
 export async function provisionTenantAdmin(

@@ -221,18 +221,50 @@ abstract final class OrganisationOnboardingService {
     }
   }
 
-  static Future<TenantRecord> bindHackzOrgAdmin({
+  static Future<TenantRecord> provisionHackzOrgAdmin({
     required String tenantId,
     required String hackzOrgAdminId,
   }) async {
+    final TenantRecord tenant = await TenantRegistry.fetchByTenantId(tenantId) ??
+        (throw const OrganisationOnboardingException('That organisation is no longer in the registry.'));
+    if (!tenant.provisioningAuthorization.isAuthorized) {
+      throw OrganisationOnboardingException(
+        tenant.provisioningAuthorization.isRevoked
+            ? tenant.provisioningAuthorization.lifecycleMessage
+            : 'Validate college authorization before provisioning a Hackz org admin.',
+      );
+    }
+    if (!tenant.firebaseValidated || tenant.firebaseProjectId.trim().isEmpty) {
+      throw const OrganisationOnboardingException(
+        'Connect and check the workspace before provisioning a Hackz org admin.',
+      );
+    }
+    final String orgId = tenant.organisationId.trim();
+    if (orgId.isEmpty) {
+      throw const OrganisationOnboardingException('Save the organisation before provisioning a Hackz org admin.');
+    }
+    final String adminId = hackzOrgAdminId.trim();
+    if (adminId.isEmpty) {
+      throw const OrganisationOnboardingException('Select an active Hackz Organisation Admin.');
+    }
     try {
-      return await HkzOrgAdminService.bindHackzOrgAdminToTenant(
-        tenantId: tenantId,
-        orgAdminId: hackzOrgAdminId,
+      await HkzOrgAdminService.assignOrganisation(
+        orgAdminId: adminId,
+        organisationId: orgId,
+        syncTenant: false,
+      );
+      await HackzProvisioningClient.provisionTenantOrgAdmin(
+        tenantProjectId: tenant.firebaseProjectId,
+        organisationId: orgId,
+        hackzOrgAdminId: adminId,
       );
     } on HkzOrgAdminException catch (e) {
       throw OrganisationOnboardingException(e.message);
+    } on HackzProvisioningException catch (e) {
+      throw OrganisationOnboardingException(e.message);
     }
+    final TenantRecord? refreshed = await TenantRegistry.fetchByTenantId(tenantId);
+    return refreshed ?? tenant;
   }
 
   static Future<TenantRecord> activate(String tenantId) async {

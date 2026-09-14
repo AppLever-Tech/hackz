@@ -82,6 +82,63 @@ class HackzEventEntitlementPaymentResult {
 abstract final class HackzProvisioningClient {
   HackzProvisioningClient._();
 
+  static Future<HackzProvisioningResult> provisionTenantOrgAdmin({
+    required String tenantProjectId,
+    required String organisationId,
+    required String hackzOrgAdminId,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/provision-tenant-org-admin',
+      payload: <String, String>{
+        'tenantProjectId': tenantProjectId,
+        'organisationId': organisationId,
+        'hackzOrgAdminId': hackzOrgAdminId,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to provision a Hackz org admin.',
+    );
+
+    if (body['ok'] == true) {
+      return HackzProvisioningResult(
+        userId: (body['userId'] as String? ?? '').trim(),
+        phone: (body['phone'] as String? ?? '').trim(),
+        email: (body['email'] as String? ?? '').trim(),
+        organisationId: (body['organisationId'] as String? ?? '').trim(),
+      );
+    }
+
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      _actionableMessage(
+        code: (body['code'] as String? ?? '').trim(),
+        fallback: (body['message'] as String? ?? 'Unable to provision the Hackz org admin.').trim(),
+      ),
+    );
+  }
+
+  static Future<void> revokeTenantOrgAdmin({
+    required String tenantProjectId,
+    required String organisationId,
+    required String hackzOrgAdminId,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/revoke-tenant-org-admin',
+      payload: <String, String>{
+        'tenantProjectId': tenantProjectId,
+        'organisationId': organisationId,
+        'hackzOrgAdminId': hackzOrgAdminId,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to revoke Hackz org admin access.',
+    );
+    if (body['ok'] == true) return;
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      _actionableMessage(
+        code: (body['code'] as String? ?? '').trim(),
+        fallback: (body['message'] as String? ?? 'Unable to revoke Hackz org admin access.').trim(),
+      ),
+    );
+  }
+
   static Future<HackzProvisioningResult> provisionTenantAdmin({
     required String tenantProjectId,
     required String organisationId,

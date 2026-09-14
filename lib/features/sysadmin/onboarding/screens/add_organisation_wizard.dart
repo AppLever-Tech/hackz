@@ -429,9 +429,18 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
               'Select an active Hackz Organisation Admin for this college.',
             );
           }
-          _tenant = await OrganisationOnboardingService.bindHackzOrgAdmin(
-            tenantId: tenantForOrgAdmin.tenantId,
-            hackzOrgAdminId: _selectedHackzOrgAdminId!.trim(),
+          _tenant = await HkzAsyncLoader.run<TenantRecord>(
+            context,
+            title: 'Provision Hackz org admin',
+            message: 'Creating the Hackz org admin on the college Firebase project...',
+            successMessage: 'Hackz org admin provisioned',
+            successHold: const Duration(milliseconds: 900),
+            task: () {
+              return OrganisationOnboardingService.provisionHackzOrgAdmin(
+                tenantId: tenantForOrgAdmin.tenantId,
+                hackzOrgAdminId: _selectedHackzOrgAdminId!.trim(),
+              );
+            },
           );
           _changed = true;
           _step = OrganisationOnboardingStep.activate;

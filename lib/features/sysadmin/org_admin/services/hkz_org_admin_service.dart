@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/firebase/hackz_firebase.dart';
+import '../../../../core/firebase/hackz_provisioning_client.dart';
 import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../utils/common_helpers.dart';
@@ -149,12 +150,23 @@ abstract final class HkzOrgAdminService {
       'isActive': isActive,
       'updatedAt': Timestamp.fromDate(now),
     });
-    return current.copyWith(isActive: isActive, updatedAt: now);
+    final HkzOrgAdmin updated = current.copyWith(isActive: isActive, updatedAt: now);
+    if (isActive) {
+      for (final String orgId in updated.assignedOrganisationIds) {
+        await _provisionInTenantIfReady(organisationId: orgId, hackzOrgAdminId: updated.id);
+      }
+    } else {
+      for (final String orgId in updated.assignedOrganisationIds) {
+        await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: updated.id);
+      }
+    }
+    return updated;
   }
 
   static Future<HkzOrgAdmin> assignOrganisation({
     required String orgAdminId,
     required String organisationId,
+    bool syncTenant = true,
   }) async {
     final String orgId = organisationId.trim();
     if (orgId.isEmpty) {
@@ -164,7 +176,12 @@ abstract final class HkzOrgAdminService {
     if (current == null) {
       throw const HkzOrgAdminException('That Hackz org admin no longer exists.');
     }
-    if (current.isAssignedToOrganisation(orgId)) return current;
+    if (current.isAssignedToOrganisation(orgId)) {
+      if (syncTenant && current.isActive) {
+        await _provisionInTenantIfReady(organisationId: orgId, hackzOrgAdminId: current.id);
+      }
+      return current;
+    }
 
     final DateTime now = DateTime.now().toUtc();
     final List<String> next = HkzOrgAdmin.mergeOrganisationAssignments(current.assignedOrganisationIds, orgId);
@@ -172,12 +189,17 @@ abstract final class HkzOrgAdminService {
       'assignedOrganisationIds': next,
       'updatedAt': Timestamp.fromDate(now),
     });
-    return current.copyWith(assignedOrganisationIds: next, updatedAt: now);
+    final HkzOrgAdmin updated = current.copyWith(assignedOrganisationIds: next, updatedAt: now);
+    if (syncTenant && updated.isActive) {
+      await _provisionInTenantIfReady(organisationId: orgId, hackzOrgAdminId: updated.id);
+    }
+    return updated;
   }
 
   static Future<HkzOrgAdmin> removeOrganisationAssignment({
     required String orgAdminId,
     required String organisationId,
+    bool syncTenant = true,
   }) async {
     final String orgId = organisationId.trim();
     if (orgId.isEmpty) {
@@ -200,35 +222,11 @@ abstract final class HkzOrgAdminService {
       'assignedOrganisationIds': next,
       'updatedAt': Timestamp.fromDate(now),
     });
-    return current.copyWith(assignedOrganisationIds: next, updatedAt: now);
-  }
-
-  /// Binds an active Hackz org admin to a tenant for Phase 2 provisioning handoff.
-  static Future<TenantRecord> bindHackzOrgAdminToTenant({
-    required String tenantId,
-    required String orgAdminId,
-  }) async {
-    final HkzOrgAdmin? admin = await fetchById(orgAdminId);
-    if (admin == null) {
-      throw const HkzOrgAdminException('Select a Hackz org admin.');
+    final HkzOrgAdmin updated = current.copyWith(assignedOrganisationIds: next, updatedAt: now);
+    if (syncTenant) {
+      await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: updated.id);
     }
-    if (!admin.isActive) {
-      throw const HkzOrgAdminException('That Hackz org admin is inactive. Choose an active org admin.');
-    }
-
-    final TenantRecord tenant = await TenantRegistry.fetchByTenantId(tenantId) ??
-        (throw const HkzOrgAdminException('That organisation tenant is no longer in the registry.'));
-
-    final String orgId = tenant.organisationId.trim();
-    if (orgId.isEmpty) {
-      throw const HkzOrgAdminException('Save the organisation before assigning a Hackz org admin.');
-    }
-
-    await assignOrganisation(orgAdminId: admin.id, organisationId: orgId);
-    return TenantRegistry.setHackzOrgAdminForTenant(
-      tenantId: tenantId,
-      hackzOrgAdminId: admin.id,
-    );
+    return updated;
   }
 
   static Future<void> _assertCanRemoveLastActiveAssignment({
@@ -246,6 +244,44 @@ abstract final class HkzOrgAdminService {
       throw const HkzOrgAdminException(
         'Each active organisation must keep at least one active Hackz org admin assignment.',
       );
+    }
+  }
+
+  static Future<void> _provisionInTenantIfReady({
+    required String organisationId,
+    required String hackzOrgAdminId,
+  }) async {
+    final TenantRecord? tenant = await TenantRegistry.fetchByOrganisationId(organisationId);
+    if (tenant == null) return;
+    if (tenant.firebaseProjectId.trim().isEmpty || !tenant.firebaseValidated) return;
+    if (!tenant.provisioningAuthorization.isAuthorized) return;
+    try {
+      await HackzProvisioningClient.provisionTenantOrgAdmin(
+        tenantProjectId: tenant.firebaseProjectId,
+        organisationId: organisationId,
+        hackzOrgAdminId: hackzOrgAdminId,
+      );
+    } on HackzProvisioningException catch (e) {
+      throw HkzOrgAdminException(e.message);
+    }
+  }
+
+  static Future<void> _revokeInTenantIfReady({
+    required String organisationId,
+    required String hackzOrgAdminId,
+  }) async {
+    final TenantRecord? tenant = await TenantRegistry.fetchByOrganisationId(organisationId);
+    if (tenant == null) return;
+    if (tenant.firebaseProjectId.trim().isEmpty) return;
+    if (!tenant.provisioningAuthorization.isAuthorized) return;
+    try {
+      await HackzProvisioningClient.revokeTenantOrgAdmin(
+        tenantProjectId: tenant.firebaseProjectId,
+        organisationId: organisationId,
+        hackzOrgAdminId: hackzOrgAdminId,
+      );
+    } on HackzProvisioningException catch (e) {
+      throw HkzOrgAdminException(e.message);
     }
   }
 }

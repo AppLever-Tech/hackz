@@ -128,6 +128,23 @@ export function isProvisioningAuthorized(status: string): boolean {
   return status === 'verified' || status === 'authorized';
 }
 
+export async function markHackzOrgAdminConfigured(
+  tenantId: string,
+  hackzOrgAdminId: string,
+): Promise<void> {
+  const id = hackzOrgAdminId.trim();
+  await controlPlaneFirestore()
+    .collection(HKZ_TENANTS)
+    .doc(tenantId)
+    .set(
+      {
+        hackzOrgAdminId: id,
+        hackzOrgAdminConfigured: id.length > 0,
+      },
+      { merge: true },
+    );
+}
+
 export async function markInitialAdminConfigured(tenantId: string): Promise<void> {
   await controlPlaneFirestore()
     .collection(HKZ_TENANTS)

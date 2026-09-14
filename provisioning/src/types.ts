@@ -14,6 +14,7 @@ export const HKZ_ORG_ADMINS = 'hkzOrgAdmins';
 export const DEPARTMENT_ADMIN_ROLE = 'DADM';
 export const COORDINATOR_ROLE = 'COO';
 export const USER_STATUS_ACTIVE = 'active';
+export const USER_STATUS_SUSPENDED = 'suspended';
 export const ORG_TYPE_COLLEGE = 1;
 
 export type ProvisionTenantAdminRequest = {
@@ -57,6 +58,45 @@ export type ProvisionTenantAdminFailure = {
 export type ProvisionTenantAdminResult =
   | ProvisionTenantAdminSuccess
   | ProvisionTenantAdminFailure;
+
+export type ProvisionTenantOrgAdminRequest = {
+  tenantProjectId: string;
+  hackzOrgAdminId: string;
+  organisationId?: string;
+};
+
+export type ProvisionTenantOrgAdminSuccess = {
+  ok: true;
+  unchanged: boolean;
+  tenantProjectId: string;
+  tenantId: string;
+  organisationId: string;
+  hackzOrgAdminId: string;
+  userId: string;
+  phone: string;
+  email: string;
+};
+
+export type ProvisionTenantOrgAdminResult =
+  | ProvisionTenantOrgAdminSuccess
+  | ProvisionTenantAdminFailure;
+
+export type RevokeTenantOrgAdminRequest = {
+  tenantProjectId: string;
+  hackzOrgAdminId: string;
+  organisationId?: string;
+};
+
+export type RevokeTenantOrgAdminSuccess = {
+  ok: true;
+  unchanged: boolean;
+  tenantProjectId: string;
+  tenantId: string;
+  organisationId: string;
+  hackzOrgAdminId: string;
+};
+
+export type RevokeTenantOrgAdminResult = RevokeTenantOrgAdminSuccess | ProvisionTenantAdminFailure;
 
 export type EventEntitlementRequest = {
   organisationId: string;
