@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 
 /// Callbacks fired when [HackzFirebase.current] is rebound.
 ///
-/// Feature caches register here so tenant switches (login, logout, SysAdmin
-/// open-organisation / Platform console) never keep the previous tenant's data.
+/// Feature caches register here so tenant rebinding (login, logout) never keeps
+/// the previous tenant's data.
 abstract final class TenantSessionHooks {
   TenantSessionHooks._();
 

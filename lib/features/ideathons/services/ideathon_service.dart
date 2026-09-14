@@ -415,7 +415,7 @@ abstract final class IdeathonService {
     await syncEventPaymentReadiness(orgId: payment.orgId, eventId: eventId);
   }
 
-  /// After coordinator verification, add the canonical idea to the event roster.
+  /// After orgAdmin payment verification (PER_IDEA), add the canonical idea to the event roster.
   static Future<void> registerConfirmedIdea({
     required String eventId,
     required IdeaModel idea,

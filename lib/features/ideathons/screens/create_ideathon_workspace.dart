@@ -338,7 +338,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
         message: _isEdit
             ? 'Event configuration saved. Judge assignments stay on the Judge Assignments tab.'
             : CommercialAccess.requiresIdeaPayment(_commercialPlan)
-                ? 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and coordinator payment validation.'
+                ? 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear after Team Leader submission and Hackz org admin payment validation (PER_IDEA).'
                 : 'Event created with no ${_kind.entriesLabel.toLowerCase()} yet. ${_kind.entriesLabel} appear automatically after Team Leader submission. Individual idea payment is not required.',
       );
     } catch (e) {

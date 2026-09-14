@@ -63,7 +63,7 @@ class PaymentStatusSection extends StatelessWidget {
 
   static String _statusNarrative(PaymentRecordStatus status) {
     return switch (status) {
-      PaymentRecordStatus.pending => 'Awaiting coordinator verification. No changes can be made from this audit view.',
+      PaymentRecordStatus.pending => 'Awaiting Hackz org admin verification. No changes can be made from this audit view.',
       PaymentRecordStatus.verified => 'Payment verified and recorded for department collection.',
       PaymentRecordStatus.rejected => 'Payment rejected. Review remarks in the timeline below.',
     };
