@@ -7,14 +7,19 @@ import '../models/app_metadata_document.dart';
 import '../seed/default_metadata_seed.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
-/// Reads and writes global app metadata in `hkzAppMetadata` on the Control Plane.
-/// Organisation tenants never host product About / Terms / Privacy documents.
+/// App metadata in `hkzAppMetadata` — Control Plane for SysAdmin edits; tenant
+/// project gets the same bundled defaults on first organisation login so About /
+/// Terms menus work without a SysAdmin visit.
 abstract final class AppMetadataService {
   AppMetadataService._();
 
-  static FirebaseFirestore get _db => HackzFirebase.controlPlane.firestore;
-  static bool _seedChecked = false;
-  static Future<void>? _seedInFlight;
+  static FirebaseFirestore get _db =>
+      HackzFirebase.isOrganisationWorkspace
+          ? HackzFirebase.current.firestore
+          : HackzFirebase.controlPlane.firestore;
+
+  static final Set<String> _seedCheckedProjectIds = <String>{};
+  static final Map<String, Future<void>> _seedInFlightByProject = <String, Future<void>>{};
 
   static CollectionReference<Map<String, dynamic>> get _collection =>
       _db.collection(FirestoreUtils.hkzAppMetadata);
@@ -22,18 +27,26 @@ abstract final class AppMetadataService {
   /// Seeds bundled defaults from `assets/default_metadata/*.json` when docs are
   /// missing. Safe to call repeatedly; intended to run after SysAdmin auth
   /// (same timing idea as org-settings bootstrap), not at cold start.
+  static String get _projectKey {
+    final String projectId = _db.app.options.projectId.trim();
+    return projectId.isEmpty ? _db.app.name : projectId;
+  }
+
   static Future<void> ensureSeeded() async {
-    if (_seedChecked) return;
-    if (_seedInFlight != null) return _seedInFlight!;
-    _seedInFlight = _seedIfNeeded();
+    final String projectKey = _projectKey;
+    if (_seedCheckedProjectIds.contains(projectKey)) return;
+    final Future<void>? inFlight = _seedInFlightByProject[projectKey];
+    if (inFlight != null) return inFlight;
+    final Future<void> task = _seedIfNeeded(projectKey);
+    _seedInFlightByProject[projectKey] = task;
     try {
-      await _seedInFlight;
+      await task;
     } finally {
-      _seedInFlight = null;
+      _seedInFlightByProject.remove(projectKey);
     }
   }
 
-  static Future<void> _seedIfNeeded() async {
+  static Future<void> _seedIfNeeded(String projectKey) async {
     try {
       final List<String> missing = <String>[];
       for (final String docId in AppMetadataKeys.all) {
@@ -43,7 +56,7 @@ abstract final class AppMetadataService {
       }
 
       if (missing.isEmpty) {
-        _seedChecked = true;
+        _seedCheckedProjectIds.add(projectKey);
         return;
       }
 
@@ -54,9 +67,8 @@ abstract final class AppMetadataService {
         batch.set(_collection.doc(docId), payload);
       }
       await batch.commit();
-      _seedChecked = true;
+      _seedCheckedProjectIds.add(projectKey);
     } catch (e) {
-      // Leave `_seedChecked` false so a later authenticated call can retry.
       if (kDebugMode) {
         debugPrint('AppMetadataService.ensureSeeded failed: $e');
       }

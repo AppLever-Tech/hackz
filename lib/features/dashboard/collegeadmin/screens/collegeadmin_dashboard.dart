@@ -35,15 +35,11 @@ class CollegeAdminDashboard extends StatelessWidget {
       FirestoreUtils.getCollegeStats(user.orgId),
       FirestoreUtils.getDepartmentsByCollege(user.orgId),
       FirestoreUtils.getProblemStatementsByCollege(user.orgId),
-      FirestoreUtils.getOrganizations(),
+      FirestoreUtils.fetchOrganization(user.orgId),
       FirestoreUtils.getCollegeIdeaActivityTrend(user.orgId),
       FirestoreUtils.getIdeaCountsByDepartmentCode(user.orgId),
     ]);
-    final organizations = results[3] as List<OrganizationModel>;
-    final org = organizations.where((o) => o.id == user.orgId).cast<OrganizationModel?>().firstWhere(
-          (o) => o != null,
-          orElse: () => null,
-        );
+    final org = results[3] as OrganizationModel?;
     return <String, dynamic>{
       'stats': results[0] as Map<String, dynamic>,
       'departments': results[1] as List<Map<String, dynamic>>,
@@ -263,6 +259,14 @@ class CollegeAdminDashboard extends StatelessWidget {
   }
 }
 
+String _collegeDisplayName(OrganizationModel? org, UserModel user) {
+  final String fromOrg = org?.name.trim() ?? '';
+  if (fromOrg.isNotEmpty) return fromOrg;
+  final String fromUser = user.organisationName.trim();
+  if (fromUser.isNotEmpty) return fromUser;
+  return user.orgId.trim();
+}
+
 Uri? _parseWebsiteUri(String website) {
   final normalized = website.trim();
   if (normalized.isEmpty || normalized == '-') return null;
@@ -335,7 +339,7 @@ class _EditableCollegeDetailsState extends State<_EditableCollegeDetails> {
               _CollegeDetailItem(
                 icon: AppIcons.organizations,
                 label: 'Name',
-                value: org?.name ?? widget.user.orgId,
+                value: _collegeDisplayName(org, widget.user),
               ),
               _CollegeDetailItem(
                 icon: AppIcons.orgType,

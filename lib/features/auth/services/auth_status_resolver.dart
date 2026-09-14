@@ -6,6 +6,7 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/user_model.dart';
 import '../../org_settings/services/org_settings_service.dart';
+import '../../organization/services/tenant_session_bootstrap.dart';
 import 'auth_utils.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
@@ -134,5 +135,6 @@ class AuthStatusResolver {
     final String orgId = user.orgId.trim();
     if (orgId.isEmpty) return;
     await OrgSettingsService.instance.ensureLoaded(orgId: orgId);
+    await TenantSessionBootstrap.ensureForOrganisation(orgId);
   }
 }
