@@ -134,7 +134,7 @@ class DataTableView<T> extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Align(
-            alignment: column.align,
+            alignment: column.resolvedHeaderAlign,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -143,7 +143,9 @@ class DataTableView<T> extends StatelessWidget {
                     column.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: column.align == Alignment.center ? TextAlign.center : TextAlign.start,
+                    textAlign: column.resolvedHeaderAlign == Alignment.center
+                        ? TextAlign.center
+                        : TextAlign.start,
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,

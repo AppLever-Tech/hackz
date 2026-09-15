@@ -30,8 +30,11 @@ class PaymentEntriesView extends StatelessWidget {
     this.onClearFilters,
     this.onConfirm,
     this.onMarkException,
+    this.confirmActionLabel = 'Confirm',
+    this.exceptionActionLabel = 'Exception',
     this.busyEntryIds = const <String>{},
     this.compactIdeaPaymentRows = false,
+    this.centeredTableHeaders = false,
   });
 
   final List<EventPaymentEntry> entries;
@@ -41,10 +44,15 @@ class PaymentEntriesView extends StatelessWidget {
   final VoidCallback? onClearFilters;
   final Future<void> Function(EventPaymentEntry row)? onConfirm;
   final Future<void> Function(EventPaymentEntry row)? onMarkException;
+  final String confirmActionLabel;
+  final String exceptionActionLabel;
   final Set<String> busyEntryIds;
 
   /// Workspace list: compact idea pill on the left, payment pill on the right.
   final bool compactIdeaPaymentRows;
+
+  /// Center column titles; cell alignment follows column defaults (text left, amount right).
+  final bool centeredTableHeaders;
 
   static String statusLabel(PaymentRecordStatus status) {
     return switch (status) {
@@ -179,14 +187,14 @@ class PaymentEntriesView extends StatelessWidget {
           ),
         if (confirm)
           ProblemWorkflowActionPill(
-            label: 'Confirm',
+            label: confirmActionLabel,
             icon: AppIcons.workflowApproved,
             semantic: ProblemWorkflowPillSemantic.filledBrand,
             onTap: () => onConfirm!(row),
           ),
         if (exception)
           ProblemWorkflowActionPill(
-            label: 'Exception',
+            label: exceptionActionLabel,
             semantic: ProblemWorkflowPillSemantic.closed,
             onTap: () => onMarkException!(row),
           ),
@@ -205,16 +213,43 @@ class PaymentEntriesView extends StatelessWidget {
     );
   }
 
-  static List<DataTableColumn<EventPaymentEntry>> columns({
+  static Widget centerCell(Widget child) {
+    return Align(
+      alignment: Alignment.center,
+      child: UnconstrainedBox(
+        alignment: Alignment.center,
+        constrainedAxis: Axis.vertical,
+        child: child,
+      ),
+    );
+  }
+
+  List<DataTableColumn<EventPaymentEntry>> _columns({
     required String ideaColumnLabel,
     Widget? Function(EventPaymentEntry row)? actionsBuilder,
   }) {
+    final bool orgVerificationLayout = centeredTableHeaders;
+
+    Alignment headerAlign({required bool primaryTextColumn, required Alignment defaultCellAlign}) {
+      if (!orgVerificationLayout) return defaultCellAlign;
+      return primaryTextColumn ? Alignment.centerLeft : Alignment.center;
+    }
+
+    Alignment cellAlign({required bool primaryTextColumn, required Alignment defaultCellAlign}) {
+      if (!orgVerificationLayout) return defaultCellAlign;
+      if (primaryTextColumn) return Alignment.centerLeft;
+      if (defaultCellAlign == Alignment.centerRight) return Alignment.centerRight;
+      return Alignment.center;
+    }
+
     return <DataTableColumn<EventPaymentEntry>>[
       DataTableColumn<EventPaymentEntry>(
         label: ideaColumnLabel,
         flex: 4,
         minWidth: 180,
         gapAfter: 12,
+        align: cellAlign(primaryTextColumn: true, defaultCellAlign: Alignment.centerLeft),
+        headerAlign: headerAlign(primaryTextColumn: true, defaultCellAlign: Alignment.centerLeft),
         cell: (BuildContext context, EventPaymentEntry row) => pillCell(ideaPill(context, row)),
       ),
       DataTableColumn<EventPaymentEntry>(
@@ -222,16 +257,26 @@ class PaymentEntriesView extends StatelessWidget {
         flex: 3,
         minWidth: 140,
         gapAfter: 12,
-        cell: (BuildContext context, EventPaymentEntry row) => pillCell(teamPill(context, row)),
+        align: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        headerAlign: headerAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        cell: (BuildContext context, EventPaymentEntry row) {
+          final Widget pill = teamPill(context, row);
+          return orgVerificationLayout ? centerCell(pill) : pillCell(pill);
+        },
       ),
       DataTableColumn<EventPaymentEntry>(
         label: 'Payment Date',
         flex: 2,
         minWidth: 148,
         gapAfter: 12,
-        cell: (_, EventPaymentEntry row) => Text(
-          dateLabel(row),
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+        align: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        headerAlign: headerAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        cell: (_, EventPaymentEntry row) => Align(
+          alignment: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+          child: Text(
+            dateLabel(row),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
         ),
       ),
       DataTableColumn<EventPaymentEntry>(
@@ -239,15 +284,21 @@ class PaymentEntriesView extends StatelessWidget {
         flex: 2,
         minWidth: 148,
         gapAfter: 12,
-        cell: (BuildContext context, EventPaymentEntry row) => pillCell(statusWithProof(context, row)),
+        align: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        headerAlign: headerAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerLeft),
+        cell: (BuildContext context, EventPaymentEntry row) {
+          final Widget pill = statusWithProof(context, row);
+          return orgVerificationLayout ? centerCell(pill) : pillCell(pill);
+        },
       ),
       DataTableColumn<EventPaymentEntry>(
         label: 'Amount',
         flex: 2,
         minWidth: 100,
-        align: Alignment.centerRight,
+        align: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerRight),
+        headerAlign: headerAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerRight),
         cell: (_, EventPaymentEntry row) => Align(
-          alignment: Alignment.centerRight,
+          alignment: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.centerRight),
           child: Text(amountLabel(row), style: PaymentListStyles.amount),
         ),
       ),
@@ -256,8 +307,10 @@ class PaymentEntriesView extends StatelessWidget {
           label: 'Actions',
           flex: 2,
           minWidth: 140,
+          align: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.center),
+          headerAlign: headerAlign(primaryTextColumn: false, defaultCellAlign: Alignment.center),
           cell: (_, EventPaymentEntry row) => Align(
-            alignment: Alignment.centerRight,
+            alignment: cellAlign(primaryTextColumn: false, defaultCellAlign: Alignment.center),
             child: actionsBuilder(row) ?? const SizedBox.shrink(),
           ),
         ),
@@ -293,7 +346,7 @@ class PaymentEntriesView extends StatelessWidget {
         return DataTableView<EventPaymentEntry>(
           items: entries,
           rowMinHeight: 56,
-          columns: columns(
+          columns: _columns(
             ideaColumnLabel: ideaColumnLabel,
             actionsBuilder: (onConfirm == null && onMarkException == null) ? null : _actions,
           ),

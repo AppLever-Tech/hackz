@@ -13,6 +13,7 @@ class DataTableColumn<T> {
     this.minWidth,
     this.fixedWidth,
     this.align = Alignment.centerLeft,
+    this.headerAlign,
     this.sortKey,
     this.gapAfter,
   });
@@ -37,8 +38,13 @@ class DataTableColumn<T> {
   /// When set, this column never flexes — it always occupies exactly this width.
   final double? fixedWidth;
 
-  /// Alignment for both the header label and the rendered cell.
+  /// Cell content alignment within the column slot.
   final Alignment align;
+
+  /// Header label alignment; defaults to [align] when omitted.
+  final Alignment? headerAlign;
+
+  Alignment get resolvedHeaderAlign => headerAlign ?? align;
 
   /// Stable key passed to `onSort(...)` when this column header is tapped.
   /// `null` means the column is not sortable.

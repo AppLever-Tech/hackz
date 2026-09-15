@@ -103,15 +103,20 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
   List<EventPaymentEntry> _entries(List<PaymentModel> items, _PaymentData data) {
     return items
         .map(
-          (PaymentModel p) => EventPaymentEntry(
-            entryId: p.ideaId,
-            entryTitle: data.ideaTitleById[p.ideaId] ?? p.problemNumber,
-            teamId: p.teamId,
-            teamName: data.teamNameById[p.teamId] ?? p.teamId,
-            status: p.status,
-            payment: p,
-            proofCount: _proofCount(p, data),
-          ),
+          (PaymentModel p) {
+            final bool pending = p.status == PaymentRecordStatus.pending;
+            return EventPaymentEntry(
+              entryId: p.ideaId,
+              entryTitle: data.ideaTitleById[p.ideaId] ?? p.problemNumber,
+              teamId: p.teamId,
+              teamName: data.teamNameById[p.teamId] ?? p.teamId,
+              status: p.status,
+              payment: p,
+              proofCount: _proofCount(p, data),
+              canConfirm: pending,
+              canMarkException: pending,
+            );
+          },
         )
         .toList(growable: false);
   }
@@ -125,7 +130,8 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
   Future<void> _verify(EventPaymentEntry row) async {
     final PaymentModel? payment = row.payment;
     if (payment == null) return;
-    setState(() => _busy.add(row.entryId));
+    final String busyKey = PaymentEntriesView.rowKey(row);
+    setState(() => _busy.add(busyKey));
     try {
       await PerIdeaPaymentVerificationService.verify(payment: payment, actor: widget.user);
       if (!mounted) return;
@@ -135,14 +141,15 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to verify', message: '$e');
     } finally {
-      if (mounted) setState(() => _busy.remove(row.entryId));
+      if (mounted) setState(() => _busy.remove(busyKey));
     }
   }
 
   Future<void> _reject(EventPaymentEntry row) async {
     final PaymentModel? payment = row.payment;
     if (payment == null) return;
-    setState(() => _busy.add(row.entryId));
+    final String busyKey = PaymentEntriesView.rowKey(row);
+    setState(() => _busy.add(busyKey));
     try {
       await PerIdeaPaymentVerificationService.reject(payment: payment, actor: widget.user);
       if (!mounted) return;
@@ -152,7 +159,7 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to reject', message: '$e');
     } finally {
-      if (mounted) setState(() => _busy.remove(row.entryId));
+      if (mounted) setState(() => _busy.remove(busyKey));
     }
   }
 
@@ -188,6 +195,9 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
             emptyMessage: 'Payments in this status will appear here.',
             onConfirm: _verify,
             onMarkException: _reject,
+            confirmActionLabel: 'Approve',
+            exceptionActionLabel: 'Reject',
+            centeredTableHeaders: true,
             busyEntryIds: _busy,
           );
         }
