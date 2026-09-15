@@ -68,8 +68,13 @@ abstract final class TenantFirebase {
     try {
       final FirebaseApp existing = Firebase.app(name);
       if (_sameProject(existing.options, options)) return existing;
-      await existing.delete();
-    } catch (_) {
+      throw const TenantConnectionException(
+        TenantConnectionFailure.unavailable,
+        message:
+            'This organisation workspace configuration changed. Refresh the page and sign in again.',
+      );
+    } catch (e) {
+      if (e is TenantConnectionException) rethrow;
       // Named app does not exist yet.
     }
     return Firebase.initializeApp(name: name, options: options);

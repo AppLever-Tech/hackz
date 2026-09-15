@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/enums/account_workspace_phase.dart';
@@ -228,6 +229,19 @@ class _SignInScreenState extends State<SignInScreen> {
         title: 'Unable to continue',
         message: e.message,
       );
+    } on FirebaseAuthException catch (e) {
+      HkzLoadingOverlay.hide();
+      if (connected &&
+          HackzFirebase.isTenantBound &&
+          HackzFirebase.current.auth.currentUser == null) {
+        await TenantFirebase.disconnect();
+      }
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        title: 'Sign in failed',
+        message: _phoneAuthErrorMessage(e),
+      );
     } catch (e) {
       HkzLoadingOverlay.hide();
       if (connected &&
@@ -247,6 +261,18 @@ class _SignInScreenState extends State<SignInScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  static String _phoneAuthErrorMessage(FirebaseAuthException e) {
+    if (e.code == 'invalid-app-credential') {
+      return 'Phone sign-in could not verify this browser session for the organisation '
+          'Firebase project. Refresh the page, then try again. If it persists, in that '
+          "project's Firebase Console enable Phone sign-in, add this site under "
+          'Authentication → Settings → Authorized domains, and confirm the approved '
+          'workspace web app id/api key match the console.';
+    }
+    final String message = (e.message ?? '').trim();
+    return message.isEmpty ? e.code : message;
   }
 
   Future<void> _onPlatformAdminContinue() async {

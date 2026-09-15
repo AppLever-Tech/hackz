@@ -13,7 +13,6 @@ import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 import 'package:hackz/core/firebase/phone_auth_challenge.dart';
-
 class AuthUtils {
   AuthUtils._();
 
@@ -83,14 +82,14 @@ class AuthUtils {
       throw StateError('Organisation sign-in requires a resolved tenant Firebase.');
     }
 
-    PhoneAuthChallenge.clear();
-
     if (kIsWeb) {
+      PhoneAuthChallenge.clear();
       PhoneAuthChallenge.webConfirmation = await _auth.signInWithPhoneNumber(phone);
       onCodeSent();
       return;
     }
 
+    PhoneAuthChallenge.clear();
     final sent = Completer<void>();
 
     try {
