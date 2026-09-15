@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/responsive/responsive_helper.dart';
+import '../../../../core/ui/feedback/feedback.dart';
 import '../../../../features/user/models/enums/user_role.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../features/idea/screens/ideas_list_screen.dart';
@@ -9,12 +10,17 @@ import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
 import '../../../../features/payment/screens/per_idea_payment_verification_screen.dart';
-import '../../../../core/ui/common/page_header_context_pill.dart';
-import '../services/tenant_setup_readiness_service.dart';
-import '../widgets/tenant_setup_readiness_panel.dart';
+import '../../../../features/imports/imports.dart';
+import '../../../../utils/firestore_utils.dart';
+import '../org_admin_primary_menu.dart';
+import '../services/org_admin_dashboard_service.dart';
+import '../widgets/org_admin_dashboard_header.dart';
+import '../widgets/org_admin_operational_snapshot.dart';
+import '../widgets/org_admin_payment_approvals_card.dart';
+import '../widgets/org_admin_quick_actions_section.dart';
+import '../widgets/org_admin_tenant_readiness_card.dart';
 import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_page_template.dart';
-import '../../chrome/dashboard_components.dart';
 import '../../collegeadmin/screens/manage_college_screen.dart';
 
 /// Hackz org admin tenant operations — reuses existing tenant modules.
@@ -72,12 +78,12 @@ class _OrgAdminOverview extends StatefulWidget {
 }
 
 class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
-  late Future<TenantSetupReadiness> _readinessFuture;
+  late Future<OrgAdminDashboardData> _future;
 
   @override
   void initState() {
     super.initState();
-    _readinessFuture = TenantSetupReadinessService.load(widget.user.orgId);
+    _reload();
   }
 
   @override
@@ -90,86 +96,122 @@ class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
 
   void _reload() {
     setState(() {
-      _readinessFuture = TenantSetupReadinessService.load(widget.user.orgId);
+      _future = OrgAdminDashboardService.load(widget.user.orgId);
     });
   }
 
-  String _organisationDisplayName(TenantSetupReadiness readiness) {
-    final String fromTenant = readiness.organizationName.trim();
+  void _navigateToModule(int index) {
+    DashboardChromeScope.maybeOf(context)?.selectPrimaryMenu(index);
+  }
+
+  String _displayName() {
+    final String name = widget.user.displayName.trim();
+    return name.isEmpty ? 'Organisation Admin' : name;
+  }
+
+  String _organisationName(OrgAdminDashboardData data) {
+    final String fromTenant = data.readiness.organizationName.trim();
     if (fromTenant.isNotEmpty) return fromTenant;
     final String fromUser = widget.user.organisationName.trim();
     if (fromUser.isNotEmpty) return fromUser;
     return widget.user.orgId.trim();
   }
 
-  String _adminDisplayName() {
-    final String name = widget.user.displayName.trim();
-    if (name.isNotEmpty) return name;
-    return 'Organisation Admin';
+  Future<void> _openImportTeams() async {
+    if (!ImportPlatformSupport.isSupported(context)) {
+      FeedbackService.showInfo(
+        context,
+        title: 'Use a larger screen',
+        message: 'Team import is available on tablet and desktop.',
+      );
+      return;
+    }
+    final org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
+    final String fetched = (org?.name ?? '').trim();
+    final String orgName = fetched.isNotEmpty ? fetched : widget.user.orgId.trim();
+    if (!mounted) return;
+    final bool? imported = await showTeamRegistrationImportWorkflow(
+      context: context,
+      actor: widget.user,
+      orgName: orgName.isEmpty ? widget.user.orgId : orgName,
+    );
+    if (imported == true && mounted) _reload();
+  }
+
+  Future<void> _openImportProblems() async {
+    if (!ImportPlatformSupport.isSupported(context)) {
+      FeedbackService.showInfo(
+        context,
+        title: 'Use a larger screen',
+        message: 'Problem import is available on tablet and desktop.',
+      );
+      return;
+    }
+    final bool? imported = await showProblemsImportWorkflow(
+      context: context,
+      actorUserId: widget.user.userId,
+      orgId: widget.user.orgId,
+      defaultDepartmentName: widget.user.department.trim(),
+      defaultDepartmentCode: widget.user.departmentCode,
+      orgType: widget.user.orgType?.name ?? 'college',
+      lockDepartment: false,
+    );
+    if (imported == true && mounted) _reload();
   }
 
   @override
   Widget build(BuildContext context) {
     final double gap = ResponsiveHelper.dashboardSectionGap(context);
-    final void Function(int)? navigateToModule =
-        DashboardChromeScope.maybeOf(context)?.selectPrimaryMenu;
-
-    return FutureBuilder<TenantSetupReadiness>(
-      future: _readinessFuture,
-      builder: (BuildContext context, AsyncSnapshot<TenantSetupReadiness> snapshot) {
+    return FutureBuilder<OrgAdminDashboardData>(
+      future: _future,
+      builder: (BuildContext context, AsyncSnapshot<OrgAdminDashboardData> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Text('Unable to load setup status: ${snapshot.error}');
+          return Text('Unable to load dashboard: ${snapshot.error}');
         }
-        final TenantSetupReadiness readiness = snapshot.data!;
-        final String orgName = _organisationDisplayName(readiness);
+        final OrgAdminDashboardData data = snapshot.data!;
+        final readiness = data.readiness;
+        final bool showPayments = OrgAdminDashboardService.showPaymentApprovals(readiness.commercialPlan);
+
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              SectionContainer(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Icon(Icons.support_agent_rounded, size: 40, color: Color(0xFF6A38FF)),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            _adminDisplayName(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          if (orgName.isNotEmpty) ...<Widget>[
-                            const SizedBox(height: 8),
-                            PageHeaderContextPill.fromItem(
-                              PageHeaderContextItem.organization(orgName),
-                            ),
-                          ],
-                          const SizedBox(height: 10),
-                          Text(
-                            'Initial tenant setup uses the same modules as day-to-day operations: '
-                            'departments, problems, teams, events, then PER_IDEA payment verification when applicable.',
-                            style: TextStyle(fontSize: 13, height: 1.45, color: Colors.grey.shade700),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              OrgAdminDashboardHeader(
+                displayName: _displayName(),
+                organisationName: _organisationName(data),
+                commercialPlan: readiness.commercialPlan,
+                organisationAccessGranted: readiness.organisationAccessGranted,
+              ),
+              SizedBox(height: gap),
+              if (showPayments) ...<Widget>[
+                OrgAdminPaymentApprovalsCard(
+                  counts: data.paymentCounts,
+                  onReviewPayments: () => _navigateToModule(OrgAdminPrimaryMenu.paymentVerification),
+                ),
+                SizedBox(height: gap),
+              ],
+              OrgAdminOperationalSnapshot(
+                counts: readiness.counts,
+                onNavigateToModule: _navigateToModule,
+              ),
+              SizedBox(height: gap),
+              OrgAdminQuickActionsSection(
+                actions: OrgAdminQuickActionsSection.buildActions(
+                  plan: readiness.commercialPlan,
+                  onImportTeams: _openImportTeams,
+                  onImportProblems: _openImportProblems,
+                  onCreateEvent: () => _navigateToModule(OrgAdminPrimaryMenu.events),
+                  onReviewPayments: () => _navigateToModule(OrgAdminPrimaryMenu.paymentVerification),
                 ),
               ),
               SizedBox(height: gap),
-              TenantSetupReadinessPanel(
+              OrgAdminTenantReadinessCard(
                 readiness: readiness,
                 onRefresh: _reload,
-                onNavigateToModule: navigateToModule,
+                onNavigateToModule: _navigateToModule,
               ),
             ],
           ),

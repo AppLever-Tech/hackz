@@ -41,17 +41,36 @@ class TenantSetupCheckItem {
   final TenantSetupNavAction? navAction;
 }
 
+/// Derived tenant counts for orgAdmin operational snapshot (same queries as readiness).
+class TenantOperationalCounts {
+  const TenantOperationalCounts({
+    this.departments = 0,
+    this.teams = 0,
+    this.problems = 0,
+    this.activeEvents = 0,
+  });
+
+  final int departments;
+  final int teams;
+  final int problems;
+  final int activeEvents;
+}
+
 /// Tenant onboarding readiness computed from live Firestore data.
 class TenantSetupReadiness {
   const TenantSetupReadiness({
     required this.items,
     required this.commercialPlan,
     this.organizationName = '',
+    this.counts = const TenantOperationalCounts(),
+    this.organisationAccessGranted = false,
   });
 
   final List<TenantSetupCheckItem> items;
   final OrganizationCommercialPlan commercialPlan;
   final String organizationName;
+  final TenantOperationalCounts counts;
+  final bool organisationAccessGranted;
 
   bool get isReady => TenantSetupReadinessLogic.isReady(items);
 
@@ -95,14 +114,15 @@ abstract final class TenantSetupReadinessService {
       db.collection(FirestoreUtils.hkzUsers).where('orgId', isEqualTo: id).get(),
       db.collection(FirestoreUtils.hkzDepartments).where('orgId', isEqualTo: id).get(),
       db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: id).get(),
-      db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: id).limit(1).get(),
+      db.collection(FirestoreUtils.hkzTeams).where('orgId', isEqualTo: id).get(),
       db.collection(FirestoreUtils.hkzIdeathons).where('orgId', isEqualTo: id).get(),
     ]);
 
     final QuerySnapshot<Map<String, dynamic>> usersSnap = snaps[0];
     final int departmentCount = snaps[1].docs.length;
     final int problemCount = snaps[2].docs.length;
-    final bool hasTeams = snaps[3].docs.isNotEmpty;
+    final int teamCount = snaps[3].docs.length;
+    final bool hasTeams = teamCount > 0;
 
     bool collegeAdminActive = false;
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in usersSnap.docs) {
@@ -115,6 +135,7 @@ abstract final class TenantSetupReadinessService {
     }
 
     bool eventOpenForTeamLeaders = false;
+    int activeEventCount = 0;
     String? eventCommercialDetail;
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snaps[4].docs) {
       final IdeathonModel event = IdeathonModel.fromMap(doc.id, doc.data());
@@ -126,8 +147,8 @@ abstract final class TenantSetupReadinessService {
         }
         continue;
       }
+      activeEventCount++;
       eventOpenForTeamLeaders = true;
-      break;
     }
 
     final List<TenantSetupCheckItem> items = <TenantSetupCheckItem>[
@@ -208,6 +229,13 @@ abstract final class TenantSetupReadinessService {
       items: items,
       commercialPlan: plan,
       organizationName: org?.name.trim() ?? '',
+      organisationAccessGranted: orgAccessGranted,
+      counts: TenantOperationalCounts(
+        departments: departmentCount,
+        teams: teamCount,
+        problems: problemCount,
+        activeEvents: activeEventCount,
+      ),
     );
   }
 }

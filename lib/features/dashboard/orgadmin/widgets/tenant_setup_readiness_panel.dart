@@ -13,17 +13,20 @@ class TenantSetupReadinessPanel extends StatelessWidget {
     required this.readiness,
     this.onRefresh,
     this.onNavigateToModule,
+    this.compactTitle,
   });
 
   final TenantSetupReadiness readiness;
   final VoidCallback? onRefresh;
   final ValueChanged<int>? onNavigateToModule;
+  final String? compactTitle;
 
   @override
   Widget build(BuildContext context) {
     final bool ready = readiness.isReady;
     final Color accent = ready ? const Color(0xFF047857) : const Color(0xFFEA580C);
-    final String title = ready ? 'Tenant ready for team leaders' : 'Setup incomplete';
+    final String title = compactTitle ??
+        (ready ? 'Tenant ready for team leaders' : 'Setup incomplete');
 
     return SectionContainer(
       child: Column(
@@ -42,11 +45,13 @@ class TenantSetupReadinessPanel extends StatelessWidget {
                       title,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: accent),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _planHint(readiness.commercialPlan),
-                      style: TextStyle(fontSize: 12, height: 1.4, color: Colors.grey.shade700),
-                    ),
+                    if (compactTitle == null) ...<Widget>[
+                      const SizedBox(height: 4),
+                      Text(
+                        _planHint(readiness.commercialPlan),
+                        style: TextStyle(fontSize: 12, height: 1.4, color: Colors.grey.shade700),
+                      ),
+                    ],
                   ],
                 ),
               ),
