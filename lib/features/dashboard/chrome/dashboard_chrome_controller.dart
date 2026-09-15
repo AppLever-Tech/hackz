@@ -7,6 +7,7 @@ import '../../../core/ui/common/page_header_context_pill.dart';
 class DashboardChromeController extends ChangeNotifier {
   Widget? _overlay;
   List<PageHeaderContextItem> _headerContextPills = const <PageHeaderContextItem>[];
+  ValueChanged<int>? _selectPrimaryMenu;
 
   bool get hasOverlay => _overlay != null;
 
@@ -14,6 +15,15 @@ class DashboardChromeController extends ChangeNotifier {
 
   /// Context pills shown under the chrome page title (org, department, …).
   List<PageHeaderContextItem> get headerContextPills => _headerContextPills;
+
+  /// Wired by [DashboardPageTemplate] so body widgets can switch sidebar modules.
+  void bindPrimaryMenuNavigator(ValueChanged<int>? selectMenu) {
+    _selectPrimaryMenu = selectMenu;
+  }
+
+  void selectPrimaryMenu(int index) {
+    _selectPrimaryMenu?.call(index);
+  }
 
   void setHeaderContextPills(List<PageHeaderContextItem> pills) {
     final List<PageHeaderContextItem> next = pills

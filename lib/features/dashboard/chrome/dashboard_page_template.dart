@@ -95,18 +95,12 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
             HackzFirebase.tenantGeneration,
           ]),
           builder: (BuildContext context, Widget? child) {
+            _chromeController.bindPrimaryMenuNavigator(_selectPrimaryMenu);
             return ResponsiveDashboardLayout(
             primaryMenus: primaryMenus,
             secondaryMenus: menuConfig.secondaryMenus,
             selectedPrimaryIndex: _selectedPrimaryMenuIndex,
-            onPrimaryMenuSelected: (int index) {
-              if (index != _selectedPrimaryMenuIndex) {
-                WorkspaceController.instance.close();
-                _chromeController.clearOverlay();
-                _chromeController.setHeaderContextPills(const <PageHeaderContextItem>[]);
-              }
-              setState(() => _selectedPrimaryMenuIndex = index);
-            },
+            onPrimaryMenuSelected: _selectPrimaryMenu,
             header: DashboardPageHeader(
               title: isDashboardTab ? 'Dashboard' : selectedMenuTitle,
               titleIcon: selectedMenuIcon,
@@ -158,6 +152,15 @@ class _DashboardPageTemplateState extends State<DashboardPageTemplate> {
       role: role,
       selectedMenuTitle: selectedMenuTitle,
     );
+  }
+
+  void _selectPrimaryMenu(int index) {
+    if (index != _selectedPrimaryMenuIndex) {
+      WorkspaceController.instance.close();
+      _chromeController.clearOverlay();
+      _chromeController.setHeaderContextPills(const <PageHeaderContextItem>[]);
+    }
+    setState(() => _selectedPrimaryMenuIndex = index);
   }
 
   Widget? _titleActionsFor(

@@ -9,8 +9,10 @@ import '../../../../features/ideathons/screens/ideathons_list_screen.dart';
 import '../../../../features/problems/screens/problem_statements/problem_statements_table_screen.dart';
 import '../../../../features/problems/services/problem_role_config.dart';
 import '../../../../features/payment/screens/per_idea_payment_verification_screen.dart';
+import '../../../../core/ui/common/page_header_context_pill.dart';
 import '../services/tenant_setup_readiness_service.dart';
 import '../widgets/tenant_setup_readiness_panel.dart';
+import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../collegeadmin/screens/manage_college_screen.dart';
@@ -92,12 +94,25 @@ class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
     });
   }
 
+  String _organisationDisplayName(TenantSetupReadiness readiness) {
+    final String fromTenant = readiness.organizationName.trim();
+    if (fromTenant.isNotEmpty) return fromTenant;
+    final String fromUser = widget.user.organisationName.trim();
+    if (fromUser.isNotEmpty) return fromUser;
+    return widget.user.orgId.trim();
+  }
+
+  String _adminDisplayName() {
+    final String name = widget.user.displayName.trim();
+    if (name.isNotEmpty) return name;
+    return 'Organisation Admin';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String orgLabel = widget.user.organisationName.trim().isEmpty
-        ? (widget.user.orgId.trim().isEmpty ? 'Hackz Organisation Admin' : widget.user.orgId.trim())
-        : widget.user.organisationName.trim();
     final double gap = ResponsiveHelper.dashboardSectionGap(context);
+    final void Function(int)? navigateToModule =
+        DashboardChromeScope.maybeOf(context)?.selectPrimaryMenu;
 
     return FutureBuilder<TenantSetupReadiness>(
       future: _readinessFuture,
@@ -109,6 +124,7 @@ class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
           return Text('Unable to load setup status: ${snapshot.error}');
         }
         final TenantSetupReadiness readiness = snapshot.data!;
+        final String orgName = _organisationDisplayName(readiness);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,14 +140,20 @@ class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            orgLabel,
+                            _adminDisplayName(),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF0F172A),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          if (orgName.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 8),
+                            PageHeaderContextPill.fromItem(
+                              PageHeaderContextItem.organization(orgName),
+                            ),
+                          ],
+                          const SizedBox(height: 10),
                           Text(
                             'Initial tenant setup uses the same modules as day-to-day operations: '
                             'departments, problems, teams, events, then PER_IDEA payment verification when applicable.',
@@ -144,7 +166,11 @@ class _OrgAdminOverviewState extends State<_OrgAdminOverview> {
                 ),
               ),
               SizedBox(height: gap),
-              TenantSetupReadinessPanel(readiness: readiness, onRefresh: _reload),
+              TenantSetupReadinessPanel(
+                readiness: readiness,
+                onRefresh: _reload,
+                onNavigateToModule: navigateToModule,
+              ),
             ],
           ),
         );

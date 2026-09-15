@@ -9,6 +9,18 @@ import '../../../organization/services/organisation_access.dart';
 import '../../../user/models/enums/user_role.dart';
 import '../../../user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
+import '../org_admin_primary_menu.dart';
+
+/// Opens an orgAdmin sidebar module from the setup panel.
+class TenantSetupNavAction {
+  const TenantSetupNavAction({
+    required this.menuIndex,
+    required this.label,
+  });
+
+  final int menuIndex;
+  final String label;
+}
 
 /// One derived setup check — not persisted on any tenant document.
 class TenantSetupCheckItem {
@@ -17,6 +29,7 @@ class TenantSetupCheckItem {
     required this.done,
     this.requiredForReady = true,
     this.detail,
+    this.navAction,
   });
 
   final String label;
@@ -25,6 +38,7 @@ class TenantSetupCheckItem {
   /// When false, shown for guidance only and does not block [TenantSetupReadiness.isReady].
   final bool requiredForReady;
   final String? detail;
+  final TenantSetupNavAction? navAction;
 }
 
 /// Tenant onboarding readiness computed from live Firestore data.
@@ -133,17 +147,35 @@ abstract final class TenantSetupReadinessService {
         label: 'Departments configured',
         done: departmentCount > 0,
         detail: departmentCount > 0 ? null : 'Add at least one department (Manage College).',
+        navAction: departmentCount > 0
+            ? null
+            : const TenantSetupNavAction(
+                menuIndex: OrgAdminPrimaryMenu.manageCollege,
+                label: 'Manage College',
+              ),
       ),
       TenantSetupCheckItem(
         label: 'Problem statements available',
         done: problemCount > 0,
         detail: problemCount > 0 ? null : 'Import or create problems (Problem Statements).',
+        navAction: problemCount > 0
+            ? null
+            : const TenantSetupNavAction(
+                menuIndex: OrgAdminPrimaryMenu.problemStatements,
+                label: 'Problem Statements',
+              ),
       ),
       TenantSetupCheckItem(
         label: 'Teams registered',
         done: hasTeams,
         requiredForReady: false,
-        detail: hasTeams ? null : 'Import teams when ready (Manage College → team CSV).',
+        detail: hasTeams ? null : 'Import teams when ready via team CSV (Manage College).',
+        navAction: hasTeams
+            ? null
+            : const TenantSetupNavAction(
+                menuIndex: OrgAdminPrimaryMenu.manageCollege,
+                label: 'Manage College',
+              ),
       ),
       TenantSetupCheckItem(
         label: 'Event open for team submissions',
@@ -152,6 +184,12 @@ abstract final class TenantSetupReadinessService {
             ? null
             : (eventCommercialDetail ??
                 'Create/configure an event (Events) with a future submission window and commercial access.'),
+        navAction: eventOpenForTeamLeaders
+            ? null
+            : const TenantSetupNavAction(
+                menuIndex: OrgAdminPrimaryMenu.events,
+                label: 'Events',
+              ),
       ),
     ];
 
