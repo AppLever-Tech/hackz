@@ -75,6 +75,16 @@ abstract final class OrganisationOnboardingService {
     return items;
   }
 
+  static Future<OrganisationOnboardingItem?> loadByOrganisationId(String organisationId) async {
+    final String id = organisationId.trim();
+    if (id.isEmpty) return null;
+    final List<OrganisationOnboardingItem> items = await load();
+    for (final OrganisationOnboardingItem item in items) {
+      if (item.organization.id == id) return item;
+    }
+    return null;
+  }
+
   static Future<OrganisationOnboardingItem> saveOrganisation({
     required OrganizationModel draft,
     TenantRecord? existingTenant,
