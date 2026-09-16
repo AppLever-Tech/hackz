@@ -268,6 +268,25 @@ abstract final class TenantRegistry {
     return matches.first;
   }
 
+  /// All Control Plane routing records (SysAdmin tenant management).
+  static Future<List<TenantRecord>> listAll() async {
+    final QuerySnapshot<Map<String, dynamic>> snap = await _col.get();
+    return snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => TenantRecord.fromMap(doc.data()))
+        .toList(growable: false);
+  }
+
+  /// Organisations currently bound to a registered Firebase project id.
+  static Future<List<TenantRecord>> listByFirebaseProjectId(String firebaseProjectId) async {
+    final String projectId = firebaseProjectId.trim();
+    if (projectId.isEmpty) return const <TenantRecord>[];
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _col.where('firebaseProjectId', isEqualTo: projectId).get();
+    return snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => TenantRecord.fromMap(doc.data()))
+        .toList(growable: false);
+  }
+
   static Future<TenantRecord?> fetchByOrganisationCode(String rawCode) async {
     final String? code = OrganisationCode.tryParse(rawCode);
     if (code == null) return null;
@@ -374,6 +393,59 @@ abstract final class TenantRegistry {
       return;
     }
     await setStatusForTenant(tenant.tenantId, TenantStatus.inactive);
+  }
+
+  /// Marks all routing records for a deleted Control Plane organisation inactive.
+  static Future<void> onOrganisationDeleted({
+    required String organisationId,
+    required String organisationName,
+  }) async {
+    final String orgId = organisationId.trim();
+    final String name = organisationName.trim();
+    final Set<String> inactivated = <String>{};
+
+    if (orgId.isNotEmpty) {
+      final QuerySnapshot<Map<String, dynamic>> byId =
+          await _col.where('organisationId', isEqualTo: orgId).get();
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in byId.docs) {
+        final TenantRecord record = TenantRecord.fromMap(doc.data());
+        if (record.status == TenantStatus.inactive) continue;
+        await setStatusForTenant(record.tenantId, TenantStatus.inactive);
+        inactivated.add(record.tenantId);
+      }
+    }
+
+    if (name.isEmpty) return;
+
+    final QuerySnapshot<Map<String, dynamic>> byName =
+        await _col.where('organisationName', isEqualTo: name).get();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in byName.docs) {
+      final TenantRecord record = TenantRecord.fromMap(doc.data());
+      if (record.status == TenantStatus.inactive) continue;
+      if (inactivated.contains(record.tenantId)) continue;
+      final String recordOrgId = record.organisationId.trim();
+      if (orgId.isNotEmpty && recordOrgId.isNotEmpty && recordOrgId != orgId) {
+        continue;
+      }
+      await setStatusForTenant(record.tenantId, TenantStatus.inactive);
+      inactivated.add(record.tenantId);
+    }
+  }
+
+  /// Whether this registry row still represents an organisation on the Control Plane.
+  static bool isLinkedToLiveOrganisation(
+    TenantRecord record, {
+    required Set<String> liveOrganisationIds,
+    required Set<String> liveOrganisationNamesLower,
+  }) {
+    if (record.status == TenantStatus.inactive) return false;
+    final String orgId = record.organisationId.trim();
+    if (orgId.isNotEmpty) {
+      return liveOrganisationIds.contains(orgId);
+    }
+    final String name = record.organisationName.trim().toLowerCase();
+    if (name.isEmpty) return false;
+    return liveOrganisationNamesLower.contains(name);
   }
 
   static Future<TenantRecord> _patch(

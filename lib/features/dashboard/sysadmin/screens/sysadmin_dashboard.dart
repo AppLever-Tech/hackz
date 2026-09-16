@@ -6,6 +6,7 @@ import '../../../../features/user/models/user_model.dart';
 import '../../../../features/app_metadata/screens/app_metadata_management_screen.dart';
 import '../../../../features/sysadmin/onboarding/screens/organisations_onboarding_console.dart';
 import '../../../../features/sysadmin/org_admin/screens/hackz_org_admins_console.dart';
+import '../../../../features/sysadmin/tenants/screens/tenants_management_console.dart';
 import '../../chrome/dashboard_page_template.dart';
 import '../../chrome/dashboard_components.dart';
 import '../services/sysadmin_dashboard_service.dart';
@@ -39,11 +40,14 @@ class SysAdminDashboard extends StatelessWidget {
     return DashboardPageTemplate(
       user: user,
       bodyBuilder: (BuildContext context, int refreshToken, int selectedMenuIndex) {
-        if (selectedMenuIndex == 3) {
+        if (selectedMenuIndex == 4) {
           return AppMetadataManagementScreen(key: ValueKey<int>(refreshToken));
         }
-        if (selectedMenuIndex == 2) {
+        if (selectedMenuIndex == 3) {
           return HackzOrgAdminsConsole(key: ValueKey<int>(refreshToken));
+        }
+        if (selectedMenuIndex == 2) {
+          return TenantsManagementConsole(key: ValueKey<int>(refreshToken));
         }
         if (selectedMenuIndex == 1) {
           return OrganisationsOnboardingConsole(

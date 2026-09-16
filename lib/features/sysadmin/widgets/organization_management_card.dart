@@ -93,8 +93,11 @@ class OrganizationManagementCard extends StatelessWidget {
     if (!ok) return;
     try {
       await HkzOrgAdminService.purgeOrganisationFromAllAdmins(organization.id);
+      await TenantRegistry.onOrganisationDeleted(
+        organisationId: organization.id,
+        organisationName: organization.name,
+      );
       await FirestoreUtils.deleteOrganization(organization.id);
-      await TenantRegistry.inactivateByOrganisationName(organization.name);
       if (context.mounted) {
         FeedbackService.showSuccess(
           context,

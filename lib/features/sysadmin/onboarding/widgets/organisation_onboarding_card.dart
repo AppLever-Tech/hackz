@@ -134,12 +134,14 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
     if (!ok) return;
     try {
       await HkzOrgAdminService.purgeOrganisationFromAllAdmins(item.organization.id);
+      await TenantRegistry.onOrganisationDeleted(
+        organisationId: item.organization.id,
+        organisationName: item.name,
+      );
       await FirestoreUtils.deleteOrganization(
         item.organization.id,
         database: HackzFirebase.controlPlane.firestore,
       );
-      await TenantRegistry.inactivateByOrganisationId(item.organization.id);
-      await TenantRegistry.inactivateByOrganisationName(item.name);
       if (context.mounted) {
         FeedbackService.showSuccess(
           context,

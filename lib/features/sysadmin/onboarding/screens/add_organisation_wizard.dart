@@ -300,7 +300,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
             throw const OrganisationOnboardingException('Save the organisation first.');
           }
           if (!ApprovedTenantFirebase.isApproved(_workspaceId)) {
-            throw const OrganisationOnboardingException('Choose an approved Hackz workspace.');
+            throw const OrganisationOnboardingException('Choose an approved Hackz tenant.');
           }
           _tenant = await OrganisationOnboardingService.connectWorkspace(
             tenantId: tenant.tenantId,
@@ -315,13 +315,13 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         case OrganisationOnboardingStep.validate:
           final TenantRecord? tenant = _tenant;
           if (tenant == null) {
-            throw const OrganisationOnboardingException('Connect a workspace first.');
+            throw const OrganisationOnboardingException('Connect a tenant first.');
           }
           if (!_checksRan || !TenantWorkspaceValidator.allPassed(_checks)) {
             final List<TenantWorkspaceCheck> checks = await HkzAsyncLoader.run<List<TenantWorkspaceCheck>>(
               context,
-              title: 'Checking workspace',
-              message: 'Preparing workspace checks...',
+              title: 'Checking tenant',
+              message: 'Preparing tenant checks...',
               successMessage: 'All checks completed',
               successHold: const Duration(milliseconds: 900),
               task: () {
@@ -346,7 +346,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         case OrganisationOnboardingStep.authorization:
           final TenantRecord? tenant = _tenant;
           if (tenant == null) {
-            throw const OrganisationOnboardingException('Connect a workspace first.');
+            throw const OrganisationOnboardingException('Connect a tenant first.');
           }
           if (tenant.provisioningAuthorization == ProvisioningAuthorizationStatus.required) {
             _tenant = await OrganisationOnboardingService.markAuthorizationPending(tenant.tenantId);
@@ -385,7 +385,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
         case OrganisationOnboardingStep.initialAdmin:
           final TenantRecord? tenant = _tenant;
           if (tenant == null) {
-            throw const OrganisationOnboardingException('Connect a workspace first.');
+            throw const OrganisationOnboardingException('Connect a tenant first.');
           }
           if (!tenant.provisioningAuthorization.isAuthorized) {
             throw const OrganisationOnboardingException(
@@ -460,8 +460,8 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
     }
   }
 
-  Future<void> _registerWorkspace() async {
-    final bool saved = await showRegisterWorkspaceDialog(context: context);
+  Future<void> _registerTenant() async {
+    final bool saved = await showRegisterTenantDialog(context: context);
     if (!saved) return;
     await ApprovedTenantFirebase.refresh();
     if (mounted) setState(() {});
@@ -472,7 +472,7 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
       case OrganisationOnboardingStep.organisation:
         return 'Continue';
       case OrganisationOnboardingStep.firebase:
-        return 'Connect workspace';
+        return 'Connect tenant';
       case OrganisationOnboardingStep.validate:
         return _checksRan && TenantWorkspaceValidator.allPassed(_checks) ? 'Continue' : 'Run checks';
       case OrganisationOnboardingStep.authorization:
@@ -678,12 +678,12 @@ class _AddOrganisationWizardState extends State<AddOrganisationWizard> {
   Widget _workspaceStep() {
     final List<ApprovedTenantWorkspace> workspaces = ApprovedTenantFirebase.workspaces;
     return UserFormSection(
-      title: 'Workspace connection',
-      subtitle: 'Connect this college to an approved Hackz workspace. Colleges do not configure platform internals.',
+      title: 'Tenant connection',
+      subtitle: 'Connect this college to a registered Hackz tenant. Colleges do not configure platform internals.',
       trailing: TextButton.icon(
-        onPressed: _busy ? null : _registerWorkspace,
+        onPressed: _busy ? null : _registerTenant,
         icon: const Icon(AppIcons.add, size: 16),
-        label: const Text('Register another workspace'),
+        label: const Text('Register tenant'),
         style: TextButton.styleFrom(
           visualDensity: VisualDensity.compact,
           padding: const EdgeInsets.symmetric(horizontal: 8),

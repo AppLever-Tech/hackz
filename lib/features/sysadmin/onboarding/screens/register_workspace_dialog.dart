@@ -10,17 +10,28 @@ import '../../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../user/widgets/user_form_section.dart';
 
-Future<bool> showRegisterWorkspaceDialog({required BuildContext context}) async {
+Future<bool> showRegisterTenantDialog({
+  required BuildContext context,
+  ApprovedTenantProject? existing,
+}) async {
   final bool? saved = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (BuildContext _) => const RegisterWorkspaceDialog(),
+    builder: (BuildContext _) => RegisterWorkspaceDialog(existing: existing),
   );
   return saved ?? false;
 }
 
+@Deprecated('Use showRegisterTenantDialog')
+Future<bool> showRegisterWorkspaceDialog({required BuildContext context}) =>
+    showRegisterTenantDialog(context: context);
+
 class RegisterWorkspaceDialog extends StatefulWidget {
-  const RegisterWorkspaceDialog({super.key});
+  const RegisterWorkspaceDialog({super.key, this.existing});
+
+  final ApprovedTenantProject? existing;
+
+  bool get isEdit => existing != null;
 
   @override
   State<RegisterWorkspaceDialog> createState() => _RegisterWorkspaceDialogState();
@@ -40,6 +51,22 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
   bool _snippetApplied = false;
   String? _error;
   String? _snippetError;
+
+  @override
+  void initState() {
+    super.initState();
+    final ApprovedTenantProject? existing = widget.existing;
+    if (existing != null) {
+      _label.text = existing.label;
+      _projectId.text = existing.projectId;
+      _apiKey.text = existing.apiKey;
+      _appIdWeb.text = existing.appIdWeb;
+      _appIdAndroid.text = existing.appIdAndroid;
+      _senderId.text = existing.messagingSenderId;
+      _bucket.text = existing.storageBucket;
+      _authDomain.text = existing.authDomain;
+    }
+  }
 
   @override
   void dispose() {
@@ -115,7 +142,7 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
       setState(() => _error = '$e');
       await FeedbackService.showError(
         context,
-        title: 'Unable to register workspace',
+        title: widget.isEdit ? 'Unable to save tenant' : 'Unable to register tenant',
         message: '$e',
       );
     } finally {
@@ -153,7 +180,7 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
                         height: 22,
                         child: HkzProgressIndicator(size: 22, strokeWidth: 2.6),
                       )
-                    : const Text('Register workspace'),
+                    : Text(widget.isEdit ? 'Save tenant' : 'Register tenant'),
               ),
             ),
           ],
@@ -162,13 +189,13 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Text(
-            'Register workspace',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          Text(
+            widget.isEdit ? 'Edit tenant' : 'Register tenant',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
           ),
           const SizedBox(height: 4),
           const Text(
-            'Hackz Admin only. Colleges never enter these values. Login uses the organisation code and the Control Plane catalog.',
+            'Hackz Admin only. Colleges never enter these values. Login uses the organisation code and the Control Plane tenant catalog.',
             style: TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 14),
@@ -239,7 +266,7 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
           const SizedBox(height: 12),
           UserFormSection(
             title: 'Approved Firebase project',
-            subtitle: 'Copied from the Firebase console for this workspace.',
+            subtitle: 'Copied from the Firebase console for this tenant project.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -249,7 +276,7 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
                     controller: _label,
                     enabled: !_busy,
                     style: HackzInputDecoration.fieldTextStyle,
-                    decoration: _decoration('College workspace name'),
+                    decoration: _decoration('Tenant display name'),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -258,7 +285,7 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
                   required: true,
                   field: TextField(
                     controller: _projectId,
-                    enabled: !_busy,
+                    enabled: !_busy && !widget.isEdit,
                     style: HackzInputDecoration.fieldTextStyle,
                     decoration: _decoration('firebase-project-id'),
                   ),

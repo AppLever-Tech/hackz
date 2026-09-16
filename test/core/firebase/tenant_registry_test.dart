@@ -60,6 +60,67 @@ void main() {
     expect(parsed.provisioningAuthorizationValidatedAt?.millisecondsSinceEpoch, at.millisecondsSinceEpoch);
   });
 
+  test('isLinkedToLiveOrganisation ignores inactive and deleted org ids', () {
+    final TenantRecord active = tenant(name: 'Alpha', code: 'HKZ-S7K4PM');
+    final TenantRecord inactive = tenant(
+      name: 'Gone',
+      code: 'HKZ-ZZZZZZ',
+      status: TenantStatus.inactive,
+    );
+    final TenantRecord orphan = TenantRecord(
+      tenantId: 't-orphan',
+      organisationCode: 'HKZ-ORPHAN',
+      organisationName: 'Missing',
+      firebaseProjectId: 'hackz-a17b6',
+      status: TenantStatus.active,
+      createdAt: DateTime.utc(2026, 1, 1),
+      organisationId: 'org-deleted',
+    );
+    const Set<String> liveIds = <String>{'org-live'};
+    const Set<String> liveNames = <String>{'alpha'};
+
+    expect(
+      TenantRegistry.isLinkedToLiveOrganisation(
+        active.copyWith(organisationName: 'Unknown College'),
+        liveOrganisationIds: liveIds,
+        liveOrganisationNamesLower: liveNames,
+      ),
+      isFalse,
+    );
+    expect(
+      TenantRegistry.isLinkedToLiveOrganisation(
+        active,
+        liveOrganisationIds: liveIds,
+        liveOrganisationNamesLower: liveNames,
+      ),
+      isTrue,
+    );
+    expect(
+      TenantRegistry.isLinkedToLiveOrganisation(
+        active.copyWith(organisationId: 'org-live'),
+        liveOrganisationIds: liveIds,
+        liveOrganisationNamesLower: liveNames,
+      ),
+      isTrue,
+    );
+    expect(
+      TenantRegistry.isLinkedToLiveOrganisation(
+        inactive,
+        liveOrganisationIds: liveIds,
+        liveOrganisationNamesLower: liveNames,
+      ),
+      isFalse,
+    );
+    expect(
+      TenantRegistry.isLinkedToLiveOrganisation(
+        orphan,
+        liveOrganisationIds: liveIds,
+        liveOrganisationNamesLower: liveNames,
+      ),
+      isFalse,
+    );
+  });
+
   test('uniqueCodesByOrganisationName keeps one non-inactive tenant per name', () {
     final Map<String, String> codes = TenantRegistry.uniqueCodesByOrganisationName(<TenantRecord>[
       tenant(name: 'Alpha', code: 'HKZ-S7K4PM'),

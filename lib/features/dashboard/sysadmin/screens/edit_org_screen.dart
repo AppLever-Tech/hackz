@@ -126,9 +126,11 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
     setState(() => _isDeleting = true);
     try {
       await HkzOrgAdminService.purgeOrganisationFromAllAdmins(widget.organization.id);
+      await TenantRegistry.onOrganisationDeleted(
+        organisationId: widget.organization.id,
+        organisationName: widget.organization.name,
+      );
       await FirestoreUtils.deleteOrganization(widget.organization.id);
-      await TenantRegistry.inactivateByOrganisationId(widget.organization.id);
-      await TenantRegistry.inactivateByOrganisationName(widget.organization.name);
       if (!mounted) return;
       if (widget.embedded) {
         widget.onOrganizationsChanged?.call();

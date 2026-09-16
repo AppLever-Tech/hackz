@@ -80,6 +80,21 @@ abstract final class ApprovedTenantFirebase {
 
   static bool isApproved(String projectId) => optionsFor(projectId) != null;
 
+  /// Registered tenant Firebase projects (excludes the hosted Control Plane project).
+  static List<ApprovedTenantProject> get registeredTenants {
+    _rememberControlPlane();
+    final String hostedId = controlPlaneProjectId;
+    final List<ApprovedTenantProject> list = _catalog.values
+        .where((ApprovedTenantProject p) => p.projectId.isNotEmpty && p.projectId != hostedId)
+        .toList(growable: false);
+    list.sort((ApprovedTenantProject a, ApprovedTenantProject b) {
+      final int byLabel = a.label.toLowerCase().compareTo(b.label.toLowerCase());
+      if (byLabel != 0) return byLabel;
+      return a.projectId.compareTo(b.projectId);
+    });
+    return list;
+  }
+
   static Future<void> refresh() async {
     _rememberControlPlane();
     try {
@@ -97,16 +112,29 @@ abstract final class ApprovedTenantFirebase {
   static Future<void> register(ApprovedTenantProject project) async {
     final String id = project.projectId.trim();
     if (id.isEmpty || project.apiKey.trim().isEmpty) {
-      throw ArgumentError('Workspace connection details are incomplete.');
+      throw ArgumentError('Tenant Firebase connection details are incomplete.');
     }
     if ((project.appIdWeb.trim().isEmpty) && (project.appIdAndroid.trim().isEmpty)) {
-      throw ArgumentError('Workspace connection details are incomplete.');
+      throw ArgumentError('Tenant Firebase connection details are incomplete.');
     }
     if (project.messagingSenderId.trim().isEmpty || project.storageBucket.trim().isEmpty) {
-      throw ArgumentError('Workspace connection details are incomplete.');
+      throw ArgumentError('Tenant Firebase connection details are incomplete.');
     }
     await _col.doc(id).set(project.toMap(), SetOptions(merge: true));
     _catalog[id] = project;
+  }
+
+  /// Removes tenant registration from the Control Plane catalog only.
+  static Future<void> deleteRegistration(String projectId) async {
+    final String id = projectId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError('Project id is required.');
+    }
+    if (id == controlPlaneProjectId) {
+      throw StateError('The hosted Hackz tenant cannot be removed.');
+    }
+    await _col.doc(id).delete();
+    _catalog.remove(id);
   }
 
   static void _rememberControlPlane() {

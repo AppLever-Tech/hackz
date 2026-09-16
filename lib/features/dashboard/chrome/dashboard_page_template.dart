@@ -207,6 +207,7 @@ class _RoleMenuConfig {
           primaryMenus: <DashboardMenuItem>[
             DashboardMenuItem(label: 'Dashboard', icon: Icons.grid_view_rounded),
             DashboardMenuItem(label: 'Organisations', icon: AppIcons.organizations),
+            DashboardMenuItem(label: 'Tenants', icon: AppIcons.verification),
             DashboardMenuItem(label: 'Hackz Org Admins', icon: AppIcons.helpSupport),
             DashboardMenuItem(label: 'App Metadata', icon: AppIcons.info),
           ],
