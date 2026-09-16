@@ -24,6 +24,7 @@ import 'package:hackz/core/firebase/hackz_firebase.dart';
 import 'package:hackz/core/firebase/last_organisation_code_store.dart';
 import 'package:hackz/core/firebase/organisation_code.dart';
 import 'package:hackz/core/firebase/tenant_connection_exception.dart';
+import 'package:hackz/core/firebase/phone_auth_web_errors.dart';
 import 'package:hackz/core/firebase/tenant_firebase.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -240,7 +241,7 @@ class _SignInScreenState extends State<SignInScreen> {
       FeedbackService.showError(
         context,
         title: 'Sign in failed',
-        message: _phoneAuthErrorMessage(e),
+        message: PhoneAuthWebErrors.format(e),
       );
     } catch (e) {
       HkzLoadingOverlay.hide();
@@ -253,7 +254,7 @@ class _SignInScreenState extends State<SignInScreen> {
       FeedbackService.showError(
         context,
         title: 'Sign in failed',
-        message: '$e',
+        message: PhoneAuthWebErrors.format(e),
       );
     } finally {
       HkzLoadingOverlay.hide();
@@ -261,18 +262,6 @@ class _SignInScreenState extends State<SignInScreen> {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  static String _phoneAuthErrorMessage(FirebaseAuthException e) {
-    if (e.code == 'invalid-app-credential') {
-      return 'Phone sign-in could not verify this browser session for the organisation '
-          'Firebase project. Refresh the page, then try again. If it persists, in that '
-          "project's Firebase Console enable Phone sign-in, add this site under "
-          'Authentication → Settings → Authorized domains, and confirm the approved '
-          'workspace web app id/api key match the console.';
-    }
-    final String message = (e.message ?? '').trim();
-    return message.isEmpty ? e.code : message;
   }
 
   Future<void> _onPlatformAdminContinue() async {
@@ -307,7 +296,7 @@ class _SignInScreenState extends State<SignInScreen> {
       FeedbackService.showError(
         context,
         title: 'Sign in failed',
-        message: '$e',
+        message: PhoneAuthWebErrors.format(e),
       );
     } finally {
       if (mounted) {

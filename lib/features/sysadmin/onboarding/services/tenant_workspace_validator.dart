@@ -53,7 +53,10 @@ abstract final class TenantWorkspaceValidator {
     TenantWorkspaceCheckGuideEntry(
       checkId: 'auth',
       label: 'Sign-in ready',
-      validates: 'Tenant Firebase Auth responds (required for organisation code + mobile OTP).',
+      validates:
+          'Tenant Firebase Auth responds (required for organisation code + mobile OTP). '
+          'For real-phone web OTP, also add every Hackz hosting domain to the tenant project '
+          'Authorized domains and the tenant web API key HTTP referrers.',
     ),
     TenantWorkspaceCheckGuideEntry(
       checkId: 'data',

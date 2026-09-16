@@ -353,6 +353,13 @@ class _RegisterWorkspaceDialogState extends State<RegisterWorkspaceDialog> {
                     decoration: _decoration('project-id.firebaseapp.com'),
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Web phone OTP uses this tenant project while users open Hackz on the Control Plane '
+                  'hosting URL. In this tenant project, add those Hackz domains under Authentication → '
+                  'Authorized domains and allow them on the web API key HTTP referrers.',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.4),
+                ),
                 if (_error != null) ...<Widget>[
                   const SizedBox(height: 10),
                   Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFBE123C))),
