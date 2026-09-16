@@ -104,6 +104,11 @@ class TenantRecord {
     this.initialAdminConfigured = false,
     this.hackzOrgAdminConfigured = false,
     this.hackzOrgAdminId = '',
+    this.initialCollegeAdminUserId = '',
+    this.initialCollegeAdminFirstName = '',
+    this.initialCollegeAdminLastName = '',
+    this.initialCollegeAdminPhone = '',
+    this.initialCollegeAdminEmail = '',
     this.provisioningAuthorization = ProvisioningAuthorizationStatus.required,
     this.provisioningAuthorizationValidatedAt,
   });
@@ -135,6 +140,13 @@ class TenantRecord {
   /// Control Plane `hkzOrgAdmins` document id selected for tenant provisioning.
   final String hackzOrgAdminId;
 
+  /// SysAdmin display snapshot (Control Plane). Tenant `hkzUsers` remains source of truth.
+  final String initialCollegeAdminUserId;
+  final String initialCollegeAdminFirstName;
+  final String initialCollegeAdminLastName;
+  final String initialCollegeAdminPhone;
+  final String initialCollegeAdminEmail;
+
   final ProvisioningAuthorizationStatus provisioningAuthorization;
 
   /// Last time SysAdmin validated college IAM for provisioning. Null until first check.
@@ -154,6 +166,11 @@ class TenantRecord {
       'initialAdminConfigured': initialAdminConfigured,
       'hackzOrgAdminConfigured': hackzOrgAdminConfigured,
       'hackzOrgAdminId': hackzOrgAdminId.trim(),
+      'initialCollegeAdminUserId': initialCollegeAdminUserId.trim(),
+      'initialCollegeAdminFirstName': initialCollegeAdminFirstName.trim(),
+      'initialCollegeAdminLastName': initialCollegeAdminLastName.trim(),
+      'initialCollegeAdminPhone': initialCollegeAdminPhone.trim(),
+      'initialCollegeAdminEmail': initialCollegeAdminEmail.trim(),
       'provisioningAuthorization': provisioningAuthorization.wireValue,
       if (provisioningAuthorizationValidatedAt != null)
         'provisioningAuthorizationValidatedAt': Timestamp.fromDate(provisioningAuthorizationValidatedAt!),
@@ -178,6 +195,11 @@ class TenantRecord {
       initialAdminConfigured: map['initialAdminConfigured'] == true,
       hackzOrgAdminConfigured: map['hackzOrgAdminConfigured'] == true,
       hackzOrgAdminId: (map['hackzOrgAdminId'] as String? ?? '').trim(),
+      initialCollegeAdminUserId: (map['initialCollegeAdminUserId'] as String? ?? '').trim(),
+      initialCollegeAdminFirstName: (map['initialCollegeAdminFirstName'] as String? ?? '').trim(),
+      initialCollegeAdminLastName: (map['initialCollegeAdminLastName'] as String? ?? '').trim(),
+      initialCollegeAdminPhone: (map['initialCollegeAdminPhone'] as String? ?? '').trim(),
+      initialCollegeAdminEmail: (map['initialCollegeAdminEmail'] as String? ?? '').trim(),
       provisioningAuthorization: ProvisioningAuthorizationStatus.fromRegistry(
         raw: map['provisioningAuthorization'],
         tenantStatus: status,
@@ -199,6 +221,11 @@ class TenantRecord {
     bool? initialAdminConfigured,
     bool? hackzOrgAdminConfigured,
     String? hackzOrgAdminId,
+    String? initialCollegeAdminUserId,
+    String? initialCollegeAdminFirstName,
+    String? initialCollegeAdminLastName,
+    String? initialCollegeAdminPhone,
+    String? initialCollegeAdminEmail,
     ProvisioningAuthorizationStatus? provisioningAuthorization,
     DateTime? provisioningAuthorizationValidatedAt,
     bool clearProvisioningAuthorizationValidatedAt = false,
@@ -216,6 +243,11 @@ class TenantRecord {
       initialAdminConfigured: initialAdminConfigured ?? this.initialAdminConfigured,
       hackzOrgAdminConfigured: hackzOrgAdminConfigured ?? this.hackzOrgAdminConfigured,
       hackzOrgAdminId: hackzOrgAdminId ?? this.hackzOrgAdminId,
+      initialCollegeAdminUserId: initialCollegeAdminUserId ?? this.initialCollegeAdminUserId,
+      initialCollegeAdminFirstName: initialCollegeAdminFirstName ?? this.initialCollegeAdminFirstName,
+      initialCollegeAdminLastName: initialCollegeAdminLastName ?? this.initialCollegeAdminLastName,
+      initialCollegeAdminPhone: initialCollegeAdminPhone ?? this.initialCollegeAdminPhone,
+      initialCollegeAdminEmail: initialCollegeAdminEmail ?? this.initialCollegeAdminEmail,
       provisioningAuthorization: provisioningAuthorization ?? this.provisioningAuthorization,
       provisioningAuthorizationValidatedAt: clearProvisioningAuthorizationValidatedAt
           ? null

@@ -163,7 +163,13 @@ export async function provisionTenantAdmin(
       throw new ProvisionError('WRITE_FAILED', 'Unable to create the College Admin profile.');
     }
 
-    await markInitialAdminConfigured(tenant.tenantId);
+    await markInitialAdminConfigured(tenant.tenantId, {
+      userId: uid,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      phone: input.phone,
+      email: input.email,
+    });
 
     return {
       ok: true,

@@ -8,6 +8,7 @@ import '../../../../core/firebase/tenant_record.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../organization/models/enums/organization_commercial_plan.dart';
 import '../../../organization/models/organization_model.dart';
+import '../../../user/models/user_model.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../models/org_operational_data.dart';
@@ -46,10 +47,15 @@ abstract final class OrganisationOnboardingService {
       tenantByOrgId[orgId] = tenant;
     }
 
-    final Map<String, String> tenantIdByOrgId = <String, String>{
-      for (final MapEntry<String, TenantRecord> entry in tenantByOrgId.entries)
-        if (entry.value.firebaseProjectId.trim().isNotEmpty) entry.key: entry.value.tenantId,
-    };
+    final Map<String, String> tenantIdByOrgId = <String, String>{};
+    for (final OrganizationModel org in orgs) {
+      TenantRecord? tenant = tenantByOrgId[org.id];
+      tenant ??= _uniqueTenantByName(tenants, org.name);
+      final String tenantId = (tenant?.tenantId ?? '').trim();
+      if (tenantId.isNotEmpty) {
+        tenantIdByOrgId[org.id] = tenantId;
+      }
+    }
 
     final Map<String, OrgOperationalData> operational =
         await OrgManagementService.loadOperationalData(orgs, tenantIdByOrgId: tenantIdByOrgId);
@@ -60,11 +66,16 @@ abstract final class OrganisationOnboardingService {
       TenantRecord? tenant = tenantByOrgId[org.id];
       tenant ??= _uniqueTenantByName(tenants, org.name);
       final OrgOperationalData data = operational[org.id] ?? const OrgOperationalData();
+      final UserModel? collegeAdmin = OrgManagementService.collegeAdminForDisplay(
+        organization: org,
+        tenant: tenant,
+        loadedFromTenant: data.collegeAdmin,
+      );
       items.add(
         OrganisationOnboardingItem(
           organization: org,
           tenant: tenant,
-          collegeAdmin: data.collegeAdmin,
+          collegeAdmin: collegeAdmin,
         ),
       );
     }
@@ -218,7 +229,7 @@ abstract final class OrganisationOnboardingService {
       );
     }
     try {
-      return await HackzProvisioningClient.provisionTenantAdmin(
+      final HackzProvisioningResult result = await HackzProvisioningClient.provisionTenantAdmin(
         tenantProjectId: tenant.firebaseProjectId,
         organisationId: tenant.organisationId,
         firstName: firstName,
@@ -226,6 +237,15 @@ abstract final class OrganisationOnboardingService {
         email: email,
         phone: phone,
       );
+      await TenantRegistry.setInitialCollegeAdminSnapshot(
+        tenantId: tenant.tenantId,
+        userId: result.userId,
+        firstName: firstName,
+        lastName: lastName,
+        phone: result.phone,
+        email: result.email,
+      );
+      return result;
     } on HackzProvisioningException catch (e) {
       throw OrganisationOnboardingException(e.message);
     }

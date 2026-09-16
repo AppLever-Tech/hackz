@@ -106,6 +106,37 @@ abstract final class TenantRegistry {
     });
   }
 
+  /// Control Plane snapshot for SysAdmin organisation consoles (display only).
+  static Future<TenantRecord> setInitialCollegeAdminSnapshot({
+    required String tenantId,
+    required String userId,
+    required String firstName,
+    required String lastName,
+    required String phone,
+    required String email,
+  }) async {
+    final String id = tenantId.trim();
+    return _patch(
+      id,
+      <String, dynamic>{
+        'initialAdminConfigured': true,
+        'initialCollegeAdminUserId': userId.trim(),
+        'initialCollegeAdminFirstName': firstName.trim(),
+        'initialCollegeAdminLastName': lastName.trim(),
+        'initialCollegeAdminPhone': phone.trim(),
+        'initialCollegeAdminEmail': email.trim(),
+      },
+      (TenantRecord r) => r.copyWith(
+        initialAdminConfigured: true,
+        initialCollegeAdminUserId: userId.trim(),
+        initialCollegeAdminFirstName: firstName.trim(),
+        initialCollegeAdminLastName: lastName.trim(),
+        initialCollegeAdminPhone: phone.trim(),
+        initialCollegeAdminEmail: email.trim(),
+      ),
+    );
+  }
+
   static Future<TenantRecord> setHackzOrgAdminForTenant({
     required String tenantId,
     required String hackzOrgAdminId,

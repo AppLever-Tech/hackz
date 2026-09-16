@@ -145,16 +145,27 @@ export async function markHackzOrgAdminConfigured(
     );
 }
 
-export async function markInitialAdminConfigured(tenantId: string): Promise<void> {
-  await controlPlaneFirestore()
-    .collection(HKZ_TENANTS)
-    .doc(tenantId)
-    .set(
-      {
-        initialAdminConfigured: true,
-      },
-      { merge: true },
-    );
+export async function markInitialAdminConfigured(
+  tenantId: string,
+  snapshot?: {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  },
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    initialAdminConfigured: true,
+  };
+  if (snapshot != null) {
+    payload.initialCollegeAdminUserId = snapshot.userId.trim();
+    payload.initialCollegeAdminFirstName = snapshot.firstName.trim();
+    payload.initialCollegeAdminLastName = snapshot.lastName.trim();
+    payload.initialCollegeAdminPhone = snapshot.phone.trim();
+    payload.initialCollegeAdminEmail = snapshot.email.trim();
+  }
+  await controlPlaneFirestore().collection(HKZ_TENANTS).doc(tenantId).set(payload, { merge: true });
 }
 
 export async function markProvisioningAuthorization(
