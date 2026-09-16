@@ -176,6 +176,12 @@ abstract final class HkzOrgAdminService {
     if (current == null) {
       throw const HkzOrgAdminException('That Hackz org admin no longer exists.');
     }
+
+    await _unassignOrganisationFromOtherAdmins(
+      organisationId: orgId,
+      exceptOrgAdminId: current.id,
+    );
+
     if (current.isAssignedToOrganisation(orgId)) {
       if (syncTenant && current.isActive) {
         await _provisionInTenantIfReady(organisationId: orgId, hackzOrgAdminId: current.id);
@@ -227,6 +233,38 @@ abstract final class HkzOrgAdminService {
       await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: updated.id);
     }
     return updated;
+  }
+
+  /// One active Hackz org admin per organisation on the Control Plane.
+  static Future<void> _unassignOrganisationFromOtherAdmins({
+    required String organisationId,
+    required String exceptOrgAdminId,
+  }) async {
+    final String orgId = organisationId.trim();
+    final String keepId = exceptOrgAdminId.trim();
+    if (orgId.isEmpty || keepId.isEmpty) return;
+
+    final List<HkzOrgAdmin> assigned = await _listAdminsAssignedToOrganisation(orgId);
+    final DateTime now = DateTime.now().toUtc();
+    for (final HkzOrgAdmin admin in assigned) {
+      if (admin.id == keepId || !admin.isAssignedToOrganisation(orgId)) continue;
+      final List<String> next = HkzOrgAdmin.removeOrganisationAssignment(admin.assignedOrganisationIds, orgId);
+      await _col.doc(admin.id).update(<String, dynamic>{
+        'assignedOrganisationIds': next,
+        'updatedAt': Timestamp.fromDate(now),
+      });
+      await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: admin.id);
+    }
+  }
+
+  static Future<List<HkzOrgAdmin>> _listAdminsAssignedToOrganisation(String organisationId) async {
+    final String orgId = organisationId.trim();
+    if (orgId.isEmpty) return const <HkzOrgAdmin>[];
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _col.where('assignedOrganisationIds', arrayContains: orgId).get();
+    return snap.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> doc) => HkzOrgAdmin.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
   }
 
   static Future<void> _assertCanRemoveLastActiveAssignment({

@@ -281,7 +281,6 @@ abstract final class OrganisationOnboardingService {
       await HkzOrgAdminService.assignOrganisation(
         orgAdminId: adminId,
         organisationId: orgId,
-        syncTenant: false,
       );
       await HackzProvisioningClient.provisionTenantOrgAdmin(
         tenantProjectId: tenant.firebaseProjectId,
