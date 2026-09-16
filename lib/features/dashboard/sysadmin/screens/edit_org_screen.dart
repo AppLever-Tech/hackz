@@ -5,7 +5,7 @@ import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../core/ui/feedback/feedback.dart';
-import '../../../../features/sysadmin/org_admin/services/hkz_org_admin_service.dart';
+import '../../../../features/sysadmin/onboarding/actions/organisation_onboarding_actions.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
 
@@ -114,26 +114,16 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
   }
 
   Future<void> _deleteOrganization() async {
-    final bool ok = await FeedbackService.showConfirmation(
-      context,
-      title: 'Delete organization?',
-      message: 'This will remove "${widget.organization.name}".',
-      confirmLabel: 'Delete',
-      dangerConfirm: true,
-    );
-    if (!ok) return;
-
     setState(() => _isDeleting = true);
     try {
-      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(widget.organization.id);
-      await TenantRegistry.onOrganisationDeleted(
+      final bool deleted = await OrganisationOnboardingActions.deleteOrganisationRecord(
+        context,
         organisationId: widget.organization.id,
         organisationName: widget.organization.name,
+        onChanged: () => widget.onOrganizationsChanged?.call(),
       );
-      await FirestoreUtils.deleteOrganization(widget.organization.id);
-      if (!mounted) return;
+      if (!deleted || !mounted) return;
       if (widget.embedded) {
-        widget.onOrganizationsChanged?.call();
         widget.onBack?.call();
       } else {
         Navigator.of(context).pop(true);

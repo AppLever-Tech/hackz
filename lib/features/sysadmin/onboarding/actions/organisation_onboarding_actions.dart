@@ -102,37 +102,63 @@ abstract final class OrganisationOnboardingActions {
     BuildContext context,
     OrganisationOnboardingItem item, {
     required VoidCallback onChanged,
+  }) {
+    return deleteOrganisationRecord(
+      context,
+      organisationId: item.organization.id,
+      organisationName: item.name,
+      onChanged: onChanged,
+    );
+  }
+
+  /// Deletes a Control Plane organisation after confirmation, with standard Hackz progress UI.
+  static Future<bool> deleteOrganisationRecord(
+    BuildContext context, {
+    required String organisationId,
+    required String organisationName,
+    required VoidCallback onChanged,
   }) async {
+    final String name = organisationName.trim();
+    final String orgId = organisationId.trim();
+    if (orgId.isEmpty) return false;
+
     final bool ok = await FeedbackService.showConfirmation(
       context,
       title: 'Delete organization?',
-      message: 'This will permanently remove "${item.name}".',
+      message: 'This will permanently remove "${name.isEmpty ? 'this organisation' : name}".',
       confirmLabel: 'Delete',
       dangerConfirm: true,
     );
-    if (!ok) return false;
+    if (!ok || !context.mounted) return false;
+
     try {
-      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(item.organization.id);
-      await TenantRegistry.onOrganisationDeleted(
-        organisationId: item.organization.id,
-        organisationName: item.name,
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Deleting organisation',
+        message: 'Removing Hackz org admin assignments…',
+        successMessage: name.isEmpty ? 'Organisation was removed.' : '$name was removed.',
+        successHold: const Duration(milliseconds: 900),
+        task: () async {
+          HkzAsyncLoader.update(message: 'Removing Hackz org admin assignments…', progress: 0.2);
+          await HkzOrgAdminService.purgeOrganisationFromAllAdmins(orgId);
+          HkzAsyncLoader.update(message: 'Updating tenant registry…', progress: 0.5);
+          await TenantRegistry.onOrganisationDeleted(
+            organisationId: orgId,
+            organisationName: name,
+          );
+          HkzAsyncLoader.update(message: 'Removing organisation record…', progress: 0.8);
+          await FirestoreUtils.deleteOrganization(
+            orgId,
+            database: HackzFirebase.controlPlane.firestore,
+          );
+          HkzAsyncLoader.update(message: 'Finishing up…', progress: 1);
+        },
       );
-      await FirestoreUtils.deleteOrganization(
-        item.organization.id,
-        database: HackzFirebase.controlPlane.firestore,
-      );
-      if (context.mounted) {
-        FeedbackService.showSuccess(
-          context,
-          title: 'Deleted',
-          message: '${item.name} was removed',
-        );
-        onChanged();
-      }
+      onChanged();
       return true;
     } catch (e) {
       if (context.mounted) {
-        FeedbackService.showError(context, title: 'Delete failed', message: '$e');
+        await FeedbackService.showError(context, title: 'Delete failed', message: '$e');
       }
       return false;
     }

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../core/firebase/tenant_registry.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../organization/models/enums/organization_type.dart';
 import '../../organization/models/organization_model.dart';
@@ -17,7 +16,7 @@ import '../../../core/ui/common/external_url_icon.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
-import '../org_admin/services/hkz_org_admin_service.dart';
+import '../onboarding/actions/organisation_onboarding_actions.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../models/org_operational_data.dart';
@@ -83,38 +82,12 @@ class OrganizationManagementCard extends StatelessWidget {
   }
 
   Future<void> _deleteOrganization(BuildContext context) async {
-    final ok = await FeedbackService.showConfirmation(
+    await OrganisationOnboardingActions.deleteOrganisationRecord(
       context,
-      title: 'Delete organization?',
-      message: 'This will permanently remove "${organization.name}".',
-      confirmLabel: 'Delete',
-      dangerConfirm: true,
+      organisationId: organization.id,
+      organisationName: organization.name,
+      onChanged: onChanged,
     );
-    if (!ok) return;
-    try {
-      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(organization.id);
-      await TenantRegistry.onOrganisationDeleted(
-        organisationId: organization.id,
-        organisationName: organization.name,
-      );
-      await FirestoreUtils.deleteOrganization(organization.id);
-      if (context.mounted) {
-        FeedbackService.showSuccess(
-          context,
-          title: 'Deleted',
-          message: '${organization.name} was removed',
-        );
-        onChanged();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        FeedbackService.showError(
-          context,
-          title: 'Delete failed',
-          message: e.toString(),
-        );
-      }
-    }
   }
 
   Future<void> _editOrganization(BuildContext context) async {
