@@ -18,6 +18,7 @@ import '../../../organization/models/organization_model.dart';
 import '../../../organization/services/organisation_access.dart';
 import '../../../organization/widgets/organization_thumbnail.dart';
 import '../../../user/models/user_model.dart';
+import '../../org_admin/services/hkz_org_admin_service.dart';
 import '../models/organisation_onboarding_item.dart';
 import '../screens/add_organisation_wizard.dart';
 import '../services/organisation_onboarding_service.dart';
@@ -132,6 +133,7 @@ class _OrganisationOnboardingCardState extends State<OrganisationOnboardingCard>
     );
     if (!ok) return;
     try {
+      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(item.organization.id);
       await FirestoreUtils.deleteOrganization(
         item.organization.id,
         database: HackzFirebase.controlPlane.firestore,

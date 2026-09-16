@@ -17,6 +17,7 @@ import '../../../core/ui/common/external_url_icon.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
+import '../org_admin/services/hkz_org_admin_service.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../models/org_operational_data.dart';
@@ -91,6 +92,7 @@ class OrganizationManagementCard extends StatelessWidget {
     );
     if (!ok) return;
     try {
+      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(organization.id);
       await FirestoreUtils.deleteOrganization(organization.id);
       await TenantRegistry.inactivateByOrganisationName(organization.name);
       if (context.mounted) {

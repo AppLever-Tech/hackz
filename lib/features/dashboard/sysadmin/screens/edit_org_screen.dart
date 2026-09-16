@@ -5,6 +5,7 @@ import '../../../../features/organization/models/organization_model.dart';
 import '../../../../features/organization/models/enums/organization_type.dart';
 import '../../../../features/user/models/user_model.dart';
 import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../features/sysadmin/org_admin/services/hkz_org_admin_service.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
 
@@ -124,6 +125,7 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
 
     setState(() => _isDeleting = true);
     try {
+      await HkzOrgAdminService.purgeOrganisationFromAllAdmins(widget.organization.id);
       await FirestoreUtils.deleteOrganization(widget.organization.id);
       await TenantRegistry.inactivateByOrganisationId(widget.organization.id);
       await TenantRegistry.inactivateByOrganisationName(widget.organization.name);

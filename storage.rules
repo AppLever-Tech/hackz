@@ -28,28 +28,3 @@ service firebase.storage {
     }
   }
 }
-  match /b/{bucket}/o {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    match /payments/{id}/{fileName} {
-      allow read, write: if signedIn();
-    }
-    match /ideas/{id}/{fileName} {
-      allow read, write: if signedIn();
-    }
-    match /problems/{id}/{fileName} {
-      allow read, write: if signedIn();
-    }
-    match /orgs/{orgId}/{allPaths=**} {
-      allow read, write: if signedIn();
-    }
-    match /users/{orgId}/{allPaths=**} {
-      allow read, write: if signedIn();
-    }
-    match /feedback/{id}/{fileName} {
-      allow read, write: if signedIn();
-    }
-  }
-}

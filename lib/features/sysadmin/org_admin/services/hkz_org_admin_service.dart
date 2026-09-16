@@ -266,6 +266,48 @@ abstract final class HkzOrgAdminService {
     }
   }
 
+  /// Removes [organisationId] from every Hackz org admin after the organisation
+  /// document is deleted (skips last-admin guard — org no longer exists).
+  static Future<void> purgeOrganisationFromAllAdmins(String organisationId) async {
+    final String orgId = organisationId.trim();
+    if (orgId.isEmpty) return;
+
+    final QuerySnapshot<Map<String, dynamic>> snap =
+        await _col.where('assignedOrganisationIds', arrayContains: orgId).get();
+    final DateTime now = DateTime.now().toUtc();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final HkzOrgAdmin admin = HkzOrgAdmin.fromMap(doc.id, doc.data());
+      if (!admin.isAssignedToOrganisation(orgId)) continue;
+      final List<String> next = HkzOrgAdmin.removeOrganisationAssignment(admin.assignedOrganisationIds, orgId);
+      await _col.doc(admin.id).update(<String, dynamic>{
+        'assignedOrganisationIds': next,
+        'updatedAt': Timestamp.fromDate(now),
+      });
+      await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: admin.id);
+    }
+  }
+
+  static Future<void> delete({required String orgAdminId}) async {
+    final HkzOrgAdmin? current = await fetchById(orgAdminId);
+    if (current == null) {
+      throw const HkzOrgAdminException('That Hackz org admin no longer exists.');
+    }
+
+    if (current.isActive) {
+      for (final String orgId in current.assignedOrganisationIds) {
+        await _assertCanRemoveLastActiveAssignment(
+          organisationId: orgId,
+          orgAdminId: current.id,
+        );
+      }
+    }
+
+    for (final String orgId in current.assignedOrganisationIds) {
+      await _revokeInTenantIfReady(organisationId: orgId, hackzOrgAdminId: current.id);
+    }
+    await _col.doc(current.id).delete();
+  }
+
   static Future<void> _revokeInTenantIfReady({
     required String organisationId,
     required String hackzOrgAdminId,
