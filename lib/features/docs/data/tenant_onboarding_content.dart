@@ -88,8 +88,10 @@ abstract final class TenantOnboardingSections {
   static const String step13 = 'step-13-org-provisioning';
   static const String step14 = 'step-14-prepare-tenant';
   static const String step15 = 'step-15-verify-login';
+  static const String verifyTenantSetup = 'verify-tenant-setup';
   static const String readiness = 'final-readiness-checklist';
   static const String manualAudit = 'new-tenant-configuration-audit';
+  static const String previousFixes = 'previous-tenant-setup-fixes';
   static const String troubleshooting = 'troubleshooting';
   static const String warnings = 'important-warnings';
   static const String references = 'official-references';
@@ -115,8 +117,13 @@ abstract final class TenantOnboardingSections {
     DocSectionSpec(id: step13, title: 'Step 13 — Organisation & Admin Provisioning'),
     DocSectionSpec(id: step14, title: 'Step 14 — Prepare Your Tenant'),
     DocSectionSpec(id: step15, title: 'Step 15 — Verify Real Login'),
+    DocSectionSpec(
+      id: verifyTenantSetup,
+      title: 'Verify Tenant Setup (Checklist Step 15)',
+    ),
     DocSectionSpec(id: readiness, title: 'Final Readiness Checklist'),
     DocSectionSpec(id: manualAudit, title: 'New Tenant Final Configuration Audit'),
+    DocSectionSpec(id: previousFixes, title: 'Previous Tenant Setup Fixes'),
     DocSectionSpec(id: troubleshooting, title: 'Troubleshooting'),
     DocSectionSpec(id: warnings, title: 'Important Warnings'),
     DocSectionSpec(id: references, title: 'Official Firebase References'),
@@ -287,6 +294,60 @@ class TenantOnboardingDocBody extends StatelessWidget {
               '${r.title} (${r.role}) — ${r.reason}',
         )
         .toList(growable: false);
+  }
+
+  List<({String title, String body})> _previousSetupFixItems() {
+    final String domains = _hackzAuthorizedDomainExamples.join(', ');
+    return <({String title, String body})>[
+      (
+        title: 'Real OTP never arrives',
+        body: 'Problem → SMS not received after Request OTP.\n'
+            'Cause → Phone disabled, Blaze missing, SMS region blocked, wrong tenant Auth, or domain/API key restrictions.\n'
+            'Where → Tenant Firebase: Authentication (Phone, SMS region, Authorized domains); Billing (Blaze).\n'
+            'Fix → Enable Phone, upgrade Blaze, allow user country in SMS region policy, add Hackz hosts ($domains) and HTTP referrers on tenant web API key.\n'
+            'Verify → Real mobile receives SMS; browser console shows no auth/unauthorized-domain errors.',
+      ),
+      (
+        title: 'Hostname match / unauthorized-domain on web',
+        body: 'Problem → Phone sign-in fails with hostname or referer errors.\n'
+            'Cause → Tenant project does not authorize the Hackz origin or API key blocks referrers.\n'
+            'Where → Tenant Firebase Authentication → Authorized domains; Google Cloud → Credentials → tenant web API key → HTTP referrers.\n'
+            'Fix → Add production Hackz domains and https://HOST/* referrers; add localhost only for dev.\n'
+            'Verify → Request OTP from the same URL users will use in production.',
+      ),
+      (
+        title: 'Storage upload permission-denied',
+        body: 'Problem → Attachments fail after login.\n'
+            'Cause → Default deny-all Storage rules on new tenant buckets.\n'
+            'Where → Tenant Firebase → Storage → Rules.\n'
+            'Fix → Publish Hackz tenant Storage rules from this Help page (signed-in paths only).\n'
+            'Verify → Upload a file in Hackz as an authenticated tenant user.',
+      ),
+      (
+        title: 'OTP billed to wrong Firebase project',
+        body: 'Problem → SMS usage appears on Control Plane instead of college project.\n'
+            'Cause → OTP sent before tenant resolution / wrong FirebaseAuth instance.\n'
+            'Where → Hackz login flow (organisation code first); Register Tenant catalog projectId.\n'
+            'Fix → Ensure organisation code resolves tenant firebaseConfig before sendOtp; confirm tenant projectId in SysAdmin tenant record.\n'
+            'Verify → Firebase Authentication usage/SMS metrics on the college project increase when testing OTP.',
+      ),
+      (
+        title: 'College Admin / orgAdmin provisioning fails',
+        body: 'Problem → Provision step errors or Validate Again fails.\n'
+            'Cause → Missing IAM for Hackz provisioning service account or unreachable Auth/Firestore on tenant project.\n'
+            'Where → Google Cloud IAM on tenant project; Hackz Organisation onboarding authorization panel.\n'
+            'Fix → Grant roles/firebaseauth.admin and roles/datastore.user to the Hackz provisioning SA; re-run Validate Again.\n'
+            'Verify → Provisioning Authorization shows verified; College Admin and orgAdmin provision succeed.',
+      ),
+      (
+        title: 'Tenant registered but wrong Firebase at login',
+        body: 'Problem → Data or Auth from unexpected project.\n'
+            'Cause → Mismatch between organisation code mapping and registered firebaseConfig.\n'
+            'Where → Control Plane hkzTenants / approved tenant catalog; Register Tenant fields.\n'
+            'Fix → Correct projectId, apiKey, app IDs, storageBucket, authDomain; do not hand-edit identifiers away from console values.\n'
+            'Verify → Login smoke test loads tenant dashboard and tenant Firestore data.',
+      ),
+    ];
   }
 
   List<({String title, String body})> _troubleshootingItems() {
@@ -550,6 +611,11 @@ flowchart TD
               ),
               const SizedBox(height: 12),
               _link(context, 'Firebase pricing', 'https://firebase.google.com/pricing'),
+              _link(
+                context,
+                'Firebase billing plans',
+                'https://firebase.google.com/docs/projects/billing/firebase-pricing-plans',
+              ),
             ],
           ),
         ),
@@ -837,7 +903,9 @@ flowchart TD
                 'Principal: Hackz provisioning service account (Control Plane hkzProvisioningConfig document, '
                     'or default $provisioningSaDefault).',
                 'Assign only the minimum roles Hackz requires (see below) → Save.',
-                'In Hackz SysAdmin, validate provisioning authorization from the organisation onboarding flow.',
+                'In Hackz SysAdmin → Organisations → Setup & Provisioning, run Validate Again on '
+                    'Provisioning Authorization (checks tenant project reachability, Auth, Firestore, and '
+                    'documents the Hackz provisioning service account email for IAM).',
               ]),
               const SizedBox(height: 12),
               _bodyText(context, 'Minimum IAM roles (from HackzProvisioningIdentity):'),
@@ -868,6 +936,13 @@ flowchart TD
                 'Paste firebaseConfig or fill API key, app IDs, sender ID, storage bucket, auth domain.',
                 'Save — project is added to the approved tenant catalog on the Control Plane.',
               ]),
+              const SizedBox(height: 12),
+              _bodyText(
+                context,
+                'When creating an Organisation, Hackz runs live workspace checks (connection, tenant Auth, '
+                'Firestore reachability, SysAdmin Control Plane access) via the organisation onboarding '
+                'validator — resolve any failed checks before provisioning admins.',
+              ),
               const SizedBox(height: 12),
               DocumentationInfoCard(
                 tone: DocInfoTone.note,
@@ -957,14 +1032,16 @@ flowchart TD
               _bodyText(context, 'Smoke test with a real mobile number registered for the organisation:'),
               const SizedBox(height: 12),
               _numberedSteps(context, <String>[
-                'Open Hackz at your production or staging URL.',
+                'Open Hackz.',
                 'Enter Organisation Code.',
                 'Enter registered mobile number.',
-                'Request OTP — confirm SMS arrives.',
-                'Enter OTP and confirm tenant dashboard loads.',
-                'Verify expected tenant role (hkzUsers).',
-                'Confirm Firestore tenant data loads.',
-                'Test Storage upload where your workflow uses attachments.',
+                'Request OTP.',
+                'Verify real SMS arrives.',
+                'Enter OTP.',
+                'Confirm tenant dashboard loads.',
+                'Verify expected tenant role.',
+                'Verify Firestore tenant data loads.',
+                'Verify Storage functionality where applicable (upload after rules are published).',
               ]),
               const SizedBox(height: 12),
               _bodyText(
@@ -972,6 +1049,30 @@ flowchart TD
                 'Success proves: Organisation Code → tenant resolution → tenant Firebase init → tenant Auth → '
                 'OTP → hkzUsers role → dashboard.',
               ),
+            ],
+          ),
+        ),
+        _section(
+          id: TenantOnboardingSections.verifyTenantSetup,
+          title: 'Verify Tenant Setup (Checklist Step 15)',
+          subtitle:
+              'After a successful real OTP login, confirm organisation readiness — distinct from the login smoke test in Step 15.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _bodyText(
+                context,
+                'Use orgAdmin (or Hackz SysAdmin) to confirm the tenant is operationally ready:',
+              ),
+              const SizedBox(height: 12),
+              _numberedSteps(context, <String>[
+                'Departments exist for all expected academic units.',
+                'Problems are imported or authored and activated as needed.',
+                'Teams are imported with departments resolved.',
+                'Event is created and configured (type, evaluation phases, commercial access if applicable).',
+                'Tenant setup / readiness indicators in Hackz show expected progress.',
+                'Optional: Team Leader test login can reach innovation submission when event rules allow.',
+              ]),
             ],
           ),
         ),
@@ -1028,6 +1129,13 @@ flowchart TD
           ),
         ),
         _section(
+          id: TenantOnboardingSections.previousFixes,
+          title: 'Previous Tenant Setup Fixes',
+          subtitle:
+              'Repeatable manual fixes required by the current Hackz multi-tenant implementation (Problem → Cause → Where → Fix → Verify).',
+          child: DocumentationAccordion(items: _previousSetupFixItems()),
+        ),
+        _section(
           id: TenantOnboardingSections.troubleshooting,
           title: 'Troubleshooting',
           subtitle: 'Expand a topic for checks and fixes.',
@@ -1060,7 +1168,21 @@ flowchart TD
               DocumentationInfoCard(
                 tone: DocInfoTone.important,
                 title: 'Never expose service-account keys',
-                body: 'Do not share Firebase Admin private keys. firebaseConfig is client SDK metadata only.',
+                body: 'Do not share Firebase Admin private keys in email, tickets, or the Register Tenant UI.',
+              ),
+              const SizedBox(height: 10),
+              DocumentationInfoCard(
+                tone: DocInfoTone.important,
+                title: 'firebaseConfig ≠ service-account key',
+                body: 'The Web firebaseConfig object (apiKey, projectId, appId, etc.) is client SDK metadata. '
+                    'It is not equivalent to a Firebase Admin service-account private key JSON file.',
+              ),
+              const SizedBox(height: 10),
+              DocumentationInfoCard(
+                tone: DocInfoTone.important,
+                title: 'Do not edit Firebase identifiers',
+                body: 'Copy projectId, authDomain, and storageBucket exactly from Firebase Console — '
+                    'do not manually change them when registering a tenant.',
               ),
               const SizedBox(height: 10),
               DocumentationInfoCard(
