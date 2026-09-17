@@ -8,6 +8,7 @@ import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../data/smart_india_hackathon_content.dart';
+import '../data/tenant_onboarding_content.dart';
 import '../models/doc_models.dart';
 import '../screens/pages/placeholder_doc_page.dart';
 import 'docs_asset_paths.dart';
@@ -189,6 +190,20 @@ abstract final class DocsRegistry {
       ),
     ),
     DocPageDefinition(
+      id: 'tenant-onboarding',
+      title: 'Tenant Onboarding',
+      description:
+          'Complete Firebase setup guide for registering a new organisation as an isolated Hackz tenant — from Blaze and Storage rules through provisioning and real OTP login.',
+      icon: AppIcons.verification,
+      lastUpdated: DateTime(2026, 9, 17),
+      readingMinutes: 35,
+      heroImageAsset: DocsAssetPaths.tenantOnboardingPhase1,
+      searchKeywords: TenantOnboardingSections.searchCorpus,
+      category: DocCategory.administration,
+      adminOnly: true,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
       id: 'org-settings',
       title: 'Organization Settings',
       description: 'Org configuration and evaluation settings.',
@@ -233,6 +248,7 @@ abstract final class DocsRegistry {
   static List<String> recommendedIdsFor(UserRole role) {
     return switch (role) {
       UserRole.sysAdmin => const <String>[
+          'tenant-onboarding',
           'platform-overview',
           'org-settings',
           'user-management',
@@ -346,6 +362,7 @@ abstract final class DocsRegistry {
     if (id == 'problem-lifecycle') return ProblemLifecycleSections.all;
     if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
     if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;
+    if (id == 'tenant-onboarding') return TenantOnboardingSections.all;
     return const <DocSectionSpec>[
       DocSectionSpec(id: 'overview', title: 'Overview'),
     ];
@@ -374,6 +391,8 @@ abstract final class DocsRegistry {
       'domains' || 'domain management' => 'domain-management',
       'manage college' || 'manage department' || 'user management' || 'organizations' || 'organisations' || 'people & teams' =>
         'user-management',
+      'tenants' || 'register tenant' || 'tenant onboarding' || 'workspace' =>
+        'tenant-onboarding',
       'payments' || 'payment verification' => 'payment-verification',
       'roles' || 'roles & responsibilities' => 'roles-responsibilities',
       'innovation to startup' || 'startup program' => 'innovation-to-startup',

@@ -13,6 +13,7 @@ import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../data/smart_india_hackathon_content.dart';
+import '../data/tenant_onboarding_content.dart';
 import '../models/doc_models.dart';
 import '../services/docs_print.dart';
 import '../services/docs_search_service.dart';
@@ -120,6 +121,7 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
         'problem-lifecycle': ProblemLifecycleSections.searchCorpus,
         'idea-lifecycle': IdeaLifecycleSections.searchCorpus,
         'roles-responsibilities': RolesResponsibilitiesSections.searchCorpus,
+        'tenant-onboarding': TenantOnboardingSections.searchCorpus,
       },
     );
     setState(() {
@@ -182,6 +184,12 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
     }
     if (_pageId == 'roles-responsibilities') {
       return RolesResponsibilitiesDocBody(
+        sectionKeys: _sectionKeys,
+        onPrint: _enterPrintMode,
+      );
+    }
+    if (_pageId == 'tenant-onboarding') {
+      return TenantOnboardingDocBody(
         sectionKeys: _sectionKeys,
         onPrint: _enterPrintMode,
       );

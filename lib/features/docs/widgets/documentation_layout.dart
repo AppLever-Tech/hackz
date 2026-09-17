@@ -87,7 +87,7 @@ class DocumentationLayout extends StatelessWidget {
             const VerticalDivider(width: 1),
             SizedBox(
               width: 220,
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
                 child: DocumentationTOC(
                   sections: sections,

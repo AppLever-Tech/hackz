@@ -17,4 +17,10 @@ abstract final class DocsAssetPaths {
 
   static const String smartIndiaHackathonWorkflow =
       'assets/docs/images/smart_india_hackathon_workflow.png';
+
+  static const String tenantOnboardingPhase1 =
+      'assets/docs/images/tenant_onboarding_phase_1.png';
+
+  static const String tenantOnboardingPhase2 =
+      'assets/docs/images/tenant_onboarding_phase_2.png';
 }
