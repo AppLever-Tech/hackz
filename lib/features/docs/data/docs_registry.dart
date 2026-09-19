@@ -8,6 +8,7 @@ import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../data/smart_india_hackathon_content.dart';
+import '../data/ai_analysis_setup_content.dart';
 import '../data/tenant_onboarding_content.dart';
 import '../models/doc_models.dart';
 import '../screens/pages/placeholder_doc_page.dart';
@@ -190,6 +191,19 @@ abstract final class DocsRegistry {
       ),
     ),
     DocPageDefinition(
+      id: 'ai-analysis',
+      title: 'AI Analysis',
+      description:
+          'Configure your organisation\'s originality provider, run idea analysis, and use capability-driven results in Idea Details and Judge Evaluation.',
+      icon: Icons.psychology_outlined,
+      lastUpdated: DateTime(2026, 9, 19),
+      readingMinutes: 12,
+      heroImageAsset: DocsAssetPaths.aiAnalysisWorkflow,
+      searchKeywords: AiAnalysisSetupSections.searchCorpus,
+      category: DocCategory.administration,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
       id: 'tenant-onboarding',
       title: 'Tenant Onboarding',
       description:
@@ -249,6 +263,7 @@ abstract final class DocsRegistry {
     return switch (role) {
       UserRole.sysAdmin => const <String>[
           'tenant-onboarding',
+          'ai-analysis',
           'platform-overview',
           'org-settings',
           'user-management',
@@ -257,6 +272,7 @@ abstract final class DocsRegistry {
         ],
       UserRole.collegeAdmin => const <String>[
           'platform-overview',
+          'ai-analysis',
           'org-settings',
           'problem-lifecycle',
           'csv-import',
@@ -273,6 +289,7 @@ abstract final class DocsRegistry {
           'platform-overview',
           'evaluation-lifecycle',
           'idea-lifecycle',
+          'ai-analysis',
           'roles-responsibilities',
         ],
       UserRole.coordinator => const <String>[
@@ -291,6 +308,7 @@ abstract final class DocsRegistry {
         ],
       UserRole.orgAdmin => const <String>[
           'platform-overview',
+          'ai-analysis',
           'roles-responsibilities',
         ],
     };
@@ -363,6 +381,7 @@ abstract final class DocsRegistry {
     if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
     if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;
     if (id == 'tenant-onboarding') return TenantOnboardingSections.all;
+    if (id == 'ai-analysis') return AiAnalysisSetupSections.all;
     return const <DocSectionSpec>[
       DocSectionSpec(id: 'overview', title: 'Overview'),
     ];
@@ -394,6 +413,7 @@ abstract final class DocsRegistry {
       'tenants' || 'register tenant' || 'tenant onboarding' || 'workspace' =>
         'tenant-onboarding',
       'payments' || 'payment verification' => 'payment-verification',
+      'ai analysis' || 'ai analysis providers' || 'originality analysis' => 'ai-analysis',
       'roles' || 'roles & responsibilities' => 'roles-responsibilities',
       'innovation to startup' || 'startup program' => 'innovation-to-startup',
       'smart india hackathon' || 'sih' => 'smart-india-hackathon',

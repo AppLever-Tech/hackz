@@ -244,6 +244,16 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                     'Dept Admin reads after login',
                   ],
                   <String>[
+                    'Configure AI Analysis provider',
+                    'College Admin only',
+                    'OrgAdmin read-only status; credentials never shown in app',
+                  ],
+                  <String>[
+                    'Run originality analysis on ideas',
+                    'College Admin, Dept Admin (scope)',
+                    'Explicit Run Analysis on submitted ideas; optional feature',
+                  ],
+                  <String>[
                     'View Problem Catalog',
                     'College Admin, Dept Admin, Team Member',
                     'Org-wide catalog (all departments)',
@@ -266,6 +276,7 @@ class RolesResponsibilitiesDocBody extends StatelessWidget {
                   'Activate imported problems',
                   'Deactivate / reactivate problems',
                   'Configure organization settings',
+                  'Configure optional AI Analysis provider (organisation licence)',
                   'View complete platform',
                   'Manage application metadata',
                 ]),

@@ -108,6 +108,7 @@ flutter:
     - assets/docs/images/smart_india_hackathon_workflow.png
     - assets/docs/images/tenant_onboarding_phase_1.png
     - assets/docs/images/tenant_onboarding_phase_2.png
+    - assets/docs/images/ai_analysis_workflow.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

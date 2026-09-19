@@ -95,6 +95,7 @@ abstract final class TenantOnboardingSections {
   static const String troubleshooting = 'troubleshooting';
   static const String warnings = 'important-warnings';
   static const String references = 'official-references';
+  static const String optionalAiAnalysis = 'optional-ai-analysis';
 
   static const List<DocSectionSpec> all = <DocSectionSpec>[
     DocSectionSpec(id: architecture, title: 'Multi-Tenant Architecture'),
@@ -126,6 +127,7 @@ abstract final class TenantOnboardingSections {
     DocSectionSpec(id: previousFixes, title: 'Previous Tenant Setup Fixes'),
     DocSectionSpec(id: troubleshooting, title: 'Troubleshooting'),
     DocSectionSpec(id: warnings, title: 'Important Warnings'),
+    DocSectionSpec(id: optionalAiAnalysis, title: 'Optional — Enable AI Analysis'),
     DocSectionSpec(id: references, title: 'Official Firebase References'),
   ];
 
@@ -145,10 +147,12 @@ class TenantOnboardingDocBody extends StatelessWidget {
     super.key,
     required this.sectionKeys,
     this.onPrint,
+    this.onOpenPage,
   });
 
   final Map<String, GlobalKey> sectionKeys;
   final VoidCallback? onPrint;
+  final ValueChanged<String>? onOpenPage;
 
   Widget _section({
     required String id,
@@ -1202,6 +1206,42 @@ flowchart TD
                 title: 'Declare completion only after real login',
                 body: 'Always test with a real tenant user OTP before declaring onboarding complete.',
               ),
+            ],
+          ),
+        ),
+        _section(
+          id: TenantOnboardingSections.optionalAiAnalysis,
+          title: 'Optional — Enable AI Analysis',
+          subtitle: 'Not required for tenant readiness or normal Hackz operation.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              DocumentationInfoCard(
+                tone: DocInfoTone.note,
+                title: 'Optional feature',
+                body:
+                    'AI Analysis is optional. Your tenant is ready for innovation workflows without it. '
+                    'When you need originality insights, the organisation must supply its own provider licence '
+                    '(for example Turnitin).',
+              ),
+              const SizedBox(height: 12),
+              _bullets(context, <String>[
+                'College Admin → AI Analysis.',
+                'Select provider → Configure organisation credentials → Test Connection.',
+                'Verify which capabilities appear (Similarity %, AI-Writing Indicator, Matching Sources, Full Report).',
+                'Only capabilities supported by your licence are shown in Hackz.',
+              ]),
+              if (onOpenPage != null) ...<Widget>[
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => onOpenPage!('ai-analysis'),
+                    icon: const Icon(Icons.menu_book_outlined, size: 18),
+                    label: const Text('View AI Analysis Setup Guide'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

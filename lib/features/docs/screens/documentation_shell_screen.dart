@@ -13,6 +13,7 @@ import '../data/platform_overview_content.dart';
 import '../data/problem_lifecycle_content.dart';
 import '../data/roles_responsibilities_content.dart';
 import '../data/smart_india_hackathon_content.dart';
+import '../data/ai_analysis_setup_content.dart';
 import '../data/tenant_onboarding_content.dart';
 import '../models/doc_models.dart';
 import '../services/docs_print.dart';
@@ -190,6 +191,13 @@ class _DocumentationShellScreenState extends State<DocumentationShellScreen> {
     }
     if (_pageId == 'tenant-onboarding') {
       return TenantOnboardingDocBody(
+        sectionKeys: _sectionKeys,
+        onPrint: _enterPrintMode,
+        onOpenPage: _selectPage,
+      );
+    }
+    if (_pageId == 'ai-analysis') {
+      return AiAnalysisSetupDocBody(
         sectionKeys: _sectionKeys,
         onPrint: _enterPrintMode,
       );

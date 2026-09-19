@@ -989,6 +989,7 @@ class PlatformOverviewDocBody extends StatelessWidget {
                 role: 'College Admin',
                 pageIds: const <String>[
                   'org-settings',
+                  'ai-analysis',
                   'problem-lifecycle',
                   'csv-import',
                 ],
@@ -998,6 +999,8 @@ class PlatformOverviewDocBody extends StatelessWidget {
                 context,
                 role: 'System Admin',
                 pageIds: const <String>[
+                  'tenant-onboarding',
+                  'ai-analysis',
                   'org-settings',
                   'user-management',
                   'domain-management',

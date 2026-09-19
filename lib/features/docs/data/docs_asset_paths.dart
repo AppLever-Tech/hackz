@@ -23,4 +23,7 @@ abstract final class DocsAssetPaths {
 
   static const String tenantOnboardingPhase2 =
       'assets/docs/images/tenant_onboarding_phase_2.png';
+
+  static const String aiAnalysisWorkflow =
+      'assets/docs/images/ai_analysis_workflow.png';
 }
