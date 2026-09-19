@@ -26,6 +26,7 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/core/ui/common/context_pill_theme.dart';
 import '../../events/widgets/event_meta_chip.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
+import '../../analysis/widgets/idea_originality_analysis_view.dart';
 
 /// Template-driven evaluation dialog — shared by judge workspace and ideas
 /// list (judge path).
@@ -540,6 +541,12 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         _buildHeader(context),
         const SizedBox(height: 12),
         _buildOverallStrip(context, template),
+        const SizedBox(height: 12),
+        IdeaOriginalityAnalysisView(
+          ideaId: widget.idea.ideaId,
+          organisationId: widget.judge.orgId,
+          presentation: IdeaOriginalityAnalysisPresentation.judge,
+        ),
         const SizedBox(height: 12),
         if ((template.description ?? '').trim().isNotEmpty) ...<Widget>[
           Text(

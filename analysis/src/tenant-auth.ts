@@ -64,6 +64,10 @@ function isDepartmentAdmin(user: TenantUserProfile): boolean {
   return user.role === 'DADM' || user.roles.includes('DADM');
 }
 
+function isJudge(user: TenantUserProfile): boolean {
+  return user.role === 'JUD' || user.roles.includes('JUD');
+}
+
 export async function assertAuthenticatedTenantUser(input: {
   organisationId: string;
   idToken: string;
@@ -96,6 +100,23 @@ export async function assertIdeaAnalysisOperator(input: {
     return ctx;
   }
   throw new AnalysisError('FORBIDDEN', 'Only organisation administrators can run idea analysis.');
+}
+
+/** Read-only analysis access (metrics in Firestore + on-demand full report). */
+export async function assertIdeaAnalysisReader(input: {
+  organisationId: string;
+  idToken: string;
+}): Promise<AuthenticatedTenantContext> {
+  const ctx = await verifyTenantSession(input);
+  if (
+    isCollegeAdmin(ctx.user) ||
+    isOrgAdmin(ctx.user) ||
+    isDepartmentAdmin(ctx.user) ||
+    isJudge(ctx.user)
+  ) {
+    return ctx;
+  }
+  throw new AnalysisError('FORBIDDEN', 'You do not have access to originality analysis for this idea.');
 }
 
 export function assertDepartmentScopeForIdea(

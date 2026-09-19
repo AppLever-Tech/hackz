@@ -14,6 +14,7 @@ import { loadProviderCredentials } from '../secrets.js';
 import {
   assertDepartmentScopeForIdea,
   assertIdeaAnalysisOperator,
+  assertIdeaAnalysisReader,
 } from '../tenant-auth.js';
 import { tenantApp, tenantFirestore } from '../firebase-apps.js';
 import type { AnalysisProviderId, TurnitinCredentials } from '../types.js';
@@ -208,7 +209,7 @@ export async function handleGetIdeaAnalysisReport(input: {
   idToken: string;
   analysisId: string;
 }): Promise<{ ok: true; reportViewerUrl: string }> {
-  const ctx = await assertIdeaAnalysisOperator(input);
+  const ctx = await assertIdeaAnalysisReader(input);
   const db = tenantFirestore(tenantApp(ctx.tenant.tenantId, ctx.tenant.firebaseProjectId));
   const record = await readIdeaAnalysis(db, input.analysisId);
   if (record == null || record.organisationId !== ctx.tenant.organisationId) {
@@ -217,6 +218,11 @@ export async function handleGetIdeaAnalysisReport(input: {
   if (!record.fullReportAvailable || record.providerSubmissionId == null) {
     throw new AnalysisError('NOT_AVAILABLE', 'Full report is not available for this analysis.');
   }
+  const idea = await loadIdea(db, record.ideaId);
+  assertDepartmentScopeForIdea(ctx.user, {
+    teamDepartmentCode: String(idea.teamDepartmentCode ?? ''),
+    problemDepartmentCode: String(idea.problemDepartmentCode ?? ''),
+  });
   const { credentials } = await providerContextForTenant(db, ctx.tenant.organisationId);
   const adapter = providerFor(record.provider);
   const report = await adapter.getReport(credentials, record.providerSubmissionId);

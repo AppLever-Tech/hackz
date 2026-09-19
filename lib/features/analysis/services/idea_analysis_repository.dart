@@ -3,6 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/firebase/hackz_firebase.dart';
 import '../models/idea_analysis_record.dart';
 
+class IdeaAnalysisSnapshot {
+  const IdeaAnalysisSnapshot({this.latest, this.latestCompleted});
+
+  final IdeaAnalysisRecord? latest;
+  final IdeaAnalysisRecord? latestCompleted;
+}
+
 abstract final class IdeaAnalysisRepository {
   IdeaAnalysisRepository._();
 
@@ -11,28 +18,35 @@ abstract final class IdeaAnalysisRepository {
   static CollectionReference<Map<String, dynamic>> get _col =>
       HackzFirebase.current.firestore.collection(collection);
 
-  /// Latest analysis for an idea — equality filter only (no composite Firestore index).
   static Stream<IdeaAnalysisRecord?> watchLatestForIdea(String ideaId) {
+    return watchSnapshotForIdea(ideaId).map((IdeaAnalysisSnapshot snap) => snap.latest);
+  }
+
+  static Stream<IdeaAnalysisSnapshot> watchSnapshotForIdea(String ideaId) {
     final String id = ideaId.trim();
     return _col.where('ideaId', isEqualTo: id).snapshots().map(
-      (QuerySnapshot<Map<String, dynamic>> snap) => _pickLatest(snap.docs),
+      (QuerySnapshot<Map<String, dynamic>> snap) => _buildSnapshot(snap.docs),
     );
   }
 
-  static IdeaAnalysisRecord? _pickLatest(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
-    if (docs.isEmpty) return null;
-    docs.sort(
-      (QueryDocumentSnapshot<Map<String, dynamic>> a, QueryDocumentSnapshot<Map<String, dynamic>> b) =>
-          _createdAtMillis(b.data()).compareTo(_createdAtMillis(a.data())),
-    );
-    final QueryDocumentSnapshot<Map<String, dynamic>> doc = docs.first;
-    return IdeaAnalysisRecord.fromMap(doc.id, doc.data());
-  }
+  static IdeaAnalysisSnapshot _buildSnapshot(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    if (docs.isEmpty) return const IdeaAnalysisSnapshot();
+    final List<IdeaAnalysisRecord> records = docs
+        .map(
+          (QueryDocumentSnapshot<Map<String, dynamic>> doc) =>
+              IdeaAnalysisRecord.fromMap(doc.id, doc.data()),
+        )
+        .toList(growable: false)
+      ..sort((IdeaAnalysisRecord a, IdeaAnalysisRecord b) => b.createdAt.compareTo(a.createdAt));
 
-  static int _createdAtMillis(Map<String, dynamic> map) {
-    final Object? raw = map['createdAt'];
-    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
-    if (raw is String) return DateTime.tryParse(raw)?.millisecondsSinceEpoch ?? 0;
-    return 0;
+    IdeaAnalysisRecord? latestCompleted;
+    for (final IdeaAnalysisRecord record in records) {
+      if (record.status == IdeaAnalysisStatus.completed) {
+        latestCompleted = record;
+        break;
+      }
+    }
+
+    return IdeaAnalysisSnapshot(latest: records.first, latestCompleted: latestCompleted);
   }
 }
