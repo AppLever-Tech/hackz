@@ -21,6 +21,7 @@ import '../widgets/org_admin_quick_actions_section.dart';
 import '../widgets/org_admin_tenant_readiness_card.dart';
 import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_page_template.dart';
+import '../../../../features/analysis/screens/ai_analysis_providers_screen.dart';
 import '../../collegeadmin/screens/manage_college_screen.dart';
 
 /// Hackz org admin tenant operations — reuses existing tenant modules.
@@ -59,6 +60,12 @@ class OrgAdminDashboard extends StatelessWidget {
             return IdeathonsListScreen(key: ValueKey<int>(refreshToken), user: user);
           case 5:
             return PerIdeaPaymentVerificationScreen(key: ValueKey<int>(refreshToken), user: user);
+          case 6:
+            return AiAnalysisProvidersScreen(
+              key: ValueKey<int>(refreshToken),
+              user: user,
+              readOnly: true,
+            );
           default:
             return _OrgAdminOverview(user: user, refreshToken: refreshToken);
         }

@@ -23,6 +23,7 @@ import '../../../../core/responsive/responsive_columns.dart';
 import '../../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import '../../../../core/responsive/responsive_metric_grid.dart';
 import '../../sysadmin/screens/organization_dialog.dart';
+import '../../../../features/analysis/screens/ai_analysis_providers_screen.dart';
 import 'manage_college_screen.dart';
 
 class CollegeAdminDashboard extends StatelessWidget {
@@ -89,6 +90,12 @@ class CollegeAdminDashboard extends StatelessWidget {
         }
         if (selectedMenuIndex == 5) {
           return OrgSettingsDashboard(
+            key: ValueKey<int>(refreshToken),
+            user: user,
+          );
+        }
+        if (selectedMenuIndex == 6) {
+          return AiAnalysisProvidersScreen(
             key: ValueKey<int>(refreshToken),
             user: user,
           );

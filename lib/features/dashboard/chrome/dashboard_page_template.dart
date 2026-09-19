@@ -222,6 +222,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Events', icon: AppIcons.event),
             DashboardMenuItem(label: 'Org Settings', icon: AppIcons.orgSettings),
+            DashboardMenuItem(label: 'AI Analysis', icon: Icons.psychology_outlined),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
@@ -271,6 +272,7 @@ class _RoleMenuConfig {
             DashboardMenuItem(label: 'Ideas Dashboard', icon: AppIcons.insights),
             DashboardMenuItem(label: 'Events', icon: AppIcons.event),
             DashboardMenuItem(label: 'Payment Verification', icon: AppIcons.verification),
+            DashboardMenuItem(label: 'AI Analysis', icon: Icons.psychology_outlined),
           ],
           secondaryMenus: <DashboardMenuItem>[],
         );
