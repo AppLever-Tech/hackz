@@ -132,7 +132,7 @@ class _IdeaDetailsPaneState extends State<IdeaDetailsPane> {
             children: <Widget>[
               header,
               const SizedBox(height: 8),
-              Expanded(child: IdeaDetailsBody(vm: snapshot.data!)),
+              Expanded(child: IdeaDetailsBody(vm: snapshot.data!, user: session.user)),
             ],
           );
         },

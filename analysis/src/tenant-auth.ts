@@ -8,11 +8,23 @@ export type AuthenticatedTenantContext = {
   user: TenantUserProfile;
 };
 
-export async function assertAuthenticatedTenantUser(input: {
+function profileFromData(uid: string, data: Record<string, unknown>): TenantUserProfile {
+  const role = String(data.role ?? '').trim();
+  const roles = Array.isArray(data.roles)
+    ? data.roles.map((value) => String(value).trim())
+    : <string[]>[];
+  return {
+    uid,
+    orgId: String(data.orgId ?? '').trim(),
+    role,
+    roles,
+    departmentCode: String(data.departmentCode ?? '').trim().toUpperCase(),
+  };
+}
+
+async function verifyTenantSession(input: {
   organisationId: string;
   idToken: string;
-  requireCollegeAdmin: boolean;
-  allowOrgAdminRead: boolean;
 }): Promise<AuthenticatedTenantContext> {
   const token = input.idToken.trim();
   if (token.length === 0) {
@@ -32,33 +44,74 @@ export async function assertAuthenticatedTenantUser(input: {
 
   const profileSnap = await tenantFirestore(app).collection(HKZ_USERS).doc(uid).get();
   const data = profileSnap.data() ?? {};
-  const orgId = String(data.orgId ?? '').trim();
-  if (orgId.length === 0 || orgId !== tenant.organisationId) {
+  const user = profileFromData(uid, data);
+  if (user.orgId.length === 0 || user.orgId !== tenant.organisationId) {
     throw new AnalysisError('UNAUTHORIZED', 'This account is not linked to the organisation.');
   }
 
-  const role = String(data.role ?? '').trim();
-  const roles = Array.isArray(data.roles)
-    ? data.roles.map((value) => String(value).trim())
-    : <string[]>[];
+  return { tenant, user };
+}
 
-  const isCollegeAdmin = role === 'CADM' || roles.includes('CADM');
-  const isOrgAdmin = role === 'ORGADM' || roles.includes('ORGADM');
+function isCollegeAdmin(user: TenantUserProfile): boolean {
+  return user.role === 'CADM' || user.roles.includes('CADM');
+}
 
-  if (input.requireCollegeAdmin && !isCollegeAdmin) {
+function isOrgAdmin(user: TenantUserProfile): boolean {
+  return user.role === 'ORGADM' || user.roles.includes('ORGADM');
+}
+
+function isDepartmentAdmin(user: TenantUserProfile): boolean {
+  return user.role === 'DADM' || user.roles.includes('DADM');
+}
+
+export async function assertAuthenticatedTenantUser(input: {
+  organisationId: string;
+  idToken: string;
+  requireCollegeAdmin: boolean;
+  allowOrgAdminRead: boolean;
+}): Promise<AuthenticatedTenantContext> {
+  const ctx = await verifyTenantSession(input);
+
+  if (input.requireCollegeAdmin && !isCollegeAdmin(ctx.user)) {
     throw new AnalysisError('FORBIDDEN', 'Only the College Admin can change analysis provider credentials.');
   }
 
   if (!input.requireCollegeAdmin && input.allowOrgAdminRead) {
-    if (!isCollegeAdmin && !isOrgAdmin) {
+    if (!isCollegeAdmin(ctx.user) && !isOrgAdmin(ctx.user)) {
       throw new AnalysisError('FORBIDDEN', 'You do not have access to analysis provider settings.');
     }
-  } else if (!input.requireCollegeAdmin && !isCollegeAdmin) {
+  } else if (!input.requireCollegeAdmin && !isCollegeAdmin(ctx.user)) {
     throw new AnalysisError('FORBIDDEN', 'You do not have access to this operation.');
   }
 
-  return {
-    tenant,
-    user: { uid, orgId, role, roles },
-  };
+  return ctx;
+}
+
+export async function assertIdeaAnalysisOperator(input: {
+  organisationId: string;
+  idToken: string;
+}): Promise<AuthenticatedTenantContext> {
+  const ctx = await verifyTenantSession(input);
+  if (isCollegeAdmin(ctx.user) || isOrgAdmin(ctx.user) || isDepartmentAdmin(ctx.user)) {
+    return ctx;
+  }
+  throw new AnalysisError('FORBIDDEN', 'Only organisation administrators can run idea analysis.');
+}
+
+export function assertDepartmentScopeForIdea(
+  user: TenantUserProfile,
+  idea: { teamDepartmentCode?: string; problemDepartmentCode?: string },
+): void {
+  if (isCollegeAdmin(user) || isOrgAdmin(user)) return;
+  if (!isDepartmentAdmin(user)) return;
+
+  const dept = user.departmentCode.trim().toUpperCase();
+  if (dept.length === 0) {
+    throw new AnalysisError('FORBIDDEN', 'Department administrator scope is not configured.');
+  }
+  const teamDept = String(idea.teamDepartmentCode ?? '').trim().toUpperCase();
+  const problemDept = String(idea.problemDepartmentCode ?? '').trim().toUpperCase();
+  if (dept !== teamDept && dept !== problemDept) {
+    throw new AnalysisError('FORBIDDEN', 'This idea is outside your department scope.');
+  }
 }

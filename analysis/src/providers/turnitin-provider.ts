@@ -41,6 +41,21 @@ async function turnitinFetch(
   });
 }
 
+function mapTurnitinStatus(raw: unknown): 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' {
+  const text = String(raw ?? '').trim().toUpperCase();
+  if (text.includes('COMPLETE') || text.includes('SUCCESS')) return 'COMPLETED';
+  if (text.includes('FAIL') || text.includes('ERROR')) return 'FAILED';
+  if (text.includes('PROCESS') || text.includes('UPLOAD')) return 'PROCESSING';
+  return 'PROCESSING';
+}
+
+function asObject(raw: unknown): Record<string, unknown> {
+  if (raw != null && typeof raw === 'object' && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
+  }
+  return {};
+}
+
 export class TurnitinAnalysisProvider implements AnalysisProvider {
   readonly id = 'turnitin' as const;
 
@@ -86,41 +101,130 @@ export class TurnitinAnalysisProvider implements AnalysisProvider {
   }
 
   async submitAnalysis(
-    _credentials: TurnitinCredentials,
+    credentials: TurnitinCredentials,
     input: ProviderSubmitInput,
   ): Promise<ProviderSubmitResult> {
+    const createResponse = await turnitinFetch(credentials, '/submissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: input.title,
+        owner: input.analysisId,
+        metadata: {
+          ideaId: input.ideaId,
+          hackzAnalysisId: input.analysisId,
+          organisationId: input.organisationId,
+        },
+      }),
+    });
+    if (!createResponse.ok) {
+      const text = (await createResponse.text()).trim();
+      throw new Error(text.length > 0 ? text.slice(0, 240) : 'Turnitin submission create failed.');
+    }
+    const created = asObject(await createResponse.json());
+    const submissionId = String(created.id ?? created.submission_id ?? '').trim();
+    if (submissionId.length === 0) {
+      throw new Error('Turnitin did not return a submission id.');
+    }
+
+    const textBody = (input.text ?? '').trim();
+    if (textBody.length > 0) {
+      const uploadResponse = await turnitinFetch(credentials, `/submissions/${submissionId}/original`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain' },
+        body: textBody,
+      });
+      if (!uploadResponse.ok) {
+        const text = (await uploadResponse.text()).trim();
+        throw new Error(text.length > 0 ? text.slice(0, 240) : 'Turnitin text upload failed.');
+      }
+    }
+
     return {
-      providerSubmissionId: `pending-${input.analysisId}`,
-      status: 'PENDING',
+      providerSubmissionId: submissionId,
+      status: 'PROCESSING',
       mode: 'async',
     };
   }
 
   async getStatus(
-    _credentials: TurnitinCredentials,
+    credentials: TurnitinCredentials,
     providerSubmissionId: string,
   ): Promise<ProviderStatusResult> {
-    return {
-      status: 'PENDING',
-      providerSubmissionId,
-    };
+    const response = await turnitinFetch(credentials, `/submissions/${providerSubmissionId}`, {
+      method: 'GET',
+    });
+    if (!response.ok) {
+      return {
+        status: 'FAILED',
+        providerSubmissionId,
+        errorMessage: `Turnitin status HTTP ${response.status}`,
+      };
+    }
+    const body = asObject(await response.json());
+    const status = mapTurnitinStatus(body.status ?? body.state ?? body.processing_state);
+    return { status, providerSubmissionId };
   }
 
   async getResult(
-    _credentials: TurnitinCredentials,
+    credentials: TurnitinCredentials,
     providerSubmissionId: string,
   ): Promise<ProviderResultPayload> {
+    const submissionResponse = await turnitinFetch(credentials, `/submissions/${providerSubmissionId}`, {
+      method: 'GET',
+    });
+    if (!submissionResponse.ok) {
+      return {
+        status: 'FAILED',
+        raw: { error: `Turnitin submission HTTP ${submissionResponse.status}` },
+      };
+    }
+    const submission = asObject(await submissionResponse.json());
+    let similarityRaw: Record<string, unknown> = submission;
+    const similarityResponse = await turnitinFetch(
+      credentials,
+      `/submissions/${providerSubmissionId}/similarity`,
+      { method: 'GET' },
+    );
+    if (similarityResponse.ok) {
+      similarityRaw = { ...submission, ...asObject(await similarityResponse.json()) };
+    }
+
+    const status = mapTurnitinStatus(
+      similarityRaw.status ?? submission.status ?? submission.state ?? submission.processing_state,
+    );
+    const similarityScore =
+      similarityRaw.overall_match_percentage ??
+      similarityRaw.overallMatchPercentage ??
+      similarityRaw.similarity_score;
+
     return {
-      status: 'PENDING',
-      raw: { providerSubmissionId },
+      status: status === 'FAILED' ? 'FAILED' : status === 'COMPLETED' ? 'COMPLETED' : 'PROCESSING',
+      similarityScore:
+        similarityScore == null ? undefined : Number(similarityScore as string | number),
+      raw: similarityRaw,
     };
   }
 
   async getReport(
-    _credentials: TurnitinCredentials,
-    _providerSubmissionId: string,
+    credentials: TurnitinCredentials,
+    providerSubmissionId: string,
   ): Promise<{ reportViewerUrl: string | null }> {
-    return { reportViewerUrl: null };
+    const response = await turnitinFetch(
+      credentials,
+      `/submissions/${providerSubmissionId}/similarity/viewers`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viewer_user_id: providerSubmissionId }),
+      },
+    );
+    if (!response.ok) {
+      return { reportViewerUrl: null };
+    }
+    const body = asObject(await response.json());
+    const url = String(body.viewer_url ?? body.viewerUrl ?? body.url ?? '').trim();
+    return { reportViewerUrl: url.length > 0 ? url : null };
   }
 }
 

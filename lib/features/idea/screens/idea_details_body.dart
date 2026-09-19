@@ -8,6 +8,7 @@ import '../../../core/ui/common/mobile_row_card_pill.dart';
 import '../../../core/ui/common/rich_tabs.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../problems/widgets/problem_context_pill.dart';
+import '../../user/models/user_model.dart';
 import '../services/idea_details_loader.dart';
 import '../workspace/idea_workspace.dart';
 import 'idea_details_tab.dart';
@@ -15,9 +16,10 @@ import 'idea_lifecycle_tab.dart';
 
 /// Tabbed body for the idea details dashboard pane.
 class IdeaDetailsBody extends StatelessWidget {
-  const IdeaDetailsBody({super.key, required this.vm});
+  const IdeaDetailsBody({super.key, required this.vm, required this.user});
 
   final IdeaDetailsViewModel vm;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +75,7 @@ class IdeaDetailsBody extends StatelessWidget {
               RichTabItem('Idea Lifecycle', icon: AppIcons.timelineWorkspace),
             ],
             children: <Widget>[
-              IdeaDetailsTab(vm: vm.ideaVm),
+              IdeaDetailsTab(vm: vm.ideaVm, user: user),
               IdeaLifecycleTab(vm: vm.ideaVm),
             ],
           ),

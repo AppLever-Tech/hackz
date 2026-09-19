@@ -11,6 +11,7 @@ import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
 import '../../../utils/common_helpers.dart';
+import '../../analysis/widgets/idea_originality_analysis_panel.dart';
 import '../widgets/idea_event_pills.dart';
 import '../widgets/innovation_assets_section.dart';
 import '../workspace/idea_workspace.dart';
@@ -18,9 +19,10 @@ import '../workspace/idea_workspace_loader.dart';
 
 /// Idea Details tab for [IdeaDetailsPane].
 class IdeaDetailsTab extends StatelessWidget {
-  const IdeaDetailsTab({super.key, required this.vm});
+  const IdeaDetailsTab({super.key, required this.vm, required this.user});
 
   final IdeaWorkspaceViewModel vm;
+  final UserModel user;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +196,13 @@ class IdeaDetailsTab extends StatelessWidget {
               Expanded(child: teamCard),
             ],
           ),
+        const SizedBox(height: 8),
+        IdeaOriginalityAnalysisPanel(
+          ideaId: idea.ideaId,
+          ideaStatus: idea.status,
+          organisationId: user.orgId,
+          user: user,
+        ),
         const SizedBox(height: 8),
         eventsCard,
       ],

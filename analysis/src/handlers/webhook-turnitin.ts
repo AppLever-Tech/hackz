@@ -1,5 +1,7 @@
 import { tenantApp, tenantFirestore } from '../firebase-apps.js';
 import { upsertCorrelation } from '../correlation.js';
+import { syncAnalysisFromProvider } from './idea-analysis.js';
+import { readIdeaAnalysis, writeIdeaAnalysis } from '../idea-analysis-store.js';
 import { loadRoutingRecord, saveRoutingRecord } from '../routing-index.js';
 import type { AnalysisJobStatus } from '../types.js';
 
@@ -44,5 +46,18 @@ export async function handleTurnitinWebhook(body: Record<string, unknown>): Prom
     createdAt: routing.updatedAt,
     updatedAt,
   });
+
+  const existing = await readIdeaAnalysis(db, routing.analysisId);
+  if (existing != null) {
+    let record = {
+      ...existing,
+      status,
+      completedAt: status === 'COMPLETED' || status === 'FAILED' ? updatedAt : existing.completedAt,
+    };
+    await writeIdeaAnalysis(db, record);
+    if (status === 'COMPLETED') {
+      record = await syncAnalysisFromProvider(record, db, routing.organisationId);
+    }
+  }
   return { ok: true };
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../features/analysis/models/analysis_provider_models.dart';
+import '../../features/analysis/models/idea_analysis_record.dart';
 import 'hackz_analysis_identity.dart';
 import 'hackz_firebase.dart';
 
@@ -72,6 +73,83 @@ abstract final class HackzAnalysisClient {
     );
   }
 
+  static Future<IdeaAnalysisRecord> runIdeaAnalysis({
+    required String organisationId,
+    required String ideaId,
+  }) async {
+    final Map<String, dynamic> body = await _post(
+      '/run-idea-analysis',
+      <String, dynamic>{
+        'organisationId': organisationId,
+        'ideaId': ideaId,
+      },
+      missingTokenMessage: 'Sign in to run originality analysis.',
+    );
+    final Object? raw = body['analysis'];
+    if (raw is! Map<String, dynamic>) {
+      throw const HackzAnalysisException('INVALID_RESPONSE', 'Analysis service returned an invalid response.');
+    }
+    return IdeaAnalysisRecord.fromServiceMap(raw);
+  }
+
+  static Future<IdeaAnalysisRecord> refreshIdeaAnalysis({
+    required String organisationId,
+    required String analysisId,
+  }) async {
+    final Map<String, dynamic> body = await _post(
+      '/refresh-idea-analysis',
+      <String, dynamic>{
+        'organisationId': organisationId,
+        'analysisId': analysisId,
+      },
+      missingTokenMessage: 'Sign in to refresh analysis status.',
+    );
+    final Object? raw = body['analysis'];
+    if (raw is! Map<String, dynamic>) {
+      throw const HackzAnalysisException('INVALID_RESPONSE', 'Analysis service returned an invalid response.');
+    }
+    return IdeaAnalysisRecord.fromServiceMap(raw);
+  }
+
+  static Future<IdeaAnalysisRecord?> getLatestIdeaAnalysis({
+    required String organisationId,
+    required String ideaId,
+  }) async {
+    final Map<String, dynamic> body = await _post(
+      '/get-latest-idea-analysis',
+      <String, dynamic>{
+        'organisationId': organisationId,
+        'ideaId': ideaId,
+      },
+      missingTokenMessage: 'Sign in to load analysis results.',
+    );
+    final Object? raw = body['analysis'];
+    if (raw == null) return null;
+    if (raw is! Map<String, dynamic>) {
+      throw const HackzAnalysisException('INVALID_RESPONSE', 'Analysis service returned an invalid response.');
+    }
+    return IdeaAnalysisRecord.fromServiceMap(raw);
+  }
+
+  static Future<String> getIdeaAnalysisReportUrl({
+    required String organisationId,
+    required String analysisId,
+  }) async {
+    final Map<String, dynamic> body = await _post(
+      '/get-idea-analysis-report',
+      <String, dynamic>{
+        'organisationId': organisationId,
+        'analysisId': analysisId,
+      },
+      missingTokenMessage: 'Sign in to open the full report.',
+    );
+    final String url = (body['reportViewerUrl'] as String? ?? '').trim();
+    if (url.isEmpty) {
+      throw const HackzAnalysisException('NOT_AVAILABLE', 'Full report is not available.');
+    }
+    return url;
+  }
+
   static Future<Map<String, dynamic>> _postAllowFailure(
     String path,
     Map<String, dynamic> payload, {
@@ -131,7 +209,11 @@ abstract final class HackzAnalysisClient {
       if (decoded is Map<String, dynamic>) body = decoded;
     } catch (_) {}
 
-    if (body['ok'] == true || body.containsKey('config') || (allowFailure && body.containsKey('message'))) {
+    if (body['ok'] == true ||
+        body.containsKey('config') ||
+        body.containsKey('analysis') ||
+        body.containsKey('reportViewerUrl') ||
+        (allowFailure && body.containsKey('message'))) {
       return body;
     }
 

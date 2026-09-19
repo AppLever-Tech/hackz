@@ -5,6 +5,12 @@ import {
   handleSaveProviderCredentials,
   handleTestConnection,
 } from './handlers/provider-config.js';
+import {
+  handleGetIdeaAnalysisReport,
+  handleGetLatestIdeaAnalysis,
+  handleRefreshIdeaAnalysis,
+  handleRunIdeaAnalysis,
+} from './handlers/idea-analysis.js';
 import { handleTurnitinWebhook } from './handlers/webhook-turnitin.js';
 
 function listenPort(): number {
@@ -92,6 +98,42 @@ const server = createServer((req, res) => {
         const result = await handleClearCredentials({
           organisationId: String(body.organisationId ?? ''),
           idToken: token,
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/run-idea-analysis') {
+        const result = await handleRunIdeaAnalysis({
+          organisationId: String(body.organisationId ?? ''),
+          idToken: token,
+          ideaId: String(body.ideaId ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/refresh-idea-analysis') {
+        const result = await handleRefreshIdeaAnalysis({
+          organisationId: String(body.organisationId ?? ''),
+          idToken: token,
+          analysisId: String(body.analysisId ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/get-idea-analysis-report') {
+        const result = await handleGetIdeaAnalysisReport({
+          organisationId: String(body.organisationId ?? ''),
+          idToken: token,
+          analysisId: String(body.analysisId ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/get-latest-idea-analysis') {
+        const result = await handleGetLatestIdeaAnalysis({
+          organisationId: String(body.organisationId ?? ''),
+          idToken: token,
+          ideaId: String(body.ideaId ?? ''),
         });
         send(res, 200, result);
         return;

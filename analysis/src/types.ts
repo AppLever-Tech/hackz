@@ -3,6 +3,8 @@ export const HKZ_USERS = 'hkzUsers';
 export const HKZ_ANALYSIS_PROVIDER_CONFIG = 'hkzAnalysisProviderConfig';
 export const HKZ_ANALYSIS_JOBS = 'hkzAnalysisJobs';
 export const HKZ_ANALYSIS_CORRELATIONS = 'hkzAnalysisCorrelations';
+export const HKZ_IDEA_ANALYSES = 'hkzIdeaAnalyses';
+export const HKZ_IDEAS = 'hkzIdeas';
 
 export type AnalysisProviderId = 'turnitin' | 'drillbit';
 
@@ -28,6 +30,7 @@ export type TenantUserProfile = {
   orgId: string;
   role: string;
   roles: string[];
+  departmentCode: string;
 };
 
 export type PublicProviderConfig = {
