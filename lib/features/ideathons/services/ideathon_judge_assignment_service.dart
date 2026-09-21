@@ -14,7 +14,13 @@ import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
+import 'event_details_evaluation_access.dart';
+import 'event_details_evaluation_bundle.dart';
+import 'event_details_tab_cache.dart';
+import 'ideathon_details_loader.dart';
+import 'ideathon_details_shell_loader.dart';
 import 'ideathon_service.dart';
+import '../../evaluations/services/evaluation_results_query_service.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// One Ideathon idea row with event-scoped judge assignments.
@@ -96,46 +102,92 @@ abstract final class IdeathonJudgeAssignmentService {
     return UserRole.fromCode(actor.role) == UserRole.departmentAdmin;
   }
 
-  static Future<IdeathonJudgeAssignmentViewModel> load(String ideathonId) async {
-    final IdeathonModel? ideathon = await IdeathonService.fetchById(ideathonId);
-    if (ideathon == null) throw StateError('Ideathon not found.');
+  /// Event Details tab: reuse cached evaluation bundle (ideas + assignments).
+  static Future<IdeathonJudgeAssignmentViewModel> loadForEventDetails(
+    IdeathonDetailsShellViewModel shell,
+    EventDetailsTabCacheBucket cache,
+  ) async {
+    final EventDetailsEvaluationBundle bundle = await EventDetailsEvaluationAccess.bundle(cache, shell);
+    final Map<String, IdeaModel> ideasById = <String, IdeaModel>{
+      for (final IdeathonIdeaEntry entry in bundle.ideaEntries)
+        if (entry.idea != null && entry.ideaId.trim().isNotEmpty) entry.ideaId.trim(): entry.idea!,
+    };
+    return _loadFromParts(
+      ideathon: shell.ideathon,
+      ideasById: ideasById,
+      assignments: bundle.assignments,
+    );
+  }
 
+  static Future<IdeathonJudgeAssignmentViewModel> load(String ideathonId) async {
+    final String id = ideathonId.trim();
+    final List<dynamic> head = await Future.wait<dynamic>(<Future<dynamic>>[
+      IdeathonService.fetchById(id),
+      EvaluationAssignmentService.listByIdeathon(ideathonId: id),
+    ]);
+    final IdeathonModel? ideathon = head[0] as IdeathonModel?;
+    if (ideathon == null) throw StateError('Ideathon not found.');
+    final List<EvaluationAssignmentModel> assignments = head[1] as List<EvaluationAssignmentModel>;
+    final List<String> ideaIds = ideathon.ideas
+        .map((IdeathonIdeaSnapshot s) => s.ideaId.trim())
+        .where((String ideaId) => ideaId.isNotEmpty)
+        .toList(growable: false);
+    final Map<String, IdeaModel> ideasById = await EvaluationResultsQueryService.loadIdeasByIds(ideaIds);
+    return _loadFromParts(
+      ideathon: ideathon,
+      ideasById: ideasById,
+      assignments: assignments,
+    );
+  }
+
+  static Future<IdeathonJudgeAssignmentViewModel> _loadFromParts({
+    required IdeathonModel ideathon,
+    required Map<String, IdeaModel> ideasById,
+    required List<EvaluationAssignmentModel> assignments,
+  }) async {
     await OrgSettingsService.instance.ensureLoaded(orgId: ideathon.orgId);
     final EvaluationTemplate template =
         EvaluationTemplatesService.resolveTemplate(ideathon.evaluationTemplateId);
 
-    final List<String> ideaIds =
-        ideathon.ideas.map((IdeathonIdeaSnapshot s) => s.ideaId.trim()).where((String id) => id.isNotEmpty).toList();
     final Map<String, IdeathonIdeaSnapshot> snapshotById = <String, IdeathonIdeaSnapshot>{
       for (final IdeathonIdeaSnapshot s in ideathon.ideas)
         if (s.ideaId.trim().isNotEmpty) s.ideaId.trim(): s,
     };
 
-    final Map<String, IdeaModel> ideasById = await _loadIdeas(ideaIds);
-    final Map<String, TeamModel> teamsById = await _loadTeams(ideasById.values);
-    final List<EvaluationAssignmentModel> assignments =
-        await EvaluationAssignmentService.listByIdeathon(ideathonId: ideathon.ideathonId);
+    final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
+      _loadTeams(ideasById.values),
+      EvaluatorCatalogService.loadEvaluators(orgId: ideathon.orgId),
+      _evaluationLocked(ideathon),
+    ]);
+    final Map<String, TeamModel> teamsById = parallel[0] as Map<String, TeamModel>;
+    final List<UserModel> evaluators = parallel[1] as List<UserModel>;
+    final bool evaluationLocked = parallel[2] as bool;
 
     final Map<String, List<EvaluationAssignmentModel>> assignmentsByIdea =
         <String, List<EvaluationAssignmentModel>>{};
     final Set<String> judgeIds = <String>{...ideathon.judgeIds};
     for (final EvaluationAssignmentModel a in assignments) {
       if (a.ideaId.trim().isEmpty) continue;
-      // Only Ideathon-registered ideas.
       if (!snapshotById.containsKey(a.ideaId.trim())) continue;
       assignmentsByIdea.putIfAbsent(a.ideaId.trim(), () => <EvaluationAssignmentModel>[]).add(a);
       if (a.judgeId.trim().isNotEmpty) judgeIds.add(a.judgeId.trim());
     }
 
-    final List<UserModel> evaluators =
-        await EvaluatorCatalogService.loadEvaluators(orgId: ideathon.orgId);
     final Map<String, UserModel> judgeById = <String, UserModel>{
       for (final UserModel u in evaluators) u.userId: u,
     };
-    for (final String id in judgeIds) {
-      if (judgeById.containsKey(id)) continue;
-      final UserModel? user = await FirestoreUtils.fetchUser(id);
-      if (user != null) judgeById[id] = user;
+    final List<String> missingJudgeIds = judgeIds
+        .map((String id) => id.trim())
+        .where((String id) => id.isNotEmpty && !judgeById.containsKey(id))
+        .toList(growable: false);
+    if (missingJudgeIds.isNotEmpty) {
+      final List<UserModel?> fetched = await Future.wait<UserModel?>(
+        missingJudgeIds.map(FirestoreUtils.fetchUser),
+      );
+      for (int i = 0; i < missingJudgeIds.length; i++) {
+        final UserModel? user = fetched[i];
+        if (user != null) judgeById[missingJudgeIds[i]] = user;
+      }
     }
 
     final List<IdeathonJudgeAssignmentRow> rows = <IdeathonJudgeAssignmentRow>[];
@@ -170,13 +222,13 @@ abstract final class IdeathonJudgeAssignmentService {
     final List<IdeathonJudgeWorkload> workloads = <IdeathonJudgeWorkload>[];
     final Set<String> rosterAndAssigned = <String>{...ideathon.judgeIds, ...ideasByJudge.keys};
     for (final String judgeId in rosterAndAssigned) {
-      final String id = judgeId.trim();
-      if (id.isEmpty) continue;
+      final String trimmed = judgeId.trim();
+      if (trimmed.isEmpty) continue;
       workloads.add(
         IdeathonJudgeWorkload(
-          judgeId: id,
-          displayName: judgeDisplayName(judgeById, id),
-          ideaCount: ideasByJudge[id] ?? 0,
+          judgeId: trimmed,
+          displayName: judgeDisplayName(judgeById, trimmed),
+          ideaCount: ideasByJudge[trimmed] ?? 0,
         ),
       );
     }
@@ -185,9 +237,6 @@ abstract final class IdeathonJudgeAssignmentService {
       if (byCount != 0) return byCount;
       return a.displayName.compareTo(b.displayName);
     });
-
-    final bool evaluationLocked = IdeathonService.isEventCompleted(ideathon) ||
-        await IdeathonService.hasEvaluationStarted(ideathon.ideathonId);
 
     return IdeathonJudgeAssignmentViewModel(
       ideathon: ideathon,
@@ -206,6 +255,11 @@ abstract final class IdeathonJudgeAssignmentService {
       workloads: workloads,
       evaluationLocked: evaluationLocked,
     );
+  }
+
+  static Future<bool> _evaluationLocked(IdeathonModel ideathon) async {
+    if (IdeathonService.isEventCompleted(ideathon)) return true;
+    return IdeathonService.hasEvaluationStarted(ideathon.ideathonId);
   }
 
   static Future<void> assignJudgesToIdea({
@@ -296,26 +350,21 @@ abstract final class IdeathonJudgeAssignmentService {
     );
   }
 
-  static Future<Map<String, IdeaModel>> _loadIdeas(List<String> ideaIds) async {
-    final Map<String, IdeaModel> byId = <String, IdeaModel>{};
-    for (final String id in ideaIds) {
-      final DocumentSnapshot<Map<String, dynamic>> doc =
-          await _db.collection(FirestoreUtils.hkzIdeas).doc(id).get();
-      if (!doc.exists || doc.data() == null) continue;
-      byId[id] = IdeaModel.fromMap(doc.id, doc.data()!);
-    }
-    return byId;
-  }
-
   static Future<Map<String, TeamModel>> _loadTeams(Iterable<IdeaModel> ideas) async {
+    final Set<String> teamIds = <String>{
+      for (final IdeaModel idea in ideas)
+        if (idea.teamId.trim().isNotEmpty) idea.teamId.trim(),
+    };
+    if (teamIds.isEmpty) return const <String, TeamModel>{};
+    final List<DocumentSnapshot<Map<String, dynamic>>> docs = await Future.wait(
+      teamIds.map(
+        (String teamId) => _db.collection(FirestoreUtils.hkzTeams).doc(teamId).get(),
+      ),
+    );
     final Map<String, TeamModel> byId = <String, TeamModel>{};
-    for (final IdeaModel idea in ideas) {
-      final String teamId = idea.teamId.trim();
-      if (teamId.isEmpty || byId.containsKey(teamId)) continue;
-      final DocumentSnapshot<Map<String, dynamic>> doc =
-          await _db.collection(FirestoreUtils.hkzTeams).doc(teamId).get();
+    for (final DocumentSnapshot<Map<String, dynamic>> doc in docs) {
       if (!doc.exists || doc.data() == null) continue;
-      byId[teamId] = TeamModel.fromMap(doc.id, doc.data()!);
+      byId[doc.id] = TeamModel.fromMap(doc.id, doc.data()!);
     }
     return byId;
   }

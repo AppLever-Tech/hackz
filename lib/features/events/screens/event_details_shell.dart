@@ -152,7 +152,7 @@ class _EventDetailsShellState extends State<EventDetailsShell> {
             selectedId: _selectedId,
             onSelected: _select,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Expanded(child: selected.child),
         ],
       ),

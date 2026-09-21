@@ -21,11 +21,13 @@ class EventDetailsEvaluationBundle {
     required this.workspace,
     required this.results,
     required this.ideaEntries,
+    required this.assignments,
   });
 
   final IdeathonWorkspaceViewModel workspace;
   final EvaluationResultsQueryResult results;
   final List<IdeathonIdeaEntry> ideaEntries;
+  final List<EvaluationAssignmentModel> assignments;
 }
 
 abstract final class EventDetailsEvaluationBundleLoader {
@@ -94,6 +96,7 @@ abstract final class EventDetailsEvaluationBundleLoader {
       workspace: workspace,
       results: results,
       ideaEntries: ideaEntries,
+      assignments: assignments,
     );
   }
 }

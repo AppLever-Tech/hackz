@@ -27,10 +27,12 @@ class IdeathonJudgeAssignmentsPanel extends StatefulWidget {
     super.key,
     required this.vm,
     this.actor,
+    this.onAssignmentsChanged,
   });
 
   final IdeathonJudgeAssignmentViewModel vm;
   final UserModel? actor;
+  final Future<void> Function()? onAssignmentsChanged;
 
   @override
   State<IdeathonJudgeAssignmentsPanel> createState() =>
@@ -62,6 +64,10 @@ class _IdeathonJudgeAssignmentsPanelState
   bool get _isAdmin => IdeathonJudgeAssignmentService.canManageAssignments(widget.actor);
 
   Future<void> _reload() async {
+    if (widget.onAssignmentsChanged != null) {
+      await widget.onAssignmentsChanged!();
+      return;
+    }
     final IdeathonJudgeAssignmentViewModel next =
         await IdeathonJudgeAssignmentService.load(_vm.ideathon.ideathonId);
     if (!mounted) return;
@@ -145,8 +151,9 @@ class _IdeathonJudgeAssignmentsPanelState
   Widget build(BuildContext context) {
     final metrics = _vm.metrics;
 
+    final EdgeInsets padding = WorkspaceTheme.bodyPadding(context).copyWith(top: 0);
     return ListView(
-      padding: WorkspaceTheme.bodyPadding(context),
+      padding: padding,
       children: <Widget>[
         const Row(
           children: <Widget>[
@@ -432,19 +439,25 @@ class _IdeaAssignmentCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Flexible(
-                fit: FlexFit.loose,
-                child: EntityCardPills.workspace(
-                  title,
-                  ContextPillSemantic.idea,
-                  () => WorkspaceNavigator.openIdea(context, row.ideaId),
-                  icon: AppIcons.ideas,
+              Expanded(
+                child: Row(
+                  children: <Widget>[
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: EntityCardPills.workspace(
+                        title,
+                        ContextPillSemantic.idea,
+                        () => WorkspaceNavigator.openIdea(context, row.ideaId),
+                        icon: AppIcons.ideas,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _assignmentStatusPill(row.isAssigned),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              _assignmentStatusPill(row.isAssigned),
               if (canManage) ...<Widget>[
-                const Spacer(),
+                const SizedBox(width: 8),
                 ProblemWorkflowActionPill(
                   label: assignLabel,
                   icon: AppIcons.judges,

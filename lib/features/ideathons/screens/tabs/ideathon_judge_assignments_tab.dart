@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
+import 'package:hackz/features/ideathons/services/event_details_tab_cache.dart';
+import 'package:hackz/features/ideathons/services/ideathon_details_shell_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_judge_assignment_service.dart';
 import 'package:hackz/features/ideathons/widgets/ideathon_judge_assignments_panel.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 
-/// Ideathon Details tab: explicit Idea → Judge assignment (existing workspace UI).
+/// Ideathon Details tab: explicit Idea → Judge assignment (cached per event pane).
 class IdeathonJudgeAssignmentsTab extends StatefulWidget {
   const IdeathonJudgeAssignmentsTab({
     super.key,
-    required this.ideathonId,
+    required this.shell,
+    required this.cache,
     required this.actor,
   });
 
-  final String ideathonId;
+  final IdeathonDetailsShellViewModel shell;
+  final EventDetailsTabCacheBucket cache;
   final UserModel actor;
 
   @override
@@ -26,15 +30,29 @@ class _IdeathonJudgeAssignmentsTabState extends State<IdeathonJudgeAssignmentsTa
   @override
   void initState() {
     super.initState();
-    _future = IdeathonJudgeAssignmentService.load(widget.ideathonId);
+    _future = _load();
   }
 
   @override
   void didUpdateWidget(covariant IdeathonJudgeAssignmentsTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.ideathonId != widget.ideathonId) {
-      _future = IdeathonJudgeAssignmentService.load(widget.ideathonId);
+    if (oldWidget.shell.ideathon.ideathonId != widget.shell.ideathon.ideathonId) {
+      setState(() => _future = _load());
     }
+  }
+
+  Future<IdeathonJudgeAssignmentViewModel> _load() {
+    return widget.cache.getOrLoad<IdeathonJudgeAssignmentViewModel>(
+      EventDetailsTabKeys.judgeAssignments,
+      () => IdeathonJudgeAssignmentService.loadForEventDetails(widget.shell, widget.cache),
+    );
+  }
+
+  Future<void> _reloadAfterMutation() async {
+    widget.cache.invalidate(EventDetailsTabKeys.judgeAssignments);
+    widget.cache.invalidateEvaluationData();
+    setState(() => _future = _load());
+    await _future;
   }
 
   @override
@@ -67,6 +85,7 @@ class _IdeathonJudgeAssignmentsTabState extends State<IdeathonJudgeAssignmentsTa
         return IdeathonJudgeAssignmentsPanel(
           vm: snapshot.data!,
           actor: widget.actor,
+          onAssignmentsChanged: _reloadAfterMutation,
         );
       },
     );

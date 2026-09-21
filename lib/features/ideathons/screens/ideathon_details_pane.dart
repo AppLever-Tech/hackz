@@ -610,8 +610,8 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             icon: AppIcons.judges,
             count: assignmentCount == null || assignmentCount == 0 ? null : assignmentCount,
             child: IdeathonJudgeAssignmentsTab(
-              key: ValueKey<String>('${event.ideathonId}:${shell.ideaCount}'),
-              ideathonId: event.ideathonId,
+              shell: shell,
+              cache: _tabCache,
               actor: widget.actor,
             ),
           ),
