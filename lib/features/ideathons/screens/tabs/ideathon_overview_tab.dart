@@ -8,11 +8,9 @@ import 'package:hackz/features/events/widgets/event_kind_pill.dart';
 import 'package:hackz/features/events/widgets/event_labeled_field.dart';
 import 'package:hackz/features/events/widgets/event_people_section.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
-import 'package:hackz/features/ideathons/screens/tabs/ideathon_lifecycle_tab.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
-import 'package:hackz/features/ideathons/widgets/event_commercial_access_pill.dart';
-import 'package:hackz/features/ideathons/widgets/ideathon_status_pill.dart';
-import 'package:hackz/features/ideathons/widgets/ideathon_type_pill.dart';
+import 'package:hackz/features/ideathons/widgets/ideathon_event_lifecycle_section.dart';
+import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/utils/common_helpers.dart';
 
 class IdeathonOverviewTab extends StatelessWidget {
@@ -20,9 +18,18 @@ class IdeathonOverviewTab extends StatelessWidget {
 
   final IdeathonDetailsViewModel vm;
 
+  static String departmentDisplay(IdeathonDetailsViewModel vm) {
+    final String fromLabel = vm.departmentLabel.trim();
+    if (fromLabel.isNotEmpty) return fromLabel;
+    final String fromWorkspace = vm.workspace.departmentName.trim();
+    if (fromWorkspace.isNotEmpty) return fromWorkspace;
+    return DepartmentModel.labelFor(vm.ideathon.departmentId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final IdeathonModel event = vm.ideathon;
+    final String department = departmentDisplay(vm);
 
     final Widget detailsCard = EventDetailSection(
       title: 'Details',
@@ -40,9 +47,6 @@ class IdeathonOverviewTab extends StatelessWidget {
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
               ),
               EventKindPill(kind: event.eventKind),
-              IdeathonTypePill(type: event.ideathonType, compact: true),
-              IdeathonStatusPill(status: event.status, compact: true),
-              EventCommercialAccessPill.forEvent(event: event, plan: vm.workspace.commercialPlan),
             ],
           ),
           if (event.description.trim().isNotEmpty) ...<Widget>[
@@ -66,7 +70,11 @@ class IdeathonOverviewTab extends StatelessWidget {
             label: 'Organisation',
             value: vm.organisationName.trim().isEmpty ? '—' : vm.organisationName.trim(),
           ),
-          EventLabeledField(label: 'Department', value: vm.departmentLabel, isLast: true),
+          EventLabeledField(
+            label: 'Department',
+            value: department.trim().isEmpty ? '—' : department.trim(),
+            isLast: true,
+          ),
           const SizedBox(height: 10),
           EventLabeledPill(
             label: 'Template',
@@ -112,10 +120,8 @@ class IdeathonOverviewTab extends StatelessWidget {
             );
           },
         ),
-        if (!event.isLongRunning) ...<Widget>[
-          const SizedBox(height: 10),
-          IdeathonLifecycleTab(vm: vm, embedded: true),
-        ],
+        const SizedBox(height: 10),
+        IdeathonEventLifecycleSection(vm: vm),
       ],
     );
   }

@@ -19,13 +19,17 @@ import 'package:hackz/features/ideathons/screens/tabs/ideathon_evaluation_templa
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_ideas_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_judge_assignments_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_leaderboard_tab.dart';
-import 'package:hackz/features/ideathons/screens/tabs/ideathon_lifecycle_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_overview_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_payments_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_reports_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_results_tab.dart';
 import 'package:hackz/features/ideathons/screens/tabs/ideathon_winners_tab.dart';
+import 'package:hackz/features/ideathons/services/event_details_tab_cache.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
+import 'package:hackz/features/ideathons/services/ideathon_details_shell_loader.dart';
+import 'package:hackz/features/ideathons/services/ideathon_evaluation_summary_loader.dart';
+import 'package:hackz/features/ideathons/widgets/event_details_lazy_tabs.dart';
+import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
 import 'package:hackz/features/events/models/event_payment_entry.dart';
 import 'package:hackz/features/events/services/event_payments_service.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
@@ -84,33 +88,59 @@ class IdeathonDetailsPane extends StatefulWidget {
 }
 
 class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
-  late Future<IdeathonDetailsViewModel> _future;
-  late Future<EventPaymentsViewModel> _paymentsFuture;
+  late Future<IdeathonDetailsShellViewModel> _shellFuture;
+  late Future<IdeathonWorkspaceViewModel> _evaluationFuture;
+  late EventDetailsTabCacheBucket _tabCache;
+  IdeathonWorkspaceViewModel? _evaluationWorkspace;
   bool _editing = false;
   String _moduleId = 'overview';
 
   @override
   void initState() {
     super.initState();
-    _future = IdeathonDetailsLoader.load(widget.ideathonId);
-    _paymentsFuture = _future.then(
-      (IdeathonDetailsViewModel vm) => EventPaymentsService.load(
-        kind: vm.ideathon.eventKind,
-        eventId: widget.ideathonId,
-      ),
-    );
+    _tabCache = EventDetailsTabCache.forEvent(widget.ideathonId);
+    _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
+    _evaluationFuture = _loadEvaluationSummary();
+  }
+
+  Future<IdeathonWorkspaceViewModel> _loadEvaluationSummary() {
+    return _shellFuture.then((IdeathonDetailsShellViewModel shell) {
+      return _tabCache.getOrLoad<IdeathonWorkspaceViewModel>(
+        EventDetailsTabKeys.evaluation,
+        () => IdeathonEvaluationSummaryLoader.load(
+          ideathon: shell.ideathon,
+          commercialPlan: shell.commercialPlan,
+          organisationName: shell.organisationName,
+        ),
+      );
+    }).then((IdeathonWorkspaceViewModel workspace) {
+      if (mounted) {
+        setState(() => _evaluationWorkspace = workspace);
+      }
+      return workspace;
+    });
   }
 
   void _reload() {
+    EventDetailsTabCache.invalidateEvent(widget.ideathonId);
     setState(() {
-      _future = IdeathonDetailsLoader.load(widget.ideathonId);
-      _paymentsFuture = _future.then(
-        (IdeathonDetailsViewModel vm) => EventPaymentsService.load(
-          kind: vm.ideathon.eventKind,
-          eventId: widget.ideathonId,
-        ),
-      );
+      _evaluationWorkspace = null;
+      _tabCache = EventDetailsTabCache.forEvent(widget.ideathonId);
+      _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
+      _evaluationFuture = _loadEvaluationSummary();
     });
+  }
+
+  IdeathonDetailsViewModel? _viewModelForActions(IdeathonDetailsShellViewModel shell) {
+    final IdeathonWorkspaceViewModel? evaluation = _evaluationWorkspace;
+    if (evaluation == null) return null;
+    return IdeathonDetailsViewModel.fromShell(shell: shell, workspace: evaluation);
+  }
+
+  String _initialModuleId(IdeathonDetailsShellViewModel shell) {
+    if (!shell.requiresIdeaPayment && _moduleId == 'payments') return 'overview';
+    if (_moduleId == 'lifecycle') return 'overview';
+    return _moduleId;
   }
 
   bool get _canEdit => RoleVisibilityHelpers.canCreateIdeathon(UserRole.fromCode(widget.actor.role));
@@ -118,7 +148,15 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   bool get _canExtend =>
       RoleVisibilityHelpers.canExtendEventSchedule(UserRole.fromCode(widget.actor.role));
 
-  EventDetailsCommand _commandFor(IdeathonDetailsViewModel vm) {
+  EventDetailsCommand _commandFor(IdeathonDetailsShellViewModel shell) {
+    final IdeathonDetailsViewModel? vm = _viewModelForActions(shell);
+    if (vm == null) {
+      return const EventDetailsCommand(
+        label: 'Loading…',
+        icon: AppIcons.scoring,
+        enabled: false,
+      );
+    }
     final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
     final EventPrimaryActionKind kind = EventLifecycle.primaryAction(
       progress,
@@ -255,34 +293,35 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     }
   }
 
-  List<Widget> _statusPills(IdeathonDetailsViewModel vm) {
-    final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
+  List<Widget> _statusPills(IdeathonDetailsShellViewModel shell) {
+    final IdeathonDetailsViewModel? vm = _viewModelForActions(shell);
+    final EventLifecycleProgress? progress = vm?.workspace.lifecycleProgress;
     return <Widget>[
-      IdeathonStatusPill(status: vm.ideathon.status, compact: false),
+      IdeathonStatusPill(status: shell.ideathon.status, compact: false),
       EventCommercialAccessPill.forEvent(
-        event: vm.ideathon,
-        plan: vm.workspace.commercialPlan,
+        event: shell.ideathon,
+        plan: shell.commercialPlan,
         compact: false,
       ),
-      if (progress.pendingEvaluationCount > 0 && !progress.completed)
+      if (progress != null && progress.pendingEvaluationCount > 0 && !progress.completed)
         EventMetaChip(
           icon: AppIcons.clock,
           label: '${progress.pendingEvaluationCount} pending',
           color: const Color(0xFFEA580C),
         )
-      else if (progress.resultsReady && !progress.completed)
+      else if (progress != null && progress.resultsReady && !progress.completed)
         const EventMetaChip(
           icon: AppIcons.results,
           label: 'Results ready',
           color: Color(0xFF059669),
         ),
-      if (progress.winnersSelected && !progress.completed)
+      if (progress != null && progress.winnersSelected && !progress.completed)
         const EventMetaChip(
           icon: AppIcons.star,
           label: 'Winners selected',
           color: Color(0xFFB45309),
         ),
-      if (progress.completed)
+      if (progress != null && progress.completed)
         const EventMetaChip(
           icon: AppIcons.lock,
           label: 'Read-only',
@@ -291,8 +330,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     ];
   }
 
-  List<Widget> _contextPills(IdeathonDetailsViewModel vm, String selectedId) {
-    final event = vm.ideathon;
+  List<Widget> _contextPills(IdeathonDetailsShellViewModel shell, String selectedId) {
+    final event = shell.ideathon;
+    final IdeathonDetailsViewModel? vm = _viewModelForActions(shell);
     final DateTime start = event.startDateTime.toLocal();
     final DateTime end = event.endDateTime.toLocal();
     final bool sameDay = start.year == end.year && start.month == end.month && start.day == end.day;
@@ -300,16 +340,18 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         ? formatShortDate(start)
         : '${formatShortDate(start)} – ${formatShortDate(end)}';
     final String timeLabel = '${formatShortTime(start)} – ${formatShortTime(end)}';
-    final String org = vm.organisationName.trim();
-    final String templateName =
-        vm.evaluationTemplateName.trim().isEmpty ? event.evaluationTemplateId.trim() : vm.evaluationTemplateName.trim();
+    final String org = shell.organisationName.trim();
+    final String templateName = shell.evaluationTemplateName.trim().isEmpty
+        ? event.evaluationTemplateId.trim()
+        : shell.evaluationTemplateName.trim();
+    final int ideaCount = shell.ideaCount;
     final EventMetaChip ideasChip = EventMetaChip(
       icon: event.eventKind.entriesIcon,
       label:
-          '${vm.ideas.length} ${vm.ideas.length == 1 ? event.eventKind.payableItemLabel.toLowerCase() : event.eventKind.entriesLabel.toLowerCase()}',
+          '$ideaCount ${ideaCount == 1 ? event.eventKind.payableItemLabel.toLowerCase() : event.eventKind.entriesLabel.toLowerCase()}',
       color: const Color(0xFF4F46E5),
     );
-    final List<Widget> statusPills = _statusPills(vm);
+    final List<Widget> statusPills = _statusPills(shell);
 
     switch (selectedId) {
       case 'ideas':
@@ -318,24 +360,27 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         return <Widget>[
           ...statusPills,
           ideasChip,
-          _PaymentContextPills(loadFuture: _paymentsFuture),
+          _PaymentContextPills(cache: _tabCache, shell: shell),
         ];
       case 'assignments':
+        final int assignmentCount = vm?.workspace.assignmentCount ?? 0;
+        final bool evaluationStarted = vm?.workspace.evaluationStarted ?? false;
         return <Widget>[
           ...statusPills,
+          if (vm != null)
+            EventMetaChip(
+              icon: AppIcons.judges,
+              label: '$assignmentCount assignment${assignmentCount == 1 ? '' : 's'}',
+              color: const Color(0xFF7C3AED),
+            ),
           EventMetaChip(
-            icon: AppIcons.judges,
-            label: '${vm.workspace.assignmentCount} assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}',
-            color: const Color(0xFF7C3AED),
-          ),
-          EventMetaChip(
-            icon: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+            icon: evaluationStarted || IdeathonService.isEventCompleted(event)
                 ? AppIcons.lock
                 : AppIcons.judges,
-            label: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+            label: evaluationStarted || IdeathonService.isEventCompleted(event)
                 ? 'Assignments locked'
                 : 'Assignments open',
-            color: vm.workspace.evaluationStarted || IdeathonService.isEventCompleted(event)
+            color: evaluationStarted || IdeathonService.isEventCompleted(event)
                 ? const Color(0xFFB45309)
                 : const Color(0xFF059669),
           ),
@@ -343,7 +388,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       case 'template':
         final bool templateLocked = IdeathonService.isEvaluationTemplateLocked(
           event,
-          evaluationStarted: vm.workspace.evaluationStarted,
+          evaluationStarted: vm?.workspace.evaluationStarted ?? false,
         );
         return <Widget>[
           ...statusPills,
@@ -358,11 +403,12 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       case 'results':
         return <Widget>[
           ...statusPills,
-          EventMetaChip(
-            icon: AppIcons.results,
-            label: vm.workspace.evaluationProgressLabel,
-            color: const Color(0xFF059669),
-          ),
+          if (vm != null)
+            EventMetaChip(
+              icon: AppIcons.results,
+              label: vm.workspace.evaluationProgressLabel,
+              color: const Color(0xFF059669),
+            ),
         ];
       case 'winners':
       case 'leaderboard':
@@ -370,11 +416,12 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         return <Widget>[
           ...statusPills,
           ideasChip,
-          EventMetaChip(
-            icon: AppIcons.results,
-            label: vm.workspace.evaluationProgressLabel,
-            color: const Color(0xFF059669),
-          ),
+          if (vm != null)
+            EventMetaChip(
+              icon: AppIcons.results,
+              label: vm.workspace.evaluationProgressLabel,
+              color: const Color(0xFF059669),
+            ),
         ];
       default:
         return <Widget>[
@@ -390,52 +437,32 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   }
 
   Widget? _eventActions(
-    IdeathonDetailsViewModel vm, {
+    IdeathonDetailsShellViewModel shell, {
     required bool eventCompleted,
     required bool evaluationLocked,
   }) {
-    final IdeathonModel event = vm.ideathon;
-    if (eventCompleted && !vm.unusedDeletable) return null;
-    final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
-      if (_canEdit && !eventCompleted)
-        CardOverflowMenuAction(
-          value: 'edit',
-          icon: evaluationLocked ? AppIcons.lock : AppIcons.edit,
-          label: 'Edit event',
-        ),
-      if (_canExtend && !eventCompleted)
-        const CardOverflowMenuAction(
-          value: 'extend',
-          icon: AppIcons.clock,
-          label: 'Extend end date',
-        ),
-      if (_canEdit && vm.unusedDeletable)
-        const CardOverflowMenuAction(
-          value: 'delete',
-          icon: AppIcons.delete,
-          label: 'Delete event',
-          danger: true,
-        ),
-    ];
-    if (actions.isEmpty) return null;
-    return CardOverflowMenuButton(
-      tooltip: 'Event actions',
-      dividersBefore: const <String>{'delete'},
-      onSelected: (String value) {
-        if (value == 'edit') setState(() => _editing = true);
-        if (value == 'extend') _extendEndDate(event);
-        if (value == 'delete') _deleteEvent(vm);
-      },
-      actions: actions,
+    return _EventOverflowActions(
+      shell: shell,
+      tabCache: _tabCache,
+      canEdit: _canEdit,
+      canExtend: _canExtend,
+      eventCompleted: eventCompleted,
+      evaluationLocked: evaluationLocked,
+      onEdit: () => setState(() => _editing = true),
+      onExtend: () => _extendEndDate(shell.ideathon),
+      onDelete: () => _deleteEvent(shell),
+      actor: widget.actor,
+      onBack: widget.onBack,
+      onDeleted: widget.onDeleted,
     );
   }
 
-  Future<void> _deleteEvent(IdeathonDetailsViewModel vm) async {
+  Future<void> _deleteEvent(IdeathonDetailsShellViewModel shell) async {
     final bool ok = await FeedbackService.showConfirmation(
       context,
       title: 'Delete event?',
       message:
-          'Delete ${vm.ideathon.name.trim().isEmpty ? 'this event' : '"${vm.ideathon.name.trim()}"'}? '
+          'Delete ${shell.ideathon.name.trim().isEmpty ? 'this event' : '"${shell.ideathon.name.trim()}"'}? '
           'This cannot be undone. Only unused events with no submissions, payments, or evaluation records can be deleted.',
       confirmLabel: 'Delete Event',
       dangerConfirm: true,
@@ -444,7 +471,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     try {
       await IdeathonService.deleteUnusedEvent(
         actor: widget.actor,
-        ideathonId: vm.ideathon.ideathonId,
+        ideathonId: shell.ideathon.ideathonId,
       );
     } catch (e) {
       if (!mounted) return;
@@ -463,9 +490,10 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     );
   }
 
-  List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsViewModel vm) {
-    final IdeathonModel event = vm.ideathon;
+  List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsShellViewModel shell) {
+    final IdeathonModel event = shell.ideathon;
     final EventKind kind = event.eventKind;
+    final int? assignmentCount = _evaluationWorkspace?.assignmentCount;
     final List<EventDetailsNavGroup> groups = <EventDetailsNavGroup>[
       EventDetailsNavGroup(
         id: 'overview',
@@ -476,7 +504,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             id: 'overview',
             label: 'Overview',
             icon: AppIcons.info,
-            child: IdeathonOverviewTab(vm: vm),
+            child: EventDetailsOverviewTabHost(
+              shell: shell,
+              cache: _tabCache,
+              builder: (IdeathonDetailsViewModel vm) => IdeathonOverviewTab(vm: vm),
+            ),
           ),
         ],
       ),
@@ -489,12 +521,18 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             id: 'ideas',
             label: kind.entriesLabel,
             icon: kind.entriesIcon,
-            count: vm.ideas.isEmpty ? null : vm.ideas.length,
-            child: IdeathonIdeasTab(vm: vm, actor: widget.actor, onRefresh: _reload),
+            count: shell.ideaCount == 0 ? null : shell.ideaCount,
+            child: EventDetailsIdeasTabHost(
+              shell: shell,
+              cache: _tabCache,
+              evaluationWorkspace: _evaluationWorkspace,
+              builder: (IdeathonDetailsViewModel vm) =>
+                  IdeathonIdeasTab(vm: vm, actor: widget.actor, onRefresh: _reload),
+            ),
           ),
         ],
       ),
-      if (vm.requiresIdeaPayment)
+      if (shell.requiresIdeaPayment)
         EventDetailsNavGroup(
           id: 'payments',
           label: 'Payments',
@@ -504,13 +542,17 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               id: 'payments',
               label: 'Payments',
               icon: AppIcons.payments,
-              child: IdeathonPaymentsTab(
-                ideathonId: event.ideathonId,
-                eventName: event.name,
-                actor: widget.actor,
-                kind: kind,
-                loadFuture: _paymentsFuture,
-                onChanged: _reload,
+              child: EventDetailsPaymentsTabHost(
+                shell: shell,
+                cache: _tabCache,
+                builder: (Future<EventPaymentsViewModel> loadFuture) => IdeathonPaymentsTab(
+                  ideathonId: event.ideathonId,
+                  eventName: event.name,
+                  actor: widget.actor,
+                  kind: kind,
+                  loadFuture: loadFuture,
+                  onChanged: _reload,
+                ),
               ),
             ),
           ],
@@ -524,9 +566,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             id: 'assignments',
             label: 'Judge Assignments',
             icon: AppIcons.judges,
-            count: vm.workspace.assignmentCount == 0 ? null : vm.workspace.assignmentCount,
+            count: assignmentCount == null || assignmentCount == 0 ? null : assignmentCount,
             child: IdeathonJudgeAssignmentsTab(
-              key: ValueKey<String>('${event.ideathonId}:${vm.ideas.length}'),
+              key: ValueKey<String>('${event.ideathonId}:${shell.ideaCount}'),
               ideathonId: event.ideathonId,
               actor: widget.actor,
             ),
@@ -535,10 +577,16 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             id: 'template',
             label: 'Evaluation Template',
             icon: AppIcons.scoring,
-            child: IdeathonEvaluationTemplateTab(
-              vm: vm,
-              actor: widget.actor,
-              onSaved: _reload,
+            child: EventDetailsEvaluationTabHost(
+              shell: shell,
+              cache: _tabCache,
+              cacheKey: 'template',
+              evaluationWorkspace: _evaluationWorkspace,
+              builder: (IdeathonDetailsViewModel vm) => IdeathonEvaluationTemplateTab(
+                vm: vm,
+                actor: widget.actor,
+                onSaved: _reload,
+              ),
             ),
           ),
           EventDetailsModule(
@@ -561,35 +609,41 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               id: 'winners',
               label: 'Winners',
               icon: AppIcons.star,
-              child: IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
+              child: EventDetailsEvaluationTabHost(
+                shell: shell,
+                cache: _tabCache,
+                cacheKey: 'winners',
+                evaluationWorkspace: _evaluationWorkspace,
+                builder: (IdeathonDetailsViewModel vm) =>
+                    IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
+              ),
             ),
             EventDetailsModule(
               id: 'leaderboard',
               label: 'Leaderboard',
               icon: AppIcons.leaderboard,
-              child: IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
+              child: EventDetailsEvaluationTabHost(
+                shell: shell,
+                cache: _tabCache,
+                cacheKey: 'leaderboard_vm',
+                evaluationWorkspace: _evaluationWorkspace,
+                builder: (IdeathonDetailsViewModel vm) =>
+                    IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
+              ),
             ),
             EventDetailsModule(
               id: 'reports',
               label: 'Reports',
               icon: AppIcons.docs,
-              child: IdeathonReportsTab(vm: vm, actor: widget.actor),
-            ),
-          ],
-        ),
-      );
-    } else {
-      groups.add(
-        EventDetailsNavGroup(
-          id: 'lifecycle',
-          label: 'Lifecycle',
-          icon: AppIcons.checklist,
-          items: <EventDetailsModule>[
-            EventDetailsModule(
-              id: 'lifecycle',
-              label: 'Lifecycle',
-              icon: AppIcons.checklist,
-              child: IdeathonLifecycleTab(vm: vm),
+              child: EventDetailsEvaluationTabHost(
+                shell: shell,
+                cache: _tabCache,
+                cacheKey: 'reports',
+                evaluationWorkspace: _evaluationWorkspace,
+                includeIdeas: true,
+                builder: (IdeathonDetailsViewModel vm) =>
+                    IdeathonReportsTab(vm: vm, actor: widget.actor),
+              ),
             ),
           ],
         ),
@@ -603,9 +657,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     final DashboardSessionScope session = DashboardSessionScope.of(context);
 
     return SizedBox.expand(
-      child: FutureBuilder<IdeathonDetailsViewModel>(
-        future: _future,
-        builder: (BuildContext context, AsyncSnapshot<IdeathonDetailsViewModel> snapshot) {
+      child: FutureBuilder<IdeathonDetailsShellViewModel>(
+        future: _shellFuture,
+        builder: (BuildContext context, AsyncSnapshot<IdeathonDetailsShellViewModel> snapshot) {
           final String title = snapshot.data?.ideathon.name.trim() ?? '';
           final EventKind kind = snapshot.data?.ideathon.eventKind ?? widget.eventKind;
           final Widget header = DashboardPageHeader(
@@ -664,10 +718,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             );
           }
 
-          final IdeathonDetailsViewModel vm = snapshot.data!;
-          final event = vm.ideathon;
+          final IdeathonDetailsShellViewModel shell = snapshot.data!;
+          final IdeathonModel event = shell.ideathon;
           final bool eventCompleted = IdeathonService.isEventCompleted(event);
-          final bool evaluationLocked = vm.workspace.evaluationStarted || eventCompleted;
+          final bool evaluationLocked =
+              (_evaluationWorkspace?.evaluationStarted ?? false) || eventCompleted;
 
           if (_editing && _canEdit && !eventCompleted) {
             return Column(
@@ -709,13 +764,22 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               header,
               const SizedBox(height: 8),
               Expanded(
-                child: EventDetailsShell(
-                  initialId: (!vm.requiresIdeaPayment && _moduleId == 'payments') ? 'overview' : _moduleId,
-                  onSelected: (String id) => _moduleId = id,
-                  command: _commandFor(vm),
-                  contextPillsFor: (String id) => _contextPills(vm, id),
-                  headerActions: _eventActions(vm, eventCompleted: eventCompleted, evaluationLocked: evaluationLocked),
-                  navigation: _navigationFor(vm),
+                child: FutureBuilder<IdeathonWorkspaceViewModel>(
+                  future: _evaluationFuture,
+                  builder: (BuildContext context, AsyncSnapshot<IdeathonWorkspaceViewModel> evalSnapshot) {
+                    return EventDetailsShell(
+                      initialId: _initialModuleId(shell),
+                      onSelected: (String id) => _moduleId = id,
+                      command: _commandFor(shell),
+                      contextPillsFor: (String id) => _contextPills(shell, id),
+                      headerActions: _eventActions(
+                        shell,
+                        eventCompleted: eventCompleted,
+                        evaluationLocked: evaluationLocked,
+                      ),
+                      navigation: _navigationFor(shell),
+                    );
+                  },
                 ),
               ),
             ],
@@ -726,16 +790,122 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
   }
 }
 
-class _PaymentContextPills extends StatelessWidget {
-  const _PaymentContextPills({required this.loadFuture});
+class _EventOverflowActions extends StatefulWidget {
+  const _EventOverflowActions({
+    required this.shell,
+    required this.tabCache,
+    required this.canEdit,
+    required this.canExtend,
+    required this.eventCompleted,
+    required this.evaluationLocked,
+    required this.onEdit,
+    required this.onExtend,
+    required this.onDelete,
+    required this.actor,
+    required this.onBack,
+    this.onDeleted,
+  });
 
-  final Future<EventPaymentsViewModel> loadFuture;
+  final IdeathonDetailsShellViewModel shell;
+  final EventDetailsTabCacheBucket tabCache;
+  final bool canEdit;
+  final bool canExtend;
+  final bool eventCompleted;
+  final bool evaluationLocked;
+  final VoidCallback onEdit;
+  final VoidCallback onExtend;
+  final VoidCallback onDelete;
+  final UserModel actor;
+  final VoidCallback onBack;
+  final VoidCallback? onDeleted;
+
+  @override
+  State<_EventOverflowActions> createState() => _EventOverflowActionsState();
+}
+
+class _EventOverflowActionsState extends State<_EventOverflowActions> {
+  bool? _unusedDeletable;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveUnused();
+  }
+
+  Future<void> _resolveUnused() async {
+    if (widget.shell.ideathon.ideas.isNotEmpty) {
+      if (mounted) setState(() => _unusedDeletable = false);
+      return;
+    }
+    final bool unused = await widget.tabCache.getOrLoad<bool>(
+      EventDetailsTabKeys.unusedDeletable,
+      () => IdeathonService.isUnusedEvent(widget.shell.ideathon),
+    );
+    if (mounted) setState(() => _unusedDeletable = unused);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
+      if (widget.canEdit && !widget.eventCompleted)
+        CardOverflowMenuAction(
+          value: 'edit',
+          icon: widget.evaluationLocked ? AppIcons.lock : AppIcons.edit,
+          label: 'Edit event',
+        ),
+      if (widget.canExtend && !widget.eventCompleted)
+        const CardOverflowMenuAction(
+          value: 'extend',
+          icon: AppIcons.clock,
+          label: 'Extend end date',
+        ),
+      if (widget.canEdit && _unusedDeletable == true)
+        const CardOverflowMenuAction(
+          value: 'delete',
+          icon: AppIcons.delete,
+          label: 'Delete event',
+          danger: true,
+        ),
+    ];
+    if (actions.isEmpty) return const SizedBox.shrink();
+    return CardOverflowMenuButton(
+      tooltip: 'Event actions',
+      dividersBefore: const <String>{'delete'},
+      onSelected: (String value) {
+        if (value == 'edit') widget.onEdit();
+        if (value == 'extend') widget.onExtend();
+        if (value == 'delete') widget.onDelete();
+      },
+      actions: actions,
+    );
+  }
+}
+
+class _PaymentContextPills extends StatelessWidget {
+  const _PaymentContextPills({required this.cache, required this.shell});
+
+  final EventDetailsTabCacheBucket cache;
+  final IdeathonDetailsShellViewModel shell;
+
+  @override
+  Widget build(BuildContext context) {
+    final Future<EventPaymentsViewModel> loadFuture = cache.getOrLoad<EventPaymentsViewModel>(
+      EventDetailsTabKeys.payments,
+      () => EventPaymentsService.load(
+        kind: shell.ideathon.eventKind,
+        eventId: shell.ideathon.ideathonId,
+      ),
+    );
     return FutureBuilder<EventPaymentsViewModel>(
       future: loadFuture,
       builder: (BuildContext context, AsyncSnapshot<EventPaymentsViewModel> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const SizedBox(
+            width: 20,
+            height: 20,
+            child: HkzProgressIndicator(size: 20),
+          );
+        }
         final EventPaymentMetrics? metrics = snapshot.data?.metrics;
         if (metrics == null) return const SizedBox.shrink();
         return Wrap(

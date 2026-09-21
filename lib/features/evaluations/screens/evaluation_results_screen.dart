@@ -19,6 +19,7 @@ import '../services/evaluation_results_query_service.dart';
 import '../widgets/evaluation_results_table_columns.dart';
 import '../exports/evaluation_results_export_provider.dart';
 import '../../exports/exports.dart';
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
 
 /// Department-admin workspace for reviewing evaluation outcomes and rankings.
 ///
@@ -187,7 +188,9 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<EvaluationResultsQueryResult> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: HkzProgressIndicator(size: widget.embedded ? 36 : 32),
+          );
         }
         if (snapshot.hasError) {
           return Center(child: Text('Unable to load results: ${snapshot.error}'));

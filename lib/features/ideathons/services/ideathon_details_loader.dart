@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hackz/features/idea/models/idea_model.dart';
 import 'package:hackz/features/ideathons/models/ideathon_idea_snapshot.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
+import 'package:hackz/features/ideathons/services/ideathon_details_shell_loader.dart';
+import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/features/ideathons/services/ideathon_service.dart';
 import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
-import 'package:hackz/features/organization/models/department_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
 import 'package:hackz/utils/firestore_utils.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
@@ -34,6 +36,16 @@ class IdeathonIdeaEntry {
   String get teamName => snapshot.teamName.trim();
 }
 
+class IdeathonOverviewPeople {
+  const IdeathonOverviewPeople({
+    required this.judges,
+    required this.coordinators,
+  });
+
+  final List<UserModel> judges;
+  final List<UserModel> coordinators;
+}
+
 class IdeathonDetailsViewModel {
   const IdeathonDetailsViewModel({
     required this.workspace,
@@ -55,31 +67,70 @@ class IdeathonDetailsViewModel {
   List<UserModel> get judges => workspace.judges;
   List<UserModel> get coordinators => workspace.coordinators;
   bool get requiresIdeaPayment => workspace.requiresIdeaPayment;
+
+  int get ideaCount => ideathon.ideas.length;
+
+  static IdeathonDetailsViewModel fromShell({
+    required IdeathonDetailsShellViewModel shell,
+    required IdeathonWorkspaceViewModel workspace,
+    List<IdeathonIdeaEntry> ideas = const <IdeathonIdeaEntry>[],
+    bool unusedDeletable = false,
+  }) {
+    return IdeathonDetailsViewModel(
+      workspace: workspace,
+      organisationName: shell.organisationName,
+      departmentLabel: shell.departmentLabel,
+      evaluationTemplateName: shell.evaluationTemplateName,
+      ideas: ideas,
+      unusedDeletable: unusedDeletable,
+    );
+  }
+
+  IdeathonDetailsViewModel copyWith({
+    IdeathonWorkspaceViewModel? workspace,
+    List<IdeathonIdeaEntry>? ideas,
+    bool? unusedDeletable,
+  }) {
+    return IdeathonDetailsViewModel(
+      workspace: workspace ?? this.workspace,
+      organisationName: organisationName,
+      departmentLabel: departmentLabel,
+      evaluationTemplateName: evaluationTemplateName,
+      ideas: ideas ?? this.ideas,
+      unusedDeletable: unusedDeletable ?? this.unusedDeletable,
+    );
+  }
 }
 
 abstract final class IdeathonDetailsLoader {
   IdeathonDetailsLoader._();
 
+  /// Full load (legacy / workspace panel). Event details pane uses shell + tab cache instead.
   static Future<IdeathonDetailsViewModel> load(String ideathonId) async {
     final IdeathonWorkspaceViewModel workspace = await IdeathonWorkspaceLoader.load(ideathonId);
     final IdeathonModel event = workspace.ideathon;
-    final DepartmentModel? department = DepartmentModel.byCode(event.departmentId);
     final bool unusedDeletable = await IdeathonService.isUnusedEvent(event);
 
     return IdeathonDetailsViewModel(
       workspace: workspace,
       organisationName: workspace.organisationName,
-      departmentLabel: department == null
-          ? event.departmentId.trim()
-          : '${department.code} · ${department.name}',
+      departmentLabel: DepartmentModel.labelFor(event.departmentId).isNotEmpty
+          ? DepartmentModel.labelFor(event.departmentId)
+          : workspace.departmentName,
       evaluationTemplateName: workspace.evaluationTemplateName,
-      ideas: await _loadIdeas(event.ideas),
+      ideas: await loadIdeas(event.ideas),
       unusedDeletable: unusedDeletable,
     );
   }
 
-  static Future<List<IdeathonIdeaEntry>> _loadIdeas(List<IdeathonIdeaSnapshot> snapshots) {
+  static Future<List<IdeathonIdeaEntry>> loadIdeas(List<IdeathonIdeaSnapshot> snapshots) {
     return Future.wait(snapshots.map(_loadIdea));
+  }
+
+  static Future<IdeathonOverviewPeople> loadOverviewPeople(IdeathonModel event) async {
+    final List<UserModel> judges = await _fetchUsers(event.judgeIds);
+    final List<UserModel> coordinators = await _fetchUsers(event.coordinatorIds);
+    return IdeathonOverviewPeople(judges: judges, coordinators: coordinators);
   }
 
   static Future<IdeathonIdeaEntry> _loadIdea(IdeathonIdeaSnapshot snapshot) async {
@@ -93,5 +144,17 @@ abstract final class IdeathonDetailsLoader {
       }
     }
     return IdeathonIdeaEntry(snapshot: snapshot, idea: idea);
+  }
+
+  static Future<List<UserModel>> _fetchUsers(List<String> ids) async {
+    final List<UserModel> users = <UserModel>[];
+    for (final String raw in ids) {
+      final String id = raw.trim();
+      if (id.isEmpty) continue;
+      final UserModel? user = await FirestoreUtils.fetchUser(id);
+      if (user != null) users.add(user);
+    }
+    users.sort((UserModel a, UserModel b) => userDisplayName(a).compareTo(userDisplayName(b)));
+    return users;
   }
 }

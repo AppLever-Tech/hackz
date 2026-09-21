@@ -81,6 +81,42 @@ class IdeathonWorkspaceViewModel {
         completed: ideathon.status == IdeathonStatus.completed ||
             ideathon.status == IdeathonStatus.archived,
       );
+
+  IdeathonWorkspaceViewModel copyWith({
+    IdeathonModel? ideathon,
+    List<UserModel>? judges,
+    List<UserModel>? coordinators,
+    String? evaluationProgressLabel,
+    double? evaluationProgressPct,
+    int? assignmentCount,
+    int? completedEvaluationCount,
+    DateTime? evaluationStartedAt,
+    DateTime? firstAssignedAt,
+    String? organisationName,
+    String? departmentName,
+    String? evaluationTemplateName,
+    EventWinnerEntry? winner,
+    EventWinnerEntry? runnerUp,
+    OrganizationCommercialPlan? commercialPlan,
+  }) {
+    return IdeathonWorkspaceViewModel(
+      ideathon: ideathon ?? this.ideathon,
+      judges: judges ?? this.judges,
+      coordinators: coordinators ?? this.coordinators,
+      evaluationProgressLabel: evaluationProgressLabel ?? this.evaluationProgressLabel,
+      evaluationProgressPct: evaluationProgressPct ?? this.evaluationProgressPct,
+      assignmentCount: assignmentCount ?? this.assignmentCount,
+      completedEvaluationCount: completedEvaluationCount ?? this.completedEvaluationCount,
+      evaluationStartedAt: evaluationStartedAt ?? this.evaluationStartedAt,
+      firstAssignedAt: firstAssignedAt ?? this.firstAssignedAt,
+      organisationName: organisationName ?? this.organisationName,
+      departmentName: departmentName ?? this.departmentName,
+      evaluationTemplateName: evaluationTemplateName ?? this.evaluationTemplateName,
+      winner: winner ?? this.winner,
+      runnerUp: runnerUp ?? this.runnerUp,
+      commercialPlan: commercialPlan ?? this.commercialPlan,
+    );
+  }
 }
 
 abstract final class IdeathonWorkspaceLoader {

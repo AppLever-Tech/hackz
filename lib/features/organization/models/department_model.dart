@@ -49,6 +49,22 @@ class DepartmentModel {
     return null;
   }
 
+  /// Display label for event/user department fields (code, name, or raw value).
+  static String labelFor(String departmentRaw) {
+    final String raw = departmentRaw.trim();
+    if (raw.isEmpty) return '';
+    final DepartmentModel? codeMatch = byCode(raw);
+    if (codeMatch != null) return '${codeMatch.code} · ${codeMatch.name}';
+    final DepartmentModel? nameMatch = byName(raw);
+    if (nameMatch != null) return '${nameMatch.code} · ${nameMatch.name}';
+    final String resolved = resolveCode(raw);
+    if (resolved.isNotEmpty) {
+      final DepartmentModel? resolvedMatch = byCode(resolved);
+      if (resolvedMatch != null) return '${resolvedMatch.code} · ${resolvedMatch.name}';
+    }
+    return raw;
+  }
+
   static String resolveCode(String rawDepartment) {
     final raw = rawDepartment.trim();
     if (raw.isEmpty) return '';

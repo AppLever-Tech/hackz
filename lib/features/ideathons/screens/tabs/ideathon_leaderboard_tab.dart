@@ -39,7 +39,11 @@ class _IdeathonLeaderboardTabState extends State<IdeathonLeaderboardTab> {
       ),
     );
     final Map<String, String> teamByIdea = <String, String>{
-      for (final IdeathonIdeaEntry row in widget.vm.ideas) row.ideaId: row.teamName,
+      if (widget.vm.ideas.isNotEmpty)
+        for (final IdeathonIdeaEntry row in widget.vm.ideas) row.ideaId: row.teamName
+      else
+        for (final snapshot in widget.vm.ideathon.ideas)
+          snapshot.ideaId.trim(): snapshot.teamName.trim(),
     };
     final List<EventLeaderboardEntry> ranked = <EventLeaderboardEntry>[];
     for (final row in result.rows) {

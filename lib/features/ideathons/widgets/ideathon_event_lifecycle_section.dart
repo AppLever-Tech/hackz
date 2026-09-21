@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
+import 'package:hackz/core/ui/common/lifecycle_timeline.dart';
+import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/features/events/models/event_kind.dart';
 import 'package:hackz/features/events/models/event_lifecycle.dart';
 import 'package:hackz/features/events/models/event_lifecycle_stage.dart';
-import 'package:hackz/features/events/widgets/event_lifecycle_section.dart';
+import 'package:hackz/features/events/widgets/event_detail_section.dart';
+import 'package:hackz/features/events/widgets/event_lifecycle_strip.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/utils/common_helpers.dart';
 
-class IdeathonLifecycleTab extends StatelessWidget {
-  const IdeathonLifecycleTab({super.key, required this.vm, this.embedded = false});
+/// Event lifecycle strip (always visible) + collapsible vertical timeline.
+class IdeathonEventLifecycleSection extends StatefulWidget {
+  const IdeathonEventLifecycleSection({super.key, required this.vm});
 
   final IdeathonDetailsViewModel vm;
-  final bool embedded;
+
+  @override
+  State<IdeathonEventLifecycleSection> createState() => _IdeathonEventLifecycleSectionState();
+}
+
+class _IdeathonEventLifecycleSectionState extends State<IdeathonEventLifecycleSection> {
+  bool _detailsExpanded = false;
 
   @override
   Widget build(BuildContext context) {
-    final event = vm.ideathon;
+    final event = widget.vm.ideathon;
     final EventKind kind = event.eventKind;
-    final EventLifecycleProgress progress = vm.workspace.lifecycleProgress;
+    final EventLifecycleProgress progress = widget.vm.workspace.lifecycleProgress;
     final String currentId = EventLifecycle.currentStageId(progress, usesWinners: kind.usesWinners);
     final int pending = progress.pendingEvaluationCount;
     final String entry = kind.payableItemLabel.toLowerCase();
@@ -34,9 +44,9 @@ class IdeathonLifecycleTab extends StatelessWidget {
       EventLifecycleMoment(
         title: progress.hasAssignments ? 'Judge assignment started' : 'Judge assignment pending',
         subtitle: progress.hasAssignments
-            ? '${vm.workspace.assignmentCount} explicit $entry → judge assignment${vm.workspace.assignmentCount == 1 ? '' : 's'}'
+            ? '${widget.vm.workspace.assignmentCount} explicit $entry → judge assignment${widget.vm.workspace.assignmentCount == 1 ? '' : 's'}'
             : 'Optional at first — assign paid ${kind.entriesLabel.toLowerCase()} to judges from Judge Assignments',
-        at: vm.workspace.firstAssignedAt,
+        at: widget.vm.workspace.firstAssignedAt,
         icon: AppIcons.judges,
         color: const Color(0xFF7C3AED),
       ),
@@ -52,12 +62,12 @@ class IdeathonLifecycleTab extends StatelessWidget {
         title: progress.evaluationStarted ? 'Evaluation began' : 'Evaluation not started',
         subtitle: progress.evaluationStarted
             ? (progress.resultsReady
-                ? 'Results ready · ${vm.workspace.evaluationProgressLabel}'
+                ? 'Results ready · ${widget.vm.workspace.evaluationProgressLabel}'
                 : pending > 0
-                    ? '$pending evaluation${pending == 1 ? '' : 's'} pending · ${vm.workspace.evaluationProgressLabel}'
-                    : vm.workspace.evaluationProgressLabel)
+                    ? '$pending evaluation${pending == 1 ? '' : 's'} pending · ${widget.vm.workspace.evaluationProgressLabel}'
+                    : widget.vm.workspace.evaluationProgressLabel)
             : 'Locking uses the first submitted evaluation, not the scheduled date alone',
-        at: vm.workspace.evaluationStartedAt,
+        at: widget.vm.workspace.evaluationStartedAt,
         icon: AppIcons.scoring,
         color: const Color(0xFFEA580C),
       ),
@@ -95,11 +105,64 @@ class IdeathonLifecycleTab extends StatelessWidget {
         return bAt.compareTo(aAt);
       });
 
-    return EventLifecycleSection(
-      stages: EventLifecycle.stagesFor(kind),
-      currentId: currentId,
-      moments: moments,
-      embedded: embedded,
+    return EventDetailSection(
+      title: 'Event lifecycle',
+      icon: AppIcons.checklist,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          EventLifecycleStrip(stages: EventLifecycle.stagesFor(kind), currentId: currentId),
+          const SizedBox(height: 10),
+          InkWell(
+            onTap: () => setState(() => _detailsExpanded = !_detailsExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    _detailsExpanded ? 'Hide details' : 'Show details',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF4F46E5),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _detailsExpanded ? AppIcons.expandLess : AppIcons.expandMore,
+                    size: 18,
+                    color: const Color(0xFF4F46E5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_detailsExpanded) ...<Widget>[
+            const SizedBox(height: 4),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: kDashboardCardDecoration,
+              child: LifecycleTimeline(
+                title: 'Timeline',
+                subtitle: '${moments.length} event${moments.length == 1 ? '' : 's'} tracked',
+                events: moments
+                    .map(
+                      (EventLifecycleMoment m) => LifecycleTimelineEvent(
+                        title: m.title,
+                        subtitle: m.subtitle,
+                        when: m.at,
+                        icon: m.icon,
+                        color: m.color,
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
