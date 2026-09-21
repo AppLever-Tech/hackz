@@ -5,6 +5,7 @@ import '../../../core/firebase/hackz_firebase.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/common/rich_tabs.dart';
 import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/ui/loading/hkz_async_loader.dart';
 import '../../../features/events/models/event_payment_entry.dart';
 import '../../../features/user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
@@ -26,7 +27,6 @@ class PerIdeaPaymentVerificationScreen extends StatefulWidget {
 
 class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerificationScreen> {
   late Future<_PaymentData> _future;
-  final Set<String> _busy = <String>{};
 
   @override
   void initState() {
@@ -130,36 +130,38 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
   Future<void> _verify(EventPaymentEntry row) async {
     final PaymentModel? payment = row.payment;
     if (payment == null) return;
-    final String busyKey = PaymentEntriesView.rowKey(row);
-    setState(() => _busy.add(busyKey));
     try {
-      await PerIdeaPaymentVerificationService.verify(payment: payment, actor: widget.user);
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Approving payment',
+        message: 'Updating payment status…',
+        successMessage: 'Payment verified',
+        task: () => PerIdeaPaymentVerificationService.verify(payment: payment, actor: widget.user),
+      );
       if (!mounted) return;
-      FeedbackService.showSuccess(context, title: 'Payment verified', message: 'Payment verified.');
       _reload();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to verify', message: '$e');
-    } finally {
-      if (mounted) setState(() => _busy.remove(busyKey));
     }
   }
 
   Future<void> _reject(EventPaymentEntry row) async {
     final PaymentModel? payment = row.payment;
     if (payment == null) return;
-    final String busyKey = PaymentEntriesView.rowKey(row);
-    setState(() => _busy.add(busyKey));
     try {
-      await PerIdeaPaymentVerificationService.reject(payment: payment, actor: widget.user);
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Rejecting payment',
+        message: 'Updating payment status…',
+        successMessage: 'Payment marked as exception',
+        task: () => PerIdeaPaymentVerificationService.reject(payment: payment, actor: widget.user),
+      );
       if (!mounted) return;
-      FeedbackService.showSuccess(context, title: 'Payment rejected', message: 'Marked as exception.');
       _reload();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to reject', message: '$e');
-    } finally {
-      if (mounted) setState(() => _busy.remove(busyKey));
     }
   }
 
@@ -198,7 +200,6 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
             confirmActionLabel: 'Approve',
             exceptionActionLabel: 'Reject',
             centeredTableHeaders: true,
-            busyEntryIds: _busy,
           );
         }
 

@@ -112,9 +112,8 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         };
         _deptIdToCode = idToCode;
       });
-      _loadProblems();
     } catch (_) {
-      // Domain enrichment is best-effort.
+      // Domain enrichment is best-effort; problems already loaded in initState.
     }
   }
 

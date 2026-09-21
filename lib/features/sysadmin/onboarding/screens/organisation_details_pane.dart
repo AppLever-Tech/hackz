@@ -9,6 +9,8 @@ import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../../features/dashboard/chrome/dashboard_chrome_controller.dart';
 import '../../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../../features/dashboard/chrome/dashboard_session_scope.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 import '../../../../features/organization/models/enums/organization_access_status.dart';
 import '../../../../features/organization/models/enums/organization_commercial_plan.dart';
 import '../../../../features/organization/services/organisation_access.dart';
@@ -101,25 +103,33 @@ class _OrganisationDetailsPaneState extends State<OrganisationDetailsPane> {
 
   @override
   Widget build(BuildContext context) {
+    final DashboardSessionScope session = DashboardSessionScope.of(context);
+
     return SizedBox.expand(
       child: FutureBuilder<OrganisationOnboardingItem?>(
         future: _future,
         builder: (BuildContext context, AsyncSnapshot<OrganisationOnboardingItem?> snapshot) {
+          final OrganisationOnboardingItem? item = snapshot.data;
+          final Widget header = _pageHeader(
+            context,
+            session: session,
+            title: item?.name.trim().isNotEmpty == true ? item!.name.trim() : 'Organisation',
+          );
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _topBar(context, item: null),
+                header,
                 const Expanded(child: Center(child: HkzProgressIndicator(size: 36))),
               ],
             );
           }
-          final OrganisationOnboardingItem? item = snapshot.data;
           if (snapshot.hasError || item == null) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                _topBar(context, item: null),
+                header,
                 Expanded(
                   child: Center(
                     child: Padding(
@@ -144,8 +154,9 @@ class _OrganisationDetailsPaneState extends State<OrganisationDetailsPane> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _topBar(context, item: item),
-              _summaryBand(item),
+              header,
+              const SizedBox(height: 8),
+              _contextBand(context, item),
               Expanded(child: _tabbedBody(item)),
             ],
           );
@@ -154,39 +165,86 @@ class _OrganisationDetailsPaneState extends State<OrganisationDetailsPane> {
     );
   }
 
-  Widget _topBar(BuildContext context, {required OrganisationOnboardingItem? item}) {
+  Widget _pageHeader(
+    BuildContext context, {
+    required DashboardSessionScope session,
+    required String title,
+  }) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
-      child: Row(
-        children: <Widget>[
-          IconButton(
-            onPressed: widget.onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
-            tooltip: 'Back to Organisations',
-            visualDensity: VisualDensity.compact,
-          ),
-          Expanded(
-            child: Text(
-              item?.name ?? 'Organisation',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-            ),
-          ),
-          if (item != null) ...<Widget>[
-            IconButton(
-              onPressed: _reload,
-              icon: const Icon(AppIcons.refresh, size: 20),
-              tooltip: 'Refresh',
-            ),
-            _actionsMenu(item),
-          ],
-        ],
+      padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
+      child: DashboardPageHeader(
+        title: title,
+        titleIcon: AppIcons.organizations,
+        user: session.user,
+        onLogout: session.onLogout,
+        onUserTap: () => WorkspaceNavigator.openUser(context, session.user.userId, actor: session.user),
+        onRefresh: _reload,
+        helpPageId: 'tenant-onboarding',
+        leading: IconButton(
+          onPressed: widget.onBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to Organisations',
+          visualDensity: VisualDensity.compact,
+          padding: const EdgeInsets.all(8),
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        ),
       ),
     );
   }
 
-  Widget _actionsMenu(OrganisationOnboardingItem item) {
+  Widget _contextBand(BuildContext context, OrganisationOnboardingItem item) {
+    final bool mobile = ResponsiveHelper.isMobile(context);
+    final Widget pills = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: _contextPills(item),
+    );
+    final Widget? actions = _orgActionsMenu(item);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 12, 8),
+      child: mobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                pills,
+                if (actions != null) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: actions),
+                ],
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: pills),
+                if (actions != null) ...<Widget>[
+                  const SizedBox(width: 8),
+                  actions,
+                ],
+              ],
+            ),
+    );
+  }
+
+  List<Widget> _contextPills(OrganisationOnboardingItem item) {
+    final OrganizationModel org = item.organization;
+    final String code = item.organisationCode;
+    return <Widget>[
+      OrganizationThumbnail(organization: org, size: 28),
+      if (code.isNotEmpty) OrganisationMetaChip(icon: AppIcons.key, label: code),
+      OnboardingStatusPill(status: item.status, compact: true),
+      OrganisationAccessChip(active: org.status == OrganizationAccessStatus.active, label: org.status.label),
+      OrganisationMetaChip(icon: AppIcons.payments, label: org.commercialPlan.label),
+      OrganisationMetaChip(
+        icon: AppIcons.event,
+        label: organisationCommercialUsabilityLabel(org),
+      ),
+    ];
+  }
+
+  Widget? _orgActionsMenu(OrganisationOnboardingItem item) {
     final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
       const CardOverflowMenuAction(value: 'edit', icon: AppIcons.edit, label: 'Edit organisation'),
       if (!item.isComplete)
@@ -196,7 +254,7 @@ class _OrganisationDetailsPaneState extends State<OrganisationDetailsPane> {
       const CardOverflowMenuAction(value: 'delete', icon: AppIcons.delete, label: 'Delete', danger: true),
     ];
     return CardOverflowMenuButton(
-      tooltip: 'Actions',
+      tooltip: 'Organisation actions',
       dividersBefore: const <String>{'delete'},
       actions: actions,
       onSelected: (String value) async {
@@ -211,30 +269,6 @@ class _OrganisationDetailsPaneState extends State<OrganisationDetailsPane> {
             await _handleDelete(item);
         }
       },
-    );
-  }
-
-  Widget _summaryBand(OrganisationOnboardingItem item) {
-    final OrganizationModel org = item.organization;
-    final String code = item.organisationCode;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          OrganizationThumbnail(organization: org, size: 28),
-          if (code.isNotEmpty) OrganisationMetaChip(icon: AppIcons.key, label: code),
-          OnboardingStatusPill(status: item.status, compact: true),
-          OrganisationAccessChip(active: org.status == OrganizationAccessStatus.active, label: org.status.label),
-          OrganisationMetaChip(icon: AppIcons.payments, label: org.commercialPlan.label),
-          OrganisationMetaChip(
-            icon: AppIcons.event,
-            label: organisationCommercialUsabilityLabel(org),
-          ),
-        ],
-      ),
     );
   }
 
