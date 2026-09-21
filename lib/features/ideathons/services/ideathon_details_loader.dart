@@ -147,13 +147,15 @@ abstract final class IdeathonDetailsLoader {
   }
 
   static Future<List<UserModel>> _fetchUsers(List<String> ids) async {
-    final List<UserModel> users = <UserModel>[];
-    for (final String raw in ids) {
-      final String id = raw.trim();
-      if (id.isEmpty) continue;
-      final UserModel? user = await FirestoreUtils.fetchUser(id);
-      if (user != null) users.add(user);
-    }
+    final List<String> unique = <String>{
+      for (final String raw in ids) raw.trim(),
+    }.where((String id) => id.isNotEmpty).toList(growable: false);
+    if (unique.isEmpty) return const <UserModel>[];
+
+    final List<UserModel?> loaded = await Future.wait<UserModel?>(
+      unique.map((String id) => FirestoreUtils.fetchUser(id)),
+    );
+    final List<UserModel> users = loaded.whereType<UserModel>().toList(growable: true);
     users.sort((UserModel a, UserModel b) => userDisplayName(a).compareTo(userDisplayName(b)));
     return users;
   }

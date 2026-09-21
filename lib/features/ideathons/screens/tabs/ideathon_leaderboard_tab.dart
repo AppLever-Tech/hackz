@@ -13,10 +13,12 @@ class IdeathonLeaderboardTab extends StatefulWidget {
     super.key,
     required this.vm,
     required this.actor,
+    this.sharedResultsFuture,
   });
 
   final IdeathonDetailsViewModel vm;
   final UserModel actor;
+  final Future<EvaluationResultsQueryResult>? sharedResultsFuture;
 
   @override
   State<IdeathonLeaderboardTab> createState() => _IdeathonLeaderboardTabState();
@@ -32,12 +34,14 @@ class _IdeathonLeaderboardTabState extends State<IdeathonLeaderboardTab> {
   }
 
   Future<List<EventLeaderboardEntry>> _load() async {
-    final EvaluationResultsQueryResult result = await EvaluationResultsQueryService.fetch(
-      EvaluationResultsQueryParams(
-        viewer: widget.actor,
-        ideathonId: widget.vm.ideathon.ideathonId,
-      ),
-    );
+    final EvaluationResultsQueryResult result = widget.sharedResultsFuture != null
+        ? await widget.sharedResultsFuture!
+        : await EvaluationResultsQueryService.fetch(
+            EvaluationResultsQueryParams(
+              viewer: widget.actor,
+              ideathonId: widget.vm.ideathon.ideathonId,
+            ),
+          );
     final Map<String, String> teamByIdea = <String, String>{
       if (widget.vm.ideas.isNotEmpty)
         for (final IdeathonIdeaEntry row in widget.vm.ideas) row.ideaId: row.teamName

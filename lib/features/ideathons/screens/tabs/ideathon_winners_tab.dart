@@ -16,11 +16,13 @@ class IdeathonWinnersTab extends StatefulWidget {
     required this.vm,
     required this.actor,
     this.onChanged,
+    this.sharedResultsFuture,
   });
 
   final IdeathonDetailsViewModel vm;
   final UserModel actor;
   final VoidCallback? onChanged;
+  final Future<EvaluationResultsQueryResult>? sharedResultsFuture;
 
   @override
   State<IdeathonWinnersTab> createState() => _IdeathonWinnersTabState();
@@ -56,12 +58,14 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
   }
 
   Future<List<EventWinnerEntry>> _loadCandidates() async {
-    final EvaluationResultsQueryResult result = await EvaluationResultsQueryService.fetch(
-      EvaluationResultsQueryParams(
-        viewer: widget.actor,
-        ideathonId: widget.vm.ideathon.ideathonId,
-      ),
-    );
+    final EvaluationResultsQueryResult result = widget.sharedResultsFuture != null
+        ? await widget.sharedResultsFuture!
+        : await EvaluationResultsQueryService.fetch(
+            EvaluationResultsQueryParams(
+              viewer: widget.actor,
+              ideathonId: widget.vm.ideathon.ideathonId,
+            ),
+          );
     final Map<String, String> teamByIdea = <String, String>{
       for (final IdeathonIdeaEntry row in widget.vm.ideas) row.ideaId: row.teamName,
     };

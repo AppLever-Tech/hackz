@@ -8,6 +8,7 @@ import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/dashboard/chrome/dashboard_chrome_scope.dart';
 import 'package:hackz/features/dashboard/chrome/dashboard_components.dart';
 import 'package:hackz/features/dashboard/chrome/dashboard_session_scope.dart';
+import 'package:hackz/features/evaluations/services/evaluation_results_query_service.dart';
 import 'package:hackz/features/events/models/event_details_module.dart';
 import 'package:hackz/features/events/models/event_kind.dart';
 import 'package:hackz/features/events/models/event_lifecycle.dart';
@@ -27,7 +28,8 @@ import 'package:hackz/features/ideathons/screens/tabs/ideathon_winners_tab.dart'
 import 'package:hackz/features/ideathons/services/event_details_tab_cache.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_shell_loader.dart';
-import 'package:hackz/features/ideathons/services/ideathon_evaluation_summary_loader.dart';
+import 'package:hackz/features/ideathons/services/event_details_evaluation_access.dart';
+import 'package:hackz/features/ideathons/services/event_details_evaluation_bundle.dart';
 import 'package:hackz/features/ideathons/widgets/event_details_lazy_tabs.dart';
 import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
 import 'package:hackz/features/events/models/event_payment_entry.dart';
@@ -100,24 +102,58 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     super.initState();
     _tabCache = EventDetailsTabCache.forEvent(widget.ideathonId);
     _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
-    _evaluationFuture = _loadEvaluationSummary();
+    _evaluationFuture = _loadEvaluationBundle();
+    _shellFuture.then(_runBackgroundMaintenance);
   }
 
-  Future<IdeathonWorkspaceViewModel> _loadEvaluationSummary() {
+  Future<IdeathonWorkspaceViewModel> _loadEvaluationBundle() {
     return _shellFuture.then((IdeathonDetailsShellViewModel shell) {
-      return _tabCache.getOrLoad<IdeathonWorkspaceViewModel>(
-        EventDetailsTabKeys.evaluation,
-        () => IdeathonEvaluationSummaryLoader.load(
-          ideathon: shell.ideathon,
-          commercialPlan: shell.commercialPlan,
-          organisationName: shell.organisationName,
-        ),
-      );
-    }).then((IdeathonWorkspaceViewModel workspace) {
+      return EventDetailsEvaluationAccess.bundle(_tabCache, shell);
+    }).then((EventDetailsEvaluationBundle bundle) {
       if (mounted) {
-        setState(() => _evaluationWorkspace = workspace);
+        setState(() => _evaluationWorkspace = bundle.workspace);
       }
-      return workspace;
+      return bundle.workspace;
+    });
+  }
+
+  Future<void> _runBackgroundMaintenance(IdeathonDetailsShellViewModel shell) async {
+    IdeathonModel ideathon = shell.ideathon;
+    try {
+      await IdeathonService.ensurePerEventEntitlement(ideathon);
+      final IdeathonModel? refreshed = await IdeathonService.fetchById(ideathon.ideathonId);
+      if (refreshed != null) ideathon = refreshed;
+    } catch (_) {
+      // Non-blocking; event details remain usable.
+    }
+
+    try {
+      if (await IdeathonService.promoteEligibleSubmissionsWithoutIdeaPayment(ideathon.ideathonId)) {
+        if (!mounted) return;
+        _refreshAfterRosterChange();
+      }
+    } catch (_) {
+      // Non-blocking.
+    }
+  }
+
+  void _refreshAfterRosterChange() {
+    _tabCache.invalidate(EventDetailsTabKeys.payments);
+    _tabCache.invalidateEvaluationData();
+    setState(() {
+      _evaluationWorkspace = null;
+      _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
+      _evaluationFuture = _loadEvaluationBundle();
+    });
+    _shellFuture.then(_runBackgroundMaintenance);
+  }
+
+  void _invalidateEvaluationOnly() {
+    _tabCache.invalidateEvaluationData();
+    setState(() {
+      _evaluationWorkspace = null;
+      _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
+      _evaluationFuture = _loadEvaluationBundle();
     });
   }
 
@@ -127,8 +163,9 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       _evaluationWorkspace = null;
       _tabCache = EventDetailsTabCache.forEvent(widget.ideathonId);
       _shellFuture = IdeathonDetailsShellLoader.load(widget.ideathonId);
-      _evaluationFuture = _loadEvaluationSummary();
+      _evaluationFuture = _loadEvaluationBundle();
     });
+    _shellFuture.then(_runBackgroundMaintenance);
   }
 
   IdeathonDetailsViewModel? _viewModelForActions(IdeathonDetailsShellViewModel shell) {
@@ -218,7 +255,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
       );
       if (!mounted) return;
       setState(() => _moduleId = 'results');
-      _reload();
+      _invalidateEvaluationOnly();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to review results', message: '$e');
@@ -251,7 +288,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
         title: 'Event completed',
         message: 'This ${vm.ideathon.eventKind.label} is read-only. Results remain available.',
       );
-      _reload();
+      _invalidateEvaluationOnly();
     } catch (e) {
       if (!mounted) return;
       FeedbackService.showError(context, title: 'Unable to complete event', message: '$e');
@@ -490,10 +527,15 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
     );
   }
 
+  Future<EvaluationResultsQueryResult> _sharedResultsFuture(IdeathonDetailsShellViewModel shell) {
+    return EventDetailsEvaluationAccess.unfilteredResults(_tabCache, shell);
+  }
+
   List<EventDetailsNavGroup> _navigationFor(IdeathonDetailsShellViewModel shell) {
     final IdeathonModel event = shell.ideathon;
     final EventKind kind = event.eventKind;
     final int? assignmentCount = _evaluationWorkspace?.assignmentCount;
+    final Future<EvaluationResultsQueryResult> sharedResults = _sharedResultsFuture(shell);
     final List<EventDetailsNavGroup> groups = <EventDetailsNavGroup>[
       EventDetailsNavGroup(
         id: 'overview',
@@ -593,7 +635,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             id: 'results',
             label: 'Evaluation Results',
             icon: AppIcons.results,
-            child: IdeathonResultsTab(event: event, actor: widget.actor),
+            child: IdeathonResultsTab(
+              event: event,
+              actor: widget.actor,
+              sharedResultsFuture: sharedResults,
+            ),
           ),
         ],
       ),
@@ -614,8 +660,12 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                 cache: _tabCache,
                 cacheKey: 'winners',
                 evaluationWorkspace: _evaluationWorkspace,
-                builder: (IdeathonDetailsViewModel vm) =>
-                    IdeathonWinnersTab(vm: vm, actor: widget.actor, onChanged: _reload),
+                builder: (IdeathonDetailsViewModel vm) => IdeathonWinnersTab(
+                  vm: vm,
+                  actor: widget.actor,
+                  onChanged: _invalidateEvaluationOnly,
+                  sharedResultsFuture: sharedResults,
+                ),
               ),
             ),
             EventDetailsModule(
@@ -627,8 +677,11 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
                 cache: _tabCache,
                 cacheKey: 'leaderboard_vm',
                 evaluationWorkspace: _evaluationWorkspace,
-                builder: (IdeathonDetailsViewModel vm) =>
-                    IdeathonLeaderboardTab(vm: vm, actor: widget.actor),
+                builder: (IdeathonDetailsViewModel vm) => IdeathonLeaderboardTab(
+                  vm: vm,
+                  actor: widget.actor,
+                  sharedResultsFuture: sharedResults,
+                ),
               ),
             ),
             EventDetailsModule(

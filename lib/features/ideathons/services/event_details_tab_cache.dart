@@ -58,13 +58,23 @@ final class EventDetailsTabCacheBucket {
     _values.remove(key);
     _inFlight.remove(key);
   }
+
+  void invalidateEvaluationData() {
+    invalidate(EventDetailsTabKeys.evaluationBundle);
+    invalidate(EventDetailsTabKeys.evaluation);
+    invalidate(EventDetailsTabKeys.ideas);
+    invalidate(EventDetailsTabKeys.overviewPeople);
+  }
 }
 
 /// Cache keys for event details tab slices.
 abstract final class EventDetailsTabKeys {
   EventDetailsTabKeys._();
 
+  /// Phase 1 workspace-only key (superseded by [evaluationBundle]).
   static const String evaluation = 'evaluation';
+
+  static const String evaluationBundle = 'evaluation_bundle';
   static const String overviewPeople = 'overview_people';
   static const String ideas = 'ideas';
   static const String payments = 'payments';

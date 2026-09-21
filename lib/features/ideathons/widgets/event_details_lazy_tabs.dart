@@ -5,7 +5,7 @@ import 'package:hackz/features/events/services/event_payments_service.dart';
 import 'package:hackz/features/ideathons/services/event_details_tab_cache.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_shell_loader.dart';
-import 'package:hackz/features/ideathons/services/ideathon_evaluation_summary_loader.dart';
+import 'package:hackz/features/ideathons/services/event_details_evaluation_access.dart';
 import 'package:hackz/features/ideathons/workspace/ideathon_workspace_loader.dart';
 
 /// Loads a tab slice once, caches it, and builds an [IdeathonDetailsViewModel].
@@ -54,14 +54,7 @@ class _EventDetailsLazyTabState extends State<EventDetailsLazyTab> {
 
   Future<IdeathonWorkspaceViewModel> _evaluationWorkspace() async {
     if (widget.evaluationWorkspace != null) return widget.evaluationWorkspace!;
-    return widget.cache.getOrLoad<IdeathonWorkspaceViewModel>(
-      EventDetailsTabKeys.evaluation,
-      () => IdeathonEvaluationSummaryLoader.load(
-        ideathon: widget.shell.ideathon,
-        commercialPlan: widget.shell.commercialPlan,
-        organisationName: widget.shell.organisationName,
-      ),
-    );
+    return EventDetailsEvaluationAccess.workspace(widget.cache, widget.shell);
   }
 
   Future<IdeathonDetailsViewModel> _resolve() {
@@ -168,7 +161,7 @@ class EventDetailsIdeasTabHost extends StatelessWidget {
       evaluationWorkspace: evaluationWorkspace,
       load: (IdeathonDetailsShellViewModel shell, IdeathonWorkspaceViewModel evaluation) async {
         final List<IdeathonIdeaEntry> ideas =
-            await IdeathonDetailsLoader.loadIdeas(shell.ideathon.ideas);
+            await EventDetailsEvaluationAccess.ideaEntries(cache, shell);
         return IdeathonDetailsViewModel.fromShell(
           shell: shell,
           workspace: evaluation,
@@ -209,7 +202,7 @@ class EventDetailsEvaluationTabHost extends StatelessWidget {
       load: (IdeathonDetailsShellViewModel shell, IdeathonWorkspaceViewModel evaluation) async {
         List<IdeathonIdeaEntry> ideas = const <IdeathonIdeaEntry>[];
         if (includeIdeas) {
-          ideas = await IdeathonDetailsLoader.loadIdeas(shell.ideathon.ideas);
+          ideas = await EventDetailsEvaluationAccess.ideaEntries(cache, shell);
         }
         return IdeathonDetailsViewModel.fromShell(
           shell: shell,

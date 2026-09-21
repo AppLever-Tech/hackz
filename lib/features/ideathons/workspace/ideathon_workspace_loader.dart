@@ -20,6 +20,8 @@ import '../../user/models/user_model.dart';
 import '../models/ideathon_idea_snapshot.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
+import '../services/event_details_evaluation_bundle.dart';
+import '../services/event_details_tab_cache.dart';
 import '../services/ideathon_service.dart';
 import 'package:hackz/core/firebase/hackz_firebase.dart';
 
@@ -134,8 +136,20 @@ abstract final class IdeathonWorkspaceLoader {
       debugPrint('Event entitlement registration retry failed for ${ideathon.ideathonId}: $error');
     }
 
+    bool rosterChanged = false;
     if (await IdeathonService.promoteEligibleSubmissionsWithoutIdeaPayment(ideathon.ideathonId)) {
       ideathon = await IdeathonService.fetchById(ideathonId) ?? ideathon;
+      rosterChanged = true;
+    }
+
+    if (!rosterChanged) {
+      final EventDetailsEvaluationBundle? cached =
+          EventDetailsTabCache.forEvent(ideathonId).peek<EventDetailsEvaluationBundle>(
+        EventDetailsTabKeys.evaluationBundle,
+      );
+      if (cached != null) {
+        return _fromCachedEvaluationBundle(ideathon: ideathon, cached: cached);
+      }
     }
 
     await OrgSettingsService.instance.ensureLoaded(orgId: ideathon.orgId);
@@ -305,14 +319,77 @@ abstract final class IdeathonWorkspaceLoader {
     return '';
   }
 
-  static Future<List<UserModel>> _fetchUsers(List<String> ids) async {
-    final List<UserModel> users = <UserModel>[];
-    for (final String raw in ids) {
-      final String id = raw.trim();
-      if (id.isEmpty) continue;
-      final UserModel? user = await FirestoreUtils.fetchUser(id);
-      if (user != null) users.add(user);
+  static Future<IdeathonWorkspaceViewModel> _fromCachedEvaluationBundle({
+    required IdeathonModel ideathon,
+    required EventDetailsEvaluationBundle cached,
+  }) async {
+    await OrgSettingsService.instance.ensureLoaded(orgId: ideathon.orgId);
+
+    final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
+      _fetchUsers(ideathon.judgeIds),
+      _fetchUsers(ideathon.coordinatorIds),
+      ideathon.orgId.trim().isEmpty
+          ? Future<OrganizationModel?>.value(null)
+          : FirestoreUtils.fetchOrganization(ideathon.orgId),
+      ideathon.orgId.trim().isEmpty
+          ? Future<OrganizationModel?>.value(null)
+          : OrganisationAccess.fetch(ideathon.orgId),
+    ]);
+
+    final List<UserModel> judges = parallel[0] as List<UserModel>;
+    final List<UserModel> coordinators = parallel[1] as List<UserModel>;
+    final OrganizationModel? org = parallel[2] as OrganizationModel?;
+    final OrganizationModel? controlPlaneOrg = parallel[3] as OrganizationModel?;
+    final OrganizationCommercialPlan commercialPlan = CommercialAccess.planOf(controlPlaneOrg);
+
+    final Map<String, String> teamByIdea = <String, String>{
+      for (final IdeathonIdeaSnapshot snapshot in ideathon.ideas) snapshot.ideaId: snapshot.teamName,
+    };
+    final EvaluationResultsQueryResult results = cached.results;
+    EventWinnerEntry? winner;
+    EventWinnerEntry? runnerUp;
+    final String selectedWinner = ideathon.winnerIdeaId.trim();
+    final String selectedRunner = ideathon.runnerUpIdeaId.trim();
+    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty) {
+      winner = _winnerEntry(
+        ideaId: selectedWinner,
+        rank: 1,
+        placeLabel: 'Winner',
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
+      );
+      runnerUp = _winnerEntry(
+        ideaId: selectedRunner,
+        rank: 2,
+        placeLabel: 'Runner-up',
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
+      );
     }
+
+    return cached.workspace.copyWith(
+      ideathon: ideathon,
+      judges: judges,
+      coordinators: coordinators,
+      organisationName: _organisationName(org: org, orgId: ideathon.orgId),
+      commercialPlan: commercialPlan,
+      winner: winner,
+      runnerUp: runnerUp,
+    );
+  }
+
+  static Future<List<UserModel>> _fetchUsers(List<String> ids) async {
+    final List<String> unique = <String>{
+      for (final String raw in ids) raw.trim(),
+    }.where((String id) => id.isNotEmpty).toList(growable: false);
+    if (unique.isEmpty) return const <UserModel>[];
+
+    final List<UserModel?> loaded = await Future.wait<UserModel?>(
+      unique.map((String id) => FirestoreUtils.fetchUser(id)),
+    );
+    final List<UserModel> users = loaded.whereType<UserModel>().toList(growable: true);
     users.sort((UserModel a, UserModel b) => userDisplayName(a).compareTo(userDisplayName(b)));
     return users;
   }

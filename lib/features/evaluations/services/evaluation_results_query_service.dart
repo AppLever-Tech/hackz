@@ -5,6 +5,7 @@ import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../idea/models/idea_model.dart';
+import '../../ideathons/models/ideathon_model.dart';
 import '../../ideathons/services/ideathon_service.dart';
 import '../../organization/models/department_model.dart';
 import '../../problems/models/problem_model.dart';
@@ -213,28 +214,52 @@ abstract final class EvaluationResultsQueryService {
         .toList(growable: false);
 
     final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
-      _db.collection(FirestoreUtils.hkzProblems).where('orgId', isEqualTo: orgId).get(),
       _db
           .collection(FirestoreUtils.hkzScores)
           .where('orgId', isEqualTo: orgId)
           .where('ideathonId', isEqualTo: eventId)
           .get(),
       EvaluationAssignmentService.listByIdeathon(ideathonId: eventId),
-      _loadIdeasByIds(ideaIds),
+      loadIdeasByIds(ideaIds),
     ]);
 
-    final QuerySnapshot<Map<String, dynamic>> problemsSnap =
-        parallel[0] as QuerySnapshot<Map<String, dynamic>>;
     final QuerySnapshot<Map<String, dynamic>> scoresSnap =
-        parallel[1] as QuerySnapshot<Map<String, dynamic>>;
+        parallel[0] as QuerySnapshot<Map<String, dynamic>>;
     final List<EvaluationAssignmentModel> assignments =
-        parallel[2] as List<EvaluationAssignmentModel>;
-    final Map<String, IdeaModel> ideasById = parallel[3] as Map<String, IdeaModel>;
+        parallel[1] as List<EvaluationAssignmentModel>;
+    final Map<String, IdeaModel> ideasById = parallel[2] as Map<String, IdeaModel>;
 
-    final Map<String, ProblemModel> problems = <String, ProblemModel>{
-      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in problemsSnap.docs)
-        doc.id: ProblemModel.fromMap(doc.id, doc.data()),
+    final Set<String> problemIds = <String>{
+      for (final IdeaModel idea in ideasById.values)
+        if (idea.problemId.trim().isNotEmpty) idea.problemId.trim(),
     };
+    final Map<String, ProblemModel> problems =
+        await loadProblemsByIds(orgId: orgId, problemIds: problemIds);
+
+    return composeIdeathonResults(
+      params: params,
+      ideathon: ideathon,
+      assignments: assignments,
+      scoresSnap: scoresSnap,
+      ideasById: ideasById,
+      problems: problems,
+    );
+  }
+
+  static EvaluationResultsQueryResult composeIdeathonResults({
+    required EvaluationResultsQueryParams params,
+    required IdeathonModel ideathon,
+    required List<EvaluationAssignmentModel> assignments,
+    required QuerySnapshot<Map<String, dynamic>> scoresSnap,
+    required Map<String, IdeaModel> ideasById,
+    required Map<String, ProblemModel> problems,
+  }) {
+    final String eventId = ideathon.ideathonId.trim();
+    final List<String> ideaIds = ideathon.ideas
+        .map((snapshot) => snapshot.ideaId.trim())
+        .where((String id) => id.isNotEmpty)
+        .toList(growable: false);
+
     final Map<String, String> problemsById = <String, String>{
       for (final MapEntry<String, ProblemModel> e in problems.entries)
         e.key: e.value.title.trim().isEmpty ? e.key : e.value.title.trim(),
@@ -285,7 +310,6 @@ abstract final class EvaluationResultsQueryService {
           .map((ScoreModel s) => s.judgeId.trim())
           .where((String id) => id.isNotEmpty)
           .toSet();
-      // Final only when every assigned judge has submitted for this Ideathon.
       final bool complete = assigned.isNotEmpty && assigned.every(scoredJudges.contains);
       if (complete) completeIdeaIds.add(ideaId);
     }
@@ -322,7 +346,38 @@ abstract final class EvaluationResultsQueryService {
     );
   }
 
-  static Future<Map<String, IdeaModel>> _loadIdeasByIds(List<String> ideaIds) async {
+  static Future<Map<String, ProblemModel>> loadProblemsByIds({
+    required String orgId,
+    required Set<String> problemIds,
+  }) async {
+    final String organisationId = orgId.trim();
+    if (organisationId.isEmpty || problemIds.isEmpty) {
+      return const <String, ProblemModel>{};
+    }
+    final List<String> ids = problemIds.toList(growable: false)..sort();
+    final Map<String, ProblemModel> byId = <String, ProblemModel>{};
+    const int chunkSize = 10;
+    for (int i = 0; i < ids.length; i += chunkSize) {
+      final List<String> chunk = ids.sublist(
+        i,
+        i + chunkSize > ids.length ? ids.length : i + chunkSize,
+      );
+      final List<DocumentSnapshot<Map<String, dynamic>>> docs = await Future.wait(
+        chunk.map(
+          (String id) => _db.collection(FirestoreUtils.hkzProblems).doc(id).get(),
+        ),
+      );
+      for (final DocumentSnapshot<Map<String, dynamic>> doc in docs) {
+        if (!doc.exists || doc.data() == null) continue;
+        final ProblemModel problem = ProblemModel.fromMap(doc.id, doc.data()!);
+        if (problem.orgId.trim() != organisationId) continue;
+        byId[doc.id] = problem;
+      }
+    }
+    return byId;
+  }
+
+  static Future<Map<String, IdeaModel>> loadIdeasByIds(List<String> ideaIds) async {
     final Map<String, IdeaModel> byId = <String, IdeaModel>{};
     const int chunkSize = 10;
     for (int i = 0; i < ideaIds.length; i += chunkSize) {

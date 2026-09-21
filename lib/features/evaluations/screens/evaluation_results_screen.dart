@@ -31,6 +31,7 @@ class EvaluationResultsScreen extends StatefulWidget {
     this.ideathonId = '',
     this.ideathonName = '',
     this.embedded = false,
+    this.sharedUnfilteredFuture,
   });
 
   final UserModel user;
@@ -39,6 +40,9 @@ class EvaluationResultsScreen extends StatefulWidget {
 
   /// When true, skip the Ideathon context banner (used inside Event Details).
   final bool embedded;
+
+  /// Cached unfiltered Ideathon results from Event Details (filters still refetch).
+  final Future<EvaluationResultsQueryResult>? sharedUnfilteredFuture;
 
   @override
   State<EvaluationResultsScreen> createState() => _EvaluationResultsScreenState();
@@ -66,20 +70,36 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   String get _eventId => widget.ideathonId.trim();
   bool get _isIdeathonScoped => _eventId.isNotEmpty;
 
+  bool get _filtersActive =>
+      _searchController.text.trim().isNotEmpty ||
+      _statusFilters.isNotEmpty ||
+      _departmentFilters.isNotEmpty ||
+      _categoryFilters.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
     _ideathonName = widget.ideathonName.trim();
-    _load();
+    _applyInitialLoad();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  void _applyInitialLoad() {
+    if (widget.sharedUnfilteredFuture != null && _isIdeathonScoped && !_filtersActive) {
+      _future = widget.sharedUnfilteredFuture;
+      return;
+    }
+    _load();
   }
 
   @override
   void didUpdateWidget(covariant EvaluationResultsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.ideathonId != widget.ideathonId || oldWidget.user.userId != widget.user.userId) {
+    if (oldWidget.ideathonId != widget.ideathonId ||
+        oldWidget.user.userId != widget.user.userId ||
+        oldWidget.sharedUnfilteredFuture != widget.sharedUnfilteredFuture) {
       _ideathonName = widget.ideathonName.trim();
-      _load();
+      _applyInitialLoad();
     }
   }
 
@@ -96,6 +116,10 @@ class _EvaluationResultsScreenState extends State<EvaluationResultsScreen> {
   }
 
   void _load() {
+    if (widget.sharedUnfilteredFuture != null && _isIdeathonScoped && !_filtersActive) {
+      setState(() => _future = widget.sharedUnfilteredFuture);
+      return;
+    }
     setState(() {
       _future = EvaluationResultsQueryService.fetch(
         EvaluationResultsQueryParams(

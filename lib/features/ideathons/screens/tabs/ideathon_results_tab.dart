@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/features/evaluations/screens/evaluation_results_screen.dart';
+import 'package:hackz/features/evaluations/services/evaluation_results_query_service.dart';
 import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 
@@ -8,10 +9,12 @@ class IdeathonResultsTab extends StatelessWidget {
     super.key,
     required this.event,
     required this.actor,
+    this.sharedResultsFuture,
   });
 
   final IdeathonModel event;
   final UserModel actor;
+  final Future<EvaluationResultsQueryResult>? sharedResultsFuture;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +23,7 @@ class IdeathonResultsTab extends StatelessWidget {
       ideathonId: event.ideathonId,
       ideathonName: event.name,
       embedded: true,
+      sharedUnfilteredFuture: sharedResultsFuture,
     );
   }
 }

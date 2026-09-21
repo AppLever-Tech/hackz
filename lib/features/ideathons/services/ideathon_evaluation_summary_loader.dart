@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../utils/firestore_utils.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
-import '../../evaluations/assignments/services/evaluation_assignment_service.dart';
 import '../../evaluations/models/score_model.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../organization/models/department_model.dart';
@@ -10,9 +8,8 @@ import '../../organization/models/enums/organization_commercial_plan.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';
 import '../workspace/ideathon_workspace_loader.dart';
-import 'package:hackz/core/firebase/hackz_firebase.dart';
 
-/// Lightweight evaluation metrics for lifecycle UI and primary actions (no results pipeline).
+/// Lightweight evaluation metrics for lifecycle UI and primary actions.
 abstract final class IdeathonEvaluationSummaryLoader {
   IdeathonEvaluationSummaryLoader._();
 
@@ -20,21 +17,25 @@ abstract final class IdeathonEvaluationSummaryLoader {
     required IdeathonModel ideathon,
     required OrganizationCommercialPlan commercialPlan,
     required String organisationName,
+    required List<EvaluationAssignmentModel> assignments,
+    required QuerySnapshot<Map<String, dynamic>> scores,
   }) async {
-    final List<dynamic> parallel = await Future.wait<dynamic>(<Future<dynamic>>[
-      EvaluationAssignmentService.listByIdeathon(ideathonId: ideathon.ideathonId),
-      HackzFirebase.current.firestore
-          .collection(FirestoreUtils.hkzScores)
-          .where('orgId', isEqualTo: ideathon.orgId)
-          .where('ideathonId', isEqualTo: ideathon.ideathonId)
-          .get(),
-    ]);
+    return buildWorkspace(
+      ideathon: ideathon,
+      assignments: assignments,
+      scores: scores,
+      commercialPlan: commercialPlan,
+      organisationName: organisationName,
+    );
+  }
 
-    final List<EvaluationAssignmentModel> assignments =
-        parallel[0] as List<EvaluationAssignmentModel>;
-    final QuerySnapshot<Map<String, dynamic>> scores =
-        parallel[1] as QuerySnapshot<Map<String, dynamic>>;
-
+  static IdeathonWorkspaceViewModel buildWorkspace({
+    required IdeathonModel ideathon,
+    required List<EvaluationAssignmentModel> assignments,
+    required QuerySnapshot<Map<String, dynamic>> scores,
+    required OrganizationCommercialPlan commercialPlan,
+    required String organisationName,
+  }) {
     DateTime? firstAssignedAt;
     for (final EvaluationAssignmentModel assignment in assignments) {
       if (firstAssignedAt == null || assignment.assignedAt.isBefore(firstAssignedAt)) {
