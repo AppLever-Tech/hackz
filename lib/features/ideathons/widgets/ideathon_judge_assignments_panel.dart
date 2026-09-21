@@ -8,18 +8,18 @@ import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/icon_only_filter_button.dart';
 import '../../../core/responsive/responsive_metric_grid.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../core/workspace/workspace_navigator.dart';
 import '../../../core/workspace/workspace_theme.dart';
-import '../../../features/dashboard/chrome/dashboard_components.dart';
-import '../../../utils/common_helpers.dart';
 import '../../evaluations/assignments/models/evaluation_assignment_model.dart';
 import '../../problems/widgets/problem_workflow_action_pill.dart';
 import '../../user/models/user_model.dart';
 import '../services/ideathon_judge_assignment_service.dart';
 import 'ideathon_assign_judges_sheet.dart';
-import 'ideathon_status_pill.dart';
-
 enum _AssignmentFilter { all, assigned, unassigned }
+
+const String _kJudgeAssignmentIntro =
+    'Explicitly assign judges to eligible ideas registered for this event. Judges are not assigned automatically. The evaluation template is fixed for the event.';
 
 /// Event Details tab: full judge-assignment UI (search, filters, overview).
 class IdeathonJudgeAssignmentsPanel extends StatefulWidget {
@@ -99,14 +99,7 @@ class _IdeathonJudgeAssignmentsPanelState
       );
       return;
     }
-    if (!_canManage) {
-      FeedbackService.showError(
-        context,
-        title: 'Permission denied',
-        message: 'Only Department Admin can assign Ideathon judges.',
-      );
-      return;
-    }
+    if (!_canManage) return;
 
     final Set<String> selected = row.assignedJudgeIds.toSet();
     final bool? saved = await showIdeathonAssignJudgesDialog(
@@ -150,14 +143,27 @@ class _IdeathonJudgeAssignmentsPanelState
 
   @override
   Widget build(BuildContext context) {
-    final ideathon = _vm.ideathon;
     final metrics = _vm.metrics;
-    final String templateName =
-        _vm.template.templateName.trim().isEmpty ? _vm.template.templateId : _vm.template.templateName.trim();
 
     return ListView(
       padding: WorkspaceTheme.bodyPadding(context),
       children: <Widget>[
+        const Row(
+          children: <Widget>[
+            Icon(AppIcons.judges, size: 20, color: Color(0xFF5B21B6)),
+            SizedBox(width: 8),
+            Text(
+              'Judge Assignment',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          _kJudgeAssignmentIntro,
+          style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+        ),
+        const SizedBox(height: 14),
         ResponsiveMetricGrid(
           chips: <DashboardMetricChipData>[
             DashboardMetricChipData.single(
@@ -227,118 +233,56 @@ class _IdeathonJudgeAssignmentsPanelState
           ),
           const SizedBox(height: 12),
         ],
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
-          decoration: kDashboardCardDecoration,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  const Icon(AppIcons.ideathons, size: 20, color: Color(0xFF5B21B6)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      ideathon.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IdeathonStatusPill(status: ideathon.status, compact: true),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextField(
-                      onChanged: (String v) => setState(() => _search = v),
-                      style: HackzInputDecoration.compactFieldTextStyle,
-                      decoration: HackzInputDecoration.decorate(
-                        compact: true,
-                        hintText: 'Search ideas, teams, problems…',
-                        prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconOnlyFilterButton(
-                    icon: AppIcons.filter,
-                    tooltip: 'All',
-                    selected: _filter == _AssignmentFilter.all,
-                    color: const Color(0xFF4A67FF),
-                    onTap: () => setState(() => _filter = _AssignmentFilter.all),
-                  ),
-                  IconOnlyFilterButton(
-                    icon: AppIcons.workflowApproved,
-                    tooltip: 'Assigned',
-                    selected: _filter == _AssignmentFilter.assigned,
-                    color: const Color(0xFF059669),
-                    onTap: () => setState(() => _filter = _AssignmentFilter.assigned),
-                  ),
-                  IconOnlyFilterButton(
-                    icon: AppIcons.workflowPendingReview,
-                    tooltip: 'Unassigned',
-                    selected: _filter == _AssignmentFilter.unassigned,
-                    color: const Color(0xFFEA580C),
-                    onTap: () => setState(() => _filter = _AssignmentFilter.unassigned),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _detailRow('Starts', formatDateTime(ideathon.startDateTime.toLocal())),
-              _detailRow('Ends', formatDateTime(ideathon.endDateTime.toLocal())),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const SizedBox(
-                    width: 110,
-                    child: Text(
-                      'Evaluation Template',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
-                    ),
-                  ),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: EntityCardPills.workspace(
-                        templateName,
-                        ContextPillSemantic.evaluationTemplate,
-                        () => WorkspaceNavigator.openEvaluationTemplate(
-                          context,
-                          _vm.template.templateId,
-                        ),
-                        icon: AppIcons.scoring,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Explicitly assign judges to eligible ideas registered for this event. Judges are not assigned automatically. The evaluation template is fixed for the event.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-              ),
-              if (_vm.evaluationLocked) ...<Widget>[
-                const SizedBox(height: 8),
-                const Text(
-                  'View only — assignments locked after evaluation started.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: TextField(
+                onChanged: (String v) => setState(() => _search = v),
+                style: HackzInputDecoration.compactFieldTextStyle,
+                decoration: HackzInputDecoration.decorate(
+                  compact: true,
+                  hintText: 'Search ideas, teams, problems…',
+                  prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
                 ),
-              ] else if (!_isAdmin) ...<Widget>[
-                const SizedBox(height: 8),
-                const Text(
-                  'View only — Department Admin can assign or reassign judges.',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
-                ),
-              ],
-            ],
-          ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconOnlyFilterButton(
+              icon: AppIcons.filter,
+              tooltip: 'All',
+              selected: _filter == _AssignmentFilter.all,
+              color: const Color(0xFF4A67FF),
+              onTap: () => setState(() => _filter = _AssignmentFilter.all),
+            ),
+            IconOnlyFilterButton(
+              icon: AppIcons.workflowApproved,
+              tooltip: 'Assigned',
+              selected: _filter == _AssignmentFilter.assigned,
+              color: const Color(0xFF059669),
+              onTap: () => setState(() => _filter = _AssignmentFilter.assigned),
+            ),
+            IconOnlyFilterButton(
+              icon: AppIcons.workflowPendingReview,
+              tooltip: 'Unassigned',
+              selected: _filter == _AssignmentFilter.unassigned,
+              color: const Color(0xFFEA580C),
+              onTap: () => setState(() => _filter = _AssignmentFilter.unassigned),
+            ),
+          ],
         ),
+        if (_vm.evaluationLocked) ...<Widget>[
+          const SizedBox(height: 8),
+          const Text(
+            'View only — assignments locked after evaluation started.',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
+          ),
+        ] else if (!_isAdmin) ...<Widget>[
+          const SizedBox(height: 8),
+          const Text(
+            'View only — Department Admin can assign or reassign judges.',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
+          ),
+        ],
         const SizedBox(height: 12),
         if (_busy) const LinearProgressIndicator(minHeight: 2),
         if (_filteredRows.isEmpty)
@@ -357,7 +301,6 @@ class _IdeathonJudgeAssignmentsPanelState
                 row: row,
                 judgeById: _vm.judgeById,
                 canManage: _canManage,
-                showAssign: !_vm.evaluationLocked,
                 onAssign: () => _openAssignSheet(row),
                 onRemove: _remove,
               ),
@@ -370,8 +313,17 @@ class _IdeathonJudgeAssignmentsPanelState
   Widget _workloadPill(IdeathonJudgeWorkload w) {
     final bool idle = w.ideaCount == 0;
     final Color color = idle ? const Color(0xFFC2410C) : const Color(0xFF5B21B6);
+    final String judgeId = w.judgeId.trim();
+    final UserModel? user = _vm.judgeById[judgeId];
+    final String name = w.displayName.trim().isEmpty ? judgeId : w.displayName.trim();
+
+    void openJudge() {
+      if (judgeId.isEmpty) return;
+      WorkspaceNavigator.openUser(context, judgeId);
+    }
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: idle ? const Color(0xFFFFF7ED) : const Color(0xFFF5F3FF),
         borderRadius: BorderRadius.circular(14),
@@ -380,35 +332,68 @@ class _IdeathonJudgeAssignmentsPanelState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(
-            w.displayName,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
-          ),
+          if (user != null)
+            UserWorkspaceAvatar(
+              user: user,
+              radius: 11,
+              ringPadding: 1,
+              semantic: ContextPillSemantic.judge,
+              allowHoverScale: false,
+              onTap: openJudge,
+            )
+          else
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: const Color(0xFFEEF2FF),
+              child: Icon(AppIcons.judges, size: 13, color: Colors.grey.shade700),
+            ),
           const SizedBox(width: 8),
+          InkWell(
+            onTap: judgeId.isEmpty ? null : openJudge,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
           Text(
-            '${w.ideaCount} idea${w.ideaCount == 1 ? '' : 's'}',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.1, color: color),
+            '${w.ideaCount}',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, height: 1, color: color),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            w.ideaCount == 1 ? 'idea' : 'ideas',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
     );
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 110,
-            child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-        ],
+}
+
+Widget _assignmentStatusPill(bool assigned) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: assigned ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      assigned ? 'Assigned' : 'Unassigned',
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        color: assigned ? const Color(0xFF047857) : const Color(0xFFC2410C),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _IdeaAssignmentCard extends StatelessWidget {
@@ -416,7 +401,6 @@ class _IdeaAssignmentCard extends StatelessWidget {
     required this.row,
     required this.judgeById,
     required this.canManage,
-    required this.showAssign,
     required this.onAssign,
     required this.onRemove,
   });
@@ -424,7 +408,6 @@ class _IdeaAssignmentCard extends StatelessWidget {
   final IdeathonJudgeAssignmentRow row;
   final Map<String, UserModel> judgeById;
   final bool canManage;
-  final bool showAssign;
   final VoidCallback onAssign;
   final Future<void> Function(EvaluationAssignmentModel assignment) onRemove;
 
@@ -432,6 +415,7 @@ class _IdeaAssignmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final String title =
         row.snapshot.ideaTitle.trim().isEmpty ? row.ideaId : row.snapshot.ideaTitle.trim();
+    final String assignLabel = row.isAssigned ? 'Assign More Judges' : 'Assign Judges';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -446,38 +430,28 @@ class _IdeaAssignmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
-              Expanded(
-                child: InkWell(
-                  onTap: () => WorkspaceNavigator.openIdea(context, row.ideaId),
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
+              Flexible(
+                fit: FlexFit.loose,
+                child: EntityCardPills.workspace(
+                  title,
+                  ContextPillSemantic.idea,
+                  () => WorkspaceNavigator.openIdea(context, row.ideaId),
+                  icon: AppIcons.ideas,
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: row.isAssigned ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED),
-                  borderRadius: BorderRadius.circular(8),
+              _assignmentStatusPill(row.isAssigned),
+              if (canManage) ...<Widget>[
+                const Spacer(),
+                ProblemWorkflowActionPill(
+                  label: assignLabel,
+                  icon: AppIcons.judges,
+                  semantic: ProblemWorkflowPillSemantic.filledBrand,
+                  onTap: onAssign,
                 ),
-                child: Text(
-                  row.isAssigned ? 'Assigned' : 'Unassigned',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: row.isAssigned ? const Color(0xFF047857) : const Color(0xFFC2410C),
-                  ),
-                ),
-              ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
@@ -508,18 +482,6 @@ class _IdeaAssignmentCard extends StatelessWidget {
                 );
               }).toList(growable: false),
             ),
-          if (showAssign) ...<Widget>[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ProblemWorkflowActionPill(
-                label: 'Assign Judges',
-                icon: AppIcons.judges,
-                semantic: ProblemWorkflowPillSemantic.filledBrand,
-                onTap: onAssign,
-              ),
-            ),
-          ],
         ],
       ),
     );
