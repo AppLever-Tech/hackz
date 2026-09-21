@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../utils/firestore_utils.dart';
 import '../../events/models/event_kind.dart';
+import '../../organization/models/department_model.dart';
 import '../../user/models/user_model.dart';
 import '../models/ideathon_model.dart';
 import '../models/ideathon_status.dart';
@@ -46,17 +47,21 @@ abstract final class IdeathonQueryService {
         .get();
 
     final String search = params.search.trim().toLowerCase();
-    final String viewerDept = params.viewer.departmentCode.trim().toUpperCase();
+    final String viewerDept = DepartmentModel.resolveCode(params.viewer.departmentCode);
 
     final List<IdeathonListRow> rows = <IdeathonListRow>[];
     for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
       final IdeathonModel ideathon = IdeathonModel.fromMap(doc.id, doc.data());
       if (params.eventKind != null && ideathon.eventKind != params.eventKind) continue;
       if (params.templateFilters.isNotEmpty && !params.templateFilters.contains(ideathon.eventKind)) continue;
-      if (viewerDept.isNotEmpty && ideathon.departmentId.trim().toUpperCase() != viewerDept) continue;
+      if (viewerDept.isNotEmpty) {
+        final String eventDept = DepartmentModel.resolveCode(ideathon.departmentId);
+        // Org-wide events (empty department) are visible to all departments in the org.
+        if (eventDept.isNotEmpty && eventDept != viewerDept) continue;
+      }
       if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(ideathon.status)) continue;
       if (params.departmentFilters.isNotEmpty &&
-          !params.departmentFilters.contains(ideathon.departmentId.trim().toUpperCase())) {
+          !params.departmentFilters.contains(DepartmentModel.resolveCode(ideathon.departmentId))) {
         continue;
       }
       if (search.isNotEmpty) {
