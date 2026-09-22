@@ -3,7 +3,7 @@ import 'certificate_event_context.dart';
 import 'certificate_selectable_entry.dart';
 import 'certificate_type.dart';
 
-/// Builds normalized [CertificateData] for the Sample A renderer.
+/// Builds normalized [CertificateData] for the certificate renderer.
 abstract final class CertificateDataFactory {
   CertificateDataFactory._();
 

@@ -7,11 +7,11 @@ import '../pdf/pdf_theme.dart';
 import 'certificate_data.dart';
 import 'certificate_data_mapper.dart';
 import 'certificate_pdf_assets.dart';
-import 'certificate_sample_a_render_context.dart';
-import 'certificate_sample_a_renderer.dart';
+import 'certificate_render_context.dart';
+import 'certificate_renderer.dart';
 import 'certificate_type.dart';
 
-/// Builds certificate PDF bytes through the Sample A renderer.
+/// Builds certificate PDF bytes through the certificate renderer.
 abstract final class CertificateDocumentBuilder {
   CertificateDocumentBuilder._();
 
@@ -21,7 +21,7 @@ abstract final class CertificateDocumentBuilder {
     required PdfExportContext context,
   }) async {
     final pw.MemoryImage? hackzLogo = await CertificatePdfAssets.loadHackzLogo();
-    final CertificateSampleARenderContext renderContext = await CertificateSampleARenderContext.load();
+    final CertificateRenderContext renderContext = await CertificateRenderContext.load();
     final pw.Document document = pw.Document(
       title: context.documentTitle,
       author: 'Hackz',
@@ -40,7 +40,7 @@ abstract final class CertificateDocumentBuilder {
         pw.Page(
           pageFormat: PdfTheme.certificatePageFormat,
           margin: _pageMargin(data, renderContext),
-          build: (_) => CertificateSampleARenderer.buildPage(data: data, context: renderContext),
+          build: (_) => CertificateRenderer.buildPage(data: data, context: renderContext),
         ),
       );
     }
@@ -50,7 +50,7 @@ abstract final class CertificateDocumentBuilder {
   /// Test / preview helper without export table wiring.
   static Future<List<int>> renderCertificates(List<CertificateData> certificates) async {
     final pw.MemoryImage? hackzLogo = await CertificatePdfAssets.loadHackzLogo();
-    final CertificateSampleARenderContext renderContext = await CertificateSampleARenderContext.load();
+    final CertificateRenderContext renderContext = await CertificateRenderContext.load();
     final pw.Document document = pw.Document(
       title: 'Certificates',
       author: 'Hackz',
@@ -77,14 +77,14 @@ abstract final class CertificateDocumentBuilder {
         pw.Page(
           pageFormat: PdfTheme.certificatePageFormat,
           margin: _pageMargin(data, renderContext),
-          build: (_) => CertificateSampleARenderer.buildPage(data: data, context: renderContext),
+          build: (_) => CertificateRenderer.buildPage(data: data, context: renderContext),
         ),
       );
     }
     return document.save();
   }
 
-  static pw.EdgeInsets _pageMargin(CertificateData data, CertificateSampleARenderContext renderContext) {
+  static pw.EdgeInsets _pageMargin(CertificateData data, CertificateRenderContext renderContext) {
     if (data.certificateType == CertificateType.participation &&
         renderContext.participationBackground != null) {
       return pw.EdgeInsets.zero;

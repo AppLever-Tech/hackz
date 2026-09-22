@@ -2,7 +2,7 @@ import 'package:pdf/pdf.dart';
 
 import 'certificate_type.dart';
 
-/// Per-type Sample A configuration (shared layout, variant accents only).
+/// Per-type certificate configuration (shared layout, variant accents only).
 class CertificateVisualVariant {
   const CertificateVisualVariant({
     required this.type,

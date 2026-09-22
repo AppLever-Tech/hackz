@@ -4,18 +4,18 @@ import 'package:pdf/widgets.dart' as pw;
 import 'certificate_data.dart';
 import 'certificate_fonts.dart';
 import 'certificate_organisation_branding.dart';
-import 'certificate_sample_a_render_context.dart';
-import 'certificate_sample_a_theme.dart';
-import 'certificate_sample_a_visual_variant.dart';
+import 'certificate_render_context.dart';
+import 'certificate_theme.dart';
+import 'certificate_visual_variant.dart';
 import 'certificate_type.dart';
 
-/// Single data-driven Sample A certificate page builder (A1 / A2 / A3).
-abstract final class CertificateSampleARenderer {
-  CertificateSampleARenderer._();
+/// Data-driven certificate page builder (participation, winner, runner-up).
+abstract final class CertificateRenderer {
+  CertificateRenderer._();
 
   static pw.Widget buildPage({
     required CertificateData data,
-    required CertificateSampleARenderContext context,
+    required CertificateRenderContext context,
   }) {
     final CertificateVisualVariant variant = CertificateVisualVariant.forType(data.certificateType);
     final CertificateFonts fonts = context.fonts;
@@ -46,7 +46,7 @@ abstract final class CertificateSampleARenderer {
 
     return pw.Stack(
       children: <pw.Widget>[
-        pw.Container(color: CertificateSampleATheme.ivory),
+        pw.Container(color: CertificateTheme.ivory),
         if (context.paperTexture != null)
           pw.Positioned.fill(
             child: pw.Opacity(
@@ -78,7 +78,7 @@ abstract final class CertificateSampleARenderer {
             padding: const pw.EdgeInsets.all(7),
             child: pw.Container(
               decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: CertificateSampleATheme.innerLine, width: 0.6),
+                border: pw.Border.all(color: CertificateTheme.innerLine, width: 0.6),
               ),
               padding: const pw.EdgeInsets.fromLTRB(28, 20, 28, 18),
               child: _certificateContent(
@@ -97,7 +97,7 @@ abstract final class CertificateSampleARenderer {
     );
   }
 
-  static bool _usesParticipationBackground(CertificateData data, CertificateSampleARenderContext context) {
+  static bool _usesParticipationBackground(CertificateData data, CertificateRenderContext context) {
     return data.certificateType == CertificateType.participation && context.participationBackground != null;
   }
 
@@ -128,7 +128,7 @@ abstract final class CertificateSampleARenderer {
                         width: _participationHackzSlotWidth,
                         child: pw.Image(hackz, fit: pw.BoxFit.contain),
                       )
-                    : pw.Text('HACKZ', style: CertificateSampleATheme.participationOrgName(fonts)),
+                    : pw.Text('HACKZ', style: CertificateTheme.participationOrgName(fonts)),
               ),
             ),
             pw.Expanded(
@@ -139,7 +139,7 @@ abstract final class CertificateSampleARenderer {
                   children: <pw.Widget>[
                     pw.Text(
                       'CERTIFICATE OF',
-                      style: CertificateSampleATheme.certificateOfLabel(fonts),
+                      style: CertificateTheme.certificateOfLabel(fonts),
                       textAlign: pw.TextAlign.center,
                     ),
                     pw.Positioned(
@@ -148,7 +148,7 @@ abstract final class CertificateSampleARenderer {
                       right: 0,
                       child: pw.Text(
                         'PARTICIPATION',
-                        style: CertificateSampleATheme.participationTitle(fonts, size: 34),
+                        style: CertificateTheme.participationTitle(fonts, size: 34),
                         textAlign: pw.TextAlign.center,
                         maxLines: 1,
                       ),
@@ -171,7 +171,7 @@ abstract final class CertificateSampleARenderer {
 
   static pw.Widget _participationMainColumn({
     required CertificateData data,
-    required CertificateSampleARenderContext context,
+    required CertificateRenderContext context,
     required CertificateVisualVariant variant,
     required CertificateFonts fonts,
     required List<CertificateSignatory> signatories,
@@ -181,7 +181,7 @@ abstract final class CertificateSampleARenderer {
       children: <pw.Widget>[
         pw.Text(
           'This certificate is proudly presented to',
-          style: CertificateSampleATheme.participationIntro(fonts),
+          style: CertificateTheme.participationIntro(fonts),
           textAlign: pw.TextAlign.center,
         ),
         pw.SizedBox(height: 10),
@@ -189,9 +189,9 @@ abstract final class CertificateSampleARenderer {
           padding: const pw.EdgeInsets.symmetric(horizontal: 12),
           child: pw.Text(
             data.recipientName.trim(),
-            style: CertificateSampleATheme.recipientScript(
+            style: CertificateTheme.recipientScript(
               fonts,
-              CertificateSampleATheme.recipientFontSize(data.recipientName, participation: true),
+              CertificateTheme.recipientFontSize(data.recipientName, participation: true),
             ),
             textAlign: pw.TextAlign.center,
             maxLines: 3,
@@ -201,7 +201,7 @@ abstract final class CertificateSampleARenderer {
           pw.SizedBox(height: 6),
           pw.Text(
             _memberOfLine(data),
-            style: CertificateSampleATheme.participationBody(fonts),
+            style: CertificateTheme.participationBody(fonts),
             textAlign: pw.TextAlign.center,
           ),
         ],
@@ -243,7 +243,7 @@ abstract final class CertificateSampleARenderer {
               height: 20,
               child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
             ),
-          pw.Container(width: lineWidth, height: 0.6, color: CertificateSampleATheme.ink),
+          pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),
         ],
       );
     }
@@ -312,35 +312,35 @@ abstract final class CertificateSampleARenderer {
         footerRow(
           left: signatoryTextBlock(
             left.name.trim(),
-            CertificateSampleATheme.signatoryName(fonts, size: 11.5),
+            CertificateTheme.signatoryName(fonts, size: 11.5),
             textAlign: pw.TextAlign.right,
           ),
           center: centeredText(
             'IDEAS TODAY',
-            CertificateSampleATheme.participationTaglinePrimary(fonts),
+            CertificateTheme.participationTaglinePrimary(fonts),
             maxLines: 1,
           ),
           right: signatoryTextBlock(
             right.name.trim(),
-            CertificateSampleATheme.signatoryName(fonts, size: 11.5),
+            CertificateTheme.signatoryName(fonts, size: 11.5),
             textAlign: pw.TextAlign.left,
           ),
         ),
         footerRow(
           left: signatoryTextBlock(
             left.designation.trim(),
-            CertificateSampleATheme.signatoryTitle(fonts, size: 10),
+            CertificateTheme.signatoryTitle(fonts, size: 10),
             textAlign: pw.TextAlign.right,
             top: 3,
           ),
           center: centeredText(
             'A BRIGHTER TOMORROW',
-            CertificateSampleATheme.participationTaglineSecondary(fonts),
+            CertificateTheme.participationTaglineSecondary(fonts),
             maxLines: 1,
           ),
           right: signatoryTextBlock(
             right.designation.trim(),
-            CertificateSampleATheme.signatoryTitle(fonts, size: 10),
+            CertificateTheme.signatoryTitle(fonts, size: 10),
             textAlign: pw.TextAlign.left,
             top: 3,
           ),
@@ -376,28 +376,28 @@ abstract final class CertificateSampleARenderer {
       children: <pw.Widget>[
         line(
           'for successfully participating in',
-          CertificateSampleATheme.participationBody(fonts, size: bodySize),
+          CertificateTheme.participationBody(fonts, size: bodySize),
         ),
         if (event.isNotEmpty)
-          line(event, CertificateSampleATheme.bodyBold(fonts, size: eventNameSize), maxLines: 2),
+          line(event, CertificateTheme.bodyBold(fonts, size: eventNameSize), maxLines: 2),
         line(
           _presentingSubmissionPhrase(data.submissionLabel),
-          CertificateSampleATheme.participationBody(fonts, size: bodySize),
+          CertificateTheme.participationBody(fonts, size: bodySize),
         ),
         if (title.isNotEmpty)
           line(
             '"$title"',
-            CertificateSampleATheme.bodySemiBold(fonts, size: ideaTitleSize),
+            CertificateTheme.bodySemiBold(fonts, size: ideaTitleSize),
             maxLines: 3,
           ),
         if (date.isNotEmpty)
           line(
             'held on $date',
-            CertificateSampleATheme.participationBody(fonts, size: bodySize),
+            CertificateTheme.participationBody(fonts, size: bodySize),
           ),
         line(
           'In recognition of their creativity, innovation and contribution to the event.',
-          CertificateSampleATheme.participationBody(fonts, size: recognitionSize),
+          CertificateTheme.participationBody(fonts, size: recognitionSize),
           maxLines: 3,
         ),
       ],
@@ -406,7 +406,7 @@ abstract final class CertificateSampleARenderer {
 
   static pw.Widget _certificateContent({
     required CertificateData data,
-    required CertificateSampleARenderContext context,
+    required CertificateRenderContext context,
     required CertificateVisualVariant variant,
     required CertificateFonts fonts,
     required List<CertificateSignatory> signatories,
@@ -426,7 +426,7 @@ abstract final class CertificateSampleARenderer {
         pw.SizedBox(height: 14),
         pw.Text(
           'This certificate is proudly presented to',
-          style: CertificateSampleATheme.bodyRegular(fonts),
+          style: CertificateTheme.bodyRegular(fonts),
           textAlign: pw.TextAlign.center,
         ),
         pw.SizedBox(height: 10),
@@ -434,9 +434,9 @@ abstract final class CertificateSampleARenderer {
           padding: const pw.EdgeInsets.symmetric(horizontal: 12),
           child: pw.Text(
             data.recipientName.trim(),
-            style: CertificateSampleATheme.recipientScript(
+            style: CertificateTheme.recipientScript(
               fonts,
-              CertificateSampleATheme.recipientFontSize(data.recipientName),
+              CertificateTheme.recipientFontSize(data.recipientName),
             ),
             textAlign: pw.TextAlign.center,
             maxLines: 3,
@@ -446,7 +446,7 @@ abstract final class CertificateSampleARenderer {
           pw.SizedBox(height: 6),
           pw.Text(
             _memberOfLine(data),
-            style: CertificateSampleATheme.bodyRegular(fonts, size: 10),
+            style: CertificateTheme.bodyRegular(fonts, size: 10),
             textAlign: pw.TextAlign.center,
           ),
         ],
@@ -471,7 +471,7 @@ abstract final class CertificateSampleARenderer {
           alignment: pw.Alignment.center,
           child: pw.Text(
             variant.closingLine,
-            style: CertificateSampleATheme.footerTagline(fonts),
+            style: CertificateTheme.footerTagline(fonts),
             textAlign: pw.TextAlign.center,
           ),
         ),
@@ -479,7 +479,7 @@ abstract final class CertificateSampleARenderer {
     );
   }
 
-  static pw.Widget _recipientDivider(CertificateSampleARenderContext context, CertificateVisualVariant variant) {
+  static pw.Widget _recipientDivider(CertificateRenderContext context, CertificateVisualVariant variant) {
     final pw.MemoryImage? asset =
         variant.usesGoldAccents ? context.dividerGold : context.dividerSilver;
     if (asset != null) {
@@ -500,7 +500,7 @@ abstract final class CertificateSampleARenderer {
   }
 
   static List<pw.Widget> _cornerDecorations(
-    CertificateSampleARenderContext context,
+    CertificateRenderContext context,
     CertificateVisualVariant variant,
   ) {
     if (context.navyCornerTopLeft == null || context.navyCornerBottomRight == null) {
@@ -545,7 +545,7 @@ abstract final class CertificateSampleARenderer {
   }
 
   static pw.Widget _achievementBand(
-    CertificateSampleARenderContext context,
+    CertificateRenderContext context,
     CertificateVisualVariant variant,
   ) {
     return pw.Padding(
@@ -587,7 +587,7 @@ abstract final class CertificateSampleARenderer {
   }
 
   static pw.MemoryImage? _laurelImage(
-    CertificateSampleARenderContext context,
+    CertificateRenderContext context,
     CertificateVisualVariant variant,
   ) {
     return variant.usesGoldAccents ? context.laurelsGold : context.laurelsSilver;
@@ -606,7 +606,7 @@ abstract final class CertificateSampleARenderer {
               if (hackz != null)
                 pw.SizedBox(height: 52, child: pw.Image(hackz, fit: pw.BoxFit.contain))
               else
-                pw.Text('HACKZ', style: CertificateSampleATheme.orgHeader(fonts)),
+                pw.Text('HACKZ', style: CertificateTheme.orgHeader(fonts)),
             ],
           ),
         ),
@@ -631,12 +631,12 @@ abstract final class CertificateSampleARenderer {
           children: <pw.Widget>[
             pw.Text(
               'CERTIFICATE OF',
-              style: CertificateSampleATheme.headingMain(fonts, size: 22),
+              style: CertificateTheme.headingMain(fonts, size: 22),
               textAlign: pw.TextAlign.center,
             ),
             pw.Text(
               'PARTICIPATION',
-              style: CertificateSampleATheme.headingMain(fonts, size: 30),
+              style: CertificateTheme.headingMain(fonts, size: 30),
               textAlign: pw.TextAlign.center,
             ),
           ],
@@ -646,13 +646,13 @@ abstract final class CertificateSampleARenderer {
           children: <pw.Widget>[
             pw.Text(
               'WINNER',
-              style: CertificateSampleATheme.headingMain(fonts, size: 34),
+              style: CertificateTheme.headingMain(fonts, size: 34),
               textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 2),
             pw.Text(
               _achievementHeadline(data, fallback: 'FIRST PLACE'),
-              style: CertificateSampleATheme.achievementSubhead(variant, fonts),
+              style: CertificateTheme.achievementSubhead(variant, fonts),
               textAlign: pw.TextAlign.center,
             ),
           ],
@@ -662,13 +662,13 @@ abstract final class CertificateSampleARenderer {
           children: <pw.Widget>[
             pw.Text(
               'RUNNER-UP',
-              style: CertificateSampleATheme.headingMain(fonts, size: 32),
+              style: CertificateTheme.headingMain(fonts, size: 32),
               textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 2),
             pw.Text(
               _achievementHeadline(data, fallback: 'SECOND PLACE'),
-              style: CertificateSampleATheme.achievementSubhead(variant, fonts),
+              style: CertificateTheme.achievementSubhead(variant, fonts),
               textAlign: pw.TextAlign.center,
             ),
           ],
@@ -701,29 +701,29 @@ abstract final class CertificateSampleARenderer {
         : ' with the $submissionPhrase $title';
 
     final String plain = '$prefix ${event.isEmpty ? 'the event' : event}$withSubmission$held. $suffix';
-    final double size = CertificateSampleATheme.bodyFontSize(plain);
+    final double size = CertificateTheme.bodyFontSize(plain);
 
     return pw.RichText(
       textAlign: pw.TextAlign.center,
       text: pw.TextSpan(
-        style: CertificateSampleATheme.bodyRegular(fonts, size: size),
+        style: CertificateTheme.bodyRegular(fonts, size: size),
         children: <pw.TextSpan>[
           pw.TextSpan(text: '$prefix '),
           if (event.isNotEmpty)
-            pw.TextSpan(text: event, style: CertificateSampleATheme.bodyBold(fonts, size: size)),
+            pw.TextSpan(text: event, style: CertificateTheme.bodyBold(fonts, size: size)),
           if (withSubmission.isNotEmpty) ...<pw.TextSpan>[
             pw.TextSpan(text: ' with the $submissionPhrase '),
             pw.TextSpan(
               text: title,
-              style: CertificateSampleATheme.bodySemiBold(
+              style: CertificateTheme.bodySemiBold(
                 fonts,
-                size: CertificateSampleATheme.submissionFontSize(title),
+                size: CertificateTheme.submissionFontSize(title),
               ),
             ),
           ],
           if (held.isNotEmpty) ...<pw.TextSpan>[
             pw.TextSpan(text: ' held on '),
-            pw.TextSpan(text: date, style: CertificateSampleATheme.bodyBold(fonts, size: size)),
+            pw.TextSpan(text: date, style: CertificateTheme.bodyBold(fonts, size: size)),
           ],
           pw.TextSpan(text: '. $suffix'),
         ],
@@ -771,19 +771,19 @@ abstract final class CertificateSampleARenderer {
           )
         else if (!compact)
           pw.SizedBox(height: sigHeight),
-        pw.Container(width: lineWidth, height: 0.6, color: CertificateSampleATheme.ink),
+        pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),
         pw.SizedBox(height: 5),
         if (name.isNotEmpty)
           pw.Text(
             name,
-            style: CertificateSampleATheme.signatoryName(fonts),
+            style: CertificateTheme.signatoryName(fonts),
             textAlign: pw.TextAlign.center,
             maxLines: 2,
           ),
         if (designation.isNotEmpty)
           pw.Text(
             designation,
-            style: CertificateSampleATheme.signatoryTitle(fonts),
+            style: CertificateTheme.signatoryTitle(fonts),
             textAlign: pw.TextAlign.center,
             maxLines: 2,
           ),

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/widgets.dart' as pw;
 
-/// Shared certificate asset loading (Hackz logo + Sample A graphics).
+/// Shared certificate asset loading (Hackz logo + certificate graphics).
 abstract final class CertificatePdfAssets {
   CertificatePdfAssets._();
 

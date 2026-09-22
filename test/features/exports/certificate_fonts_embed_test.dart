@@ -37,15 +37,15 @@ void main() {
     );
   }
 
-  test('embeds certificate fonts and writes A1/A2/A3 PDFs', () async {
+  test('embeds certificate fonts and writes participation winner runner-up PDFs', () async {
     await CertificateFonts.load();
     final Directory out = Directory('build/certificate_font_preview');
     out.createSync(recursive: true);
 
     final List<(String, CertificateType)> samples = <(String, CertificateType)>[
-      ('A1_participation', CertificateType.participation),
-      ('A2_winner', CertificateType.winner),
-      ('A3_runner_up', CertificateType.runnerUp),
+      ('participation', CertificateType.participation),
+      ('winner', CertificateType.winner),
+      ('runner_up', CertificateType.runnerUp),
     ];
 
     for (final (String name, CertificateType type) in samples) {

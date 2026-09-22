@@ -1,9 +1,9 @@
 import 'package:pdf/widgets.dart' as pw;
 
 import 'certificate_fonts.dart';
-import 'certificate_sample_a_theme.dart';
+import 'certificate_theme.dart';
 
-/// Layout tokens for the college branding region on Sample A certificates.
+/// Layout tokens for the college branding region on certificates.
 class CertificateOrganisationBrandingLayout {
   const CertificateOrganisationBrandingLayout._({
     required this.maxWidth,
@@ -119,7 +119,7 @@ abstract final class CertificateOrganisationBranding {
             constraints: pw.BoxConstraints(maxWidth: layout.maxWidth - layout.logoMaxWidth - _logoNameGap),
             child: pw.Text(
               name,
-              style: CertificateSampleATheme.collegeName(fonts, size: nameSize),
+              style: CertificateTheme.collegeName(fonts, size: nameSize),
               textAlign: pw.TextAlign.left,
               maxLines: _maxNameLines,
               softWrap: true,
@@ -139,7 +139,7 @@ abstract final class CertificateOrganisationBranding {
     final double nameSize = fontSizeForName(name, layout, withLogo: false);
     return pw.Text(
       name,
-      style: CertificateSampleATheme.collegeName(fonts, size: nameSize),
+      style: CertificateTheme.collegeName(fonts, size: nameSize),
       textAlign: pw.TextAlign.right,
       maxLines: _maxNameLines,
       softWrap: true,

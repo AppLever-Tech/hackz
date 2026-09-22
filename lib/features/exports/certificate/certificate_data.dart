@@ -4,7 +4,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'certificate_type.dart';
 
-/// Normalized payload for the Sample A certificate renderer.
+/// Normalized payload for the certificate renderer.
 class CertificateSignatory {
   const CertificateSignatory({
     this.name = '',

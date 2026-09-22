@@ -1,4 +1,4 @@
-/// Achievement tier for Sample A certificate styling (A1 / A2 / A3).
+/// Achievement tier for certificate styling (participation, winner, runner-up).
 enum CertificateType {
   participation,
   winner,

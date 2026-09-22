@@ -10,8 +10,8 @@ void main() {
   const String event = 'Annual Innovation Summit 2026';
   const String dates = '12 Mar 2026 - 14 Mar 2026';
 
-  group('Sample A certificate PDF bytes', () {
-    test('A1 Ideathon participation (team)', () async {
+  group('Certificate PDF bytes', () {
+    test('Ideathon participation (team)', () async {
       final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
         <CertificateData>[
           CertificateData(
@@ -31,7 +31,7 @@ void main() {
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
 
-    test('A2 Ideathon winner (team)', () async {
+    test('Ideathon winner (team)', () async {
       final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
         <CertificateData>[
           CertificateData(
@@ -55,7 +55,7 @@ void main() {
       expect(bytes.isNotEmpty, true);
     });
 
-    test('A3 runner-up (team)', () async {
+    test('Ideathon runner-up (team)', () async {
       final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
         <CertificateData>[
           CertificateData(

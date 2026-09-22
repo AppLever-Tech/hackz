@@ -140,7 +140,7 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
         mimeType: HackzFileDownload.pdfMimeType,
       );
       if (!mounted || saved == HackzFileDownloadResult.cancelled) return;
-      await FeedbackService.showSuccess(context, title: 'Preview ready', message: 'Sample certificate downloaded.');
+      await FeedbackService.showSuccess(context, title: 'Preview ready', message: 'Certificate preview downloaded.');
     } catch (e) {
       if (!mounted) return;
       await FeedbackService.showError(context, title: 'Preview failed', message: '$e');
@@ -226,7 +226,7 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
         ),
         const SizedBox(height: 4),
         Text(
-          'On-demand Sample A certificates for this ${event.eventTemplateLabel}.',
+          'Generate on-demand certificates for this ${event.eventTemplateLabel}.',
           style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
         ),
         const SizedBox(height: 16),

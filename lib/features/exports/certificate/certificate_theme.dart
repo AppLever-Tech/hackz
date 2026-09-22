@@ -2,10 +2,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'certificate_fonts.dart';
-import 'certificate_sample_a_visual_variant.dart';
+import 'certificate_visual_variant.dart';
 
-/// Sample A typography (Playfair / Great Vibes / Inter via [CertificateFonts]).
-abstract final class CertificateSampleATheme {
+/// Certificate typography (Playfair / Great Vibes / Inter via [CertificateFonts]).
+abstract final class CertificateTheme {
   static const PdfColor navy = PdfColor.fromInt(0xFF0B1F3A);
   static const PdfColor ink = PdfColor.fromInt(0xFF0F172A);
   static const PdfColor muted = PdfColor.fromInt(0xFF475569);
