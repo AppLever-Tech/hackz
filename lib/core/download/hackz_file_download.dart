@@ -12,6 +12,7 @@ abstract final class HackzFileDownload {
   static const String xlsxMimeType =
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   static const String pdfMimeType = 'application/pdf';
+  static const String zipMimeType = 'application/zip';
 
   static Future<HackzFileDownloadResult> save({
     required String fileName,
