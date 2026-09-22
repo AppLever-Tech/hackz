@@ -1,114 +1,90 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'certificate_type.dart';
+import 'certificate_sample_a_fonts.dart';
+import 'certificate_sample_a_visual_variant.dart';
 
-/// Sample A visual tokens (landscape premium certificate).
+/// Sample A typography and colors (requires embedded fonts).
 abstract final class CertificateSampleATheme {
   static const PdfColor navy = PdfColor.fromInt(0xFF0B1F3A);
-  static const PdfColor navySoft = PdfColor.fromInt(0xFF1E3A5F);
   static const PdfColor ink = PdfColor.fromInt(0xFF0F172A);
-  static const PdfColor muted = PdfColor.fromInt(0xFF64748B);
-  static const PdfColor line = PdfColor.fromInt(0xFFDCE3EE);
-  static const PdfColor gold = PdfColor.fromInt(0xFFC9A227);
-  static const PdfColor goldBright = PdfColor.fromInt(0xFFD4AF37);
-  static const PdfColor silver = PdfColor.fromInt(0xFF94A3B8);
-  static const PdfColor runnerBlue = PdfColor.fromInt(0xFF2563EB);
-  static const PdfColor white = PdfColor.fromInt(0xFFFFFFFF);
+  static const PdfColor muted = PdfColor.fromInt(0xFF475569);
+  static const PdfColor ivory = PdfColor.fromInt(0xFFFCF8F0);
+  static const PdfColor innerLine = PdfColor.fromInt(0xFFCBD5E1);
 
-  static CertificatePalette palette(CertificateType type) => switch (type) {
-        CertificateType.participation => const CertificatePalette(
-              accent: gold,
-              accentSoft: PdfColor.fromInt(0xFFF5E6B8),
-              headline: navy,
-            ),
-        CertificateType.winner => const CertificatePalette(
-              accent: goldBright,
-              accentSoft: PdfColor.fromInt(0xFFF7E7A3),
-              headline: navy,
-            ),
-        CertificateType.runnerUp => const CertificatePalette(
-              accent: runnerBlue,
-              accentSoft: PdfColor.fromInt(0xFFE0EAFF),
-              headline: navySoft,
-            ),
-      };
-
-  static pw.TextStyle get orgName => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 11,
+  static pw.TextStyle serifHeadline(CertificateSampleAFonts fonts, {double size = 30}) => pw.TextStyle(
+        font: fonts.serifBold,
+        fontSize: size,
+        letterSpacing: 1.2,
         color: navy,
-        letterSpacing: 0.2,
       );
 
-  static pw.TextStyle headlinePrimary(CertificatePalette palette) => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 26,
+  static pw.TextStyle serifSubhead(CertificateVisualVariant variant, CertificateSampleAFonts fonts) =>
+      pw.TextStyle(
+        font: fonts.serifSemiBold,
+        fontSize: 16,
         letterSpacing: 2.4,
-        color: palette.headline,
+        color: variant.accent,
       );
 
-  static pw.TextStyle headlineSecondary(CertificatePalette palette) => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 18,
-        letterSpacing: 1.8,
-        color: palette.accent,
-      );
-
-  static pw.TextStyle get body => pw.TextStyle(
-        font: pw.Font.helvetica(),
-        fontSize: 11.5,
+  static pw.TextStyle sansBody(CertificateSampleAFonts fonts, {double size = 11}) => pw.TextStyle(
+        font: fonts.sansRegular,
+        fontSize: size,
         color: muted,
-        lineSpacing: 1.35,
+        lineSpacing: 1.45,
       );
 
-  static pw.TextStyle get recipient => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 24,
+  static pw.TextStyle sansBold(CertificateSampleAFonts fonts, {double size = 11}) => pw.TextStyle(
+        font: fonts.sansBold,
+        fontSize: size,
+        color: ink,
+        lineSpacing: 1.45,
+      );
+
+  static pw.TextStyle scriptRecipient(CertificateSampleAFonts fonts, double size) => pw.TextStyle(
+        font: fonts.script,
+        fontSize: size,
+        color: navy,
+      );
+
+  static pw.TextStyle orgHeader(CertificateSampleAFonts fonts) => pw.TextStyle(
+        font: fonts.sansSemiBold,
+        fontSize: 9.5,
         color: navy,
         letterSpacing: 0.3,
       );
 
-  static pw.TextStyle get eventTitle => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 14,
+  static pw.TextStyle signatoryName(CertificateSampleAFonts fonts) => pw.TextStyle(
+        font: fonts.sansSemiBold,
+        fontSize: 9,
         color: ink,
       );
 
-  static pw.TextStyle get submission => pw.TextStyle(
-        font: pw.Font.helvetica(),
-        fontSize: 12,
-        color: ink,
-      );
-
-  static pw.TextStyle get signatoryName => pw.TextStyle(
-        font: pw.Font.helveticaBold(),
-        fontSize: 9.5,
-        color: ink,
-      );
-
-  static pw.TextStyle get signatoryTitle => pw.TextStyle(
-        font: pw.Font.helvetica(),
-        fontSize: 8.5,
+  static pw.TextStyle signatoryTitle(CertificateSampleAFonts fonts) => pw.TextStyle(
+        font: fonts.sansRegular,
+        fontSize: 8,
         color: muted,
       );
 
-  static pw.TextStyle get footerBrand => pw.TextStyle(
-        font: pw.Font.helvetica(),
+  static pw.TextStyle footerTagline(CertificateSampleAFonts fonts) => pw.TextStyle(
+        font: fonts.sansSemiBold,
         fontSize: 7.5,
-        letterSpacing: 1.2,
+        letterSpacing: 1.8,
         color: muted,
       );
-}
 
-class CertificatePalette {
-  const CertificatePalette({
-    required this.accent,
-    required this.accentSoft,
-    required this.headline,
-  });
+  static double recipientFontSize(String name) {
+    final int len = name.trim().length;
+    if (len <= 22) return 38;
+    if (len <= 32) return 34;
+    if (len <= 44) return 30;
+    return 26;
+  }
 
-  final PdfColor accent;
-  final PdfColor accentSoft;
-  final PdfColor headline;
+  static double bodyFontSize(String combined) {
+    final int len = combined.length;
+    if (len <= 180) return 11;
+    if (len <= 260) return 10;
+    return 9.5;
+  }
 }

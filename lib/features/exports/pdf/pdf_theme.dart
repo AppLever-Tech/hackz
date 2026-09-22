@@ -21,10 +21,10 @@ abstract final class PdfTheme {
     22,
   );
   static const pw.EdgeInsets certificateMargin = pw.EdgeInsets.fromLTRB(
-    36,
-    36,
-    36,
-    36,
+    22,
+    22,
+    22,
+    22,
   );
 
   static const int reportMaxPages = 200;

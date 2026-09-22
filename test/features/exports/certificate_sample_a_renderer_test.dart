@@ -8,7 +8,7 @@ void main() {
 
   const String org = 'Sample College of Engineering';
   const String event = 'Annual Innovation Summit 2026';
-  const String dates = '12 Mar 2026 – 14 Mar 2026';
+  const String dates = '12 Mar 2026 - 14 Mar 2026';
 
   group('Sample A certificate PDF bytes', () {
     test('A1 Ideathon participation (team)', () async {
