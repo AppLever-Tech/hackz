@@ -68,12 +68,16 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     super.dispose();
   }
 
-  Future<void> _reload() async {
+  Future<void> _reload({bool awaitResult = true}) async {
     JudgeEvaluationService.clearCache();
-    setState(() {
-      _future = JudgeEvaluationService.loadWorkspace(widget.user, ideathonId: _eventId);
-    });
-    await _future;
+    final Future<JudgeEvaluationWorkspaceVm> next =
+        JudgeEvaluationService.loadWorkspace(widget.user, ideathonId: _eventId);
+    setState(() => _future = next);
+    if (awaitResult) await next;
+  }
+
+  void _refreshAfterEvaluationSaved() {
+    _reload(awaitResult: false);
   }
 
   Future<void> _openEvaluate(JudgeEvaluationPendingRow row) {
@@ -158,7 +162,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
         ideathonSchedule: ideathonSchedule,
       ),
     );
-    if (ok == true && mounted) await _reload();
+    if (ok == true && mounted) _refreshAfterEvaluationSaved();
   }
 
   Widget _buildTabLists(JudgeEvaluationWorkspaceVm vm) {
@@ -209,7 +213,7 @@ class _JudgeEvaluationWorkspaceScreenState extends State<JudgeEvaluationWorkspac
     return FutureBuilder<JudgeEvaluationWorkspaceVm>(
       future: _future,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return const Center(child: HkzProgressIndicator(size: 36));
         }
         if (snapshot.hasError) {

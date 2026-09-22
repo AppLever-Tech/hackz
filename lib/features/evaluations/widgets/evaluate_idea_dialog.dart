@@ -14,6 +14,7 @@ import '../../team/models/team_model.dart';
 import '../../user/models/user_model.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
+import '../../../core/ui/loading/loading.dart';
 import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../idea/services/idea_query_service.dart';
@@ -108,7 +109,6 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   final Map<String, int> _scores = <String, int>{};
   final Map<String, String> _comments = <String, String>{};
   late TextEditingController _overallRemarks;
-  bool _saving = false;
   int _attachmentCount = 0;
   ProblemModel? _problem;
   bool _loadingProblem = false;
@@ -276,7 +276,6 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
       );
       return;
     }
-    setState(() => _saving = true);
     try {
       final Map<String, double> scores = <String, double>{
         for (final MapEntry<String, int> e in _scores.entries) e.key: e.value.toDouble(),
@@ -285,14 +284,19 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         for (final MapEntry<String, String> e in _comments.entries)
           if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
       };
-      await JudgeEvaluationService.saveEvaluation(
-        judge: widget.judge,
-        idea: widget.idea,
-        template: template,
-        criteriaScores: scores,
-        criteriaComments: comments,
-        overallFeedback: _overallRemarks.text,
-        ideathonId: widget.ideathonId,
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Submitting evaluation',
+        successMessage: 'Evaluation submitted',
+        task: () => JudgeEvaluationService.saveEvaluation(
+          judge: widget.judge,
+          idea: widget.idea,
+          template: template,
+          criteriaScores: scores,
+          criteriaComments: comments,
+          overallFeedback: _overallRemarks.text,
+          ideathonId: widget.ideathonId,
+        ),
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -303,8 +307,6 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
         title: 'Failed to save evaluation',
         message: '$e',
       );
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -526,7 +528,7 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
   Widget _buildLoading() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 40),
-      child: Center(child: CircularProgressIndicator()),
+      child: Center(child: HkzProgressIndicator(size: 36)),
     );
   }
 
@@ -646,12 +648,12 @@ class _EvaluateIdeaDialogState extends State<EvaluateIdeaDialog> {
                 TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Close'))
               else ...<Widget>[
                 TextButton(
-                  onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+                  onPressed: () => Navigator.of(context).pop(false),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: (_saving || _template == null) ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Submit evaluation'),
+                  onPressed: _template == null ? null : _save,
+                  child: const Text('Submit evaluation'),
                 ),
               ],
             ],
