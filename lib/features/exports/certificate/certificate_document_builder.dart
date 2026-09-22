@@ -9,6 +9,7 @@ import 'certificate_data_mapper.dart';
 import 'certificate_pdf_assets.dart';
 import 'certificate_sample_a_render_context.dart';
 import 'certificate_sample_a_renderer.dart';
+import 'certificate_type.dart';
 
 /// Builds certificate PDF bytes through the Sample A renderer.
 abstract final class CertificateDocumentBuilder {
@@ -38,7 +39,7 @@ abstract final class CertificateDocumentBuilder {
       document.addPage(
         pw.Page(
           pageFormat: PdfTheme.certificatePageFormat,
-          margin: PdfTheme.certificateMargin,
+          margin: _pageMargin(data, renderContext),
           build: (_) => CertificateSampleARenderer.buildPage(data: data, context: renderContext),
         ),
       );
@@ -75,11 +76,19 @@ abstract final class CertificateDocumentBuilder {
       document.addPage(
         pw.Page(
           pageFormat: PdfTheme.certificatePageFormat,
-          margin: PdfTheme.certificateMargin,
+          margin: _pageMargin(data, renderContext),
           build: (_) => CertificateSampleARenderer.buildPage(data: data, context: renderContext),
         ),
       );
     }
     return document.save();
+  }
+
+  static pw.EdgeInsets _pageMargin(CertificateData data, CertificateSampleARenderContext renderContext) {
+    if (data.certificateType == CertificateType.participation &&
+        renderContext.participationBackground != null) {
+      return pw.EdgeInsets.zero;
+    }
+    return PdfTheme.certificateMargin;
   }
 }
