@@ -77,6 +77,14 @@ abstract final class CertificateSampleATheme {
         lineSpacing: 1.25,
       );
 
+  /// Organisation / college name (Inter SemiBold 600, navy).
+  static pw.TextStyle collegeName(CertificateFonts fonts, {required double size}) => pw.TextStyle(
+        font: fonts.bodySemiBold,
+        fontSize: size,
+        color: navy,
+        lineSpacing: 1.22,
+      );
+
   static pw.TextStyle participationIntro(CertificateFonts fonts) => pw.TextStyle(
         font: fonts.bodyRegular,
         fontSize: 13,

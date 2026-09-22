@@ -3,6 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'certificate_data.dart';
 import 'certificate_fonts.dart';
+import 'certificate_organisation_branding.dart';
 import 'certificate_sample_a_render_context.dart';
 import 'certificate_sample_a_theme.dart';
 import 'certificate_sample_a_visual_variant.dart';
@@ -108,9 +109,6 @@ abstract final class CertificateSampleARenderer {
   /// Top band: Hackz logo (after corner), centered title, college name/logo aligned with logo row.
   static pw.Widget _participationTopBand(CertificateData data, CertificateFonts fonts) {
     final pw.ImageProvider? hackz = data.hackzLogo;
-    final pw.ImageProvider? org = data.organisationLogo;
-    final String orgName = data.organisationName.trim();
-
     return pw.Positioned(
       top: _participationBandTop,
       left: 0,
@@ -159,24 +157,11 @@ abstract final class CertificateSampleARenderer {
                 ),
               ),
             ),
-            pw.SizedBox(
-              width: 200,
-              child: org != null
-                  ? pw.SizedBox(
-                      height: 58,
-                      child: pw.Align(
-                        alignment: pw.Alignment.centerRight,
-                        child: pw.Image(org, fit: pw.BoxFit.contain),
-                      ),
-                    )
-                  : orgName.isEmpty
-                      ? pw.SizedBox()
-                      : pw.Text(
-                          orgName,
-                          style: CertificateSampleATheme.participationOrgName(fonts),
-                          textAlign: pw.TextAlign.right,
-                          maxLines: 3,
-                        ),
+            CertificateOrganisationBranding.build(
+              fonts: fonts,
+              organisationName: data.organisationName,
+              organisationLogo: data.organisationLogo,
+              layout: CertificateOrganisationBrandingLayout.participationTopRight,
             ),
           ],
         ),
@@ -610,8 +595,6 @@ abstract final class CertificateSampleARenderer {
 
   static pw.Widget _headerRow(CertificateData data, CertificateFonts fonts) {
     final pw.ImageProvider? hackz = data.hackzLogo;
-    final pw.ImageProvider? org = data.organisationLogo;
-    final String orgName = data.organisationName.trim();
 
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -627,31 +610,12 @@ abstract final class CertificateSampleARenderer {
             ],
           ),
         ),
-        if (org != null)
-          pw.SizedBox(
-            width: 200,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: <pw.Widget>[
-                pw.SizedBox(
-                  height: 46,
-                  child: pw.Align(
-                    alignment: pw.Alignment.centerRight,
-                    child: pw.Image(org, fit: pw.BoxFit.contain),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else if (orgName.isNotEmpty)
-          pw.Expanded(
-            child: pw.Text(
-              orgName,
-              style: CertificateSampleATheme.orgHeader(fonts),
-              textAlign: pw.TextAlign.right,
-              maxLines: 3,
-            ),
-          ),
+        CertificateOrganisationBranding.build(
+          fonts: fonts,
+          organisationName: data.organisationName,
+          organisationLogo: data.organisationLogo,
+          layout: CertificateOrganisationBrandingLayout.headerTopRight,
+        ),
       ],
     );
   }
