@@ -26,17 +26,17 @@ abstract final class CertificateSampleARenderer {
           pw.Positioned.fill(
             child: pw.Image(context.participationBackground!, fit: pw.BoxFit.cover),
           ),
-          _participationHeaderLogos(data, fonts),
-          pw.Padding(
-            padding: const pw.EdgeInsets.fromLTRB(40, 104, 40, 28),
-            child: _certificateContent(
-              data: data,
-              context: context,
-              variant: variant,
-              fonts: fonts,
-              signatories: signatories,
-              framed: false,
-              showHeaderLogos: false,
+          _participationTopBand(data, fonts),
+          pw.Positioned.fill(
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.fromLTRB(44, 134, 44, 22),
+              child: _participationMainColumn(
+                data: data,
+                context: context,
+                variant: variant,
+                fonts: fonts,
+                signatories: signatories,
+              ),
             ),
           ),
         ],
@@ -100,64 +100,289 @@ abstract final class CertificateSampleARenderer {
     return data.certificateType == CertificateType.participation && context.participationBackground != null;
   }
 
-  /// Hackz logo sits just to the right of the baked-in top-left corner (Sample A).
-  static const double _participationHackzLogoTop = 30;
-  static const double _participationHackzLogoLeft = 120;
-  static const double _participationHackzLogoHeight = 76;
-  static const double _participationOrgLogoTop = 24;
-  static const double _participationOrgLogoRight = 34;
+  static const double _participationBandTop = 26;
+  static const double _participationHackzLogoHeight = 72;
+  static const double _participationHackzSlotWidth = 168;
+  static const double _participationLeftBandWidth = 210;
 
-  static pw.Widget _participationHeaderLogos(CertificateData data, CertificateFonts fonts) {
+  /// Top band: Hackz logo (after corner), centered title, college name/logo aligned with logo row.
+  static pw.Widget _participationTopBand(CertificateData data, CertificateFonts fonts) {
     final pw.ImageProvider? hackz = data.hackzLogo;
     final pw.ImageProvider? org = data.organisationLogo;
     final String orgName = data.organisationName.trim();
 
-    return pw.Stack(
-      children: <pw.Widget>[
-        if (hackz != null)
-          pw.Positioned(
-            top: _participationHackzLogoTop,
-            left: _participationHackzLogoLeft,
-            child: pw.SizedBox(
-              height: _participationHackzLogoHeight,
-              width: 168,
-              child: pw.Align(
-                alignment: pw.Alignment.centerLeft,
-                child: pw.Image(hackz, fit: pw.BoxFit.contain),
-              ),
-            ),
-          )
-        else
-          pw.Positioned(
-            top: _participationHackzLogoTop + 24,
-            left: _participationHackzLogoLeft,
-            child: pw.Text('HACKZ', style: CertificateSampleATheme.orgHeader(fonts)),
-          ),
-        if (org != null)
-          pw.Positioned(
-            top: _participationOrgLogoTop,
-            right: _participationOrgLogoRight,
-            child: pw.SizedBox(
-              height: 58,
-              width: 200,
+    return pw.Positioned(
+      top: _participationBandTop,
+      left: 0,
+      right: 0,
+      child: pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 28),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: <pw.Widget>[
+            pw.SizedBox(
+              width: _participationLeftBandWidth,
               child: pw.Align(
                 alignment: pw.Alignment.centerRight,
-                child: pw.Image(org, fit: pw.BoxFit.contain),
+                child: hackz != null
+                    ? pw.SizedBox(
+                        height: _participationHackzLogoHeight,
+                        width: _participationHackzSlotWidth,
+                        child: pw.Image(hackz, fit: pw.BoxFit.contain),
+                      )
+                    : pw.Text('HACKZ', style: CertificateSampleATheme.participationOrgName(fonts)),
               ),
             ),
-          )
-        else if (orgName.isNotEmpty)
-          pw.Positioned(
-            top: _participationOrgLogoTop,
-            right: _participationOrgLogoRight,
-            left: _participationHackzLogoLeft + 180,
-            child: pw.Text(
-              orgName,
-              style: CertificateSampleATheme.orgHeader(fonts),
-              textAlign: pw.TextAlign.right,
-              maxLines: 3,
+            pw.Expanded(
+              child: pw.SizedBox(
+                height: 78,
+                child: pw.Stack(
+                  alignment: pw.Alignment.topCenter,
+                  children: <pw.Widget>[
+                    pw.Text(
+                      'CERTIFICATE OF',
+                      style: CertificateSampleATheme.certificateOfLabel(fonts),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.Positioned(
+                      top: 23,
+                      left: 0,
+                      right: 0,
+                      child: pw.Text(
+                        'PARTICIPATION',
+                        style: CertificateSampleATheme.participationTitle(fonts, size: 34),
+                        textAlign: pw.TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+            pw.SizedBox(
+              width: 200,
+              child: org != null
+                  ? pw.SizedBox(
+                      height: 58,
+                      child: pw.Align(
+                        alignment: pw.Alignment.centerRight,
+                        child: pw.Image(org, fit: pw.BoxFit.contain),
+                      ),
+                    )
+                  : orgName.isEmpty
+                      ? pw.SizedBox()
+                      : pw.Text(
+                          orgName,
+                          style: CertificateSampleATheme.participationOrgName(fonts),
+                          textAlign: pw.TextAlign.right,
+                          maxLines: 3,
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _participationMainColumn({
+    required CertificateData data,
+    required CertificateSampleARenderContext context,
+    required CertificateVisualVariant variant,
+    required CertificateFonts fonts,
+    required List<CertificateSignatory> signatories,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: <pw.Widget>[
+        pw.Text(
+          'This certificate is proudly presented to',
+          style: CertificateSampleATheme.participationIntro(fonts),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.SizedBox(height: 10),
+        pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 12),
+          child: pw.Text(
+            data.recipientName.trim(),
+            style: CertificateSampleATheme.recipientScript(
+              fonts,
+              CertificateSampleATheme.recipientFontSize(data.recipientName, participation: true),
+            ),
+            textAlign: pw.TextAlign.center,
+            maxLines: 3,
           ),
+        ),
+        if (_memberOfLine(data).isNotEmpty) ...<pw.Widget>[
+          pw.SizedBox(height: 6),
+          pw.Text(
+            _memberOfLine(data),
+            style: CertificateSampleATheme.participationBody(fonts),
+            textAlign: pw.TextAlign.center,
+          ),
+        ],
+        pw.SizedBox(height: 10),
+        _recipientDivider(context, variant),
+        pw.SizedBox(height: 14),
+        _participationBodyLines(data, fonts),
+        pw.Spacer(),
+        _participationSignatoryFooter(signatories, fonts),
+        pw.SizedBox(height: 16),
+      ],
+    );
+  }
+
+  static pw.Widget _participationSignatoryFooter(
+    List<CertificateSignatory> signatories,
+    CertificateFonts fonts,
+  ) {
+    final CertificateSignatory left = signatories[0];
+    final CertificateSignatory right = signatories[1];
+    const double lineWidth = 130;
+
+    pw.Widget signatureLineBlock(CertificateSignatory signatory) {
+      return pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: <pw.Widget>[
+          if (signatory.signatureImage != null)
+            pw.SizedBox(
+              height: 20,
+              child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
+            ),
+          pw.Container(width: lineWidth, height: 0.6, color: CertificateSampleATheme.ink),
+        ],
+      );
+    }
+
+    pw.Widget centeredText(String text, pw.TextStyle style, {int maxLines = 2}) {
+      return pw.Text(
+        text,
+        style: style,
+        textAlign: pw.TextAlign.center,
+        maxLines: maxLines,
+      );
+    }
+
+    pw.Widget signatoryTextBlock(String text, pw.TextStyle style, {double top = 4}) {
+      if (text.isEmpty) return pw.SizedBox();
+      return pw.Padding(
+        padding: pw.EdgeInsets.only(top: top),
+        child: centeredText(text, style),
+      );
+    }
+
+    return pw.Table(
+      columnWidths: <int, pw.TableColumnWidth>{
+        0: const pw.FlexColumnWidth(1),
+        1: const pw.FlexColumnWidth(1.35),
+        2: const pw.FlexColumnWidth(1),
+      },
+      defaultVerticalAlignment: pw.TableCellVerticalAlignment.top,
+      children: <pw.TableRow>[
+        pw.TableRow(
+          children: <pw.Widget>[
+            pw.Align(alignment: pw.Alignment.topCenter, child: signatureLineBlock(left)),
+            pw.SizedBox(),
+            pw.Align(alignment: pw.Alignment.topCenter, child: signatureLineBlock(right)),
+          ],
+        ),
+        pw.TableRow(
+          children: <pw.Widget>[
+            signatoryTextBlock(
+              left.name.trim(),
+              CertificateSampleATheme.signatoryName(fonts),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 4),
+              child: centeredText(
+                'IDEAS TODAY',
+                CertificateSampleATheme.participationTaglinePrimary(fonts),
+                maxLines: 1,
+              ),
+            ),
+            signatoryTextBlock(
+              right.name.trim(),
+              CertificateSampleATheme.signatoryName(fonts),
+            ),
+          ],
+        ),
+        pw.TableRow(
+          children: <pw.Widget>[
+            signatoryTextBlock(
+              left.designation.trim(),
+              CertificateSampleATheme.signatoryTitle(fonts),
+              top: 3,
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 3),
+              child: centeredText(
+                'A BRIGHTER TOMORROW',
+                CertificateSampleATheme.participationTaglineSecondary(fonts),
+                maxLines: 1,
+              ),
+            ),
+            signatoryTextBlock(
+              right.designation.trim(),
+              CertificateSampleATheme.signatoryTitle(fonts),
+              top: 3,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  static String _presentingSubmissionPhrase(String submissionLabel) {
+    final String label = submissionLabel.trim().toLowerCase();
+    if (label.contains('prototype')) return 'and presenting the prototype';
+    if (label.contains('paper')) return 'and presenting the research paper';
+    return 'and presenting the idea';
+  }
+
+  static pw.Widget _participationBodyLines(CertificateData data, CertificateFonts fonts) {
+    final String event = data.eventName.trim();
+    final String title = data.submissionTitle.trim();
+    final String date = data.eventDateLabel.trim();
+    const double bodySize = 16;
+    const double eventNameSize = 18;
+    const double ideaTitleSize = 17;
+    const double recognitionSize = 13;
+
+    pw.Widget line(String text, pw.TextStyle style, {int maxLines = 2}) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 6),
+        child: pw.Text(text, style: style, textAlign: pw.TextAlign.center, maxLines: maxLines),
+      );
+    }
+
+    return pw.Column(
+      children: <pw.Widget>[
+        line(
+          'for successfully participating in',
+          CertificateSampleATheme.participationBody(fonts, size: bodySize),
+        ),
+        if (event.isNotEmpty)
+          line(event, CertificateSampleATheme.bodyBold(fonts, size: eventNameSize), maxLines: 2),
+        line(
+          _presentingSubmissionPhrase(data.submissionLabel),
+          CertificateSampleATheme.participationBody(fonts, size: bodySize),
+        ),
+        if (title.isNotEmpty)
+          line(
+            '"$title"',
+            CertificateSampleATheme.bodySemiBold(fonts, size: ideaTitleSize),
+            maxLines: 3,
+          ),
+        if (date.isNotEmpty)
+          line(
+            'held on $date',
+            CertificateSampleATheme.participationBody(fonts, size: bodySize),
+          ),
+        line(
+          'In recognition of their creativity, innovation and contribution to the event.',
+          CertificateSampleATheme.participationBody(fonts, size: recognitionSize),
+          maxLines: 3,
+        ),
       ],
     );
   }
@@ -531,20 +756,26 @@ abstract final class CertificateSampleARenderer {
     return list.take(2).toList(growable: false);
   }
 
-  static pw.Widget _signatoryBlock(CertificateSignatory signatory, CertificateFonts fonts) {
+  static pw.Widget _signatoryBlock(
+    CertificateSignatory signatory,
+    CertificateFonts fonts, {
+    bool compact = false,
+  }) {
     final String name = signatory.name.trim();
     final String designation = signatory.designation.trim();
+    final double sigHeight = compact ? 22 : 34;
+    final double lineWidth = compact ? 130 : 110;
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: <pw.Widget>[
         if (signatory.signatureImage != null)
           pw.SizedBox(
-            height: 34,
+            height: sigHeight,
             child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
           )
-        else
-          pw.SizedBox(height: 34),
-        pw.Container(width: 110, height: 0.6, color: CertificateSampleATheme.ink),
+        else if (!compact)
+          pw.SizedBox(height: sigHeight),
+        pw.Container(width: lineWidth, height: 0.6, color: CertificateSampleATheme.ink),
         pw.SizedBox(height: 5),
         if (name.isNotEmpty)
           pw.Text(

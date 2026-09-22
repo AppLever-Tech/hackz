@@ -23,6 +23,74 @@ abstract final class CertificateSampleATheme {
         color: navy,
       );
 
+  /// Playfair SemiBold — large display lines (e.g. PARTICIPATION without extra bold).
+  static pw.TextStyle headingDisplay(CertificateFonts fonts, {required double size}) => pw.TextStyle(
+        font: fonts.headingSemiBold,
+        fontSize: size,
+        letterSpacing: 1.4,
+        color: navy,
+      );
+
+  /// Tighter line metrics for stacked certificate title lines.
+  static pw.TextStyle headingDisplayTight(CertificateFonts fonts, {required double size}) => pw.TextStyle(
+        font: fonts.headingSemiBold,
+        fontSize: size,
+        letterSpacing: 1.2,
+        height: 0.82,
+        color: navy,
+      );
+
+  /// "CERTIFICATE OF" — Playfair SemiBold (same family as PARTICIPATION, lighter than Bold).
+  static pw.TextStyle certificateOfLabel(CertificateFonts fonts) => pw.TextStyle(
+        font: fonts.headingSemiBold,
+        fontSize: 24,
+        letterSpacing: 2.2,
+        color: navy,
+      );
+
+  static pw.TextStyle participationTitle(CertificateFonts fonts, {required double size}) => pw.TextStyle(
+        font: fonts.headingSemiBold,
+        fontSize: size,
+        letterSpacing: 1.2,
+        height: 1.05,
+        color: navy,
+      );
+
+  static pw.TextStyle participationTaglinePrimary(CertificateFonts fonts) => pw.TextStyle(
+        font: fonts.bodyMedium,
+        fontSize: 8,
+        letterSpacing: 1.6,
+        color: muted,
+      );
+
+  static pw.TextStyle participationTaglineSecondary(CertificateFonts fonts) => pw.TextStyle(
+        font: fonts.bodyMedium,
+        fontSize: 8,
+        letterSpacing: 1.6,
+        color: muted,
+      );
+
+  static pw.TextStyle participationOrgName(CertificateFonts fonts) => pw.TextStyle(
+        font: fonts.bodySemiBold,
+        fontSize: 13,
+        color: navy,
+        lineSpacing: 1.25,
+      );
+
+  static pw.TextStyle participationIntro(CertificateFonts fonts) => pw.TextStyle(
+        font: fonts.bodyRegular,
+        fontSize: 13,
+        color: muted,
+        lineSpacing: 1.35,
+      );
+
+  static pw.TextStyle participationBody(CertificateFonts fonts, {double size = 13}) => pw.TextStyle(
+        font: fonts.bodyRegular,
+        fontSize: size,
+        color: muted,
+        lineSpacing: 1.35,
+      );
+
   /// Achievement subheadings (FIRST PLACE, SECOND PLACE).
   static pw.TextStyle achievementSubhead(CertificateVisualVariant variant, CertificateFonts fonts) =>
       pw.TextStyle(
@@ -73,15 +141,15 @@ abstract final class CertificateSampleATheme {
         letterSpacing: 0.3,
       );
 
-  static pw.TextStyle signatoryName(CertificateFonts fonts) => pw.TextStyle(
+  static pw.TextStyle signatoryName(CertificateFonts fonts, {double size = 10}) => pw.TextStyle(
         font: fonts.bodySemiBold,
-        fontSize: 9,
+        fontSize: size,
         color: ink,
       );
 
-  static pw.TextStyle signatoryTitle(CertificateFonts fonts) => pw.TextStyle(
+  static pw.TextStyle signatoryTitle(CertificateFonts fonts, {double size = 9}) => pw.TextStyle(
         font: fonts.bodyRegular,
-        fontSize: 8,
+        fontSize: size,
         color: muted,
       );
 
@@ -92,13 +160,14 @@ abstract final class CertificateSampleATheme {
         color: muted,
       );
 
-  static double recipientFontSize(String name) {
+  static double recipientFontSize(String name, {bool participation = false}) {
     final int len = name.trim().length;
-    if (len <= 22) return recipientSizeMax;
-    if (len <= 32) return 34;
-    if (len <= 44) return 30;
-    if (len <= 56) return 26;
-    return recipientSizeMin;
+    final double baseMax = participation ? 44 : recipientSizeMax;
+    if (len <= 22) return baseMax;
+    if (len <= 32) return participation ? 40 : 34;
+    if (len <= 44) return participation ? 36 : 30;
+    if (len <= 56) return participation ? 32 : 26;
+    return participation ? 28 : recipientSizeMin;
   }
 
   static double bodyFontSize(String combined) {
