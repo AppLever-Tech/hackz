@@ -12,7 +12,7 @@ abstract final class PdfTheme {
   static const PdfColor white = PdfColor.fromInt(0xFFFFFFFF);
 
   static final PdfPageFormat reportPageFormat = PdfPageFormat.a4.landscape;
-  static const PdfPageFormat certificatePageFormat = PdfPageFormat.a4;
+  static final PdfPageFormat certificatePageFormat = PdfPageFormat.a4.landscape;
 
   static const pw.EdgeInsets reportMargin = pw.EdgeInsets.fromLTRB(
     28,

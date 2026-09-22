@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/events/exports/event_certificates_export_provider.dart';
+import 'package:hackz/features/exports/certificate/certificate_type.dart';
 import 'package:hackz/features/events/models/event_report_item.dart';
 import 'package:hackz/features/events/models/event_winner_entry.dart';
 import 'package:hackz/features/events/widgets/event_reports_section.dart';
@@ -29,6 +30,7 @@ class IdeathonReportsTab extends StatelessWidget {
     );
     final String eventDates = _eventDates();
     final String eventType = vm.ideathon.eventKind.label;
+    final String submissionLabel = vm.ideathon.eventKind.payableItemLabel;
 
     return EventReportsSection(
       items: <EventReportItem>[
@@ -42,6 +44,7 @@ class IdeathonReportsTab extends StatelessWidget {
           recipients: participants,
           eventType: eventType,
           eventDates: eventDates,
+          submissionLabel: submissionLabel,
           unavailableReason:
               'Add participating ${vm.ideathon.eventKind.entriesLabel.toLowerCase()} before generating certificates.',
         ),
@@ -56,6 +59,7 @@ class IdeathonReportsTab extends StatelessWidget {
             recipients: <EventCertificateRecipient>[if (winner != null) winner],
             eventType: eventType,
             eventDates: eventDates,
+            submissionLabel: submissionLabel,
             unavailableReason:
                 'Winner certificates are available after Department Admin selects a winner.',
           ),
@@ -72,6 +76,7 @@ class IdeathonReportsTab extends StatelessWidget {
             ],
             eventType: eventType,
             eventDates: eventDates,
+            submissionLabel: submissionLabel,
             unavailableReason:
                 'Runner-up certificates are available after Department Admin selects a runner-up.',
           ),
@@ -88,6 +93,7 @@ class IdeathonReportsTab extends StatelessWidget {
     required List<EventCertificateRecipient> recipients,
     required String eventType,
     required String eventDates,
+    required String submissionLabel,
     required String unavailableReason,
   }) {
     final EventCertificatesExportProvider provider =
@@ -96,6 +102,7 @@ class IdeathonReportsTab extends StatelessWidget {
           recipients: recipients,
           eventType: eventType,
           eventDates: eventDates,
+          submissionLabel: submissionLabel,
         );
     final bool available = recipients.isNotEmpty && provider.canExport(actor);
     return EventReportItem(
@@ -149,12 +156,16 @@ class IdeathonReportsTab extends StatelessWidget {
       entryId: entry.ideaId,
     );
     if (recipient.isEmpty) return null;
+    final CertificateType type = place.toLowerCase().contains('runner')
+        ? CertificateType.runnerUp
+        : CertificateType.winner;
     return EventCertificateRecipient(
       recipientName: recipient,
       teamName: entry.teamName,
       entryTitle: entry.ideaTitle,
       entryId: entry.ideaId,
       placeLabel: place,
+      certificateType: type,
     );
   }
 
