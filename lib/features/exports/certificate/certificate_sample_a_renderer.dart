@@ -226,10 +226,19 @@ abstract final class CertificateSampleARenderer {
         _participationBodyLines(data, fonts),
         pw.Spacer(),
         _participationSignatoryFooter(signatories, fonts),
-        pw.SizedBox(height: 16),
+        pw.SizedBox(height: _participationFooterBottomGap),
       ],
     );
   }
+
+  /// ~2 line gaps + 3 additional line heights below designation row.
+  static const double _participationFooterBottomGap = 56;
+
+  /// Horizontal gap between signatory blocks and center tagline (fixed layout).
+  static const double _signatoryGapFromCenter = 12;
+
+  static const double _participationSignatorySideWidth = 132;
+  static const double _participationSignatoryCenterWidth = 128;
 
   static pw.Widget _participationSignatoryFooter(
     List<CertificateSignatory> signatories,
@@ -237,12 +246,12 @@ abstract final class CertificateSampleARenderer {
   ) {
     final CertificateSignatory left = signatories[0];
     final CertificateSignatory right = signatories[1];
-    const double lineWidth = 130;
+    const double lineWidth = _participationSignatorySideWidth;
 
-    pw.Widget signatureLineBlock(CertificateSignatory signatory) {
+    pw.Widget signatureLineBlock(CertificateSignatory signatory, {required bool leftSide}) {
       return pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        crossAxisAlignment: leftSide ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
         children: <pw.Widget>[
           if (signatory.signatureImage != null)
             pw.SizedBox(
@@ -263,70 +272,93 @@ abstract final class CertificateSampleARenderer {
       );
     }
 
-    pw.Widget signatoryTextBlock(String text, pw.TextStyle style, {double top = 4}) {
+    pw.Widget signatoryTextBlock(
+      String text,
+      pw.TextStyle style, {
+      required pw.TextAlign textAlign,
+      double top = 4,
+    }) {
       if (text.isEmpty) return pw.SizedBox();
       return pw.Padding(
         padding: pw.EdgeInsets.only(top: top),
-        child: centeredText(text, style),
+        child: pw.Text(
+          text,
+          style: style,
+          textAlign: textAlign,
+          maxLines: 2,
+        ),
       );
     }
 
-    return pw.Table(
-      columnWidths: <int, pw.TableColumnWidth>{
-        0: const pw.FlexColumnWidth(1),
-        1: const pw.FlexColumnWidth(1.35),
-        2: const pw.FlexColumnWidth(1),
-      },
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.top,
-      children: <pw.TableRow>[
-        pw.TableRow(
-          children: <pw.Widget>[
-            pw.Align(alignment: pw.Alignment.topCenter, child: signatureLineBlock(left)),
-            pw.SizedBox(),
-            pw.Align(alignment: pw.Alignment.topCenter, child: signatureLineBlock(right)),
-          ],
+    pw.Widget footerRow({
+      required pw.Widget left,
+      required pw.Widget center,
+      required pw.Widget right,
+    }) {
+      return pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.center,
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: <pw.Widget>[
+          pw.SizedBox(
+            width: _participationSignatorySideWidth,
+            child: pw.Align(alignment: pw.Alignment.topRight, child: left),
+          ),
+          pw.SizedBox(width: _signatoryGapFromCenter),
+          pw.SizedBox(
+            width: _participationSignatoryCenterWidth,
+            child: pw.Align(alignment: pw.Alignment.topCenter, child: center),
+          ),
+          pw.SizedBox(width: _signatoryGapFromCenter),
+          pw.SizedBox(
+            width: _participationSignatorySideWidth,
+            child: pw.Align(alignment: pw.Alignment.topLeft, child: right),
+          ),
+        ],
+      );
+    }
+
+    return pw.Column(
+      children: <pw.Widget>[
+        footerRow(
+          left: signatureLineBlock(left, leftSide: true),
+          center: pw.SizedBox(),
+          right: signatureLineBlock(right, leftSide: false),
         ),
-        pw.TableRow(
-          children: <pw.Widget>[
-            signatoryTextBlock(
-              left.name.trim(),
-              CertificateSampleATheme.signatoryName(fonts),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 4),
-              child: centeredText(
-                'IDEAS TODAY',
-                CertificateSampleATheme.participationTaglinePrimary(fonts),
-                maxLines: 1,
-              ),
-            ),
-            signatoryTextBlock(
-              right.name.trim(),
-              CertificateSampleATheme.signatoryName(fonts),
-            ),
-          ],
+        footerRow(
+          left: signatoryTextBlock(
+            left.name.trim(),
+            CertificateSampleATheme.signatoryName(fonts, size: 11.5),
+            textAlign: pw.TextAlign.right,
+          ),
+          center: centeredText(
+            'IDEAS TODAY',
+            CertificateSampleATheme.participationTaglinePrimary(fonts),
+            maxLines: 1,
+          ),
+          right: signatoryTextBlock(
+            right.name.trim(),
+            CertificateSampleATheme.signatoryName(fonts, size: 11.5),
+            textAlign: pw.TextAlign.left,
+          ),
         ),
-        pw.TableRow(
-          children: <pw.Widget>[
-            signatoryTextBlock(
-              left.designation.trim(),
-              CertificateSampleATheme.signatoryTitle(fonts),
-              top: 3,
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(top: 3),
-              child: centeredText(
-                'A BRIGHTER TOMORROW',
-                CertificateSampleATheme.participationTaglineSecondary(fonts),
-                maxLines: 1,
-              ),
-            ),
-            signatoryTextBlock(
-              right.designation.trim(),
-              CertificateSampleATheme.signatoryTitle(fonts),
-              top: 3,
-            ),
-          ],
+        footerRow(
+          left: signatoryTextBlock(
+            left.designation.trim(),
+            CertificateSampleATheme.signatoryTitle(fonts, size: 10),
+            textAlign: pw.TextAlign.right,
+            top: 3,
+          ),
+          center: centeredText(
+            'A BRIGHTER TOMORROW',
+            CertificateSampleATheme.participationTaglineSecondary(fonts),
+            maxLines: 1,
+          ),
+          right: signatoryTextBlock(
+            right.designation.trim(),
+            CertificateSampleATheme.signatoryTitle(fonts, size: 10),
+            textAlign: pw.TextAlign.left,
+            top: 3,
+          ),
         ),
       ],
     );
