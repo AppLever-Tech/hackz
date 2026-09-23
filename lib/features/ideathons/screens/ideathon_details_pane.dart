@@ -658,7 +658,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               child: EventDetailsEvaluationTabHost(
                 shell: shell,
                 cache: _tabCache,
-                cacheKey: 'winners',
+                cacheKey: EventDetailsTabKeys.winners,
                 evaluationWorkspace: _evaluationWorkspace,
                 builder: (IdeathonDetailsViewModel vm) => IdeathonWinnersTab(
                   vm: vm,
@@ -675,7 +675,7 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
               child: EventDetailsEvaluationTabHost(
                 shell: shell,
                 cache: _tabCache,
-                cacheKey: 'leaderboard_vm',
+                cacheKey: EventDetailsTabKeys.leaderboard,
                 evaluationWorkspace: _evaluationWorkspace,
                 builder: (IdeathonDetailsViewModel vm) => IdeathonLeaderboardTab(
                   vm: vm,
@@ -686,12 +686,12 @@ class _IdeathonDetailsPaneState extends State<IdeathonDetailsPane> {
             ),
             EventDetailsModule(
               id: 'reports',
-              label: 'Reports',
+              label: 'e-Certificates',
               icon: AppIcons.docs,
               child: EventDetailsEvaluationTabHost(
                 shell: shell,
                 cache: _tabCache,
-                cacheKey: 'reports',
+                cacheKey: EventDetailsTabKeys.reports,
                 evaluationWorkspace: _evaluationWorkspace,
                 includeIdeas: true,
                 builder: (IdeathonDetailsViewModel vm) =>

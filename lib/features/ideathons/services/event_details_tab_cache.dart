@@ -65,6 +65,9 @@ final class EventDetailsTabCacheBucket {
     invalidate(EventDetailsTabKeys.ideas);
     invalidate(EventDetailsTabKeys.overviewPeople);
     invalidate(EventDetailsTabKeys.judgeAssignments);
+    invalidate(EventDetailsTabKeys.reports);
+    invalidate(EventDetailsTabKeys.winners);
+    invalidate(EventDetailsTabKeys.leaderboard);
   }
 }
 
@@ -81,4 +84,7 @@ abstract final class EventDetailsTabKeys {
   static const String payments = 'payments';
   static const String judgeAssignments = 'judge_assignments';
   static const String unusedDeletable = 'unused_deletable';
+  static const String reports = 'reports';
+  static const String winners = 'winners';
+  static const String leaderboard = 'leaderboard_vm';
 }

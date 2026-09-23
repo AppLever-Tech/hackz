@@ -1,6 +1,7 @@
 import '../../../utils/common_helpers.dart';
 import '../../events/models/event_kind.dart';
 import '../../events/models/event_winner_entry.dart';
+import '../../ideathons/models/ideathon_idea_snapshot.dart';
 import '../../ideathons/services/ideathon_details_loader.dart';
 import 'certificate_selectable_entry.dart';
 
@@ -51,8 +52,59 @@ class CertificateEventContext {
           ? vm.workspace.organisationName
           : vm.organisationName,
       participationEntries: participation,
-      winnerEntry: _winnerEntry(vm.workspace.winner),
-      runnerUpEntry: _winnerEntry(vm.workspace.runnerUp),
+      winnerEntry: _resolvePlacedEntry(
+        workspaceEntry: vm.workspace.winner,
+        selectedIdeaId: vm.ideathon.winnerIdeaId,
+        ideas: vm.ideas,
+        snapshots: vm.ideathon.ideas,
+      ),
+      runnerUpEntry: _resolvePlacedEntry(
+        workspaceEntry: vm.workspace.runnerUp,
+        selectedIdeaId: vm.ideathon.runnerUpIdeaId,
+        ideas: vm.ideas,
+        snapshots: vm.ideathon.ideas,
+      ),
+    );
+  }
+
+  /// Event Details uses a lightweight workspace without winner rows; fall back to ideathon selection + ideas.
+  static CertificateSelectableEntry? _resolvePlacedEntry({
+    required EventWinnerEntry? workspaceEntry,
+    required String selectedIdeaId,
+    required List<IdeathonIdeaEntry> ideas,
+    required List<IdeathonIdeaSnapshot> snapshots,
+  }) {
+    final CertificateSelectableEntry? fromWorkspace = _winnerEntry(workspaceEntry);
+    if (fromWorkspace != null) return fromWorkspace;
+
+    final String ideaId = selectedIdeaId.trim();
+    if (ideaId.isEmpty) return null;
+
+    for (final IdeathonIdeaEntry entry in ideas) {
+      if (entry.ideaId.trim() != ideaId) continue;
+      return CertificateSelectableEntry.fromIdeaEntry(entry);
+    }
+
+    for (final IdeathonIdeaSnapshot snapshot in snapshots) {
+      if (snapshot.ideaId.trim() != ideaId) continue;
+      final String team = snapshot.teamName.trim();
+      final String title = snapshot.ideaTitle.trim();
+      final String label = team.isNotEmpty ? team : (title.isNotEmpty ? title : ideaId);
+      return CertificateSelectableEntry(
+        entryId: ideaId,
+        teamId: '',
+        teamName: team,
+        submissionTitle: title,
+        displayLabel: label,
+      );
+    }
+
+    return CertificateSelectableEntry(
+      entryId: ideaId,
+      teamId: '',
+      teamName: '',
+      submissionTitle: ideaId,
+      displayLabel: ideaId,
     );
   }
 

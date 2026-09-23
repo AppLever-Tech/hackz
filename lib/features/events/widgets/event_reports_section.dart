@@ -6,6 +6,7 @@ import '../../../core/theme/app_icons.dart';
 import '../../exports/exports.dart';
 import '../models/event_report_item.dart';
 import 'event_detail_section.dart';
+import 'event_meta_chip.dart';
 
 /// Event Reports module reused by Ideathon and future Hackathon.
 class EventReportsSection extends StatelessWidget {
@@ -67,6 +68,22 @@ class _ReportCard extends StatelessWidget {
               color: Color(0xFF475569),
             ),
           ),
+          if (item.metaPills.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: item.metaPills
+                  .map(
+                    (EventReportMetaPill pill) => EventMetaChip(
+                      label: pill.label,
+                      icon: pill.icon ?? AppIcons.info,
+                      color: pill.color,
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
           if (!item.available &&
               item.unavailableReason.trim().isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
