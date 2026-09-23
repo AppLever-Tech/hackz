@@ -13,30 +13,26 @@ class EventReportsSection extends StatelessWidget {
   const EventReportsSection({
     super.key,
     required this.items,
-    this.intro = 'Download event documents when they are available.',
+    this.certificatesReady = true,
+    this.onOpenSignatories,
   });
 
   final List<EventReportItem> items;
-  final String intro;
+  final bool certificatesReady;
+  final VoidCallback? onOpenSignatories;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          intro,
-          style: const TextStyle(
-            fontSize: 12,
-            height: 1.45,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF64748B),
-          ),
-        ),
-        const SizedBox(height: 12),
         for (int i = 0; i < items.length; i++) ...<Widget>[
           if (i > 0) const SizedBox(height: 10),
-          _ReportCard(item: items[i]),
+          _ReportCard(
+            item: items[i],
+            certificatesReady: certificatesReady,
+            onOpenSignatories: onOpenSignatories,
+          ),
         ],
       ],
     );
@@ -44,9 +40,15 @@ class EventReportsSection extends StatelessWidget {
 }
 
 class _ReportCard extends StatelessWidget {
-  const _ReportCard({required this.item});
+  const _ReportCard({
+    required this.item,
+    required this.certificatesReady,
+    this.onOpenSignatories,
+  });
 
   final EventReportItem item;
+  final bool certificatesReady;
+  final VoidCallback? onOpenSignatories;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +98,21 @@ class _ReportCard extends StatelessWidget {
               ),
             ),
           ],
+          if (item.available && !certificatesReady) ...<Widget>[
+            const SizedBox(height: 8),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              children: <Widget>[
+                const Text(
+                  'Add at least 2 signatories to generate certificates.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                ),
+                if (onOpenSignatories != null)
+                  TextButton(onPressed: onOpenSignatories, child: const Text('Signatories')),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -105,9 +122,10 @@ class _ReportCard extends StatelessWidget {
     final ExportDataProvider? provider = item.provider;
     final ExportRequest Function(ExportFormat format)? requestFor = item.requestFor;
     final bool compact = ResponsiveHelper.isMobile(context);
-    final void Function(BuildContext context)? onGenerate = item.available ? item.onGenerate : null;
+    final bool actionsEnabled = item.available && certificatesReady;
+    final void Function(BuildContext context)? onGenerate = actionsEnabled ? item.onGenerate : null;
 
-    final Widget download = item.available && provider != null && requestFor != null
+    final Widget download = actionsEnabled && provider != null && requestFor != null
         ? ExportDownloadButton(
             labeled: !compact,
             label: item.actionLabel,
@@ -134,7 +152,7 @@ class _ReportCard extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           OutlinedButton(
-            onPressed: () => onGenerate!(context),
+            onPressed: () => onGenerate(context),
             style: MobileToolbarButtonStyles.outlined(compact: true),
             child: Text(item.generateLabel),
           ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/download/hackz_file_download.dart';
-import '../../../core/responsive/responsive_dialog_actions.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
@@ -9,26 +8,25 @@ import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../exports/certificate/certificate_batch_generator.dart';
 import '../../exports/certificate/certificate_data.dart';
 import '../../exports/certificate/certificate_event_context.dart';
+import '../../exports/certificate/certificate_event_signatory_config.dart';
 import '../../exports/certificate/certificate_event_signatory_store.dart';
 import '../../exports/certificate/certificate_generation_plan.dart';
 import '../../exports/certificate/certificate_generation_service.dart';
 import '../../exports/certificate/certificate_recipient_groups.dart';
 import '../../exports/certificate/certificate_selectable_entry.dart';
-import '../../exports/certificate/certificate_signatory_people_loader.dart';
 import '../../exports/certificate/certificate_team_member_loader.dart';
 import '../../exports/certificate/certificate_type.dart';
 import '../../exports/services/export_tenant_guard.dart';
-import '../../ideathons/models/ideathon_model.dart';
 import '../../user/models/user_model.dart';
+import '../../../core/responsive/responsive_helper.dart';
 import 'certificate_generation_dialog_recipients.dart';
-import 'certificate_generation_dialog_signatories.dart';
 
 Future<void> showCertificateGenerationDialog({
   required BuildContext context,
   required CertificateEventContext event,
   required UserModel actor,
   required CertificateType certificateType,
-  required IdeathonModel ideathon,
+  CertificateEventSignatoryDraft? signatoryDraft,
 }) {
   return showDialog<void>(
     context: context,
@@ -38,7 +36,7 @@ Future<void> showCertificateGenerationDialog({
         event: event,
         actor: actor,
         certificateType: certificateType,
-        ideathon: ideathon,
+        signatoryDraft: signatoryDraft,
       );
     },
   );
@@ -49,13 +47,13 @@ class _CertificateGenerationDialogShell extends StatefulWidget {
     required this.event,
     required this.actor,
     required this.certificateType,
-    required this.ideathon,
+    this.signatoryDraft,
   });
 
   final CertificateEventContext event;
   final UserModel actor;
   final CertificateType certificateType;
-  final IdeathonModel ideathon;
+  final CertificateEventSignatoryDraft? signatoryDraft;
 
   @override
   State<_CertificateGenerationDialogShell> createState() => _CertificateGenerationDialogShellState();
@@ -67,24 +65,18 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
   late Set<String> _selectedIndividualKeys;
   late Set<String> _expandedTeamKeys;
   String _searchQuery = '';
-  int _signatoryCount = 2;
-  List<CertificateSignatorySlotDraft> _slots = _emptySlots();
   Map<String, List<CertificateMember>> _membersByTeam = <String, List<CertificateMember>>{};
-  List<UserModel> _eligiblePeople = const <UserModel>[];
   bool _loadingMembers = false;
-  bool _loadingSignatories = true;
   bool _generating = false;
   CertificateGenerationProgress? _progress;
+  String? _successMessage;
+  String? _errorMessage;
 
   CertificateEventContext get event => widget.event;
   CertificateType get certificateType => widget.certificateType;
+  CertificateEventSignatoryDraft? get _signatoryDraft => widget.signatoryDraft;
 
-  static List<CertificateSignatorySlotDraft> _emptySlots() {
-    return List<CertificateSignatorySlotDraft>.generate(
-      3,
-      (_) => const CertificateSignatorySlotDraft(),
-    );
-  }
+  bool get _signatoriesReady => CertificateEventSignatoryConfig.meetsMinimum(_signatoryDraft);
 
   List<CertificateSelectableEntry> get _pool => switch (certificateType) {
         CertificateType.participation => event.participationEntries,
@@ -106,30 +98,7 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
       for (final CertificateTeamSubmissionGroup g in _groups)
         if (g.submissions.length > 1) g.teamKey,
     };
-    _loadSignatoriesAndPeople();
     _ensureMembersLoaded();
-  }
-
-  Future<void> _loadSignatoriesAndPeople() async {
-    final CertificateEventSignatoryDraft? saved =
-        await CertificateEventSignatoryStore.load(widget.ideathon.ideathonId);
-    final List<UserModel> people = await CertificateSignatoryPeopleLoader.load(
-      orgId: widget.ideathon.orgId,
-      departmentCode: widget.ideathon.departmentId,
-      eventCoordinatorIds: widget.ideathon.coordinatorIds,
-    );
-    if (!mounted) return;
-    setState(() {
-      _eligiblePeople = people;
-      _signatoryCount = saved?.signatoryCount ?? 2;
-      if (saved != null && saved.slots.isNotEmpty) {
-        _slots = _emptySlots();
-        for (int i = 0; i < _slots.length && i < saved.slots.length; i++) {
-          _slots[i] = saved.slots[i];
-        }
-      }
-      _loadingSignatories = false;
-    });
   }
 
   Future<void> _ensureMembersLoaded() async {
@@ -199,16 +168,8 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
         selectedIndividualKeys: _recipientType == CertificateRecipientType.individual ? _selectedIndividualKeys : const <String>{},
       );
 
-  List<CertificateSignatory> get _resolvedSignatories {
-    return List<CertificateSignatory>.generate(_signatoryCount, (int i) {
-      final CertificateSignatorySlotDraft slot = _slots[i];
-      return CertificateSignatory(
-        name: slot.name.trim(),
-        designation: slot.designation.trim(),
-        signatureImage: CertificateData.memoryImageFromBytes(slot.signatureBytes),
-      );
-    });
-  }
+  List<CertificateSignatory> get _resolvedSignatories =>
+      CertificateEventSignatoryConfig.toPdfSignatories(_signatoryDraft);
 
   Future<void> _generate() async {
     if (!_canGenerate || _generating) return;
@@ -229,6 +190,8 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
     }
     setState(() {
       _generating = true;
+      _successMessage = null;
+      _errorMessage = null;
       _progress = CertificateGenerationProgress(phase: 'Preparing', completed: 0, total: plan.estimatedCertificates);
     });
     try {
@@ -249,36 +212,44 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
           setState(() => _progress = p);
         },
       );
-      await CertificateEventSignatoryStore.save(
-        widget.ideathon.ideathonId,
-        CertificateEventSignatoryDraft(signatoryCount: _signatoryCount, slots: _slots),
-      );
       if (!mounted) return;
       final HackzFileDownloadResult saved = await HackzFileDownload.save(
         fileName: result.fileName,
         bytes: result.bytes,
         mimeType: result.mimeType,
       );
-      if (!mounted || saved == HackzFileDownloadResult.cancelled) return;
-      final String summary = result.failed == 0
-          ? '${result.succeeded} certificate${result.succeeded == 1 ? '' : 's'} saved.'
-          : '${result.succeeded} succeeded, ${result.failed} failed.';
-      await FeedbackService.showSuccess(context, title: 'Generation complete', message: summary);
-      if (mounted) Navigator.of(context).pop();
-    } catch (e) {
       if (!mounted) return;
-      await FeedbackService.showError(context, title: 'Generation failed', message: '$e');
-    } finally {
-      if (mounted) {
+      if (saved == HackzFileDownloadResult.cancelled) {
         setState(() {
           _generating = false;
           _progress = null;
         });
+        return;
       }
+      final String summary = result.failed == 0
+          ? '${result.succeeded} certificate${result.succeeded == 1 ? '' : 's'} saved successfully.'
+          : '${result.succeeded} succeeded, ${result.failed} failed.';
+      setState(() {
+        _generating = false;
+        _progress = null;
+        _successMessage = summary;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _generating = false;
+        _progress = null;
+        _errorMessage = '$e';
+      });
     }
   }
 
-  bool get _canGenerate => _plan.estimatedCertificates > 0 && !_generating && !_loadingMembers;
+  bool get _canGenerate =>
+      _signatoriesReady &&
+      _plan.estimatedCertificates > 0 &&
+      !_generating &&
+      !_loadingMembers &&
+      _successMessage == null;
 
   String get _title => switch (certificateType) {
         CertificateType.participation => 'Generate Participation Certificates',
@@ -308,18 +279,23 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose recipients and signatories for this ${event.eventTemplateLabel}.',
+            'Choose recipients for this ${event.eventTemplateLabel}.',
             style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
           ),
           const SizedBox(height: 16),
-          _sectionLabel('Generate for'),
-          const SizedBox(height: 8),
-          _recipientSegment(),
-          const SizedBox(height: 14),
-          _sectionLabel('Recipients'),
-          const SizedBox(height: 8),
-          CertificateGenerationRecipientsSection(
-            certificateType: certificateType,
+          if (_generating) ...<Widget>[
+            _generationStatusPanel(),
+          ] else if (_successMessage != null) ...<Widget>[
+            _successPanel(_successMessage!),
+          ] else ...<Widget>[
+            _generateForRow(context),
+            const SizedBox(height: 14),
+            if (_errorMessage != null) ...<Widget>[
+              _errorPanel(_errorMessage!),
+              const SizedBox(height: 12),
+            ],
+            CertificateGenerationRecipientsSection(
+              certificateType: certificateType,
             recipientType: _recipientType,
             pool: _pool,
             searchQuery: _searchQuery,
@@ -385,29 +361,12 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
                 }
               });
             },
-            enabled: !_generating,
-          ),
-          if (_loadingMembers) ...<Widget>[
-            const SizedBox(height: 10),
-            const Center(child: HkzProgressIndicator(size: 24)),
-          ],
-          const SizedBox(height: 16),
-          if (_loadingSignatories)
-            const Center(child: HkzProgressIndicator(size: 24))
-          else
-            CertificateGenerationSignatoriesSection(
-              signatoryCount: _signatoryCount,
-              slots: _slots,
-              eligiblePeople: _eligiblePeople,
-              allEligiblePeople: _eligiblePeople,
-              enabled: !_generating,
-              onSignatoryCountChanged: (int count) => setState(() => _signatoryCount = count),
-              onSlotChanged: (int index, CertificateSignatorySlotDraft slot) =>
-                  setState(() => _slots[index] = slot),
+              enabled: _errorMessage == null,
             ),
-          if (_generating && _progress != null) ...<Widget>[
-            const SizedBox(height: 12),
-            _progressBar(_progress!),
+            if (_loadingMembers) ...<Widget>[
+              const SizedBox(height: 10),
+              const Center(child: HkzProgressIndicator(size: 24)),
+            ],
           ],
         ],
       ),
@@ -464,6 +423,18 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
         .toList(growable: false);
   }
 
+  Widget _generateForRow(BuildContext context) {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
+      children: <Widget>[
+        _sectionLabel('Generate for'),
+        _recipientSegment(),
+      ],
+    );
+  }
+
   Widget _recipientSegment() {
     return SegmentedButton<CertificateRecipientType>(
       showSelectedIcon: false,
@@ -478,9 +449,8 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
         ),
       ],
       selected: <CertificateRecipientType>{_recipientType},
-      onSelectionChanged: _generating
-          ? null
-          : (Set<CertificateRecipientType> next) {
+      onSelectionChanged: (Set<CertificateRecipientType> next) {
+              if (_generating) return;
               if (next.isEmpty) return;
               setState(() => _recipientType = next.first);
               _ensureMembersLoaded();
@@ -495,35 +465,75 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
 
   Widget _stickyFooter() {
     final int count = _plan.estimatedCertificates;
+    final int sigCount = CertificateEventSignatoryConfig.normalizedCount(_signatoryDraft);
     final String summary = count == 0
         ? 'No certificates selected'
-        : '$count certificate${count == 1 ? '' : 's'} · $_signatoryCount signatories';
+        : '$count certificate${count == 1 ? '' : 's'} · $sigCount signatories';
+
+    final double horizontal = ResponsiveHelper.isMobile(context) ? 16 : 22;
+
+    final bool mobile = ResponsiveHelper.isMobile(context);
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.viewInsetsOf(context).bottom),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        horizontal,
+        12,
+        horizontal,
+        12 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFFF7F3FF),
         border: Border(top: BorderSide(color: Color(0xFFD9CBFF))),
       ),
-      child: ResponsiveDialogActions(
-        leading: Text(
-          summary,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+      child: mobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  summary,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 10),
+                _footerButtons(),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    summary,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _footerButtons(),
+              ],
+            ),
+    );
+  }
+
+  Widget _footerButtons() {
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        TextButton(
+          onPressed: _generating ? null : () => Navigator.of(context).pop(),
+          child: Text(_successMessage != null ? 'Close' : 'Cancel'),
         ),
-        children: <Widget>[
-          TextButton(
-            onPressed: _generating ? null : () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
+        if (_successMessage == null)
           FilledButton.icon(
             onPressed: _canGenerate ? _generate : null,
-            icon: _generating
-                ? const SizedBox(width: 18, height: 18, child: HkzProgressIndicator(size: 18, strokeWidth: 2.2))
-                : const Icon(AppIcons.download, size: 18),
-            label: Text(_generating ? 'Generating…' : _generateLabel),
+            icon: const Icon(AppIcons.download, size: 18),
+            label: Text(_generateLabel),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -534,19 +544,93 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
     );
   }
 
-  Widget _progressBar(CertificateGenerationProgress progress) {
-    final double value = progress.total == 0 ? 0 : progress.completed / progress.total;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(
-          '${progress.phase}: ${progress.completed} of ${progress.total}'
-          '${progress.failed > 0 ? ' (${progress.failed} failed)' : ''}',
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-        ),
-        const SizedBox(height: 6),
-        LinearProgressIndicator(value: value.clamp(0, 1), minHeight: 5),
-      ],
+  Widget _generationStatusPanel() {
+    final CertificateGenerationProgress? progress = _progress;
+    final String detail = progress == null
+        ? 'Generating certificates…'
+        : '${progress.phase}: ${progress.completed} of ${progress.total}'
+            '${progress.failed > 0 ? ' (${progress.failed} failed)' : ''}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const HkzProgressIndicator(size: 36),
+          const SizedBox(height: 14),
+          Text(
+            detail,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _successPanel(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Generation complete',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF065F46)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF047857), height: 1.35),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _errorPanel(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7F7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFBE123C), size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFFBE123C)),
+            ),
+          ),
+          IconButton(
+            onPressed: () => setState(() => _errorMessage = null),
+            icon: const Icon(Icons.close, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          ),
+        ],
+      ),
     );
   }
 }

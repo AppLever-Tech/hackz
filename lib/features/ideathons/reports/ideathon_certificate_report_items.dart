@@ -5,6 +5,8 @@ import 'package:hackz/features/events/exports/event_certificates_export_provider
 import 'package:hackz/features/events/models/event_report_item.dart';
 import 'package:hackz/features/events/widgets/certificate_generation_dialog.dart';
 import 'package:hackz/features/exports/certificate/certificate_event_context.dart';
+import 'package:hackz/features/exports/certificate/certificate_event_signatory_config.dart';
+import 'package:hackz/features/exports/certificate/certificate_event_signatory_store.dart';
 import 'package:hackz/features/exports/certificate/certificate_selectable_entry.dart';
 import 'package:hackz/features/exports/certificate/certificate_team_member_loader.dart';
 import 'package:hackz/features/exports/certificate/certificate_type.dart';
@@ -39,7 +41,11 @@ abstract final class IdeathonCertificateReportItems {
     required UserModel actor,
     required CertificateEventContext event,
     required int participantCount,
+    CertificateEventSignatoryDraft? signatoryDraft,
+    required bool signatoriesReady,
   }) {
+    final List<EventCertificateSignatory> exportSignatories =
+        CertificateEventSignatoryConfig.toExportSignatories(signatoryDraft);
     final String eventId = vm.ideathon.ideathonId.trim();
     final String eventName = vm.ideathon.name.trim();
     final int teamCount = event.participationEntries.length;
@@ -55,6 +61,9 @@ abstract final class IdeathonCertificateReportItems {
         teamCount: teamCount,
         participantCount: participantCount,
         entriesLabel: entriesLabel,
+        signatoryDraft: signatoryDraft,
+        signatoriesReady: signatoriesReady,
+        exportSignatories: exportSignatories,
       ),
       _winnerCard(
         vm: vm,
@@ -62,6 +71,9 @@ abstract final class IdeathonCertificateReportItems {
         event: event,
         eventId: eventId,
         eventName: eventName,
+        signatoryDraft: signatoryDraft,
+        signatoriesReady: signatoriesReady,
+        exportSignatories: exportSignatories,
       ),
       _runnerUpCard(
         vm: vm,
@@ -69,6 +81,9 @@ abstract final class IdeathonCertificateReportItems {
         event: event,
         eventId: eventId,
         eventName: eventName,
+        signatoryDraft: signatoryDraft,
+        signatoriesReady: signatoriesReady,
+        exportSignatories: exportSignatories,
       ),
     ];
   }
@@ -82,10 +97,20 @@ abstract final class IdeathonCertificateReportItems {
     required int teamCount,
     required int participantCount,
     required String entriesLabel,
+    required CertificateEventSignatoryDraft? signatoryDraft,
+    required bool signatoriesReady,
+    required List<EventCertificateSignatory> exportSignatories,
   }) {
     final bool available = teamCount > 0;
     final List<EventCertificateRecipient> recipients = event.participationEntries
-        .map((CertificateSelectableEntry e) => _recipient(e, CertificateType.participation, placeLabel: ''))
+        .map(
+          (CertificateSelectableEntry e) => _recipient(
+            e,
+            CertificateType.participation,
+            placeLabel: '',
+            signatories: exportSignatories,
+          ),
+        )
         .toList(growable: false);
 
     return EventReportItem(
@@ -126,13 +151,13 @@ abstract final class IdeathonCertificateReportItems {
       ),
       actionLabel: 'Download certificates',
       generateLabel: 'Generate…',
-      onGenerate: available
+      onGenerate: available && signatoriesReady
           ? (BuildContext context) => showCertificateGenerationDialog(
                 context: context,
                 event: event,
                 actor: actor,
                 certificateType: CertificateType.participation,
-                ideathon: vm.ideathon,
+                signatoryDraft: signatoryDraft,
               )
           : null,
     );
@@ -144,6 +169,9 @@ abstract final class IdeathonCertificateReportItems {
     required CertificateEventContext event,
     required String eventId,
     required String eventName,
+    required CertificateEventSignatoryDraft? signatoryDraft,
+    required bool signatoriesReady,
+    required List<EventCertificateSignatory> exportSignatories,
   }) {
     final CertificateSelectableEntry? winner = event.winnerEntry;
     final bool available = event.usesWinners && winner != null;
@@ -165,7 +193,12 @@ abstract final class IdeathonCertificateReportItems {
           ? EventCertificatesExportProvider(
               module: ExportModule.winnerCertificate,
               recipients: <EventCertificateRecipient>[
-                _recipient(winner, CertificateType.winner, placeLabel: 'First Place'),
+                _recipient(
+                  winner,
+                  CertificateType.winner,
+                  placeLabel: 'First Place',
+                  signatories: exportSignatories,
+                ),
               ],
               eventType: event.eventTemplateLabel,
               eventDates: event.eventDateLabel,
@@ -183,13 +216,13 @@ abstract final class IdeathonCertificateReportItems {
           : null,
       actionLabel: 'Download certificate',
       generateLabel: 'Generate…',
-      onGenerate: available
+      onGenerate: available && signatoriesReady
           ? (BuildContext context) => showCertificateGenerationDialog(
                 context: context,
                 event: event,
                 actor: actor,
                 certificateType: CertificateType.winner,
-                ideathon: vm.ideathon,
+                signatoryDraft: signatoryDraft,
               )
           : null,
     );
@@ -201,6 +234,9 @@ abstract final class IdeathonCertificateReportItems {
     required CertificateEventContext event,
     required String eventId,
     required String eventName,
+    required CertificateEventSignatoryDraft? signatoryDraft,
+    required bool signatoriesReady,
+    required List<EventCertificateSignatory> exportSignatories,
   }) {
     final CertificateSelectableEntry? runner = event.runnerUpEntry;
     final bool available = event.usesWinners && runner != null;
@@ -222,7 +258,12 @@ abstract final class IdeathonCertificateReportItems {
           ? EventCertificatesExportProvider(
               module: ExportModule.winnerCertificate,
               recipients: <EventCertificateRecipient>[
-                _recipient(runner, CertificateType.runnerUp, placeLabel: 'Runner-Up'),
+                _recipient(
+                  runner,
+                  CertificateType.runnerUp,
+                  placeLabel: 'Runner-Up',
+                  signatories: exportSignatories,
+                ),
               ],
               eventType: event.eventTemplateLabel,
               eventDates: event.eventDateLabel,
@@ -240,13 +281,13 @@ abstract final class IdeathonCertificateReportItems {
           : null,
       actionLabel: 'Download certificate',
       generateLabel: 'Generate…',
-      onGenerate: available
+      onGenerate: available && signatoriesReady
           ? (BuildContext context) => showCertificateGenerationDialog(
                 context: context,
                 event: event,
                 actor: actor,
                 certificateType: CertificateType.runnerUp,
-                ideathon: vm.ideathon,
+                signatoryDraft: signatoryDraft,
               )
           : null,
     );
@@ -276,6 +317,7 @@ abstract final class IdeathonCertificateReportItems {
     CertificateSelectableEntry entry,
     CertificateType type, {
     required String placeLabel,
+    List<EventCertificateSignatory> signatories = const <EventCertificateSignatory>[],
   }) {
     final String team = entry.teamName.trim();
     final String title = entry.submissionTitle.trim();
@@ -288,6 +330,7 @@ abstract final class IdeathonCertificateReportItems {
       placeLabel: placeLabel,
       recipientType: CertificateRecipientType.team,
       certificateType: type,
+      signatories: signatories,
     );
   }
 }

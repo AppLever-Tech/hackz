@@ -112,30 +112,51 @@ class CertificateGenerationRecipientsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        TextField(
-          enabled: enabled,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            hintText: searchHint,
-            isDense: true,
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            filled: true,
-            fillColor: const Color(0xFFFCFDFF),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 8),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             Text(
-              '$_selectedCount selected',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+              'Recipients($_selectedCount)',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
             ),
-            const Spacer(),
-            TextButton(onPressed: enabled ? onSelectAllVisible : null, child: const Text('Select all')),
-            TextButton(onPressed: enabled ? onClear : null, child: const Text('Clear')),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                enabled: enabled,
+                onChanged: onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: searchHint,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 32),
+                  filled: true,
+                  fillColor: const Color(0xFFFCFDFF),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: enabled ? onSelectAllVisible : null,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Select all'),
+            ),
+            TextButton(
+              onPressed: enabled ? onClear : null,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Clear'),
+            ),
           ],
         ),
+        const SizedBox(height: 8),
         ConstrainedBox(
           constraints: BoxConstraints(maxHeight: ResponsiveHelper.isMobile(context) ? 240 : 280),
           child: ListView(

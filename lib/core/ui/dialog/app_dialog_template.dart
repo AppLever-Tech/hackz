@@ -84,6 +84,7 @@ class AppDialogTemplate extends StatelessWidget {
         ? SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.max,
               children: <Widget>[
                 Align(
                   alignment: Alignment.centerRight,
@@ -103,6 +104,7 @@ class AppDialogTemplate extends StatelessWidget {
                 constraints: BoxConstraints(maxHeight: maxDialogHeight),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Flexible(child: scrollArea),
                     footer!,
@@ -121,12 +123,16 @@ class AppDialogTemplate extends StatelessWidget {
     return Dialog(
       insetPadding: ResponsiveDialogConstraints.dialogInsets(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      backgroundColor: const Color(0xFFF4F0FF),
-      child: Container(
-        decoration: decoration,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: resolvedMaxWidth),
-          child: body,
+      backgroundColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: resolvedMaxWidth),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: DecoratedBox(
+            decoration: decoration,
+            child: body,
+          ),
         ),
       ),
     );
