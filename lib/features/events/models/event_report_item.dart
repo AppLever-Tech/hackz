@@ -30,6 +30,8 @@ class EventReportItem {
     this.provider,
     this.requestFor,
     this.actionLabel = 'Download',
+    this.onGenerate,
+    this.generateLabel = 'Generate…',
   });
 
   final String id;
@@ -42,4 +44,6 @@ class EventReportItem {
   final ExportDataProvider? provider;
   final ExportRequest Function(ExportFormat format)? requestFor;
   final String actionLabel;
+  final void Function(BuildContext context)? onGenerate;
+  final String generateLabel;
 }

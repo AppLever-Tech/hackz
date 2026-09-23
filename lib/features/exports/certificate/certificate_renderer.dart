@@ -201,6 +201,9 @@ abstract final class CertificateRenderer {
     List<CertificateSignatory> signatories,
     CertificateFonts fonts,
   ) {
+    if (signatories.length >= 3 && _hasSignatoryContent(signatories[2])) {
+      return _threeSignatoryFooter(signatories, fonts);
+    }
     final CertificateSignatory left = signatories[0];
     final CertificateSignatory right = signatories[1];
     const double lineWidth = _participationSignatorySideWidth;
@@ -392,10 +395,82 @@ abstract final class CertificateRenderer {
     return 'Member of $team';
   }
 
+  static bool _hasSignatoryContent(CertificateSignatory signatory) {
+    return signatory.name.trim().isNotEmpty ||
+        signatory.designation.trim().isNotEmpty ||
+        signatory.signatureImage != null;
+  }
+
+  static pw.Widget _threeSignatoryFooter(List<CertificateSignatory> signatories, CertificateFonts fonts) {
+    final CertificateSignatory left = signatories[0];
+    final CertificateSignatory right = signatories[1];
+    final CertificateSignatory center = signatories[2];
+    const double lineWidth = _participationSignatorySideWidth;
+
+    pw.Widget signatureLineBlock(CertificateSignatory signatory, {required pw.Alignment align}) {
+      return pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: <pw.Widget>[
+          if (signatory.signatureImage != null)
+            pw.SizedBox(
+              height: 20,
+              child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
+            ),
+          pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),
+        ],
+      );
+    }
+
+    pw.Widget slot(CertificateSignatory signatory, pw.TextAlign textAlign) {
+      return pw.Column(
+        mainAxisSize: pw.MainAxisSize.min,
+        children: <pw.Widget>[
+          signatureLineBlock(signatory, align: pw.Alignment.topCenter),
+          if (signatory.name.trim().isNotEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 4),
+              child: pw.Text(
+                signatory.name.trim(),
+                style: CertificateTheme.signatoryName(fonts, size: 11.5),
+                textAlign: textAlign,
+                maxLines: 2,
+              ),
+            ),
+          if (signatory.designation.trim().isNotEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 3),
+              child: pw.Text(
+                signatory.designation.trim(),
+                style: CertificateTheme.signatoryTitle(fonts, size: 10),
+                textAlign: textAlign,
+                maxLines: 2,
+              ),
+            ),
+        ],
+      );
+    }
+
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.center,
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: <pw.Widget>[
+        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(left, pw.TextAlign.center)),
+        pw.SizedBox(width: _signatoryGapFromCenter),
+        pw.SizedBox(width: _participationSignatoryCenterWidth, child: slot(center, pw.TextAlign.center)),
+        pw.SizedBox(width: _signatoryGapFromCenter),
+        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(right, pw.TextAlign.center)),
+      ],
+    );
+  }
+
   static List<CertificateSignatory> _normalizedSignatories(List<CertificateSignatory> input) {
     final List<CertificateSignatory> list = List<CertificateSignatory>.from(input);
     while (list.length < 2) {
       list.add(const CertificateSignatory());
+    }
+    if (list.length >= 3) {
+      return list.take(3).toList(growable: false);
     }
     return list.take(2).toList(growable: false);
   }

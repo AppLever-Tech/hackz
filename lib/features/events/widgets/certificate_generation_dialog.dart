@@ -2,76 +2,91 @@ import 'package:flutter/material.dart';
 
 import '../../../core/download/hackz_file_download.dart';
 import '../../../core/responsive/responsive_dialog_actions.dart';
-import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../exports/certificate/certificate_batch_generator.dart';
 import '../../exports/certificate/certificate_data.dart';
-import '../../exports/certificate/certificate_document_builder.dart';
 import '../../exports/certificate/certificate_event_context.dart';
+import '../../exports/certificate/certificate_event_signatory_store.dart';
 import '../../exports/certificate/certificate_generation_plan.dart';
 import '../../exports/certificate/certificate_generation_service.dart';
+import '../../exports/certificate/certificate_recipient_groups.dart';
 import '../../exports/certificate/certificate_selectable_entry.dart';
+import '../../exports/certificate/certificate_signatory_people_loader.dart';
 import '../../exports/certificate/certificate_team_member_loader.dart';
 import '../../exports/certificate/certificate_type.dart';
 import '../../exports/services/export_tenant_guard.dart';
+import '../../ideathons/models/ideathon_model.dart';
 import '../../user/models/user_model.dart';
+import 'certificate_generation_dialog_recipients.dart';
+import 'certificate_generation_dialog_signatories.dart';
 
 Future<void> showCertificateGenerationDialog({
   required BuildContext context,
   required CertificateEventContext event,
   required UserModel actor,
+  required CertificateType certificateType,
+  required IdeathonModel ideathon,
 }) {
-  return showAppDialog<void>(
+  return showDialog<void>(
     context: context,
-    width: DialogWidthPreset.wide,
     barrierDismissible: false,
-    child: CertificateGenerationDialog(event: event, actor: actor),
+    builder: (BuildContext dialogContext) {
+      return _CertificateGenerationDialogShell(
+        event: event,
+        actor: actor,
+        certificateType: certificateType,
+        ideathon: ideathon,
+      );
+    },
   );
 }
 
-class CertificateGenerationDialog extends StatefulWidget {
-  const CertificateGenerationDialog({
-    super.key,
+class _CertificateGenerationDialogShell extends StatefulWidget {
+  const _CertificateGenerationDialogShell({
     required this.event,
     required this.actor,
+    required this.certificateType,
+    required this.ideathon,
   });
 
   final CertificateEventContext event;
   final UserModel actor;
+  final CertificateType certificateType;
+  final IdeathonModel ideathon;
 
   @override
-  State<CertificateGenerationDialog> createState() => _CertificateGenerationDialogState();
+  State<_CertificateGenerationDialogShell> createState() => _CertificateGenerationDialogShellState();
 }
 
-class _CertificateGenerationDialogState extends State<CertificateGenerationDialog> {
-  late CertificateType _certificateType;
+class _CertificateGenerationDialogShellState extends State<_CertificateGenerationDialogShell> {
   late CertificateRecipientType _recipientType;
-  late Set<String> _selectedEntryIds;
+  late Set<String> _selectedTeamKeys;
+  late Set<String> _selectedIndividualKeys;
+  late Set<String> _expandedTeamKeys;
+  String _searchQuery = '';
+  int _signatoryCount = 2;
+  List<CertificateSignatorySlotDraft> _slots = _emptySlots();
   Map<String, List<CertificateMember>> _membersByTeam = <String, List<CertificateMember>>{};
+  List<UserModel> _eligiblePeople = const <UserModel>[];
   bool _loadingMembers = false;
+  bool _loadingSignatories = true;
   bool _generating = false;
   CertificateGenerationProgress? _progress;
 
   CertificateEventContext get event => widget.event;
+  CertificateType get certificateType => widget.certificateType;
 
-  @override
-  void initState() {
-    super.initState();
-    _certificateType = CertificateType.participation;
-    _recipientType = CertificateRecipientType.team;
-    _selectedEntryIds = _defaultSelectionIds(_certificateType);
+  static List<CertificateSignatorySlotDraft> _emptySlots() {
+    return List<CertificateSignatorySlotDraft>.generate(
+      3,
+      (_) => const CertificateSignatorySlotDraft(),
+    );
   }
 
-  Set<String> _defaultSelectionIds(CertificateType type) {
-    return CertificateGenerationService.defaultSelection(event: event, type: type)
-        .map((CertificateSelectableEntry e) => e.entryId)
-        .toSet();
-  }
-
-  List<CertificateSelectableEntry> get _pool => switch (_certificateType) {
+  List<CertificateSelectableEntry> get _pool => switch (certificateType) {
         CertificateType.participation => event.participationEntries,
         CertificateType.winner =>
           event.winnerEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.winnerEntry!],
@@ -79,72 +94,120 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
           event.runnerUpEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.runnerUpEntry!],
       };
 
-  List<CertificateSelectableEntry> get _selectedEntries {
-    return _pool.where((CertificateSelectableEntry e) => _selectedEntryIds.contains(e.entryId)).toList(growable: false);
+  List<CertificateTeamSubmissionGroup> get _groups => CertificateRecipientGroups.groupByTeam(_pool);
+
+  @override
+  void initState() {
+    super.initState();
+    _recipientType = CertificateRecipientType.team;
+    _selectedTeamKeys = _pool.map((CertificateSelectableEntry e) => certificateTeamSubmissionKey(e)).toSet();
+    _selectedIndividualKeys = <String>{};
+    _expandedTeamKeys = <String>{
+      for (final CertificateTeamSubmissionGroup g in _groups)
+        if (g.submissions.length > 1) g.teamKey,
+    };
+    _loadSignatoriesAndPeople();
+    _ensureMembersLoaded();
   }
 
-  CertificateGenerationPlan get _plan => CertificateGenerationService.plan(
-        event: event,
-        certificateType: _certificateType,
-        recipientType: _recipientType,
-        selectedEntries: _selectedEntries,
-        membersByTeam: _membersByTeam,
-      );
+  Future<void> _loadSignatoriesAndPeople() async {
+    final CertificateEventSignatoryDraft? saved =
+        await CertificateEventSignatoryStore.load(widget.ideathon.ideathonId);
+    final List<UserModel> people = await CertificateSignatoryPeopleLoader.load(
+      orgId: widget.ideathon.orgId,
+      departmentCode: widget.ideathon.departmentId,
+      eventCoordinatorIds: widget.ideathon.coordinatorIds,
+    );
+    if (!mounted) return;
+    setState(() {
+      _eligiblePeople = people;
+      _signatoryCount = saved?.signatoryCount ?? 2;
+      if (saved != null && saved.slots.isNotEmpty) {
+        _slots = _emptySlots();
+        for (int i = 0; i < _slots.length && i < saved.slots.length; i++) {
+          _slots[i] = saved.slots[i];
+        }
+      }
+      _loadingSignatories = false;
+    });
+  }
 
   Future<void> _ensureMembersLoaded() async {
-    if (_recipientType != CertificateRecipientType.individual) return;
     if (_membersByTeam.isNotEmpty) return;
+    final Iterable<String> teamIds =
+        _pool.map((CertificateSelectableEntry e) => e.teamId.trim()).where((String id) => id.isNotEmpty);
+    if (teamIds.isEmpty) return;
     setState(() => _loadingMembers = true);
     try {
-      final Map<String, List<CertificateMember>> loaded =
-          await CertificateTeamMemberLoader.membersByTeamId(_selectedEntries.map((CertificateSelectableEntry e) => e.teamId));
+      final Map<String, List<CertificateMember>> loaded = await CertificateTeamMemberLoader.membersByTeamId(teamIds);
       if (!mounted) return;
-      setState(() => _membersByTeam = loaded);
+      setState(() {
+        _membersByTeam = loaded;
+        if (_selectedIndividualKeys.isEmpty && _pool.isNotEmpty) {
+          _selectedIndividualKeys = _allIndividualKeys();
+        }
+      });
     } finally {
       if (mounted) setState(() => _loadingMembers = false);
     }
   }
 
-  void _onCertificateTypeChanged(CertificateType next) {
-    if (next == _certificateType) return;
-    setState(() {
-      _certificateType = next;
-      _selectedEntryIds = _defaultSelectionIds(next);
-    });
-    _ensureMembersLoaded();
-  }
-
-  void _onRecipientTypeChanged(CertificateRecipientType next) {
-    if (next == _recipientType) return;
-    setState(() => _recipientType = next);
-    _ensureMembersLoaded();
-  }
-
-  Future<void> _preview() async {
-    if (!_canGenerate) return;
-    try {
-      if (!ExportTenantGuard.actorMatchesBoundOrganisation(widget.actor)) {
-        throw StateError('Organisation context required.');
+  Set<String> _allIndividualKeys() {
+    final Set<String> keys = <String>{};
+    for (final CertificateTeamSubmissionGroup group in _groups) {
+      for (final CertificateSelectableEntry entry in group.submissions) {
+        keys.addAll(_individualKeysForEntry(entry));
       }
-      await _ensureMembersLoaded();
-      final List<CertificateData> rows = await CertificateGenerationService.buildCertificateData(
-        event: event,
-        plan: _plan,
-        membersByTeam: _membersByTeam,
-      );
-      if (rows.isEmpty || !mounted) return;
-      final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(<CertificateData>[rows.first]);
-      final HackzFileDownloadResult saved = await HackzFileDownload.save(
-        fileName: 'Hackz_Certificate_Preview.pdf',
-        bytes: bytes,
-        mimeType: HackzFileDownload.pdfMimeType,
-      );
-      if (!mounted || saved == HackzFileDownloadResult.cancelled) return;
-      await FeedbackService.showSuccess(context, title: 'Preview ready', message: 'Certificate preview downloaded.');
-    } catch (e) {
-      if (!mounted) return;
-      await FeedbackService.showError(context, title: 'Preview failed', message: '$e');
     }
+    return keys;
+  }
+
+  Iterable<String> _individualKeysForEntry(CertificateSelectableEntry entry) sync* {
+    final List<CertificateMember> roster = _membersByTeam[entry.teamId.trim()] ?? const <CertificateMember>[];
+    if (roster.isEmpty) {
+      yield certificateIndividualSubmissionKey(
+        userId: entry.teamId.trim().isNotEmpty ? entry.teamId : entry.entryId,
+        entry: entry,
+      );
+    } else {
+      for (final CertificateMember member in roster) {
+        yield certificateIndividualSubmissionKey(userId: member.userId, entry: entry);
+      }
+    }
+  }
+
+  List<CertificateSelectableEntry> get _selectedEntries {
+    if (_recipientType == CertificateRecipientType.team) {
+      return _pool
+          .where((CertificateSelectableEntry e) => _selectedTeamKeys.contains(certificateTeamSubmissionKey(e)))
+          .toList();
+    }
+    final Set<String> entryIds = <String>{};
+    for (final String key in _selectedIndividualKeys) {
+      final int sep = key.indexOf('|');
+      if (sep > 0) entryIds.add(key.substring(sep + 1).trim());
+    }
+    return _pool.where((CertificateSelectableEntry e) => entryIds.contains(e.entryId.trim())).toList(growable: false);
+  }
+
+  CertificateGenerationPlan get _plan => CertificateGenerationService.plan(
+        event: event,
+        certificateType: certificateType,
+        recipientType: _recipientType,
+        selectedEntries: _selectedEntries,
+        membersByTeam: _membersByTeam,
+        selectedIndividualKeys: _recipientType == CertificateRecipientType.individual ? _selectedIndividualKeys : const <String>{},
+      );
+
+  List<CertificateSignatory> get _resolvedSignatories {
+    return List<CertificateSignatory>.generate(_signatoryCount, (int i) {
+      final CertificateSignatorySlotDraft slot = _slots[i];
+      return CertificateSignatory(
+        name: slot.name.trim(),
+        designation: slot.designation.trim(),
+        signatureImage: CertificateData.memoryImageFromBytes(slot.signatureBytes),
+      );
+    });
   }
 
   Future<void> _generate() async {
@@ -174,6 +237,8 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
         event: event,
         plan: plan,
         membersByTeam: _membersByTeam,
+        selectedIndividualKeys: _recipientType == CertificateRecipientType.individual ? _selectedIndividualKeys : const <String>{},
+        signatories: _resolvedSignatories,
       );
       final CertificateGenerationResult result = await CertificateBatchGenerator.generate(
         certificates: rows,
@@ -183,6 +248,10 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
           if (!mounted) return;
           setState(() => _progress = p);
         },
+      );
+      await CertificateEventSignatoryStore.save(
+        widget.ideathon.ideathonId,
+        CertificateEventSignatoryDraft(signatoryCount: _signatoryCount, slots: _slots),
       );
       if (!mounted) return;
       final HackzFileDownloadResult saved = await HackzFileDownload.save(
@@ -209,74 +278,252 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
     }
   }
 
-  bool get _canGenerate => _plan.estimatedCertificates > 0 && !_generating;
+  bool get _canGenerate => _plan.estimatedCertificates > 0 && !_generating && !_loadingMembers;
+
+  String get _title => switch (certificateType) {
+        CertificateType.participation => 'Generate Participation Certificates',
+        CertificateType.winner => 'Generate Winner Certificates',
+        CertificateType.runnerUp => 'Generate Runner-Up Certificates',
+      };
+
+  String get _generateLabel {
+    final int n = _plan.estimatedCertificates;
+    if (n <= 0) return 'Generate certificates';
+    if (n == 1) return 'Generate certificate';
+    return 'Generate $n certificates';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool compact = ResponsiveHelper.isMobile(context);
-    final CertificateGenerationPlan plan = _plan;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const Text(
-          'Generate Certificates',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Generate on-demand certificates for this ${event.eventTemplateLabel}.',
-          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
-        ),
-        const SizedBox(height: 16),
-        _sectionLabel('Certificate type'),
-        const SizedBox(height: 8),
-        _typeChips(),
-        const SizedBox(height: 14),
-        _sectionLabel('Generate for'),
-        const SizedBox(height: 8),
-        _recipientChips(),
-        const SizedBox(height: 14),
-        _sectionLabel('Event'),
-        const SizedBox(height: 6),
-        _readOnlyField(event.eventName.trim().isEmpty ? event.eventId : event.eventName),
-        const SizedBox(height: 14),
-        _sectionLabel('Recipients'),
-        const SizedBox(height: 8),
-        _recipientPanel(compact),
-        const SizedBox(height: 12),
-        _summaryCard(plan),
-        if (_generating && _progress != null) ...<Widget>[
-          const SizedBox(height: 12),
-          _progressBar(_progress!),
-        ],
-        if (_loadingMembers) ...<Widget>[
-          const SizedBox(height: 10),
-          const Center(child: HkzProgressIndicator(size: 24)),
-        ],
-        const SizedBox(height: 16),
-        ResponsiveDialogActions(
-          children: <Widget>[
-            TextButton(
-              onPressed: _generating ? null : () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            OutlinedButton.icon(
-              onPressed: _canGenerate && !_loadingMembers ? _preview : null,
-              icon: const Icon(AppIcons.attachmentPdf, size: 18),
-              label: const Text('Preview'),
-            ),
-            FilledButton.icon(
-              onPressed: _canGenerate && !_loadingMembers ? _generate : null,
-              icon: _generating
-                  ? const SizedBox(width: 18, height: 18, child: HkzProgressIndicator(size: 18, strokeWidth: 2.2))
-                  : const Icon(AppIcons.download, size: 18),
-              label: Text(_generating ? 'Generating…' : 'Generate'),
-            ),
+    return AppDialogTemplate(
+      width: DialogWidthPreset.wide,
+      showBorder: true,
+      footer: _stickyFooter(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            _title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose recipients and signatories for this ${event.eventTemplateLabel}.',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.35),
+          ),
+          const SizedBox(height: 16),
+          _sectionLabel('Generate for'),
+          const SizedBox(height: 8),
+          _recipientSegment(),
+          const SizedBox(height: 14),
+          _sectionLabel('Recipients'),
+          const SizedBox(height: 8),
+          CertificateGenerationRecipientsSection(
+            certificateType: certificateType,
+            recipientType: _recipientType,
+            pool: _pool,
+            searchQuery: _searchQuery,
+            onSearchChanged: (String q) => setState(() => _searchQuery = q),
+            selectedTeamSubmissionKeys: _selectedTeamKeys,
+            selectedIndividualKeys: _selectedIndividualKeys,
+            onTeamSubmissionToggle: (String key, bool selected) {
+              setState(() {
+                if (selected) {
+                  _selectedTeamKeys.add(key);
+                } else {
+                  _selectedTeamKeys.remove(key);
+                }
+              });
+            },
+            onTeamGroupToggle: (CertificateTeamSubmissionGroup group, bool selected) {
+              setState(() {
+                for (final CertificateSelectableEntry e in group.submissions) {
+                  final String key = certificateTeamSubmissionKey(e);
+                  if (selected) {
+                    _selectedTeamKeys.add(key);
+                  } else {
+                    _selectedTeamKeys.remove(key);
+                  }
+                }
+              });
+            },
+            onIndividualGroupToggle: (CertificateTeamSubmissionGroup group, bool selected) {
+              setState(() {
+                for (final CertificateSelectableEntry entry in group.submissions) {
+                  for (final String key in _individualKeysForEntry(entry)) {
+                    if (selected) {
+                      _selectedIndividualKeys.add(key);
+                    } else {
+                      _selectedIndividualKeys.remove(key);
+                    }
+                  }
+                }
+              });
+            },
+            onIndividualToggle: (String key, bool selected) {
+              setState(() {
+                if (selected) {
+                  _selectedIndividualKeys.add(key);
+                } else {
+                  _selectedIndividualKeys.remove(key);
+                }
+              });
+            },
+            onSelectAllVisible: _selectAllVisible,
+            onClear: () => setState(() {
+              _selectedTeamKeys = <String>{};
+              _selectedIndividualKeys = <String>{};
+            }),
+            membersByTeam: _membersByTeam,
+            expandedTeamKeys: _expandedTeamKeys,
+            onExpandedChanged: (String teamKey, bool expanded) {
+              setState(() {
+                if (expanded) {
+                  _expandedTeamKeys.add(teamKey);
+                } else {
+                  _expandedTeamKeys.remove(teamKey);
+                }
+              });
+            },
+            enabled: !_generating,
+          ),
+          if (_loadingMembers) ...<Widget>[
+            const SizedBox(height: 10),
+            const Center(child: HkzProgressIndicator(size: 24)),
           ],
+          const SizedBox(height: 16),
+          if (_loadingSignatories)
+            const Center(child: HkzProgressIndicator(size: 24))
+          else
+            CertificateGenerationSignatoriesSection(
+              signatoryCount: _signatoryCount,
+              slots: _slots,
+              eligiblePeople: _eligiblePeople,
+              allEligiblePeople: _eligiblePeople,
+              enabled: !_generating,
+              onSignatoryCountChanged: (int count) => setState(() => _signatoryCount = count),
+              onSlotChanged: (int index, CertificateSignatorySlotDraft slot) =>
+                  setState(() => _slots[index] = slot),
+            ),
+          if (_generating && _progress != null) ...<Widget>[
+            const SizedBox(height: 12),
+            _progressBar(_progress!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _selectAllVisible() {
+    setState(() {
+      if (_recipientType == CertificateRecipientType.team) {
+        for (final CertificateTeamSubmissionGroup group in _filteredGroups()) {
+          for (final CertificateSelectableEntry e in group.submissions) {
+            _selectedTeamKeys.add(certificateTeamSubmissionKey(e));
+          }
+        }
+      } else {
+        for (final CertificateTeamSubmissionGroup group in _filteredGroups()) {
+          for (final CertificateSelectableEntry entry in group.submissions) {
+            final List<CertificateMember> roster = _membersByTeam[entry.teamId.trim()] ?? const <CertificateMember>[];
+            if (roster.isEmpty) {
+              if (CertificateRecipientGroups.matchesIndividualSearch(
+                group: group,
+                memberName: entry.displayLabel,
+                query: _searchQuery,
+              )) {
+                _selectedIndividualKeys.add(
+                  certificateIndividualSubmissionKey(
+                    userId: entry.teamId.trim().isNotEmpty ? entry.teamId : entry.entryId,
+                    entry: entry,
+                  ),
+                );
+              }
+            } else {
+              for (final CertificateMember member in roster) {
+                if (CertificateRecipientGroups.matchesIndividualSearch(
+                  group: group,
+                  memberName: member.displayName,
+                  query: _searchQuery,
+                )) {
+                  _selectedIndividualKeys.add(
+                    certificateIndividualSubmissionKey(userId: member.userId, entry: entry),
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  List<CertificateTeamSubmissionGroup> _filteredGroups() {
+    return _groups
+        .where((CertificateTeamSubmissionGroup g) => CertificateRecipientGroups.matchesTeamSearch(g, _searchQuery))
+        .toList(growable: false);
+  }
+
+  Widget _recipientSegment() {
+    return SegmentedButton<CertificateRecipientType>(
+      showSelectedIcon: false,
+      segments: const <ButtonSegment<CertificateRecipientType>>[
+        ButtonSegment<CertificateRecipientType>(
+          value: CertificateRecipientType.team,
+          label: Text('Team'),
+        ),
+        ButtonSegment<CertificateRecipientType>(
+          value: CertificateRecipientType.individual,
+          label: Text('Individual'),
         ),
       ],
+      selected: <CertificateRecipientType>{_recipientType},
+      onSelectionChanged: _generating
+          ? null
+          : (Set<CertificateRecipientType> next) {
+              if (next.isEmpty) return;
+              setState(() => _recipientType = next.first);
+              _ensureMembersLoaded();
+            },
+      style: const ButtonStyle(
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+
+  Widget _stickyFooter() {
+    final int count = _plan.estimatedCertificates;
+    final String summary = count == 0
+        ? 'No certificates selected'
+        : '$count certificate${count == 1 ? '' : 's'} · $_signatoryCount signatories';
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.viewInsetsOf(context).bottom),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF7F3FF),
+        border: Border(top: BorderSide(color: Color(0xFFD9CBFF))),
+      ),
+      child: ResponsiveDialogActions(
+        leading: Text(
+          summary,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+        ),
+        children: <Widget>[
+          TextButton(
+            onPressed: _generating ? null : () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: _canGenerate ? _generate : null,
+            icon: _generating
+                ? const SizedBox(width: 18, height: 18, child: HkzProgressIndicator(size: 18, strokeWidth: 2.2))
+                : const Icon(AppIcons.download, size: 18),
+            label: Text(_generating ? 'Generating…' : _generateLabel),
+          ),
+        ],
+      ),
     );
   }
 
@@ -284,218 +531,6 @@ class _CertificateGenerationDialogState extends State<CertificateGenerationDialo
     return Text(
       text,
       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF475569)),
-    );
-  }
-
-  Widget _readOnlyField(String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Text(
-        value,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-      ),
-    );
-  }
-
-  Widget _typeChips() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        _choiceChip(
-          label: 'Participation',
-          selected: _certificateType == CertificateType.participation,
-          enabled: event.participationEntries.isNotEmpty,
-          onTap: () => _onCertificateTypeChanged(CertificateType.participation),
-        ),
-        _choiceChip(
-          label: 'Winner — First Place',
-          selected: _certificateType == CertificateType.winner,
-          enabled: event.usesWinners && event.winnerEntry != null,
-          onTap: () => _onCertificateTypeChanged(CertificateType.winner),
-        ),
-        _choiceChip(
-          label: 'Runner-Up — Second Place',
-          selected: _certificateType == CertificateType.runnerUp,
-          enabled: event.usesWinners && event.runnerUpEntry != null,
-          onTap: () => _onCertificateTypeChanged(CertificateType.runnerUp),
-        ),
-      ],
-    );
-  }
-
-  Widget _recipientChips() {
-    return Wrap(
-      spacing: 8,
-      children: <Widget>[
-        _choiceChip(
-          label: 'Team certificate',
-          selected: _recipientType == CertificateRecipientType.team,
-          enabled: true,
-          onTap: () => _onRecipientTypeChanged(CertificateRecipientType.team),
-        ),
-        _choiceChip(
-          label: 'Individual certificates',
-          selected: _recipientType == CertificateRecipientType.individual,
-          enabled: true,
-          onTap: () => _onRecipientTypeChanged(CertificateRecipientType.individual),
-        ),
-      ],
-    );
-  }
-
-  Widget _choiceChip({
-    required String label,
-    required bool selected,
-    required bool enabled,
-    required VoidCallback onTap,
-  }) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: enabled && !_generating ? (_) => onTap() : null,
-      showCheckmark: true,
-      selectedColor: const Color(0xFFEDE9FE),
-      labelStyle: TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 12,
-        color: enabled ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
-      ),
-    );
-  }
-
-  Widget _recipientPanel(bool compact) {
-    if (_pool.isEmpty) {
-      return Text(
-        _unavailableMessage(),
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
-      );
-    }
-    if (_certificateType != CertificateType.participation) {
-      final CertificateSelectableEntry entry = _pool.first;
-      return _readOnlyField('${entry.displayLabel} · ${entry.submissionTitle}');
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Text(
-              '${_selectedEntryIds.length} of ${_pool.length} selected',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: _generating
-                  ? null
-                  : () => setState(() => _selectedEntryIds = _pool.map((CertificateSelectableEntry e) => e.entryId).toSet()),
-              child: const Text('Select all'),
-            ),
-            TextButton(
-              onPressed: _generating ? null : () => setState(() => _selectedEntryIds = <String>{}),
-              child: const Text('Clear'),
-            ),
-          ],
-        ),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: compact ? 160 : 220),
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: _pool.length,
-            itemBuilder: (BuildContext context, int index) {
-              final CertificateSelectableEntry entry = _pool[index];
-              final bool checked = _selectedEntryIds.contains(entry.entryId);
-              return CheckboxListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                value: checked,
-                onChanged: _generating
-                    ? null
-                    : (bool? value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedEntryIds.add(entry.entryId);
-                          } else {
-                            _selectedEntryIds.remove(entry.entryId);
-                          }
-                        });
-                        _ensureMembersLoaded();
-                      },
-                title: Text(entry.displayLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                subtitle: entry.submissionTitle.trim().isEmpty
-                    ? null
-                    : Text(entry.submissionTitle, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _unavailableMessage() {
-    return switch (_certificateType) {
-      CertificateType.participation => 'Add participating ${event.eventKind.entriesLabel.toLowerCase()} first.',
-      CertificateType.winner => 'Winner is available after Department Admin selects a winner.',
-      CertificateType.runnerUp => 'Runner-up is available after Department Admin selects a runner-up.',
-    };
-  }
-
-  Widget _summaryCard(CertificateGenerationPlan plan) {
-    final String modeLabel = switch (plan.outputMode) {
-      CertificateOutputMode.singlePdf => 'Single PDF',
-      CertificateOutputMode.multiPagePdf => 'Combined PDF',
-      CertificateOutputMode.zipArchive => 'ZIP archive (batched)',
-    };
-    final String typeLabel = switch (plan.certificateType) {
-      CertificateType.participation => 'Participation',
-      CertificateType.winner => 'Winner — First Place',
-      CertificateType.runnerUp => 'Runner-Up — Second Place',
-    };
-    final String forLabel =
-        plan.recipientType == CertificateRecipientType.team ? 'Team' : 'Individual';
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F3FF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFDDD6FE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _summaryRow('Certificate type', typeLabel),
-          _summaryRow('Generate for', forLabel),
-          _summaryRow('Selected entries', '${plan.selectedTeamCount}'),
-          _summaryRow('Estimated certificates', '${plan.estimatedCertificates}'),
-          _summaryRow('Output', modeLabel),
-          _summaryRow('Submission label', event.submissionLabel),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SizedBox(
-            width: 140,
-            child: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
-          ),
-          Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          ),
-        ],
-      ),
     );
   }
 

@@ -103,29 +103,44 @@ class _ReportCard extends StatelessWidget {
 
   Widget _action(BuildContext context) {
     final ExportDataProvider? provider = item.provider;
-    final ExportRequest Function(ExportFormat format)? requestFor =
-        item.requestFor;
-    final Widget action =
-        item.available && provider != null && requestFor != null
+    final ExportRequest Function(ExportFormat format)? requestFor = item.requestFor;
+    final bool compact = ResponsiveHelper.isMobile(context);
+    final void Function(BuildContext context)? onGenerate = item.available ? item.onGenerate : null;
+
+    final Widget download = item.available && provider != null && requestFor != null
         ? ExportDownloadButton(
-            labeled: !ResponsiveHelper.isMobile(context),
+            labeled: !compact,
             label: item.actionLabel,
             provider: provider,
             requestFor: requestFor,
           )
         : OutlinedButton.icon(
             onPressed: null,
-            icon: const Icon(
-              AppIcons.download,
-              size: MobileToolbarButtonStyles.toolbarIconSize,
-            ),
+            icon: const Icon(AppIcons.download, size: MobileToolbarButtonStyles.toolbarIconSize),
             label: Text(item.actionLabel),
             style: MobileToolbarButtonStyles.outlined(compact: true),
           );
+
+    if (onGenerate == null) {
+      return FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: download);
+    }
+
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerRight,
-      child: action,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          OutlinedButton(
+            onPressed: () => onGenerate!(context),
+            style: MobileToolbarButtonStyles.outlined(compact: true),
+            child: Text(item.generateLabel),
+          ),
+          download,
+        ],
+      ),
     );
   }
 }

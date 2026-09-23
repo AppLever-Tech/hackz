@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/events/exports/event_certificates_export_provider.dart';
 import 'package:hackz/features/events/models/event_report_item.dart';
+import 'package:hackz/features/events/widgets/certificate_generation_dialog.dart';
 import 'package:hackz/features/exports/certificate/certificate_event_context.dart';
 import 'package:hackz/features/exports/certificate/certificate_selectable_entry.dart';
 import 'package:hackz/features/exports/certificate/certificate_team_member_loader.dart';
@@ -124,6 +125,16 @@ abstract final class IdeathonCertificateReportItems {
         eventName: eventName,
       ),
       actionLabel: 'Download certificates',
+      generateLabel: 'Generate…',
+      onGenerate: available
+          ? (BuildContext context) => showCertificateGenerationDialog(
+                context: context,
+                event: event,
+                actor: actor,
+                certificateType: CertificateType.participation,
+                ideathon: vm.ideathon,
+              )
+          : null,
     );
   }
 
@@ -171,6 +182,16 @@ abstract final class IdeathonCertificateReportItems {
               )
           : null,
       actionLabel: 'Download certificate',
+      generateLabel: 'Generate…',
+      onGenerate: available
+          ? (BuildContext context) => showCertificateGenerationDialog(
+                context: context,
+                event: event,
+                actor: actor,
+                certificateType: CertificateType.winner,
+                ideathon: vm.ideathon,
+              )
+          : null,
     );
   }
 
@@ -218,6 +239,16 @@ abstract final class IdeathonCertificateReportItems {
               )
           : null,
       actionLabel: 'Download certificate',
+      generateLabel: 'Generate…',
+      onGenerate: available
+          ? (BuildContext context) => showCertificateGenerationDialog(
+                context: context,
+                event: event,
+                actor: actor,
+                certificateType: CertificateType.runnerUp,
+                ideathon: vm.ideathon,
+              )
+          : null,
     );
   }
 

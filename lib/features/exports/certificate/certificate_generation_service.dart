@@ -16,11 +16,13 @@ abstract final class CertificateGenerationService {
     required CertificateRecipientType recipientType,
     required List<CertificateSelectableEntry> selectedEntries,
     Map<String, List<CertificateMember>> membersByTeam = const <String, List<CertificateMember>>{},
+    Set<String> selectedIndividualKeys = const <String>{},
   }) {
     final int count = _estimateCount(
       recipientType: recipientType,
       selectedEntries: selectedEntries,
       membersByTeam: membersByTeam,
+      selectedIndividualKeys: selectedIndividualKeys,
     );
     final CertificateOutputMode mode = count <= 1
         ? CertificateOutputMode.singlePdf
@@ -52,6 +54,8 @@ abstract final class CertificateGenerationService {
     required CertificateEventContext event,
     required CertificateGenerationPlan plan,
     Map<String, List<CertificateMember>> membersByTeam = const <String, List<CertificateMember>>{},
+    Set<String> selectedIndividualKeys = const <String>{},
+    List<CertificateSignatory> signatories = const <CertificateSignatory>[],
   }) async {
     Map<String, List<CertificateMember>> members = membersByTeam;
     if (plan.recipientType == CertificateRecipientType.individual && members.isEmpty) {
@@ -60,6 +64,30 @@ abstract final class CertificateGenerationService {
       );
     }
     final List<CertificateData> out = <CertificateData>[];
+    if (plan.recipientType == CertificateRecipientType.individual && selectedIndividualKeys.isNotEmpty) {
+      final Map<String, CertificateSelectableEntry> entriesById = <String, CertificateSelectableEntry>{
+        for (final CertificateSelectableEntry e in plan.selectedEntries) e.entryId.trim(): e,
+      };
+      for (final String key in selectedIndividualKeys) {
+        final _IndividualKeyParts? parts = _IndividualKeyParts.parse(key);
+        if (parts == null) continue;
+        final CertificateSelectableEntry? entry = entriesById[parts.entryId];
+        if (entry == null) continue;
+        final String recipientName = _memberDisplayName(members, entry.teamId, parts.userId, entry.displayLabel);
+        out.add(
+          CertificateDataFactory.build(
+            event: event,
+            certificateType: plan.certificateType,
+            recipientType: CertificateRecipientType.individual,
+            recipientName: recipientName,
+            entry: entry,
+            signatories: signatories,
+          ),
+        );
+      }
+      return out;
+    }
+
     for (final CertificateSelectableEntry entry in plan.selectedEntries) {
       if (plan.recipientType == CertificateRecipientType.team) {
         out.add(
@@ -69,6 +97,7 @@ abstract final class CertificateGenerationService {
             recipientType: CertificateRecipientType.team,
             recipientName: entry.displayLabel,
             entry: entry,
+            signatories: signatories,
           ),
         );
         continue;
@@ -82,6 +111,7 @@ abstract final class CertificateGenerationService {
             recipientType: CertificateRecipientType.individual,
             recipientName: entry.displayLabel,
             entry: entry,
+            signatories: signatories,
           ),
         );
         continue;
@@ -94,11 +124,24 @@ abstract final class CertificateGenerationService {
             recipientType: CertificateRecipientType.individual,
             recipientName: member.displayName,
             entry: entry,
+            signatories: signatories,
           ),
         );
       }
     }
     return out;
+  }
+
+  static String _memberDisplayName(
+    Map<String, List<CertificateMember>> members,
+    String teamId,
+    String userId,
+    String fallback,
+  ) {
+    for (final CertificateMember member in members[teamId.trim()] ?? const <CertificateMember>[]) {
+      if (member.userId.trim() == userId.trim()) return member.displayName;
+    }
+    return fallback;
   }
 
   static List<CertificateSelectableEntry> defaultSelection({
@@ -118,8 +161,12 @@ abstract final class CertificateGenerationService {
     required CertificateRecipientType recipientType,
     required List<CertificateSelectableEntry> selectedEntries,
     required Map<String, List<CertificateMember>> membersByTeam,
+    Set<String> selectedIndividualKeys = const <String>{},
   }) {
-    if (selectedEntries.isEmpty) return 0;
+    if (selectedEntries.isEmpty && selectedIndividualKeys.isEmpty) return 0;
+    if (recipientType == CertificateRecipientType.individual && selectedIndividualKeys.isNotEmpty) {
+      return selectedIndividualKeys.length;
+    }
     if (recipientType == CertificateRecipientType.team) return selectedEntries.length;
     int total = 0;
     for (final CertificateSelectableEntry entry in selectedEntries) {
@@ -127,5 +174,21 @@ abstract final class CertificateGenerationService {
       total += roster.isEmpty ? 1 : roster.length;
     }
     return total;
+  }
+}
+
+class _IndividualKeyParts {
+  const _IndividualKeyParts({required this.userId, required this.entryId});
+
+  final String userId;
+  final String entryId;
+
+  static _IndividualKeyParts? parse(String key) {
+    final int sep = key.indexOf('|');
+    if (sep <= 0) return null;
+    final String userId = key.substring(0, sep).trim();
+    final String entryId = key.substring(sep + 1).trim();
+    if (userId.isEmpty || entryId.isEmpty) return null;
+    return _IndividualKeyParts(userId: userId, entryId: entryId);
   }
 }
