@@ -85,8 +85,7 @@ abstract final class CertificateDocumentBuilder {
   }
 
   static pw.EdgeInsets _pageMargin(CertificateData data, CertificateRenderContext renderContext) {
-    if (data.certificateType == CertificateType.participation &&
-        renderContext.participationBackground != null) {
+    if (renderContext.participationBackground != null) {
       return pw.EdgeInsets.zero;
     }
     return PdfTheme.certificateMargin;

@@ -98,8 +98,7 @@ flutter:
   assets:
     - assets/images/hackz_logo.png
     - assets/certificate/common/
-    - assets/certificate/winner/
-    - assets/certificate/runner_up/
+    - assets/certificate/overlays/
     - assets/fonts/certificates/
     - assets/default_metadata/about.json
     - assets/default_metadata/project_team.json

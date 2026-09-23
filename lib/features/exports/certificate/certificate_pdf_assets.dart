@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 
 /// Shared certificate asset loading (Hackz logo + certificate graphics).
@@ -51,6 +52,43 @@ abstract final class CertificatePdfAssets {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Header overlays must support transparency (often mis-exported as JPEG on black).
+  static Future<pw.MemoryImage?> tryOverlayImage(String assetPath) async {
+    final String cacheKey = '$assetPath#overlay';
+    final pw.MemoryImage? cached = _imageCache[cacheKey];
+    if (cached != null) return cached;
+    try {
+      final ByteData data = await rootBundle.load(assetPath);
+      final Uint8List bytes = data.buffer.asUint8List();
+      final img.Image? decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+      final img.Image rgba = _overlayWithTransparentBackground(decoded);
+      final Uint8List png = Uint8List.fromList(img.encodePng(rgba));
+      final pw.MemoryImage image = pw.MemoryImage(png);
+      _imageCache[cacheKey] = image;
+      return image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Makes near-black pixels transparent (JPEG exports without an alpha channel).
+  static img.Image _overlayWithTransparentBackground(img.Image source) {
+    final img.Image out = img.Image(width: source.width, height: source.height, numChannels: 4);
+    for (int y = 0; y < source.height; y++) {
+      for (int x = 0; x < source.width; x++) {
+        final img.Pixel p = source.getPixel(x, y);
+        final int r = p.r.toInt();
+        final int g = p.g.toInt();
+        final int b = p.b.toInt();
+        final int maxChannel = r > g ? (r > b ? r : b) : (g > b ? g : b);
+        final int alpha = maxChannel < 28 ? 0 : 255;
+        out.setPixelRgba(x, y, r, g, b, alpha);
+      }
+    }
+    return out;
   }
 
   static Future<pw.Font> loadFontTtf(String assetPath) async {

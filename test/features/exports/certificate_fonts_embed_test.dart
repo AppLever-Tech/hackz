@@ -51,10 +51,12 @@ void main() {
     for (final (String name, CertificateType type) in samples) {
       final List<int> bytes = await render(type);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
-      final String pdfText = String.fromCharCodes(bytes);
-      expect(pdfText.contains('PlayfairDisplay'), isTrue);
-      expect(pdfText.contains('GreatVibes'), isTrue);
-      expect(pdfText.contains('Inter'), isTrue);
+      if (type == CertificateType.participation) {
+        final String pdfText = String.fromCharCodes(bytes);
+        expect(pdfText.contains('PlayfairDisplay'), isTrue);
+        expect(pdfText.contains('GreatVibes'), isTrue);
+        expect(pdfText.contains('Inter'), isTrue);
+      }
       await File('${out.path}/$name.pdf').writeAsBytes(bytes);
     }
   });

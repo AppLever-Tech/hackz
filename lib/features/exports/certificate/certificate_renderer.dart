@@ -5,6 +5,7 @@ import 'certificate_data.dart';
 import 'certificate_fonts.dart';
 import 'certificate_organisation_branding.dart';
 import 'certificate_render_context.dart';
+import 'certificate_submission_terminology.dart';
 import 'certificate_theme.dart';
 import 'certificate_visual_variant.dart';
 import 'certificate_type.dart';
@@ -21,84 +22,29 @@ abstract final class CertificateRenderer {
     final CertificateFonts fonts = context.fonts;
     final List<CertificateSignatory> signatories = _normalizedSignatories(data.signatories);
 
-    if (_usesParticipationBackground(data, context)) {
-      return pw.Stack(
-        children: <pw.Widget>[
-          pw.Positioned.fill(
-            child: pw.Image(context.participationBackground!, fit: pw.BoxFit.cover),
-          ),
-          _participationTopBand(data, fonts),
-          pw.Positioned.fill(
-            child: pw.Padding(
-              padding: const pw.EdgeInsets.fromLTRB(44, 134, 44, 22),
-              child: _participationMainColumn(
-                data: data,
-                context: context,
-                variant: variant,
-                fonts: fonts,
-                signatories: signatories,
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     return pw.Stack(
       children: <pw.Widget>[
-        pw.Container(color: CertificateTheme.ivory),
-        if (context.paperTexture != null)
+        if (context.participationBackground != null)
           pw.Positioned.fill(
-            child: pw.Opacity(
-              opacity: 0.55,
-              child: pw.Image(context.paperTexture!, fit: pw.BoxFit.cover),
-            ),
-          ),
-        if (context.academicWatermark != null)
-          pw.Positioned(
-            left: 0,
-            right: 0,
-            bottom: 36,
-            child: pw.Center(
-              child: pw.Opacity(
-                opacity: 0.22,
-                child: pw.SizedBox(
-                  height: 130,
-                  child: pw.Image(context.academicWatermark!, fit: pw.BoxFit.contain),
-                ),
-              ),
-            ),
-          ),
-        pw.Padding(
-          padding: const pw.EdgeInsets.all(10),
-          child: pw.Container(
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: variant.accent, width: 1.6),
-            ),
-            padding: const pw.EdgeInsets.all(7),
-            child: pw.Container(
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: CertificateTheme.innerLine, width: 0.6),
-              ),
-              padding: const pw.EdgeInsets.fromLTRB(28, 20, 28, 18),
-              child: _certificateContent(
-                data: data,
-                context: context,
-                variant: variant,
-                fonts: fonts,
-                signatories: signatories,
-                framed: true,
-              ),
+            child: pw.Image(context.participationBackground!, fit: pw.BoxFit.cover),
+          )
+        else
+          pw.Positioned.fill(child: pw.Container(color: CertificateTheme.ivory)),
+        _certificateTopBand(data, fonts, context),
+        pw.Positioned.fill(
+          child: pw.Padding(
+            padding: const pw.EdgeInsets.fromLTRB(44, 134, 44, 22),
+            child: _certificateMainColumn(
+              data: data,
+              context: context,
+              variant: variant,
+              fonts: fonts,
+              signatories: signatories,
             ),
           ),
         ),
-        ..._cornerDecorations(context, variant),
       ],
     );
-  }
-
-  static bool _usesParticipationBackground(CertificateData data, CertificateRenderContext context) {
-    return data.certificateType == CertificateType.participation && context.participationBackground != null;
   }
 
   static const double _participationBandTop = 26;
@@ -106,8 +52,12 @@ abstract final class CertificateRenderer {
   static const double _participationHackzSlotWidth = 168;
   static const double _participationLeftBandWidth = 210;
 
-  /// Top band: Hackz logo (after corner), centered title, college name/logo aligned with logo row.
-  static pw.Widget _participationTopBand(CertificateData data, CertificateFonts fonts) {
+  /// Top band: Hackz logo, centered title or achievement overlay, college branding.
+  static pw.Widget _certificateTopBand(
+    CertificateData data,
+    CertificateFonts fonts,
+    CertificateRenderContext context,
+  ) {
     final pw.ImageProvider? hackz = data.hackzLogo;
     return pw.Positioned(
       top: _participationBandTop,
@@ -134,27 +84,7 @@ abstract final class CertificateRenderer {
             pw.Expanded(
               child: pw.SizedBox(
                 height: 78,
-                child: pw.Stack(
-                  alignment: pw.Alignment.topCenter,
-                  children: <pw.Widget>[
-                    pw.Text(
-                      'CERTIFICATE OF',
-                      style: CertificateTheme.certificateOfLabel(fonts),
-                      textAlign: pw.TextAlign.center,
-                    ),
-                    pw.Positioned(
-                      top: 23,
-                      left: 0,
-                      right: 0,
-                      child: pw.Text(
-                        'PARTICIPATION',
-                        style: CertificateTheme.participationTitle(fonts, size: 34),
-                        textAlign: pw.TextAlign.center,
-                        maxLines: 1,
-                      ),
-                    ),
-                  ],
-                ),
+                child: _headerCenterContent(data, fonts, context),
               ),
             ),
             CertificateOrganisationBranding.build(
@@ -169,7 +99,49 @@ abstract final class CertificateRenderer {
     );
   }
 
-  static pw.Widget _participationMainColumn({
+  static pw.Widget _headerCenterContent(
+    CertificateData data,
+    CertificateFonts fonts,
+    CertificateRenderContext context,
+  ) {
+    switch (data.certificateType) {
+      case CertificateType.participation:
+        return pw.Stack(
+          alignment: pw.Alignment.topCenter,
+          children: <pw.Widget>[
+            pw.Text(
+              'CERTIFICATE OF',
+              style: CertificateTheme.certificateOfLabel(fonts),
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.Positioned(
+              top: 23,
+              left: 0,
+              right: 0,
+              child: pw.Text(
+                'PARTICIPATION',
+                style: CertificateTheme.participationTitle(fonts, size: 34),
+                textAlign: pw.TextAlign.center,
+                maxLines: 1,
+              ),
+            ),
+          ],
+        );
+      case CertificateType.winner:
+        return _headerOverlayImage(context.winnerOverlay);
+      case CertificateType.runnerUp:
+        return _headerOverlayImage(context.runnerUpOverlay);
+    }
+  }
+
+  static pw.Widget _headerOverlayImage(pw.MemoryImage? overlay) {
+    if (overlay == null) return pw.SizedBox();
+    return pw.Center(
+      child: pw.Image(overlay, fit: pw.BoxFit.contain),
+    );
+  }
+
+  static pw.Widget _certificateMainColumn({
     required CertificateData data,
     required CertificateRenderContext context,
     required CertificateVisualVariant variant,
@@ -206,11 +178,11 @@ abstract final class CertificateRenderer {
           ),
         ],
         pw.SizedBox(height: 10),
-        _recipientDivider(context, variant),
-        pw.SizedBox(height: 14),
-        _participationBodyLines(data, fonts),
+        _recipientDivider(),
+        pw.SizedBox(height: 12),
+        _certificateBodyLines(data, fonts, variant),
         pw.Spacer(),
-        _participationSignatoryFooter(signatories, fonts),
+        _certificateSignatoryFooter(signatories, fonts),
         pw.SizedBox(height: _participationFooterBottomGap),
       ],
     );
@@ -225,7 +197,7 @@ abstract final class CertificateRenderer {
   static const double _participationSignatorySideWidth = 132;
   static const double _participationSignatoryCenterWidth = 128;
 
-  static pw.Widget _participationSignatoryFooter(
+  static pw.Widget _certificateSignatoryFooter(
     List<CertificateSignatory> signatories,
     CertificateFonts fonts,
   ) {
@@ -349,14 +321,11 @@ abstract final class CertificateRenderer {
     );
   }
 
-  static String _presentingSubmissionPhrase(String submissionLabel) {
-    final String label = submissionLabel.trim().toLowerCase();
-    if (label.contains('prototype')) return 'and presenting the prototype';
-    if (label.contains('paper')) return 'and presenting the research paper';
-    return 'and presenting the idea';
-  }
-
-  static pw.Widget _participationBodyLines(CertificateData data, CertificateFonts fonts) {
+  static pw.Widget _certificateBodyLines(
+    CertificateData data,
+    CertificateFonts fonts,
+    CertificateVisualVariant variant,
+  ) {
     final String event = data.eventName.trim();
     final String title = data.submissionTitle.trim();
     final String date = data.eventDateLabel.trim();
@@ -372,18 +341,17 @@ abstract final class CertificateRenderer {
       );
     }
 
+    final bool participation = data.certificateType == CertificateType.participation;
+    final String submissionLine = participation
+        ? CertificateSubmissionTerminology.presentingPhrase(data.submissionLabel)
+        : CertificateSubmissionTerminology.forThePhrase(data.submissionLabel);
+
     return pw.Column(
       children: <pw.Widget>[
-        line(
-          'for successfully participating in',
-          CertificateTheme.participationBody(fonts, size: bodySize),
-        ),
+        line(variant.bodyLeadLine, CertificateTheme.participationBody(fonts, size: bodySize)),
         if (event.isNotEmpty)
           line(event, CertificateTheme.bodyBold(fonts, size: eventNameSize), maxLines: 2),
-        line(
-          _presentingSubmissionPhrase(data.submissionLabel),
-          CertificateTheme.participationBody(fonts, size: bodySize),
-        ),
+        line(submissionLine, CertificateTheme.participationBody(fonts, size: bodySize)),
         if (title.isNotEmpty)
           line(
             '"$title"',
@@ -396,7 +364,7 @@ abstract final class CertificateRenderer {
             CertificateTheme.participationBody(fonts, size: bodySize),
           ),
         line(
-          'In recognition of their creativity, innovation and contribution to the event.',
+          variant.bodyRecognitionLine,
           CertificateTheme.participationBody(fonts, size: recognitionSize),
           maxLines: 3,
         ),
@@ -404,337 +372,17 @@ abstract final class CertificateRenderer {
     );
   }
 
-  static pw.Widget _certificateContent({
-    required CertificateData data,
-    required CertificateRenderContext context,
-    required CertificateVisualVariant variant,
-    required CertificateFonts fonts,
-    required List<CertificateSignatory> signatories,
-    required bool framed,
-    bool showHeaderLogos = true,
-  }) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: <pw.Widget>[
-        if (showHeaderLogos) ...<pw.Widget>[
-          _headerRow(data, fonts),
-          pw.SizedBox(height: framed ? 10 : 16),
-        ],
-        if (variant.showTrophy || variant.showMedal || variant.showLaurels)
-          _achievementBand(context, variant),
-        _headlineBlock(data, variant, fonts),
-        pw.SizedBox(height: 14),
-        pw.Text(
-          'This certificate is proudly presented to',
-          style: CertificateTheme.bodyRegular(fonts),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.SizedBox(height: 10),
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 12),
-          child: pw.Text(
-            data.recipientName.trim(),
-            style: CertificateTheme.recipientScript(
-              fonts,
-              CertificateTheme.recipientFontSize(data.recipientName),
-            ),
-            textAlign: pw.TextAlign.center,
-            maxLines: 3,
-          ),
-        ),
-        if (_memberOfLine(data).isNotEmpty) ...<pw.Widget>[
-          pw.SizedBox(height: 6),
-          pw.Text(
-            _memberOfLine(data),
-            style: CertificateTheme.bodyRegular(fonts, size: 10),
-            textAlign: pw.TextAlign.center,
-          ),
-        ],
-        pw.SizedBox(height: 8),
-        _recipientDivider(context, variant),
-        pw.SizedBox(height: 12),
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 8),
-          child: _bodyRichText(data, fonts),
-        ),
-        pw.Spacer(),
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.end,
-          children: <pw.Widget>[
-            pw.Expanded(child: _signatoryBlock(signatories[0], fonts)),
-            pw.SizedBox(width: 24),
-            pw.Expanded(child: _signatoryBlock(signatories[1], fonts)),
-          ],
-        ),
-        pw.SizedBox(height: 10),
-        pw.Align(
-          alignment: pw.Alignment.center,
-          child: pw.Text(
-            variant.closingLine,
-            style: CertificateTheme.footerTagline(fonts),
-            textAlign: pw.TextAlign.center,
-          ),
-        ),
-      ],
-    );
-  }
+  /// ~one third of the main column width (A4 landscape minus horizontal padding).
+  static const double _recipientDividerWidth = 252;
 
-  static pw.Widget _recipientDivider(CertificateRenderContext context, CertificateVisualVariant variant) {
-    final pw.MemoryImage? asset =
-        variant.usesGoldAccents ? context.dividerGold : context.dividerSilver;
-    if (asset != null) {
-      return pw.Center(
-        child: pw.SizedBox(
-          width: 220,
-          child: pw.Image(asset, fit: pw.BoxFit.contain),
-        ),
-      );
-    }
+  static pw.Widget _recipientDivider() {
     return pw.Center(
       child: pw.Container(
-        width: 200,
-        height: 1,
-        color: PdfColor.fromInt(variant.usesGoldAccents ? 0xFFC9A227 : 0xFF94A3B8),
+        width: _recipientDividerWidth,
+        height: 0.6,
+        color: PdfColor.fromInt(0xFFC9A227),
       ),
     );
-  }
-
-  static List<pw.Widget> _cornerDecorations(
-    CertificateRenderContext context,
-    CertificateVisualVariant variant,
-  ) {
-    if (context.navyCornerTopLeft == null || context.navyCornerBottomRight == null) {
-      return const <pw.Widget>[];
-    }
-    const double corner = 118;
-    final pw.MemoryImage? ribbonsTl =
-        variant.usesGoldAccents ? context.goldRibbonsTopLeft : context.silverRibbonsTopLeft;
-    final pw.MemoryImage? ribbonsBr =
-        variant.usesGoldAccents ? context.goldRibbonsBottomRight : context.silverRibbonsBottomRight;
-
-    return <pw.Widget>[
-      pw.Positioned(
-        top: 0,
-        left: 0,
-        child: pw.SizedBox(
-          width: corner,
-          height: corner,
-          child: pw.Stack(
-            children: <pw.Widget>[
-              pw.Image(context.navyCornerTopLeft!, fit: pw.BoxFit.cover),
-              if (ribbonsTl != null) pw.Image(ribbonsTl, fit: pw.BoxFit.cover),
-            ],
-          ),
-        ),
-      ),
-      pw.Positioned(
-        bottom: 0,
-        right: 0,
-        child: pw.SizedBox(
-          width: corner,
-          height: corner,
-          child: pw.Stack(
-            children: <pw.Widget>[
-              pw.Image(context.navyCornerBottomRight!, fit: pw.BoxFit.cover),
-              if (ribbonsBr != null) pw.Image(ribbonsBr, fit: pw.BoxFit.cover),
-            ],
-          ),
-        ),
-      ),
-    ];
-  }
-
-  static pw.Widget _achievementBand(
-    CertificateRenderContext context,
-    CertificateVisualVariant variant,
-  ) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.center,
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: <pw.Widget>[
-          if (variant.showLaurels && _laurelImage(context, variant) != null)
-            pw.SizedBox(
-              width: 130,
-              height: 36,
-              child: pw.Image(_laurelImage(context, variant)!, fit: pw.BoxFit.contain),
-            ),
-          if (variant.showTrophy && context.trophyGold != null)
-            pw.SizedBox(
-              width: 44,
-              height: 48,
-              child: pw.Image(context.trophyGold!, fit: pw.BoxFit.contain),
-            ),
-          if (variant.showMedal && context.medalSilver != null)
-            pw.SizedBox(
-              width: 44,
-              height: 48,
-              child: pw.Image(context.medalSilver!, fit: pw.BoxFit.contain),
-            ),
-          if (variant.showLaurels && _laurelImage(context, variant) != null)
-            pw.Transform.rotate(
-              angle: 3.14159,
-              child: pw.SizedBox(
-                width: 130,
-                height: 36,
-                child: pw.Image(_laurelImage(context, variant)!, fit: pw.BoxFit.contain),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  static pw.MemoryImage? _laurelImage(
-    CertificateRenderContext context,
-    CertificateVisualVariant variant,
-  ) {
-    return variant.usesGoldAccents ? context.laurelsGold : context.laurelsSilver;
-  }
-
-  static pw.Widget _headerRow(CertificateData data, CertificateFonts fonts) {
-    final pw.ImageProvider? hackz = data.hackzLogo;
-
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: <pw.Widget>[
-        pw.Expanded(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: <pw.Widget>[
-              if (hackz != null)
-                pw.SizedBox(height: 52, child: pw.Image(hackz, fit: pw.BoxFit.contain))
-              else
-                pw.Text('HACKZ', style: CertificateTheme.orgHeader(fonts)),
-            ],
-          ),
-        ),
-        CertificateOrganisationBranding.build(
-          fonts: fonts,
-          organisationName: data.organisationName,
-          organisationLogo: data.organisationLogo,
-          layout: CertificateOrganisationBrandingLayout.headerTopRight,
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _headlineBlock(
-    CertificateData data,
-    CertificateVisualVariant variant,
-    CertificateFonts fonts,
-  ) {
-    switch (data.certificateType) {
-      case CertificateType.participation:
-        return pw.Column(
-          children: <pw.Widget>[
-            pw.Text(
-              'CERTIFICATE OF',
-              style: CertificateTheme.headingMain(fonts, size: 22),
-              textAlign: pw.TextAlign.center,
-            ),
-            pw.Text(
-              'PARTICIPATION',
-              style: CertificateTheme.headingMain(fonts, size: 30),
-              textAlign: pw.TextAlign.center,
-            ),
-          ],
-        );
-      case CertificateType.winner:
-        return pw.Column(
-          children: <pw.Widget>[
-            pw.Text(
-              'WINNER',
-              style: CertificateTheme.headingMain(fonts, size: 34),
-              textAlign: pw.TextAlign.center,
-            ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              _achievementHeadline(data, fallback: 'FIRST PLACE'),
-              style: CertificateTheme.achievementSubhead(variant, fonts),
-              textAlign: pw.TextAlign.center,
-            ),
-          ],
-        );
-      case CertificateType.runnerUp:
-        return pw.Column(
-          children: <pw.Widget>[
-            pw.Text(
-              'RUNNER-UP',
-              style: CertificateTheme.headingMain(fonts, size: 32),
-              textAlign: pw.TextAlign.center,
-            ),
-            pw.SizedBox(height: 2),
-            pw.Text(
-              _achievementHeadline(data, fallback: 'SECOND PLACE'),
-              style: CertificateTheme.achievementSubhead(variant, fonts),
-              textAlign: pw.TextAlign.center,
-            ),
-          ],
-        );
-    }
-  }
-
-  static pw.Widget _bodyRichText(CertificateData data, CertificateFonts fonts) {
-    final String event = data.eventName.trim();
-    final String title = data.submissionTitle.trim();
-    final String label = data.submissionLabel.trim().toLowerCase();
-    final String date = data.eventDateLabel.trim();
-    final String submissionPhrase = label.isEmpty ? 'submission' : label;
-
-    final String prefix = switch (data.certificateType) {
-      CertificateType.participation => 'for successfully participating in',
-      CertificateType.winner => 'for outstanding innovation and exceptional performance in',
-      CertificateType.runnerUp => 'for commendable innovation and excellent performance in',
-    };
-    final String suffix = switch (data.certificateType) {
-      CertificateType.participation =>
-        'In recognition of their creativity, innovation and contribution to the event.',
-      CertificateType.winner => 'Your ideas inspire a better tomorrow.',
-      CertificateType.runnerUp => 'Well done on turning ideas into impact.',
-    };
-
-    final String held = date.isEmpty ? '' : ' held on $date';
-    final String withSubmission = title.isEmpty
-        ? ''
-        : ' with the $submissionPhrase $title';
-
-    final String plain = '$prefix ${event.isEmpty ? 'the event' : event}$withSubmission$held. $suffix';
-    final double size = CertificateTheme.bodyFontSize(plain);
-
-    return pw.RichText(
-      textAlign: pw.TextAlign.center,
-      text: pw.TextSpan(
-        style: CertificateTheme.bodyRegular(fonts, size: size),
-        children: <pw.TextSpan>[
-          pw.TextSpan(text: '$prefix '),
-          if (event.isNotEmpty)
-            pw.TextSpan(text: event, style: CertificateTheme.bodyBold(fonts, size: size)),
-          if (withSubmission.isNotEmpty) ...<pw.TextSpan>[
-            pw.TextSpan(text: ' with the $submissionPhrase '),
-            pw.TextSpan(
-              text: title,
-              style: CertificateTheme.bodySemiBold(
-                fonts,
-                size: CertificateTheme.submissionFontSize(title),
-              ),
-            ),
-          ],
-          if (held.isNotEmpty) ...<pw.TextSpan>[
-            pw.TextSpan(text: ' held on '),
-            pw.TextSpan(text: date, style: CertificateTheme.bodyBold(fonts, size: size)),
-          ],
-          pw.TextSpan(text: '. $suffix'),
-        ],
-      ),
-    );
-  }
-
-  static String _achievementHeadline(CertificateData data, {required String fallback}) {
-    final String label = data.achievementLabel.trim().toUpperCase();
-    if (label.isEmpty) return fallback;
-    return label;
   }
 
   static String _memberOfLine(CertificateData data) {
@@ -750,44 +398,5 @@ abstract final class CertificateRenderer {
       list.add(const CertificateSignatory());
     }
     return list.take(2).toList(growable: false);
-  }
-
-  static pw.Widget _signatoryBlock(
-    CertificateSignatory signatory,
-    CertificateFonts fonts, {
-    bool compact = false,
-  }) {
-    final String name = signatory.name.trim();
-    final String designation = signatory.designation.trim();
-    final double sigHeight = compact ? 22 : 34;
-    final double lineWidth = compact ? 130 : 110;
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.center,
-      children: <pw.Widget>[
-        if (signatory.signatureImage != null)
-          pw.SizedBox(
-            height: sigHeight,
-            child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
-          )
-        else if (!compact)
-          pw.SizedBox(height: sigHeight),
-        pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),
-        pw.SizedBox(height: 5),
-        if (name.isNotEmpty)
-          pw.Text(
-            name,
-            style: CertificateTheme.signatoryName(fonts),
-            textAlign: pw.TextAlign.center,
-            maxLines: 2,
-          ),
-        if (designation.isNotEmpty)
-          pw.Text(
-            designation,
-            style: CertificateTheme.signatoryTitle(fonts),
-            textAlign: pw.TextAlign.center,
-            maxLines: 2,
-          ),
-      ],
-    );
   }
 }
