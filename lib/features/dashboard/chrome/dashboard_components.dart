@@ -489,6 +489,7 @@ class DashboardCardHeaderRow extends StatelessWidget {
     required this.icon,
     this.trailing,
     this.stackBelowWidth = DashboardCardTitleStyle.headerStackBreakpoint,
+    this.expandTrailing = true,
   });
 
   final String title;
@@ -497,6 +498,10 @@ class DashboardCardHeaderRow extends StatelessWidget {
 
   /// Stack [trailing] under the title when the card is narrower than this width.
   final double stackBelowWidth;
+
+  /// When false, [trailing] keeps its intrinsic width (e.g. expand icon buttons).
+  /// When true, [trailing] fills remaining header width (e.g. [TimeFrameFilter]).
+  final bool expandTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -508,7 +513,7 @@ class DashboardCardHeaderRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool stack = constraints.maxWidth < stackBelowWidth;
-        final Widget alignedTrailing = _alignTrailingTimeframe(trailing!);
+        final Widget alignedTrailing = _alignTrailing(trailing!, expand: expandTrailing);
         if (stack) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -524,15 +529,18 @@ class DashboardCardHeaderRow extends StatelessWidget {
           children: <Widget>[
             Expanded(child: titlePart),
             const SizedBox(width: DashboardCardTitleStyle.headerTrailingGap),
-            Flexible(child: alignedTrailing),
+            if (expandTrailing) Flexible(child: alignedTrailing) else alignedTrailing,
           ],
         );
       },
     );
   }
 
-  /// Right-aligns timeframe chips in card headers (row + stacked layouts).
-  static Widget _alignTrailingTimeframe(Widget trailing) {
+  /// Right-aligns trailing controls in card headers (row + stacked layouts).
+  static Widget _alignTrailing(Widget trailing, {required bool expand}) {
+    if (!expand) {
+      return trailing;
+    }
     return Align(
       alignment: Alignment.centerRight,
       child: SizedBox(
@@ -551,6 +559,7 @@ class ChartCard extends StatelessWidget {
     required this.child,
     this.icon,
     this.trailing,
+    this.compactHeaderTrailing = false,
     this.headerSpacing = DashboardCardTitleStyle.headerSpacing,
   });
 
@@ -560,15 +569,18 @@ class ChartCard extends StatelessWidget {
   final IconData? icon;
   final Widget child;
   final Widget? trailing;
+  final bool compactHeaderTrailing;
   final double headerSpacing;
 
   @override
   Widget build(BuildContext context) {
+    final bool expandTrailing = trailing != null && !compactHeaderTrailing;
     final Widget header = icon != null
         ? DashboardCardHeaderRow(
             title: title,
             icon: icon!,
             trailing: trailing,
+            expandTrailing: expandTrailing,
           )
         : trailing == null
             ? Text(
@@ -581,6 +593,7 @@ class ChartCard extends StatelessWidget {
                 title: title,
                 icon: AppIcons.insights,
                 trailing: trailing,
+                expandTrailing: expandTrailing,
               );
 
     return Container(

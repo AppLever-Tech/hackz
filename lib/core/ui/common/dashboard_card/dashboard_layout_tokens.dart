@@ -104,4 +104,24 @@ abstract final class DashboardLayoutTokens {
     final double trend = trendCardContentHeight;
     return trend > usersByRoleBlockHeight ? trend : usersByRoleBlockHeight;
   }
+
+  /// College admin overview + people-by-role row (desktop [DashboardPairRow] height).
+  ///
+  /// Body areas scroll inside [AdaptiveDashboardPanel] when content exceeds this.
+  static const double collegeOverviewTitleRowHeight = 20;
+
+  static const double collegeOverviewHeaderGap = 14;
+
+  /// Logo frame and detail column share this scroll viewport on desktop.
+  static const double collegeOverviewBodyViewport = 108;
+
+  static double collegeOverviewPairRowHeight() {
+    const double overviewInner = collegeOverviewTitleRowHeight +
+        collegeOverviewHeaderGap +
+        collegeOverviewBodyViewport;
+    const double roleTitleBlock = 17 + titleSubtitleGap + 12;
+    const double roleInner = roleTitleBlock + bodyTopGap + donutSizeDepartment;
+    final double content = overviewInner > roleInner ? overviewInner : roleInner;
+    return content + sectionContainerVerticalPadding + coordinatorPanelHeightBuffer;
+  }
 }

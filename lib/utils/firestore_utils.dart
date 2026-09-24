@@ -374,10 +374,22 @@ class FirestoreUtils {
   static Future<OrganizationModel?> fetchOrganization(
     String orgId, {
     FirebaseFirestore? database,
+    bool preferServer = false,
   }) async {
     final id = orgId.trim();
     if (id.isEmpty) return null;
-    final doc = await _store(database).collection(hkzOrganizations).doc(id).get();
+    final DocumentReference<Map<String, dynamic>> ref =
+        _store(database).collection(hkzOrganizations).doc(id);
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    if (preferServer) {
+      try {
+        doc = await ref.get(const GetOptions(source: Source.server));
+      } catch (_) {
+        doc = await ref.get();
+      }
+    } else {
+      doc = await ref.get();
+    }
     if (!doc.exists || doc.data() == null) return null;
     return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
@@ -506,6 +518,15 @@ class FirestoreUtils {
           (a['name'] as String).compareTo(b['name'] as String),
     );
     return rows;
+  }
+
+  /// Raw idea documents for college dashboards (single query, client-side aggregation).
+  static Future<List<Map<String, dynamic>>> getCollegeIdeaDocuments(String orgId) async {
+    final QuerySnapshot<Map<String, dynamic>> ideasSnapshot =
+        await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
+    return ideasSnapshot.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => <String, dynamic>{'id': d.id, ...d.data()})
+        .toList(growable: false);
   }
 
   /// Idea totals keyed by department code — used by analytics charts, not manage-college.
