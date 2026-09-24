@@ -196,6 +196,8 @@ abstract final class CertificateRenderer {
 
   static const double _participationSignatorySideWidth = 132;
   static const double _participationSignatoryCenterWidth = 128;
+  static const double _signatureImageWidth = 120;
+  static const double _signatureImageHeight = 36;
 
   static pw.Widget _certificateSignatoryFooter(
     List<CertificateSignatory> signatories,
@@ -215,7 +217,8 @@ abstract final class CertificateRenderer {
         children: <pw.Widget>[
           if (signatory.signatureImage != null)
             pw.SizedBox(
-              height: 20,
+              width: _signatureImageWidth,
+              height: _signatureImageHeight,
               child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
             ),
           pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),
@@ -412,7 +415,8 @@ abstract final class CertificateRenderer {
         children: <pw.Widget>[
           if (signatory.signatureImage != null)
             pw.SizedBox(
-              height: 20,
+              width: _signatureImageWidth,
+              height: _signatureImageHeight,
               child: pw.Image(signatory.signatureImage!, fit: pw.BoxFit.contain),
             ),
           pw.Container(width: lineWidth, height: 0.6, color: CertificateTheme.ink),

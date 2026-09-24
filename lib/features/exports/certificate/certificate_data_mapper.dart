@@ -19,6 +19,7 @@ abstract final class CertificateDataMapper {
     required ExportRequest request,
     required PdfExportContext context,
     pw.ImageProvider? hackzLogo,
+    pw.ImageProvider? organisationLogoFallback,
   }) {
     final CertificateType type = _resolveType(row, request.module);
     final CertificateRecipientType recipientType =
@@ -31,7 +32,8 @@ abstract final class CertificateDataMapper {
       recipientName: PdfEngine.formatValue(row['recipient']),
       teamName: PdfEngine.formatValue(row['team']),
       organisationName: context.organisationName,
-      organisationLogo: CertificatePdfAssets.memoryImage(row['organisationLogoBytes'] as List<int>?),
+      organisationLogo: CertificatePdfAssets.memoryImage(row['organisationLogoBytes'] as List<int>?) ??
+          organisationLogoFallback,
       hackzLogo: hackzLogo,
       eventName: context.eventName,
       eventTemplateLabel: PdfEngine.formatValue(row['eventType']),

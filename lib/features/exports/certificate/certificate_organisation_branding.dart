@@ -31,10 +31,10 @@ class CertificateOrganisationBrandingLayout {
     alignment: pw.Alignment.centerRight,
     logoMaxHeight: 44,
     logoMaxWidth: 54,
-    nameWithLogoBaseSize: 11,
-    nameOnlyBaseSize: 14,
-    nameWithLogoMinSize: 8.5,
-    nameOnlyMinSize: 10,
+    nameWithLogoBaseSize: 12.5,
+    nameOnlyBaseSize: 16.5,
+    nameWithLogoMinSize: 9.5,
+    nameOnlyMinSize: 11.5,
   );
 
   static const CertificateOrganisationBrandingLayout headerTopRight =
@@ -43,10 +43,10 @@ class CertificateOrganisationBrandingLayout {
     alignment: pw.Alignment.centerRight,
     logoMaxHeight: 42,
     logoMaxWidth: 52,
-    nameWithLogoBaseSize: 10.5,
-    nameOnlyBaseSize: 13,
-    nameWithLogoMinSize: 8.5,
-    nameOnlyMinSize: 9.5,
+    nameWithLogoBaseSize: 12,
+    nameOnlyBaseSize: 15.5,
+    nameWithLogoMinSize: 9.5,
+    nameOnlyMinSize: 11,
   );
 }
 

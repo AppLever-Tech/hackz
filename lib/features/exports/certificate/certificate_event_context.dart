@@ -13,6 +13,7 @@ class CertificateEventContext {
     required this.eventKind,
     required this.eventDateLabel,
     required this.organisationName,
+    required this.organisationId,
     required this.participationEntries,
     this.winnerEntry,
     this.runnerUpEntry,
@@ -23,6 +24,7 @@ class CertificateEventContext {
   final EventKind eventKind;
   final String eventDateLabel;
   final String organisationName;
+  final String organisationId;
   final List<CertificateSelectableEntry> participationEntries;
   final CertificateSelectableEntry? winnerEntry;
   final CertificateSelectableEntry? runnerUpEntry;
@@ -51,6 +53,7 @@ class CertificateEventContext {
       organisationName: vm.organisationName.trim().isEmpty
           ? vm.workspace.organisationName
           : vm.organisationName,
+      organisationId: vm.ideathon.orgId.trim(),
       participationEntries: participation,
       winnerEntry: _resolvePlacedEntry(
         workspaceEntry: vm.workspace.winner,

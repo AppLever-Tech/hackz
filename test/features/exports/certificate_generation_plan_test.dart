@@ -14,6 +14,7 @@ void main() {
       eventKind: kind,
       eventDateLabel: '01 Jan 2026',
       organisationName: 'Demo College',
+      organisationId: 'org-demo',
       participationEntries: List<CertificateSelectableEntry>.generate(
         entries,
         (int i) => CertificateSelectableEntry(

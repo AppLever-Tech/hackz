@@ -1,3 +1,5 @@
+import 'package:pdf/widgets.dart' as pw;
+
 import 'certificate_data.dart';
 import 'certificate_event_context.dart';
 import 'certificate_selectable_entry.dart';
@@ -14,6 +16,7 @@ abstract final class CertificateDataFactory {
     required String recipientName,
     required CertificateSelectableEntry entry,
     List<CertificateSignatory> signatories = const <CertificateSignatory>[],
+    pw.ImageProvider? organisationLogo,
   }) {
     return CertificateData(
       certificateType: certificateType,
@@ -21,6 +24,7 @@ abstract final class CertificateDataFactory {
       recipientName: recipientName.trim(),
       teamName: entry.teamName.trim(),
       organisationName: event.organisationName.trim(),
+      organisationLogo: organisationLogo,
       eventName: event.eventName.trim(),
       eventTemplateLabel: event.eventTemplateLabel,
       eventDateLabel: event.eventDateLabel,

@@ -113,33 +113,14 @@ abstract final class CertificatePdfAssets {
     return pw.MemoryImage(Uint8List.fromList(bytes));
   }
 
-  /// Uploaded signatures: key near-black (JPEG) and near-white scan backgrounds.
+  /// Uploaded signatures: key near-black and near-white scan backgrounds (same as brand assets).
   static pw.MemoryImage? memoryImageForSignature(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) return null;
     try {
-      final img.Image? decoded = img.decodeImage(bytes);
-      if (decoded == null) return pw.MemoryImage(bytes);
-      final img.Image rgba = _signatureWithTransparentBackground(decoded);
-      return pw.MemoryImage(Uint8List.fromList(img.encodePng(rgba)));
+      final Uint8List png = HackzBrandImageKey.pngWithTransparentBackground(bytes);
+      return pw.MemoryImage(png);
     } catch (_) {
       return pw.MemoryImage(bytes);
     }
-  }
-
-  static img.Image _signatureWithTransparentBackground(img.Image source) {
-    final img.Image out = img.Image(width: source.width, height: source.height, numChannels: 4);
-    for (int y = 0; y < source.height; y++) {
-      for (int x = 0; x < source.width; x++) {
-        final img.Pixel p = source.getPixel(x, y);
-        final int r = p.r.toInt();
-        final int g = p.g.toInt();
-        final int b = p.b.toInt();
-        final int maxChannel = r > g ? (r > b ? r : b) : (g > b ? g : b);
-        final int minChannel = r < g ? (r < b ? r : b) : (g < b ? g : b);
-        final int alpha = maxChannel < 28 || minChannel > 242 ? 0 : 255;
-        out.setPixelRgba(x, y, r, g, b, alpha);
-      }
-    }
-    return out;
   }
 }

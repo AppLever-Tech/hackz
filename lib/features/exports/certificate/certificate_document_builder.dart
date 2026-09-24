@@ -6,10 +6,10 @@ import '../pdf/pdf_export_context.dart';
 import '../pdf/pdf_theme.dart';
 import 'certificate_data.dart';
 import 'certificate_data_mapper.dart';
+import 'certificate_organisation_logo_loader.dart';
 import 'certificate_pdf_assets.dart';
 import 'certificate_render_context.dart';
 import 'certificate_renderer.dart';
-import 'certificate_type.dart';
 
 /// Builds certificate PDF bytes through the certificate renderer.
 abstract final class CertificateDocumentBuilder {
@@ -22,6 +22,8 @@ abstract final class CertificateDocumentBuilder {
   }) async {
     final pw.MemoryImage? hackzLogo = await CertificatePdfAssets.loadHackzLogo();
     final CertificateRenderContext renderContext = await CertificateRenderContext.load();
+    final pw.ImageProvider? organisationLogo =
+        await CertificateOrganisationLogoLoader.loadForOrg(request.actor.orgId);
     final pw.Document document = pw.Document(
       title: context.documentTitle,
       author: 'Hackz',
@@ -35,6 +37,7 @@ abstract final class CertificateDocumentBuilder {
         request: request,
         context: context,
         hackzLogo: hackzLogo,
+        organisationLogoFallback: organisationLogo,
       );
       document.addPage(
         pw.Page(

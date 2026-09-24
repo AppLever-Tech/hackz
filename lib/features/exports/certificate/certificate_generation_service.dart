@@ -1,5 +1,6 @@
 import 'certificate_data.dart';
 import 'certificate_data_factory.dart';
+import 'certificate_organisation_logo_loader.dart';
 import 'certificate_event_context.dart';
 import 'certificate_generation_plan.dart';
 import 'certificate_selectable_entry.dart';
@@ -57,6 +58,7 @@ abstract final class CertificateGenerationService {
     Set<String> selectedIndividualKeys = const <String>{},
     List<CertificateSignatory> signatories = const <CertificateSignatory>[],
   }) async {
+    final orgLogo = await CertificateOrganisationLogoLoader.loadForOrg(event.organisationId);
     Map<String, List<CertificateMember>> members = membersByTeam;
     if (plan.recipientType == CertificateRecipientType.individual && members.isEmpty) {
       members = await CertificateTeamMemberLoader.membersByTeamId(
@@ -82,6 +84,7 @@ abstract final class CertificateGenerationService {
             recipientName: recipientName,
             entry: entry,
             signatories: signatories,
+            organisationLogo: orgLogo,
           ),
         );
       }
@@ -98,6 +101,7 @@ abstract final class CertificateGenerationService {
             recipientName: entry.displayLabel,
             entry: entry,
             signatories: signatories,
+            organisationLogo: orgLogo,
           ),
         );
         continue;
@@ -112,6 +116,7 @@ abstract final class CertificateGenerationService {
             recipientName: entry.displayLabel,
             entry: entry,
             signatories: signatories,
+            organisationLogo: orgLogo,
           ),
         );
         continue;
@@ -125,6 +130,7 @@ abstract final class CertificateGenerationService {
             recipientName: member.displayName,
             entry: entry,
             signatories: signatories,
+            organisationLogo: orgLogo,
           ),
         );
       }
