@@ -1,6 +1,7 @@
 import '../../events/exports/event_certificates_export_provider.dart';
 import 'certificate_data.dart';
 import 'certificate_event_signatory_store.dart';
+import 'certificate_pdf_assets.dart';
 
 /// Event-level certificate signatory validation and PDF/export mapping.
 abstract final class CertificateEventSignatoryConfig {
@@ -50,7 +51,7 @@ abstract final class CertificateEventSignatoryConfig {
       return CertificateSignatory(
         name: slot.name.trim(),
         designation: slot.designation.trim(),
-        signatureImage: CertificateData.memoryImageFromBytes(slot.signatureBytes),
+        signatureImage: CertificatePdfAssets.memoryImageForSignature(slot.signatureBytes),
       );
     });
   }

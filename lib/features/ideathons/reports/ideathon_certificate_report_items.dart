@@ -56,14 +56,11 @@ abstract final class IdeathonCertificateReportItems {
         vm: vm,
         actor: actor,
         event: event,
-        eventId: eventId,
-        eventName: eventName,
         teamCount: teamCount,
         participantCount: participantCount,
         entriesLabel: entriesLabel,
         signatoryDraft: signatoryDraft,
         signatoriesReady: signatoriesReady,
-        exportSignatories: exportSignatories,
       ),
       _winnerCard(
         vm: vm,
@@ -92,36 +89,23 @@ abstract final class IdeathonCertificateReportItems {
     required IdeathonDetailsViewModel vm,
     required UserModel actor,
     required CertificateEventContext event,
-    required String eventId,
-    required String eventName,
     required int teamCount,
     required int participantCount,
     required String entriesLabel,
     required CertificateEventSignatoryDraft? signatoryDraft,
     required bool signatoriesReady,
-    required List<EventCertificateSignatory> exportSignatories,
   }) {
     final bool available = teamCount > 0;
-    final List<EventCertificateRecipient> recipients = event.participationEntries
-        .map(
-          (CertificateSelectableEntry e) => _recipient(
-            e,
-            CertificateType.participation,
-            placeLabel: '',
-            signatories: exportSignatories,
-          ),
-        )
-        .toList(growable: false);
 
     return EventReportItem(
       id: 'participation_certificate',
       title: 'Participation certificates',
       description:
-          'Team certificates for all participating ${entriesLabel.toLowerCase()} in ${vm.ideathon.eventKind.label}.',
+          'Team certificates for participating ${entriesLabel.toLowerCase()} in ${vm.ideathon.eventKind.label}. Use Generate to choose recipients.',
       icon: AppIcons.submissions,
       available: available,
       unavailableReason: teamCount == 0
-          ? 'Add participating ${entriesLabel.toLowerCase()} before downloading certificates.'
+          ? 'Add participating ${entriesLabel.toLowerCase()} before generating certificates.'
           : '',
       metaPills: <EventReportMetaPill>[
         EventReportMetaPill(
@@ -135,21 +119,6 @@ abstract final class IdeathonCertificateReportItems {
           color: const Color(0xFF047857),
         ),
       ],
-      provider: EventCertificatesExportProvider(
-        module: ExportModule.participationCertificate,
-        recipients: recipients,
-        eventType: event.eventTemplateLabel,
-        eventDates: event.eventDateLabel,
-        submissionLabel: event.submissionLabel,
-      ),
-      requestFor: (ExportFormat format) => ExportRequest(
-        module: ExportModule.participationCertificate,
-        format: format,
-        actor: actor,
-        eventId: eventId,
-        eventName: eventName,
-      ),
-      actionLabel: 'Download certificates',
       generateLabel: 'Generate…',
       onGenerate: available && signatoriesReady
           ? (BuildContext context) => showCertificateGenerationDialog(

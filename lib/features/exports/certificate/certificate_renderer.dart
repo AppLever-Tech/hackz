@@ -208,10 +208,10 @@ abstract final class CertificateRenderer {
     final CertificateSignatory right = signatories[1];
     const double lineWidth = _participationSignatorySideWidth;
 
-    pw.Widget signatureLineBlock(CertificateSignatory signatory, {required bool leftSide}) {
+    pw.Widget signatureLineBlock(CertificateSignatory signatory) {
       return pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
-        crossAxisAlignment: leftSide ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: <pw.Widget>[
           if (signatory.signatureImage != null)
             pw.SizedBox(
@@ -235,8 +235,8 @@ abstract final class CertificateRenderer {
     pw.Widget signatoryTextBlock(
       String text,
       pw.TextStyle style, {
-      required pw.TextAlign textAlign,
       double top = 4,
+      int maxLines = 1,
     }) {
       if (text.isEmpty) return pw.SizedBox();
       return pw.Padding(
@@ -244,8 +244,8 @@ abstract final class CertificateRenderer {
         child: pw.Text(
           text,
           style: style,
-          textAlign: textAlign,
-          maxLines: 2,
+          textAlign: pw.TextAlign.center,
+          maxLines: maxLines,
         ),
       );
     }
@@ -261,7 +261,7 @@ abstract final class CertificateRenderer {
         children: <pw.Widget>[
           pw.SizedBox(
             width: _participationSignatorySideWidth,
-            child: pw.Align(alignment: pw.Alignment.topRight, child: left),
+            child: pw.Align(alignment: pw.Alignment.topCenter, child: left),
           ),
           pw.SizedBox(width: _signatoryGapFromCenter),
           pw.SizedBox(
@@ -271,7 +271,7 @@ abstract final class CertificateRenderer {
           pw.SizedBox(width: _signatoryGapFromCenter),
           pw.SizedBox(
             width: _participationSignatorySideWidth,
-            child: pw.Align(alignment: pw.Alignment.topLeft, child: right),
+            child: pw.Align(alignment: pw.Alignment.topCenter, child: right),
           ),
         ],
       );
@@ -280,15 +280,14 @@ abstract final class CertificateRenderer {
     return pw.Column(
       children: <pw.Widget>[
         footerRow(
-          left: signatureLineBlock(left, leftSide: true),
+          left: signatureLineBlock(left),
           center: pw.SizedBox(),
-          right: signatureLineBlock(right, leftSide: false),
+          right: signatureLineBlock(right),
         ),
         footerRow(
           left: signatoryTextBlock(
             left.name.trim(),
             CertificateTheme.signatoryName(fonts, size: 11.5),
-            textAlign: pw.TextAlign.right,
           ),
           center: centeredText(
             'IDEAS TODAY',
@@ -298,15 +297,14 @@ abstract final class CertificateRenderer {
           right: signatoryTextBlock(
             right.name.trim(),
             CertificateTheme.signatoryName(fonts, size: 11.5),
-            textAlign: pw.TextAlign.left,
           ),
         ),
         footerRow(
           left: signatoryTextBlock(
             left.designation.trim(),
             CertificateTheme.signatoryTitle(fonts, size: 10),
-            textAlign: pw.TextAlign.right,
             top: 3,
+            maxLines: 2,
           ),
           center: centeredText(
             'A BRIGHTER TOMORROW',
@@ -316,8 +314,8 @@ abstract final class CertificateRenderer {
           right: signatoryTextBlock(
             right.designation.trim(),
             CertificateTheme.signatoryTitle(fonts, size: 10),
-            textAlign: pw.TextAlign.left,
             top: 3,
+            maxLines: 2,
           ),
         ),
       ],
@@ -407,7 +405,7 @@ abstract final class CertificateRenderer {
     final CertificateSignatory center = signatories[2];
     const double lineWidth = _participationSignatorySideWidth;
 
-    pw.Widget signatureLineBlock(CertificateSignatory signatory, {required pw.Alignment align}) {
+    pw.Widget signatureLineBlock(CertificateSignatory signatory) {
       return pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
         crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -422,19 +420,20 @@ abstract final class CertificateRenderer {
       );
     }
 
-    pw.Widget slot(CertificateSignatory signatory, pw.TextAlign textAlign) {
+    pw.Widget slot(CertificateSignatory signatory) {
       return pw.Column(
         mainAxisSize: pw.MainAxisSize.min,
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: <pw.Widget>[
-          signatureLineBlock(signatory, align: pw.Alignment.topCenter),
+          signatureLineBlock(signatory),
           if (signatory.name.trim().isNotEmpty)
             pw.Padding(
               padding: const pw.EdgeInsets.only(top: 4),
               child: pw.Text(
                 signatory.name.trim(),
                 style: CertificateTheme.signatoryName(fonts, size: 11.5),
-                textAlign: textAlign,
-                maxLines: 2,
+                textAlign: pw.TextAlign.center,
+                maxLines: 1,
               ),
             ),
           if (signatory.designation.trim().isNotEmpty)
@@ -443,7 +442,7 @@ abstract final class CertificateRenderer {
               child: pw.Text(
                 signatory.designation.trim(),
                 style: CertificateTheme.signatoryTitle(fonts, size: 10),
-                textAlign: textAlign,
+                textAlign: pw.TextAlign.center,
                 maxLines: 2,
               ),
             ),
@@ -455,11 +454,11 @@ abstract final class CertificateRenderer {
       mainAxisAlignment: pw.MainAxisAlignment.center,
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: <pw.Widget>[
-        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(left, pw.TextAlign.center)),
+        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(left)),
         pw.SizedBox(width: _signatoryGapFromCenter),
-        pw.SizedBox(width: _participationSignatoryCenterWidth, child: slot(center, pw.TextAlign.center)),
+        pw.SizedBox(width: _participationSignatoryCenterWidth, child: slot(center)),
         pw.SizedBox(width: _signatoryGapFromCenter),
-        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(right, pw.TextAlign.center)),
+        pw.SizedBox(width: _participationSignatorySideWidth, child: slot(right)),
       ],
     );
   }

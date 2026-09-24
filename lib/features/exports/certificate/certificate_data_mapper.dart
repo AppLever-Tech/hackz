@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:pdf/widgets.dart' as pw;
 
 import '../models/export_module.dart';
@@ -64,8 +66,10 @@ abstract final class CertificateDataMapper {
   static CertificateSignatory _signatory(Map<String, Object?> row, int index) {
     final String name = PdfEngine.formatValue(row['signatory${index}Name']);
     final String designation = PdfEngine.formatValue(row['signatory${index}Designation']);
-    final pw.MemoryImage? image =
-        CertificatePdfAssets.memoryImage(row['signatory${index}SignatureBytes'] as List<int>?);
+    final List<int>? raw = row['signatory${index}SignatureBytes'] as List<int>?;
+    final pw.MemoryImage? image = raw == null || raw.isEmpty
+        ? null
+        : CertificatePdfAssets.memoryImageForSignature(Uint8List.fromList(raw));
     return CertificateSignatory(name: name, designation: designation, signatureImage: image);
   }
 }

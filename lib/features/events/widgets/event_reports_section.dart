@@ -125,21 +125,28 @@ class _ReportCard extends StatelessWidget {
     final bool actionsEnabled = item.available && certificatesReady;
     final void Function(BuildContext context)? onGenerate = actionsEnabled ? item.onGenerate : null;
 
-    final Widget download = actionsEnabled && provider != null && requestFor != null
-        ? ExportDownloadButton(
-            labeled: !compact,
-            label: item.actionLabel,
-            provider: provider,
-            requestFor: requestFor,
-          )
-        : OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(AppIcons.download, size: MobileToolbarButtonStyles.toolbarIconSize),
-            label: Text(item.actionLabel),
-            style: MobileToolbarButtonStyles.outlined(compact: true),
-          );
+    final ExportDataProvider? exportProvider = provider;
+    final ExportRequest Function(ExportFormat format)? exportRequestFor = requestFor;
+    final bool hasDownload = exportProvider != null && exportRequestFor != null;
+
+    final Widget? download = !hasDownload
+        ? null
+        : actionsEnabled
+            ? ExportDownloadButton(
+                labeled: !compact,
+                label: item.actionLabel,
+                provider: exportProvider,
+                requestFor: exportRequestFor,
+              )
+            : OutlinedButton.icon(
+                onPressed: null,
+                icon: const Icon(AppIcons.download, size: MobileToolbarButtonStyles.toolbarIconSize),
+                label: Text(item.actionLabel),
+                style: MobileToolbarButtonStyles.outlined(compact: true),
+              );
 
     if (onGenerate == null) {
+      if (download == null) return const SizedBox.shrink();
       return FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerRight, child: download);
     }
 
@@ -156,7 +163,7 @@ class _ReportCard extends StatelessWidget {
             style: MobileToolbarButtonStyles.outlined(compact: true),
             child: Text(item.generateLabel),
           ),
-          download,
+          if (download != null) download,
         ],
       ),
     );

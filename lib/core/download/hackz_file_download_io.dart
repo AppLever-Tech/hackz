@@ -7,6 +7,7 @@ Future<bool> saveHackzFile({
   required String fileName,
   required List<int> bytes,
   required String mimeType,
+  bool useSaveFilePicker = true,
 }) async {
   final String extension = _extensionOf(fileName);
   final FileSaveLocation? location = await getSaveLocation(

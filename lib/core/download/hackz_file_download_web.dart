@@ -10,7 +10,13 @@ Future<bool> saveHackzFile({
   required String fileName,
   required List<int> bytes,
   required String mimeType,
+  bool useSaveFilePicker = true,
 }) async {
+  if (!useSaveFilePicker) {
+    _downloadViaAnchor(fileName: fileName, bytes: bytes, mimeType: mimeType);
+    return true;
+  }
+
   final Object? picker = js_util.getProperty(html.window, 'showSaveFilePicker');
   if (picker == null) {
     _downloadViaAnchor(fileName: fileName, bytes: bytes, mimeType: mimeType);
@@ -53,6 +59,10 @@ Future<bool> saveHackzFile({
     return true;
   } catch (error) {
     if (_isSaveCancelled(error)) return false;
+    if (_isUserGestureBlocked(error)) {
+      _downloadViaAnchor(fileName: fileName, bytes: bytes, mimeType: mimeType);
+      return true;
+    }
     rethrow;
   }
 }
@@ -82,4 +92,11 @@ String _extensionOf(String fileName) {
 bool _isSaveCancelled(Object error) {
   final String text = error.toString().toLowerCase();
   return text.contains('aborterror') || text.contains('the user aborted');
+}
+
+bool _isUserGestureBlocked(Object error) {
+  final String text = error.toString().toLowerCase();
+  return text.contains('user gesture') ||
+      text.contains('securityerror') ||
+      text.contains('must be handling');
 }

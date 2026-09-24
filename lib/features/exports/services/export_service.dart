@@ -57,6 +57,7 @@ abstract final class ExportService {
       fileName: ExportFileNamer.fileName(request: request, table: table),
       bytes: bytes,
       mimeType: request.format.mimeType,
+      useSaveFilePicker: false,
     );
   }
 

@@ -217,6 +217,7 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
         fileName: result.fileName,
         bytes: result.bytes,
         mimeType: result.mimeType,
+        useSaveFilePicker: false,
       );
       if (!mounted) return;
       if (saved == HackzFileDownloadResult.cancelled) {

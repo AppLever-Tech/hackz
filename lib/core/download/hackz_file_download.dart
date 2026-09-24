@@ -14,17 +14,22 @@ abstract final class HackzFileDownload {
   static const String pdfMimeType = 'application/pdf';
   static const String zipMimeType = 'application/zip';
 
+  /// [useSaveFilePicker] — on web, `showSaveFilePicker` only works during the
+  /// click that started the work. Pass `false` after async generation (exports,
+  /// certificates) so the file downloads via a blob link instead.
   static Future<HackzFileDownloadResult> save({
     required String fileName,
     required List<int> bytes,
     required String mimeType,
     String? copyTextOnUnsupported,
+    bool useSaveFilePicker = true,
   }) async {
     try {
       final bool saved = await saveHackzFile(
         fileName: fileName,
         bytes: bytes,
         mimeType: mimeType,
+        useSaveFilePicker: useSaveFilePicker,
       );
       if (!saved) return HackzFileDownloadResult.cancelled;
       return HackzFileDownloadResult.saved;
