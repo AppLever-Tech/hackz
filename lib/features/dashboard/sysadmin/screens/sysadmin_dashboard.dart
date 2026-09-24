@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../../core/theme/app_icons.dart';
 import '../../../../features/user/models/enums/user_role.dart';
@@ -95,7 +96,7 @@ class _SysAdminOverviewState extends State<_SysAdminOverview> {
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<SysAdminDashboardAnalytics> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Text('Unable to load platform analytics: ${snapshot.error}');

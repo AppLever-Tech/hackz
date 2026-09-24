@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../core/ui/filters/hackz_filter_pane.dart';
@@ -297,7 +298,7 @@ class _IdeathonsListScreenState extends State<IdeathonsListScreen> {
                 _buildListHeader(context: context, rows: rows, inProgress: inProgress),
                 Expanded(
                   child: snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData
-                      ? const Center(child: CircularProgressIndicator())
+                      ? const Center(child: HkzProgressIndicator())
                       : rows.isEmpty
                           ? EmptySearchState.events(
                               listLabel: 'Events',

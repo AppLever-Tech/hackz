@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../features/user/models/user_model.dart';
 import '../../../utils/firestore_utils.dart';
@@ -42,7 +43,7 @@ class _RoleDashboardDataViewState extends State<RoleDashboardDataView> {
       future: _statsFuture,
       builder: (BuildContext context, AsyncSnapshot<Map<String, int>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
 
         if (snapshot.hasError) {

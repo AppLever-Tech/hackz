@@ -557,7 +557,7 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const HkzProgressIndicator(size: 44, branded: true),
+          const HkzProgressIndicator(size: 44),
           const SizedBox(height: 14),
           Text(
             detail,

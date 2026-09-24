@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/theme/app_icons.dart';
@@ -244,7 +245,7 @@ class _ImportCreateDepartmentDialogState extends State<_ImportCreateDepartmentDi
         if (_loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: HkzProgressIndicator()),
           )
         else if (_loadError != null)
           Text(_loadError!, style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 13))

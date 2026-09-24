@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
@@ -127,7 +128,7 @@ class _DomainManagementScreenState extends State<DomainManagementScreen> {
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<List<DomainModel>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Center(child: Text('Unable to load domains: ${snapshot.error}'));

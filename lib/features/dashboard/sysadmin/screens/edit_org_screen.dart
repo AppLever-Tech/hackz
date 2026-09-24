@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../../features/organization/models/organization_model.dart';
@@ -247,7 +248,7 @@ class _EditOrgScreenState extends State<EditOrgScreen> {
                   ),
                   builder: (BuildContext context, AsyncSnapshot<List<UserModel>> snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: HkzProgressIndicator());
                     }
                     if (snapshot.hasError) {
                       return Text('Unable to load college admins: ${snapshot.error}');

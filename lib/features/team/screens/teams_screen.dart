@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../requests/faculty/screens/team_change_workspace.dart';
@@ -106,7 +107,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Text('Unable to load teams: ${snapshot.error}');

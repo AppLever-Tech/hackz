@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/features/events/widgets/certificate_event_signatory_panel.dart';
 import 'package:hackz/features/events/widgets/certificate_signatory_configuration_dialog.dart';
 import 'package:hackz/features/events/widgets/event_reports_section.dart';
@@ -82,7 +83,7 @@ class _IdeathonReportsTabState extends State<IdeathonReportsTab> {
             ),
             const SizedBox(height: 12),
             if (_loadingSignatories)
-              const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)))
+              const Center(child: Padding(padding: EdgeInsets.all(12), child: HkzProgressIndicator(size: 28)))
             else
               CertificateEventSignatoryPanel(
                 draft: _signatoryDraft,

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../../user/models/user_model.dart';
@@ -406,7 +407,7 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
       future: _loadFuture,
       builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
 
         final OrgSettingsService svc = OrgSettingsService.instance;

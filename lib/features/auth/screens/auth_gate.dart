@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/loading/hkz_progress_indicator.dart';
+
 import '../models/enums/account_workspace_phase.dart';
 import '../../user/models/enums/user_status.dart';
 import '../../user/models/enums/user_role.dart';
@@ -85,8 +87,8 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (!_sessionReady) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(child: HkzProgressIndicator(size: 52)),
       );
     }
 
@@ -97,8 +99,8 @@ class _AuthGateState extends State<AuthGate> {
           stream: HackzFirebase.sessionAuth.authStateChanges(),
           builder: (BuildContext context, AsyncSnapshot<User?> authSnapshot) {
             if (authSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                body: Center(child: HkzProgressIndicator(size: 52)),
               );
             }
 
@@ -111,8 +113,8 @@ class _AuthGateState extends State<AuthGate> {
               future: AuthStatusResolver.resolveSignedInUser(firebaseUser),
               builder: (BuildContext context, AsyncSnapshot<UserModel?> userSnapshot) {
                 if (userSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
+                  return Scaffold(
+                    body: Center(child: HkzProgressIndicator(size: 52)),
                   );
                 }
 

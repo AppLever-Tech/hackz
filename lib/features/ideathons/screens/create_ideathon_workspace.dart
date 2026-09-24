@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
@@ -356,7 +357,7 @@ class _CreateIdeathonWorkspaceState extends State<CreateIdeathonWorkspace> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: HkzProgressIndicator());
     }
 
     final bool mobile = ResponsiveHelper.isMobile(context);

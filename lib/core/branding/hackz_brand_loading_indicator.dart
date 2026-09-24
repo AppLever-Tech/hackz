@@ -3,12 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'hackz_brand_assets.dart';
+import 'hackz_brand_image_cache.dart';
 
-/// Branded loading mark for overlays and full-screen waits.
-///
-/// When separate H and orbit layers are configured on [HackzBrandAssets], only
-/// the orbit layer rotates. Otherwise the approved [loadingSymbol] is shown
-/// static (the raster includes H + orbit on one layer).
+/// Branded loading: stationary H with rotating orbit + dot.
 class HackzBrandLoadingIndicator extends StatefulWidget {
   const HackzBrandLoadingIndicator({
     super.key,
@@ -24,9 +21,9 @@ class HackzBrandLoadingIndicator extends StatefulWidget {
 class _HackzBrandLoadingIndicatorState extends State<HackzBrandLoadingIndicator>
     with SingleTickerProviderStateMixin {
   late final AnimationController _orbitSpin;
-
-  bool get _canAnimateOrbit =>
-      HackzBrandAssets.loadingHLayer != null && HackzBrandAssets.loadingOrbitLayer != null;
+  MemoryImage? _hImage;
+  MemoryImage? _orbitImage;
+  bool _layersReady = false;
 
   @override
   void initState() {
@@ -35,9 +32,29 @@ class _HackzBrandLoadingIndicatorState extends State<HackzBrandLoadingIndicator>
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     );
-    if (_canAnimateOrbit) {
+    _loadLayers();
+  }
+
+  Future<void> _loadLayers() async {
+    final MemoryImage? h = await HackzBrandImageCache.memoryImage(HackzBrandAssets.loadingHLayer);
+    final MemoryImage? orbit = await HackzBrandImageCache.memoryImage(HackzBrandAssets.loadingOrbitLayer);
+    if (!mounted) return;
+    if (h != null && orbit != null) {
+      setState(() {
+        _hImage = h;
+        _orbitImage = orbit;
+        _layersReady = true;
+      });
       _orbitSpin.repeat();
+      return;
     }
+    final MemoryImage? fallback = await HackzBrandImageCache.memoryImage(HackzBrandAssets.loadingSymbol);
+    if (!mounted) return;
+    setState(() {
+      _hImage = fallback;
+      _orbitImage = null;
+      _layersReady = fallback != null;
+    });
   }
 
   @override
@@ -52,19 +69,12 @@ class _HackzBrandLoadingIndicatorState extends State<HackzBrandLoadingIndicator>
       child: SizedBox(
         width: widget.size,
         height: widget.size,
-        child: _canAnimateOrbit ? _layeredAnimation() : _staticLoadingSymbol(),
+        child: !_layersReady
+            ? const SizedBox.shrink()
+            : _orbitImage != null
+                ? _layeredAnimation()
+                : _image(_hImage!),
       ),
-    );
-  }
-
-  Widget _staticLoadingSymbol() {
-    return Image.asset(
-      HackzBrandAssets.loadingSymbol,
-      width: widget.size,
-      height: widget.size,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      semanticLabel: 'Loading',
     );
   }
 
@@ -76,26 +86,26 @@ class _HackzBrandLoadingIndicatorState extends State<HackzBrandLoadingIndicator>
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: <Widget>[
-            Image.asset(
-              HackzBrandAssets.loadingHLayer!,
-              width: widget.size,
-              height: widget.size,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-            ),
+            _image(_hImage!),
             Transform.rotate(
               angle: _orbitSpin.value * 2 * math.pi,
-              child: Image.asset(
-                HackzBrandAssets.loadingOrbitLayer!,
-                width: widget.size,
-                height: widget.size,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-              ),
+              child: _image(_orbitImage!),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _image(MemoryImage image) {
+    return Image(
+      image: image,
+      width: widget.size,
+      height: widget.size,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      semanticLabel: 'Loading',
+      gaplessPlayback: true,
     );
   }
 }

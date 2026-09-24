@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
@@ -48,7 +49,7 @@ class _AppMetadataManagementScreenState extends State<AppMetadataManagementScree
           future: _future,
           builder: (BuildContext context, AsyncSnapshot<List<AppMetadataDocument>> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: HkzProgressIndicator());
             }
             if (snapshot.hasError) {
               return Center(child: Text('Unable to load metadata: ${snapshot.error}'));
@@ -99,7 +100,7 @@ class _AppMetadataManagementScreenState extends State<AppMetadataManagementScree
           const Positioned.fill(
             child: ColoredBox(
               color: Color(0x33FFFFFF),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: HkzProgressIndicator()),
             ),
           ),
       ],

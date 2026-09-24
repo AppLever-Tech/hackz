@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -1133,7 +1134,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         : 12;
 
     if (!_hasLoaded) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: HkzProgressIndicator());
     }
 
     final List<UserModel> pending = _section(users, status: UserStatus.pendingApproval);
@@ -1262,7 +1263,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         ? MobileCreateFabStyles.listBottomPadding
         : 12;
     if (!_hasLoaded) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: HkzProgressIndicator());
     }
     final List<TeamModel> teams = _filteredTeams();
     if (teams.isEmpty) {

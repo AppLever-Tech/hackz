@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../../core/responsive/responsive_helper.dart';
@@ -420,7 +421,7 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
       future: _departmentsFuture,
       builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Text('Unable to load departments: ${snapshot.error}');

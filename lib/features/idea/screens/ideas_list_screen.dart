@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/theme/app_icons.dart';
 import '../models/idea_list_config.dart';
@@ -111,7 +112,7 @@ class _IdeasListScreenState extends State<IdeasListScreen> {
       future: _ideasFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && _lastLoaded.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Text('Unable to load ideas: ${snapshot.error}');

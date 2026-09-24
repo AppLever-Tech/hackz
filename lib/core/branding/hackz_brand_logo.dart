@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'hackz_brand_assets.dart';
+import 'hackz_brand_image_cache.dart';
 
 enum HackzBrandLogoVariant {
   primary,
@@ -31,13 +32,23 @@ class HackzBrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      _assetPath,
-      height: height,
-      width: width,
-      fit: BoxFit.contain,
-      semanticLabel: semanticLabel,
-      filterQuality: FilterQuality.high,
+    return FutureBuilder<MemoryImage?>(
+      future: HackzBrandImageCache.memoryImage(_assetPath),
+      builder: (BuildContext context, AsyncSnapshot<MemoryImage?> snapshot) {
+        final MemoryImage? image = snapshot.data;
+        if (image == null) {
+          return SizedBox(width: width, height: height);
+        }
+        return Image(
+          image: image,
+          height: height,
+          width: width,
+          fit: BoxFit.contain,
+          semanticLabel: semanticLabel,
+          filterQuality: FilterQuality.high,
+          gaplessPlayback: true,
+        );
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
 import '../../../core/firebase/hackz_firebase.dart';
 import '../../../core/theme/app_icons.dart';
@@ -171,7 +172,7 @@ class _PerIdeaPaymentVerificationScreenState extends State<PerIdeaPaymentVerific
       future: _future,
       builder: (BuildContext context, AsyncSnapshot<_PaymentData> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
         if (snapshot.hasError) {
           return Text('Unable to load payments: ${snapshot.error}');

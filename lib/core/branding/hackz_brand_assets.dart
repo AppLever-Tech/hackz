@@ -1,4 +1,8 @@
 /// Central paths for approved Hackz brand raster assets.
+///
+/// Exports must be RGBA with transparency. RGB-on-black files are keyed at
+/// runtime ([HackzBrandImageKey]) and can be fixed in-repo via
+/// `dart run tool/process_brand_assets.dart`.
 abstract final class HackzBrandAssets {
   HackzBrandAssets._();
 
@@ -16,10 +20,9 @@ abstract final class HackzBrandAssets {
   /// Loading artwork (H + orbit; single raster).
   static const String loadingSymbol = '$_root/hackz_loading_symbol.png';
 
-  /// Optional separate orbit/dot layer for [HackzBrandLoadingIndicator] animation.
-  /// When null, loading uses a static [loadingSymbol] (no full-image rotation).
-  static const String? loadingOrbitLayer = null;
+  /// Rotating orbit + dot (paired with [loadingHLayer]).
+  static const String loadingOrbitLayer = '$_root/hackz_loading_orbit.png';
 
-  /// Optional stationary H layer paired with [loadingOrbitLayer].
-  static const String? loadingHLayer = null;
+  /// Stationary H for loading animation.
+  static const String loadingHLayer = '$_root/hackz_loading_h.png';
 }
