@@ -1,6 +1,6 @@
 {
-    "name": "hackz",
-    "short_name": "hackz",
+    "name": "Hackz",
+    "short_name": "Hackz",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",

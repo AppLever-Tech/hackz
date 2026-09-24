@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../branding/hackz_brand_loading_indicator.dart';
 import 'hkz_loading_controller.dart';
 import 'hkz_loading_theme.dart';
-import 'hkz_progress_indicator.dart';
 
 /// Compact elevated loading panel shown inside the overlay.
 class HkzLoadingCard extends StatelessWidget {
@@ -84,7 +84,7 @@ class _LoadingBody extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const HkzProgressIndicator(),
+          const HackzBrandLoadingIndicator(size: 52),
           const SizedBox(height: 18),
           Text(
             title,

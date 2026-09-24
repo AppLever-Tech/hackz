@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/branding/hackz_brand_logo.dart';
 import '../../../../core/theme/auth_theme.dart';
 import 'landing_pipeline_data.dart';
 
@@ -37,11 +38,10 @@ class _RoleOrbit extends StatelessWidget {
             Positioned(
               left: center.dx - 36,
               top: center.dy - 36,
-              child: Image.asset(
-                'assets/images/hackz_logo.png',
+              child: HackzBrandLogo(
+                variant: HackzBrandLogoVariant.symbol,
                 width: 72,
                 height: 72,
-                fit: BoxFit.contain,
               ),
             ),
             for (int i = 0; i < roles.length; i++)

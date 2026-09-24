@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/branding/hackz_brand_logo.dart';
 import '../../../core/theme/auth_theme.dart';
 
 /// Logo and ambient brand shapes for mobile landing / auth entry.
@@ -22,10 +23,9 @@ class LandingBrandHeader extends StatelessWidget {
         clipBehavior: Clip.none,
         children: <Widget>[
           if (showAmbientShapes) const _AmbientShapes(),
-          Image.asset(
-            'assets/images/hackz_logo.png',
+          HackzBrandLogo(
+            variant: HackzBrandLogoVariant.primary,
             height: logoHeight,
-            fit: BoxFit.contain,
           ),
         ],
       ),

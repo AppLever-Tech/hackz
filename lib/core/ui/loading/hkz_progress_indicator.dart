@@ -3,18 +3,23 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../../branding/hackz_brand_loading_indicator.dart';
 import 'hkz_loading_theme.dart';
 
-/// Premium rotating gradient arc loader (GPU-friendly CustomPainter).
+/// Inline progress: gradient arc by default; optional Hackz brand mark for prominent waits.
 class HkzProgressIndicator extends StatefulWidget {
   const HkzProgressIndicator({
     super.key,
     this.size = 44,
     this.strokeWidth = 3.6,
+    this.branded = false,
   });
 
   final double size;
   final double strokeWidth;
+
+  /// When true, shows the approved loading symbol (static until orbit layers exist).
+  final bool branded;
 
   @override
   State<HkzProgressIndicator> createState() => _HkzProgressIndicatorState();
@@ -41,6 +46,9 @@ class _HkzProgressIndicatorState extends State<HkzProgressIndicator>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.branded) {
+      return HackzBrandLoadingIndicator(size: widget.size);
+    }
     return RepaintBoundary(
       child: SizedBox(
         width: widget.size,

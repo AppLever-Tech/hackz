@@ -48,8 +48,8 @@ abstract final class CertificateRenderer {
   }
 
   static const double _participationBandTop = 26;
-  static const double _participationHackzLogoHeight = 72;
-  static const double _participationHackzSlotWidth = 168;
+  static const double _participationHackzLogoHeight = 92;
+  static const double _participationHackzSlotWidth = 176;
   static const double _participationLeftBandWidth = 210;
 
   /// Top band: Hackz logo, centered title or achievement overlay, college branding.

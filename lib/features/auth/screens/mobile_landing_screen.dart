@@ -41,9 +41,7 @@ class MobileLandingScreen extends StatelessWidget {
                 children: <Widget>[
                   const SizedBox(height: 8),
                   const Center(child: LandingBrandHeader()),
-                  const SizedBox(height: 20),
-                  const LandingTitleBlock(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   const LandingFeatureTile(
                     icon: AppIcons.teams,
                     title: 'Team Collaboration',

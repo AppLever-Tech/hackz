@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:hackz/core/branding/hackz_brand_assets.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 
@@ -13,24 +14,14 @@ abstract final class CertificatePdfAssets {
   static final Map<String, pw.MemoryImage> _imageCache = <String, pw.MemoryImage>{};
   static final Map<String, pw.Font> _fontCache = <String, pw.Font>{};
 
-  static const String certificateHackzLogoPath = 'assets/certificate/common/hackz_certificate_logo.png';
-
-  /// Certificate PDFs prefer [certificateHackzLogoPath], then the app logo.
+  /// Primary Hackz brand mark for all certificate types.
   static Future<pw.MemoryImage?> loadHackzLogo() async {
     if (_hackzLogoCache != null) return _hackzLogoCache;
-    final pw.MemoryImage? certificateLogo = await tryImage(certificateHackzLogoPath);
-    if (certificateLogo != null) {
-      _hackzLogoCache = certificateLogo;
-      return certificateLogo;
+    final pw.MemoryImage? logo = await tryImage(HackzBrandAssets.primaryLogo);
+    if (logo != null) {
+      _hackzLogoCache = logo;
     }
-    try {
-      final ByteData data = await rootBundle.load('assets/images/hackz_logo.png');
-      final pw.MemoryImage image = pw.MemoryImage(data.buffer.asUint8List());
-      _hackzLogoCache = image;
-      return image;
-    } catch (_) {
-      return null;
-    }
+    return logo;
   }
 
   static Future<pw.MemoryImage> requireImage(String assetPath) async {

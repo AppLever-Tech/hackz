@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/branding/hackz_brand_logo.dart';
 import '../../../core/theme/app_icons.dart';
 import '../../../features/user/models/user_model.dart';
 import '../../../core/workspace/user_workspace_avatar.dart';
@@ -104,11 +105,10 @@ class DashboardNavigationPanel extends StatelessWidget {
   }
 
   Widget _buildBrandRow() {
-    final Widget logo = Image.asset(
-      'assets/images/hackz_logo.png',
+    final Widget logo = HackzBrandLogo(
+      variant: HackzBrandLogoVariant.symbol,
       width: compact ? 30 : 34,
       height: compact ? 30 : 34,
-      fit: BoxFit.contain,
     );
 
     final Widget? toggleButton = onToggleCollapse == null

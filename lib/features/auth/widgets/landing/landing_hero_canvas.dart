@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/branding/hackz_brand_logo.dart';
 import '../../../../core/responsive/responsive_helper.dart';
 import '../../../../core/theme/auth_theme.dart';
 import '../auth_action_button.dart';
@@ -52,10 +53,9 @@ class _BrandColumn extends StatelessWidget {
       children: <Widget>[
         Align(
           alignment: Alignment.centerLeft,
-          child: Image.asset(
-            'assets/images/hackz_logo.png',
+          child: HackzBrandLogo(
+            variant: HackzBrandLogoVariant.primary,
             height: logoHeight,
-            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(height: 14),
