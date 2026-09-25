@@ -409,6 +409,21 @@ class FirestoreUtils {
     return docRef.id;
   }
 
+  static Future<void> deleteOrganizationFields(
+    String orgId,
+    List<String> fieldNames, {
+    FirebaseFirestore? database,
+  }) async {
+    final String id = orgId.trim();
+    if (id.isEmpty || fieldNames.isEmpty) return;
+    final Map<String, dynamic> patch = <String, dynamic>{
+      for (final String name in fieldNames)
+        if (name.trim().isNotEmpty) name.trim(): FieldValue.delete(),
+    };
+    if (patch.isEmpty) return;
+    await _store(database).collection(hkzOrganizations).doc(id).update(patch);
+  }
+
   static Future<void> deleteOrganization(
     String orgId, {
     FirebaseFirestore? database,

@@ -9,6 +9,7 @@ import '../../../core/ui/common/mobile_accordion_section.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/hackz_select_field.dart';
 import '../../exports/certificate/certificate_event_signatory_store.dart';
+import '../../exports/certificate/certificate_image_processing.dart';
 import '../../exports/certificate/certificate_signatory_people_loader.dart';
 import '../../user/models/enums/user_role.dart';
 import '../../user/models/user_model.dart';
@@ -321,6 +322,7 @@ class _SignatorySlotEditorState extends State<_SignatorySlotEditor> {
     if (result == null || result.files.isEmpty) return;
     final Uint8List? data = result.files.first.bytes;
     if (data == null || data.isEmpty) return;
-    widget.onChanged(widget.slot.copyWith(signatureBase64: base64Encode(data)));
+    final Uint8List processed = CertificateImageProcessing.prepareCertificateEmbed(data);
+    widget.onChanged(widget.slot.copyWith(signatureBase64: base64Encode(processed)));
   }
 }

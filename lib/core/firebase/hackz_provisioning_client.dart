@@ -282,6 +282,27 @@ abstract final class HackzProvisioningClient {
     );
   }
 
+  /// One-time (idempotent) CORS on the tenant Storage bucket so Hackz web can read logos/files.
+  static Future<void> configureTenantStorageCors({
+    required String tenantProjectId,
+  }) async {
+    final Map<String, dynamic> body = await _postJson(
+      path: '/configure-tenant-storage-cors',
+      payload: <String, String>{
+        'tenantProjectId': tenantProjectId,
+      },
+      missingTokenMessage: 'Sign in as SysAdmin to configure tenant Storage CORS.',
+    );
+    if (body['ok'] == true) return;
+    throw HackzProvisioningException(
+      (body['code'] as String? ?? 'WRITE_FAILED').trim(),
+      _actionableMessage(
+        code: (body['code'] as String? ?? '').trim(),
+        fallback: (body['message'] as String? ?? 'Unable to configure tenant Storage CORS.').trim(),
+      ),
+    );
+  }
+
   /// Kept for existing callers. Event commercial payment is Control Plane authoritative.
   static Future<void> syncEventPaymentReadiness({
     required String organisationId,

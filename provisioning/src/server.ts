@@ -9,6 +9,7 @@ import { recordEventEntitlementPayment } from './record-event-entitlement-paymen
 import { registerEventEntitlement } from './register-event-entitlement.js';
 import { setEventEntitlementStatus } from './set-event-entitlement-status.js';
 import { syncEventPaymentReadiness } from './sync-event-payment-readiness.js';
+import { configureTenantStorageCors } from './tenant-storage-cors.js';
 
 function listenPort(): number {
   for (const raw of [process.env.PORT, process.env.HACKZ_PROVISIONING_PORT]) {
@@ -197,6 +198,19 @@ const server = createServer((req, res) => {
           idToken: bearerToken(req),
           organisationId: String(body.organisationId ?? ''),
           eventId: String(body.eventId ?? ''),
+        });
+        send(res, 200, result);
+        return;
+      }
+      if (url.pathname === '/configure-tenant-storage-cors') {
+        await assertControlPlaneSysAdmin(
+          bearerToken(req),
+          'Sign in as SysAdmin to configure tenant Storage CORS.',
+          'Only a Control Plane SysAdmin can configure tenant Storage CORS.',
+        );
+        const body = await readJson(req);
+        const result = await configureTenantStorageCors({
+          tenantProjectId: String(body.tenantProjectId ?? ''),
         });
         send(res, 200, result);
         return;

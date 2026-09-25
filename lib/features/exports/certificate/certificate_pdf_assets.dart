@@ -7,6 +7,8 @@ import 'package:hackz/core/branding/hackz_brand_image_key.dart';
 import 'package:image/image.dart' as img;
 import 'package:pdf/widgets.dart' as pw;
 
+import 'certificate_image_processing.dart';
+
 /// Shared certificate asset loading (Hackz logo + certificate graphics).
 abstract final class CertificatePdfAssets {
   CertificatePdfAssets._();
@@ -113,11 +115,11 @@ abstract final class CertificatePdfAssets {
     return pw.MemoryImage(Uint8List.fromList(bytes));
   }
 
-  /// Uploaded signatures: key near-black and near-white scan backgrounds (same as brand assets).
-  static pw.MemoryImage? memoryImageForSignature(Uint8List? bytes) {
+  /// Logos and signatures: key upload/scan paper before PDF embed.
+  static pw.MemoryImage? memoryImageForCertificateEmbed(Uint8List? bytes) {
     if (bytes == null || bytes.isEmpty) return null;
     try {
-      final Uint8List png = HackzBrandImageKey.pngWithTransparentBackground(bytes);
+      final Uint8List png = CertificateImageProcessing.prepareCertificateEmbed(bytes);
       return pw.MemoryImage(png);
     } catch (_) {
       return pw.MemoryImage(bytes);

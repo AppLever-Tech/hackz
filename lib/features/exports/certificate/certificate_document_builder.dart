@@ -22,8 +22,10 @@ abstract final class CertificateDocumentBuilder {
   }) async {
     final pw.MemoryImage? hackzLogo = await CertificatePdfAssets.loadHackzLogo();
     final CertificateRenderContext renderContext = await CertificateRenderContext.load();
-    final pw.ImageProvider? organisationLogo =
-        await CertificateOrganisationLogoLoader.loadForOrg(request.actor.orgId);
+    final pw.ImageProvider? organisationLogo = await CertificateOrganisationLogoLoader.loadForOrg(
+      request.actor.orgId,
+      fallbackOrgId: request.actor.orgId,
+    );
     final pw.Document document = pw.Document(
       title: context.documentTitle,
       author: 'Hackz',

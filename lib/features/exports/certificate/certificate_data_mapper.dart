@@ -71,7 +71,7 @@ abstract final class CertificateDataMapper {
     final List<int>? raw = row['signatory${index}SignatureBytes'] as List<int>?;
     final pw.MemoryImage? image = raw == null || raw.isEmpty
         ? null
-        : CertificatePdfAssets.memoryImageForSignature(Uint8List.fromList(raw));
+        : CertificatePdfAssets.memoryImageForCertificateEmbed(Uint8List.fromList(raw));
     return CertificateSignatory(name: name, designation: designation, signatureImage: image);
   }
 }

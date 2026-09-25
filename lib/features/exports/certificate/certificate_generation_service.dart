@@ -5,6 +5,8 @@ import 'certificate_event_context.dart';
 import 'certificate_generation_plan.dart';
 import 'certificate_selectable_entry.dart';
 import 'certificate_team_member_loader.dart';
+import 'package:pdf/widgets.dart' as pw;
+
 import 'certificate_type.dart';
 
 /// Expands UI selections into [CertificateData] rows for the Phase 1 renderer.
@@ -57,8 +59,12 @@ abstract final class CertificateGenerationService {
     Map<String, List<CertificateMember>> membersByTeam = const <String, List<CertificateMember>>{},
     Set<String> selectedIndividualKeys = const <String>{},
     List<CertificateSignatory> signatories = const <CertificateSignatory>[],
+    String organisationIdFallback = '',
   }) async {
-    final orgLogo = await CertificateOrganisationLogoLoader.loadForOrg(event.organisationId);
+    final pw.ImageProvider? orgLogo = await _resolveOrganisationLogo(
+      eventOrgId: event.organisationId,
+      actorOrgId: organisationIdFallback,
+    );
     Map<String, List<CertificateMember>> members = membersByTeam;
     if (plan.recipientType == CertificateRecipientType.individual && members.isEmpty) {
       members = await CertificateTeamMemberLoader.membersByTeamId(
@@ -136,6 +142,16 @@ abstract final class CertificateGenerationService {
       }
     }
     return out;
+  }
+
+  static Future<pw.ImageProvider?> _resolveOrganisationLogo({
+    required String eventOrgId,
+    required String actorOrgId,
+  }) {
+    return CertificateOrganisationLogoLoader.loadForOrg(
+      eventOrgId,
+      fallbackOrgId: actorOrgId,
+    );
   }
 
   static String _memberDisplayName(

@@ -5,7 +5,7 @@ import 'package:hackz/features/exports/certificate/certificate_pdf_assets.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
-  test('memoryImageForSignature keys near-white background pixels', () {
+  test('memoryImageForCertificateEmbed keys near-white background pixels', () {
     final img.Image source = img.Image(width: 4, height: 4, numChannels: 3);
     for (int y = 0; y < 4; y++) {
       for (int x = 0; x < 4; x++) {
@@ -15,7 +15,7 @@ void main() {
     source.setPixelRgb(2, 2, 10, 10, 10);
 
     final Uint8List jpeg = Uint8List.fromList(img.encodeJpg(source));
-    final image = CertificatePdfAssets.memoryImageForSignature(jpeg);
+    final image = CertificatePdfAssets.memoryImageForCertificateEmbed(jpeg);
     expect(image, isNotNull);
   });
 }

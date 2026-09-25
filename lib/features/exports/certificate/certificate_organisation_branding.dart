@@ -29,8 +29,8 @@ class CertificateOrganisationBrandingLayout {
       CertificateOrganisationBrandingLayout._(
     maxWidth: 200,
     alignment: pw.Alignment.centerRight,
-    logoMaxHeight: 44,
-    logoMaxWidth: 54,
+    logoMaxHeight: 52,
+    logoMaxWidth: 72,
     nameWithLogoBaseSize: 12.5,
     nameOnlyBaseSize: 16.5,
     nameWithLogoMinSize: 9.5,
@@ -54,7 +54,7 @@ class CertificateOrganisationBrandingLayout {
 abstract final class CertificateOrganisationBranding {
   CertificateOrganisationBranding._();
 
-  static const double _logoNameGap = 8;
+  static const double _logoNameGap = 6;
   static const int _maxNameLines = 3;
 
   static pw.Widget build({
@@ -104,7 +104,7 @@ abstract final class CertificateOrganisationBranding {
     required CertificateOrganisationBrandingLayout layout,
   }) {
     final double nameSize = fontSizeForName(name, layout, withLogo: true);
-    return pw.Row(
+    return pw.Column(
       mainAxisSize: pw.MainAxisSize.min,
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: <pw.Widget>[
@@ -114,13 +114,13 @@ abstract final class CertificateOrganisationBranding {
           child: pw.Image(logo, fit: pw.BoxFit.contain),
         ),
         if (name.isNotEmpty) ...<pw.Widget>[
-          pw.SizedBox(width: _logoNameGap),
+          pw.SizedBox(height: _logoNameGap),
           pw.ConstrainedBox(
-            constraints: pw.BoxConstraints(maxWidth: layout.maxWidth - layout.logoMaxWidth - _logoNameGap),
+            constraints: pw.BoxConstraints(maxWidth: layout.maxWidth),
             child: pw.Text(
               name,
               style: CertificateTheme.collegeName(fonts, size: nameSize),
-              textAlign: pw.TextAlign.left,
+              textAlign: pw.TextAlign.center,
               maxLines: _maxNameLines,
               softWrap: true,
             ),

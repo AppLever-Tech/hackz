@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../features/exports/certificate/certificate_organisation_logo_loader.dart';
+
 import '../../../../core/firebase/hackz_firebase.dart';
 import '../../../../core/firebase/tenant_registry.dart';
 import '../../../sysadmin/onboarding/services/organisation_onboarding_service.dart';
@@ -176,8 +178,23 @@ class _CreateOrganizationDialogFormState extends State<CreateOrganizationDialogF
         org = org.copyWith(id: orgId);
         if (_iconFile != null) {
           final uploaded = await OrgPhotoService.uploadLogo(orgId: orgId, file: _iconFile!);
-          org = org.copyWith(photoUrl: uploaded.photoUrl, thumbnailUrl: uploaded.thumbnailUrl);
+          org = org.copyWith(
+            photoUrl: uploaded.photoUrl,
+            thumbnailUrl: uploaded.thumbnailUrl,
+            clearPhoto: false,
+          );
           await FirestoreUtils.upsertOrganization(org);
+          await FirestoreUtils.deleteOrganizationFields(
+            orgId,
+            const <String>['certificateLogoPngBase64'],
+          );
+          CertificateOrganisationLogoLoader.evictCacheForOrg(orgId);
+        } else if (_showIconUpload && _iconCleared) {
+          await FirestoreUtils.deleteOrganizationFields(
+            orgId,
+            const <String>['certificateLogoPngBase64'],
+          );
+          CertificateOrganisationLogoLoader.evictCacheForOrg(orgId);
         }
       }
 

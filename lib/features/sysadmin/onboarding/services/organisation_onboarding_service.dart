@@ -133,6 +133,9 @@ abstract final class OrganisationOnboardingService {
       tenantId: tenantId,
       firebaseProjectId: firebaseProjectId,
     );
+    if (tenant.firebaseValidated) {
+      await _configureTenantStorageCorsBestEffort(tenant);
+    }
     await _mirrorOrganisationForTenant(tenant);
     return tenant;
   }
@@ -151,7 +154,9 @@ abstract final class OrganisationOnboardingService {
     if (!TenantWorkspaceValidator.allPassed(checks)) {
       throw const OrganisationOnboardingException('Resolve the failed checks before continuing.');
     }
-    return TenantRegistry.markFirebaseValidated(tenantId);
+    final TenantRecord tenant = await TenantRegistry.markFirebaseValidated(tenantId);
+    await _configureTenantStorageCorsBestEffort(tenant);
+    return tenant;
   }
 
   static Future<TenantRecord> markAuthorizationPending(String tenantId) {
@@ -323,8 +328,22 @@ abstract final class OrganisationOnboardingService {
       );
     }
     final TenantRecord tenant = await TenantRegistry.activate(tenantId);
+    await _configureTenantStorageCorsBestEffort(tenant);
     await _mirrorOrganisationForTenant(tenant);
     return tenant;
+  }
+
+  /// Idempotent. Failure is surfaced only when SysAdmin is signed in and invoke URL is reachable.
+  static Future<void> _configureTenantStorageCorsBestEffort(TenantRecord tenant) async {
+    final String projectId = tenant.firebaseProjectId.trim();
+    if (projectId.isEmpty) return;
+    try {
+      await HackzProvisioningClient.configureTenantStorageCors(tenantProjectId: projectId);
+    } on HackzProvisioningException catch (e) {
+      throw OrganisationOnboardingException(
+        'Workspace validation succeeded but tenant Storage CORS could not be updated: ${e.message}',
+      );
+    }
   }
 
   static String get defaultWorkspaceId => ApprovedTenantFirebase.controlPlaneProjectId;

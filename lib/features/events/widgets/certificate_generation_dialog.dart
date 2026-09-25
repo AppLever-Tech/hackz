@@ -202,6 +202,7 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
         membersByTeam: _membersByTeam,
         selectedIndividualKeys: _recipientType == CertificateRecipientType.individual ? _selectedIndividualKeys : const <String>{},
         signatories: _resolvedSignatories,
+        organisationIdFallback: widget.actor.orgId,
       );
       final CertificateGenerationResult result = await CertificateBatchGenerator.generate(
         certificates: rows,

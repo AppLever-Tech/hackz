@@ -51,7 +51,7 @@ abstract final class CertificateEventSignatoryConfig {
       return CertificateSignatory(
         name: slot.name.trim(),
         designation: slot.designation.trim(),
-        signatureImage: CertificatePdfAssets.memoryImageForSignature(slot.signatureBytes),
+        signatureImage: CertificatePdfAssets.memoryImage(slot.signatureBytes),
       );
     });
   }
