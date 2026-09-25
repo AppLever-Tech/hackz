@@ -68,7 +68,27 @@ void main() {
             eventDateLabel: dates,
             submissionTitle: 'Energy Monitor',
             submissionLabel: 'Idea',
-            achievementLabel: 'Second Place',
+            achievementLabel: '2nd Place',
+          ),
+        ],
+      );
+      expect(bytes.isNotEmpty, true);
+    });
+
+    test('Ideathon 3rd Place (team)', () async {
+      final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
+        <CertificateData>[
+          CertificateData(
+            certificateType: CertificateType.thirdPlace,
+            recipientType: CertificateRecipientType.team,
+            recipientName: 'Team Gamma',
+            organisationName: org,
+            eventName: event,
+            eventTemplateLabel: 'Ideathon',
+            eventDateLabel: dates,
+            submissionTitle: 'Smart Campus',
+            submissionLabel: 'Idea',
+            achievementLabel: '3rd Place',
           ),
         ],
       );

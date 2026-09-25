@@ -8,6 +8,7 @@ import '../../../core/workspace/workspace_navigator.dart';
 import '../../../core/workspace/workspace_theme.dart';
 import '../../../utils/common_helpers.dart';
 import '../../evaluations/workspace/evaluation_template_workspace.dart';
+import '../../events/models/event_place_config.dart';
 import '../../events/models/event_winner_entry.dart';
 import '../../events/widgets/event_labeled_field.dart';
 import '../../events/widgets/workspace_collapsible_section.dart';
@@ -32,9 +33,6 @@ class IdeathonWorkspaceBody extends StatelessWidget {
   final VoidCallback? onOpenPayments;
 
   static const double _labelWidth = 78;
-  static const Color _winnerAccent = Color(0xFFC9A227);
-  static const Color _runnerAccent = Color(0xFF8B9BB4);
-
   @override
   Widget build(BuildContext context) {
     final IdeathonModel event = vm.ideathon;
@@ -103,21 +101,16 @@ class IdeathonWorkspaceBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              _resultPlace(
-                context,
-                placeLabel: 'Winner',
-                icon: Icons.emoji_events_rounded,
-                accent: _winnerAccent,
-                entry: vm.winner,
-              ),
-              const SizedBox(height: 10),
-              _resultPlace(
-                context,
-                placeLabel: 'Runner-up',
-                icon: Icons.military_tech_rounded,
-                accent: _runnerAccent,
-                entry: vm.runnerUp,
-              ),
+              for (final EventPlaceRank place in EventPlacePresentation.podium) ...<Widget>[
+                _resultPlace(
+                  context,
+                  placeLabel: EventPlacePresentation.cardTitle(place),
+                  icon: EventPlacePresentation.medalIcon(place),
+                  accent: EventPlacePresentation.medalAccent(place),
+                  entry: _entryForPlace(place),
+                ),
+                if (place != EventPlaceRank.third) const SizedBox(height: 10),
+              ],
             ],
           ),
         ),
@@ -265,6 +258,12 @@ class IdeathonWorkspaceBody extends StatelessWidget {
       }).toList(growable: false),
     );
   }
+
+  EventWinnerEntry? _entryForPlace(EventPlaceRank place) => switch (place) {
+        EventPlaceRank.first => vm.winner,
+        EventPlaceRank.second => vm.runnerUp,
+        EventPlaceRank.third => vm.thirdPlace,
+      };
 
   Widget _resultPlace(
     BuildContext context, {

@@ -73,7 +73,7 @@ class _IdeathonReportsTabState extends State<IdeathonReportsTab> {
           padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
           children: <Widget>[
             const Text(
-              'Configure signatories once, then generate or download participation, winner, and runner-up certificates.',
+              'Configure signatories once, then generate or download participation and 1st, 2nd, and 3rd Place certificates.',
               style: TextStyle(
                 fontSize: 12,
                 height: 1.45,

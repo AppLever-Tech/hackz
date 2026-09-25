@@ -15,6 +15,7 @@ import '../../exports/certificate/certificate_generation_service.dart';
 import '../../exports/certificate/certificate_recipient_groups.dart';
 import '../../exports/certificate/certificate_selectable_entry.dart';
 import '../../exports/certificate/certificate_team_member_loader.dart';
+import '../models/event_place_config.dart';
 import '../../exports/certificate/certificate_type.dart';
 import '../../exports/services/export_tenant_guard.dart';
 import '../../user/models/user_model.dart';
@@ -84,6 +85,8 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
           event.winnerEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.winnerEntry!],
         CertificateType.runnerUp =>
           event.runnerUpEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.runnerUpEntry!],
+        CertificateType.thirdPlace =>
+          event.thirdPlaceEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.thirdPlaceEntry!],
       };
 
   List<CertificateTeamSubmissionGroup> get _groups => CertificateRecipientGroups.groupByTeam(_pool);
@@ -253,11 +256,7 @@ class _CertificateGenerationDialogShellState extends State<_CertificateGeneratio
       !_loadingMembers &&
       _successMessage == null;
 
-  String get _title => switch (certificateType) {
-        CertificateType.participation => 'Generate Participation Certificates',
-        CertificateType.winner => 'Generate Winner Certificates',
-        CertificateType.runnerUp => 'Generate Runner-Up Certificates',
-      };
+  String get _title => EventPlacePresentation.certificateGenerateTitle(certificateType);
 
   String get _generateLabel {
     final int n = _plan.estimatedCertificates;

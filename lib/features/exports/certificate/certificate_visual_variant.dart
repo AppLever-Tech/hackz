@@ -36,5 +36,11 @@ class CertificateVisualVariant {
               bodyLeadLine: 'for commendable innovation and excellent performance in',
               bodyRecognitionLine: 'Well done on turning ideas into impact',
             ),
+        CertificateType.thirdPlace => const CertificateVisualVariant(
+              type: CertificateType.thirdPlace,
+              accent: PdfColor.fromInt(0xFFCD7F32),
+              bodyLeadLine: 'for strong innovation and excellent performance in',
+              bodyRecognitionLine: 'Well done on turning ideas into impact',
+            ),
       };
 }

@@ -7,6 +7,7 @@ import 'package:hackz/features/events/models/event_lifecycle.dart';
 import 'package:hackz/features/events/models/event_lifecycle_stage.dart';
 import 'package:hackz/features/events/widgets/event_detail_section.dart';
 import 'package:hackz/features/events/widgets/event_lifecycle_strip.dart';
+import 'package:hackz/features/ideathons/models/ideathon_model.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/ideathons/services/ideathon_status_helpers.dart';
 import 'package:hackz/utils/common_helpers.dart';
@@ -81,9 +82,9 @@ class _IdeathonEventLifecycleSectionState extends State<IdeathonEventLifecycleSe
         ),
       if (kind.usesWinners && progress.winnersSelected)
         EventLifecycleMoment(
-          title: 'Winners selected',
-          subtitle: 'Department Admin selected the official winner'
-              '${event.runnerUpIdeaId.trim().isEmpty ? '' : ' and runner-up'}',
+          title: 'Places selected',
+          subtitle: 'Department Admin selected official places'
+              '${_optionalPlacesSuffix(event)}',
           at: event.updatedAt,
           icon: AppIcons.leaderboard,
           color: const Color(0xFFB45309),
@@ -165,4 +166,12 @@ class _IdeathonEventLifecycleSectionState extends State<IdeathonEventLifecycleSe
       ),
     );
   }
+}
+
+String _optionalPlacesSuffix(IdeathonModel event) {
+  final List<String> extras = <String>[];
+  if (event.runnerUpIdeaId.trim().isNotEmpty) extras.add('2nd Place');
+  if (event.thirdPlaceIdeaId.trim().isNotEmpty) extras.add('3rd Place');
+  if (extras.isEmpty) return '';
+  return ' (${extras.join(', ')})';
 }

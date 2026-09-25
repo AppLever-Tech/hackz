@@ -183,7 +183,8 @@ abstract final class CertificateBatchGenerator {
     final String token = switch (plan.certificateType) {
       CertificateType.participation => 'ParticipationCertificate',
       CertificateType.winner => 'WinnerCertificate',
-      CertificateType.runnerUp => 'RunnerUpCertificate',
+      CertificateType.runnerUp => 'SecondPlaceCertificate',
+      CertificateType.thirdPlace => 'ThirdPlaceCertificate',
     };
     final List<String> parts = <String>['Hackz', ExportFileNamer.sanitize(eventName), token];
     if (singleRecipient.trim().isNotEmpty) {
@@ -200,7 +201,8 @@ abstract final class CertificateBatchGenerator {
     final String token = switch (plan.certificateType) {
       CertificateType.participation => 'ParticipationCertificates',
       CertificateType.winner => 'WinnerCertificates',
-      CertificateType.runnerUp => 'RunnerUpCertificates',
+      CertificateType.runnerUp => 'SecondPlaceCertificates',
+      CertificateType.thirdPlace => 'ThirdPlaceCertificates',
     };
     final List<String> parts = <String>['Hackz', ExportFileNamer.sanitize(eventName), token, _dateStamp(DateTime.now())];
     return '${parts.join('_')}.zip';

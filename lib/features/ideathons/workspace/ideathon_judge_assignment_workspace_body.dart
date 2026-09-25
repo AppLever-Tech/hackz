@@ -94,17 +94,17 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
     final Set<String> selected = row.assignedJudgeIds.toSet();
     final bool? saved = await showIdeathonAssignJudgesDialog(
       context: context,
-      row: row,
+          row: row,
       evaluators: _assignments.evaluators,
-      initiallySelected: selected,
-      onSave: (Set<String> judgeIds) async {
-        final Set<String> toAdd = judgeIds.difference(selected);
-        if (toAdd.isEmpty) return;
-        await IdeathonJudgeAssignmentService.assignJudgesToIdea(
-          actor: widget.actor!,
+          initiallySelected: selected,
+          onSave: (Set<String> judgeIds) async {
+            final Set<String> toAdd = judgeIds.difference(selected);
+            if (toAdd.isEmpty) return;
+            await IdeathonJudgeAssignmentService.assignJudgesToIdea(
+              actor: widget.actor!,
           ideathonId: _assignments.ideathon.ideathonId,
-          ideaId: row.ideaId,
-          judgeIds: toAdd,
+              ideaId: row.ideaId,
+              judgeIds: toAdd,
         );
       },
     );
@@ -236,20 +236,20 @@ class _IdeathonJudgeAssignmentWorkspaceBodyState
               : Column(
                   children: _assignments.rows
                       .map(
-                        (IdeathonJudgeAssignmentRow row) => Padding(
+            (IdeathonJudgeAssignmentRow row) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: _IdeaAssignmentCard(
-                            row: row,
+              child: _IdeaAssignmentCard(
+                row: row,
                             judgeById: _assignments.judgeById,
-                            canManage: _canManage,
-                            onAssign: () => _openAssignSheet(row),
-                            onRemove: _remove,
-                          ),
+                canManage: _canManage,
+                onAssign: () => _openAssignSheet(row),
+                onRemove: _remove,
+              ),
                         ),
                       )
                       .toList(growable: false),
-                ),
-        ),
+            ),
+          ),
       ],
     );
   }

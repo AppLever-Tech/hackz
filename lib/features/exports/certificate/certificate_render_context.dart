@@ -10,12 +10,16 @@ class CertificateRenderContext {
     this.participationBackground,
     this.winnerOverlay,
     this.runnerUpOverlay,
+    this.secondPlaceOverlay,
+    this.thirdPlaceOverlay,
   });
 
   final CertificateFonts fonts;
   final pw.MemoryImage? participationBackground;
   final pw.MemoryImage? winnerOverlay;
   final pw.MemoryImage? runnerUpOverlay;
+  final pw.MemoryImage? secondPlaceOverlay;
+  final pw.MemoryImage? thirdPlaceOverlay;
 
   static CertificateRenderContext? _cache;
 
@@ -32,6 +36,12 @@ class CertificateRenderContext {
           await CertificatePdfAssets.tryOverlayImage('assets/certificate/overlays/winner_overlay.png'),
       runnerUpOverlay:
           await CertificatePdfAssets.tryOverlayImage('assets/certificate/overlays/runner_up_overlay.png'),
+      secondPlaceOverlay: await CertificatePdfAssets.tryOverlayImage(
+            'assets/certificate/overlays/second_place_overlay.png',
+          ) ??
+          await CertificatePdfAssets.tryOverlayImage('assets/certificate/overlays/runner_up_overlay.png'),
+      thirdPlaceOverlay:
+          await CertificatePdfAssets.tryOverlayImage('assets/certificate/overlays/third_place_overlay.png'),
     );
     _cache = ctx;
     return ctx;

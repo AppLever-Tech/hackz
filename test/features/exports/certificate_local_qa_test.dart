@@ -176,7 +176,8 @@ void main() {
       for (final (String file, CertificateType type) in <(String, CertificateType)>[
         ('participation_full_branding.pdf', CertificateType.participation),
         ('winner_full_branding.pdf', CertificateType.winner),
-        ('runner_up_full_branding.pdf', CertificateType.runnerUp),
+        ('second_place_full_branding.pdf', CertificateType.runnerUp),
+        ('third_place_full_branding.pdf', CertificateType.thirdPlace),
       ]) {
         final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
           <CertificateData>[
@@ -192,8 +193,9 @@ void main() {
               submissionTitle: submission,
               submissionLabel: 'Idea',
               achievementLabel: switch (type) {
-                CertificateType.winner => 'First Place',
-                CertificateType.runnerUp => 'Second Place',
+                CertificateType.winner => '1st Place',
+                CertificateType.runnerUp => '2nd Place',
+                CertificateType.thirdPlace => '3rd Place',
                 CertificateType.participation => '',
               },
               signatories: signatories,

@@ -9,6 +9,7 @@ import '../../evaluations/models/score_model.dart';
 import '../../evaluations/services/evaluation_results_query_service.dart';
 import '../../evaluations/services/evaluation_templates_service.dart';
 import '../../events/models/event_lifecycle.dart';
+import '../../events/models/event_place_config.dart';
 import '../../events/models/event_winner_entry.dart';
 import '../../organization/models/department_model.dart';
 import '../../organization/models/enums/organization_commercial_plan.dart';
@@ -41,6 +42,7 @@ class IdeathonWorkspaceViewModel {
     this.evaluationTemplateName = '',
     this.winner,
     this.runnerUp,
+    this.thirdPlace,
     this.commercialPlan = OrganizationCommercialPlan.perIdea,
   });
 
@@ -58,6 +60,7 @@ class IdeathonWorkspaceViewModel {
   final String evaluationTemplateName;
   final EventWinnerEntry? winner;
   final EventWinnerEntry? runnerUp;
+  final EventWinnerEntry? thirdPlace;
   final OrganizationCommercialPlan commercialPlan;
 
   bool get requiresIdeaPayment => CommercialAccess.requiresIdeaPayment(commercialPlan);
@@ -99,6 +102,7 @@ class IdeathonWorkspaceViewModel {
     String? evaluationTemplateName,
     EventWinnerEntry? winner,
     EventWinnerEntry? runnerUp,
+    EventWinnerEntry? thirdPlace,
     OrganizationCommercialPlan? commercialPlan,
   }) {
     return IdeathonWorkspaceViewModel(
@@ -116,6 +120,7 @@ class IdeathonWorkspaceViewModel {
       evaluationTemplateName: evaluationTemplateName ?? this.evaluationTemplateName,
       winner: winner ?? this.winner,
       runnerUp: runnerUp ?? this.runnerUp,
+      thirdPlace: thirdPlace ?? this.thirdPlace,
       commercialPlan: commercialPlan ?? this.commercialPlan,
     );
   }
@@ -217,21 +222,31 @@ abstract final class IdeathonWorkspaceLoader {
     };
     EventWinnerEntry? winner;
     EventWinnerEntry? runnerUp;
+    EventWinnerEntry? thirdPlace;
     final String selectedWinner = ideathon.winnerIdeaId.trim();
     final String selectedRunner = ideathon.runnerUpIdeaId.trim();
-    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty) {
+    final String selectedThird = ideathon.thirdPlaceIdeaId.trim();
+    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty || selectedThird.isNotEmpty) {
       winner = _winnerEntry(
         ideaId: selectedWinner,
-        rank: 1,
-        placeLabel: 'Winner',
+        rank: EventPlaceRank.first.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.first),
         results: results,
         snapshots: ideathon.ideas,
         teamByIdea: teamByIdea,
       );
       runnerUp = _winnerEntry(
         ideaId: selectedRunner,
-        rank: 2,
-        placeLabel: 'Runner-up',
+        rank: EventPlaceRank.second.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.second),
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
+      );
+      thirdPlace = _winnerEntry(
+        ideaId: selectedThird,
+        rank: EventPlaceRank.third.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.third),
         results: results,
         snapshots: ideathon.ideas,
         teamByIdea: teamByIdea,
@@ -253,6 +268,7 @@ abstract final class IdeathonWorkspaceLoader {
       evaluationTemplateName: templateName,
       winner: winner,
       runnerUp: runnerUp,
+      thirdPlace: thirdPlace,
       commercialPlan: commercialPlan,
     );
   }
@@ -348,21 +364,31 @@ abstract final class IdeathonWorkspaceLoader {
     final EvaluationResultsQueryResult results = cached.results;
     EventWinnerEntry? winner;
     EventWinnerEntry? runnerUp;
+    EventWinnerEntry? thirdPlace;
     final String selectedWinner = ideathon.winnerIdeaId.trim();
     final String selectedRunner = ideathon.runnerUpIdeaId.trim();
-    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty) {
+    final String selectedThird = ideathon.thirdPlaceIdeaId.trim();
+    if (selectedWinner.isNotEmpty || selectedRunner.isNotEmpty || selectedThird.isNotEmpty) {
       winner = _winnerEntry(
         ideaId: selectedWinner,
-        rank: 1,
-        placeLabel: 'Winner',
+        rank: EventPlaceRank.first.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.first),
         results: results,
         snapshots: ideathon.ideas,
         teamByIdea: teamByIdea,
       );
       runnerUp = _winnerEntry(
         ideaId: selectedRunner,
-        rank: 2,
-        placeLabel: 'Runner-up',
+        rank: EventPlaceRank.second.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.second),
+        results: results,
+        snapshots: ideathon.ideas,
+        teamByIdea: teamByIdea,
+      );
+      thirdPlace = _winnerEntry(
+        ideaId: selectedThird,
+        rank: EventPlaceRank.third.rank,
+        placeLabel: EventPlacePresentation.cardTitle(EventPlaceRank.third),
         results: results,
         snapshots: ideathon.ideas,
         teamByIdea: teamByIdea,
@@ -377,6 +403,7 @@ abstract final class IdeathonWorkspaceLoader {
       commercialPlan: commercialPlan,
       winner: winner,
       runnerUp: runnerUp,
+      thirdPlace: thirdPlace,
     );
   }
 

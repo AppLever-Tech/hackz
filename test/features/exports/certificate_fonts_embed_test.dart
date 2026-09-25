@@ -28,10 +28,12 @@ void main() {
           submissionTitle: idea,
           submissionLabel: 'Idea',
           achievementLabel: type == CertificateType.winner
-              ? 'First Place'
+              ? '1st Place'
               : type == CertificateType.runnerUp
-                  ? 'Second Place'
-                  : '',
+                  ? '2nd Place'
+                  : type == CertificateType.thirdPlace
+                      ? '3rd Place'
+                      : '',
         ),
       ],
     );
@@ -45,7 +47,8 @@ void main() {
     final List<(String, CertificateType)> samples = <(String, CertificateType)>[
       ('participation', CertificateType.participation),
       ('winner', CertificateType.winner),
-      ('runner_up', CertificateType.runnerUp),
+      ('second_place', CertificateType.runnerUp),
+      ('third_place', CertificateType.thirdPlace),
     ];
 
     for (final (String name, CertificateType type) in samples) {

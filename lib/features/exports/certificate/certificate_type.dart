@@ -3,6 +3,7 @@ enum CertificateType {
   participation,
   winner,
   runnerUp,
+  thirdPlace,
 }
 
 enum CertificateRecipientType {
@@ -15,6 +16,7 @@ extension CertificateTypeCodec on CertificateType {
         CertificateType.participation => 'participation',
         CertificateType.winner => 'winner',
         CertificateType.runnerUp => 'runner_up',
+        CertificateType.thirdPlace => 'third_place',
       };
 
   static CertificateType? parse(String? raw) {
@@ -23,6 +25,7 @@ extension CertificateTypeCodec on CertificateType {
       'participation' => CertificateType.participation,
       'winner' => CertificateType.winner,
       'runner_up' || 'runner-up' || 'runnerup' => CertificateType.runnerUp,
+      'third_place' || 'third-place' || 'thirdplace' => CertificateType.thirdPlace,
       _ => null,
     };
   }

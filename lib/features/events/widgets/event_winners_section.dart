@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/responsive/responsive_columns.dart';
 import '../../../core/ui/common/context_pill.dart';
 import '../../../core/ui/common/context_pill_theme.dart';
 import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../models/event_place_config.dart';
 import '../models/event_winner_entry.dart';
 
-/// Ranked winners presentation reused by Ideathon and future Hackathon.
+/// Ranked places presentation reused by Ideathon and future Hackathon.
 class EventWinnersSection extends StatelessWidget {
   const EventWinnersSection({
     super.key,
     required this.entries,
     required this.onOpenIdea,
     required this.onOpenTeam,
-    this.emptyMessage = 'Official winners appear after Department Admin selects them.',
+    this.emptyMessage = 'Official places appear after Department Admin selects them.',
     this.onOpenProblem,
     this.shrinkWrap = false,
   });
@@ -25,9 +25,17 @@ class EventWinnersSection extends StatelessWidget {
   final String emptyMessage;
   final bool shrinkWrap;
 
+  EventWinnerEntry? _entryForRank(int rank) {
+    for (final EventWinnerEntry entry in entries) {
+      if (entry.rank == rank) return entry;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (entries.isEmpty) {
+    final bool anySelected = entries.any((EventWinnerEntry e) => e.ideaId.trim().isNotEmpty);
+    if (!anySelected) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -40,48 +48,64 @@ class EventWinnersSection extends StatelessWidget {
       );
     }
 
-    EventWinnerEntry? winner;
-    EventWinnerEntry? runnerUp;
-    for (final EventWinnerEntry entry in entries) {
-      if (entry.rank == 1) winner = entry;
-      if (entry.rank == 2) runnerUp = entry;
-    }
-    winner ??= entries.first;
-    if (entries.length > 1) runnerUp ??= entries[1];
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: <Widget>[
-        ResponsivePair(
-          spacing: 12,
-          first: _WinnerCard(
-            entry: winner,
-            placeLabel: 'Winner',
-            icon: Icons.emoji_events_rounded,
-            accent: const Color(0xFFC9A227),
+        for (final EventPlaceRank place in EventPlacePresentation.podium) ...<Widget>[
+          _PlaceCard(
+            place: place,
+            entry: _entryForRank(place.rank),
             onOpenIdea: onOpenIdea,
             onOpenTeam: onOpenTeam,
             onOpenProblem: onOpenProblem,
           ),
-          second: runnerUp == null
-              ? const _EmptyPlaceCard(
-                  placeLabel: 'Runner-up',
-                  icon: Icons.military_tech_rounded,
-                  accent: Color(0xFF8B9BB4),
-                )
-              : _WinnerCard(
-                  entry: runnerUp,
-                  placeLabel: 'Runner-up',
-                  icon: Icons.military_tech_rounded,
-                  accent: const Color(0xFF8B9BB4),
-                  onOpenIdea: onOpenIdea,
-                  onOpenTeam: onOpenTeam,
-                  onOpenProblem: onOpenProblem,
-                ),
-        ),
+          if (place != EventPlaceRank.third) const SizedBox(height: 12),
+        ],
       ],
+    );
+  }
+}
+
+class _PlaceCard extends StatelessWidget {
+  const _PlaceCard({
+    required this.place,
+    required this.entry,
+    required this.onOpenIdea,
+    required this.onOpenTeam,
+    this.onOpenProblem,
+  });
+
+  final EventPlaceRank place;
+  final EventWinnerEntry? entry;
+  final ValueChanged<EventWinnerEntry> onOpenIdea;
+  final ValueChanged<EventWinnerEntry> onOpenTeam;
+  final ValueChanged<EventWinnerEntry>? onOpenProblem;
+
+  @override
+  Widget build(BuildContext context) {
+    final String placeLabel = EventPlacePresentation.cardTitle(place);
+    final IconData icon = EventPlacePresentation.medalIcon(place);
+    final Color accent = EventPlacePresentation.medalAccent(place);
+
+    if (entry == null || entry!.ideaId.trim().isEmpty) {
+      return _EmptyPlaceCard(
+        placeLabel: placeLabel,
+        icon: icon,
+        accent: accent,
+        message: EventPlacePresentation.emptyPlaceMessage(place),
+      );
+    }
+
+    return _WinnerCard(
+      entry: entry!,
+      placeLabel: placeLabel,
+      icon: icon,
+      accent: accent,
+      onOpenIdea: onOpenIdea,
+      onOpenTeam: onOpenTeam,
+      onOpenProblem: onOpenProblem,
     );
   }
 }
@@ -91,11 +115,13 @@ class _EmptyPlaceCard extends StatelessWidget {
     required this.placeLabel,
     required this.icon,
     required this.accent,
+    required this.message,
   });
 
   final String placeLabel;
   final IconData icon;
   final Color accent;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
@@ -110,16 +136,18 @@ class _EmptyPlaceCard extends StatelessWidget {
             children: <Widget>[
               Icon(icon, size: 22, color: accent),
               const SizedBox(width: 8),
-              Text(
-                placeLabel,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accent),
+              Expanded(
+                child: Text(
+                  placeLabel,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accent),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Not available yet.',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
           ),
         ],
       ),

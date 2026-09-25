@@ -227,6 +227,7 @@ abstract final class IdeathonService {
       problemId: input.problemId.trim(),
       winnerIdeaId: existing.winnerIdeaId,
       runnerUpIdeaId: existing.runnerUpIdeaId,
+      thirdPlaceIdeaId: existing.thirdPlaceIdeaId,
       resultsReviewedAt: existing.resultsReviewedAt,
       createdBy: existing.createdBy,
       createdAt: existing.createdAt,
@@ -579,6 +580,7 @@ abstract final class IdeathonService {
     required String ideathonId,
     required String winnerIdeaId,
     String runnerUpIdeaId = '',
+    String thirdPlaceIdeaId = '',
   }) async {
     final IdeathonModel event = await _requireEvent(ideathonId);
     _assertCanManageOutcome(actor, event);
@@ -588,23 +590,39 @@ abstract final class IdeathonService {
     }
     final String winner = winnerIdeaId.trim();
     final String runner = runnerUpIdeaId.trim();
-    if (winner.isEmpty) throw StateError('Select a winner.');
+    final String third = thirdPlaceIdeaId.trim();
+    if (winner.isEmpty) throw StateError('Select 1st Place.');
     final Set<String> ideaIds = event.ideas
         .map((IdeathonIdeaSnapshot s) => s.ideaId.trim())
         .where((String id) => id.isNotEmpty)
         .toSet();
     if (!ideaIds.contains(winner)) {
-      throw StateError('Winner must be an idea registered on this event.');
+      throw StateError('1st Place must be an idea registered on this event.');
     }
-    if (runner.isNotEmpty && !ideaIds.contains(runner)) {
-      throw StateError('Runner-up must be an idea registered on this event.');
+    for (final MapEntry<String, String> place in <MapEntry<String, String>>[
+      MapEntry<String, String>('2nd Place', runner),
+      MapEntry<String, String>('3rd Place', third),
+    ]) {
+      if (place.value.isEmpty) continue;
+      if (!ideaIds.contains(place.value)) {
+        throw StateError('${place.key} must be an idea registered on this event.');
+      }
     }
-    if (runner.isNotEmpty && runner == winner) {
-      throw StateError('Winner and runner-up must be different ideas.');
+    final Set<String> selected = <String>{winner};
+    if (runner.isNotEmpty) {
+      if (!selected.add(runner)) {
+        throw StateError('Each place must be a different idea.');
+      }
+    }
+    if (third.isNotEmpty) {
+      if (!selected.add(third)) {
+        throw StateError('Each place must be a different idea.');
+      }
     }
     await _db.collection(FirestoreUtils.hkzIdeathons).doc(event.ideathonId).update(<String, dynamic>{
       'winnerIdeaId': winner,
       'runnerUpIdeaId': runner,
+      'thirdPlaceIdeaId': third,
       if (event.resultsReviewedAt == null) 'resultsReviewedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });

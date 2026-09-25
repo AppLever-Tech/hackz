@@ -17,6 +17,7 @@ class CertificateEventContext {
     required this.participationEntries,
     this.winnerEntry,
     this.runnerUpEntry,
+    this.thirdPlaceEntry,
   });
 
   final String eventId;
@@ -28,6 +29,7 @@ class CertificateEventContext {
   final List<CertificateSelectableEntry> participationEntries;
   final CertificateSelectableEntry? winnerEntry;
   final CertificateSelectableEntry? runnerUpEntry;
+  final CertificateSelectableEntry? thirdPlaceEntry;
 
   bool get usesWinners => eventKind.usesWinners;
 
@@ -64,6 +66,12 @@ class CertificateEventContext {
       runnerUpEntry: _resolvePlacedEntry(
         workspaceEntry: vm.workspace.runnerUp,
         selectedIdeaId: vm.ideathon.runnerUpIdeaId,
+        ideas: vm.ideas,
+        snapshots: vm.ideathon.ideas,
+      ),
+      thirdPlaceEntry: _resolvePlacedEntry(
+        workspaceEntry: vm.workspace.thirdPlace,
+        selectedIdeaId: vm.ideathon.thirdPlaceIdeaId,
         ideas: vm.ideas,
         snapshots: vm.ideathon.ideas,
       ),

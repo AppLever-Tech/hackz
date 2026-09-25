@@ -1,3 +1,4 @@
+import 'package:hackz/features/events/models/event_place_config.dart';
 import 'package:hackz/features/exports/certificate/certificate_type.dart';
 
 import '../../exports/models/export_exception.dart';
@@ -124,15 +125,18 @@ class EventCertificatesExportProvider implements ExportDataProvider {
       return CertificateType.participation;
     }
     final String place = placeLabel.trim().toLowerCase();
-    if (place.contains('runner')) return CertificateType.runnerUp;
+    if (place.contains('third') || place.contains('3rd')) return CertificateType.thirdPlace;
+    if (place.contains('runner') || place.contains('2nd') || place.contains('second')) {
+      return CertificateType.runnerUp;
+    }
     return CertificateType.winner;
   }
 
-  static String _achievementLabel(CertificateType type) => switch (type) {
-        CertificateType.participation => '',
-        CertificateType.winner => 'First Place',
-        CertificateType.runnerUp => 'Second Place',
-      };
+  static String _achievementLabel(CertificateType type) {
+    final EventPlaceRank? rank = EventPlaceRank.fromCertificateType(type);
+    if (rank == null) return '';
+    return EventPlacePresentation.achievementLabel(rank);
+  }
 
   static Map<String, Object?> _signatoryFields(List<EventCertificateSignatory> signatories) {
     final Map<String, Object?> fields = <String, Object?>{};

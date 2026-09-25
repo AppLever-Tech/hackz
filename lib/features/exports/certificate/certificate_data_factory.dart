@@ -3,6 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'certificate_data.dart';
 import 'certificate_event_context.dart';
 import 'certificate_selectable_entry.dart';
+import '../../events/models/event_place_config.dart';
 import 'certificate_type.dart';
 
 /// Builds normalized [CertificateData] for the certificate renderer.
@@ -35,9 +36,9 @@ abstract final class CertificateDataFactory {
     );
   }
 
-  static String _achievementLabel(CertificateType type) => switch (type) {
-        CertificateType.participation => '',
-        CertificateType.winner => 'First Place',
-        CertificateType.runnerUp => 'Second Place',
-      };
+  static String _achievementLabel(CertificateType type) {
+    final EventPlaceRank? place = EventPlaceRank.fromCertificateType(type);
+    if (place == null) return '';
+    return EventPlacePresentation.achievementLabel(place);
+  }
 }

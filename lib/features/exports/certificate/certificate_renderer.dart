@@ -23,24 +23,24 @@ abstract final class CertificateRenderer {
     final CertificateFonts fonts = context.fonts;
     final List<CertificateSignatory> signatories = _normalizedSignatories(data.signatories);
 
-    return pw.Stack(
-      children: <pw.Widget>[
+      return pw.Stack(
+        children: <pw.Widget>[
         _fullPageBackground(context),
         _certificateTopBand(data, fonts, context),
-        pw.Positioned.fill(
-          child: pw.Padding(
-            padding: const pw.EdgeInsets.fromLTRB(44, 134, 44, 22),
+          pw.Positioned.fill(
+            child: pw.Padding(
+              padding: const pw.EdgeInsets.fromLTRB(44, 134, 44, 22),
             child: _certificateMainColumn(
-              data: data,
-              context: context,
-              variant: variant,
-              fonts: fonts,
-              signatories: signatories,
+                data: data,
+                context: context,
+                variant: variant,
+                fonts: fonts,
+                signatories: signatories,
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
   }
 
   static const double _participationBandTop = 26;
@@ -109,30 +109,32 @@ abstract final class CertificateRenderer {
     switch (data.certificateType) {
       case CertificateType.participation:
         return pw.Stack(
-          alignment: pw.Alignment.topCenter,
-          children: <pw.Widget>[
-            pw.Text(
-              'CERTIFICATE OF',
-              style: CertificateTheme.certificateOfLabel(fonts),
-              textAlign: pw.TextAlign.center,
-            ),
-            pw.Positioned(
-              top: 23,
-              left: 0,
-              right: 0,
-              child: pw.Text(
-                'PARTICIPATION',
-                style: CertificateTheme.participationTitle(fonts, size: 34),
-                textAlign: pw.TextAlign.center,
-                maxLines: 1,
-              ),
-            ),
-          ],
+                  alignment: pw.Alignment.topCenter,
+                  children: <pw.Widget>[
+                    pw.Text(
+                      'CERTIFICATE OF',
+                      style: CertificateTheme.certificateOfLabel(fonts),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.Positioned(
+                      top: 23,
+                      left: 0,
+                      right: 0,
+                      child: pw.Text(
+                        'PARTICIPATION',
+                        style: CertificateTheme.participationTitle(fonts, size: 34),
+                        textAlign: pw.TextAlign.center,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
         );
       case CertificateType.winner:
         return _headerOverlayImage(context.winnerOverlay);
       case CertificateType.runnerUp:
-        return _headerOverlayImage(context.runnerUpOverlay);
+        return _headerOverlayImage(context.secondPlaceOverlay ?? context.runnerUpOverlay);
+      case CertificateType.thirdPlace:
+        return _headerOverlayImage(context.thirdPlaceOverlay);
     }
   }
 

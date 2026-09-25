@@ -33,6 +33,7 @@ class IdeathonModel {
     this.evaluationCriteria = const <EvaluationCriterion>[],
     this.winnerIdeaId = '',
     this.runnerUpIdeaId = '',
+    this.thirdPlaceIdeaId = '',
     this.resultsReviewedAt,
     this.commercialAccess = EventCommercialAccess.enabled,
     this.grantedCommercialPlan,
@@ -65,8 +66,10 @@ class IdeathonModel {
 
   /// Department Admin selected winner (not rank-1 from the leaderboard).
   final String winnerIdeaId;
-  /// Department Admin selected runner-up.
+  /// Department Admin selected 2nd place (legacy field name runnerUpIdeaId).
   final String runnerUpIdeaId;
+  /// Department Admin selected 3rd place.
+  final String thirdPlaceIdeaId;
   /// Set when Department Admin reviews results (unlocks Select Winners).
   final DateTime? resultsReviewedAt;
 
@@ -133,6 +136,7 @@ class IdeathonModel {
       if (problemId.trim().isNotEmpty) 'problemId': problemId.trim(),
       if (winnerIdeaId.trim().isNotEmpty) 'winnerIdeaId': winnerIdeaId.trim(),
       if (runnerUpIdeaId.trim().isNotEmpty) 'runnerUpIdeaId': runnerUpIdeaId.trim(),
+      if (thirdPlaceIdeaId.trim().isNotEmpty) 'thirdPlaceIdeaId': thirdPlaceIdeaId.trim(),
       if (resultsReviewedAt != null) 'resultsReviewedAt': Timestamp.fromDate(resultsReviewedAt!),
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -190,6 +194,7 @@ class IdeathonModel {
       problemId: (map['problemId'] as String? ?? '').trim(),
       winnerIdeaId: (map['winnerIdeaId'] as String? ?? '').trim(),
       runnerUpIdeaId: (map['runnerUpIdeaId'] as String? ?? '').trim(),
+      thirdPlaceIdeaId: (map['thirdPlaceIdeaId'] as String? ?? '').trim(),
       resultsReviewedAt: (map['resultsReviewedAt'] as Timestamp?)?.toDate(),
       createdBy: (map['createdBy'] as String? ?? '').trim(),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),

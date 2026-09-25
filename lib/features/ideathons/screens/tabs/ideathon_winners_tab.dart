@@ -3,6 +3,7 @@ import 'package:hackz/core/ui/feedback/feedback.dart';
 import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 import 'package:hackz/core/workspace/workspace_navigator.dart';
 import 'package:hackz/features/evaluations/services/evaluation_results_query_service.dart';
+import 'package:hackz/features/events/models/event_place_config.dart';
 import 'package:hackz/features/events/models/event_winner_entry.dart';
 import 'package:hackz/features/events/widgets/event_winner_picker.dart';
 import 'package:hackz/features/events/widgets/event_winners_section.dart';
@@ -32,6 +33,7 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
   late Future<List<EventWinnerEntry>> _candidatesFuture;
   late String _winnerId;
   late String _runnerId;
+  late String _thirdId;
   bool _busy = false;
 
   bool get _canSelect =>
@@ -43,6 +45,7 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
     super.initState();
     _winnerId = widget.vm.ideathon.winnerIdeaId;
     _runnerId = widget.vm.ideathon.runnerUpIdeaId;
+    _thirdId = widget.vm.ideathon.thirdPlaceIdeaId;
     _candidatesFuture = _loadCandidates();
   }
 
@@ -53,6 +56,7 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
         oldWidget.vm.ideathon.updatedAt != widget.vm.ideathon.updatedAt) {
       _winnerId = widget.vm.ideathon.winnerIdeaId;
       _runnerId = widget.vm.ideathon.runnerUpIdeaId;
+      _thirdId = widget.vm.ideathon.thirdPlaceIdeaId;
       _candidatesFuture = _loadCandidates();
     }
   }
@@ -97,13 +101,14 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
   }
 
   List<EventWinnerEntry> _selectedFrom(List<EventWinnerEntry> candidates) {
-    EventWinnerEntry? byId(String id, int rank, String label) {
+    EventWinnerEntry? byId(String id, EventPlaceRank place) {
       final String ideaId = id.trim();
       if (ideaId.isEmpty) return null;
+      final String label = EventPlacePresentation.cardTitle(place);
       for (final EventWinnerEntry e in candidates) {
         if (e.ideaId == ideaId) {
           return EventWinnerEntry(
-            rank: rank,
+            rank: place.rank,
             placeLabel: label,
             ideaId: e.ideaId,
             ideaTitle: e.ideaTitle,
@@ -116,18 +121,26 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
           );
         }
       }
-      return widget.vm.workspace.winner?.ideaId == ideaId
-          ? widget.vm.workspace.winner
-          : widget.vm.workspace.runnerUp?.ideaId == ideaId
-              ? widget.vm.workspace.runnerUp
-              : null;
+      final EventWinnerEntry? fromWorkspace = switch (place) {
+        EventPlaceRank.first => widget.vm.workspace.winner,
+        EventPlaceRank.second => widget.vm.workspace.runnerUp,
+        EventPlaceRank.third => widget.vm.workspace.thirdPlace,
+      };
+      if (fromWorkspace?.ideaId == ideaId) return fromWorkspace;
+      return null;
     }
 
     return <EventWinnerEntry>[
-      if (byId(_winnerId, 1, 'Winner') != null) byId(_winnerId, 1, 'Winner')!,
-      if (byId(_runnerId, 2, 'Runner-up') != null) byId(_runnerId, 2, 'Runner-up')!,
+      for (final EventPlaceRank place in EventPlacePresentation.podium)
+        if (byId(_ideaIdFor(place), place) != null) byId(_ideaIdFor(place), place)!,
     ];
   }
+
+  String _ideaIdFor(EventPlaceRank place) => switch (place) {
+        EventPlaceRank.first => _winnerId,
+        EventPlaceRank.second => _runnerId,
+        EventPlaceRank.third => _thirdId,
+      };
 
   Future<void> _save() async {
     final int pending = widget.vm.workspace.pendingEvaluationCount;
@@ -136,8 +149,8 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
         context,
         title: 'Evaluations still pending',
         message:
-            '$pending evaluation${pending == 1 ? '' : 's'} are not complete. Select official winners anyway?',
-        confirmLabel: 'Select winners',
+            '$pending evaluation${pending == 1 ? '' : 's'} are not complete. Select official places anyway?',
+        confirmLabel: 'Save places',
       );
       if (!ok) return;
     }
@@ -148,17 +161,18 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
         ideathonId: widget.vm.ideathon.ideathonId,
         winnerIdeaId: _winnerId,
         runnerUpIdeaId: _runnerId,
+        thirdPlaceIdeaId: _thirdId,
       );
       if (!mounted) return;
       FeedbackService.showSuccess(
         context,
-        title: 'Winners saved',
-        message: 'Official winner and runner-up are recorded for this event.',
+        title: 'Places saved',
+        message: 'Official 1st, 2nd, and 3rd place selections are recorded for this event.',
       );
       widget.onChanged?.call();
     } catch (e) {
       if (!mounted) return;
-      FeedbackService.showError(context, title: 'Unable to save winners', message: '$e');
+      FeedbackService.showError(context, title: 'Unable to save places', message: '$e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -192,10 +206,12 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
                 candidates: candidates,
                 winnerIdeaId: _winnerId,
                 runnerUpIdeaId: _runnerId,
+                thirdPlaceIdeaId: _thirdId,
                 pendingCount: widget.vm.workspace.pendingEvaluationCount,
                 busy: _busy,
                 onWinnerChanged: (String id) => setState(() => _winnerId = id),
                 onRunnerUpChanged: (String id) => setState(() => _runnerId = id),
+                onThirdPlaceChanged: (String id) => setState(() => _thirdId = id),
                 onSave: _save,
               ),
               const SizedBox(height: 12),
@@ -204,8 +220,8 @@ class _IdeathonWinnersTabState extends State<IdeathonWinnersTab> {
                 entries: selected,
                 shrinkWrap: true,
                 emptyMessage: _canSelect
-                    ? 'Select a winner above. Leaderboard ranks are not official places.'
-                    : 'Winners are published after Department Admin selects official places.',
+                    ? 'Select 1st Place above. Leaderboard ranks are not official places.'
+                    : 'Places are published after Department Admin selects official 1st, 2nd, and 3rd.',
                 onOpenIdea: (EventWinnerEntry e) => WorkspaceNavigator.openIdea(context, e.ideaId),
                 onOpenTeam: (EventWinnerEntry e) {
                   if (e.teamId.trim().isEmpty) return;

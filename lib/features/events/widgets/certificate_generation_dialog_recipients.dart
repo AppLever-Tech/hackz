@@ -398,8 +398,9 @@ class CertificateGenerationRecipientsSection extends StatelessWidget {
   static String _emptyMessage(CertificateType type) {
     return switch (type) {
       CertificateType.participation => 'Add participating submissions first.',
-      CertificateType.winner => 'Winner is available after Department Admin selects a winner.',
-      CertificateType.runnerUp => 'Runner-up is available after Department Admin selects a runner-up.',
+      CertificateType.winner => '1st Place is available after Department Admin selects 1st Place.',
+      CertificateType.runnerUp => '2nd Place is available after Department Admin selects 2nd Place.',
+      CertificateType.thirdPlace => '3rd Place is available after Department Admin selects 3rd Place.',
     };
   }
 }

@@ -53,7 +53,10 @@ abstract final class CertificateDataMapper {
       return CertificateType.participation;
     }
     final String place = PdfEngine.formatValue(row['place']).toLowerCase();
-    if (place.contains('runner')) return CertificateType.runnerUp;
+    if (place.contains('third') || place.contains('3rd')) return CertificateType.thirdPlace;
+    if (place.contains('runner') || place.contains('2nd') || place.contains('second')) {
+      return CertificateType.runnerUp;
+    }
     return CertificateType.winner;
   }
 

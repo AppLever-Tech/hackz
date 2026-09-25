@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hackz/core/theme/app_icons.dart';
 import 'package:hackz/features/events/exports/event_certificates_export_provider.dart';
+import 'package:hackz/features/events/models/event_place_config.dart';
 import 'package:hackz/features/events/models/event_report_item.dart';
 import 'package:hackz/features/events/widgets/certificate_generation_dialog.dart';
 import 'package:hackz/features/exports/certificate/certificate_event_context.dart';
@@ -16,7 +17,7 @@ import 'package:hackz/features/exports/models/export_request.dart';
 import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
 import 'package:hackz/features/user/models/user_model.dart';
 
-/// Builds the three certificate download cards on the event Reports tab.
+/// Builds certificate download cards on the event Reports tab.
 abstract final class IdeathonCertificateReportItems {
   IdeathonCertificateReportItems._();
 
@@ -62,26 +63,18 @@ abstract final class IdeathonCertificateReportItems {
         signatoryDraft: signatoryDraft,
         signatoriesReady: signatoriesReady,
       ),
-      _winnerCard(
-        vm: vm,
-        actor: actor,
-        event: event,
-        eventId: eventId,
-        eventName: eventName,
-        signatoryDraft: signatoryDraft,
-        signatoriesReady: signatoriesReady,
-        exportSignatories: exportSignatories,
-      ),
-      _runnerUpCard(
-        vm: vm,
-        actor: actor,
-        event: event,
-        eventId: eventId,
-        eventName: eventName,
-        signatoryDraft: signatoryDraft,
-        signatoriesReady: signatoriesReady,
-        exportSignatories: exportSignatories,
-      ),
+      for (final EventPlaceRank place in EventPlacePresentation.podium)
+        _placeCertificateCard(
+          vm: vm,
+          actor: actor,
+          event: event,
+          place: place,
+          eventId: eventId,
+          eventName: eventName,
+          signatoryDraft: signatoryDraft,
+          signatoriesReady: signatoriesReady,
+          exportSignatories: exportSignatories,
+        ),
     ];
   }
 
@@ -132,40 +125,49 @@ abstract final class IdeathonCertificateReportItems {
     );
   }
 
-  static EventReportItem _winnerCard({
+  static EventReportItem _placeCertificateCard({
     required IdeathonDetailsViewModel vm,
     required UserModel actor,
     required CertificateEventContext event,
+    required EventPlaceRank place,
     required String eventId,
     required String eventName,
     required CertificateEventSignatoryDraft? signatoryDraft,
     required bool signatoriesReady,
     required List<EventCertificateSignatory> exportSignatories,
   }) {
-    final CertificateSelectableEntry? winner = event.winnerEntry;
-    final bool available = event.usesWinners && winner != null;
-    final List<EventReportMetaPill> pills = winner == null
+    final CertificateType certificateType = place.certificateType;
+    final CertificateSelectableEntry? entry = _entryForPlace(event, place);
+    final bool available = event.usesWinners && entry != null;
+    final Color accent = EventPlacePresentation.medalAccent(place);
+    final List<EventReportMetaPill> pills = entry == null
         ? const <EventReportMetaPill>[]
-        : _teamAndIdeaPills(winner, accent: const Color(0xFFB45309));
+        : _teamAndIdeaPills(entry, accent: accent);
+
+    final String wireId = switch (place) {
+      EventPlaceRank.first => 'first_place_certificate',
+      EventPlaceRank.second => 'second_place_certificate',
+      EventPlaceRank.third => 'third_place_certificate',
+    };
 
     return EventReportItem(
-      id: 'winner_certificate',
-      title: 'Winner certificate',
-      description: 'First-place certificate for the winning team.',
-      icon: AppIcons.achievement,
+      id: wireId,
+      title: EventPlacePresentation.certificateReportTitle(place),
+      description: EventPlacePresentation.certificateReportDescription(place),
+      icon: EventPlacePresentation.medalIcon(place),
       available: available,
       unavailableReason: !event.usesWinners
-          ? 'This event type does not use winner certificates.'
-          : 'Select a winner on the Winners tab before downloading.',
+          ? 'This event type does not use place certificates.'
+          : EventPlacePresentation.certificateUnavailableReason(place),
       metaPills: pills,
       provider: available
           ? EventCertificatesExportProvider(
               module: ExportModule.winnerCertificate,
               recipients: <EventCertificateRecipient>[
                 _recipient(
-                  winner,
-                  CertificateType.winner,
-                  placeLabel: 'First Place',
+                  entry,
+                  certificateType,
+                  placeLabel: EventPlacePresentation.achievementLabel(place),
                   signatories: exportSignatories,
                 ),
               ],
@@ -190,77 +192,19 @@ abstract final class IdeathonCertificateReportItems {
                 context: context,
                 event: event,
                 actor: actor,
-                certificateType: CertificateType.winner,
+                certificateType: certificateType,
                 signatoryDraft: signatoryDraft,
               )
           : null,
     );
   }
 
-  static EventReportItem _runnerUpCard({
-    required IdeathonDetailsViewModel vm,
-    required UserModel actor,
-    required CertificateEventContext event,
-    required String eventId,
-    required String eventName,
-    required CertificateEventSignatoryDraft? signatoryDraft,
-    required bool signatoriesReady,
-    required List<EventCertificateSignatory> exportSignatories,
-  }) {
-    final CertificateSelectableEntry? runner = event.runnerUpEntry;
-    final bool available = event.usesWinners && runner != null;
-    final List<EventReportMetaPill> pills = runner == null
-        ? const <EventReportMetaPill>[]
-        : _teamAndIdeaPills(runner, accent: const Color(0xFF64748B));
-
-    return EventReportItem(
-      id: 'runner_up_certificate',
-      title: 'Runner-up certificate',
-      description: 'Second-place certificate for the runner-up team.',
-      icon: AppIcons.starOutline,
-      available: available,
-      unavailableReason: !event.usesWinners
-          ? 'This event type does not use runner-up certificates.'
-          : 'Select a runner-up on the Winners tab before downloading.',
-      metaPills: pills,
-      provider: available
-          ? EventCertificatesExportProvider(
-              module: ExportModule.winnerCertificate,
-              recipients: <EventCertificateRecipient>[
-                _recipient(
-                  runner,
-                  CertificateType.runnerUp,
-                  placeLabel: 'Runner-Up',
-                  signatories: exportSignatories,
-                ),
-              ],
-              eventType: event.eventTemplateLabel,
-              eventDates: event.eventDateLabel,
-              submissionLabel: event.submissionLabel,
-            )
-          : null,
-      requestFor: available
-          ? (ExportFormat format) => ExportRequest(
-                module: ExportModule.winnerCertificate,
-                format: format,
-                actor: actor,
-                eventId: eventId,
-                eventName: eventName,
-              )
-          : null,
-      actionLabel: 'Download certificate',
-      generateLabel: 'Generate…',
-      onGenerate: available && signatoriesReady
-          ? (BuildContext context) => showCertificateGenerationDialog(
-                context: context,
-                event: event,
-                actor: actor,
-                certificateType: CertificateType.runnerUp,
-                signatoryDraft: signatoryDraft,
-              )
-          : null,
-    );
-  }
+  static CertificateSelectableEntry? _entryForPlace(CertificateEventContext event, EventPlaceRank place) =>
+      switch (place) {
+        EventPlaceRank.first => event.winnerEntry,
+        EventPlaceRank.second => event.runnerUpEntry,
+        EventPlaceRank.third => event.thirdPlaceEntry,
+      };
 
   static List<EventReportMetaPill> _teamAndIdeaPills(
     CertificateSelectableEntry entry, {

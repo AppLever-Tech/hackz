@@ -79,9 +79,9 @@ class IdeathonPaymentWorkspaceBody extends StatelessWidget {
                   isLast: true,
                 ),
               ],
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
           WorkspaceCollapsibleSection(
             title: vm.event.eventKind.entriesLabel,
             icon: vm.event.eventKind.entriesIcon,

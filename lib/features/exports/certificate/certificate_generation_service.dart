@@ -176,6 +176,8 @@ abstract final class CertificateGenerationService {
         event.winnerEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.winnerEntry!],
       CertificateType.runnerUp =>
         event.runnerUpEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.runnerUpEntry!],
+      CertificateType.thirdPlace =>
+        event.thirdPlaceEntry == null ? const <CertificateSelectableEntry>[] : <CertificateSelectableEntry>[event.thirdPlaceEntry!],
     };
   }
 

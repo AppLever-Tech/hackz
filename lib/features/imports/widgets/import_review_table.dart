@@ -752,8 +752,8 @@ class _StatusCell extends StatelessWidget {
             waitDuration: const Duration(milliseconds: 250),
             child: Text(
               detail,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
