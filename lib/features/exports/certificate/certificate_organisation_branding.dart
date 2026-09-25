@@ -27,8 +27,8 @@ class CertificateOrganisationBrandingLayout {
 
   static const CertificateOrganisationBrandingLayout participationTopRight =
       CertificateOrganisationBrandingLayout._(
-    maxWidth: 200,
-    alignment: pw.Alignment.centerRight,
+    maxWidth: 176,
+    alignment: pw.Alignment.centerLeft,
     logoMaxHeight: 52,
     logoMaxWidth: 72,
     nameWithLogoBaseSize: 12.5,
@@ -62,9 +62,14 @@ abstract final class CertificateOrganisationBranding {
     required String organisationName,
     pw.ImageProvider? organisationLogo,
     required CertificateOrganisationBrandingLayout layout,
+    double? bandWidth,
+    double? bandHeight,
   }) {
     final String name = organisationName.trim();
     if (name.isEmpty && organisationLogo == null) {
+      if (bandWidth != null || bandHeight != null) {
+        return pw.SizedBox(width: bandWidth ?? 0, height: bandHeight ?? 0);
+      }
       return pw.SizedBox();
     }
 
@@ -75,11 +80,30 @@ abstract final class CertificateOrganisationBranding {
             logo: organisationLogo,
             layout: layout,
           )
-        : _nameOnly(fonts: fonts, name: name, layout: layout);
+        : _nameOnly(fonts: fonts, name: name, layout: layout, bandHeight: bandHeight);
+
+    final double slotWidth = bandWidth ?? layout.maxWidth;
+    if (bandHeight == null) {
+      return pw.SizedBox(
+        width: slotWidth,
+        child: pw.Align(alignment: layout.alignment, child: branding),
+      );
+    }
 
     return pw.SizedBox(
-      width: layout.maxWidth,
-      child: pw.Align(alignment: layout.alignment, child: branding),
+      width: slotWidth,
+      height: bandHeight,
+      child: pw.Align(
+        alignment: layout.alignment,
+        child: pw.SizedBox(
+          width: layout.maxWidth,
+          height: bandHeight,
+          child: pw.Align(
+            alignment: pw.Alignment.center,
+            child: branding,
+          ),
+        ),
+      ),
     );
   }
 
@@ -134,15 +158,20 @@ abstract final class CertificateOrganisationBranding {
     required CertificateFonts fonts,
     required String name,
     required CertificateOrganisationBrandingLayout layout,
+    double? bandHeight,
   }) {
     if (name.isEmpty) return pw.SizedBox();
     final double nameSize = fontSizeForName(name, layout, withLogo: false);
-    return pw.Text(
+    final pw.Text text = pw.Text(
       name,
       style: CertificateTheme.collegeName(fonts, size: nameSize),
-      textAlign: pw.TextAlign.right,
+      textAlign: pw.TextAlign.center,
       maxLines: _maxNameLines,
       softWrap: true,
     );
+    if (bandHeight == null) {
+      return pw.Align(alignment: layout.alignment, child: text);
+    }
+    return text;
   }
 }

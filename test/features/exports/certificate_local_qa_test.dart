@@ -25,6 +25,7 @@ import 'certificate_test_fixtures.dart';
 /// - `participation_college_logo_only.pdf` — top-right logo + name
 /// - `participation_signatures_cream_scan.pdf` — signatory scans (cream paper)
 /// - `participation_full_branding.pdf` — logo + processed signatures (all types)
+/// - `participation_name_only_long.pdf` — no logo; multi-line college name (top band symmetry)
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -76,6 +77,27 @@ void main() {
   });
 
   group('Certificate local QA — write preview PDFs', () {
+    test('participation_name_only_long.pdf', () async {
+      const String longOrg =
+          'National Institute of Technology Karnataka Surathkal Directorate of Innovation';
+      final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
+        <CertificateData>[
+          const CertificateData(
+            certificateType: CertificateType.participation,
+            recipientType: CertificateRecipientType.team,
+            recipientName: 'Team Innovators',
+            organisationName: longOrg,
+            eventName: eventName,
+            eventTemplateLabel: 'Ideathon',
+            eventDateLabel: eventDate,
+            submissionTitle: submission,
+            submissionLabel: 'Idea',
+          ),
+        ],
+      );
+      await writePdf('participation_name_only_long.pdf', bytes);
+    });
+
     test('participation_college_logo_only.pdf', () async {
       final Uint8List logoPng = await CertificateTestFixtures.collegeLogoFromPrimaryBrandAsset();
       final List<int> bytes = await CertificateDocumentBuilder.renderCertificates(
