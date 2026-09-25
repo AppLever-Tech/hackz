@@ -14,10 +14,7 @@ import '../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../utils/firestore_utils.dart';
 import '../../../features/dashboard/deptadmin/widgets/department_access_code_bar.dart';
-import '../../../features/dashboard/chrome/dashboard_chrome_controller.dart';
-import '../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../../features/dashboard/chrome/empty_search_state.dart';
-import '../../../core/ui/common/page_header_context_pill.dart';
 import '../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_alert_dialog.dart';
@@ -77,7 +74,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   String _inviteCode = '';
   String _orgName = '';
   bool _hasLoaded = false;
-  DashboardChromeController? _chrome;
 
   OrganizationModel get _organization => OrganizationModel(
         id: widget.user.orgId,
@@ -104,13 +100,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _chrome ??= DashboardChromeScope.maybeOf(context);
-    _syncHeaderContext();
-  }
-
-  @override
   void dispose() {
     _searchController.dispose();
     _teamSearchController.dispose();
@@ -118,23 +107,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
     super.dispose();
   }
 
-  String get _departmentLabel {
-    final String department = widget.user.department.trim().isEmpty
-        ? DepartmentModel.resolveCode(widget.user.departmentCode)
-        : widget.user.department.trim();
-    return department.isEmpty ? '—' : department;
-  }
-
   String get _organizationLabel {
     final String org = _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim();
     return org.isEmpty ? '—' : org;
-  }
-
-  void _syncHeaderContext() {
-    _chrome?.setHeaderContextPills(<PageHeaderContextItem>[
-      PageHeaderContextItem.department(_departmentLabel),
-      PageHeaderContextItem.organization(_organizationLabel),
-    ]);
   }
 
   bool get _isTeamsSection => _sectionController.index == 1;
@@ -190,7 +165,6 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
         _orgName = orgName;
         _hasLoaded = true;
       });
-      _syncHeaderContext();
     } catch (_) {
       if (!mounted) return;
       setState(() => _hasLoaded = true);

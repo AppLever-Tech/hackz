@@ -14,11 +14,8 @@ import '../../../../features/user/models/user_model.dart';
 import '../../../../features/user/models/enums/user_status.dart';
 import '../../../../utils/firestore_utils.dart';
 import '../../../../core/ui/common/count_pill.dart';
-import '../../../../core/ui/common/page_header_context_pill.dart';
 import '../../../../core/ui/dialog/app_dialog_template.dart';
 import '../../../../features/user/screens/create_user_dialog.dart';
-import '../../chrome/dashboard_chrome_controller.dart';
-import '../../chrome/dashboard_chrome_scope.dart';
 import '../../chrome/dashboard_components.dart';
 import '../../../../core/ui/buttons/mobile_create_fab.dart';
 import '../../../../core/ui/buttons/hover_icon_action_button.dart';
@@ -38,7 +35,6 @@ class ManageCollegeScreen extends StatefulWidget {
 
 class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
   String _orgName = '';
-  DashboardChromeController? _chrome;
   late Future<List<Map<String, dynamic>>> _departmentsFuture;
 
   OrganizationModel get _organization => OrganizationModel(
@@ -65,30 +61,15 @@ class _ManageCollegeScreenState extends State<ManageCollegeScreen> {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _chrome ??= DashboardChromeScope.maybeOf(context);
-    _syncHeaderContext();
-  }
-
-  void _syncHeaderContext() {
-    _chrome?.setHeaderContextPills(<PageHeaderContextItem>[
-      PageHeaderContextItem.organization(_orgName),
-    ]);
-  }
-
   Future<void> _loadOrganization() async {
     try {
       final OrganizationModel? org = await FirestoreUtils.fetchOrganization(widget.user.orgId);
       final String name = (org?.name ?? '').trim();
       if (!mounted) return;
       setState(() => _orgName = name.isEmpty ? widget.user.orgId : name);
-      _syncHeaderContext();
     } catch (_) {
       if (!mounted) return;
       setState(() => _orgName = widget.user.orgId);
-      _syncHeaderContext();
     }
   }
 

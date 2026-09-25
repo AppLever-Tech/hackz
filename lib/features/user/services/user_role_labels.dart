@@ -17,6 +17,23 @@ abstract final class UserRoleLabels {
     };
   }
 
+  /// Shorter labels for dashboard page header identity pills.
+  static String headerLabelFor(UserRole role) {
+    return switch (role) {
+      UserRole.sysAdmin => 'SysAdmin',
+      UserRole.orgAdmin => 'Org Admin',
+      UserRole.collegeAdmin => 'College Admin',
+      UserRole.departmentAdmin => 'Department Admin',
+      UserRole.judge => 'Judge',
+      UserRole.coordinator => 'Coordinator',
+      UserRole.teamMember => 'Team Member',
+    };
+  }
+
+  static String headerLabelForCode(String roleCode) {
+    return headerLabelFor(UserRole.fromCode(roleCode));
+  }
+
   static String pluralLabelForCode(String roleCode) {
     return pluralLabelFor(UserRole.fromCode(roleCode));
   }

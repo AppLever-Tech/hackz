@@ -15,6 +15,7 @@ import '../../../features/org_settings/services/org_settings_service.dart';
 import '../../../features/user/models/enums/user_role.dart';
 import '../../../core/ui/common/time_frame_filter.dart';
 import '../../../core/ui/common/page_header_context_pill.dart';
+import 'dashboard_page_identity_context.dart';
 
 /// Surface, border, and shadow shared by dashboard section tiles and list cards.
 /// Not `const`: [Border.all] is not a const factory in this SDK when used inside [BoxDecoration].
@@ -193,6 +194,7 @@ class DashboardPageHeader extends StatelessWidget {
     this.onUserTap,
     this.helpPageId,
     this.titleActions,
+    this.showIdentityContext = true,
   });
 
   final String title;
@@ -208,12 +210,23 @@ class DashboardPageHeader extends StatelessWidget {
   /// Compact actions on the title row, rendered immediately before Help.
   final Widget? titleActions;
 
+  /// When true, shows username / role / organisation on web (not mobile).
+  final bool showIdentityContext;
+
   @override
   Widget build(BuildContext context) {
     final double titleSize = ResponsiveHelper.titleFontSize(context);
     final double titleIconSize = titleSize >= 24 ? 24 : 20;
     final double contextIndent = titleIcon == null ? 0 : titleIconSize + 8;
-    final bool hasContextPills = contextPills.any(
+    final bool showIdentity =
+        showIdentityContext && !ResponsiveHelper.isMobile(context);
+    final DashboardPageIdentityContext identity = DashboardPageIdentityContext.fromSession(
+      user: user,
+      headerContextItems: contextPills,
+    );
+    final List<PageHeaderContextItem> pageContextPills =
+        showIdentity ? identity.filterContextItems(contextPills) : contextPills;
+    final bool hasContextPills = pageContextPills.any(
       (PageHeaderContextItem item) => item.label.trim().isNotEmpty,
     );
 
@@ -244,6 +257,10 @@ class DashboardPageHeader extends StatelessWidget {
                 style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w700),
               ),
             ),
+            if (showIdentity) ...<Widget>[
+              const SizedBox(width: 10),
+              PageHeaderUsernamePill(label: identity.displayName),
+            ],
             const SizedBox(width: 8),
             _DashboardHeaderActions(
               user: user,
@@ -255,11 +272,18 @@ class DashboardPageHeader extends StatelessWidget {
             ),
           ],
         ),
+        if (showIdentity) ...<Widget>[
+          const SizedBox(height: 6),
+          DashboardPageIdentityRow(
+            identity: identity,
+            leadingIndent: contextIndent,
+          ),
+        ],
         if (hasContextPills) ...<Widget>[
           const SizedBox(height: 6),
           Padding(
             padding: EdgeInsets.only(left: contextIndent),
-            child: PageHeaderContextPills(items: contextPills),
+            child: PageHeaderContextPills(items: pageContextPills),
           ),
         ],
       ],

@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/responsive/mobile_toolbar_button_styles.dart';
 import '../../../core/responsive/responsive_helper.dart';
 import '../../../core/theme/app_icons.dart';
-import '../../../core/ui/common/page_header_context_pill.dart';
 import '../../../core/ui/data_view/data_table_view.dart';
 import '../../../core/ui/feedback/feedback.dart';
 import '../../../core/ui/inputs/hackz_input_decoration.dart';
 import '../../../core/ui/inputs/icon_only_filter_button.dart';
 import '../../../core/ui/loading/hkz_progress_indicator.dart';
-import '../../dashboard/chrome/dashboard_chrome_controller.dart';
-import '../../dashboard/chrome/dashboard_chrome_scope.dart';
 import '../../dashboard/chrome/empty_search_state.dart';
 import '../../ideathons/models/ideathon_type.dart';
 import '../../imports/imports.dart';
@@ -35,9 +32,6 @@ class _TeamRegistrationScreenState extends State<TeamRegistrationScreen> {
   Future<CoordinatorTeamRegistrationSnapshot>? _future;
   CoordinatorTeamRegistrationSnapshot? _last;
   TeamRegistrationOriginFilter _originFilter = TeamRegistrationOriginFilter.all;
-  DashboardChromeController? _chrome;
-  String _orgName = '';
-
   static const Color _filterAll = Color(0xFF4A67FF);
   static const Color _internalColor = Color(0xFF0369A1);
   static const Color _externalColor = Color(0xFF6A38FF);
@@ -45,33 +39,14 @@ class _TeamRegistrationScreenState extends State<TeamRegistrationScreen> {
   @override
   void initState() {
     super.initState();
-    _orgName = widget.user.orgId;
     _load();
     _searchController.addListener(() => setState(() {}));
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _chrome ??= DashboardChromeScope.maybeOf(context);
-    _syncHeaderContext();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  String get _orgLabel {
-    final String org = _orgName.trim().isEmpty ? widget.user.orgId : _orgName.trim();
-    return org.isEmpty ? '—' : org;
-  }
-
-  void _syncHeaderContext() {
-    _chrome?.setHeaderContextPills(<PageHeaderContextItem>[
-      PageHeaderContextItem.organization(_orgLabel),
-    ]);
   }
 
   void _load() {
@@ -126,13 +101,6 @@ class _TeamRegistrationScreenState extends State<TeamRegistrationScreen> {
             _last ??
             const CoordinatorTeamRegistrationSnapshot(orgName: '', rows: <CoordinatorTeamRegistrationRow>[]);
         _last = data;
-        final String loadedOrg = data.orgName.trim();
-        if (loadedOrg.isNotEmpty && loadedOrg != _orgName) {
-          _orgName = loadedOrg;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _syncHeaderContext();
-          });
-        }
         final List<CoordinatorTeamRegistrationRow> visible = CoordinatorTeamRegistrationService.filter(
           rows: data.rows,
           search: _searchController.text,
