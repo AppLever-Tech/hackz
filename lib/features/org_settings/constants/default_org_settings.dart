@@ -5,7 +5,7 @@ import 'org_setting_keys.dart';
 /// Dart source of truth for org-setting defaults.
 ///
 /// Bootstrap writes [defaultOrgSettingsFirestoreEntries] to
-/// `hkzOrganizations/{orgId}/settings/org_settings` when the document is missing;
+/// `hkzOrgSettings/org_settings` when the document is missing;
 /// runtime values are read from Firestore and merged with any new keys from
 /// this list.
 const int kOrgSettingsSchemaVersion = 1;
@@ -16,7 +16,7 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   // —— Team ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.minStudentsPerTeam,
-    displayName: 'Minimum students per team',
+    displayName: 'Minimum team members per team',
     type: OrgSettingValueType.integer,
     defaultValue: 2,
     sectionKey: 'team',
@@ -30,9 +30,9 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.maxStudentsPerTeam,
-    displayName: 'Maximum students per team',
+    displayName: 'Maximum team members per team',
     type: OrgSettingValueType.integer,
-    defaultValue: 5,
+    defaultValue: 6,
     sectionKey: 'team',
     sectionTitle: 'Team rules',
     groupKey: 'formation',
@@ -40,20 +40,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     description: 'Upper bound for team size.',
     min: 1,
     max: 30,
-    step: 1,
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.maxTeamsPerFaculty,
-    displayName: 'Maximum teams per faculty',
-    type: OrgSettingValueType.integer,
-    defaultValue: 8,
-    sectionKey: 'team',
-    sectionTitle: 'Team rules',
-    groupKey: 'formation',
-    groupTitle: 'Formation rules',
-    description: 'Cap on how many teams a faculty advisor can oversee.',
-    min: 1,
-    max: 50,
     step: 1,
   ),
   const OrgSettingDefinition(
@@ -76,17 +62,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     groupKey: 'edit',
     groupTitle: 'Edit rules',
   ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.allowStudentSwitchAfterRejection,
-    displayName: 'Allow student to switch team after rejection',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'team',
-    sectionTitle: 'Team rules',
-    groupKey: 'edit',
-    groupTitle: 'Edit rules',
-  ),
-
   // —— Idea ——
   const OrgSettingDefinition(
     key: OrgSettingKeys.maxIdeasPerProblem,
@@ -100,26 +75,6 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     min: 1,
     max: 20,
     step: 1,
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.allowIdeaResubmissionAfterRejection,
-    displayName: 'Allow resubmission after rejection',
-    type: OrgSettingValueType.boolean,
-    defaultValue: true,
-    sectionKey: 'idea',
-    sectionTitle: 'Idea rules',
-    groupKey: 'submission',
-    groupTitle: 'Submission rules',
-  ),
-  const OrgSettingDefinition(
-    key: OrgSettingKeys.requirePaymentBeforeSubmission,
-    displayName: 'Require payment before submission',
-    type: OrgSettingValueType.boolean,
-    defaultValue: false,
-    sectionKey: 'idea',
-    sectionTitle: 'Idea rules',
-    groupKey: 'submission',
-    groupTitle: 'Submission rules',
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.minJudgesPerIdea,
@@ -149,13 +104,61 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
   ),
   const OrgSettingDefinition(
     key: OrgSettingKeys.showJudgeCommentsToStudents,
-    displayName: 'Show judge comments to students',
+    displayName: 'Show judge comments to team members',
     type: OrgSettingValueType.boolean,
     defaultValue: true,
     sectionKey: 'idea',
     sectionTitle: 'Idea rules',
     groupKey: 'evaluation',
     groupTitle: 'Evaluation rules',
+  ),
+
+  // —— Ideathon ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.minimumIdeasForIdeathon,
+    displayName: 'Minimum ideas for Ideathon',
+    type: OrgSettingValueType.integer,
+    defaultValue: 10,
+    sectionKey: 'ideathon',
+    sectionTitle: 'Ideathon settings',
+    groupKey: 'readiness',
+    groupTitle: 'Ideathon readiness',
+    description:
+        'Minimum number of submitted ideas with verified Team Leader payment required to create an Ideathon.',
+    min: 1,
+    max: 500,
+    step: 1,
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.prototypeSelectionThreshold,
+    displayName: 'Prototype selection threshold (%)',
+    type: OrgSettingValueType.integer,
+    defaultValue: 80,
+    sectionKey: 'ideathon',
+    sectionTitle: 'Ideathon settings',
+    groupKey: 'prototype',
+    groupTitle: 'Prototype selection',
+    description: 'Average ideathon score percentage required to auto-mark prototype selected.',
+    min: 0,
+    max: 100,
+    step: 1,
+  ),
+
+  // —— Evaluation settings ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.requiredJudgeEvaluations,
+    displayName: 'Required judge evaluations',
+    type: OrgSettingValueType.integer,
+    defaultValue: 2,
+    sectionKey: 'evaluationSettings',
+    sectionTitle: 'Evaluation settings',
+    groupKey: 'configuration',
+    groupTitle: 'Evaluation configuration',
+    description:
+        'Number of judge evaluations required before an idea is marked as fully evaluated. Used by the reusable evaluation framework (e.g. future Ideathon evaluation).',
+    min: 1,
+    max: 15,
+    step: 1,
   ),
 
   // —— Problem ——
@@ -372,6 +375,47 @@ final List<OrgSettingDefinition> _defs = <OrgSettingDefinition>[
     sectionTitle: 'Upload rules',
     groupKey: 'general',
     groupTitle: 'Limits & formats',
+  ),
+
+  // —— Feedback ——
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.enableFeedback,
+    displayName: 'Enable Feedback',
+    type: OrgSettingValueType.boolean,
+    defaultValue: true,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Allow users to submit Issues and Enhancements from the app.',
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxFeedbackScreenshotSizeMB,
+    displayName: 'Maximum Screenshot Size (MB)',
+    type: OrgSettingValueType.integer,
+    defaultValue: 5,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Maximum size for an optional feedback screenshot.',
+    min: 1,
+    max: 25,
+    step: 1,
+  ),
+  const OrgSettingDefinition(
+    key: OrgSettingKeys.maxFeedbackPerUserPerDay,
+    displayName: 'Maximum Feedback Per User Per Day',
+    type: OrgSettingValueType.integer,
+    defaultValue: 5,
+    sectionKey: 'feedback',
+    sectionTitle: 'Feedback',
+    groupKey: 'general',
+    groupTitle: 'Feedback rules',
+    description: 'Daily submission limit per user.',
+    min: 1,
+    max: 50,
+    step: 1,
   ),
 ];
 

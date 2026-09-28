@@ -1,5 +1,5 @@
-import '../models/enums/organization_type.dart';
-import '../models/user_model.dart';
+import '../features/organization/models/enums/organization_type.dart';
+import '../features/user/models/user_model.dart';
 
 /// Normalize phone for Firestore lookups (E.164 style).
 String normalizePhoneE164(String raw) {
@@ -97,6 +97,23 @@ String formatLongDisplayDate(DateTime date) {
 /// and similar single-line dates where the time component would be noise.
 String formatDayMonthYear(DateTime date) {
   return '${date.day} ${kMonthNames[date.month - 1]} ${date.year}';
+}
+
+/// Compact date for pills and chips (e.g. Jun 2, 2026).
+String formatShortDate(DateTime date) {
+  const List<String> months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  final int monthIndex = date.month.clamp(1, 12) - 1;
+  return '${months[monthIndex]} ${date.day}, ${date.year}';
+}
+
+/// Compact clock time (e.g. 09:30).
+String formatShortTime(DateTime date) {
+  final String hh = date.hour.toString().padLeft(2, '0');
+  final String mm = date.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
 }
 
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm

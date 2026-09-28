@@ -1,0 +1,79 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../utils/firestore_utils.dart';
+import '../../events/models/event_kind.dart';
+import '../../organization/models/department_model.dart';
+import '../../user/models/user_model.dart';
+import '../models/ideathon_model.dart';
+import '../models/ideathon_status.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
+
+class IdeathonListRow {
+  const IdeathonListRow({required this.ideathon});
+
+  final IdeathonModel ideathon;
+}
+
+class IdeathonQueryParams {
+  const IdeathonQueryParams({
+    required this.viewer,
+    this.search = '',
+    this.statusFilters = const <IdeathonStatus>{},
+    this.departmentFilters = const <String>{},
+    this.eventKind,
+    this.templateFilters = const <EventKind>{},
+  });
+
+  final UserModel viewer;
+  final String search;
+  final Set<IdeathonStatus> statusFilters;
+  final Set<String> departmentFilters;
+  final EventKind? eventKind;
+  final Set<EventKind> templateFilters;
+}
+
+abstract final class IdeathonQueryService {
+  IdeathonQueryService._();
+
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
+
+  static Future<List<IdeathonListRow>> fetch(IdeathonQueryParams params) async {
+    final String orgId = params.viewer.orgId.trim();
+    if (orgId.isEmpty) return const <IdeathonListRow>[];
+
+    final QuerySnapshot<Map<String, dynamic>> snap = await _db
+        .collection(FirestoreUtils.hkzIdeathons)
+        .where('orgId', isEqualTo: orgId)
+        .get();
+
+    final String search = params.search.trim().toLowerCase();
+    final String viewerDept = DepartmentModel.resolveCode(params.viewer.departmentCode);
+
+    final List<IdeathonListRow> rows = <IdeathonListRow>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+      final IdeathonModel ideathon = IdeathonModel.fromMap(doc.id, doc.data());
+      if (params.eventKind != null && ideathon.eventKind != params.eventKind) continue;
+      if (params.templateFilters.isNotEmpty && !params.templateFilters.contains(ideathon.eventKind)) continue;
+      if (viewerDept.isNotEmpty) {
+        final String eventDept = DepartmentModel.resolveCode(ideathon.departmentId);
+        // Org-wide events (empty department) are visible to all departments in the org.
+        if (eventDept.isNotEmpty && eventDept != viewerDept) continue;
+      }
+      if (params.statusFilters.isNotEmpty && !params.statusFilters.contains(ideathon.status)) continue;
+      if (params.departmentFilters.isNotEmpty &&
+          !params.departmentFilters.contains(DepartmentModel.resolveCode(ideathon.departmentId))) {
+        continue;
+      }
+      if (search.isNotEmpty) {
+        final String haystack =
+            '${ideathon.name} ${ideathon.description} ${ideathon.ideathonType.label} ${ideathon.eventKind.label}'.toLowerCase();
+        if (!haystack.contains(search)) continue;
+      }
+      rows.add(IdeathonListRow(ideathon: ideathon));
+    }
+
+    rows.sort((IdeathonListRow a, IdeathonListRow b) =>
+        b.ideathon.startDateTime.compareTo(a.ideathon.startDateTime));
+    return rows;
+  }
+}

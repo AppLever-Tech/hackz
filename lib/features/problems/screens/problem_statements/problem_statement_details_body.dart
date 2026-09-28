@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../constants/app_icons.dart';
-import '../../../../widgets/common/rich_tabs.dart';
+import '../../../../core/theme/app_icons.dart';
+import '../../constants/problem_constants.dart';
+import '../../widgets/problem_source_pill.dart';
+import '../../widgets/problem_status_pill.dart';
+import '../../../../core/ui/common/rich_tabs.dart';
 import '../../workspace/problem_workspace_loader.dart';
 import 'lifecycle_tab.dart';
 import 'problem_details_tab.dart';
@@ -12,39 +15,25 @@ class ProblemStatementDetailsBody extends StatelessWidget {
   const ProblemStatementDetailsBody({
     super.key,
     required this.vm,
-    required this.onBack,
   });
 
   final ProblemWorkspaceViewModel vm;
-  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
     final String psNumber = vm.problem.problemNumber.trim();
-    final String category = vm.problem.category.trim();
+    final String? category = ProblemConstants.resolveCategory(vm.problem.category.trim());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              IconButton(
-                onPressed: onBack,
-                icon: const Icon(Icons.arrow_back_rounded),
-                tooltip: 'Back to Problem Statements',
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.all(8),
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              ),
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
                     if (psNumber.isNotEmpty)
                       _MetaChip(
                         icon: AppIcons.problems,
@@ -58,31 +47,35 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                           : vm.problem.departmentDisplayName.trim(),
                       color: const Color(0xFF475569),
                     ),
-                    if (category.isNotEmpty)
+                    if (vm.domain != null)
+                      _MetaChip(
+                        icon: AppIcons.domains,
+                        label: vm.domain!.name.trim().isEmpty
+                            ? vm.domain!.code
+                            : vm.domain!.name.trim(),
+                        color: const Color(0xFF0F766E),
+                      ),
+                    if (category != null)
                       _MetaChip(
                         icon: AppIcons.orgType,
                         label: category,
                         color: const Color(0xFF0EA5E9),
                       ),
-                    _MetaChip(
-                      icon: vm.problem.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
-                      label: vm.problem.isActive ? 'Active' : 'Inactive',
-                      color: vm.problem.isActive ? const Color(0xFF059669) : const Color(0xFF64748B),
-                    ),
-                  ],
-                ),
-              ),
+                    ProblemStatusPill(status: vm.problem.status, compact: false),
+                    ProblemSourcePill(createdSource: vm.problem.createdSource, compact: false),
             ],
           ),
         ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: RichTabs(
+          child: RichTabs(
               tabs: <RichTabItem>[
-                const RichTabItem('Problem Details'),
-                RichTabItem('Submitted Ideas', count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length),
-                const RichTabItem('Problem Lifecycle'),
+                const RichTabItem('Problem Details', icon: AppIcons.problems),
+                RichTabItem(
+                  'Submitted Ideas',
+                  icon: AppIcons.ideas,
+                  count: vm.allIdeas.isEmpty ? null : vm.allIdeas.length,
+                ),
+                const RichTabItem('Problem Lifecycle', icon: AppIcons.timelineWorkspace),
               ],
               children: <Widget>[
                 ProblemDetailsTab(vm: vm),
@@ -90,7 +83,6 @@ class ProblemStatementDetailsBody extends StatelessWidget {
                 LifecycleTab(vm: vm),
               ],
             ),
-          ),
         ),
       ],
     );

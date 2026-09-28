@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
-import '../../../widgets/responsive/responsive_metric_grid.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
+import '../../../core/responsive/responsive_metric_grid.dart';
 import '../services/problem_query_service.dart';
 
 /// Reusable metric chip row for problem-domain screens.
 ///
 /// Renders the four high-level KPIs derived from a [ProblemDashboardMetrics]
 /// snapshot (total / my department / with ideas / without ideas) using the
-/// shared [ResponsiveMetricGrid] + [DashboardMetricChipData] primitives, so
-/// the cards-based list screen and the tabular Problem Statements screen
-/// surface visually identical headers.
+/// shared [ResponsiveListMetrics] + [DashboardMetricChipData] primitives, so
+/// list screens use a compact KPI strip on mobile and the grid on desktop.
 class ProblemMetricsRow extends StatelessWidget {
   const ProblemMetricsRow({
     super.key,
@@ -24,12 +23,14 @@ class ProblemMetricsRow extends StatelessWidget {
   final double spacing;
   final double runSpacing;
 
-  @override
-  Widget build(BuildContext context) {
-    return ResponsiveMetricGrid(
-      spacing: spacing,
-      runSpacing: runSpacing,
-      chips: <DashboardMetricChipData>[
+  List<MetricKpiSegment> get _stripSegments => <MetricKpiSegment>[
+        MetricKpiSegment.count(metrics.total, 'Problems'),
+        MetricKpiSegment.count(metrics.withIdeas, 'With Ideas'),
+        MetricKpiSegment.count(metrics.withoutIdeas, 'W/O Ideas'),
+        MetricKpiSegment.count(metrics.myDepartment, 'My Dept'),
+      ];
+
+  List<DashboardMetricChipData> get _chips => <DashboardMetricChipData>[
         DashboardMetricChipData.single(
           label: 'Total Problems',
           value: '${metrics.total}',
@@ -54,7 +55,15 @@ class ProblemMetricsRow extends StatelessWidget {
           color: const Color(0xFFEA580C),
           icon: AppIcons.submissions,
         ),
-      ],
+      ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveListMetrics(
+      spacing: spacing,
+      runSpacing: runSpacing,
+      chips: _chips,
+      stripSegments: _stripSegments,
     );
   }
 }

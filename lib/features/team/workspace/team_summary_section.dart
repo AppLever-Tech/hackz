@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/enums/team_status.dart';
 import '../../../utils/common_helpers.dart';
 import 'team_workspace_loader.dart';
@@ -48,11 +48,9 @@ class TeamSummarySection extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: <Widget>[
-                      _chip(AppIcons.faculty, 'Mentor', vm.mentorName),
-                      _chip(AppIcons.departments, 'Department', vm.departmentLabel),
-                      _chip(AppIcons.clock, 'Created', formatDateTime(team.createdAt)),
+                      _chip(AppIcons.departments, vm.departmentLabel),
+                      _chip(AppIcons.clock, formatDateTime(team.createdAt), label: 'Created'),
                       _statusChip(team.status),
-                      _chip(AppIcons.student, 'Members', '${vm.memberCount}'),
                     ],
                   ),
                 ],
@@ -64,8 +62,9 @@ class TeamSummarySection extends StatelessWidget {
     );
   }
 
-  static Widget _chip(IconData icon, String label, String value) {
+  static Widget _chip(IconData icon, String value, {String? label}) {
     final String text = value.trim().isEmpty ? '—' : value.trim();
+    final String display = label == null ? text : '$label $text';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -79,7 +78,7 @@ class TeamSummarySection extends StatelessWidget {
           Icon(icon, size: 15, color: const Color(0xFF57629A)),
           const SizedBox(width: 6),
           Text(
-            '$label: $text',
+            display,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
           ),
         ],

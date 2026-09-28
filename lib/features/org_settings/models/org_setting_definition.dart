@@ -1,7 +1,7 @@
 import 'enums/org_setting_value_type.dart';
 
 /// Metadata for one org-scoped rule (defaults + UI hints).
-/// Runtime values live in Firestore at `hkzOrganizations/{orgId}/settings/org_settings`.
+/// Runtime values live in Firestore at `hkzOrgSettings/org_settings`.
 class OrgSettingDefinition {
   const OrgSettingDefinition({
     required this.key,

@@ -1,25 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/department_model.dart';
-import 'idea_department_helpers.dart';
-import '../models/idea_model.dart';
-import '../models/organization_model.dart';
-import '../models/enums/organization_type.dart';
-import '../models/enums/user_status.dart';
-import '../models/payment_model.dart';
+import '../features/organization/models/department_model.dart';
+import '../features/idea/services/idea_department_helpers.dart';
+import 'package:hackz/features/idea/models/enums/idea_status.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import '../features/organization/models/organization_model.dart';
+import '../features/organization/models/enums/organization_type.dart';
+import '../features/user/models/enums/user_role.dart';
+import '../features/user/models/enums/user_status.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
 import '../features/problems/models/problem_model.dart';
 import '../features/team/models/team_model.dart';
-import '../models/user_model.dart';
+import '../features/user/models/user_model.dart';
 import 'common_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class FirestoreUtils {
   FirestoreUtils._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
+
+  static FirebaseFirestore _store(FirebaseFirestore? database) =>
+      database ?? HackzFirebase.current.firestore;
 
   static const String hkzUsers = 'hkzUsers';
   static const String hkzOrganizations = 'hkzOrganizations';
+  /// Tenant organisation operational settings (`hkzOrgSettings/org_settings`).
+  /// Not used for Control Plane organisation registry metadata.
+  static const String hkzOrgSettings = 'hkzOrgSettings';
   static const String hkzSysAdminWhitelist = 'hkzSysAdminWhitelist';
+  /// Control Plane Hackz orgAdmin assignments (not tenant business data).
+  static const String hkzOrgAdmins = 'hkzOrgAdmins';
   static const String hkzInviteCodes = 'hkzInviteCodes';
   static const String hkzCounters = 'hkzCounters';
   static const String hkzIdeas = 'hkzIdeas';
@@ -37,6 +48,14 @@ class FirestoreUtils {
   static const String hkzEvaluationGroups = 'hkzEvaluationGroups';
   /// Idea-to-judge evaluation assignments (supports many judges per idea).
   static const String hkzEvaluationAssignments = 'hkzEvaluationAssignments';
+  static const String hkzIdeathons = 'hkzIdeathons';
+  /// Control Plane event licensing metadata only. Not tenant event business data.
+  static const String hkzEventEntitlements = 'hkzEventEntitlements';
+  /// Idea ↔ Ideathon membership (idea already paid before create).
+  static const String hkzIdeathonParticipations = 'hkzIdeathonParticipations';
+  static const String hkzAppMetadata = 'hkzAppMetadata';
+  static const String hkzDomains = 'hkzDomains';
+  static const String hkzFeedback = 'hkzFeedback';
 
   static String _resolveDepartmentCode(String raw) {
     return DepartmentModel.resolveCode(raw);
@@ -49,35 +68,53 @@ class FirestoreUtils {
     return code == target;
   }
 
-  static Future<UserModel?> fetchUser(String userId) async {
-    final doc = await _db.collection(hkzUsers).doc(userId).get();
-    if (!doc.exists || doc.data() == null) return null;
-    return UserModel.fromMap(doc.data()!);
+  static bool _isSysAdminUser(Map<String, dynamic> data) {
+    if (UserRole.isSysAdminCode((data['role'] as String?) ?? '')) return true;
+    final Object? roles = data['roles'];
+    if (roles is! List) return false;
+    return roles.any(
+      (Object? role) => UserRole.isSysAdminCode(role?.toString()),
+    );
   }
 
-  static Future<UserModel?> fetchUserByPhone(String phone) async {
-    final normalizedPhone = normalizePhoneE164(phone);
+  static Future<UserModel?> fetchUser(
+    String userId, {
+    FirebaseFirestore? database,
+  }) async {
+    final doc = await _store(database).collection(hkzUsers).doc(userId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return UserModel.fromMap(doc.data()!).copyWith(userId: doc.id);
+  }
 
-    final hkzQuery = await _db
+  static Future<UserModel?> fetchUserByPhone(
+    String phone, {
+    FirebaseFirestore? database,
+  }) async {
+    final normalizedPhone = normalizePhoneE164(phone);
+    final FirebaseFirestore db = _store(database);
+
+    final hkzQuery = await db
         .collection(hkzUsers)
         .where('phone', isEqualTo: normalizedPhone)
         .limit(1)
         .get();
 
     if (hkzQuery.docs.isEmpty) return null;
-    return UserModel.fromMap(hkzQuery.docs.first.data());
+    final doc = hkzQuery.docs.first;
+    return UserModel.fromMap(doc.data()).copyWith(userId: doc.id);
   }
 
-  static Future<String> createUser(UserModel user) async {
-    final existing = await fetchUserByPhone(user.phone);
+  static Future<String> createUser(UserModel user, {FirebaseFirestore? database}) async {
+    final FirebaseFirestore db = _store(database);
+    final existing = await fetchUserByPhone(user.phone, database: db);
     if (existing != null) {
       throw StateError('User already exists for this phone.');
     }
 
     final String userId = user.userId.isEmpty
-        ? _db.collection(hkzUsers).doc().id
+        ? db.collection(hkzUsers).doc().id
         : user.userId;
-    await _db.collection(hkzUsers).doc(userId).set(
+    await db.collection(hkzUsers).doc(userId).set(
           user.copyWith(userId: userId).toMap(),
         );
     return userId;
@@ -89,17 +126,19 @@ class FirestoreUtils {
   static Future<void> ensureWhitelistedSysAdminProfile({
     required String firebaseAuthUid,
     required UserModel profile,
+    FirebaseFirestore? database,
   }) async {
     final uid = firebaseAuthUid.trim();
     if (uid.isEmpty) return;
+    final FirebaseFirestore db = _store(database);
 
     final normalizedPhone = normalizePhoneE164(profile.phone);
     if (normalizedPhone.isEmpty) return;
 
-    if ((await fetchUserByPhone(normalizedPhone)) != null) return;
+    if ((await fetchUserByPhone(normalizedPhone, database: db)) != null) return;
 
-    await _db.runTransaction((Transaction txn) async {
-      final userRef = _db.collection(hkzUsers).doc(uid);
+    await db.runTransaction((Transaction txn) async {
+      final userRef = db.collection(hkzUsers).doc(uid);
       final byUid = await txn.get(userRef);
       if (byUid.exists) return;
 
@@ -109,9 +148,10 @@ class FirestoreUtils {
 
   static Future<void> updateUser(
     String userId,
-    Map<String, dynamic> updates,
-  ) async {
-    await _db.collection(hkzUsers).doc(userId).update(updates);
+    Map<String, dynamic> updates, {
+    FirebaseFirestore? database,
+  }) async {
+    await _store(database).collection(hkzUsers).doc(userId).update(updates);
   }
 
   static Future<Map<String, dynamic>?> fetchInviteCode(String code) async {
@@ -146,8 +186,11 @@ class FirestoreUtils {
     return null;
   }
 
-  static Future<Map<String, dynamic>?> fetchWhitelistEntry(String phone) async {
-    final query = await _db
+  static Future<Map<String, dynamic>?> fetchWhitelistEntry(
+    String phone, {
+    FirebaseFirestore? database,
+  }) async {
+    final query = await _store(database)
         .collection(hkzSysAdminWhitelist)
         .where('phone', isEqualTo: phone)
         .where('isActive', isEqualTo: true)
@@ -171,7 +214,7 @@ class FirestoreUtils {
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => UserModel.fromMap(doc.data()))
+              .map((doc) => UserModel.fromMap(doc.data()).copyWith(userId: doc.id))
               .toList(growable: false),
         );
   }
@@ -179,20 +222,18 @@ class FirestoreUtils {
   static Stream<List<UserModel>> watchUsersByOrgAndRole({
     required String orgId,
     required String roleCode,
+    FirebaseFirestore? database,
   }) {
-    return _db
+    return _store(database)
         .collection(hkzUsers)
         .where('orgId', isEqualTo: orgId)
         .where('role', isEqualTo: roleCode)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) {
-                final model = UserModel.fromMap(doc.data());
-                if (model.userId.isNotEmpty) return model;
-                return model.copyWith(userId: doc.id);
-              })
-              .toList(growable: false),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => UserModel.fromMap(doc.data()).copyWith(userId: doc.id))
+                  .toList(growable: false),
         );
   }
 
@@ -209,8 +250,12 @@ class FirestoreUtils {
 
     int activeCount = 0;
     int pendingCount = 0;
+    int totalCount = 0;
     for (final doc in docs) {
-      final status = UserStatus.fromRaw((doc.data()['status'] as String?) ?? '');
+      final Map<String, dynamic> data = doc.data();
+      if (user.role != UserRole.sysAdmin.code && _isSysAdminUser(data)) continue;
+      totalCount++;
+      final status = UserStatus.fromRaw((data['status'] as String?) ?? '');
       if (status == UserStatus.active) {
         activeCount++;
       } else if (status == UserStatus.pendingApproval) {
@@ -219,7 +264,7 @@ class FirestoreUtils {
     }
 
     return <String, int>{
-      'total': docs.length,
+      'total': totalCount,
       'active': activeCount,
       'pending': pendingCount,
     };
@@ -317,8 +362,8 @@ class FirestoreUtils {
     return list;
   }
 
-  static Future<List<OrganizationModel>> getOrganizations() async {
-    final snapshot = await _db.collection(hkzOrganizations).get();
+  static Future<List<OrganizationModel>> getOrganizations({FirebaseFirestore? database}) async {
+    final snapshot = await _store(database).collection(hkzOrganizations).get();
     final items = snapshot.docs
         .map((doc) => OrganizationModel.fromMap(doc.id, doc.data()))
         .toList(growable: false);
@@ -326,137 +371,177 @@ class FirestoreUtils {
     return items;
   }
 
-  static Future<OrganizationModel?> fetchOrganization(String orgId) async {
+  static Future<OrganizationModel?> fetchOrganization(
+    String orgId, {
+    FirebaseFirestore? database,
+    bool preferServer = false,
+  }) async {
     final id = orgId.trim();
     if (id.isEmpty) return null;
-    final doc = await _db.collection(hkzOrganizations).doc(id).get();
+    final DocumentReference<Map<String, dynamic>> ref =
+        _store(database).collection(hkzOrganizations).doc(id);
+    DocumentSnapshot<Map<String, dynamic>> doc;
+    if (preferServer) {
+      try {
+        doc = await ref.get(const GetOptions(source: Source.server));
+      } catch (_) {
+        doc = await ref.get();
+      }
+    } else {
+      doc = await ref.get();
+    }
     if (!doc.exists || doc.data() == null) return null;
     return OrganizationModel.fromMap(doc.id, doc.data()!);
   }
 
   /// Returns the resolved organization id (newly generated for inserts or
-  /// the existing id for edits). Callers can chain post-create work such as
-  /// seeding per-org settings.
-  static Future<String> upsertOrganization(OrganizationModel org) async {
+  /// the existing id for edits). Does not write organisation operational settings.
+  static Future<String> upsertOrganization(
+    OrganizationModel org, {
+    FirebaseFirestore? database,
+  }) async {
+    final FirebaseFirestore db = _store(database);
     final docRef = org.id.isEmpty
-        ? _db.collection(hkzOrganizations).doc()
-        : _db.collection(hkzOrganizations).doc(org.id);
+        ? db.collection(hkzOrganizations).doc()
+        : db.collection(hkzOrganizations).doc(org.id);
     final payload = org.copyWith(id: docRef.id).toMap();
     await docRef.set(payload, SetOptions(merge: true));
     return docRef.id;
   }
 
-  static Future<void> deleteOrganization(String orgId) async {
+  static Future<void> deleteOrganizationFields(
+    String orgId,
+    List<String> fieldNames, {
+    FirebaseFirestore? database,
+  }) async {
+    final String id = orgId.trim();
+    if (id.isEmpty || fieldNames.isEmpty) return;
+    final Map<String, dynamic> patch = <String, dynamic>{
+      for (final String name in fieldNames)
+        if (name.trim().isNotEmpty) name.trim(): FieldValue.delete(),
+    };
+    if (patch.isEmpty) return;
+    await _store(database).collection(hkzOrganizations).doc(id).update(patch);
+  }
+
+  static Future<void> deleteOrganization(
+    String orgId, {
+    FirebaseFirestore? database,
+  }) async {
     final normalizedOrgId = orgId.trim();
     if (normalizedOrgId.isEmpty) return;
-    final orgRef = _db.collection(hkzOrganizations).doc(normalizedOrgId);
-
-    // Firestore does not cascade subcollection deletes when deleting a parent doc.
-    // Clean known org-scoped subcollections first.
-    await _deleteSubcollectionDocs(orgRef.collection('settings'));
-
-    await orgRef.delete();
+    final FirebaseFirestore db = _store(database);
+    await db.collection(hkzOrganizations).doc(normalizedOrgId).delete();
   }
 
-  static Future<void> _deleteSubcollectionDocs(
-    CollectionReference<Map<String, dynamic>> collectionRef,
-  ) async {
-    final snapshot = await collectionRef.get();
-    if (snapshot.docs.isEmpty) return;
-    final batch = _db.batch();
-    for (final doc in snapshot.docs) {
-      batch.delete(doc.reference);
+  static Future<void> deleteUser(String userId, {FirebaseFirestore? database}) async {
+    await _store(database).collection(hkzUsers).doc(userId).delete();
+  }
+
+  static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(
+    String orgId, {
+    FirebaseFirestore? database,
+  }) async {
+    final FirebaseFirestore db = _store(database);
+    final usersSnapshot = await db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
+    final Query<Map<String, dynamic>> departmentsQuery =
+        db.collection(hkzDepartments).where('orgId', isEqualTo: orgId);
+    QuerySnapshot<Map<String, dynamic>> departmentsSnapshot;
+    try {
+      departmentsSnapshot = await departmentsQuery.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      departmentsSnapshot = await departmentsQuery.get();
     }
-    await batch.commit();
-  }
 
-  static Future<void> deleteUser(String userId) async {
-    await _db.collection(hkzUsers).doc(userId).delete();
-  }
-
-  static Future<List<Map<String, dynamic>>> getDepartmentsByCollege(String orgId) async {
-    final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
-    final departmentsSnapshot = await _db
-        .collection(hkzDepartments)
-        .where('orgId', isEqualTo: orgId)
-        .get();
-
-    final Map<String, Map<String, dynamic>> map = <String, Map<String, dynamic>>{};
-    for (final dep in departmentsSnapshot.docs) {
-      final data = dep.data();
-      final name = (data['name'] as String?)?.trim() ?? '';
+    final Map<String, Map<String, dynamic>> byCode = <String, Map<String, dynamic>>{};
+    final Map<String, Map<String, dynamic>> byName = <String, Map<String, dynamic>>{};
+    final List<Map<String, dynamic>> rows = <Map<String, dynamic>>[];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> dep in departmentsSnapshot.docs) {
+      final Map<String, dynamic> data = dep.data();
+      final String name = (data['name'] as String?)?.trim() ?? '';
       if (name.isEmpty) continue;
-      final current = map.putIfAbsent(
-        name,
-        () => <String, dynamic>{
-          'id': dep.id,
-          'name': name,
-          'code': (data['code'] as String?)?.trim() ?? '',
-          'adminUserId': (data['adminUserId'] as String?)?.trim() ?? '',
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'facultyCount': 0,
-          'studentCount': 0,
-        },
-      );
-      current['code'] = (data['code'] as String?)?.trim() ?? current['code'];
-      current['adminUserId'] = (data['adminUserId'] as String?)?.trim() ?? current['adminUserId'];
+      final String code = (data['code'] as String?)?.trim().toUpperCase() ?? '';
+      final Map<String, dynamic> row = <String, dynamic>{
+        'id': dep.id,
+        'name': name,
+        'code': code,
+        'aliases': DepartmentModel.parseAliases(data['aliases']),
+        'adminUserId': (data['adminUserId'] as String?)?.trim() ?? '',
+        'departmentAdmin': '-',
+        'totalUsers': 0,
+        'facultyCount': 0,
+        'teamMemberCount': 0,
+        'judgeCount': 0,
+        'coordinatorCount': 0,
+      };
+      rows.add(row);
+      if (code.isNotEmpty) byCode[code] = row;
+      byName[name.toLowerCase()] = row;
     }
 
     final Map<String, UserModel> usersById = <String, UserModel>{};
-    for (final u in usersSnapshot.docs) {
-      final data = u.data();
-      final department = (data['department'] as String?)?.trim() ?? '';
-      final departmentCode = ((data['departmentCode'] as String?) ?? '').trim().toUpperCase();
-      if (departmentCode.isEmpty) continue;
-      final role = (data['role'] as String?) ?? '';
-      final firstName = (data['firstName'] as String?)?.trim() ?? '';
-      final lastName = (data['lastName'] as String?)?.trim() ?? '';
-      final fullName = '$firstName $lastName'.trim();
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> u in usersSnapshot.docs) {
+      final Map<String, dynamic> data = u.data();
+      final String department = (data['department'] as String?)?.trim() ?? '';
+      final String departmentCode = ((data['departmentCode'] as String?) ?? '').trim().toUpperCase();
+      final String role = (data['role'] as String?) ?? '';
+      final String firstName = (data['firstName'] as String?)?.trim() ?? '';
+      final String lastName = (data['lastName'] as String?)?.trim() ?? '';
+      final String fullName = '$firstName $lastName'.trim();
 
-      final departmentName = DepartmentModel.byCode(departmentCode)?.name ?? department;
-      final current = map.putIfAbsent(
-        departmentName,
-        () => <String, dynamic>{
-          'id': '',
-          'name': departmentName,
-          'code': departmentCode,
-          'adminUserId': '',
-          'departmentAdmin': '-',
-          'totalUsers': 0,
-          'facultyCount': 0,
-          'studentCount': 0,
-        },
-      );
-      current['totalUsers'] = (current['totalUsers'] as int) + 1;
-      if (role == 'DADM' && fullName.isNotEmpty) {
-        current['departmentAdmin'] = fullName;
+      Map<String, dynamic>? current;
+      if (departmentCode.isNotEmpty) current = byCode[departmentCode];
+      if (current == null) {
+        final String departmentName =
+            (DepartmentModel.byCode(departmentCode)?.name ?? department).trim();
+        if (departmentName.isNotEmpty) current = byName[departmentName.toLowerCase()];
       }
-      if (role == 'FAC') {
-        current['facultyCount'] = (current['facultyCount'] as int) + 1;
-      } else if (role == 'STU') {
-        current['studentCount'] = (current['studentCount'] as int) + 1;
+      if (current != null) {
+        if (!_isSysAdminUser(data)) {
+          current['totalUsers'] = (current['totalUsers'] as int) + 1;
+        }
+        if (role == 'DADM' && fullName.isNotEmpty) {
+          current['departmentAdmin'] = fullName;
+        }
+        if (role == UserRole.teamMember.code) {
+          current['teamMemberCount'] = (current['teamMemberCount'] as int) + 1;
+        } else if (role == UserRole.judge.code) {
+          current['judgeCount'] = (current['judgeCount'] as int? ?? 0) + 1;
+        } else if (role == UserRole.coordinator.code) {
+          current['coordinatorCount'] = (current['coordinatorCount'] as int? ?? 0) + 1;
+        }
       }
 
-      final userModel = UserModel.fromMap(data);
+      final UserModel userModel = UserModel.fromMap(data);
       usersById[userModel.userId.isNotEmpty ? userModel.userId : u.id] = userModel.copyWith(
         userId: userModel.userId.isNotEmpty ? userModel.userId : u.id,
       );
     }
 
-    for (final entry in map.entries) {
-      final row = entry.value;
-      final adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
+    for (final Map<String, dynamic> row in rows) {
+      final String adminUserId = (row['adminUserId'] as String?)?.trim() ?? '';
       if (adminUserId.isEmpty) continue;
-      final admin = usersById[adminUserId];
+      final UserModel? admin = usersById[adminUserId];
       if (admin == null) continue;
-      final fullName = '${admin.firstName} ${admin.lastName}'.trim();
+      final String fullName = '${admin.firstName} ${admin.lastName}'.trim();
       row['departmentAdmin'] = fullName.isEmpty ? '-' : fullName;
+      row['adminUser'] = admin;
     }
 
-    final result = map.values.toList(growable: false);
-    result.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-    return result;
+    rows.sort(
+      (Map<String, dynamic> a, Map<String, dynamic> b) =>
+          (a['name'] as String).compareTo(b['name'] as String),
+    );
+    return rows;
+  }
+
+  /// Raw idea documents for college dashboards (single query, client-side aggregation).
+  static Future<List<Map<String, dynamic>>> getCollegeIdeaDocuments(String orgId) async {
+    final QuerySnapshot<Map<String, dynamic>> ideasSnapshot =
+        await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
+    return ideasSnapshot.docs
+        .map((QueryDocumentSnapshot<Map<String, dynamic>> d) => <String, dynamic>{'id': d.id, ...d.data()})
+        .toList(growable: false);
   }
 
   /// Idea totals keyed by department code — used by analytics charts, not manage-college.
@@ -480,11 +565,15 @@ class FirestoreUtils {
         .where('orgId', isEqualTo: orgId)
         .get();
 
-    final totalUsers = usersSnapshot.docs.length;
-    final activeUsers = usersSnapshot.docs
+    final List<QueryDocumentSnapshot<Map<String, dynamic>>> collegeUsers = usersSnapshot.docs
+        .where((QueryDocumentSnapshot<Map<String, dynamic>> doc) => !_isSysAdminUser(doc.data()))
+        .toList(growable: false);
+
+    final totalUsers = collegeUsers.length;
+    final activeUsers = collegeUsers
         .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.active)
         .length;
-    final pendingUsers = usersSnapshot.docs
+    final pendingUsers = collegeUsers
         .where((d) => UserStatus.fromRaw((d.data()['status'] as String?) ?? '') == UserStatus.pendingApproval)
         .length;
 
@@ -541,7 +630,7 @@ class FirestoreUtils {
           : ((data['problemId'] as String?)?.trim().isNotEmpty == true
               ? (data['problemId'] as String).trim()
               : 'Unmapped Problem');
-      final status = ((data['status'] as String?) ?? 'submitted').trim().toLowerCase();
+      final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
       final bucket = grouped.putIfAbsent(
         problem,
         () => <String, dynamic>{
@@ -553,13 +642,13 @@ class FirestoreUtils {
         },
       );
       bucket['totalIdeas'] = (bucket['totalIdeas'] as int) + 1;
-      if (status == 'evaluated') {
-        bucket['evaluated'] = (bucket['evaluated'] as int) + 1;
-        evaluatedIdeas++;
-      } else if (status == 'under review' || status == 'under_review') {
-        bucket['underReview'] = (bucket['underReview'] as int) + 1;
-      } else {
+      if (status == IdeaStatus.submitted) {
         bucket['submitted'] = (bucket['submitted'] as int) + 1;
+        // Eval aggregates still live on the idea; count scored submissions as evaluated for charts.
+        if (((data['totalEvaluators'] as num?)?.toInt() ?? 0) > 0) {
+          bucket['evaluated'] = (bucket['evaluated'] as int) + 1;
+          evaluatedIdeas++;
+        }
       }
     }
 
@@ -574,18 +663,85 @@ class FirestoreUtils {
     ];
   }
 
-  static Future<void> addDepartment({
+  static Future<String> addDepartment({
     required String orgId,
     required String name,
     required String code,
+    String adminUserId = '',
+    List<String> aliases = const <String>[],
   }) async {
-    await _db.collection(hkzDepartments).add(<String, dynamic>{
+    final DocumentReference<Map<String, dynamic>> ref =
+        await _db.collection(hkzDepartments).add(<String, dynamic>{
       'orgId': orgId,
       'name': name.trim(),
       'code': code.trim().toUpperCase(),
-      'adminUserId': '',
+      'adminUserId': adminUserId.trim(),
+      'aliases': DepartmentModel.parseAliases(aliases),
       'createdAt': FieldValue.serverTimestamp(),
     });
+    return ref.id;
+  }
+
+  static Future<void> addDepartmentAlias({
+    required String departmentId,
+    required String alias,
+  }) async {
+    final String id = departmentId.trim();
+    final String trimmed = alias.trim();
+    if (id.isEmpty || trimmed.isEmpty) return;
+
+    final DocumentSnapshot<Map<String, dynamic>> doc =
+        await _db.collection(hkzDepartments).doc(id).get();
+    if (!doc.exists || doc.data() == null) return;
+    final Map<String, dynamic> data = doc.data()!;
+    final String name = (data['name'] as String?)?.trim() ?? '';
+    final String code = (data['code'] as String?)?.trim() ?? '';
+    if (DepartmentModel.aliasMatchesDepartment(alias: trimmed, name: name, code: code)) {
+      return;
+    }
+
+    final List<String> existing = DepartmentModel.parseAliases(data['aliases']);
+    final List<String> merged = DepartmentModel.mergeAliases(existing, <String>[trimmed]);
+    if (merged.length == existing.length) return;
+
+    await _db.collection(hkzDepartments).doc(id).set(<String, dynamic>{
+      'aliases': merged,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Active College Admins and Department Admins who may own a department.
+  static Future<List<UserModel>> listEligibleDepartmentAdministrators({
+    required String orgId,
+  }) async {
+    final List<QuerySnapshot<Map<String, dynamic>>> snaps = await Future.wait(<Future<QuerySnapshot<Map<String, dynamic>>>>[
+      _db
+          .collection(hkzUsers)
+          .where('orgId', isEqualTo: orgId)
+          .where('role', isEqualTo: UserRole.collegeAdmin.code)
+          .get(),
+      _db
+          .collection(hkzUsers)
+          .where('orgId', isEqualTo: orgId)
+          .where('role', isEqualTo: UserRole.departmentAdmin.code)
+          .get(),
+    ]);
+
+    final List<UserModel> users = <UserModel>[];
+    for (final QuerySnapshot<Map<String, dynamic>> snap in snaps) {
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in snap.docs) {
+        final UserModel user = UserModel.fromMap(doc.data()).copyWith(userId: doc.id);
+        if (user.status != UserStatus.active) continue;
+        if (!UserRole.isEligibleDepartmentAdministrator(user.role)) continue;
+        users.add(user);
+      }
+    }
+    users.sort((UserModel a, UserModel b) {
+      final int byRole = a.role.compareTo(b.role);
+      if (byRole != 0) return byRole;
+      return userDisplayName(a).toLowerCase().compareTo(userDisplayName(b).toLowerCase());
+    });
+    return users;
   }
 
   static Future<void> updateDepartment({
@@ -710,10 +866,12 @@ class FirestoreUtils {
     return mapped;
   }
 
-  static Future<List<TeamModel>> getFacultyTeams(String facultyId) async {
+  static Future<List<TeamModel>> getTeamsLedBy(String userId) async {
+    final String id = userId.trim();
+    if (id.isEmpty) return const <TeamModel>[];
     final snapshot = await _db
         .collection(hkzTeams)
-        .where('mentorId', isEqualTo: facultyId)
+        .where('teamLeaderId', isEqualTo: id)
         .get();
     final teams = snapshot.docs
         .map((d) => TeamModel.fromMap(d.id, d.data()))
@@ -730,7 +888,7 @@ class FirestoreUtils {
         .collection(hkzProblems)
         .where('orgId', isEqualTo: orgId)
         .where('departmentCode', isEqualTo: departmentCode.trim().toUpperCase())
-        .where('isActive', isEqualTo: true)
+        .where('status', isEqualTo: 'active')
         .get();
     final problems = snapshot.docs
         .map((d) => ProblemModel.fromMap(d.id, d.data()))
@@ -744,7 +902,7 @@ class FirestoreUtils {
     final snapshot = await _db
         .collection(hkzProblems)
         .where('orgId', isEqualTo: orgId)
-        .where('isActive', isEqualTo: true)
+        .where('status', isEqualTo: 'active')
         .get();
     final problems = snapshot.docs
         .map((d) => ProblemModel.fromMap(d.id, d.data()))
@@ -788,8 +946,7 @@ class FirestoreUtils {
     final usersSnapshot = await _db.collection(hkzUsers).where('orgId', isEqualTo: orgId).get();
     final ideasSnapshot = await _db.collection(hkzIdeas).where('orgId', isEqualTo: orgId).get();
 
-    int totalStudents = 0;
-    int totalFaculty = 0;
+    int totalTeamMembers = 0;
     int totalIdeas = 0;
     int activeIdeas = 0;
     int submitted = 0;
@@ -800,10 +957,8 @@ class FirestoreUtils {
       final data = user.data();
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       final role = ((data['role'] as String?) ?? '').trim();
-      if (role == 'STU') {
-        totalStudents++;
-      } else if (role == 'FAC') {
-        totalFaculty++;
+      if (role == UserRole.teamMember.code) {
+        totalTeamMembers++;
       }
     }
 
@@ -811,15 +966,13 @@ class FirestoreUtils {
       final data = idea.data();
       if (!_matchesDepartmentCode(data, departmentCode)) continue;
       totalIdeas++;
-      final status = ((data['status'] as String?) ?? 'submitted').trim().toLowerCase();
-      if (status == 'evaluated') {
-        evaluated++;
-        activeIdeas++;
-      } else if (status == 'under review' || status == 'under_review') {
-        underReview++;
-        activeIdeas++;
-      } else {
+      final IdeaStatus status = IdeaStatus.fromRaw((data['status'] as String?) ?? IdeaStatus.submitted.value);
+      if (status == IdeaStatus.submitted) {
         submitted++;
+        activeIdeas++;
+        if (((data['totalEvaluators'] as num?)?.toInt() ?? 0) > 0) {
+          evaluated++;
+        }
       }
     }
 
@@ -830,8 +983,7 @@ class FirestoreUtils {
     }).length;
 
     return <String, dynamic>{
-      'totalStudents': totalStudents,
-      'totalFaculty': totalFaculty,
+      'totalTeamMembers': totalTeamMembers,
       'totalIdeas': totalIdeas,
       'activeIdeas': activeIdeas,
       'totalJudges': totalJudges,
@@ -924,43 +1076,6 @@ class FirestoreUtils {
         .toList(growable: false);
   }
 
-  static Future<List<Map<String, dynamic>>> getDepartmentPayments({
-    required String orgId,
-    required String department,
-  }) async {
-    final departmentCode = _resolveDepartmentCode(department);
-    final faculty = await getDepartmentUsers(
-      orgId: orgId,
-      department: department,
-      roleCodes: <String>['FAC'],
-      limit: 500,
-    );
-    final paymentsSnapshot = await _db.collection(hkzPayments).where('orgId', isEqualTo: orgId).get();
-    final paymentsByUser = <String, List<Map<String, dynamic>>>{};
-    for (final p in paymentsSnapshot.docs) {
-      final data = p.data();
-      if (!_matchesDepartmentCode(data, departmentCode)) continue;
-      final userId = ((data['userId'] as String?) ?? '').trim();
-      if (userId.isEmpty) continue;
-      paymentsByUser.putIfAbsent(userId, () => <Map<String, dynamic>>[]).add(data);
-    }
-
-    return faculty
-        .map((f) {
-          final history = paymentsByUser[f.userId] ?? <Map<String, dynamic>>[];
-          final total = history.fold<double>(
-            0,
-            (sum, p) => sum + (((p['amount'] as num?) ?? 0).toDouble()),
-          );
-          return <String, dynamic>{
-            'user': f,
-            'totalPayment': total,
-            'history': history,
-          };
-        })
-        .toList(growable: false);
-  }
-
   static Future<ProblemModel?> fetchProblemById(String problemId) async {
     final id = problemId.trim();
     if (id.isEmpty) return null;
@@ -1002,7 +1117,7 @@ class FirestoreUtils {
 
   /// One payment document per idea: document id is [PaymentModel.ideaId].
   /// Creates new, or replaces a **rejected** record (legacy random doc ids are migrated away).
-  static Future<String> saveStudentIdeaPayment(PaymentModel payment) async {
+  static Future<String> saveIdeaPayment(PaymentModel payment) async {
     final ideaKey = payment.ideaId.trim();
     if (ideaKey.isEmpty) {
       throw StateError('ideaId is required for payment.');
@@ -1062,27 +1177,46 @@ class FirestoreUtils {
     if (!legSnap.exists || legSnap.data() == null) {
       throw StateError('Payment not found.');
     }
-    final ideaId = ((legSnap.data()!['ideaId'] as String?) ?? '').trim();
+    final Map<String, dynamic> data = Map<String, dynamic>.from(legSnap.data()!);
+    final ideaId = ((data['ideaId'] as String?) ?? '').trim();
     if (ideaId.isEmpty) throw StateError('Invalid payment payload.');
-    final canonRef = _db.collection(hkzPayments).doc(ideaId);
-    final batch = _db.batch();
+
+    final String participationId = ((data['participationId'] as String?) ?? '').trim();
+    final String ideathonId = ((data['ideathonId'] as String?) ?? '').trim();
+    final bool isEventPayment = participationId.isNotEmpty || ideathonId.isNotEmpty;
+
     final statusUpdate = <String, dynamic>{
       'status': PaymentRecordStatus.verified.value,
       'verifiedBy': coordinatorId,
       'verifiedAt': FieldValue.serverTimestamp(),
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
-      'paymentId': ideaId,
     };
-    if (legRef.id != ideaId) {
-      final merged = Map<String, dynamic>.from(legSnap.data()!);
-      merged.addAll(statusUpdate);
-      batch.delete(legRef);
-      batch.set(canonRef, merged);
+
+    if (isEventPayment) {
+      // Event-scoped payments keep their own document id so the same idea
+      // can have independent payments across events.
+      statusUpdate['paymentId'] = legRef.id;
+      await legRef.update(statusUpdate);
     } else {
-      batch.update(canonRef, statusUpdate);
+      final canonRef = _db.collection(hkzPayments).doc(ideaId);
+      final batch = _db.batch();
+      statusUpdate['paymentId'] = ideaId;
+      if (legRef.id != ideaId) {
+        final merged = Map<String, dynamic>.from(data)..addAll(statusUpdate);
+        batch.delete(legRef);
+        batch.set(canonRef, merged);
+      } else {
+        batch.update(canonRef, statusUpdate);
+      }
+      await batch.commit();
     }
-    batch.update(_db.collection(hkzIdeas).doc(ideaId), <String, dynamic>{'status': IdeaStatus.submitted.value});
-    await batch.commit();
+
+    await _syncIdeathonParticipationAfterPayment(
+      participationId: participationId,
+      ideathonId: ideathonId,
+      ideaId: ideaId,
+      paymentStatus: PaymentRecordStatus.verified,
+    );
   }
 
   static Future<void> rejectIdeaPayment({
@@ -1090,11 +1224,47 @@ class FirestoreUtils {
     required String coordinatorId,
     String? remarks,
   }) async {
-    await _db.collection(hkzPayments).doc(paymentId).update(<String, dynamic>{
+    final DocumentReference<Map<String, dynamic>> ref = _db.collection(hkzPayments).doc(paymentId);
+    final DocumentSnapshot<Map<String, dynamic>> snap = await ref.get();
+    if (!snap.exists || snap.data() == null) {
+      throw StateError('Payment not found.');
+    }
+    final Map<String, dynamic> data = Map<String, dynamic>.from(snap.data()!);
+    await ref.update(<String, dynamic>{
       'status': PaymentRecordStatus.rejected.value,
       'verifiedBy': coordinatorId,
       'verifiedAt': FieldValue.serverTimestamp(),
       if (remarks != null && remarks.trim().isNotEmpty) 'remarks': remarks.trim(),
+    });
+    await _syncIdeathonParticipationAfterPayment(
+      participationId: ((data['participationId'] as String?) ?? '').trim(),
+      ideathonId: ((data['ideathonId'] as String?) ?? '').trim(),
+      ideaId: ((data['ideaId'] as String?) ?? '').trim(),
+      paymentStatus: PaymentRecordStatus.rejected,
+    );
+  }
+
+  /// Mirrors idea payment status onto any linked Ideathon membership row.
+  static Future<void> _syncIdeathonParticipationAfterPayment({
+    required String participationId,
+    required String ideathonId,
+    required String ideaId,
+    required PaymentRecordStatus paymentStatus,
+  }) async {
+    String id = participationId.trim();
+    if (id.isEmpty && ideathonId.trim().isNotEmpty && ideaId.trim().isNotEmpty) {
+      final QuerySnapshot<Map<String, dynamic>> snap = await _db
+          .collection(hkzIdeathonParticipations)
+          .where('ideathonId', isEqualTo: ideathonId.trim())
+          .where('ideaId', isEqualTo: ideaId.trim())
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) id = snap.docs.first.id;
+    }
+    if (id.isEmpty) return;
+    await _db.collection(hkzIdeathonParticipations).doc(id).update(<String, dynamic>{
+      'paymentStatus': paymentStatus.value,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 }

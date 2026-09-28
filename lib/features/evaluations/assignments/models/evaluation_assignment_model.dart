@@ -30,6 +30,7 @@ class EvaluationAssignmentModel {
     required this.assignedBy,
     required this.assignedAt,
     required this.updatedAt,
+    this.ideathonId = '',
   });
 
   final String assignmentId;
@@ -41,8 +42,10 @@ class EvaluationAssignmentModel {
   final String assignedBy;
   final DateTime assignedAt;
   final DateTime updatedAt;
+  final String ideathonId;
 
   bool get isActive => status == EvaluationAssignmentStatus.active;
+  bool get isIdeathonAssignment => ideathonId.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
@@ -55,6 +58,7 @@ class EvaluationAssignmentModel {
       'assignedBy': assignedBy,
       'assignedAt': Timestamp.fromDate(assignedAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      if (ideathonId.trim().isNotEmpty) 'ideathonId': ideathonId.trim(),
     };
   }
 
@@ -71,6 +75,7 @@ class EvaluationAssignmentModel {
       assignedBy: ((map['assignedBy'] as String?) ?? '').trim(),
       assignedAt: (map['assignedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      ideathonId: ((map['ideathonId'] as String?) ?? '').trim(),
     );
   }
 }

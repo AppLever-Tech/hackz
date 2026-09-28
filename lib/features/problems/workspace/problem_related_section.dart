@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/idea_model.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/common/count_pill.dart';
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../idea/models/enums/idea_status.dart';
+import '../../idea/services/idea_status_helpers.dart';
 import 'problem_workspace_loader.dart';
 
 class ProblemRelatedSection extends StatelessWidget {
@@ -34,9 +36,8 @@ class ProblemRelatedSection extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            _summaryPill(AppIcons.departments, 'Department', vm.problem.departmentDisplayName),
-            _summaryPill(AppIcons.coordinator, 'Coordinators', '${vm.coordinatorCount}'),
-            _summaryPill(AppIcons.judges, 'Judges', '${vm.judgeCount}'),
+            CountPill.coordinators(vm.coordinatorCount),
+            CountPill.judges(vm.judgeCount),
           ],
         ),
       ],
@@ -102,36 +103,6 @@ class ProblemRelatedSection extends StatelessWidget {
       ),
     );
   }
-
-  Widget _summaryPill(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: const Color(0xFF57629A)),
-          const SizedBox(width: 6),
-          Text(
-            '$label: $value',
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-String _statusLabel(IdeaStatus status) {
-  return switch (status) {
-    IdeaStatus.pendingSubmission => 'Pending',
-    IdeaStatus.submitted => 'Submitted',
-    IdeaStatus.underReview => 'Under review',
-    IdeaStatus.evaluated => 'Evaluated',
-    IdeaStatus.approved => 'Approved',
-    IdeaStatus.rejected => 'Rejected',
-  };
-}
+String _statusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);

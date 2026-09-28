@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../domain/widgets/domain_context_pill.dart';
+import '../services/problem_status_helpers.dart';
 import '../../../utils/common_helpers.dart';
 import '../screens/authoring/problem_authoring_section.dart';
+import '../widgets/problem_category_chips.dart';
 import 'problem_workspace.dart';
 
 /// Read-only problem detail surface used in the workspace and the
@@ -29,11 +32,20 @@ class ProblemSummarySection extends StatefulWidget {
     required this.vm,
     this.showMetaChips = true,
     this.prominentDescription = false,
+    this.workspaceSectionsOnly = false,
+    this.stackContextFieldLabels = false,
   });
 
   final ProblemWorkspaceViewModel vm;
   final bool showMetaChips;
   final bool prominentDescription;
+
+  /// When true (problem workspace), only the Description card is shown and
+  /// its header is collapsible. Elsewhere the description stays always open.
+  final bool workspaceSectionsOnly;
+
+  /// Stacks field labels above values for Innovation Context and Expected Outcomes.
+  final bool stackContextFieldLabels;
 
   @override
   State<ProblemSummarySection> createState() => _ProblemSummarySectionState();
@@ -43,6 +55,14 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
   /// Keyed by [_SectionId] enum names. Sections start collapsed so the page
   /// stays scannable; tapping the header expands them in place.
   final Set<String> _expanded = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.workspaceSectionsOnly) {
+      _expanded.add(_SectionId.description.name);
+    }
+  }
 
   void _toggle(_SectionId id) {
     final String key = id.name;
@@ -66,30 +86,39 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
     // Each section's data presence is precomputed so empty groups are
     // skipped entirely (no empty cards rendered for problems that haven't
     // been fully authored).
-    final bool hasInnovation = p.background.trim().isNotEmpty ||
+    final bool workspaceOnly = widget.workspaceSectionsOnly;
+    final bool stackContextFields = widget.stackContextFieldLabels;
+    final bool hasInnovation = !workspaceOnly &&
+        (p.background.trim().isNotEmpty ||
         p.impact.trim().isNotEmpty ||
         p.stakeholders.trim().isNotEmpty ||
-        p.researchContext.trim().isNotEmpty;
-    final bool hasOutcomes = p.expectedSolution.trim().isNotEmpty ||
+        p.researchContext.trim().isNotEmpty);
+    final bool hasOutcomes = !workspaceOnly &&
+        (p.expectedSolution.trim().isNotEmpty ||
         p.successCriteria.trim().isNotEmpty ||
         p.expectedDeliverables.trim().isNotEmpty ||
-        p.suggestedTechnologies.isNotEmpty;
-    final bool hasConstraints = p.constraints.trim().isNotEmpty ||
+        p.suggestedTechnologies.isNotEmpty);
+    final bool hasConstraints = !workspaceOnly &&
+        (p.constraints.trim().isNotEmpty ||
         p.difficultyLevel.trim().isNotEmpty ||
         p.complexityLevel.trim().isNotEmpty ||
-        p.timeline.trim().isNotEmpty;
-    final bool hasSubmissionControls =
-        p.maxIdeasAllowed != null || p.ideaSubmissionDeadline != null;
-    final bool hasTeamRules = p.minTeamSize != null || p.maxTeamSize != null;
-    final bool hasTechStack = p.preferredTechStack.isNotEmpty;
-    final bool hasClassification = p.category.trim().isNotEmpty ||
-        p.theme.trim().isNotEmpty ||
-        p.departmentDisplayName.trim().isNotEmpty ||
-        p.tags.isNotEmpty;
-    final bool hasResources = p.youtubeLink.trim().isNotEmpty ||
+        p.timeline.trim().isNotEmpty);
+    final bool hasSubmissionControls = !workspaceOnly &&
+        (p.maxIdeasAllowed != null || p.ideaSubmissionDeadline != null);
+    final bool hasTeamRules =
+        !workspaceOnly && (p.minTeamSize != null || p.maxTeamSize != null);
+    final bool hasTechStack = !workspaceOnly && p.preferredTechStack.isNotEmpty;
+    final bool hasClassification = !workspaceOnly &&
+        (p.category.trim().isNotEmpty ||
+            p.theme.trim().isNotEmpty ||
+            p.departmentDisplayName.trim().isNotEmpty ||
+            (widget.vm.domain != null) ||
+            p.tags.isNotEmpty);
+    final bool hasResources = !workspaceOnly &&
+        (p.youtubeLink.trim().isNotEmpty ||
         p.datasetLink.trim().isNotEmpty ||
         p.referenceLinks.isNotEmpty ||
-        p.contactInformation.trim().isNotEmpty;
+        p.contactInformation.trim().isNotEmpty);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,17 +141,16 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               _chip(AppIcons.problems,
                   p.problemNumber.trim().isEmpty ? p.problemId : p.problemNumber),
               _chip(AppIcons.departments, p.departmentDisplayName),
+              if (widget.vm.domain != null)
+                DomainContextPill(domain: widget.vm.domain!),
               _chip(
-                p.isActive ? AppIcons.statusApproved : AppIcons.statusInactive,
-                p.isActive ? 'Active' : 'Inactive',
+                ProblemStatusHelpers.icon(p.status),
+                ProblemStatusHelpers.label(p.status),
               ),
             ],
           ),
         ],
         const SizedBox(height: 14),
-        // Description — always shown, non-collapsible. Mirrors the authoring
-        // "Core Challenge" section styling so the read surface reads as a
-        // direct view of the authoring form.
         ProblemAuthoringSection(
           title: 'Description',
           subtitle: 'What the problem is and why it matters',
@@ -130,9 +158,9 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           iconBg: const Color(0xFFFFF1E5),
           iconColor: const Color(0xFFEA580C),
           status: const AuthoringSectionStatus(completed: 0, total: 0),
-          collapsible: false,
-          expanded: true,
-          onToggle: () {},
+          collapsible: workspaceOnly,
+          expanded: workspaceOnly ? _isExpanded(_SectionId.description) : true,
+          onToggle: workspaceOnly ? () => _toggle(_SectionId.description) : () {},
           child: _DescriptionBody(
             description: desc,
             prominent: widget.prominentDescription,
@@ -152,14 +180,26 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _DetailValueBlock(label: 'Background', value: p.background),
                 _DetailValueBlock(
-                    label: 'Why this needs to be solved / Impact', value: p.impact),
+                  label: 'Background',
+                  value: p.background,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Stakeholders / Beneficiaries', value: p.stakeholders),
+                  label: 'Why this needs to be solved / Impact',
+                  value: p.impact,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Supporting data / Research context',
-                    value: p.researchContext),
+                  label: 'Stakeholders / Beneficiaries',
+                  value: p.stakeholders,
+                  stacked: stackContextFields,
+                ),
+                _DetailValueBlock(
+                  label: 'Supporting data / Research context',
+                  value: p.researchContext,
+                  stacked: stackContextFields,
+                ),
               ],
             ),
           ),
@@ -179,15 +219,26 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _DetailValueBlock(
-                    label: 'Expected solution direction', value: p.expectedSolution),
+                  label: 'Expected solution direction',
+                  value: p.expectedSolution,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Success criteria', value: p.successCriteria),
+                  label: 'Success criteria',
+                  value: p.successCriteria,
+                  stacked: stackContextFields,
+                ),
                 _DetailValueBlock(
-                    label: 'Expected deliverables', value: p.expectedDeliverables),
+                  label: 'Expected deliverables',
+                  value: p.expectedDeliverables,
+                  stacked: stackContextFields,
+                ),
                 if (p.suggestedTechnologies.isNotEmpty)
                   _DetailChipBlock(
-                      label: 'Suggested technologies',
-                      values: p.suggestedTechnologies),
+                    label: 'Suggested technologies',
+                    values: p.suggestedTechnologies,
+                    prominentLabel: stackContextFields,
+                  ),
               ],
             ),
           ),
@@ -197,7 +248,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           ProblemAuthoringSection(
             title: 'Constraints & Feasibility',
             subtitle: 'Real-world limits, difficulty, and timeline',
-            icon: AppIcons.statusUnderReview,
+            icon: AppIcons.info,
             iconBg: const Color(0xFFFEF3E6),
             iconColor: const Color(0xFFD97706),
             status: const AuthoringSectionStatus(completed: 0, total: 0),
@@ -288,7 +339,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
           const SizedBox(height: 12),
           ProblemAuthoringSection(
             title: 'Classification',
-            subtitle: 'Department, category, theme, and tags',
+            subtitle: 'Department, domain, category, theme, and tags',
             icon: AppIcons.orgType,
             iconBg: const Color(0xFFE6F8EF),
             iconColor: const Color(0xFF047857),
@@ -299,7 +350,12 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 _DetailValueBlock(label: 'Department', value: p.departmentDisplayName),
-                _DetailValueBlock(label: 'Category', value: p.category),
+                if (widget.vm.domain != null)
+                  _DetailValueBlock(
+                    label: 'Domain',
+                    value: widget.vm.domain!.displayLabel,
+                  ),
+                _DetailCategoryField(selected: p.category),
                 _DetailValueBlock(label: 'Theme', value: p.theme),
                 if (p.tags.isNotEmpty)
                   _DetailChipBlock(label: 'Tags', values: p.tags),
@@ -367,6 +423,7 @@ class _ProblemSummarySectionState extends State<ProblemSummarySection> {
 /// Stable identifier per collapsible section so the expanded-state set stays
 /// stable across rebuilds.
 enum _SectionId {
+  description,
   innovation,
   outcomes,
   constraints,
@@ -413,19 +470,14 @@ class _DescriptionBody extends StatelessWidget {
   }
 }
 
-/// Label + multi-line value block used inside every read-only section card.
-/// Empty values short-circuit to `SizedBox.shrink` so the caller doesn't
-/// need to gate each row.
-class _DetailValueBlock extends StatelessWidget {
-  const _DetailValueBlock({required this.label, required this.value});
+/// Label + Software/Hardware chip row for the classification section.
+class _DetailCategoryField extends StatelessWidget {
+  const _DetailCategoryField({required this.selected});
 
-  final String label;
-  final String value;
+  final String selected;
 
   @override
   Widget build(BuildContext context) {
-    final String trimmed = value.trim();
-    if (trimmed.isEmpty) return const SizedBox.shrink();
     final bool compact = MediaQuery.sizeOf(context).width < 900;
     final double labelWidth = compact ? 170 : 220;
 
@@ -436,9 +488,9 @@ class _DetailValueBlock extends StatelessWidget {
         children: <Widget>[
           SizedBox(
             width: labelWidth,
-            child: Text(
-              label,
-              style: const TextStyle(
+            child: const Text(
+              'Category',
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF64748B),
@@ -449,16 +501,85 @@ class _DetailValueBlock extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              trimmed,
-              softWrap: true,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFF1E293B),
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: ProblemCategoryChips(selected: selected, compact: compact),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Label + multi-line value block used inside every read-only section card.
+/// Empty values short-circuit to `SizedBox.shrink` so the caller doesn't
+/// need to gate each row.
+class _DetailValueBlock extends StatelessWidget {
+  const _DetailValueBlock({
+    required this.label,
+    required this.value,
+    this.stacked = false,
+  });
+
+  final String label;
+  final String value;
+  final bool stacked;
+
+  static const TextStyle _inlineLabelStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+    color: Color(0xFF64748B),
+    letterSpacing: 0.3,
+    height: 1.2,
+  );
+
+  static const TextStyle _stackedLabelStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    color: Color(0xFF334155),
+    letterSpacing: 0.2,
+    height: 1.25,
+  );
+
+  static const TextStyle _valueStyle = TextStyle(
+    fontSize: 13,
+    color: Color(0xFF1E293B),
+    height: 1.45,
+    fontWeight: FontWeight.w500,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final String trimmed = value.trim();
+    if (trimmed.isEmpty) return const SizedBox.shrink();
+
+    if (stacked) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(label, style: _stackedLabelStyle),
+            const SizedBox(height: 5),
+            Text(trimmed, softWrap: true, style: _valueStyle),
+          ],
+        ),
+      );
+    }
+
+    final bool compact = MediaQuery.sizeOf(context).width < 900;
+    final double labelWidth = compact ? 170 : 220;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SizedBox(
+            width: labelWidth,
+            child: Text(label, style: _inlineLabelStyle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(trimmed, softWrap: true, style: _valueStyle),
           ),
         ],
       ),
@@ -469,30 +590,35 @@ class _DetailValueBlock extends StatelessWidget {
 /// Label + wrapped chip row used for chip-list fields (suggested technologies,
 /// preferred tech stack, tags, reference links).
 class _DetailChipBlock extends StatelessWidget {
-  const _DetailChipBlock({required this.label, required this.values});
+  const _DetailChipBlock({
+    required this.label,
+    required this.values,
+    this.prominentLabel = false,
+  });
 
   final String label;
   final List<String> values;
+  final bool prominentLabel;
 
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: prominentLabel ? 14 : 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 11,
+            style: TextStyle(
+              fontSize: prominentLabel ? 12 : 11,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF64748B),
-              letterSpacing: 0.3,
-              height: 1.2,
+              color: prominentLabel ? const Color(0xFF334155) : const Color(0xFF64748B),
+              letterSpacing: prominentLabel ? 0.2 : 0.3,
+              height: prominentLabel ? 1.25 : 1.2,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: prominentLabel ? 5 : 6),
           Wrap(
             spacing: 6,
             runSpacing: 6,

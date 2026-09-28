@@ -4,6 +4,7 @@ import '../../../utils/firestore_utils.dart';
 import '../models/workflow_request.dart';
 import '../models/workflow_request_type.dart';
 import '../models/workflow_status.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Generic CRUD + listing for [WorkflowRequest]. Type-specific side-effects
 /// (e.g. mutating a team on approval) live in dedicated services that call
@@ -19,7 +20,7 @@ class WorkflowRequestException implements Exception {
 class WorkflowRequestService {
   WorkflowRequestService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection(FirestoreUtils.hkzRequests);
 

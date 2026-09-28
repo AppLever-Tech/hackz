@@ -1,25 +1,29 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../constants/app_icons.dart';
-import '../../../../models/attachment_model.dart';
-import '../../../../models/enums/user_role.dart';
-import '../../../../models/user_model.dart';
-import '../../../../responsive/responsive_helper.dart';
-import '../../../../shared/feedback/feedback.dart';
-import '../../../../utils/attachment_service.dart';
+import '../../../../core/theme/app_icons.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import '../../../user/models/enums/user_role.dart';
+import '../../../user/models/user_model.dart';
+import '../../../../core/responsive/responsive_helper.dart';
+import '../../../../core/ui/feedback/feedback.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/common_helpers.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../../widgets/attachment_upload_preview.dart';
+import 'package:hackz/features/attachment/widgets/attachment_upload_preview.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
 import '../../constants/problem_constants.dart';
+import '../../../imports/models/import_created_source.dart';
+import '../../../domain/domain.dart';
 import '../../models/problem_model.dart';
+import '../../models/problem_status.dart';
+import '../../services/problem_source_identity.dart';
 import '../../services/problem_utils.dart';
 import '../../validators/problem_authoring_validators.dart';
 import 'problem_authoring_inputs.dart';
 import 'problem_authoring_section.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Full-screen "Problem Authoring Workspace" - replaces the old CRUD dialog.
 ///
@@ -87,6 +91,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   // Section 5 - Classification
   final TextEditingController _themeController = TextEditingController();
   String _selectedDepartment = '';
+  String _selectedDomainId = '';
   String _selectedCategory = '';
   List<String> _tags = <String>[];
 
@@ -118,10 +123,12 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   int _orgMaxTeamSize = 30;
 
   // Workspace state
-  bool _isActive = true;
   bool _isLoadingDepartments = true;
+  bool _isLoadingDomains = false;
   bool _isSubmitting = false;
   List<Map<String, String>> _departmentOptions = <Map<String, String>>[];
+  List<DomainModel> _domainOptions = <DomainModel>[];
+  Map<String, String> _deptCodeToId = <String, String>{};
 
   late final Set<_AuthoringSectionId> _expanded = <_AuthoringSectionId>{
     _AuthoringSectionId.coreChallenge,
@@ -168,13 +175,12 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       _themeController.text = p.theme;
       _selectedCategory = p.category;
       _selectedDepartment = p.departmentCode;
+      _selectedDomainId = p.domainId;
       _tags = List<String>.from(p.tags);
       _youtubeController.text = p.youtubeLink;
       _datasetController.text = p.datasetLink;
       _contactController.text = p.contactInformation;
       _referenceLinks = List<String>.from(p.referenceLinks);
-      _isActive = p.isActive;
-
       // Section 8 — Submission Controls / Team Rules / Tech Stack.
       if (p.maxIdeasAllowed != null) {
         _maxIdeasController.text = p.maxIdeasAllowed.toString();
@@ -271,6 +277,9 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   Future<void> _loadDepartments() async {
     try {
       final rows = await FirestoreUtils.getDepartmentsByCollege(widget.currentUser.orgId);
+      final Map<String, String> codeToId = await DomainDepartmentResolver.codeToIdMap(
+        widget.currentUser.orgId,
+      );
       final options = rows
           .map((row) {
             final code = ((row['code'] as String?) ?? '').trim();
@@ -283,13 +292,68 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       if (!mounted) return;
       setState(() {
         _departmentOptions = options;
+        _deptCodeToId = codeToId;
         if (_isDeptAdmin) {
           _selectedDepartment = widget.currentUser.departmentCode.trim().toUpperCase();
         }
       });
+      await _reloadDomainsForSelectedDepartment(preserveSelection: true);
     } finally {
       if (mounted) setState(() => _isLoadingDepartments = false);
     }
+  }
+
+  Future<void> _reloadDomainsForSelectedDepartment({bool preserveSelection = false}) async {
+    final String deptCode = _selectedDepartment.trim().toUpperCase();
+    final String? deptId = _deptCodeToId[deptCode];
+    if (deptCode.isEmpty || deptId == null || deptId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = <DomainModel>[];
+        if (!preserveSelection) _selectedDomainId = '';
+        _isLoadingDomains = false;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingDomains = true);
+    try {
+      final List<DomainModel> domains = await DomainService.listByOrg(
+        orgId: widget.currentUser.orgId,
+        departmentId: deptId,
+        activeOnly: true,
+      );
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = domains;
+        if (preserveSelection &&
+            _selectedDomainId.isNotEmpty &&
+            domains.any((DomainModel d) => d.domainId == _selectedDomainId)) {
+          // keep
+        } else if (domains.length == 1) {
+          _selectedDomainId = domains.first.domainId;
+        } else if (!preserveSelection ||
+            !domains.any((DomainModel d) => d.domainId == _selectedDomainId)) {
+          _selectedDomainId = '';
+        }
+        _isLoadingDomains = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _domainOptions = <DomainModel>[];
+        if (!preserveSelection) _selectedDomainId = '';
+        _isLoadingDomains = false;
+      });
+    }
+  }
+
+  void _onDepartmentChanged(String? value) {
+    setState(() {
+      _selectedDepartment = value ?? '';
+      _selectedDomainId = '';
+    });
+    _reloadDomainsForSelectedDepartment();
   }
 
   Future<void> _pickAttachments() async {
@@ -347,10 +411,11 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
   AuthoringSectionStatus _classificationStatus() {
     int filled = 0;
     if (_filled(_selectedDepartment)) filled++;
+    if (_filled(_selectedDomainId)) filled++;
     if (_filled(_selectedCategory)) filled++;
     if (_filled(_themeController.text)) filled++;
     if (_tags.isNotEmpty) filled++;
-    return AuthoringSectionStatus(completed: filled, total: 4, required: true);
+    return AuthoringSectionStatus(completed: filled, total: 5, required: true);
   }
 
   AuthoringSectionStatus _resourcesStatus() {
@@ -387,22 +452,24 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       );
 
   bool get _canPublish {
-    if (_isSubmitting || _isLoadingDepartments) return false;
+    if (_isSubmitting || _isLoadingDepartments || _isLoadingDomains) return false;
     if (!_filled(_titleController.text)) return false;
     if (!_filled(_descriptionController.text)) return false;
     if (!_filled(_selectedDepartment)) return false;
+    if (!_filled(_selectedDomainId)) return false;
     if (!_filled(_selectedCategory)) return false;
     if (!_filled(_themeController.text)) return false;
     return true;
   }
 
   // Hero counts only required fields used to gate publish.
-  int get _requiredFieldsTotal => 5;
+  int get _requiredFieldsTotal => 6;
   int get _requiredFieldsCompleted {
     int filled = 0;
     if (_filled(_titleController.text)) filled++;
     if (_filled(_descriptionController.text)) filled++;
     if (_filled(_selectedDepartment)) filled++;
+    if (_filled(_selectedDomainId)) filled++;
     if (_filled(_selectedCategory)) filled++;
     if (_filled(_themeController.text)) filled++;
     return filled;
@@ -427,6 +494,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
     // error later in the save path.
     final int? maxIdeasValue = int.tryParse(_maxIdeasController.text.trim());
     final List<String?> errors = <String?>[
+      ProblemAuthoringValidators.validateCategory(_selectedCategory),
       ProblemAuthoringValidators.validateMaxIdeasAllowed(maxIdeasValue, _orgMaxAllowedIdeas),
       ProblemAuthoringValidators.validateDeadline(_ideaSubmissionDeadline),
       ProblemAuthoringValidators.validateTeamSize(
@@ -454,7 +522,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       final orgTypeName = widget.currentUser.orgType?.name ?? 'college';
       final createProblemId = _isEdit
           ? widget.initialProblem!.problemId
-          : FirebaseFirestore.instance.collection(FirestoreUtils.hkzProblems).doc().id;
+          : HackzFirebase.current.firestore.collection(FirestoreUtils.hkzProblems).doc().id;
 
       if (_attachments.isNotEmpty) {
         await AttachmentService.uploadAttachments(
@@ -476,14 +544,26 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
         orgId: widget.currentUser.orgId,
         orgType: orgTypeName,
         departmentCode: _selectedDepartment,
+        domainId: _selectedDomainId,
         createdBy: widget.currentUser.userId,
         category: _selectedCategory,
         theme: _themeController.text.trim(),
         tags: _tags,
         attachments: const <String>[],
-        isActive: _isActive,
+        status: _isEdit ? widget.initialProblem!.status : ProblemStatus.active,
         createdAt: widget.initialProblem?.createdAt ?? DateTime.now(),
+        createdSource: _isEdit
+            ? widget.initialProblem!.createdSource
+            : ImportCreatedSource.manual.value,
         updatedAt: _isEdit ? DateTime.now() : null,
+        source: _isEdit
+            ? (widget.initialProblem!.source.trim().isEmpty
+                ? ProblemSourceIdentity.college
+                : widget.initialProblem!.source)
+            : ProblemSourceIdentity.college,
+        issuingOrganisation: widget.initialProblem?.issuingOrganisation ?? '',
+        issuingDepartment: widget.initialProblem?.issuingDepartment ?? '',
+        sourceProblemId: widget.initialProblem?.sourceProblemId ?? '',
         summary: _summaryController.text.trim(),
         background: _backgroundController.text.trim(),
         impact: _impactController.text.trim(),
@@ -583,8 +663,6 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                     _AuthoringHero(
                       titleController: _titleController,
                       summaryController: _summaryController,
-                      isActive: _isActive,
-                      onActiveChanged: (v) => setState(() => _isActive = v),
                       enabled: !_isSubmitting,
                     ),
                     const SizedBox(height: 16),
@@ -718,7 +796,7 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
                       id: _AuthoringSectionId.constraints,
                       title: 'Constraints & Feasibility',
                       subtitle: 'Real-world limits, difficulty, and timeline',
-                      icon: AppIcons.statusUnderReview,
+                      icon: AppIcons.info,
                       iconBg: const Color(0xFFFEF3E6),
                       iconColor: const Color(0xFFD97706),
                       status: _constraintsStatus(),
@@ -975,13 +1053,15 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
       children: <Widget>[
         AuthoringPairRow(
           first: _buildDepartmentSelector(),
-          second: AuthoringChoiceChips(
-            label: 'Category',
-            options: ProblemConstants.categories,
-            selected: _selectedCategory,
-            enabled: !_isSubmitting,
-            onChanged: (v) => setState(() => _selectedCategory = v),
-          ),
+          second: _buildDomainSelector(),
+        ),
+        const SizedBox(height: 12),
+        AuthoringChoiceChips(
+          label: 'Category',
+          options: ProblemConstants.categories,
+          selected: _selectedCategory,
+          enabled: !_isSubmitting,
+          onChanged: (v) => setState(() => _selectedCategory = v),
         ),
         const SizedBox(height: 12),
         AuthoringTextField(
@@ -1111,7 +1191,86 @@ class _ProblemAuthoringWorkspaceState extends State<ProblemAuthoringWorkspace> {
               .toList(growable: false),
           onChanged: _isSubmitting
               ? null
-              : (value) => setState(() => _selectedDepartment = value ?? ''),
+              : _onDepartmentChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDomainSelector() {
+    if (_isLoadingDepartments || _isLoadingDomains) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const <Widget>[
+          Text(
+            'Domain',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF334155),
+            ),
+          ),
+          SizedBox(height: 8),
+          LinearProgressIndicator(minHeight: 2),
+        ],
+      );
+    }
+
+    final bool noDepartment = _selectedDepartment.trim().isEmpty;
+    final bool noDomains = _domainOptions.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const Text(
+          'Domain',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          key: ValueKey<String>('domain-$_selectedDepartment'),
+          initialValue: _selectedDomainId.isEmpty ||
+                  !_domainOptions.any((DomainModel d) => d.domainId == _selectedDomainId)
+              ? null
+              : _selectedDomainId,
+          isExpanded: true,
+          icon: const Icon(Icons.expand_more_rounded, color: Color(0xFF64748B)),
+          decoration: InputDecoration(
+            hintText: noDepartment
+                ? 'Select a department first'
+                : (noDomains ? 'No domains in this department' : 'Select a domain'),
+            filled: true,
+            fillColor: const Color(0xFFFCFDFF),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.4),
+            ),
+          ),
+          items: _domainOptions
+              .map(
+                (DomainModel d) => DropdownMenuItem<String>(
+                  value: d.domainId,
+                  child: Text(d.displayLabel, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: (_isSubmitting || noDepartment || noDomains)
+              ? null
+              : (String? value) => setState(() => _selectedDomainId = value ?? ''),
         ),
       ],
     );
@@ -1252,15 +1411,11 @@ class _AuthoringHero extends StatelessWidget {
   const _AuthoringHero({
     required this.titleController,
     required this.summaryController,
-    required this.isActive,
-    required this.onActiveChanged,
     required this.enabled,
   });
 
   final TextEditingController titleController;
   final TextEditingController summaryController;
-  final bool isActive;
-  final ValueChanged<bool> onActiveChanged;
   final bool enabled;
 
   @override
@@ -1307,7 +1462,6 @@ class _AuthoringHero extends StatelessWidget {
                   ),
                 ),
               ),
-              _ActiveSwitch(value: isActive, onChanged: enabled ? onActiveChanged : null),
             ],
           ),
           const SizedBox(height: 14),
@@ -1372,56 +1526,6 @@ class _AuthoringHero extends StatelessWidget {
             minLines: 1,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActiveSwitch extends StatelessWidget {
-  const _ActiveSwitch({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fg = value ? const Color(0xFF047857) : const Color(0xFF64748B);
-    final Color bg = value ? const Color(0xFFE6F8EF) : const Color(0xFFF1F5F9);
-    return InkWell(
-      onTap: onChanged == null ? null : () => onChanged!(!value),
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.pause_circle_outline_rounded,
-              size: 14,
-              color: fg,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              value ? 'Active' : 'Inactive',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: fg,
-                letterSpacing: 0.2,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ],
-        ),
       ),
     );
   }

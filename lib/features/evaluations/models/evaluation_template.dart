@@ -1,7 +1,7 @@
 import 'evaluation_criterion.dart';
 
 /// A reusable judging rubric persisted under
-/// `hkzOrganizations/{orgId}/settings/org_settings.evaluationTemplates[]`.
+/// `hkzOrgSettings/org_settings.evaluationTemplates[]`.
 ///
 /// Judges score against the [criteria]; the overall score is the
 /// weight-normalized average via [computeOverall].

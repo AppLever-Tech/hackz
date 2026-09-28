@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 
 /// Non-blocking warning banner surfaced when a workflow change could impact
 /// downstream artifacts (e.g. team change on an already-evaluated idea).
@@ -22,7 +22,7 @@ class WorkflowEvaluationWarning extends StatelessWidget {
       title: 'Team has already been evaluated',
       message:
           'Membership changes may affect evaluation integrity. Please coordinate with judges before submitting.',
-      icon: AppIcons.statusUnderReview,
+      icon: AppIcons.workflowPendingReview,
     );
   }
 

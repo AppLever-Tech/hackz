@@ -1,0 +1,26 @@
+{
+  "name": "hackz-analysis-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hackz-controlled integration service for originality and AI-writing analysis providers.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "tsx --env-file=.env src/server.ts",
+    "start": "node dist/server.js",
+    "test": "tsx --test src/providers/registry.test.ts src/capabilities.test.ts"
+  },
+  "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.0",
+    "firebase-admin": "^13.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

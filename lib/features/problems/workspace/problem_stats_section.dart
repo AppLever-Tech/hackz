@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../widgets/dashboard/dashboard_metric_chips.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../../core/ui/dashboard/dashboard_metric_chips.dart';
 import 'problem_workspace.dart';
 
 class ProblemStatsSection extends StatelessWidget {
@@ -24,10 +24,10 @@ class ProblemStatsSection extends StatelessWidget {
           icon: AppIcons.ideas,
         ),
         DashboardMetricChipData.single(
-          label: 'Approved',
+          label: 'Ideathon Assigned',
           value: '${vm.approvedIdeas}',
           color: const Color(0xFF16A34A),
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.statusIdeathonAssigned,
         ),
         DashboardMetricChipData.ratio(
           label: 'Evaluation',

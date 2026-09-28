@@ -7,28 +7,25 @@ import '../constants/default_org_settings.dart';
 import '../constants/org_setting_keys.dart';
 import '../models/org_setting_definition.dart';
 import 'org_settings_validators.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 /// Org-scoped runtime cache for organization settings.
 ///
-/// Firestore path: `hkzOrganizations/{orgId}/settings/org_settings`.
+/// Firestore path: `hkzOrgSettings/org_settings` on the bound Tenant Firebase.
+/// Isolation is the tenant project; the document id is not an organisation id.
 ///
 /// Lifecycle:
-///   1. Caller (College Admin dashboard or any reader) invokes
-///      [ensureLoaded] passing the active `orgId`.
-///   2. Service bootstraps the doc with defaults if absent, reads, and merges
-///      any new keys introduced in [defaultOrgSettingDefinitions].
-///   3. Reads / writes operate on the cached `orgId`. Changing `orgId`
-///      transparently clears the cache and reloads.
-///   4. [clearCache] resets everything (call on logout).
+///   1. On login, [ensureLoaded] loads once for the user's `orgId` (server read).
+///   2. While the session stays open, callers reuse the in-memory snapshot
+///      (College Admin changes made elsewhere are intentionally not live-synced).
+///   3. Changing `orgId` or calling [ensureLoaded] with `force: true` reloads.
+///   4. [clearCache] on logout resets memory so the next login fetches again.
 class OrgSettingsService extends ChangeNotifier {
   OrgSettingsService._();
 
   static final OrgSettingsService instance = OrgSettingsService._();
 
-  /// Sub-collection name under `hkzOrganizations/{orgId}` that holds settings docs.
-  static const String settingsSubcollection = 'settings';
-
-  /// Doc id for the single per-org settings document.
+  /// Document id in [FirestoreUtils.hkzOrgSettings].
   static const String orgSettingsDocId = 'org_settings';
 
   /// Top-level field on the org_settings document that holds the list of
@@ -37,8 +34,9 @@ class OrgSettingsService extends ChangeNotifier {
   static const String evaluationTemplatesField = 'evaluationTemplates';
   static const String departmentEvaluationExtensionsField =
       'departmentEvaluationExtensions';
+  static const String ideathonEvaluationTemplateIdField = 'ideathonEvaluationTemplateId';
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   final Map<String, dynamic> _valuesByKey = <String, dynamic>{};
   final Map<String, OrgSettingDefinition> _defByKey = <String, OrgSettingDefinition>{
@@ -50,6 +48,7 @@ class OrgSettingsService extends ChangeNotifier {
   final List<Map<String, dynamic>> _evaluationTemplatesRaw = <Map<String, dynamic>>[];
   final Map<String, dynamic> _departmentEvaluationExtensionsRaw =
       <String, dynamic>{};
+  String _ideathonEvaluationTemplateId = '';
 
   String? _orgId;
   bool _loading = false;
@@ -70,6 +69,8 @@ class OrgSettingsService extends ChangeNotifier {
   Map<String, dynamic> get departmentEvaluationExtensionsRaw =>
       Map<String, dynamic>.unmodifiable(_departmentEvaluationExtensionsRaw);
 
+  String get ideathonEvaluationTemplateId => _ideathonEvaluationTemplateId;
+
   OrgSettingDefinition? definitionFor(String key) => _defByKey[key];
 
   /// Clears in-memory cache (call on logout).
@@ -77,6 +78,7 @@ class OrgSettingsService extends ChangeNotifier {
     _valuesByKey.clear();
     _evaluationTemplatesRaw.clear();
     _departmentEvaluationExtensionsRaw.clear();
+    _ideathonEvaluationTemplateId = '';
     _orgId = null;
     _error = null;
     _loading = false;
@@ -86,7 +88,7 @@ class OrgSettingsService extends ChangeNotifier {
 
   /// Loads org settings from Firestore (bootstraps the doc if absent and
   /// merges any newly introduced keys from Dart defaults). Cached after the
-  /// first call for the same [orgId].
+  /// first call for the same [orgId] until logout / [force] / org change.
   Future<void> ensureLoaded({required String orgId, bool force = false}) {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) {
@@ -131,12 +133,8 @@ class OrgSettingsService extends ChangeNotifier {
     }
   }
 
-  DocumentReference<Map<String, dynamic>> _configRefFor(String orgId) {
-    return _db
-        .collection(FirestoreUtils.hkzOrganizations)
-        .doc(orgId)
-        .collection(settingsSubcollection)
-        .doc(orgSettingsDocId);
+  static DocumentReference<Map<String, dynamic>> _settingsDoc(FirebaseFirestore db) {
+    return db.collection(FirestoreUtils.hkzOrgSettings).doc(orgSettingsDocId);
   }
 
   DocumentReference<Map<String, dynamic>> get _configRef {
@@ -144,26 +142,46 @@ class OrgSettingsService extends ChangeNotifier {
     if (id == null || id.isEmpty) {
       throw StateError('OrgSettingsService not loaded for any org.');
     }
-    return _configRefFor(id);
+    return _settingsDoc(_db);
+  }
+
+  /// Prefer a server read so logout→login picks up College Admin writes.
+  /// Firestore local persistence can otherwise return a stale cached doc.
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getSettingsSnap() async {
+    final DocumentReference<Map<String, dynamic>> ref = _configRef;
+    try {
+      return await ref.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      return ref.get();
+    }
   }
 
   Future<void> _bootstrapIfAbsent() async {
     final DocumentReference<Map<String, dynamic>> ref = _configRef;
-    await _db.runTransaction((Transaction txn) async {
-      final snap = await txn.get(ref);
-      if (snap.exists) return;
-      txn.set(ref, <String, dynamic>{
-        'schemaVersion': kOrgSettingsSchemaVersion,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'settings': defaultOrgSettingsFirestoreEntries(),
-        evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
-        departmentEvaluationExtensionsField: <String, dynamic>{},
+    try {
+      await _db.runTransaction((Transaction txn) async {
+        final snap = await txn.get(ref);
+        if (snap.exists) return;
+        txn.set(ref, <String, dynamic>{
+          'schemaVersion': kOrgSettingsSchemaVersion,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'settings': defaultOrgSettingsFirestoreEntries(),
+          evaluationTemplatesField: defaultEvaluationTemplatesFirestoreEntries(),
+          departmentEvaluationExtensionsField: <String, dynamic>{},
+          ideathonEvaluationTemplateIdField: 'ideathon',
+        });
       });
-    });
+    } catch (e) {
+      // Read-only roles may not create the doc. Continue to server read;
+      // missing doc will surface in [_readAndMerge].
+      if (kDebugMode) {
+        debugPrint('OrgSettingsService bootstrap skipped/failed: $e');
+      }
+    }
   }
 
   Future<void> _readAndMerge() async {
-    final snap = await _configRef.get();
+    final snap = await _getSettingsSnap();
     if (!snap.exists || snap.data() == null) {
       throw StateError('Org settings document missing after bootstrap.');
     }
@@ -171,6 +189,8 @@ class OrgSettingsService extends ChangeNotifier {
     _applySettingsArray(data['settings']);
     _applyEvaluationTemplatesArray(data[evaluationTemplatesField]);
     _applyDepartmentEvaluationExtensions(data[departmentEvaluationExtensionsField]);
+    _ideathonEvaluationTemplateId =
+        ((data[ideathonEvaluationTemplateIdField] as String?) ?? '').trim();
 
     final List<Map<String, dynamic>> missing = <Map<String, dynamic>>[];
     for (final OrgSettingDefinition d in defaultOrgSettingDefinitions) {
@@ -184,8 +204,16 @@ class OrgSettingsService extends ChangeNotifier {
       }
     }
 
+    // Best-effort write-backs. Never wipe a successful read if a non-admin
+    // role cannot persist schema merges / template bootstrap.
     if (missing.isNotEmpty) {
-      await _persistFullSettingsArray();
+      try {
+        await _persistFullSettingsArray();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService missing-key persist skipped: $e');
+        }
+      }
     }
 
     // Lazy bootstrap of evaluation templates for orgs that pre-date the
@@ -195,10 +223,56 @@ class OrgSettingsService extends ChangeNotifier {
       _evaluationTemplatesRaw
         ..clear()
         ..addAll(defaultEvaluationTemplatesFirestoreEntries());
-      await _persistEvaluationTemplatesArray();
+      try {
+        await _persistEvaluationTemplatesArray();
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService templates persist skipped: $e');
+        }
+      }
+    }
+
+    if (_ideathonEvaluationTemplateId.isEmpty) {
+      _ideathonEvaluationTemplateId = 'ideathon';
+      try {
+        await _configRef.set(
+          <String, dynamic>{
+            ideathonEvaluationTemplateIdField: _ideathonEvaluationTemplateId,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('OrgSettingsService ideathon template id persist skipped: $e');
+        }
+      }
     }
 
     _normalizeDependentDefaults();
+  }
+
+  Future<String?> updateIdeathonEvaluationTemplateId(String templateId) async {
+    if (_orgId == null || _orgId!.isEmpty) return 'Org settings not loaded.';
+    final String next = templateId.trim();
+    if (next.isEmpty) return 'Template id is required.';
+    final String previous = _ideathonEvaluationTemplateId;
+    _ideathonEvaluationTemplateId = next;
+    notifyListeners();
+    try {
+      await _configRef.set(
+        <String, dynamic>{
+          ideathonEvaluationTemplateIdField: next,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      _ideathonEvaluationTemplateId = previous;
+      notifyListeners();
+      return e.toString();
+    }
+    return null;
   }
 
   void _applyEvaluationTemplatesArray(Object? raw) {
@@ -380,21 +454,17 @@ class OrgSettingsService extends ChangeNotifier {
     return null;
   }
 
-  /// One-shot seed for a freshly created organization. Writes the default
-  /// settings document if it doesn't already exist. Best-effort: callers can
-  /// also rely on lazy bootstrap inside [ensureLoaded].
+  /// One-shot seed for a freshly connected tenant. Writes
+  /// `hkzOrgSettings/org_settings` if it doesn't already exist. Best-effort:
+  /// callers can also rely on lazy bootstrap inside [ensureLoaded].
   ///
-  /// Used by the org creation flow so new colleges land with sane defaults
-  /// before any admin first opens the dashboard.
-  static Future<void> seedFor(String orgId) async {
+  /// Used by the org creation / workspace-connect flow so new colleges land
+  /// with sane defaults before any admin first opens the dashboard.
+  static Future<void> seedFor(String orgId, {FirebaseFirestore? firestore}) async {
     final String trimmed = orgId.trim();
     if (trimmed.isEmpty) return;
-    final db = FirebaseFirestore.instance;
-    final DocumentReference<Map<String, dynamic>> ref = db
-        .collection(FirestoreUtils.hkzOrganizations)
-        .doc(trimmed)
-        .collection(settingsSubcollection)
-        .doc(orgSettingsDocId);
+    final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
+    final DocumentReference<Map<String, dynamic>> ref = _settingsDoc(db);
     try {
       await db.runTransaction((Transaction txn) async {
         final snap = await txn.get(ref);
@@ -412,5 +482,13 @@ class OrgSettingsService extends ChangeNotifier {
         debugPrint('OrgSettingsService.seedFor($trimmed) failed: $e');
       }
     }
+  }
+
+  static Future<bool> existsFor(String orgId, {FirebaseFirestore? firestore}) async {
+    final String trimmed = orgId.trim();
+    if (trimmed.isEmpty) return false;
+    final FirebaseFirestore db = firestore ?? HackzFirebase.current.firestore;
+    final DocumentSnapshot<Map<String, dynamic>> snap = await _settingsDoc(db).get();
+    return snap.exists;
   }
 }

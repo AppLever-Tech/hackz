@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../workspace/workspace.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/team_change_request.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/core/ui/common/context_pill.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
 
 /// Visual semantics for a team-member chip in a diff view.
 enum TeamDiffStatus {
@@ -36,7 +38,7 @@ class TeamMemberDiffChip extends StatelessWidget {
     final Widget pill = ContextPill(
       label: label,
       semantic: ContextPillSemantic.user,
-      icon: AppIcons.student,
+      icon: AppIcons.teamMember,
       onTap: () => WorkspaceNavigator.openUser(context, member.userId),
       compact: true,
     );
@@ -330,7 +332,7 @@ class TeamMemberDiffSummary extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 6),
         child: Text(
-          'No member changes yet — add or remove students above.',
+          'No member changes yet — add or remove team members above.',
           style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
         ),
       );

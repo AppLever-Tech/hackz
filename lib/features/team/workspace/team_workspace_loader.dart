@@ -1,29 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/department_model.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../organization/models/department_model.dart';
 import '../models/enums/team_status.dart';
-import '../../../models/idea_model.dart';
-import '../../../models/payment_model.dart';
-import '../../../models/score_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
+import '../../evaluations/models/score_model.dart';
 import '../models/team_model.dart';
-import '../../../models/user_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
+import '../../organization/services/commercial_access.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class TeamMemberPreview {
   const TeamMemberPreview({
     required this.userId,
     required this.displayName,
-    required this.roleLabel,
-    required this.isMentor,
+    this.isLeader = false,
+    this.user,
   });
 
   final String userId;
   final String displayName;
-  final String roleLabel;
-  final bool isMentor;
+  final bool isLeader;
+  final UserModel? user;
 }
 
 class TeamIdeaPreview {
@@ -60,29 +62,15 @@ class TeamWorkspaceViewModel {
   const TeamWorkspaceViewModel({
     required this.team,
     required this.departmentLabel,
-    required this.mentorName,
-    required this.mentorId,
-    required this.memberCount,
     required this.members,
     required this.ideas,
-    required this.activeIdeas,
-    required this.approvedIdeas,
-    required this.evaluatedIdeas,
-    required this.averageScore,
     required this.recentActivity,
   });
 
   final TeamModel team;
   final String departmentLabel;
-  final String mentorName;
-  final String mentorId;
-  final int memberCount;
   final List<TeamMemberPreview> members;
   final List<TeamIdeaPreview> ideas;
-  final int activeIdeas;
-  final int approvedIdeas;
-  final int evaluatedIdeas;
-  final double? averageScore;
   final List<TeamActivityItem> recentActivity;
 }
 
@@ -93,7 +81,7 @@ abstract final class TeamWorkspaceLoader {
       throw ArgumentError('teamId must be non-empty');
     }
 
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> teamDoc =
         await db.collection(FirestoreUtils.hkzTeams).doc(id).get();
     if (!teamDoc.exists || teamDoc.data() == null) {
@@ -106,7 +94,6 @@ abstract final class TeamWorkspaceLoader {
     final String departmentLabel = dept?.name ?? team.departmentCode;
 
     final Set<String> userIds = <String>{
-      if (team.mentorId.trim().isNotEmpty) team.mentorId.trim(),
       ...team.studentIds.map((e) => e.trim()).where((e) => e.isNotEmpty),
     };
 
@@ -163,33 +150,20 @@ abstract final class TeamWorkspaceLoader {
       scoresByIdea.putIfAbsent(s.ideaId, () => <ScoreModel>[]).add(s);
     }
 
-    final UserModel? mentor = usersById[team.mentorId.trim()];
-    final String mentorName = mentor == null
-        ? (team.mentorId.trim().isEmpty ? '—' : team.mentorId.trim())
-        : userDisplayName(mentor);
+    final List<TeamMemberPreview> members = team.studentIds.map((String studentId) {
+      final String id = studentId.trim();
+      final UserModel? student = usersById[id];
+      final String name = student == null ? id : userDisplayName(student);
+      return TeamMemberPreview(
+        userId: id,
+        displayName: name,
+        isLeader: team.isLedBy(id),
+        user: student,
+      );
+    }).toList(growable: false);
 
-    final List<TeamMemberPreview> members = <TeamMemberPreview>[
-      if (team.mentorId.trim().isNotEmpty)
-        TeamMemberPreview(
-          userId: team.mentorId.trim(),
-          displayName: mentorName,
-          roleLabel: 'Mentor',
-          isMentor: true,
-        ),
-      ...team.studentIds.map((String studentId) {
-        final UserModel? student = usersById[studentId.trim()];
-        final String name = student == null
-            ? studentId.trim()
-            : userDisplayName(student);
-        return TeamMemberPreview(
-          userId: studentId.trim(),
-          displayName: name,
-          roleLabel: 'Student',
-          isMentor: false,
-        );
-      }),
-    ];
-
+    final bool ideaPaymentRequired =
+        orgId.isEmpty ? false : await CommercialAccess.requiresIdeaPaymentForOrg(orgId);
     final List<TeamIdeaPreview> ideaPreviews = ideas.map((IdeaModel idea) {
       final List<ScoreModel> sc = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
       final double? avg = sc.isEmpty
@@ -199,40 +173,23 @@ abstract final class TeamWorkspaceLoader {
       return TeamIdeaPreview(
         idea: idea,
         avgScore: avg,
-        paymentStatus: paymentByIdea[idea.ideaId],
+        paymentStatus: ideaPaymentRequired ? paymentByIdea[idea.ideaId] : null,
         createdByName: creator == null ? idea.createdBy : userDisplayName(creator),
         createdByUserId: idea.createdBy,
       );
     }).toList(growable: false);
 
-    final int activeIdeas = ideas
-        .where((IdeaModel i) => i.status != IdeaStatus.approved && i.status != IdeaStatus.rejected)
-        .length;
-    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.approved).length;
-    final int evaluatedIdeas = ideas.where((IdeaModel i) => (scoresByIdea[i.ideaId]?.isNotEmpty ?? false)).length;
-
-    final List<double> ideaAvgs = ideaPreviews
-        .map((TeamIdeaPreview e) => e.avgScore)
-        .whereType<double>()
-        .toList(growable: false);
-    final double? averageScore = ideaAvgs.isEmpty
-        ? null
-        : ideaAvgs.reduce((double a, double b) => a + b) / ideaAvgs.length;
-
-    final List<TeamActivityItem> activity = _buildActivity(ideas, scoresByIdea, paymentByIdea);
+    final List<TeamActivityItem> activity = _buildActivity(
+      ideas,
+      scoresByIdea,
+      ideaPaymentRequired ? paymentByIdea : const <String, PaymentRecordStatus>{},
+    );
 
     return TeamWorkspaceViewModel(
       team: team,
       departmentLabel: departmentLabel.trim().isEmpty ? '—' : departmentLabel.trim(),
-      mentorName: mentorName,
-      mentorId: team.mentorId.trim(),
-      memberCount: team.studentIds.length,
       members: members,
       ideas: ideaPreviews,
-      activeIdeas: activeIdeas,
-      approvedIdeas: approvedIdeas,
-      evaluatedIdeas: evaluatedIdeas,
-      averageScore: averageScore,
       recentActivity: activity.length <= 8 ? activity : activity.sublist(0, 8),
     );
   }
@@ -268,7 +225,7 @@ abstract final class TeamWorkspaceLoader {
 
     for (final IdeaModel idea in ideas) {
       final String title = idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim();
-      if (idea.status != IdeaStatus.pendingSubmission) {
+      if (idea.status != IdeaStatus.draft) {
         lines.add(
           TeamActivityItem(
             at: idea.createdAt,

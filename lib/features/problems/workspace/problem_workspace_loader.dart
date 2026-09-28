@@ -1,15 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/attachment_model.dart';
-import '../../../models/idea_model.dart';
-import '../../../models/organization_model.dart';
-import '../../../models/payment_model.dart';
-import '../../../models/score_model.dart';
-import '../../../models/user_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../domain/models/domain_model.dart';
+import '../../domain/services/domain_service.dart';
+import '../../organization/models/organization_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
+import '../../evaluations/models/score_model.dart';
+import '../../user/models/user_model.dart';
 import '../../../utils/common_helpers.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/core/workspace_attachment_counts.dart';
+import '../../../core/workspace/workspace_attachment_counts.dart';
 import '../models/problem_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemWorkspaceViewModel {
   const ProblemWorkspaceViewModel({
@@ -34,6 +37,7 @@ class ProblemWorkspaceViewModel {
     required this.allIdeas,
     required this.coordinatorCount,
     required this.judgeCount,
+    this.domain,
   });
 
   final ProblemModel problem;
@@ -57,6 +61,7 @@ class ProblemWorkspaceViewModel {
   final List<ProblemIdeaPreview> allIdeas;
   final int coordinatorCount;
   final int judgeCount;
+  final DomainModel? domain;
 }
 
 class ProblemIdeaPreview {
@@ -75,7 +80,7 @@ class ProblemIdeaPreview {
 
 abstract final class ProblemWorkspaceLoader {
   static Future<ProblemWorkspaceViewModel> load(String problemId) async {
-    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
     final DocumentSnapshot<Map<String, dynamic>> doc =
         await db.collection(FirestoreUtils.hkzProblems).doc(problemId).get();
     if (!doc.exists || doc.data() == null) {
@@ -150,7 +155,7 @@ abstract final class ProblemWorkspaceLoader {
       usersById[id] = u;
     }
 
-    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.approved).length;
+    final int approvedIdeas = ideas.where((IdeaModel i) => i.status == IdeaStatus.submitted).length;
     final int evaluatedIdeas = ideas.where((IdeaModel i) => scoresByIdea[i.ideaId]?.isNotEmpty == true).length;
     final int verifiedPayments = payments.where((PaymentModel p) => p.status == PaymentRecordStatus.verified).length;
 
@@ -177,6 +182,9 @@ abstract final class ProblemWorkspaceLoader {
     final String createdByName = createdByUser == null ? model.createdBy : userDisplayName(createdByUser);
     final String orgName = (org?.name.trim() ?? '').isEmpty ? model.orgId : org!.name.trim();
     final List<String> tags = model.tags.where((String e) => e.trim().isNotEmpty).toList(growable: false);
+    final DomainModel? domain = model.domainId.trim().isEmpty
+        ? null
+        : await DomainService.fetchById(model.domainId);
 
     return ProblemWorkspaceViewModel(
       problem: model,
@@ -200,6 +208,7 @@ abstract final class ProblemWorkspaceLoader {
       allIdeas: allIdeas,
       coordinatorCount: coordinators,
       judgeCount: judges,
+      domain: domain,
     );
   }
 }

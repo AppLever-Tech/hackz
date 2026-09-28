@@ -81,7 +81,7 @@ IdeaSubmissionGate computeIdeaSubmissionGate({
   final DateTime? deadline = problem.ideaSubmissionDeadline;
 
   final IdeaSubmissionGateState state;
-  if (!problem.isActive) {
+  if (!problem.isSubmissionOpen) {
     state = IdeaSubmissionGateState.inactive;
   } else if (deadline != null && resolvedNow.isAfter(deadline)) {
     state = IdeaSubmissionGateState.deadlinePassed;

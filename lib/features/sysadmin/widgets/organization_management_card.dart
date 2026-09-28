@@ -1,19 +1,24 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/enums/organization_type.dart';
-import '../../../models/organization_model.dart';
-import '../../../models/user_model.dart';
-import '../../../screens/common/create_user_dialog.dart';
-import '../../../screens/common/dashboard_components.dart';
-import '../../../screens/sysadmin/organization_dialog.dart';
-import '../../../shared/common/external_url_icon.dart';
-import '../../../shared/feedback/feedback.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../core/theme/app_icons.dart';
+import '../../organization/models/enums/organization_type.dart';
+import '../../organization/models/organization_model.dart';
+import '../../organization/widgets/organization_thumbnail.dart';
+import '../../user/models/user_model.dart';
+import '../../user/screens/create_user_dialog.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../features/dashboard/sysadmin/screens/organization_dialog.dart';
+import '../../../core/ui/buttons/hover_icon_action_button.dart';
+import '../../../core/ui/common/external_url_icon.dart';
+import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/workspace/user_workspace_avatar.dart';
 import '../../../utils/common_helpers.dart';
+import '../onboarding/actions/organisation_onboarding_actions.dart';
 import '../../../utils/firestore_utils.dart';
-import '../../../workspace/core/workspace_navigator.dart';
-import '../../../widgets/common/context_pill.dart';
-import '../../../widgets/common/context_pill_theme.dart';
+import '../../../core/workspace/workspace_navigator.dart';
 import '../models/org_operational_data.dart';
 import 'org_metadata_row.dart';
 
@@ -24,11 +29,15 @@ class OrganizationManagementCard extends StatelessWidget {
     required this.organization,
     required this.operationalData,
     required this.onChanged,
+    this.organisationCode,
   });
 
   final OrganizationModel organization;
   final OrgOperationalData operationalData;
   final VoidCallback onChanged;
+
+  /// Control Plane routing code. Not stored on [OrganizationModel].
+  final String? organisationCode;
 
   Future<void> _removeCollegeAdmin(BuildContext context, UserModel admin) async {
     final adminId = admin.userId.trim();
@@ -62,34 +71,23 @@ class OrganizationManagementCard extends StatelessWidget {
     if (assigned) onChanged();
   }
 
-  Future<void> _deleteOrganization(BuildContext context) async {
-    final ok = await FeedbackService.showConfirmation(
-      context,
-      title: 'Delete organization?',
-      message: 'This will permanently remove "${organization.name}".',
-      confirmLabel: 'Delete',
-      dangerConfirm: true,
+  Future<void> _editCollegeAdmin(BuildContext context, UserModel admin) async {
+    final changed = await showCreateUserDialog(
+      context: context,
+      roleCode: 'CADM',
+      organization: organization,
+      initialUser: admin,
     );
-    if (!ok) return;
-    try {
-      await FirestoreUtils.deleteOrganization(organization.id);
-      if (context.mounted) {
-        FeedbackService.showSuccess(
-          context,
-          title: 'Deleted',
-          message: '${organization.name} was removed',
-        );
-        onChanged();
-      }
-    } catch (e) {
-      if (context.mounted) {
-        FeedbackService.showError(
-          context,
-          title: 'Delete failed',
-          message: e.toString(),
-        );
-      }
-    }
+    if (changed) onChanged();
+  }
+
+  Future<void> _deleteOrganization(BuildContext context) async {
+    await OrganisationOnboardingActions.deleteOrganisationRecord(
+      context,
+      organisationId: organization.id,
+      organisationName: organization.name,
+      onChanged: onChanged,
+    );
   }
 
   Future<void> _editOrganization(BuildContext context) async {
@@ -102,7 +100,15 @@ class OrganizationManagementCard extends StatelessWidget {
 
   List<Widget> _metadataRows(BuildContext context) {
     final type = organization.type;
+    final String code = (organisationCode ?? '').trim();
     return <Widget>[
+      if (code.isNotEmpty)
+        OrgMetadataRow(
+          icon: AppIcons.key,
+          label: 'Organisation code',
+          value: code,
+          trailing: _CopyOrganisationCodeButton(code: code),
+        ),
       OrgMetadataRow(
         icon: AppIcons.address,
         label: 'Address',
@@ -158,107 +164,79 @@ class OrganizationManagementCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: kDashboardCardDecoration,
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F0FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE8ECF8)),
-                ),
-                child: Icon(
-                  AppIcons.forOrganizationType(type),
-                  size: 22,
-                  color: const Color(0xFF6A38FF),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  organization.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    height: 1.15,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: 'Edit organization',
-                child: InkWell(
+          DashboardCardTitleBand(
+            title: organization.name,
+            leading: OrganizationThumbnail(organization: organization, size: 32),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                HoverIconActionButton(
+                  icon: AppIcons.edit,
+                  tooltip: 'Edit organization',
+                  iconSize: 17,
                   onTap: () => _editOrganization(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(AppIcons.edit, size: 18, color: Color(0xFF6A38FF)),
-                  ),
                 ),
-              ),
-              Tooltip(
-                message: 'Delete organization',
-                child: InkWell(
+                HoverIconActionButton(
+                  icon: AppIcons.delete,
+                  tooltip: 'Delete organization',
+                  destructive: true,
+                  iconSize: 17,
                   onTap: () => _deleteOrganization(context),
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(AppIcons.remove, size: 18, color: Color(0xFFDC2626)),
-                  ),
                 ),
-              ),
-            ],
-          ),
-          if (isCollege) ...<Widget>[
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFFE8ECF8)),
-            const SizedBox(height: 8),
-            _CollegeAdminSection(
-              admin: admin,
-              onAssign: () => _assignCollegeAdmin(context),
-              onRemove: admin == null ? null : () => _removeCollegeAdmin(context, admin),
+              ],
             ),
-          ],
-          const SizedBox(height: 8),
-          const Divider(height: 1, color: Color(0xFFE8ECF8)),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              final rows = _metadataRows(context);
-              final columnCount = constraints.maxWidth >= 900
-                  ? 3
-                  : constraints.maxWidth >= 560
-                      ? 2
-                      : 1;
-              if (columnCount == 1) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: rows,
-                );
-              }
-              final itemWidth = (constraints.maxWidth - (columnCount - 1) * 20) / columnCount;
-              return Wrap(
-                spacing: 20,
-                runSpacing: 4,
-                children: rows
-                    .map(
-                      (Widget row) => SizedBox(
-                        width: itemWidth,
-                        child: row,
-                      ),
-                    )
-                    .toList(growable: false),
-              );
-            },
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (isCollege) ...<Widget>[
+                  _CollegeAdminRow(
+                    admin: admin,
+                    onAdd: () => _assignCollegeAdmin(context),
+                    onEdit: admin == null ? null : () => _editCollegeAdmin(context, admin),
+                    onRemove: admin == null ? null : () => _removeCollegeAdmin(context, admin),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    final rows = _metadataRows(context);
+                    final columnCount = constraints.maxWidth >= 900
+                        ? 3
+                        : constraints.maxWidth >= 560
+                            ? 2
+                            : 1;
+                    if (columnCount == 1) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: rows,
+                      );
+                    }
+                    final itemWidth = (constraints.maxWidth - (columnCount - 1) * 20) / columnCount;
+                    return Wrap(
+                      spacing: 20,
+                      runSpacing: 4,
+                      children: rows
+                          .map(
+                            (Widget row) => SizedBox(
+                              width: itemWidth,
+                              child: row,
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -266,123 +244,132 @@ class OrganizationManagementCard extends StatelessWidget {
   }
 }
 
-class _CollegeAdminSection extends StatelessWidget {
-  const _CollegeAdminSection({
+class _CollegeAdminRow extends StatelessWidget {
+  const _CollegeAdminRow({
     required this.admin,
-    required this.onAssign,
+    required this.onAdd,
+    this.onEdit,
     this.onRemove,
   });
 
   final UserModel? admin;
-  final VoidCallback onAssign;
+  final VoidCallback onAdd;
+  final VoidCallback? onEdit;
   final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final UserModel? assigned = admin;
+    final String name = assigned == null ? '' : userDisplayName(assigned);
+    final String userId = assigned?.userId.trim() ?? '';
+    final bool hasAdmin = assigned != null && name.isNotEmpty && name != '-';
+
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         const Text(
-          'College Admin',
+          'College admin',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF64748B),
+            color: Color(0xFF334155),
+            height: 1.2,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: admin != null
-              ? _AssignedAdminRow(
-                  admin: admin!,
-                  onRemove: onRemove,
-                )
-              : _AssignAdminPrompt(onAssign: onAssign),
-        ),
-      ],
-    );
-  }
-}
-
-class _AssignedAdminRow extends StatelessWidget {
-  const _AssignedAdminRow({
-    required this.admin,
-    this.onRemove,
-  });
-
-  final UserModel admin;
-  final VoidCallback? onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = userDisplayName(admin);
-    final userId = admin.userId.trim();
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        Expanded(
-          child: ContextPill(
-            label: name,
-            semantic: ContextPillSemantic.user,
-            icon: AppIcons.adminProfile,
-            compact: true,
-            onTap: userId.isNotEmpty ? () => WorkspaceNavigator.openUser(context, userId) : () {},
+        const SizedBox(width: 8),
+        if (hasAdmin) ...<Widget>[
+          UserWorkspaceAvatar(
+            user: assigned,
+            radius: 12,
+            ringPadding: 2,
+            onTap: userId.isEmpty ? () {} : () => WorkspaceNavigator.openUser(context, userId),
             enabled: userId.isNotEmpty,
           ),
-        ),
-        if (onRemove != null)
           const SizedBox(width: 8),
-        if (onRemove != null)
-          Tooltip(
-            message: 'Remove college admin',
-            child: InkWell(
-              onTap: onRemove,
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(AppIcons.remove, size: 15, color: Color(0xFFDC2626)),
+          Flexible(
+            fit: FlexFit.loose,
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+                height: 1.25,
               ),
             ),
           ),
+          const SizedBox(width: 2),
+          if (onEdit != null)
+            HoverIconActionButton(
+              icon: AppIcons.edit,
+              tooltip: 'Edit college admin',
+              onTap: onEdit!,
+            ),
+          if (onRemove != null)
+            HoverIconActionButton(
+              icon: AppIcons.delete,
+              tooltip: 'Remove college admin',
+              destructive: true,
+              onTap: onRemove!,
+            ),
+        ] else
+          FilledButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(AppIcons.add, size: 15),
+            label: const Text('Add'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: const Color(0xFF6A38FF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
       ],
     );
   }
 }
 
-class _AssignAdminPrompt extends StatelessWidget {
-  const _AssignAdminPrompt({required this.onAssign});
+class _CopyOrganisationCodeButton extends StatefulWidget {
+  const _CopyOrganisationCodeButton({required this.code});
 
-  final VoidCallback onAssign;
+  final String code;
+
+  @override
+  State<_CopyOrganisationCodeButton> createState() => _CopyOrganisationCodeButtonState();
+}
+
+class _CopyOrganisationCodeButtonState extends State<_CopyOrganisationCodeButton> {
+  static const Duration _copiedDuration = Duration(seconds: 2);
+
+  bool _copied = false;
+  Timer? _revertTimer;
+
+  @override
+  void dispose() {
+    _revertTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.code));
+    if (!mounted) return;
+    _revertTimer?.cancel();
+    setState(() => _copied = true);
+    _revertTimer = Timer(_copiedDuration, () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(
-          child: Text(
-            'No college admin assigned',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF94A3B8),
-            ),
-          ),
-        ),
-        FilledButton.icon(
-          onPressed: onAssign,
-          icon: const Icon(AppIcons.add, size: 15),
-          label: const Text('Assign'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 32),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            backgroundColor: const Color(0xFF6A38FF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        ),
-      ],
+    return HoverIconActionButton(
+      icon: _copied ? AppIcons.copied : AppIcons.copy,
+      tooltip: _copied ? 'Copied' : 'Copy organisation code',
+      iconColor: _copied ? const Color(0xFF047857) : null,
+      onTap: _copy,
     );
   }
 }

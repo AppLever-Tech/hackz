@@ -2,39 +2,47 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../../constants/app_icons.dart';
-import '../../../../models/attachment_model.dart';
-import '../../../../models/enums/user_role.dart';
-import '../../../../models/user_model.dart';
-import '../../../../responsive/responsive_helper.dart';
-import '../../../../shared/feedback/feedback.dart';
-import '../../../../screens/common/dashboard_chrome_scope.dart';
-import '../../../../screens/common/dashboard_components.dart';
-import '../../../../utils/attachment_service.dart';
-import '../../../../utils/common_helpers.dart';
+import '../../../../core/theme/app_icons.dart';
+import '../../../domain/domain.dart';
+import '../../../organization/models/department_model.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import '../../../user/models/enums/user_role.dart';
+import '../../../user/models/user_model.dart';
+import '../../../../core/ui/buttons/mobile_create_fab.dart';
+import '../../../../core/responsive/mobile_toolbar_button_styles.dart';
+import '../../../../core/responsive/responsive_filter_bar.dart';
+import '../../../../core/responsive/responsive_helper.dart';
+import '../../../../core/ui/feedback/feedback.dart';
+import '../../../../core/ui/inputs/hackz_input_decoration.dart';
+import '../../../../core/ui/inputs/icon_only_filter_button.dart';
+import '../../../../features/dashboard/chrome/dashboard_chrome_scope.dart';
+import '../../../../features/dashboard/chrome/empty_search_state.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
 import '../../../../utils/firestore_utils.dart';
-import '../../../../widgets/common/card_overflow_menu.dart';
-import '../../../../widgets/faculty/innovation_submission_workspace.dart';
-import '../../../../widgets/loading/hkz_progress_indicator.dart';
-import '../../../../workspace/workspace.dart';
+import '../../../../core/ui/data_view/data_table_view.dart';
+import '../../../idea/screens/innovation_submission_workspace.dart';
+import '../../widgets/problem_table_columns.dart';
+import '../../../../core/ui/loading/hkz_async_loader.dart';
+import '../../../../core/ui/loading/hkz_progress_indicator.dart';
 import '../../../org_settings/constants/org_setting_keys.dart';
 import '../../../org_settings/services/org_settings_service.dart';
+import '../../../imports/models/import_created_source.dart';
+import '../../../imports/screens/problems_import_entry.dart';
+import '../../../imports/services/import_platform_support.dart';
 import '../../models/problem_list_config.dart';
 import '../../models/problem_model.dart';
+import '../../models/problem_status.dart';
 import '../../services/problem_query_service.dart';
+import '../../services/problem_status_service.dart';
 import '../../validators/problem_submission_validators.dart';
+import '../../exports/problem_statements_export_provider.dart';
+import '../../../exports/exports.dart';
 import '../../widgets/problem_filters_panel.dart';
 import '../../widgets/problem_metrics_row.dart';
-import '../../widgets/problem_workflow_action_pill.dart';
 import '../authoring/problem_authoring_workspace.dart';
 import 'problem_statement_details_pane.dart';
-
-/// Fixed gap inserted between the PS # cell and the Title cell so the
-/// compact problem context pill doesn't visually butt up against the
-/// adjacent problem title. Used by both the header and data rows so column
-/// alignment stays pixel-perfect.
-const double _kPsTitleGap = 12;
-const double _kDeptCategoryGap = 12;
+import 'package:hackz/core/workspace/workspace_controller.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
 
 /// Tabular view of problem statements from [FirestoreUtils.hkzProblems].
 class ProblemStatementsTableScreen extends StatefulWidget {
@@ -66,30 +74,20 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   // [ProblemFiltersPanel] / [ProblemActiveFiltersRow] widgets drive both
   // this screen and the dashboard cards layout.
   bool _showFilters = false;
-  bool? _statusFilter;
+  ProblemStatus? _statusFilter;
+  ImportCreatedSource? _sourceFilter;
   bool? _hasAttachments;
   Set<String> _departmentFilters = <String>{};
+  Set<String> _domainFilters = <String>{};
   Set<String> _tagFilters = <String>{};
+  Map<String, DomainModel> _domainsById = <String, DomainModel>{};
+  Map<String, String> _deptIdToCode = <String, String>{};
+  bool _groupByDomain = false;
 
-  // Embedded authoring workspace toggles. When either is set, the table is
+  // Embedded authoring workspace toggles.
   // replaced in-place by [ProblemAuthoringWorkspace] (create or edit mode).
   ProblemModel? _editingProblem;
   bool _showCreateProblem = false;
-
-  // Column flexes/min-widths are tuned for desktop (~1024+) but the screen
-  // wraps the table in a horizontal Scrollbar when the available width is
-  // smaller than the sum of [minWidth]s — so mobile gets a usable
-  // side-scroll without a separate code path.
-  static const List<_TableColumn> _columns = <_TableColumn>[
-    _TableColumn(label: 'PS #', flex: 3, minWidth: 132),
-    _TableColumn(label: 'Title', flex: 10, minWidth: 220),
-    _TableColumn(label: 'Department', flex: 3, minWidth: 120),
-    _TableColumn(label: 'Category', flex: 2, minWidth: 76),
-    _TableColumn(label: 'Theme', flex: 3, minWidth: 96),
-    _TableColumn(label: 'Ideas', flex: 2, minWidth: 76, align: TextAlign.center),
-    _TableColumn(label: 'Deadline', flex: 2, minWidth: 92, align: TextAlign.center),
-    _TableColumn(label: 'Actions', flex: 3, minWidth: 180, align: TextAlign.end),
-  ];
 
   @override
   void initState() {
@@ -99,7 +97,24 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
         : widget.config.enabledSorts.first;
     _loadProblems();
     _loadOrgDefaultMaxIdeas();
+    _loadDomains();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadDomains() async {
+    try {
+      final List<DomainModel> domains = await DomainService.listByOrg(orgId: widget.config.orgId);
+      final Map<String, String> idToCode = await DomainDepartmentResolver.idToCodeMap(widget.config.orgId);
+      if (!mounted) return;
+      setState(() {
+        _domainsById = <String, DomainModel>{
+          for (final DomainModel d in domains) d.domainId: d,
+        };
+        _deptIdToCode = idToCode;
+      });
+    } catch (_) {
+      // Domain enrichment is best-effort; problems already loaded in initState.
+    }
   }
 
   /// Reads org-scoped default-max-ideas so the submission gate can resolve
@@ -139,9 +154,15 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
           search: _searchController.text,
           sortType: _sort,
           statusFilter: _statusFilter,
+          sourceFilter: _sourceFilter,
           departmentFilters: _departmentFilters,
+          domainFilters: _domainFilters,
           tagFilters: _tagFilters,
           hasAttachments: _hasAttachments,
+          domainsById: <String, String>{
+            for (final MapEntry<String, DomainModel> e in _domainsById.entries)
+              e.key: '${e.value.code} ${e.value.name}',
+          },
         ),
       );
     });
@@ -150,8 +171,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
   void _clearAllFilters() {
     setState(() {
       _statusFilter = null;
+      _sourceFilter = null;
       _hasAttachments = null;
       _departmentFilters = <String>{};
+      _domainFilters = <String>{};
       _tagFilters = <String>{};
     });
     _loadProblems();
@@ -159,8 +182,10 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
 
   bool get _hasAnyActiveFilter =>
       _departmentFilters.isNotEmpty ||
+      _domainFilters.isNotEmpty ||
       _tagFilters.isNotEmpty ||
       _statusFilter != null ||
+      _sourceFilter != null ||
       _hasAttachments != null;
 
   Future<void> _openCreateProblem() async {
@@ -201,7 +226,64 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
     return true;
   }
 
+  bool get _isCollegeAdmin => UserRole.fromCode(widget.currentUser.role) == UserRole.collegeAdmin;
+
+  List<ProblemModel> _activatableProblems(List<ProblemModel> problems) {
+    if (!_isCollegeAdmin || !widget.config.canToggleActive) return const <ProblemModel>[];
+    return problems
+        .where(
+          (ProblemModel p) =>
+              p.status == ProblemStatus.draft || p.status == ProblemStatus.inactive,
+        )
+        .toList(growable: false);
+  }
+
+  List<ProblemModel> _deletableProblems(List<ProblemModel> problems) {
+    if (!_isCollegeAdmin) return const <ProblemModel>[];
+    return problems.where(_canDeleteProblem).toList(growable: false);
+  }
+
+  Future<void> _activateProblem(ProblemModel problem) async {
+    await ProblemStatusService.activate(problem.problemId);
+    if (!mounted) return;
+    _loadProblems();
+  }
+
+  Future<void> _deactivateProblem(ProblemModel problem) async {
+    await ProblemStatusService.deactivate(problem.problemId);
+    if (!mounted) return;
+    _loadProblems();
+  }
+
+  Future<void> _openImportProblems() async {
+    final bool? imported = await showProblemsImportWorkflow(
+      context: context,
+      actorUserId: widget.currentUser.userId,
+      orgId: widget.config.orgId,
+      defaultDepartmentName: widget.currentUser.department.trim(),
+      defaultDepartmentCode: widget.currentUser.departmentCode,
+      orgType: widget.currentUser.orgType?.name ?? 'college',
+      lockDepartment: UserRole.fromCode(widget.currentUser.role) == UserRole.departmentAdmin,
+    );
+    if (imported == true && mounted) {
+      _loadProblems();
+    }
+  }
+
+  /// College admins may delete any draft; department admins may delete drafts
+  /// they personally authored.
+  bool _canDeleteProblem(ProblemModel problem) {
+    if (!widget.config.canDeleteDraft) return false;
+    if (problem.status != ProblemStatus.draft) return false;
+    final role = UserRole.fromCode(widget.currentUser.role);
+    if (role == UserRole.departmentAdmin) {
+      return problem.createdBy.trim() == widget.currentUser.userId.trim();
+    }
+    return role == UserRole.collegeAdmin;
+  }
+
   Future<void> _deleteProblem(ProblemModel problem) async {
+    if (!_canDeleteProblem(problem)) return;
     final bool shouldDelete = await FeedbackService.showConfirmation(
       context,
       title: 'Delete Problem',
@@ -210,13 +292,111 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
       dangerConfirm: true,
     );
     if (!shouldDelete) return;
+    await _deleteProblemRecord(problem);
+    if (!mounted) return;
+    _loadProblems();
+  }
+
+  Future<void> _deleteProblemRecord(ProblemModel problem) async {
     await AttachmentService.deactivateEntityAttachments(
       entityType: AttachmentEntityType.problem,
       entityId: problem.problemId,
     );
     await FirestoreUtils.deleteProblem(problem.problemId);
-    if (!mounted) return;
-    _loadProblems();
+  }
+
+  Future<void> _activateAllDisplayed(List<ProblemModel> problems) async {
+    final List<ProblemModel> targets = _activatableProblems(problems);
+    if (targets.isEmpty) return;
+    final int n = targets.length;
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Activate All',
+      message:
+          'Activate $n problem${n == 1 ? '' : 's'}? They will become available for idea submissions.',
+      confirmLabel: 'Activate All',
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Activating problems',
+        message: 'Activating 0 of $n…',
+        successMessage: 'Activated $n problem${n == 1 ? '' : 's'}.',
+        task: () async {
+          final List<String> failures = <String>[];
+          for (var i = 0; i < targets.length; i++) {
+            HkzAsyncLoader.update(
+              message: 'Activating ${i + 1} of $n…',
+              progress: (i + 1) / n,
+            );
+            try {
+              await ProblemStatusService.activate(targets[i].problemId);
+            } catch (_) {
+              failures.add(targets[i].problemId);
+            }
+          }
+          if (failures.isNotEmpty) {
+            throw Exception(
+              'Activated ${n - failures.length} of $n. ${failures.length} failed.',
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, title: 'Activate All failed', message: '$e');
+      }
+    }
+    if (mounted) _loadProblems();
+  }
+
+  Future<void> _deleteAllDisplayed(List<ProblemModel> problems) async {
+    final List<ProblemModel> targets = _deletableProblems(problems);
+    if (targets.isEmpty) return;
+    final int n = targets.length;
+    final bool confirmed = await FeedbackService.showConfirmation(
+      context,
+      title: 'Delete All',
+      message: 'Delete $n draft problem${n == 1 ? '' : 's'} permanently? This cannot be undone.',
+      confirmLabel: 'Delete All',
+      dangerConfirm: true,
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Deleting problems',
+        message: 'Deleting 0 of $n…',
+        successMessage: 'Deleted $n problem${n == 1 ? '' : 's'}.',
+        task: () async {
+          final List<String> failures = <String>[];
+          for (var i = 0; i < targets.length; i++) {
+            HkzAsyncLoader.update(
+              message: 'Deleting ${i + 1} of $n…',
+              progress: (i + 1) / n,
+            );
+            try {
+              await _deleteProblemRecord(targets[i]);
+            } catch (_) {
+              failures.add(targets[i].problemId);
+            }
+          }
+          if (failures.isNotEmpty) {
+            throw Exception(
+              'Deleted ${n - failures.length} of $n. ${failures.length} failed.',
+            );
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, title: 'Delete All failed', message: '$e');
+      }
+    }
+    if (mounted) _loadProblems();
   }
 
   Future<void> _openSubmitIdea(ProblemModel problem) async {
@@ -299,799 +479,558 @@ class _ProblemStatementsTableScreenState extends State<ProblemStatementsTableScr
             .toSet()
             .toList(growable: false)
           ..sort();
+        final Map<String, String> allDomains = _domainFilterOptions();
 
         return LayoutBuilder(
           builder: (context, constraints) {
             final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
-            final tableMinWidth =
-                _columns.fold<double>(0, (sum, c) => sum + c.minWidth) + 32 + _kPsTitleGap + _kDeptCategoryGap;
+            final bool mobile = ResponsiveHelper.isMobile(context);
 
-            final tableBody = problems.isEmpty
-                ? _EmptyTableState(onClearSearch: () {
+            final ProblemTableActions tableActions = _problemTableActions(problems);
+
+            final Widget contentBody = problems.isEmpty
+                ? EmptySearchState.problems(onClearSearch: () {
                     _searchController.clear();
                     _loadProblems();
                   })
-                : _ProblemStatementsTable(
-                    problems: problems,
-                    ideaCountByProblemId: _ideaCountByProblemId,
-                    orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
-                    columns: _columns,
-                    minWidth: tableMinWidth,
-                    canSubmitIdea: widget.config.canSubmitIdea,
-                    canDelete: widget.config.canToggleActive,
-                    canEditFor: _canEditProblem,
-                    onOpenProblem: (problem) => WorkspaceNavigator.openProblem(context, problem.problemId),
-                    onOpenDetails: _openDetails,
-                    onSubmitIdea: _openSubmitIdea,
-                    onEditProblem: _openEditProblem,
-                    onDeleteProblem: _deleteProblem,
-                  );
+                : _groupByDomain
+                    ? _buildGroupedProblems(problems, tableActions, mobile: mobile)
+                    : mobile
+                        ? ListView.separated(
+                            padding: const EdgeInsets.only(bottom: MobileCreateFabStyles.listBottomPadding),
+                            itemCount: problems.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (BuildContext context, int index) {
+                              return ProblemListRowCard(
+                                problem: problems[index],
+                                actions: tableActions,
+                              );
+                            },
+                          )
+                        : DataTableView<ProblemModel>(
+                            items: problems,
+                            columns: ProblemTableColumns.build(
+                              config: widget.config,
+                              actions: tableActions,
+                            ),
+                            onSort: _onTableSort,
+                            activeSortKey: _activeSortKey,
+                          );
 
-            final content = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                ProblemMetricsRow(metrics: _metrics),
-                const SizedBox(height: 12),
-                _buildToolbar(context),
-                const SizedBox(height: 12),
-                AnimatedCrossFade(
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: ProblemFiltersPanel(
-                    enabledFilters: widget.config.enabledFilters,
-                    allDepartments: allDepartments,
-                    allTags: allTags,
-                    departmentFilters: _departmentFilters,
-                    tagFilters: _tagFilters,
-                    statusFilter: _statusFilter,
-                    hasAttachments: _hasAttachments,
-                    onDepartmentToggle: (d, selected) => setState(() {
-                      if (selected) {
-                        _departmentFilters.add(d);
-                      } else {
-                        _departmentFilters.remove(d);
-                      }
-                    }),
-                    onTagToggle: (t, selected) => setState(() {
-                      if (selected) {
-                        _tagFilters.add(t);
-                      } else {
-                        _tagFilters.remove(t);
-                      }
-                    }),
-                    onStatusChange: (next) => setState(() => _statusFilter = next),
-                    onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
-                    onClearAll: _clearAllFilters,
-                    onApply: _loadProblems,
-                  ),
-                  crossFadeState: _showFilters
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 220),
-                ),
-                if (_hasAnyActiveFilter) ...<Widget>[
-                  const SizedBox(height: 12),
-                  ProblemActiveFiltersRow(
-                    departmentFilters: _departmentFilters,
-                    tagFilters: _tagFilters,
-                    statusFilter: _statusFilter,
-                    hasAttachments: _hasAttachments,
-                    onRemoveDepartment: (d) {
-                      setState(() => _departmentFilters.remove(d));
-                      _loadProblems();
-                    },
-                    onRemoveTag: (t) {
-                      setState(() => _tagFilters.remove(t));
-                      _loadProblems();
-                    },
-                    onClearStatus: () {
-                      setState(() => _statusFilter = null);
-                      _loadProblems();
-                    },
-                    onClearAttachments: () {
-                      setState(() => _hasAttachments = null);
-                      _loadProblems();
-                    },
-                  ),
-                ],
-                const SizedBox(height: 10),
-                if (hasBoundedHeight)
-                  Expanded(child: tableBody)
-                else
-                  SizedBox(height: 480, child: tableBody),
-              ],
+            final Widget header = _buildListHeader(
+              context: context,
+              problems: problems,
+              allDepartments: allDepartments,
+              allDomains: allDomains,
+              allTags: allTags,
             );
 
-            return content;
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: 480, child: contentBody),
+                ],
+              );
+            }
+
+            if (mobile) {
+              final Widget mobileBody = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  Expanded(child: contentBody),
+                ],
+              );
+
+              if (!widget.config.canCreate) {
+                return mobileBody;
+              }
+
+              return Stack(
+                children: <Widget>[
+                  mobileBody,
+                  MobileCreateFab(
+                    onPressed: _openCreateProblem,
+                    tooltip: 'Create Problem',
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: contentBody),
+              ],
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
-    final bool mobile = ResponsiveHelper.isMobile(context);
-    final searchField = TextField(
-      controller: _searchController,
-      onSubmitted: (_) => _loadProblems(),
-      decoration: InputDecoration(
-        hintText: 'Search problem number, title, department, tags…',
-        prefixIcon: const Icon(AppIcons.search),
-        isDense: true,
-        filled: true,
-        fillColor: const Color(0xFFFCFDFF),
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: mobile ? 10 : 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF6A38FF), width: 1.3),
-        ),
-      ),
-    );
+  Map<String, String> _domainFilterOptions() {
+    Iterable<DomainModel> domains = _domainsById.values;
+    if (_departmentFilters.isNotEmpty) {
+      final Set<String> selected = _departmentFilters
+          .map((String e) => e.trim().toUpperCase())
+          .where((String e) => e.isNotEmpty)
+          .toSet();
+      final Set<String> matchingDeptIds = <String>{};
+      for (final MapEntry<String, String> e in _deptIdToCode.entries) {
+        final String code = e.value.trim().toUpperCase();
+        final String name = (DepartmentModel.byCode(code)?.name ?? code).trim().toUpperCase();
+        if (selected.contains(code) || selected.contains(name)) {
+          matchingDeptIds.add(e.key);
+        }
+      }
+      if (matchingDeptIds.isNotEmpty) {
+        domains = domains.where((DomainModel d) => matchingDeptIds.contains(d.departmentId));
+      } else {
+        final Set<String> domainIdsOnFiltered = _lastLoaded
+            .where((ProblemModel p) {
+              final String name = p.departmentDisplayName.trim().toUpperCase();
+              final String code = p.departmentCode.trim().toUpperCase();
+              return selected.contains(code) || selected.contains(name);
+            })
+            .map((ProblemModel p) => p.domainId.trim())
+            .where((String id) => id.isNotEmpty)
+            .toSet();
+        if (domainIdsOnFiltered.isNotEmpty) {
+          domains = domains.where((DomainModel d) => domainIdsOnFiltered.contains(d.domainId));
+        }
+      }
+    }
+    final List<DomainModel> list = domains.toList(growable: false)
+      ..sort((DomainModel a, DomainModel b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return <String, String>{
+      for (final DomainModel d in list) d.domainId: d.displayLabel,
+    };
+  }
 
-    final filterButton = OutlinedButton.icon(
-      onPressed: () => setState(() => _showFilters = !_showFilters),
-      icon: const Icon(Icons.tune, size: 18),
-      label: Text(_showFilters ? 'Hide Filters' : 'Filters'),
-      style: _outlinedToolbarStyle(context),
-    );
+  Widget _buildGroupedProblems(
+    List<ProblemModel> problems,
+    ProblemTableActions tableActions, {
+    required bool mobile,
+  }) {
+    final Map<String, List<ProblemModel>> grouped = <String, List<ProblemModel>>{};
+    for (final ProblemModel p in problems) {
+      final String key = p.domainId.trim().isEmpty ? '__none__' : p.domainId.trim();
+      grouped.putIfAbsent(key, () => <ProblemModel>[]).add(p);
+    }
+    final List<String> keys = grouped.keys.toList(growable: false)
+      ..sort((String a, String b) {
+        if (a == '__none__') return 1;
+        if (b == '__none__') return -1;
+        final String an = _domainsById[a]?.name ?? a;
+        final String bn = _domainsById[b]?.name ?? b;
+        return an.toLowerCase().compareTo(bn.toLowerCase());
+      });
 
-    final sortButton = _buildSortButton(context);
-
-    final Widget? createButton = widget.config.canCreate
-        ? FilledButton.icon(
-            onPressed: _openCreateProblem,
-            icon: const Icon(AppIcons.add, size: 18),
-            label: const Text('Create Problem'),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(0, mobile ? 40 : 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return ListView.builder(
+      padding: EdgeInsets.only(bottom: mobile ? MobileCreateFabStyles.listBottomPadding : 12),
+      itemCount: keys.length,
+      itemBuilder: (BuildContext context, int index) {
+        final String key = keys[index];
+        final List<ProblemModel> group = grouped[key]!;
+        final String title = key == '__none__'
+            ? 'Unassigned domain'
+            : (_domainsById[key]?.displayLabel ?? 'Domain');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ExpansionTile(
+            initiallyExpanded: true,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            title: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)),
             ),
+            subtitle: Text(
+              '${group.length} problem${group.length == 1 ? '' : 's'}',
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            ),
+            children: <Widget>[
+              if (mobile)
+                ...group.map(
+                  (ProblemModel p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ProblemListRowCard(problem: p, actions: tableActions),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: (group.length * 56.0).clamp(120, 420),
+                  child: DataTableView<ProblemModel>(
+                    items: group,
+                    columns: ProblemTableColumns.build(
+                      config: widget.config,
+                      actions: tableActions,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildListHeader({
+    required BuildContext context,
+    required List<ProblemModel> problems,
+    required List<String> allDepartments,
+    required Map<String, String> allDomains,
+    required List<String> allTags,
+  }) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+
+    final Widget metrics = ProblemMetricsRow(metrics: _metrics);
+    final Widget? bulk = _buildBulkActions(problems);
+    final Widget searchBar = _buildSearchFilterBar(context, includeDownload: compact);
+    final Widget filters = AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: ProblemFiltersPanel(
+            enabledFilters: widget.config.enabledFilters,
+            allDepartments: allDepartments,
+            allDomains: allDomains,
+            allTags: allTags,
+            departmentFilters: _departmentFilters,
+            domainFilters: _domainFilters,
+            tagFilters: _tagFilters,
+            statusFilter: _statusFilter,
+            sourceFilter: _sourceFilter,
+            hasAttachments: _hasAttachments,
+            onDepartmentToggle: (d, selected) => setState(() {
+              if (selected) {
+                _departmentFilters.add(d);
+              } else {
+                _departmentFilters.remove(d);
+              }
+              _domainFilters.removeWhere((String id) => !allDomains.containsKey(id));
+            }),
+            onDomainToggle: (id, selected) => setState(() {
+              if (selected) {
+                _domainFilters.add(id);
+              } else {
+                _domainFilters.remove(id);
+              }
+            }),
+            onTagToggle: (t, selected) => setState(() {
+              if (selected) {
+                _tagFilters.add(t);
+              } else {
+                _tagFilters.remove(t);
+              }
+            }),
+            onStatusChange: (next) => setState(() => _statusFilter = next),
+            onSourceChange: (next) => setState(() => _sourceFilter = next),
+            onAttachmentsChange: (next) => setState(() => _hasAttachments = next),
+            onClearAll: _clearAllFilters,
+            onApply: _loadProblems,
+          ),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
+    final Widget? activeFilters = _hasAnyActiveFilter
+        ? ProblemActiveFiltersRow(
+            departmentFilters: _departmentFilters,
+            domainFilters: _domainFilters,
+            domainLabels: allDomains,
+            tagFilters: _tagFilters,
+            statusFilter: _statusFilter,
+            sourceFilter: _sourceFilter,
+            hasAttachments: _hasAttachments,
+            onRemoveDepartment: (d) {
+              setState(() => _departmentFilters.remove(d));
+              _loadProblems();
+            },
+            onRemoveDomain: (id) {
+              setState(() => _domainFilters.remove(id));
+              _loadProblems();
+            },
+            onRemoveTag: (t) {
+              setState(() => _tagFilters.remove(t));
+              _loadProblems();
+            },
+            onClearStatus: () {
+              setState(() => _statusFilter = null);
+              _loadProblems();
+            },
+            onClearSource: () {
+              setState(() => _sourceFilter = null);
+              _loadProblems();
+            },
+            onClearAttachments: () {
+              setState(() => _hasAttachments = null);
+              _loadProblems();
+            },
           )
         : null;
 
-    if (mobile) {
+    if (compact) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          searchField,
+          metrics,
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              if (createButton != null) createButton,
-              filterButton,
-              sortButton,
-            ],
-          ),
+          searchBar,
+          if (bulk != null) ...<Widget>[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: bulk),
+          ],
+          const SizedBox(height: 6),
+          filters,
+          if (activeFilters != null) ...<Widget>[
+            const SizedBox(height: 6),
+            activeFilters,
+          ],
+          const SizedBox(height: 6),
         ],
       );
     }
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        metrics,
+        const SizedBox(height: 12),
+        _buildDesktopToolbar(context, bulk: bulk),
+        const SizedBox(height: 12),
+        filters,
+        if (activeFilters != null) ...<Widget>[
+          const SizedBox(height: 12),
+          activeFilters,
+        ],
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButton({required bool labeled}) {
+    final Map<String, String> domainLabels = <String, String>{
+      for (final DomainModel d in _domainsById.values)
+        d.domainId: d.name.trim().isEmpty ? d.code : d.name.trim(),
+    };
+    return ExportDownloadButton(
+      labeled: labeled,
+      provider: ProblemStatementsExportProvider(
+        problems: _lastLoaded,
+        domainLabels: domainLabels,
+      ),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.problemStatements,
+        format: format,
+        actor: widget.currentUser,
+      ),
+    );
+  }
+
+  Widget _buildViewModeIcons() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        IconOnlyFilterButton(
+          icon: AppIcons.tableView,
+          tooltip: 'Table',
+          selected: !_groupByDomain,
+          color: const Color(0xFF4A67FF),
+          onTap: () => setState(() => _groupByDomain = false),
+        ),
+        IconOnlyFilterButton(
+          icon: AppIcons.domains,
+          tooltip: 'By Domain',
+          selected: _groupByDomain,
+          color: const Color(0xFF7C3AED),
+          onTap: () => setState(() => _groupByDomain = true),
+        ),
+      ],
+    );
+  }
+
+  Widget? _buildBulkActions(List<ProblemModel> problems) {
+    final bool showActivate = _activatableProblems(problems).isNotEmpty;
+    final bool showDelete = _deletableProblems(problems).isNotEmpty;
+    if (!showActivate && !showDelete) return null;
+
+    final ButtonStyle outlined = MobileToolbarButtonStyles.outlined(compact: true);
+    final ButtonStyle filled = MobileToolbarButtonStyles.filled(compact: true);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (showActivate)
+          FilledButton.icon(
+            onPressed: () => _activateAllDisplayed(problems),
+            icon: const Icon(AppIcons.problemStatusActive, size: 16),
+            label: const Text('Activate All'),
+            style: filled,
+          ),
+        if (showActivate && showDelete) const SizedBox(width: 8),
+        if (showDelete)
+          OutlinedButton.icon(
+            onPressed: () => _deleteAllDisplayed(problems),
+            icon: const Icon(AppIcons.delete, size: 16),
+            label: const Text('Delete All'),
+            style: outlined.copyWith(
+              foregroundColor: const WidgetStatePropertyAll<Color>(Color(0xFFB91C1C)),
+              side: const WidgetStatePropertyAll<BorderSide>(
+                BorderSide(color: Color(0xFFF8C4C4), width: 1.2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSearchFilterBar(BuildContext context, {bool includeDownload = false}) {
+    return ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search problem number, title, department, tags…',
+      searchDecoration: HackzInputDecoration.decorate(
+        hintText: 'Search problem number, title, department, tags…',
+        prefixIcon: const Icon(AppIcons.search, size: 18, color: HackzInputDecoration.iconColor),
+        compact: true,
+      ),
+      searchTextStyle: HackzInputDecoration.compactFieldTextStyle,
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      onSearchSubmitted: _loadProblems,
+      iconOnlyFilterOnMobile: true,
+      trailing: <Widget>[
+        if (includeDownload) _buildDownloadButton(labeled: false),
+        _buildViewModeIcons(),
+      ],
+    );
+  }
+
+  Widget _buildDesktopToolbar(BuildContext context, {Widget? bulk}) {
+    final Widget? createButton = widget.config.canCreate
+        ? FilledButton.icon(
+            onPressed: _openCreateProblem,
+            icon: const Icon(AppIcons.add, size: 16),
+            label: const Text('Create Problem'),
+            style: MobileToolbarButtonStyles.filled(compact: true),
+          )
+        : null;
+
+    final Widget? importButton = widget.config.canCreate && ImportPlatformSupport.isSupported(context)
+        ? OutlinedButton.icon(
+            onPressed: _openImportProblems,
+            icon: const Icon(Icons.upload_file_rounded, size: 16),
+            label: const Text('Import Problems'),
+            style: MobileToolbarButtonStyles.outlined(compact: true),
+          )
+        : null;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         if (createButton != null) ...<Widget>[
           createButton,
           const SizedBox(width: 8),
         ],
-        Expanded(child: searchField),
+        if (importButton != null) ...<Widget>[
+          importButton,
+          const SizedBox(width: 8),
+        ],
+        _buildDownloadButton(labeled: true),
         const SizedBox(width: 8),
-        filterButton,
-        const SizedBox(width: 8),
-        sortButton,
+        Expanded(child: _buildSearchFilterBar(context)),
+        if (bulk != null) ...<Widget>[
+          const SizedBox(width: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: bulk,
+          ),
+        ],
       ],
     );
   }
 
-  ButtonStyle _outlinedToolbarStyle(BuildContext context) => OutlinedButton.styleFrom(
-        minimumSize: Size(0, ResponsiveHelper.isMobile(context) ? 40 : 44),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        foregroundColor: const Color(0xFF334155),
-        backgroundColor: const Color(0xFFFCFDFF),
-        side: const BorderSide(color: Color(0xFFD9E2F5), width: 1.2),
-      );
-
-  Widget _buildSortButton(BuildContext context) {
-    return MenuAnchor(
-      menuChildren: _availableSorts
-          .map(
-            (ProblemSortType sort) => MenuItemButton(
-              onPressed: () {
-                setState(() => _sort = sort);
-                _loadProblems();
-              },
-              child: Text(_sortLabel(sort)),
-            ),
-          )
-          .toList(growable: false),
-      builder: (BuildContext context, MenuController controller, Widget? child) {
-        return OutlinedButton.icon(
-          onPressed: () {
-            if (controller.isOpen) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          icon: const Icon(Icons.swap_vert, size: 18),
-          label: Text(_sortLabel(_sort)),
-          style: _outlinedToolbarStyle(context),
-        );
-      },
+  ProblemTableActions _problemTableActions(List<ProblemModel> displayedProblems) {
+    final Map<String, String> domainLabelById = <String, String>{
+      for (final DomainModel d in _domainsById.values)
+        d.domainId: d.name.trim().isEmpty ? d.code : d.name.trim(),
+    };
+    return ProblemTableActions(
+      config: widget.config,
+      ideaCountByProblemId: _ideaCountByProblemId,
+      orgDefaultMaxIdeas: _orgDefaultMaxIdeas,
+      canEditFor: _canEditProblem,
+      canDeleteFor: _canDeleteProblem,
+      onOpenProblem: (ProblemModel problem) =>
+          WorkspaceNavigator.openProblem(context, problem.problemId, actor: widget.currentUser),
+      onOpenDetails: _openDetails,
+      onSubmitIdea: _openSubmitIdea,
+      onEditProblem: _openEditProblem,
+      onDeleteProblem: _deleteProblem,
+      domainLabelById: domainLabelById,
+      onActivateProblem: widget.config.canToggleActive ? _activateProblem : null,
+      onDeactivateProblem: widget.config.canToggleActive ? _deactivateProblem : null,
+      displayedProblems: displayedProblems,
     );
   }
 
-  String _sortLabel(ProblemSortType type) {
-    switch (type) {
+  /// `_sort` is the single source of truth — table headers mutate it here.
+  String? get _activeSortKey {
+    switch (_sort) {
       case ProblemSortType.newest:
-        return 'Newest';
       case ProblemSortType.oldest:
-        return 'Oldest';
-      case ProblemSortType.titleAZ:
-        return 'Title A-Z';
-      case ProblemSortType.department:
-        return 'Department';
-      case ProblemSortType.category:
-        return 'Category';
+        return 'newest';
       case ProblemSortType.psNumber:
-        return 'PS #';
+        return 'psNumber';
+      case ProblemSortType.titleAZ:
+        return 'title';
+      case ProblemSortType.department:
+        return 'department';
+      case ProblemSortType.category:
+        return 'category';
       case ProblemSortType.ideasCount:
-        return 'Ideas submitted';
+        return 'ideas';
       case ProblemSortType.deadline:
-        return 'Deadline (soonest)';
+        return 'deadline';
     }
   }
 
-  List<ProblemSortType> get _availableSorts {
-    // Order surfaced in the dropdown — recency first, then the column-aligned
-    // sorts (PS #, Title, Department, Category, Ideas, Deadline) so the menu
-    // reads top-to-bottom like the table reads left-to-right.
-    const order = <ProblemSortType>[
-      ProblemSortType.newest,
-      ProblemSortType.oldest,
-      ProblemSortType.psNumber,
-      ProblemSortType.titleAZ,
-      ProblemSortType.department,
-      ProblemSortType.category,
-      ProblemSortType.ideasCount,
-      ProblemSortType.deadline,
-    ];
-    return order.where((sort) => widget.config.enabledSorts.contains(sort)).toList(growable: false);
-  }
-}
-
-class _TableColumn {
-  const _TableColumn({
-    required this.label,
-    required this.flex,
-    required this.minWidth,
-    this.align = TextAlign.start,
-  });
-
-  final String label;
-  final int flex;
-  final double minWidth;
-  final TextAlign align;
-}
-
-class _ProblemStatementsTable extends StatelessWidget {
-  const _ProblemStatementsTable({
-    required this.problems,
-    required this.ideaCountByProblemId,
-    required this.orgDefaultMaxIdeas,
-    required this.columns,
-    required this.minWidth,
-    required this.canSubmitIdea,
-    required this.canDelete,
-    required this.canEditFor,
-    required this.onOpenProblem,
-    required this.onOpenDetails,
-    required this.onSubmitIdea,
-    required this.onEditProblem,
-    required this.onDeleteProblem,
-  });
-
-  final List<ProblemModel> problems;
-  final Map<String, int> ideaCountByProblemId;
-  final int orgDefaultMaxIdeas;
-  final List<_TableColumn> columns;
-  final double minWidth;
-  final bool canSubmitIdea;
-  final bool canDelete;
-  final bool Function(ProblemModel problem) canEditFor;
-  final ValueChanged<ProblemModel> onOpenProblem;
-  final ValueChanged<ProblemModel> onOpenDetails;
-  final ValueChanged<ProblemModel> onSubmitIdea;
-  final ValueChanged<ProblemModel> onEditProblem;
-  final ValueChanged<ProblemModel> onDeleteProblem;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: kDashboardCardDecoration.copyWith(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x0D000000), blurRadius: 18, offset: Offset(0, 6)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            final bool needsHorizontalScroll =
-                constraints.maxWidth.isFinite && constraints.maxWidth < minWidth;
-
-            final Widget table = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                _TableHeaderRow(columns: columns),
-                Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: problems.length,
-                    itemBuilder: (context, index) {
-                      final problem = problems[index];
-                      final bool canEdit = canEditFor(problem);
-                      final IdeaSubmissionGate gate = computeIdeaSubmissionGate(
-                        problem: problem,
-                        submittedCount: ideaCountByProblemId[problem.problemId] ?? 0,
-                        orgDefaultMaxIdeas: orgDefaultMaxIdeas,
-                      );
-                      return _TableDataRow(
-                        problem: problem,
-                        columns: columns,
-                        striped: index.isOdd,
-                        gate: gate,
-                        canSubmitIdea: canSubmitIdea,
-                        canEdit: canEdit,
-                        canDelete: canDelete,
-                        onOpenProblem: () => onOpenProblem(problem),
-                        onOpenDetails: () => onOpenDetails(problem),
-                        onSubmitIdea: () => onSubmitIdea(problem),
-                        onEdit: canEdit ? () => onEditProblem(problem) : null,
-                        onDelete: canDelete ? () => onDeleteProblem(problem) : null,
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-
-            if (!needsHorizontalScroll) {
-              return table;
-            }
-
-            return Scrollbar(
-              thumbVisibility: true,
-              notificationPredicate: (ScrollNotification notification) =>
-                  notification.metrics.axis == Axis.horizontal,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(width: minWidth, child: table),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _TableHeaderRow extends StatelessWidget {
-  const _TableHeaderRow({required this.columns});
-
-  final List<_TableColumn> columns;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: <Color>[Color(0xFFF5F3FF), Color(0xFFEEF4FF)],
-        ),
-        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
-      ),
-      child: Row(
-        children: <Widget>[
-          for (int i = 0; i < columns.length; i++) ...<Widget>[
-            // Mirror the 12 px PS # / Title gap used in [_TableDataRow] so
-            // header labels stay aligned over their cells.
-            if (i == 1) const SizedBox(width: _kPsTitleGap),
-            if (i == 3) const SizedBox(width: _kDeptCategoryGap),
-            Expanded(
-              flex: columns[i].flex,
-              child: Text(
-                columns[i].label.toUpperCase(),
-                textAlign: columns[i].align,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                  color: Color(0xFF475569),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _TableDataRow extends StatelessWidget {
-  const _TableDataRow({
-    required this.problem,
-    required this.columns,
-    required this.striped,
-    required this.gate,
-    required this.canSubmitIdea,
-    required this.canEdit,
-    required this.canDelete,
-    required this.onOpenProblem,
-    required this.onOpenDetails,
-    required this.onSubmitIdea,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final ProblemModel problem;
-  final List<_TableColumn> columns;
-  final bool striped;
-  final IdeaSubmissionGate gate;
-  final bool canSubmitIdea;
-  final bool canEdit;
-  final bool canDelete;
-  final VoidCallback onOpenProblem;
-  final VoidCallback onOpenDetails;
-  final VoidCallback onSubmitIdea;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final String number =
-        problem.problemNumber.trim().isEmpty ? '—' : problem.problemNumber.trim();
-    final String title = problem.title.trim().isEmpty ? 'Untitled' : problem.title.trim();
-    final String department = problem.departmentDisplayName.trim().isEmpty
-        ? '—'
-        : problem.departmentDisplayName.trim();
-    final String category =
-        problem.category.trim().isEmpty ? '—' : problem.category.trim();
-    final String theme = problem.theme.trim().isEmpty ? '—' : problem.theme.trim();
-    final String ideasLabel = '${gate.submittedCount}/${gate.effectiveMaxIdeas}';
-
-    // Two-line deadline: day-month on the first line, year on the second.
-    // Keeps the column narrow while still rendering the full date.
-    String deadlineDayMonth = '—';
-    String deadlineYear = '';
-    if (problem.ideaSubmissionDeadline != null) {
-      final DateTime d = problem.ideaSubmissionDeadline!;
-      deadlineDayMonth = '${d.day} ${kMonthNames[d.month - 1]}';
-      deadlineYear = '${d.year}';
+  void _onTableSort(String sortKey) {
+    ProblemSortType? next;
+    switch (sortKey) {
+      case 'newest':
+        next = _sort == ProblemSortType.newest
+            ? ProblemSortType.oldest
+            : ProblemSortType.newest;
+        break;
+      case 'psNumber':
+        next = ProblemSortType.psNumber;
+        break;
+      case 'title':
+        next = ProblemSortType.titleAZ;
+        break;
+      case 'department':
+        next = ProblemSortType.department;
+        break;
+      case 'category':
+        next = ProblemSortType.category;
+        break;
+      case 'ideas':
+        next = ProblemSortType.ideasCount;
+        break;
+      case 'deadline':
+        next = ProblemSortType.deadline;
+        break;
     }
-
-    return Material(
-      color: striped ? const Color(0xFFF8FAFC) : const Color(0xFFFCFDFF),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Color(0xFFEEF2F7))),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            // PS # — active status dot precedes the problem context pill so
-            // the row's status is the first thing a scanning eye lands on.
-            Expanded(
-              flex: columns[0].flex,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  _ActiveStatusDot(active: problem.isActive),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: ContextPill(
-                      label: number,
-                      semantic: ContextPillSemantic.problem,
-                      onTap: onOpenProblem,
-                      compact: true,
-                      fitContent: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Visual breathing room between the PS # pill and the problem
-            // title so adjacent rows don't read like a single run-on cell.
-            const SizedBox(width: _kPsTitleGap),
-            Expanded(
-              flex: columns[1].flex,
-              child: InkWell(
-                onTap: onOpenDetails,
-                borderRadius: BorderRadius.circular(6),
-                hoverColor: const Color(0xFFEEF2FF),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    title,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF4F46E5),
-                      height: 1.35,
-                      decoration: TextDecoration.underline,
-                      decorationColor: Color(0x334F46E5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              flex: columns[2].flex,
-              child: Text(
-                department,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
-              ),
-            ),
-            const SizedBox(width: _kDeptCategoryGap),
-            Expanded(
-              flex: columns[3].flex,
-              child: Text(
-                category,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-              ),
-            ),
-            Expanded(
-              flex: columns[4].flex,
-              // Theme wraps freely to additional lines instead of being
-              // truncated — most theme strings fit on one line but long
-              // labels like "Sustainability & Climate" are preserved.
-              child: Text(
-                theme,
-                softWrap: true,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF64748B),
-                  height: 1.35,
-                ),
-              ),
-            ),
-            Expanded(
-              flex: columns[5].flex,
-              child: Text(
-                ideasLabel,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF334155),
-                  fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-            Expanded(
-              flex: columns[6].flex,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    deadlineDayMonth,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF475569),
-                      height: 1.2,
-                      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  if (deadlineYear.isNotEmpty)
-                    Text(
-                      deadlineYear,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF64748B),
-                        height: 1.2,
-                        fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: columns[7].flex,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: _ProblemRowActionArea(
-                  problem: problem,
-                  gate: gate,
-                  canSubmitIdea: canSubmitIdea,
-                  canEdit: canEdit,
-                  canDelete: canDelete,
-                  onSubmitIdea: onSubmitIdea,
-                  onOpenDetails: onOpenDetails,
-                  onEdit: onEdit,
-                  onDelete: onDelete,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (next == null) return;
+    if (!widget.config.enabledSorts.contains(next)) return;
+    if (next == _sort) return;
+    setState(() => _sort = next!);
+    _loadProblems();
   }
-}
 
-/// Solid 8-px dot used as the inline active-status indicator next to the
-/// problem context pill (replacing the dedicated Status column).
-class _ActiveStatusDot extends StatelessWidget {
-  const _ActiveStatusDot({required this.active});
-
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color dot = active ? const Color(0xFF059669) : const Color(0xFFCBD5E1);
-    return Tooltip(
-      message: active ? 'Active' : 'Inactive',
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-      ),
-    );
-  }
-}
-
-/// Row-level ⋮ overflow menu — reuses [CardOverflowMenuButton] from the
-/// shared widgets pack so the popup styling is identical to the faculty
-/// teams card and judge cards.
-///
-/// Action order for users who can submit ideas (faculty, student) places
-/// **Submit Idea** first; everyone else sees the workspace / details /
-/// authoring actions in order. Destructive Delete is always last with a
-/// divider above it.
-class _ProblemRowActionArea extends StatelessWidget {
-  const _ProblemRowActionArea({
-    required this.problem,
-    required this.gate,
-    required this.canSubmitIdea,
-    required this.canEdit,
-    required this.canDelete,
-    required this.onSubmitIdea,
-    required this.onOpenDetails,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final ProblemModel problem;
-  final IdeaSubmissionGate gate;
-  final bool canSubmitIdea;
-  final bool canEdit;
-  final bool canDelete;
-  final VoidCallback onSubmitIdea;
-  final VoidCallback onOpenDetails;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool showSubmit = canSubmitIdea;
-    final bool submitEnabled = showSubmit && problem.isActive && gate.canSubmit;
-    final bool isClosed = showSubmit && !submitEnabled;
-    final List<CardOverflowMenuAction> actions = <CardOverflowMenuAction>[
-      const CardOverflowMenuAction(
-        value: 'details',
-        icon: AppIcons.preview,
-        label: 'View Details',
-      ),
-      if (canEdit && onEdit != null)
-        const CardOverflowMenuAction(
-          value: 'edit',
-          icon: AppIcons.edit,
-          label: 'Edit Problem',
-        ),
-      if (canDelete && onDelete != null)
-        const CardOverflowMenuAction(
-          value: 'delete',
-          icon: AppIcons.remove,
-          label: 'Delete Problem',
-          danger: true,
-        ),
-    ];
-
-    return Wrap(
-      alignment: WrapAlignment.end,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: ResponsiveHelper.isMobile(context) ? 4 : 6,
-      runSpacing: 4,
-      children: <Widget>[
-        if (showSubmit && submitEnabled)
-          ProblemWorkflowActionPill(
-            label: 'Idea',
-            showPlusPrefix: true,
-            contentIcon: AppIcons.ideas,
-            semantic: ProblemWorkflowPillSemantic.filledBrand,
-            onTap: onSubmitIdea,
-            tooltip: 'Submit idea',
-          ),
-        if (isClosed)
-          const ProblemWorkflowActionPill(
-            label: 'Closed',
-            icon: AppIcons.statusInactive,
-            semantic: ProblemWorkflowPillSemantic.closed,
-            enabled: false,
-            tooltip: 'Submissions closed',
-          ),
-        CardOverflowMenuButton(
-          tooltip: 'Problem actions',
-          dividersBefore: const <String>{'delete'},
-          actions: actions,
-          onSelected: (String value) {
-            switch (value) {
-              case 'details':
-                onOpenDetails();
-              case 'edit':
-                onEdit?.call();
-              case 'delete':
-                onDelete?.call();
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyTableState extends StatelessWidget {
-  const _EmptyTableState({required this.onClearSearch});
-
-  final VoidCallback onClearSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        padding: const EdgeInsets.all(28),
-        decoration: kDashboardCardDecoration,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(AppIcons.problems, size: 40, color: Color(0xFF94A3B8)),
-            const SizedBox(height: 12),
-            const Text(
-              'No problem statements found',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Try adjusting your search or check back later.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            TextButton(onPressed: onClearSearch, child: const Text('Clear search')),
-          ],
-        ),
-      ),
-    );
-  }
 }

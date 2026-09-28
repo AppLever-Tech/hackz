@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../widgets/judge/judge_score_grid.dart';
+import 'judge_score_grid.dart';
 import '../models/evaluation_criterion.dart';
 
 /// Compact, responsive scoring card for one [EvaluationCriterion].

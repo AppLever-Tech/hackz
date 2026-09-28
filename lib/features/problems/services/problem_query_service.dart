@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/department_model.dart';
+import '../../imports/models/import_created_source.dart';
+import '../../organization/models/department_model.dart';
 import '../../../utils/firestore_utils.dart';
 import '../models/problem_list_config.dart';
 import '../models/problem_model.dart';
+import '../models/problem_status.dart';
+import '../services/problem_status_helpers.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
 
 class ProblemQueryParams {
   const ProblemQueryParams({
@@ -11,19 +15,27 @@ class ProblemQueryParams {
     required this.search,
     required this.sortType,
     required this.statusFilter,
+    required this.sourceFilter,
     required this.departmentFilters,
+    required this.domainFilters,
     required this.tagFilters,
     required this.hasAttachments,
+    this.domainsById = const <String, String>{},
     this.limit = 300,
   });
 
   final ProblemListConfig config;
   final String search;
   final ProblemSortType sortType;
-  final bool? statusFilter;
+  final ProblemStatus? statusFilter;
+  final ImportCreatedSource? sourceFilter;
   final Set<String> departmentFilters;
+  /// Domain ids selected in filters.
+  final Set<String> domainFilters;
   final Set<String> tagFilters;
   final bool? hasAttachments;
+  /// domainId → searchable text (code + name) for search enrichment.
+  final Map<String, String> domainsById;
   final int limit;
 }
 
@@ -63,7 +75,7 @@ class ProblemListQueryResult {
 class ProblemQueryService {
   ProblemQueryService._();
 
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore get _db => HackzFirebase.current.firestore;
 
   static Future<ProblemListQueryResult> fetchProblems(ProblemQueryParams params) async {
     final results = await Future.wait<dynamic>(<Future<dynamic>>[
@@ -154,11 +166,18 @@ class ProblemQueryService {
           return false;
         }
       }
-      if (params.statusFilter != null && problem.isActive != params.statusFilter) {
+      if (params.statusFilter != null && problem.status != params.statusFilter) {
+        return false;
+      }
+      if (!ProblemStatusHelpers.matchesSourceFilter(problem.createdSource, params.sourceFilter)) {
         return false;
       }
       if (selectedDepartmentCodes.isNotEmpty &&
           !selectedDepartmentCodes.contains(problem.departmentCode.trim().toUpperCase())) {
+        return false;
+      }
+      if (params.domainFilters.isNotEmpty &&
+          !params.domainFilters.contains(problem.domainId.trim())) {
         return false;
       }
       if (params.tagFilters.isNotEmpty) {
@@ -170,7 +189,9 @@ class ProblemQueryService {
         final inTitle = problem.title.toLowerCase().contains(search);
         final inNumber = problem.problemNumber.toLowerCase().contains(search);
         final inTags = problem.tags.any((t) => t.toLowerCase().contains(search));
-        if (!inTitle && !inNumber && !inTags) {
+        final String domainSearch = (params.domainsById[problem.domainId.trim()] ?? '').toLowerCase();
+        final inDomain = domainSearch.isNotEmpty && domainSearch.contains(search);
+        if (!inTitle && !inNumber && !inTags && !inDomain) {
           return false;
         }
       }

@@ -1,21 +1,25 @@
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
 
-import '../../../constants/app_icons.dart';
-import '../../../models/user_model.dart';
-import '../../../responsive/responsive_helper.dart';
-import '../../../screens/common/dashboard_components.dart';
-import '../../../shared/feedback/feedback.dart';
-import '../../../widgets/responsive/responsive_filter_bar.dart';
+import '../../../core/theme/app_icons.dart';
+import '../../user/models/user_model.dart';
+import '../../../core/responsive/responsive_helper.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../../../core/ui/feedback/feedback.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
 import '../../evaluations/widgets/evaluation_templates_editor_pane.dart';
+import '../../evaluations/services/evaluation_settings_service.dart';
+import '../widgets/ideathon_template_picker_pane.dart';
 import '../constants/default_org_settings.dart';
+import '../constants/org_setting_keys.dart';
 import '../constants/org_settings_sections.dart';
 import '../models/org_setting_definition.dart';
 import '../services/org_settings_service.dart';
 import '../widgets/org_setting_value_tile.dart';
 import '../widgets/settings_group_widget.dart';
 
-/// College Admin: org-scoped rules (`hkzOrganizations/{orgId}/settings/org_settings`).
+/// College Admin: org-scoped rules (`hkzOrgSettings/org_settings`).
 class OrgSettingsDashboard extends StatefulWidget {
   const OrgSettingsDashboard({super.key, required this.user});
 
@@ -33,6 +37,7 @@ class _SectionVm {
     required this.groupOrder,
     required this.byGroup,
     this.isEvaluationTemplates = false,
+    this.isIdeathonTemplate = false,
   });
 
   final String sectionKey;
@@ -45,6 +50,7 @@ class _SectionVm {
   /// renders with [EvaluationTemplatesEditorPane] instead of the standard
   /// per-definition rows.
   final bool isEvaluationTemplates;
+  final bool isIdeathonTemplate;
 }
 
 List<_SectionVm> _computeSectionViewModels() {
@@ -63,6 +69,19 @@ List<_SectionVm> _computeSectionViewModels() {
           groupOrder: const <String>[],
           byGroup: const <String, List<OrgSettingDefinition>>{},
           isEvaluationTemplates: true,
+        ),
+      );
+      continue;
+    }
+    if (sectionKey == kOrgSettingsIdeathonTemplateSectionKey) {
+      out.add(
+        _SectionVm(
+          sectionKey: sectionKey,
+          title: kOrgSettingsIdeathonTemplateSectionTitle,
+          icon: orgSettingsSectionIcon(sectionKey),
+          groupOrder: const <String>[],
+          byGroup: const <String, List<OrgSettingDefinition>>{},
+          isIdeathonTemplate: true,
         ),
       );
       continue;
@@ -205,6 +224,12 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
         message: firstError,
       );
     } else {
+      if (keysToSave.contains(OrgSettingKeys.requiredJudgeEvaluations)) {
+        await EvaluationSettingsService.reconcileAfterEvaluationConfigChange(
+          orgId: _orgId,
+        );
+      }
+      if (!mounted) return;
       FeedbackService.showSuccess(
         context,
         title: 'Saved',
@@ -382,7 +407,7 @@ class _OrgSettingsDashboardState extends State<OrgSettingsDashboard> {
       future: _loadFuture,
       builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: HkzProgressIndicator());
         }
 
         final OrgSettingsService svc = OrgSettingsService.instance;
@@ -680,6 +705,11 @@ class _OrgSettingsRightPane extends StatelessWidget {
       contentArea = const Padding(
         padding: EdgeInsets.fromLTRB(8, 6, 8, 8),
         child: EvaluationTemplatesEditorPane(),
+      );
+    } else if (!globalSearch && s.isIdeathonTemplate) {
+      contentArea = const Padding(
+        padding: EdgeInsets.fromLTRB(8, 6, 8, 8),
+        child: IdeathonTemplatePickerPane(),
       );
     } else {
       final List<Widget> bodyChildren =

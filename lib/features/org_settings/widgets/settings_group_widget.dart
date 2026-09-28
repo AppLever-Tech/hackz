@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../screens/common/dashboard_components.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
 
 class SettingsGroupWidget extends StatelessWidget {
   const SettingsGroupWidget({

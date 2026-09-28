@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../models/workflow_status.dart';
 
 /// Compact semantic status badge shared across faculty + dept admin surfaces.
@@ -56,21 +56,21 @@ class WorkflowStatusPill extends StatelessWidget {
         );
       case WorkflowStatus.pendingApproval:
         return const _StatusVisuals(
-          icon: AppIcons.statusUnderReview,
+          icon: AppIcons.workflowPendingReview,
           foreground: Color(0xFFB45309),
           background: Color(0xFFFFF7E6),
           border: Color(0xFFFDE4B0),
         );
       case WorkflowStatus.approved:
         return const _StatusVisuals(
-          icon: AppIcons.statusApproved,
+          icon: AppIcons.workflowApproved,
           foreground: Color(0xFF047857),
           background: Color(0xFFE9FAF0),
           border: Color(0xFFB9EBC8),
         );
       case WorkflowStatus.rejected:
         return const _StatusVisuals(
-          icon: AppIcons.statusRejected,
+          icon: AppIcons.workflowRejected,
           foreground: Color(0xFFB91C1C),
           background: Color(0xFFFEECEC),
           border: Color(0xFFF8C4C4),

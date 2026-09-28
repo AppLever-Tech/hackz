@@ -1,3 +1,5 @@
+import '../constants/problem_constants.dart';
+
 /// Publish-time validation for the problem authoring workspace.
 ///
 /// All helpers are pure functions returning either `null` (valid) or a
@@ -5,6 +7,11 @@
 /// first non-null result in a snackbar before save.
 abstract final class ProblemAuthoringValidators {
   ProblemAuthoringValidators._();
+
+  static String? validateCategory(String category) {
+    if (ProblemConstants.isValidCategory(category)) return null;
+    return 'Category must be Software or Hardware.';
+  }
 
   /// Validates `maxIdeasAllowed` against the org-level upper bound.
   ///

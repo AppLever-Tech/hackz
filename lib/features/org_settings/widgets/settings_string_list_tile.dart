@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/feedback/feedback.dart';
+import '../../../core/ui/feedback/feedback.dart';
 import 'settings_tile.dart';
 
 class SettingsStringListTile extends StatefulWidget {

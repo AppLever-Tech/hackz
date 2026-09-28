@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../constants/app_icons.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../utils/common_helpers.dart';
 import '../models/team_change_request.dart';
 import '../models/workflow_request.dart';
@@ -165,7 +165,7 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${request.requestedByName.isEmpty ? 'Faculty' : request.requestedByName} · ${formatDateTime(request.resolvedAt)}',
+                  '${request.requestedByName.isEmpty ? 'Team Leader' : request.requestedByName} · ${formatDateTime(request.resolvedAt)}',
                   style: const TextStyle(
                     fontSize: 10.5,
                     color: Color(0xFF94A3B8),

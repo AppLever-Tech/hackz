@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../../models/department_model.dart';
+import '../../imports/models/import_created_source.dart';
+import '../../organization/models/department_model.dart';
+import '../services/problem_source_identity.dart';
+import 'problem_status.dart';
 
 class ProblemModel {
   const ProblemModel({
@@ -11,14 +14,20 @@ class ProblemModel {
     required this.orgId,
     required this.orgType,
     required this.departmentCode,
+    this.domainId = '',
     required this.createdBy,
     required this.category,
     required this.theme,
     required this.tags,
     required this.attachments,
-    required this.isActive,
+    required this.status,
     required this.createdAt,
+    this.createdSource,
     this.updatedAt,
+    this.source = '',
+    this.issuingOrganisation = '',
+    this.issuingDepartment = '',
+    this.sourceProblemId = '',
     this.summary = '',
     this.background = '',
     this.impact = '',
@@ -50,14 +59,35 @@ class ProblemModel {
   final String orgId;
   final String orgType;
   final String departmentCode;
+  final String domainId;
   final String createdBy;
   final String category;
   final String theme;
   final List<String> tags;
   final List<String> attachments;
-  final bool isActive;
+  final ProblemStatus status;
   final DateTime createdAt;
+  final String? createdSource;
   final DateTime? updatedAt;
+
+  /// Catalogue origin (`SIH`, `College`, `External`). Distinct from [createdSource].
+  final String source;
+  final String issuingOrganisation;
+  final String issuingDepartment;
+
+  /// Original ID from the originating catalogue (e.g. SIH problem ID).
+  final String sourceProblemId;
+
+  /// Backward-compatible alias for [sourceProblemId].
+  String get externalProblemId => sourceProblemId;
+
+  String get catalogSource => ProblemSourceIdentity.catalogSource(
+        storedSource: source,
+        sourceProblemId: sourceProblemId,
+        issuingOrganisation: issuingOrganisation,
+      );
+
+  String? get sourceIdentityKey => ProblemSourceIdentity.key(catalogSource, sourceProblemId);
 
   // Innovation context (Section 2).
   final String summary;
@@ -99,6 +129,8 @@ class ProblemModel {
   /// in submitted ideas (e.g. "Flutter", "AI/ML", "IoT").
   final List<String> preferredTechStack;
 
+  bool get isSubmissionOpen => status == ProblemStatus.active;
+
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'problemId': problemId,
@@ -108,13 +140,20 @@ class ProblemModel {
       'orgId': orgId,
       'orgType': orgType,
       'departmentCode': departmentCode,
+      if (domainId.trim().isNotEmpty) 'domainId': domainId.trim(),
       'createdBy': createdBy,
       'category': category,
       'theme': theme,
       'tags': tags,
-      'isActive': isActive,
+      'status': status.value,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt == null ? null : Timestamp.fromDate(updatedAt!),
+      if ((createdSource ?? '').trim().isNotEmpty) 'createdSource': createdSource!.trim(),
+      if (source.trim().isNotEmpty) 'source': source.trim(),
+      if (issuingOrganisation.trim().isNotEmpty) 'issuingOrganisation': issuingOrganisation.trim(),
+      if (issuingDepartment.trim().isNotEmpty) 'issuingDepartment': issuingDepartment.trim(),
+      if (sourceProblemId.trim().isNotEmpty) 'sourceProblemId': sourceProblemId.trim(),
+      if (sourceProblemId.trim().isNotEmpty) 'externalProblemId': sourceProblemId.trim(),
       'summary': summary,
       'background': background,
       'impact': impact,
@@ -161,14 +200,24 @@ class ProblemModel {
       orgId: str('orgId'),
       orgType: str('orgType'),
       departmentCode: str('departmentCode').trim().toUpperCase(),
+      domainId: str('domainId'),
       createdBy: str('createdBy'),
       category: str('category'),
       theme: str('theme'),
       tags: stringList('tags'),
       attachments: stringList('attachments'),
-      isActive: (map['isActive'] as bool?) ?? true,
+      status: ProblemStatus.fromRaw(str('status')),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdSource: (map['createdSource'] as String?)?.trim(),
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+      source: str('source'),
+      issuingOrganisation: str('issuingOrganisation'),
+      issuingDepartment: str('issuingDepartment'),
+      sourceProblemId: () {
+        final String id = str('sourceProblemId');
+        if (id.isNotEmpty) return id;
+        return str('externalProblemId');
+      }(),
       summary: str('summary'),
       background: str('background'),
       impact: str('impact'),
@@ -194,5 +243,61 @@ class ProblemModel {
     );
   }
 
+  ProblemModel copyWith({
+    ProblemStatus? status,
+    String? createdSource,
+    DateTime? updatedAt,
+  }) {
+    return ProblemModel(
+      problemId: problemId,
+      problemNumber: problemNumber,
+      title: title,
+      description: description,
+      orgId: orgId,
+      orgType: orgType,
+      departmentCode: departmentCode,
+      domainId: domainId,
+      createdBy: createdBy,
+      category: category,
+      theme: theme,
+      tags: tags,
+      attachments: attachments,
+      status: status ?? this.status,
+      createdAt: createdAt,
+      createdSource: createdSource ?? this.createdSource,
+      updatedAt: updatedAt ?? this.updatedAt,
+      source: source,
+      issuingOrganisation: issuingOrganisation,
+      issuingDepartment: issuingDepartment,
+      sourceProblemId: sourceProblemId,
+      summary: summary,
+      background: background,
+      impact: impact,
+      stakeholders: stakeholders,
+      researchContext: researchContext,
+      expectedSolution: expectedSolution,
+      successCriteria: successCriteria,
+      expectedDeliverables: expectedDeliverables,
+      suggestedTechnologies: suggestedTechnologies,
+      constraints: constraints,
+      difficultyLevel: difficultyLevel,
+      timeline: timeline,
+      complexityLevel: complexityLevel,
+      youtubeLink: youtubeLink,
+      datasetLink: datasetLink,
+      referenceLinks: referenceLinks,
+      contactInformation: contactInformation,
+      maxIdeasAllowed: maxIdeasAllowed,
+      ideaSubmissionDeadline: ideaSubmissionDeadline,
+      minTeamSize: minTeamSize,
+      maxTeamSize: maxTeamSize,
+      preferredTechStack: preferredTechStack,
+    );
+  }
+
   String get departmentDisplayName => DepartmentModel.byCode(departmentCode)?.name ?? departmentCode;
+
+  bool get isManual => (createdSource ?? '').trim() == ImportCreatedSource.manual.value;
+
+  bool get isImported => (createdSource ?? '').trim() == ImportCreatedSource.csvImport.value;
 }

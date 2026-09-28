@@ -6,6 +6,10 @@ import '../models/evaluation_template.dart';
 abstract final class DefaultEvaluationTemplateIds {
   DefaultEvaluationTemplateIds._();
 
+  /// Round-one idea screening rubric.
+  static const String ideaEvaluation = 'ideaEvaluation';
+
+  /// Ideathon event rubric.
   static const String ideathon = 'ideathon';
   static const String research = 'research';
   static const String startup = 'startup';
@@ -18,12 +22,49 @@ List<EvaluationTemplate> get defaultEvaluationTemplates => _templates;
 
 final List<EvaluationTemplate> _templates = <EvaluationTemplate>[
   EvaluationTemplate(
-    templateId: DefaultEvaluationTemplateIds.ideathon,
-    templateName: 'College Ideathon Evaluation',
-    description:
-        'Default ideathon rubric covering innovation, execution, impact, and communication.',
+    templateId: DefaultEvaluationTemplateIds.ideaEvaluation,
+    templateName: 'Idea Evaluation Template',
+    description: 'Default rubric for initial idea screening and department evaluation.',
     scoringScale: 10,
     isDefault: true,
+    active: true,
+    criteria: const <EvaluationCriterion>[
+      EvaluationCriterion(
+        criterionId: 'innovation',
+        title: 'Innovation',
+        description: 'Originality and novelty of the approach.',
+        weight: 0.34,
+        minScore: 1,
+        maxScore: 10,
+        displayOrder: 1,
+      ),
+      EvaluationCriterion(
+        criterionId: 'feasibility',
+        title: 'Feasibility',
+        description: 'How realistically the idea can be delivered.',
+        weight: 0.33,
+        minScore: 1,
+        maxScore: 10,
+        displayOrder: 2,
+      ),
+      EvaluationCriterion(
+        criterionId: 'impact',
+        title: 'Impact',
+        description: 'Scale and depth of the problem solved.',
+        weight: 0.33,
+        minScore: 1,
+        maxScore: 10,
+        displayOrder: 3,
+      ),
+    ],
+  ),
+  EvaluationTemplate(
+    templateId: DefaultEvaluationTemplateIds.ideathon,
+    templateName: 'Ideathon Evaluation Template',
+    description:
+        'Ideathon event rubric covering innovation, execution, impact, and communication.',
+    scoringScale: 10,
+    isDefault: false,
     active: true,
     criteria: const <EvaluationCriterion>[
       EvaluationCriterion(
