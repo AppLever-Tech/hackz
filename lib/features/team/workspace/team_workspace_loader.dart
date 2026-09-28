@@ -1,0 +1,281 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+import '../../../core/theme/app_icons.dart';
+import '../../organization/models/department_model.dart';
+import '../models/enums/team_status.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import 'package:hackz/features/payment/models/payment_model.dart';
+import '../../evaluations/models/score_model.dart';
+import '../models/team_model.dart';
+import '../../user/models/user_model.dart';
+import '../../../utils/common_helpers.dart';
+import '../../../utils/firestore_utils.dart';
+import '../../organization/services/commercial_access.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
+
+class TeamMemberPreview {
+  const TeamMemberPreview({
+    required this.userId,
+    required this.displayName,
+    this.isLeader = false,
+    this.user,
+  });
+
+  final String userId;
+  final String displayName;
+  final bool isLeader;
+  final UserModel? user;
+}
+
+class TeamIdeaPreview {
+  const TeamIdeaPreview({
+    required this.idea,
+    required this.avgScore,
+    required this.paymentStatus,
+    required this.createdByName,
+    required this.createdByUserId,
+  });
+
+  final IdeaModel idea;
+  final double? avgScore;
+  final PaymentRecordStatus? paymentStatus;
+  final String createdByName;
+  final String createdByUserId;
+}
+
+class TeamActivityItem {
+  const TeamActivityItem({
+    required this.at,
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final DateTime at;
+  final IconData icon;
+  final String title;
+  final String detail;
+}
+
+class TeamWorkspaceViewModel {
+  const TeamWorkspaceViewModel({
+    required this.team,
+    required this.departmentLabel,
+    required this.members,
+    required this.ideas,
+    required this.recentActivity,
+  });
+
+  final TeamModel team;
+  final String departmentLabel;
+  final List<TeamMemberPreview> members;
+  final List<TeamIdeaPreview> ideas;
+  final List<TeamActivityItem> recentActivity;
+}
+
+abstract final class TeamWorkspaceLoader {
+  static Future<TeamWorkspaceViewModel> load(String teamId) async {
+    final String id = teamId.trim();
+    if (id.isEmpty) {
+      throw ArgumentError('teamId must be non-empty');
+    }
+
+    final FirebaseFirestore db = HackzFirebase.current.firestore;
+    final DocumentSnapshot<Map<String, dynamic>> teamDoc =
+        await db.collection(FirestoreUtils.hkzTeams).doc(id).get();
+    if (!teamDoc.exists || teamDoc.data() == null) {
+      throw StateError('Team not found');
+    }
+
+    final TeamModel team = TeamModel.fromMap(teamDoc.id, teamDoc.data()!);
+    final String orgId = team.orgId.trim();
+    final DepartmentModel? dept = DepartmentModel.byCode(team.departmentCode);
+    final String departmentLabel = dept?.name ?? team.departmentCode;
+
+    final Set<String> userIds = <String>{
+      ...team.studentIds.map((e) => e.trim()).where((e) => e.isNotEmpty),
+    };
+
+    final List<dynamic> secondary = await Future.wait<dynamic>(<Future<dynamic>>[
+      _fetchUsers(userIds),
+      orgId.isEmpty
+          ? Future<QuerySnapshot<Map<String, dynamic>>>.value(
+              await db.collection(FirestoreUtils.hkzIdeas).limit(0).get(),
+            )
+          : db
+              .collection(FirestoreUtils.hkzIdeas)
+              .where('orgId', isEqualTo: orgId)
+              .where('teamId', isEqualTo: team.teamId)
+              .limit(200)
+              .get(),
+      orgId.isEmpty
+          ? Future<QuerySnapshot<Map<String, dynamic>>>.value(
+              await db.collection(FirestoreUtils.hkzPayments).limit(0).get(),
+            )
+          : db.collection(FirestoreUtils.hkzPayments).where('orgId', isEqualTo: orgId).limit(500).get(),
+      orgId.isEmpty
+          ? Future<QuerySnapshot<Map<String, dynamic>>>.value(
+              await db.collection(FirestoreUtils.hkzScores).limit(0).get(),
+            )
+          : db.collection(FirestoreUtils.hkzScores).where('orgId', isEqualTo: orgId).limit(800).get(),
+    ]);
+
+    final Map<String, UserModel> usersById = secondary[0] as Map<String, UserModel>;
+    final QuerySnapshot<Map<String, dynamic>> ideasSnap = secondary[1] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> paymentsSnap = secondary[2] as QuerySnapshot<Map<String, dynamic>>;
+    final QuerySnapshot<Map<String, dynamic>> scoresSnap = secondary[3] as QuerySnapshot<Map<String, dynamic>>;
+
+    final List<IdeaModel> ideas = ideasSnap.docs
+        .map((d) => IdeaModel.fromMap(d.id, d.data()))
+        .toList(growable: false)
+      ..sort((IdeaModel a, IdeaModel b) => b.createdAt.compareTo(a.createdAt));
+
+    final Set<String> ideaIds = ideas.map((IdeaModel i) => i.ideaId).toSet();
+
+    final Map<String, PaymentRecordStatus> paymentByIdea = <String, PaymentRecordStatus>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in paymentsSnap.docs) {
+      final PaymentModel p = PaymentModel.fromMap(doc.id, doc.data());
+      if (!ideaIds.contains(p.ideaId)) continue;
+      final PaymentRecordStatus? existing = paymentByIdea[p.ideaId];
+      if (existing == null || _paymentRank(p.status) > _paymentRank(existing)) {
+        paymentByIdea[p.ideaId] = p.status;
+      }
+    }
+
+    final Map<String, List<ScoreModel>> scoresByIdea = <String, List<ScoreModel>>{};
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in scoresSnap.docs) {
+      final ScoreModel s = ScoreModel.fromMap(doc.id, doc.data());
+      if (!ideaIds.contains(s.ideaId)) continue;
+      scoresByIdea.putIfAbsent(s.ideaId, () => <ScoreModel>[]).add(s);
+    }
+
+    final List<TeamMemberPreview> members = team.studentIds.map((String studentId) {
+      final String id = studentId.trim();
+      final UserModel? student = usersById[id];
+      final String name = student == null ? id : userDisplayName(student);
+      return TeamMemberPreview(
+        userId: id,
+        displayName: name,
+        isLeader: team.isLedBy(id),
+        user: student,
+      );
+    }).toList(growable: false);
+
+    final bool ideaPaymentRequired =
+        orgId.isEmpty ? false : await CommercialAccess.requiresIdeaPaymentForOrg(orgId);
+    final List<TeamIdeaPreview> ideaPreviews = ideas.map((IdeaModel idea) {
+      final List<ScoreModel> sc = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
+      final double? avg = sc.isEmpty
+          ? null
+          : sc.map((ScoreModel e) => e.score).reduce((double a, double b) => a + b) / sc.length;
+      final UserModel? creator = usersById[idea.createdBy.trim()];
+      return TeamIdeaPreview(
+        idea: idea,
+        avgScore: avg,
+        paymentStatus: ideaPaymentRequired ? paymentByIdea[idea.ideaId] : null,
+        createdByName: creator == null ? idea.createdBy : userDisplayName(creator),
+        createdByUserId: idea.createdBy,
+      );
+    }).toList(growable: false);
+
+    final List<TeamActivityItem> activity = _buildActivity(
+      ideas,
+      scoresByIdea,
+      ideaPaymentRequired ? paymentByIdea : const <String, PaymentRecordStatus>{},
+    );
+
+    return TeamWorkspaceViewModel(
+      team: team,
+      departmentLabel: departmentLabel.trim().isEmpty ? '—' : departmentLabel.trim(),
+      members: members,
+      ideas: ideaPreviews,
+      recentActivity: activity.length <= 8 ? activity : activity.sublist(0, 8),
+    );
+  }
+
+  static Future<Map<String, UserModel>> _fetchUsers(Set<String> userIds) async {
+    final Map<String, UserModel> out = <String, UserModel>{};
+    final List<String> ids = userIds.where((e) => e.isNotEmpty).toList(growable: false);
+    await Future.wait<void>(
+      ids.map((String id) async {
+        final UserModel? u = await FirestoreUtils.fetchUser(id);
+        if (u != null) {
+          out[id] = u;
+        }
+      }),
+    );
+    return out;
+  }
+
+  static int _paymentRank(PaymentRecordStatus status) {
+    return switch (status) {
+      PaymentRecordStatus.verified => 3,
+      PaymentRecordStatus.pending => 2,
+      PaymentRecordStatus.rejected => 1,
+    };
+  }
+
+  static List<TeamActivityItem> _buildActivity(
+    List<IdeaModel> ideas,
+    Map<String, List<ScoreModel>> scoresByIdea,
+    Map<String, PaymentRecordStatus> paymentByIdea,
+  ) {
+    final List<TeamActivityItem> lines = <TeamActivityItem>[];
+
+    for (final IdeaModel idea in ideas) {
+      final String title = idea.ideaTitle.trim().isEmpty ? idea.ideaId : idea.ideaTitle.trim();
+      if (idea.status != IdeaStatus.draft) {
+        lines.add(
+          TeamActivityItem(
+            at: idea.createdAt,
+            icon: AppIcons.ideas,
+            title: 'Idea submitted',
+            detail: title,
+          ),
+        );
+      }
+      final List<ScoreModel> scores = scoresByIdea[idea.ideaId] ?? const <ScoreModel>[];
+      for (final ScoreModel score in scores) {
+        lines.add(
+          TeamActivityItem(
+            at: score.createdAt,
+            icon: AppIcons.scoring,
+            title: 'Evaluation recorded',
+            detail: '$title · ${score.score.toStringAsFixed(1)}',
+          ),
+        );
+      }
+      final PaymentRecordStatus? pay = paymentByIdea[idea.ideaId];
+      if (pay != null) {
+        lines.add(
+          TeamActivityItem(
+            at: idea.createdAt,
+            icon: AppIcons.payments,
+            title: _paymentActivityTitle(pay),
+            detail: title,
+          ),
+        );
+      }
+    }
+
+    lines.sort((TeamActivityItem a, TeamActivityItem b) => b.at.compareTo(a.at));
+    return lines;
+  }
+
+  static String _paymentActivityTitle(PaymentRecordStatus status) {
+    return switch (status) {
+      PaymentRecordStatus.verified => 'Payment verified',
+      PaymentRecordStatus.rejected => 'Payment rejected',
+      PaymentRecordStatus.pending => 'Payment pending',
+    };
+  }
+}
+
+String teamStatusLabel(TeamStatus status) {
+  return switch (status) {
+    TeamStatus.active => 'Active',
+    TeamStatus.inactive => 'Inactive',
+    TeamStatus.locked => 'Locked',
+  };
+}

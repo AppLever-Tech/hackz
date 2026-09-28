@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.2+2
 
 environment:
   sdk: ^3.9.2
@@ -39,8 +39,14 @@ dependencies:
   firebase_auth: ^5.7.0
   firebase_storage: ^12.4.10
   file_picker: ^8.1.2
+  file_selector: ^1.1.0
+  excel: ^4.0.6
+  http: ^1.2.2
   url_launcher: ^6.3.1
   video_player: ^2.10.0
+  shared_preferences: ^2.5.5
+  pdf: ^3.12.0
+  archive: ^3.6.1
 
 dev_dependencies:
   flutter_test:
@@ -58,22 +64,26 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  # Full-resolution branded mark (white bg) — launcher only; in-app uses hackz_logo.png
-  image_path: assets/images/hackz_logo_branded.png
+  image_path: assets/branding/hackz_launcher_logo.png
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: assets/images/hackz_logo_branded.png
+  adaptive_icon_foreground: assets/branding/hackz_launcher_logo.png
   remove_alpha_ios: true
   background_color_ios: "#FFFFFF"
+  web:
+    generate: true
+    image_path: assets/branding/hackz_launcher_logo.png
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/hackz_logo_branded.png
+  image: assets/branding/hackz_launcher_logo.png
   android: true
   ios: true
-  web: false
+  web: true
   android_12:
     color: "#FFFFFF"
-    image: assets/images/hackz_logo_branded.png
+    image: assets/branding/hackz_launcher_logo.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -86,8 +96,23 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/hackz_logo.png
-    - assets/images/hackz_logo_branded.png
+    - assets/branding/
+    - assets/certificate/common/
+    - assets/certificate/overlays/
+    - assets/fonts/certificates/
+    - assets/default_metadata/about.json
+    - assets/default_metadata/project_team.json
+    - assets/default_metadata/privacy_policy.json
+    - assets/default_metadata/terms.json
+    - assets/default_metadata/app_info.json
+    - assets/docs/images/problem_lifecycle.png
+    - assets/docs/images/idea_lifecycle.png
+    - assets/docs/images/roles_responsibilities.png
+    - assets/docs/images/innovation_to_startup_program.png
+    - assets/docs/images/smart_india_hackathon_workflow.png
+    - assets/docs/images/tenant_onboarding_phase_1.png
+    - assets/docs/images/tenant_onboarding_phase_2.png
+    - assets/docs/images/ai_analysis_workflow.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -100,22 +125,24 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: PlayfairDisplay
+      fonts:
+        - asset: assets/fonts/certificates/PlayfairDisplay-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/certificates/PlayfairDisplay-Bold.ttf
+          weight: 700
+    - family: GreatVibes
+      fonts:
+        - asset: assets/fonts/certificates/GreatVibes-Regular.ttf
+          weight: 400
+    - family: InterCertificate
+      fonts:
+        - asset: assets/fonts/certificates/Inter_28pt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/certificates/Inter_28pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/certificates/Inter_28pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/certificates/Inter_28pt-Bold.ttf
+          weight: 700

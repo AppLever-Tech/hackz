@@ -1,0 +1,428 @@
+import 'dart:async';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'package:hackz/core/theme/app_icons.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import 'package:hackz/core/ui/common/entity_card_pills.dart';
+import 'package:hackz/core/ui/dialog/app_dialog_template.dart';
+import 'package:hackz/core/ui/feedback/feedback.dart';
+import 'package:hackz/core/ui/inputs/hackz_input_decoration.dart';
+import 'package:hackz/core/responsive/responsive_dialog_actions.dart';
+import 'package:hackz/features/attachment/models/attachment_model.dart';
+import 'package:hackz/features/attachment/services/attachment_service.dart';
+import 'package:hackz/features/attachment/widgets/attachment_pick_field.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import 'package:hackz/features/ideathons/models/ideathon_model.dart';
+import 'package:hackz/features/ideathons/services/ideathon_participation_service.dart';
+import 'package:hackz/features/ideathons/services/ideathon_service.dart';
+import 'package:hackz/features/organization/services/commercial_access.dart';
+import 'package:hackz/features/team/models/team_model.dart';
+import 'package:hackz/features/team/services/team_service.dart';
+import 'package:hackz/features/user/models/user_model.dart';
+import 'package:hackz/core/ui/loading/loading.dart';
+
+import '../models/payment_model.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
+
+/// Team Leader payment submission: amount and screenshot for the Idea's event.
+Future<bool?> showPaymentDialog({
+  required BuildContext context,
+  required UserModel currentUser,
+  required IdeaModel idea,
+  required TeamModel team,
+}) {
+  return showAppDialog<bool>(
+    context: context,
+    width: DialogWidthPreset.standard,
+    child: _PaymentDialog(
+      currentUser: currentUser,
+      idea: idea,
+      team: team,
+    ),
+  );
+}
+
+class _PaymentDialog extends StatefulWidget {
+  const _PaymentDialog({
+    required this.currentUser,
+    required this.idea,
+    required this.team,
+  });
+
+  final UserModel currentUser;
+  final IdeaModel idea;
+  final TeamModel team;
+
+  @override
+  State<_PaymentDialog> createState() => _PaymentDialogState();
+}
+
+class _PaymentDialogState extends State<_PaymentDialog> {
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _txnController = TextEditingController();
+  PlatformFile? _picked;
+  bool _busy = false;
+  bool _loadingEvent = true;
+  String? _errorMessage;
+  IdeathonModel? _event;
+
+  static const Duration _uploadTimeout = Duration(seconds: 120);
+  static const Duration _firestoreTimeout = Duration(seconds: 45);
+  static const double _labelWidth = 118;
+  static final FilteringTextInputFormatter _amountFormatter = FilteringTextInputFormatter.allow(
+    RegExp(r'^\d*\.?\d{0,2}'),
+  );
+
+  static const String _missingEventMessage =
+      'This idea is not associated with an event. Submit the idea with an event selected.';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIdeaEvent();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _txnController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadIdeaEvent() async {
+    setState(() => _loadingEvent = true);
+    try {
+      final membership = await IdeathonParticipationService.fetchForIdea(widget.idea.ideaId);
+      final String eventId = membership?.ideathonId.trim() ?? '';
+      final IdeathonModel? event =
+          eventId.isEmpty ? null : await IdeathonService.fetchById(eventId);
+      if (!mounted) return;
+      if (event != null && !await CommercialAccess.requiresIdeaPaymentForOrg(widget.idea.orgId)) {
+        if (!mounted) return;
+        setState(() {
+          _event = null;
+          _errorMessage = CommercialAccess.ideaPaymentNotRequiredMessage;
+        });
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _event = event;
+        _errorMessage = event == null ? _missingEventMessage : null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _loadingEvent = false);
+    }
+  }
+
+  String _eventName(IdeathonModel event) {
+    return event.name.trim().isEmpty ? event.ideathonId : event.name.trim();
+  }
+
+  String _formatSubmitError(Object e) {
+    if (e is FirebaseException) {
+      return e.message?.trim().isNotEmpty == true ? e.message!.trim() : e.code;
+    }
+    if (e is TimeoutException) {
+      return 'Request timed out. Check your network, Storage rules, and Firestore rules, then try again.';
+    }
+    return e.toString();
+  }
+
+  Future<void> _submit() async {
+    if (_busy) return;
+    if (_event == null) {
+      setState(() => _errorMessage = _missingEventMessage);
+      return;
+    }
+    final double? amount = _parsePositiveAmount(_amountController.text);
+    if (amount == null) {
+      setState(() => _errorMessage = 'Enter a valid amount greater than zero.');
+      return;
+    }
+    if (_picked?.bytes == null || (_picked!.bytes?.isEmpty ?? true)) {
+      setState(() => _errorMessage = 'Screenshot is required.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await HkzAsyncLoader.run<void>(
+        context,
+        title: 'Saving Payment',
+        message: 'Uploading payment proof and updating records...',
+        successMessage: 'Payment submitted',
+        task: () async {
+          final authUid = HackzFirebase.current.auth.currentUser?.uid;
+          if (authUid == null || authUid.isEmpty) {
+            throw StateError('Not signed in.');
+          }
+          if (!TeamService.isActingTeamLeader(widget.currentUser, widget.team)) {
+            throw TeamRuleException('Only the team leader can submit payment for this team.');
+          }
+          final paymentId = widget.idea.ideaId;
+          HkzAsyncLoader.update(
+            message: 'Uploading payment screenshot securely...',
+          );
+          final uploaded = await AttachmentService.uploadAttachments(
+            entityType: AttachmentEntityType.payment,
+            entityId: paymentId,
+            orgId: widget.idea.orgId,
+            departmentCode: widget.idea.problemDepartmentCode,
+            uploadedBy: widget.currentUser.userId,
+            files: <PlatformFile>[_picked!],
+            fileType: 'payment',
+          ).timeout(_uploadTimeout);
+          final url = uploaded.first.downloadUrl;
+          HkzAsyncLoader.update(message: 'Saving payment record...');
+          final payment = PaymentModel(
+            paymentId: paymentId,
+            ideaId: widget.idea.ideaId,
+            teamId: widget.team.teamId,
+            problemId: widget.idea.problemId,
+            problemNumber: widget.idea.problemNumber,
+            orgId: widget.idea.orgId,
+            departmentCode: widget.idea.problemDepartmentCode,
+            amount: amount,
+            paymentProofUrl: url,
+            paidByStudentId: widget.currentUser.userId,
+            uploadedByAuthUid: authUid,
+            status: PaymentRecordStatus.pending,
+            verifiedBy: '',
+            verifiedAt: null,
+            remarks: '',
+            createdAt: DateTime.now(),
+            transactionId: _txnController.text.trim().isEmpty ? null : _txnController.text.trim(),
+          );
+          await IdeathonService.saveTeamLeaderEventPayment(
+            payment: payment,
+          ).timeout(_firestoreTimeout);
+        },
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e, stackTrace) {
+      assert(() {
+        debugPrint('PaymentDialog submit failed: $e\n$stackTrace');
+        return true;
+      }());
+      if (!mounted) return;
+      final message = _formatSubmitError(e);
+      setState(() => _errorMessage = message);
+      FeedbackService.showError(
+        context,
+        title: 'Payment submission failed',
+        message: message,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  double? _parsePositiveAmount(String raw) {
+    final String text = raw.trim().replaceAll(',', '');
+    if (text.isEmpty || text.startsWith('-') || text.startsWith('+')) return null;
+    final double? amount = double.tryParse(text);
+    if (amount == null || amount.isNaN || amount.isInfinite || amount <= 0) return null;
+    return amount;
+  }
+
+  Widget _inlineField({
+    required String label,
+    required Widget child,
+    bool required = false,
+    bool alignStart = false,
+  }) {
+    return Row(
+      crossAxisAlignment: alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: <Widget>[
+        SizedBox(
+          width: _labelWidth,
+          child: Padding(
+            padding: EdgeInsets.only(top: alignStart ? 8 : 0),
+            child: HackzInputDecoration.fieldLabel(label, required: required),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: child),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String ideaTitle =
+        widget.idea.ideaTitle.trim().isEmpty ? widget.idea.ideaId : widget.idea.ideaTitle.trim();
+    final String teamName = widget.team.teamName.trim().isEmpty ? 'Team' : widget.team.teamName.trim();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: <Color>[Color(0xFF7C3AED), Color(0xFF0891B2)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(AppIcons.payments, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'Upload payment',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Submit amount and proof for this idea\'s event.',
+                    style: TextStyle(fontSize: 12, height: 1.35, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: <Widget>[
+            Flexible(
+              child: EntityCardPills.workspace(
+                ideaTitle,
+                ContextPillSemantic.idea,
+                () {},
+                enabled: false,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: EntityCardPills.workspace(
+                teamName,
+                ContextPillSemantic.team,
+                () {},
+                enabled: false,
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (_loadingEvent)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else if (_event != null)
+              Expanded(
+                child: EntityCardPills.workspace(
+                  _eventName(_event!),
+                  ContextPillSemantic.event,
+                  () {},
+                  enabled: false,
+                  fullWidth: true,
+                  icon: AppIcons.ideathons,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFCFDFF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _inlineField(
+                label: 'Amount',
+                required: true,
+                child: TextField(
+                  controller: _amountController,
+                  enabled: !_busy,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
+                  inputFormatters: <TextInputFormatter>[_amountFormatter],
+                  style: HackzInputDecoration.compactFieldTextStyle,
+                  decoration: HackzInputDecoration.decorate(
+                    compact: true,
+                    hintText: '0.00',
+                    prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18, color: HackzInputDecoration.iconColor),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _inlineField(
+                label: 'Transaction ID',
+                child: TextField(
+                  controller: _txnController,
+                  enabled: !_busy,
+                  style: HackzInputDecoration.fieldTextStyle,
+                  decoration: HackzInputDecoration.decorate(
+                    hintText: 'Optional reference',
+                    dense: false,
+                    contentPaddingOverride: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _inlineField(
+                label: 'Screenshot',
+                required: true,
+                alignStart: true,
+                child: AttachmentSingleImagePickField(
+                  file: _picked,
+                  enabled: !_busy,
+                  compact: true,
+                  onChanged: (f) => setState(() => _picked = f),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_errorMessage != null) ...<Widget>[
+          const SizedBox(height: 10),
+          Text(
+            _errorMessage!,
+            style: const TextStyle(fontSize: 13, color: HackzInputDecoration.errorColor),
+          ),
+        ],
+        const SizedBox(height: 16),
+        ResponsiveDialogActions(
+          children: <Widget>[
+            OutlinedButton(
+              onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: _busy || _loadingEvent || _event == null ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF6A38FF),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

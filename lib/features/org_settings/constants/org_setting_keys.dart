@@ -1,0 +1,64 @@
+/// Centralized keys for the per-org settings document.
+/// Stored at `hkzOrgSettings/org_settings` on Tenant Firebase.
+abstract final class OrgSettingKeys {
+  OrgSettingKeys._();
+
+  // Team — formation
+  static const String minStudentsPerTeam = 'minStudentsPerTeam';
+  static const String maxStudentsPerTeam = 'maxStudentsPerTeam';
+
+  // Team — edit
+  static const String allowPendingSubmissionTeamEdit = 'allowPendingSubmissionTeamEdit';
+  static const String freezeTeamAfterSubmitted = 'freezeTeamAfterSubmitted';
+
+  // Idea — submission
+  static const String maxIdeasPerProblem = 'maxIdeasPerProblem';
+
+  // Idea — evaluation
+  static const String minJudgesPerIdea = 'minJudgesPerIdea';
+  static const String maxJudgesPerIdea = 'maxJudgesPerIdea';
+  static const String showJudgeCommentsToStudents = 'showJudgeCommentsToStudents';
+  static const String requiredJudgeEvaluations = 'requiredJudgeEvaluations';
+
+  // Problem
+  static const String requireProblemCategoryTheme = 'requireProblemCategoryTheme';
+  static const String maxProblemAttachments = 'maxProblemAttachments';
+  static const String allowCrossDepartmentSubmissions = 'allowCrossDepartmentSubmissions';
+
+  // Problem — submission limits
+  // Default prefilled into the authoring "Max Ideas Allowed" field on new
+  // problems. The hard upper bound the College Admin will accept when
+  // authoring a problem; the field cannot exceed this.
+  static const String defaultMaxIdeasPerProblem = 'defaultMaxIdeasPerProblem';
+  static const String maxAllowedIdeasPerProblem = 'maxAllowedIdeasPerProblem';
+
+  // Payment
+  static const String coordinatorApprovalRequired = 'coordinatorApprovalRequired';
+  static const String requirePaymentScreenshot = 'requirePaymentScreenshot';
+  static const String requirePaymentAmount = 'requirePaymentAmount';
+
+  // User / auth
+  static const String accessCodeLength = 'accessCodeLength';
+  static const String requireAccessCode = 'requireAccessCode';
+  static const String allowDuplicateMobile = 'allowDuplicateMobile';
+
+  // Leaderboard
+  static const String enableLeaderboard = 'enableLeaderboard';
+  static const String judgeScoreWeight = 'judgeScoreWeight';
+  static const String innovationScoreWeight = 'innovationScoreWeight';
+
+  // Ideathon
+  static const String minimumIdeasForIdeathon = 'minimumIdeasForIdeathon';
+  static const String prototypeSelectionThreshold = 'prototypeSelectionThreshold';
+
+  // Upload
+  static const String maxUploadSizeMB = 'maxUploadSizeMB';
+  static const String allowedImageFormats = 'allowedImageFormats';
+  static const String allowedDocumentFormats = 'allowedDocumentFormats';
+  static const String allowedVideoFormats = 'allowedVideoFormats';
+
+  // Feedback
+  static const String enableFeedback = 'enableFeedback';
+  static const String maxFeedbackScreenshotSizeMB = 'maxFeedbackScreenshotSizeMB';
+  static const String maxFeedbackPerUserPerDay = 'maxFeedbackPerUserPerDay';
+}

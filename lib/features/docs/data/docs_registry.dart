@@ -1,0 +1,423 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_icons.dart';
+import '../../user/models/enums/user_role.dart';
+import '../data/idea_lifecycle_content.dart';
+import '../data/innovation_to_startup_content.dart';
+import '../data/platform_overview_content.dart';
+import '../data/problem_lifecycle_content.dart';
+import '../data/roles_responsibilities_content.dart';
+import '../data/smart_india_hackathon_content.dart';
+import '../data/ai_analysis_setup_content.dart';
+import '../data/tenant_onboarding_content.dart';
+import '../models/doc_models.dart';
+import '../screens/pages/placeholder_doc_page.dart';
+import 'docs_asset_paths.dart';
+
+/// Central registry — add future Help pages here only; layout stays unchanged.
+abstract final class DocsRegistry {
+  DocsRegistry._();
+
+  static const String helpHomeId = 'help-home';
+
+  static final DocPageDefinition helpHomePage = DocPageDefinition(
+    id: helpHomeId,
+    title: 'Help Home',
+    description: 'Learn how Hackz works and understand your responsibilities.',
+    icon: AppIcons.docs,
+    builder: (_) => const SizedBox.shrink(),
+    category: DocCategory.gettingStarted,
+  );
+
+  static final List<DocPageDefinition> pages = <DocPageDefinition>[
+    DocPageDefinition(
+      id: 'platform-overview',
+      title: 'Hackz Platform Overview',
+      description:
+          'Learn how Hackz helps institutions manage the complete innovation lifecycle—from problem statements to prototype selection—through a structured, role-based and collaborative platform.',
+      icon: AppIcons.docs,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 7,
+      searchKeywords: PlatformOverviewSections.searchCorpus,
+      category: DocCategory.gettingStarted,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'innovation-to-startup',
+      title: 'Innovation to Startup Program',
+      description:
+          'Understand how Hackz enables institutions to build a complete innovation ecosystem—from ideation to startup incubation—using structured workflows, mentorship, intellectual property support and product development.',
+      icon: AppIcons.ideathons,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 8,
+      heroImageAsset: DocsAssetPaths.innovationToStartupProgram,
+      searchKeywords: InnovationToStartupSections.searchCorpus,
+      category: DocCategory.institutionSolutions,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'smart-india-hackathon',
+      title: 'Smart India Hackathon (SIH)',
+      description:
+          'Learn how Hackz helps institutions manage the complete internal Smart India Hackathon workflow—from publishing official problem statements to evaluating, shortlisting and nominating the best teams.',
+      icon: AppIcons.leaderboard,
+      lastUpdated: DateTime(2026, 8, 6),
+      readingMinutes: 7,
+      heroImageAsset: DocsAssetPaths.smartIndiaHackathonWorkflow,
+      searchKeywords: SmartIndiaHackathonSections.searchCorpus,
+      category: DocCategory.institutionSolutions,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'problem-lifecycle',
+      title: 'Problem Lifecycle',
+      description: 'Catalog stages for Hackz problem statements.',
+      icon: AppIcons.problems,
+      lastUpdated: DateTime(2026, 7, 30),
+      readingMinutes: 8,
+      heroImageAsset: DocsAssetPaths.problemLifecycle,
+      searchKeywords: ProblemLifecycleSections.searchCorpus,
+      category: DocCategory.workflows,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'idea-lifecycle',
+      title: 'Idea Lifecycle',
+      description:
+          'Complete lifecycle of an innovation idea from submission through Ideathon assignment, Ideathon evaluation, prototype selection and winner declaration.',
+      icon: AppIcons.ideas,
+      lastUpdated: DateTime(2026, 8, 9),
+      readingMinutes: 6,
+      heroImageAsset: DocsAssetPaths.ideaLifecycle,
+      searchKeywords: IdeaLifecycleSections.searchCorpus,
+      category: DocCategory.workflows,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'evaluation-lifecycle',
+      title: 'Evaluation Workflow',
+      description: 'Assignments, scoring, and evaluation results.',
+      icon: AppIcons.scoring,
+      isPlaceholder: true,
+      category: DocCategory.workflows,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Evaluation Workflow',
+        description: 'Judge assignment, aggregation, and results.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'ideathon',
+      title: 'Ideathon',
+      description: 'Ideathon assignment, evaluation, and prototype selection.',
+      icon: AppIcons.ideathons,
+      isPlaceholder: true,
+      category: DocCategory.workflows,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Ideathon',
+        description: 'Ideathon assignment, evaluation, and prototype selection.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'hackathon',
+      title: 'Hackathon',
+      description: 'Hackathon operating model (planned).',
+      icon: AppIcons.insights,
+      isPlaceholder: true,
+      category: DocCategory.workflows,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Hackathon',
+        description: 'Future Hackathon documentation will land here.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'innovation-submission',
+      title: 'Innovation Submission',
+      description: 'How Team Leaders submit innovations against Active problems.',
+      icon: AppIcons.ideas,
+      isPlaceholder: true,
+      category: DocCategory.workflows,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Innovation Submission',
+        description: 'Team Leader innovation submission workspace guide (coming soon).',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'payment-verification',
+      title: 'Payment Verification',
+      description: 'Coordinator payment verification for submitted ideas.',
+      icon: AppIcons.payments,
+      isPlaceholder: true,
+      category: DocCategory.workflows,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Payment Verification',
+        description: 'Payment verification and operational readiness (coming soon).',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'roles-responsibilities',
+      title: 'Roles & Responsibilities',
+      description:
+          'Understand the responsibilities, permissions and ownership of every Hackz user role across the complete innovation lifecycle.',
+      icon: AppIcons.users,
+      lastUpdated: DateTime(2026, 7, 30),
+      readingMinutes: 5,
+      heroImageAsset: DocsAssetPaths.rolesResponsibilities,
+      searchKeywords: RolesResponsibilitiesSections.searchCorpus,
+      category: DocCategory.reference,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'csv-import',
+      title: 'CSV Import',
+      description: 'Users, problems, and team registration import pipelines.',
+      icon: AppIcons.submissions,
+      isPlaceholder: true,
+      category: DocCategory.reference,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'CSV Import',
+        description: 'Templates, validation, and CSV import for users, problems, and team registration.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'faq',
+      title: 'FAQ',
+      description: 'Frequently asked questions about Hackz.',
+      icon: AppIcons.info,
+      isPlaceholder: true,
+      category: DocCategory.reference,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'FAQ',
+        description: 'Cross-cutting frequently asked questions will land here.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'ai-analysis',
+      title: 'AI Analysis',
+      description:
+          'Configure your organisation\'s originality provider, run idea analysis, and use capability-driven results in Idea Details and Judge Evaluation.',
+      icon: Icons.psychology_outlined,
+      lastUpdated: DateTime(2026, 9, 19),
+      readingMinutes: 12,
+      heroImageAsset: DocsAssetPaths.aiAnalysisWorkflow,
+      searchKeywords: AiAnalysisSetupSections.searchCorpus,
+      category: DocCategory.administration,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'tenant-onboarding',
+      title: 'Tenant Onboarding',
+      description:
+          'Complete Firebase setup guide for registering a new organisation as an isolated Hackz tenant — from Blaze and Storage rules through provisioning and real OTP login.',
+      icon: AppIcons.verification,
+      lastUpdated: DateTime(2026, 9, 17),
+      readingMinutes: 35,
+      heroImageAsset: DocsAssetPaths.tenantOnboardingPhase1,
+      searchKeywords: TenantOnboardingSections.searchCorpus,
+      category: DocCategory.administration,
+      adminOnly: true,
+      builder: (_) => const SizedBox.shrink(),
+    ),
+    DocPageDefinition(
+      id: 'org-settings',
+      title: 'Organization Settings',
+      description: 'Org configuration and evaluation settings.',
+      icon: AppIcons.orgSettings,
+      isPlaceholder: true,
+      category: DocCategory.administration,
+      adminOnly: true,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Organization Settings',
+        description: 'Evaluation configuration, team rules, and session cache lifecycle.',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'domain-management',
+      title: 'Domain Management',
+      description: 'Department → Domain hierarchy for problem classification.',
+      icon: AppIcons.domains,
+      isPlaceholder: true,
+      category: DocCategory.administration,
+      adminOnly: true,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'Domain Management',
+        description: 'Create and manage domains under departments (coming soon).',
+      ),
+    ),
+    DocPageDefinition(
+      id: 'user-management',
+      title: 'User Management',
+      description: 'Manage organization and department users.',
+      icon: AppIcons.users,
+      isPlaceholder: true,
+      category: DocCategory.administration,
+      adminOnly: true,
+      builder: (_) => const PlaceholderDocPage(
+        title: 'User Management',
+        description: 'Invite, import, and manage users (coming soon).',
+      ),
+    ),
+  ];
+
+  /// Recommended page ids per role (shortcuts into [pages], no duplicates).
+  static List<String> recommendedIdsFor(UserRole role) {
+    return switch (role) {
+      UserRole.sysAdmin => const <String>[
+          'tenant-onboarding',
+          'ai-analysis',
+          'platform-overview',
+          'org-settings',
+          'user-management',
+          'problem-lifecycle',
+          'roles-responsibilities',
+        ],
+      UserRole.collegeAdmin => const <String>[
+          'platform-overview',
+          'ai-analysis',
+          'org-settings',
+          'problem-lifecycle',
+          'csv-import',
+          'roles-responsibilities',
+        ],
+      UserRole.departmentAdmin => const <String>[
+          'platform-overview',
+          'problem-lifecycle',
+          'evaluation-lifecycle',
+          'csv-import',
+          'roles-responsibilities',
+        ],
+      UserRole.judge => const <String>[
+          'platform-overview',
+          'evaluation-lifecycle',
+          'idea-lifecycle',
+          'ai-analysis',
+          'roles-responsibilities',
+        ],
+      UserRole.coordinator => const <String>[
+          'platform-overview',
+          'evaluation-lifecycle',
+          'idea-lifecycle',
+          'payment-verification',
+          'csv-import',
+          'roles-responsibilities',
+        ],
+      UserRole.teamMember => const <String>[
+          'platform-overview',
+          'idea-lifecycle',
+          'roles-responsibilities',
+          'problem-lifecycle',
+        ],
+      UserRole.orgAdmin => const <String>[
+          'platform-overview',
+          'ai-analysis',
+          'roles-responsibilities',
+        ],
+    };
+  }
+
+  static List<DocPageDefinition> visiblePagesFor(UserRole? role) {
+    if (role == null) {
+      return pages.where((DocPageDefinition p) => !p.adminOnly).toList(growable: false);
+    }
+    return pages.where((DocPageDefinition p) => p.isVisibleTo(role)).toList(growable: false);
+  }
+
+  static List<DocPageDefinition> recommendedPagesFor(UserRole role) {
+    final List<DocPageDefinition> visible = visiblePagesFor(role);
+    final Map<String, DocPageDefinition> byId = <String, DocPageDefinition>{
+      for (final DocPageDefinition p in visible) p.id: p,
+    };
+    return recommendedIdsFor(role)
+        .map((String id) => byId[id])
+        .whereType<DocPageDefinition>()
+        .toList(growable: false);
+  }
+
+  static List<(DocCategory, List<DocPageDefinition>)> groupedVisiblePages(UserRole? role) {
+    final List<DocPageDefinition> visible = visiblePagesFor(role);
+    final List<(DocCategory, List<DocPageDefinition>)> out =
+        <(DocCategory, List<DocPageDefinition>)>[];
+    for (final DocCategory cat in DocCategory.values) {
+      final List<DocPageDefinition> group =
+          visible.where((DocPageDefinition p) => p.category == cat).toList(growable: false);
+      if (group.isEmpty) continue;
+      out.add((cat, group));
+    }
+    return out;
+  }
+
+  static DocPageDefinition byId(String id) {
+    if (id == helpHomeId) return helpHomePage;
+    return pages.firstWhere(
+      (DocPageDefinition p) => p.id == id,
+      orElse: () => helpHomePage,
+    );
+  }
+
+  static int indexOf(String id, {List<DocPageDefinition>? among}) {
+    final List<DocPageDefinition> list = among ?? pages;
+    return list.indexWhere((DocPageDefinition p) => p.id == id);
+  }
+
+  static DocPageDefinition? previousOf(String id, {List<DocPageDefinition>? among}) {
+    final List<DocPageDefinition> list = among ?? pages;
+    final int i = indexOf(id, among: list);
+    if (i <= 0) return null;
+    return list[i - 1];
+  }
+
+  static DocPageDefinition? nextOf(String id, {List<DocPageDefinition>? among}) {
+    final List<DocPageDefinition> list = among ?? pages;
+    final int i = indexOf(id, among: list);
+    if (i < 0 || i >= list.length - 1) return null;
+    return list[i + 1];
+  }
+
+  static List<DocSectionSpec> sectionsFor(String id) {
+    if (id == helpHomeId) return const <DocSectionSpec>[];
+    if (id == 'platform-overview') return PlatformOverviewSections.all;
+    if (id == 'innovation-to-startup') return InnovationToStartupSections.all;
+    if (id == 'smart-india-hackathon') return SmartIndiaHackathonSections.all;
+    if (id == 'problem-lifecycle') return ProblemLifecycleSections.all;
+    if (id == 'idea-lifecycle') return IdeaLifecycleSections.all;
+    if (id == 'roles-responsibilities') return RolesResponsibilitiesSections.all;
+    if (id == 'tenant-onboarding') return TenantOnboardingSections.all;
+    if (id == 'ai-analysis') return AiAnalysisSetupSections.all;
+    return const <DocSectionSpec>[
+      DocSectionSpec(id: 'overview', title: 'Overview'),
+    ];
+  }
+
+  /// Maps dashboard menu labels / workspace contexts to Help page ids.
+  static String? helpPageForContext(String contextKey) {
+    final String key = contextKey.trim().toLowerCase();
+    return switch (key) {
+      'getting started' || 'platform overview' || 'hackz platform overview' || 'overview' =>
+        'platform-overview',
+      'problem statements' || 'problem workspace' || 'problem details' || 'problems' =>
+        'problem-lifecycle',
+      'ideas dashboard' || 'idea workspace' || 'idea details' || 'innovation submission' || 'my ideas' || 'ideas' =>
+        'idea-lifecycle',
+      'my teams' => 'idea-lifecycle',
+      'problem import' || 'csv import' || 'import' => 'csv-import',
+      'evaluation results' ||
+      'evaluation assignment' ||
+      'judge dashboard' ||
+      'judges panel' =>
+        'evaluation-lifecycle',
+      'ideathons' || 'ideathon' || 'ideathon workspace' || 'events' || 'event' => 'ideathon',
+      'hackathon' || 'hackathon workspace' => 'hackathon',
+      'org settings' || 'organization settings' => 'org-settings',
+      'domains' || 'domain management' => 'domain-management',
+      'manage college' || 'manage department' || 'user management' || 'organizations' || 'organisations' || 'people & teams' =>
+        'user-management',
+      'tenants' || 'register tenant' || 'tenant onboarding' || 'workspace' =>
+        'tenant-onboarding',
+      'payments' || 'payment verification' => 'payment-verification',
+      'ai analysis' || 'ai analysis providers' || 'originality analysis' => 'ai-analysis',
+      'roles' || 'roles & responsibilities' => 'roles-responsibilities',
+      'innovation to startup' || 'startup program' => 'innovation-to-startup',
+      'smart india hackathon' || 'sih' => 'smart-india-hackathon',
+      _ => null,
+    };
+  }
+}

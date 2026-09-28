@@ -1,0 +1,156 @@
+import { getAuth } from 'firebase-admin/auth';
+import {
+  EVENT_ENTITLEMENT_STATUS_PENDING,
+  EVENT_PAYMENT_STATUS_PENDING,
+  eventEntitlementDocId,
+  isEventCommercialPaymentReceived,
+  readEntitlementStatus,
+} from './event-entitlement.js';
+import { isPermissionDenied, ProvisionError } from './errors.js';
+import {
+  controlPlaneApp,
+  controlPlaneFirestore,
+  tenantApp,
+  tenantAuth,
+  tenantFirestore,
+} from './firebase-apps.js';
+import { alignTenantCommercialAccess } from './event-payment-readiness.js';
+import { assertOrganisationIsPerEvent } from './organisation-plan.js';
+import {
+  firestoreUserLookup,
+  loadTenantUserProfile,
+  profileHasRole,
+  profileOrganisationId,
+} from './tenant-operator.js';
+import { resolveActiveTenantByOrganisationId } from './tenant-registry.js';
+import {
+  COLLEGE_ADMIN_ROLE,
+  COORDINATOR_ROLE,
+  DEPARTMENT_ADMIN_ROLE,
+  HKZ_EVENT_ENTITLEMENTS,
+  HKZ_USERS,
+} from './types.js';
+
+export type SyncEventPaymentReadinessResult = {
+  ok: true;
+  entitlementId: string;
+  organisationId: string;
+  eventId: string;
+  paymentStatus: string;
+  lumpSumVerified: boolean;
+  ideaPaymentCount: number;
+  ideaPaymentsVerified: number;
+  ready: boolean;
+};
+
+async function assertSysAdminOrTenantOperator(idToken: string, organisationId: string): Promise<void> {
+  if (idToken.trim().length === 0) {
+    throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
+  }
+
+  try {
+    const decoded = await getAuth(controlPlaneApp()).verifyIdToken(idToken);
+    const profile = await controlPlaneFirestore().collection(HKZ_USERS).doc(decoded.uid).get();
+    const data = profile.data() ?? {};
+    if (profileHasRole(data, 'SADM')) return;
+    const phone = String(decoded.phone_number ?? '').trim();
+    if (phone.length > 0) {
+      const whitelist = await controlPlaneFirestore()
+        .collection('hkzSysAdminWhitelist')
+        .where('phone', '==', phone)
+        .where('isActive', '==', true)
+        .limit(1)
+        .get();
+      if (!whitelist.empty) return;
+    }
+  } catch {
+    // Tenant operators use tenant Auth, not Control Plane Auth.
+  }
+
+  const tenant = await resolveActiveTenantByOrganisationId(organisationId);
+  const app = tenantApp(tenant.tenantId, tenant.firebaseProjectId);
+  let decoded;
+  try {
+    decoded = await tenantAuth(app).verifyIdToken(idToken);
+  } catch {
+    throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
+  }
+
+  let data;
+  try {
+    data = await loadTenantUserProfile(firestoreUserLookup(tenantFirestore(app)), decoded);
+  } catch (error) {
+    throw new ProvisionError(
+      'PROVISIONING_NOT_AUTHORIZED',
+      isPermissionDenied(error)
+        ? 'The college must authorize the Hackz provisioning identity, then Validate authorization.'
+        : 'Unable to read the tenant user profile.',
+    );
+  }
+  const allowed =
+    profileHasRole(data, DEPARTMENT_ADMIN_ROLE) ||
+    profileHasRole(data, COLLEGE_ADMIN_ROLE) ||
+    profileHasRole(data, COORDINATOR_ROLE);
+  if (!allowed || profileOrganisationId(data) !== organisationId) {
+    throw new ProvisionError('UNAUTHORIZED', 'Sign in to update event payment readiness.');
+  }
+}
+
+export async function syncEventPaymentReadiness(input: {
+  idToken: string;
+  organisationId: string;
+  eventId: string;
+}): Promise<SyncEventPaymentReadinessResult> {
+  const organisationId = input.organisationId.trim();
+  const eventId = input.eventId.trim();
+  if (organisationId.length === 0 || eventId.length === 0) {
+    throw new ProvisionError('INVALID_INPUT', 'organisationId and eventId are required.');
+  }
+  await assertSysAdminOrTenantOperator(input.idToken, organisationId);
+  await assertOrganisationIsPerEvent(organisationId);
+
+  const entitlementId = eventEntitlementDocId(organisationId, eventId);
+  const ref = controlPlaneFirestore().collection(HKZ_EVENT_ENTITLEMENTS).doc(entitlementId);
+  let existing;
+  try {
+    existing = await ref.get();
+  } catch (error) {
+    throw new ProvisionError(
+      'CONTROL_PLANE_UNAVAILABLE',
+      isPermissionDenied(error)
+        ? 'The provisioning identity cannot read Control Plane event entitlements.'
+        : 'Unable to read Control Plane event entitlements.',
+    );
+  }
+  if (!existing.exists) {
+    throw new ProvisionError('INVALID_INPUT', 'Event entitlement was not found.');
+  }
+
+  const data = existing.data() ?? {};
+  const paymentStatus = String(data.paymentStatus ?? EVENT_PAYMENT_STATUS_PENDING).trim();
+  const ready = isEventCommercialPaymentReceived(paymentStatus);
+
+  if (readEntitlementStatus(data) === EVENT_ENTITLEMENT_STATUS_PENDING) {
+    try {
+      await alignTenantCommercialAccess({
+        organisationId,
+        eventId,
+        licensingStatus: EVENT_ENTITLEMENT_STATUS_PENDING,
+      });
+    } catch {
+      // Tenant align is best-effort. Event commercial payment stays on Control Plane.
+    }
+  }
+
+  return {
+    ok: true,
+    entitlementId,
+    organisationId,
+    eventId,
+    paymentStatus,
+    lumpSumVerified: false,
+    ideaPaymentCount: 0,
+    ideaPaymentsVerified: 0,
+    ready,
+  };
+}

@@ -1,0 +1,14 @@
+{
+  "type": "projectTeam",
+  "title": "Project Team",
+  "members": [
+    {
+      "name": "Vinay T",
+      "designation": "Founder & Chief Product Architect"
+    },
+    {
+      "name": "Sivarama Krishna Maladi",
+      "designation": "Product Advisor"
+    }
+  ]
+}

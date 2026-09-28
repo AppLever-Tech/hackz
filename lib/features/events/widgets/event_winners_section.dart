@@ -1,0 +1,256 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/ui/common/context_pill.dart';
+import '../../../core/ui/common/context_pill_theme.dart';
+import '../../../features/dashboard/chrome/dashboard_components.dart';
+import '../models/event_place_config.dart';
+import '../models/event_winner_entry.dart';
+
+/// Ranked places presentation reused by Ideathon and future Hackathon.
+class EventWinnersSection extends StatelessWidget {
+  const EventWinnersSection({
+    super.key,
+    required this.entries,
+    required this.onOpenIdea,
+    required this.onOpenTeam,
+    this.emptyMessage = 'Official places appear after Department Admin selects them.',
+    this.onOpenProblem,
+    this.shrinkWrap = false,
+  });
+
+  final List<EventWinnerEntry> entries;
+  final ValueChanged<EventWinnerEntry> onOpenIdea;
+  final ValueChanged<EventWinnerEntry> onOpenTeam;
+  final ValueChanged<EventWinnerEntry>? onOpenProblem;
+  final String emptyMessage;
+  final bool shrinkWrap;
+
+  EventWinnerEntry? _entryForRank(int rank) {
+    for (final EventWinnerEntry entry in entries) {
+      if (entry.rank == rank) return entry;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool anySelected = entries.any((EventWinnerEntry e) => e.ideaId.trim().isNotEmpty);
+    if (!anySelected) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            emptyMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      children: <Widget>[
+        for (final EventPlaceRank place in EventPlacePresentation.podium) ...<Widget>[
+          _PlaceCard(
+            place: place,
+            entry: _entryForRank(place.rank),
+            onOpenIdea: onOpenIdea,
+            onOpenTeam: onOpenTeam,
+            onOpenProblem: onOpenProblem,
+          ),
+          if (place != EventPlaceRank.third) const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
+class _PlaceCard extends StatelessWidget {
+  const _PlaceCard({
+    required this.place,
+    required this.entry,
+    required this.onOpenIdea,
+    required this.onOpenTeam,
+    this.onOpenProblem,
+  });
+
+  final EventPlaceRank place;
+  final EventWinnerEntry? entry;
+  final ValueChanged<EventWinnerEntry> onOpenIdea;
+  final ValueChanged<EventWinnerEntry> onOpenTeam;
+  final ValueChanged<EventWinnerEntry>? onOpenProblem;
+
+  @override
+  Widget build(BuildContext context) {
+    final String placeLabel = EventPlacePresentation.cardTitle(place);
+    final IconData icon = EventPlacePresentation.medalIcon(place);
+    final Color accent = EventPlacePresentation.medalAccent(place);
+
+    if (entry == null || entry!.ideaId.trim().isEmpty) {
+      return _EmptyPlaceCard(
+        placeLabel: placeLabel,
+        icon: icon,
+        accent: accent,
+        message: EventPlacePresentation.emptyPlaceMessage(place),
+      );
+    }
+
+    return _WinnerCard(
+      entry: entry!,
+      placeLabel: placeLabel,
+      icon: icon,
+      accent: accent,
+      onOpenIdea: onOpenIdea,
+      onOpenTeam: onOpenTeam,
+      onOpenProblem: onOpenProblem,
+    );
+  }
+}
+
+class _EmptyPlaceCard extends StatelessWidget {
+  const _EmptyPlaceCard({
+    required this.placeLabel,
+    required this.icon,
+    required this.accent,
+    required this.message,
+  });
+
+  final String placeLabel;
+  final IconData icon;
+  final Color accent;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: kDashboardCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(icon, size: 22, color: accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  placeLabel,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accent),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WinnerCard extends StatelessWidget {
+  const _WinnerCard({
+    required this.entry,
+    required this.placeLabel,
+    required this.icon,
+    required this.accent,
+    required this.onOpenIdea,
+    required this.onOpenTeam,
+    this.onOpenProblem,
+  });
+
+  final EventWinnerEntry entry;
+  final String placeLabel;
+  final IconData icon;
+  final Color accent;
+  final ValueChanged<EventWinnerEntry> onOpenIdea;
+  final ValueChanged<EventWinnerEntry> onOpenTeam;
+  final ValueChanged<EventWinnerEntry>? onOpenProblem;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: kDashboardCardDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(icon, size: 22, color: accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  placeLabel,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accent),
+                ),
+              ),
+              Text(
+                'Score',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: accent.withValues(alpha: 0.9)),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                entry.scoreLabel,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.4,
+                  height: 1,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              ContextPill(
+                label: entry.ideaTitle,
+                semantic: ContextPillSemantic.idea,
+                onTap: () => onOpenIdea(entry),
+                compact: true,
+                fitContent: true,
+              ),
+              if (entry.teamName.trim().isNotEmpty)
+                ContextPill(
+                  label: entry.teamName,
+                  semantic: ContextPillSemantic.team,
+                  onTap: () => onOpenTeam(entry),
+                  enabled: entry.teamId.trim().isNotEmpty,
+                  compact: true,
+                  fitContent: true,
+                ),
+              if (entry.problemTitle.trim().isNotEmpty)
+                ContextPill(
+                  label: entry.problemTitle,
+                  semantic: ContextPillSemantic.problem,
+                  onTap: () => onOpenProblem?.call(entry),
+                  enabled: onOpenProblem != null && entry.problemId.trim().isNotEmpty,
+                  compact: true,
+                  fitContent: true,
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (entry.summary.trim().isNotEmpty)
+            Text(
+              entry.summary,
+              style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF475569)),
+            ),
+        ],
+      ),
+    );
+  }
+}

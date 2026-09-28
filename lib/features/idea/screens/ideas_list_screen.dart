@@ -1,0 +1,485 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:hackz/core/ui/loading/hkz_progress_indicator.dart';
+
+import '../../../core/theme/app_icons.dart';
+import '../models/idea_list_config.dart';
+import '../services/idea_status_helpers.dart';
+import 'package:hackz/features/idea/models/idea_model.dart';
+import '../../user/models/user_model.dart';
+import '../services/idea_query_service.dart';
+import '../exports/ideas_export_provider.dart';
+import '../../exports/exports.dart';
+import '../../user/services/role_visibility_helpers.dart';
+import '../../../core/ui/data_view/data_table_view.dart';
+import '../widgets/idea_table_columns.dart';
+import '../../../core/responsive/responsive_filter_bar.dart';
+import '../../../core/responsive/responsive_helper.dart';
+import '../../../core/ui/filters/hackz_filter_pane.dart';
+import '../../../core/ui/inputs/hackz_select_field.dart';
+import '../widgets/idea_metrics_row.dart';
+import 'idea_details_pane.dart';
+import '../../../features/dashboard/chrome/empty_search_state.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import '../../payment/widgets/payment_dialog.dart';
+
+class IdeasListScreen extends StatefulWidget {
+  const IdeasListScreen({
+    super.key,
+    required this.currentUser,
+    required this.config,
+  });
+
+  final UserModel currentUser;
+  final IdeaListConfig config;
+
+  @override
+  State<IdeasListScreen> createState() => _IdeasListScreenState();
+}
+
+class _IdeasListScreenState extends State<IdeasListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
+
+  Future<IdeaListQueryResult>? _ideasFuture;
+  List<IdeaListItem> _lastLoaded = <IdeaListItem>[];
+  IdeaDepartmentMetrics _metrics = IdeaDepartmentMetrics.empty;
+  bool _canUploadPayment = false;
+
+  bool _showFilters = false;
+  Set<IdeaStatus> _statusFilters = <IdeaStatus>{};
+  Set<String> _problemFilters = <String>{};
+  Set<String> _departmentFilters = <String>{};
+  IdeaSortType _sort = IdeaSortType.newest;
+
+  @override
+  void initState() {
+    super.initState();
+    _sort = widget.config.enabledSorts.contains(IdeaSortType.newest)
+        ? IdeaSortType.newest
+        : widget.config.enabledSorts.first;
+    _canUploadPayment = widget.config.canUploadPayment;
+    _loadIdeas();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), _loadIdeas);
+  }
+
+  void _loadIdeas() {
+    setState(() {
+      _ideasFuture = IdeaQueryService.fetchIdeas(
+        IdeaQueryParams(
+          config: widget.config,
+          search: _searchController.text,
+          sortType: _sort,
+          statusFilters: _statusFilters,
+          problemFilters: _problemFilters,
+          departmentFilters: _departmentFilters,
+          viewer: widget.currentUser,
+        ),
+      );
+    });
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _statusFilters = <IdeaStatus>{};
+      _problemFilters = <String>{};
+      _departmentFilters = <String>{};
+    });
+    _loadIdeas();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.config.canViewIdeas) {
+      return const Center(
+        child: Text('Ideas are not available for your role.'),
+      );
+    }
+    return FutureBuilder<IdeaListQueryResult>(
+      future: _ideasFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && _lastLoaded.isEmpty) {
+          return const Center(child: HkzProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text('Unable to load ideas: ${snapshot.error}');
+        }
+        final IdeaListQueryResult result = snapshot.data ??
+            IdeaListQueryResult(
+              items: _lastLoaded,
+              metrics: _metrics,
+              canUploadPayment: _canUploadPayment,
+            );
+        final ideas = result.items;
+        _lastLoaded = ideas;
+        _metrics = result.metrics;
+        _canUploadPayment = result.canUploadPayment;
+        final IdeaListConfig listConfig = widget.config.copyWith(canUploadPayment: _canUploadPayment);
+        final availableProblems = <String, String>{
+          for (final item in ideas)
+            if (item.idea.problemId.isNotEmpty)
+              item.idea.problemId: item.idea.problemTitle.isEmpty
+                  ? item.idea.problemId
+                  : '${item.idea.problemNumber.isEmpty ? '' : '${item.idea.problemNumber} - '}${item.idea.problemTitle}',
+        };
+        final availableDepartments = ideas
+            .map((e) => e.idea.teamDepartmentCode)
+            .where((e) => e.trim().isNotEmpty)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+
+        final IdeaTableActions tableActions = _ideaTableActions();
+        final List<IdeaListItem> displayItems = ideas;
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final hasBoundedHeight = constraints.hasBoundedHeight && constraints.maxHeight.isFinite;
+            final bool mobile = ResponsiveHelper.isMobile(context);
+
+            final Widget header = _buildListHeader(
+              context: context,
+              maxWidth: constraints.maxWidth,
+              availableProblems: availableProblems,
+              availableDepartments: availableDepartments,
+            );
+
+            final Widget contentWidget = displayItems.isEmpty
+                ? EmptySearchState.ideas(
+                    onClearSearch: () {
+                      if (_searchController.text.trim().isEmpty) return;
+                      _searchController.clear();
+                      _loadIdeas();
+                    },
+                  )
+                : mobile
+                    ? ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        itemCount: displayItems.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (BuildContext context, int index) {
+                          return IdeaListRowCard(
+                            item: displayItems[index],
+                            config: listConfig,
+                            actions: tableActions,
+                          );
+                        },
+                      )
+                    : DataTableView<IdeaListItem>(
+                        items: displayItems,
+                        columns: IdeaTableColumns.build(
+                          config: listConfig,
+                          actions: tableActions,
+                        ),
+                        onSort: _onTableSort,
+                        activeSortKey: _activeSortKey,
+                      );
+
+            if (!hasBoundedHeight) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  SizedBox(height: 420, child: contentWidget),
+                ],
+              );
+            }
+
+            if (mobile) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  header,
+                  Expanded(child: contentWidget),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                header,
+                Expanded(child: contentWidget),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _openIdeaDetails(IdeaListItem item) {
+    showIdeaDetailsPane(context, ideaId: item.idea.ideaId);
+  }
+
+  Future<void> _openUploadPayment(IdeaListItem item) async {
+    final team = item.team;
+    if (team == null) return;
+    final bool? ok = await showPaymentDialog(
+      context: context,
+      currentUser: widget.currentUser,
+      idea: item.idea,
+      team: team,
+    );
+    if (ok == true && mounted) _loadIdeas();
+  }
+
+  IdeaTableActions _ideaTableActions() {
+    return IdeaTableActions(
+      onOpenIdea: _openIdeaDetails,
+      onOpenTeam: (IdeaListItem item) {
+        final String teamId = (item.team?.teamId ?? item.idea.teamId).trim();
+        if (teamId.isEmpty) return;
+        WorkspaceNavigator.openTeam(context, teamId, actor: widget.currentUser);
+      },
+      onOpenProblem: (IdeaListItem item) {
+        final String problemId = item.idea.problemId.trim();
+        if (problemId.isEmpty) return;
+        WorkspaceNavigator.openProblem(context, problemId, actor: widget.currentUser);
+      },
+      onOpenEvent: (IdeaListItem item, String eventId) {
+        final String id = eventId.trim();
+        if (id.isEmpty) return;
+        WorkspaceNavigator.openIdeathon(context, id, actor: widget.currentUser);
+      },
+      onUploadPayment: _canUploadPayment ? _openUploadPayment : null,
+    );
+  }
+
+  /// `_sort` is the single source of truth — table headers mutate it here.
+  String? get _activeSortKey {
+    switch (_sort) {
+      case IdeaSortType.newest:
+      case IdeaSortType.oldest:
+        return 'newest';
+      case IdeaSortType.status:
+        return null;
+    }
+  }
+
+  void _onTableSort(String sortKey) {
+    if (sortKey != 'newest') return;
+    final IdeaSortType next =
+        _sort == IdeaSortType.newest ? IdeaSortType.oldest : IdeaSortType.newest;
+    if (!widget.config.enabledSorts.contains(next)) return;
+    if (next == _sort) return;
+    setState(() => _sort = next);
+    _loadIdeas();
+  }
+
+  Widget _buildListHeader({
+    required BuildContext context,
+    required double maxWidth,
+    required Map<String, String> availableProblems,
+    required List<String> availableDepartments,
+  }) {
+    final bool compact = ResponsiveHelper.isMobile(context);
+
+    final Widget metrics = IdeaMetricsRow(metrics: _metrics, spacing: compact ? 8 : 10, runSpacing: compact ? 8 : 10);
+    final Widget searchBar = ResponsiveSearchFilterBar(
+      searchController: _searchController,
+      searchHint: 'Search by idea title, problem, or description',
+      filtersExpanded: _showFilters,
+      onToggleFilters: () => setState(() => _showFilters = !_showFilters),
+      onSearchSubmitted: _loadIdeas,
+      iconOnlyFilterOnMobile: true,
+      leading: compact ? const <Widget>[] : <Widget>[_buildDownloadButton(labeled: true)],
+      trailing: compact ? <Widget>[_buildDownloadButton(labeled: false)] : const <Widget>[],
+    );
+    final Widget filters = AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: _buildFiltersPanel(
+        context: context,
+        availableProblems: availableProblems,
+        availableDepartments: availableDepartments,
+      ),
+      crossFadeState: _showFilters ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 220),
+    );
+    final Widget? activeFilters = _hasAnyActiveFilter ? _buildActiveFiltersRow(availableProblems) : null;
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          metrics,
+          const SizedBox(height: 8),
+          searchBar,
+          const SizedBox(height: 6),
+          filters,
+          if (activeFilters != null) ...<Widget>[
+            const SizedBox(height: 6),
+            activeFilters,
+          ],
+          const SizedBox(height: 6),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        metrics,
+        const SizedBox(height: 12),
+        searchBar,
+        const SizedBox(height: 12),
+        filters,
+        if (activeFilters != null) ...<Widget>[
+          const SizedBox(height: 12),
+          activeFilters,
+        ],
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButton({required bool labeled}) {
+    return ExportDownloadButton(
+      labeled: labeled,
+      provider: IdeasExportProvider(items: _lastLoaded),
+      requestFor: (ExportFormat format) => ExportRequest(
+        module: ExportModule.ideas,
+        format: format,
+        actor: widget.currentUser,
+      ),
+    );
+  }
+
+  Widget _buildFiltersPanel({
+    required BuildContext context,
+    required Map<String, String> availableProblems,
+    required List<String> availableDepartments,
+  }) {
+    const String allProblemsValue = '';
+    return HackzFilterPane(
+      onClearAll: _clearAllFilters,
+      onApply: _loadIdeas,
+      sections: <Widget>[
+        if (widget.config.enabledFilters.contains(IdeaFilterType.status))
+          HackzFilterSection.chips(
+            icon: AppIcons.filter,
+            label: 'Status',
+            chips: IdeaStatus.values
+                .map(
+                  (status) => HackzFilterChips.toggle(
+                    icon: _statusIcon(status),
+                    label: _statusLabel(status),
+                    selected: _statusFilters.contains(status),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _statusFilters.add(status);
+                        } else {
+                          _statusFilters.remove(status);
+                        }
+                      });
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        if (widget.config.enabledFilters.contains(IdeaFilterType.problem))
+          HackzFilterSection(
+            icon: AppIcons.problems,
+            label: 'Problem',
+            child: HackzSelectField<String>(
+              value: _problemFilters.length == 1 ? _problemFilters.first : allProblemsValue,
+              compact: true,
+              hint: 'All problems',
+              options: <String>[allProblemsValue, ...availableProblems.keys],
+              labelBuilder: (String id) =>
+                  id.isEmpty ? 'All problems' : (availableProblems[id] ?? id),
+              iconBuilder: (_) => AppIcons.problems,
+              onChanged: (String value) => setState(() {
+                _problemFilters = value.isEmpty ? <String>{} : <String>{value};
+              }),
+            ),
+          ),
+        if (widget.config.enabledFilters.contains(IdeaFilterType.department) &&
+            widget.config.ideaDepartmentScope == IdeaDepartmentScope.none)
+          HackzFilterSection.chips(
+            icon: AppIcons.departments,
+            label: 'Department',
+            chips: availableDepartments
+                .map(
+                  (d) => HackzFilterChips.toggle(
+                    icon: AppIcons.departments,
+                    label: d,
+                    selected: _departmentFilters.contains(d),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _departmentFilters.add(d);
+                        } else {
+                          _departmentFilters.remove(d);
+                        }
+                      });
+                    },
+                  ),
+                )
+                .toList(growable: false),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActiveFiltersRow(Map<String, String> problems) {
+    return HackzActiveFiltersRow(
+      chips: <Widget>[
+        ..._statusFilters.map(
+          (status) => HackzFilterChips.applied(
+            icon: _statusIcon(status),
+            label: _statusLabel(status),
+            onDeleted: () {
+              setState(() => _statusFilters.remove(status));
+              _loadIdeas();
+            },
+          ),
+        ),
+        ..._problemFilters.map(
+          (problemId) => HackzFilterChips.applied(
+            icon: AppIcons.problems,
+            label: problems[problemId] ?? problemId,
+            onDeleted: () {
+              setState(() => _problemFilters.remove(problemId));
+              _loadIdeas();
+            },
+          ),
+        ),
+        ..._departmentFilters.map(
+          (dep) => HackzFilterChips.applied(
+            icon: AppIcons.departments,
+            label: dep,
+            onDeleted: () {
+              setState(() => _departmentFilters.remove(dep));
+              _loadIdeas();
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _statusIcon(IdeaStatus status) => IdeaStatusHelpers.icon(status);
+
+  String _statusLabel(IdeaStatus status) => IdeaStatusHelpers.label(status);
+
+  bool get _hasAnyActiveFilter =>
+      _statusFilters.isNotEmpty || _problemFilters.isNotEmpty || _departmentFilters.isNotEmpty;
+}
+

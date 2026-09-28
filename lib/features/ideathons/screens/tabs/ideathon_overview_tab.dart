@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:hackz/core/responsive/responsive_helper.dart';
+import 'package:hackz/core/theme/app_icons.dart';
+import 'package:hackz/core/ui/common/context_pill_theme.dart';
+import 'package:hackz/core/workspace/workspace_navigator.dart';
+import 'package:hackz/features/events/widgets/event_detail_section.dart';
+import 'package:hackz/features/events/widgets/event_kind_pill.dart';
+import 'package:hackz/features/events/widgets/event_labeled_field.dart';
+import 'package:hackz/features/events/widgets/event_people_section.dart';
+import 'package:hackz/features/ideathons/models/ideathon_model.dart';
+import 'package:hackz/features/ideathons/services/ideathon_details_loader.dart';
+import 'package:hackz/features/ideathons/widgets/ideathon_event_lifecycle_section.dart';
+import 'package:hackz/features/organization/models/department_model.dart';
+import 'package:hackz/utils/common_helpers.dart';
+
+class IdeathonOverviewTab extends StatelessWidget {
+  const IdeathonOverviewTab({super.key, required this.vm});
+
+  final IdeathonDetailsViewModel vm;
+
+  static String departmentDisplay(IdeathonDetailsViewModel vm) {
+    final String fromLabel = vm.departmentLabel.trim();
+    if (fromLabel.isNotEmpty) return fromLabel;
+    final String fromWorkspace = vm.workspace.departmentName.trim();
+    if (fromWorkspace.isNotEmpty) return fromWorkspace;
+    return DepartmentModel.labelFor(vm.ideathon.departmentId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final IdeathonModel event = vm.ideathon;
+    final String department = departmentDisplay(vm);
+
+    final Widget detailsCard = EventDetailSection(
+      title: 'Details',
+      icon: event.eventKind.icon,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Text(
+                event.name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
+              ),
+              EventKindPill(kind: event.eventKind),
+            ],
+          ),
+          if (event.description.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: 6),
+            Text(
+              event.description.trim(),
+              style: const TextStyle(fontSize: 12, height: 1.4, color: Color(0xFF475569)),
+            ),
+          ],
+          const SizedBox(height: 12),
+          EventLabeledField(
+            label: event.scheduleType.isEvaluationEvent ? 'Period starts' : 'Starts',
+            value: formatDateTime(event.startDateTime.toLocal()),
+          ),
+          EventLabeledField(
+            label: event.scheduleType.isEvaluationEvent ? 'Period ends' : 'Ends',
+            value: formatDateTime(event.endDateTime.toLocal()),
+          ),
+          EventLabeledField(label: 'Schedule type', value: event.scheduleType.label),
+          EventLabeledField(
+            label: 'Organisation',
+            value: vm.organisationName.trim().isEmpty ? '—' : vm.organisationName.trim(),
+          ),
+          EventLabeledField(
+            label: 'Department',
+            value: department.trim().isEmpty ? '—' : department.trim(),
+            isLast: true,
+          ),
+          const SizedBox(height: 10),
+          EventLabeledPill(
+            label: 'Template',
+            pillLabel: vm.evaluationTemplateName.isEmpty ? event.evaluationTemplateId : vm.evaluationTemplateName,
+            semantic: ContextPillSemantic.evaluationTemplate,
+            onTap: () => WorkspaceNavigator.openEvaluationTemplate(context, event.evaluationTemplateId),
+            enabled: event.evaluationTemplateId.trim().isNotEmpty,
+            isLast: true,
+          ),
+        ],
+      ),
+    );
+
+    final Widget peopleCard = EventDetailSection(
+      title: 'People',
+      icon: AppIcons.users,
+      child: EventPeopleSection(judges: vm.judges, coordinators: vm.coordinators),
+    );
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 20),
+      children: <Widget>[
+        LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+            final bool stack = ResponsiveHelper.isMobile(context) || constraints.maxWidth < 900;
+            if (stack) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  detailsCard,
+                  const SizedBox(height: 10),
+                  peopleCard,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: detailsCard),
+                const SizedBox(width: 10),
+                Expanded(child: peopleCard),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        IdeathonEventLifecycleSection(vm: vm),
+      ],
+    );
+  }
+}

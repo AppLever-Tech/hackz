@@ -1,5 +1,5 @@
-import '../models/enums/organization_type.dart';
-import '../models/user_model.dart';
+import '../features/organization/models/enums/organization_type.dart';
+import '../features/user/models/user_model.dart';
 
 /// Normalize phone for Firestore lookups (E.164 style).
 String normalizePhoneE164(String raw) {
@@ -62,6 +62,23 @@ List<String> sortUserIdsByDisplayName(Iterable<String> userIds, Map<String, Stri
   return sorted;
 }
 
+/// Full English month names indexed `month - 1`, shared by the long-form and
+/// day-month-year display helpers below.
+const List<String> kMonthNames = <String>[
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 /// Long form: "Monday, January 5, 2026" (app shell / headers).
 String formatLongDisplayDate(DateTime date) {
   const weekdays = <String>[
@@ -73,21 +90,30 @@ String formatLongDisplayDate(DateTime date) {
     'Saturday',
     'Sunday',
   ];
-  const months = <String>[
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+  return '${weekdays[date.weekday - 1]}, ${kMonthNames[date.month - 1]} ${date.day}, ${date.year}';
+}
+
+/// Day-month-year format: "30 June 2026" — used for human-friendly deadlines
+/// and similar single-line dates where the time component would be noise.
+String formatDayMonthYear(DateTime date) {
+  return '${date.day} ${kMonthNames[date.month - 1]} ${date.year}';
+}
+
+/// Compact date for pills and chips (e.g. Jun 2, 2026).
+String formatShortDate(DateTime date) {
+  const List<String> months = <String>[
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-  return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+  final int monthIndex = date.month.clamp(1, 12) - 1;
+  return '${months[monthIndex]} ${date.day}, ${date.year}';
+}
+
+/// Compact clock time (e.g. 09:30).
+String formatShortTime(DateTime date) {
+  final String hh = date.hour.toString().padLeft(2, '0');
+  final String mm = date.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
 }
 
 /// Standard dashboard date-time format: dd/mm/yyyy hh:mm

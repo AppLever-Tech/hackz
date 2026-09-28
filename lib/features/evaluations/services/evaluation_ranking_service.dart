@@ -1,0 +1,197 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../utils/firestore_utils.dart';
+import '../../idea/models/idea_model.dart';
+import '../../problems/models/problem_model.dart';
+import 'evaluation_aggregation_service.dart';
+import 'package:hackz/core/firebase/hackz_firebase.dart';
+
+/// Rank calculation for evaluated ideas (average score DESC).
+abstract final class EvaluationRankingService {
+  EvaluationRankingService._();
+
+  static Future<void> persistRanks(List<EvaluationResultsRow> rows) async {
+    final WriteBatch batch = HackzFirebase.current.firestore.batch();
+    var count = 0;
+    for (final EvaluationResultsRow row in rows) {
+      if (row.rank <= 0) continue;
+      if (row.idea.evaluationRank == row.rank) continue;
+      batch.update(
+        HackzFirebase.current.firestore.collection(FirestoreUtils.hkzIdeas).doc(row.idea.ideaId),
+        <String, dynamic>{IdeaModel.fieldEvaluationRank: row.rank},
+      );
+      count++;
+      if (count >= 400) break;
+    }
+    if (count == 0) return;
+    await batch.commit();
+  }
+
+  static List<EvaluationResultsRow> buildRankedRows({
+    required List<IdeaModel> ideas,
+    required Map<String, ProblemModel> problems,
+  }) {
+    final List<IdeaModel> sortable = ideas
+        .where((IdeaModel i) => i.hasEvaluationAggregate && i.averageScore != null)
+        .toList(growable: true)
+      ..sort((IdeaModel a, IdeaModel b) {
+        final double av = a.averageScore ?? 0;
+        final double bv = b.averageScore ?? 0;
+        final int byScore = bv.compareTo(av);
+        if (byScore != 0) return byScore;
+        return a.ideaId.compareTo(b.ideaId);
+      });
+
+    final List<EvaluationResultsRow> rows = <EvaluationResultsRow>[];
+    for (int i = 0; i < sortable.length; i++) {
+      final IdeaModel idea = sortable[i];
+      final ProblemModel? problem = problems[idea.problemId];
+      rows.add(
+        EvaluationResultsRow(
+          rank: i + 1,
+          idea: idea,
+          problemTitle: (problem?.title ?? idea.problemTitle).trim().isEmpty
+              ? idea.problemId
+              : (problem?.title ?? idea.problemTitle).trim(),
+          category: (problem?.category ?? '').trim(),
+          aggregate: EvaluationAggregationService.fromIdeaFields(
+            averageScore: idea.averageScore,
+            highestScore: idea.highestScore,
+            lowestScore: idea.lowestScore,
+            totalEvaluators: idea.totalEvaluators,
+          ),
+          evaluationComplete: true,
+        ),
+      );
+    }
+
+    final Set<String> rankedIds = sortable.map((IdeaModel i) => i.ideaId).toSet();
+    for (final IdeaModel idea in ideas) {
+      if (rankedIds.contains(idea.ideaId)) continue;
+      final ProblemModel? problem = problems[idea.problemId];
+      rows.add(
+        EvaluationResultsRow(
+          rank: 0,
+          idea: idea,
+          problemTitle: (problem?.title ?? idea.problemTitle).trim().isEmpty
+              ? idea.problemId
+              : (problem?.title ?? idea.problemTitle).trim(),
+          category: (problem?.category ?? '').trim(),
+          aggregate: EvaluationAggregationService.fromIdeaFields(
+            averageScore: idea.averageScore,
+            highestScore: idea.highestScore,
+            lowestScore: idea.lowestScore,
+            totalEvaluators: idea.totalEvaluators,
+          ),
+          evaluationComplete: false,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  /// Builds rows from Ideathon-scoped aggregates (does not mutate Idea docs).
+  ///
+  /// Only [completeIdeaIds] receive a display order (rank). Incomplete ideas keep
+  /// submitted-score aggregates for progress visibility but are not presented as final.
+  static List<EvaluationResultsRow> buildRowsFromAggregates({
+    required List<IdeaModel> ideas,
+    required Map<String, ProblemModel> problems,
+    required Map<String, IdeaEvaluationAggregate> aggregatesByIdeaId,
+    required Set<String> completeIdeaIds,
+    Map<String, int> assignedJudgesByIdeaId = const <String, int>{},
+  }) {
+    final List<IdeaModel> complete = ideas
+        .where((IdeaModel i) => completeIdeaIds.contains(i.ideaId))
+        .toList(growable: true)
+      ..sort((IdeaModel a, IdeaModel b) {
+        final double av = aggregatesByIdeaId[a.ideaId]?.averageScore ?? 0;
+        final double bv = aggregatesByIdeaId[b.ideaId]?.averageScore ?? 0;
+        final int byScore = bv.compareTo(av);
+        if (byScore != 0) return byScore;
+        return a.ideaId.compareTo(b.ideaId);
+      });
+
+    final List<EvaluationResultsRow> rows = <EvaluationResultsRow>[];
+    for (int i = 0; i < complete.length; i++) {
+      final IdeaModel idea = complete[i];
+      rows.add(
+        _rowFromAggregate(
+          rank: i + 1,
+          idea: idea,
+          problem: problems[idea.problemId],
+          aggregate: aggregatesByIdeaId[idea.ideaId] ?? const IdeaEvaluationAggregate.empty(),
+          evaluationComplete: true,
+          assignedJudges: assignedJudgesByIdeaId[idea.ideaId] ?? 0,
+        ),
+      );
+    }
+
+    final Set<String> completeIds = complete.map((IdeaModel i) => i.ideaId).toSet();
+    for (final IdeaModel idea in ideas) {
+      if (completeIds.contains(idea.ideaId)) continue;
+      final IdeaEvaluationAggregate aggregate =
+          aggregatesByIdeaId[idea.ideaId] ?? const IdeaEvaluationAggregate.empty();
+      // Incomplete: show submitted scores for progress, never a final display rank.
+      rows.add(
+        _rowFromAggregate(
+          rank: 0,
+          idea: idea,
+          problem: problems[idea.problemId],
+          aggregate: aggregate,
+          evaluationComplete: false,
+          assignedJudges: assignedJudgesByIdeaId[idea.ideaId] ?? 0,
+        ),
+      );
+    }
+
+    return rows;
+  }
+
+  static EvaluationResultsRow _rowFromAggregate({
+    required int rank,
+    required IdeaModel idea,
+    required ProblemModel? problem,
+    required IdeaEvaluationAggregate aggregate,
+    required bool evaluationComplete,
+    required int assignedJudges,
+  }) {
+    return EvaluationResultsRow(
+      rank: rank,
+      idea: idea,
+      problemTitle: (problem?.title ?? idea.problemTitle).trim().isEmpty
+          ? idea.problemId
+          : (problem?.title ?? idea.problemTitle).trim(),
+      category: (problem?.category ?? '').trim(),
+      aggregate: aggregate,
+      evaluationComplete: evaluationComplete,
+      assignedJudges: assignedJudges,
+    );
+  }
+}
+
+/// One ranked row in the Evaluation Results workspace table.
+class EvaluationResultsRow {
+  const EvaluationResultsRow({
+    required this.rank,
+    required this.idea,
+    required this.problemTitle,
+    required this.category,
+    required this.aggregate,
+    this.evaluationComplete = true,
+    this.assignedJudges = 0,
+  });
+
+  final int rank;
+  final IdeaModel idea;
+  final String problemTitle;
+  final String category;
+  final IdeaEvaluationAggregate aggregate;
+
+  /// True when all assigned judges for the Ideathon have submitted (or pipeline aggregate exists).
+  final bool evaluationComplete;
+
+  /// Assigned judges for this idea in the current Ideathon (0 in pipeline mode).
+  final int assignedJudges;
+}
